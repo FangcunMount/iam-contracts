@@ -9,148 +9,234 @@ IAM（Identity & Access Management），是 User Service + Auth Service + AuthZ 
 ```mermaid
 
 flowchart LR
+  classDef svc fill:#eef,stroke:#446,stroke-width:1px;
+  classDef biz fill:#fefee0,stroke:#b9a,stroke-width:1px;
+  classDef infra fill:#f8f8f8,stroke:#999,stroke-width:1px;
+  classDef c fill:#fff,stroke:#666,stroke-width:1px;
+
   subgraph Clients[Clients]
     A1[WeChat 小程序]:::c
     A2[运营后台 Web]:::c
-    A3[第三方应用(可选)]:::c
+    A3[第三方应用]:::c
   end
 
-  subgraph Platform[IAM 平台层]
-    US[User Service\n(User/Account/ActorLink/PersonProfile)]:::svc
-    AS[Auth Service (AS)\n登录/签发JWT/Refresh/JWKS]:::svc
-    PDP[AuthZ Service (PDP)\nRBAC + 关系授权判定]:::svc
+  subgraph IAM[iam-platform（Monorepo 运行时边界）]
+    US[User Service<br/>User/Account/ActorLink/PersonProfile]:::svc
+    AS[Auth Service (AS)<br/>登录/JWT/Refresh/JWKS]:::svc
+    PDP[AuthZ Service (PDP)<br/>RBAC + 关系授权判定]:::svc
   end
 
   subgraph Biz[业务域服务]
-    B1[collection-server\n(量表测评)]:::biz
-    B2[hospital-server\n(互联网医院)]:::biz
-    B3[training-server\n(训练中心)]:::biz
+    B1[collection-server（量表测评）]:::biz
+    B2[hospital-server（互联网医院）]:::biz
+    B3[training-server（训练中心）]:::biz
   end
 
   subgraph Infra[共享基础设施]
-    MQ[(Event Bus\nRedis Stream/Kafka)]:::infra
+    MQ[(Event Bus / Redis Stream / Kafka)]:::infra
     KMS[(KMS/密钥管理)]:::infra
-    JWKS[(JWKS 公钥集\n/.well-known/jwks.json)]:::infra
+    JWKS[(JWKS 公钥集)]:::infra
     RDB[(MySQL)]:::infra
     RED[(Redis)]:::infra
     O11y[(日志/指标/链路)]:::infra
   end
 
-  A1-- OAuth2/OIDC 或 Wechat code -->AS
-  A2-- OAuth2/OIDC 授权码+PKCE -->AS
-  A3-- OAuth2 客户端凭据/授权码 -->AS
-  AS-- JWT Access/Refresh -->A1
-  AS-- JWKS 发布 -->JWKS
+  %% 客户端登录到 AS
+  A1 -- WeChat code / OAuth2+PKCE --> AS
+  A2 -- OAuth2+PKCE --> AS
+  A3 -- OAuth2（授权码/客户端凭据） --> AS
+  AS -- Access/Refresh(JWT) --> A1
 
-  B1-- Bearer JWT -->AS
-  B2-- Bearer JWT -->AS
-  B3-- Bearer JWT -->AS
+  %% 业务服务校验&鉴权
+  B1 -- Bearer JWT --> AS
+  B2 -- Bearer JWT --> AS
+  B3 -- Bearer JWT --> AS
 
-  B1-- 鉴权请求 -->PDP
-  B2-- 鉴权请求 -->PDP
-  B3-- 鉴权请求 -->PDP
+  B1 -- 鉴权请求 --> PDP
+  B2 -- 鉴权请求 --> PDP
+  B3 -- 鉴权请求 --> PDP
+  PDP -- 关系授权查询 --> US
 
-  PDP-- 关系授权查询 -->US
+  %% 存储与密钥
+  US --- RDB
+  PDP --- RDB
+  AS --- RDB
+  AS --- RED
+  PDP --- RED
+  AS --- KMS
+  AS --- JWKS
 
-  US--- RDB
-  PDP--- RDB
-  AS--- RDB
-  AS--- RED
-  PDP--- RED
+  %% 事件
+  US -- 发布事件 --> MQ
+  PDP -- 订阅失效事件 --> MQ
 
-  AS--- KMS
-  AS--- JWKS
-  US== 事件发布 ==MQ
-  PDP== 订阅失效 ==MQ
-
-  classDef svc fill:#eef,stroke:#446;
-  classDef biz fill:#efe,stroke:#393;
-  classDef infra fill:#f8f8f8,stroke:#999;
-  classDef c fill:#fff,stroke:#666;
 
 ```
 
-### 平台与业务的容器/组件视图
+### 模型服务设计（核心数据/关系）
 
 ```mermaid
-flowchart TB
-  subgraph Auth-Service[Auth Service]
-    AS1[Adapters\n- WeChatApp/MP webhook\n- QWechat\n- ESign\n- LocalPwd]:::cmp
-    AS2[Issuer\nJWT/Refresh 发行、旋转、黑名单]:::cmp
-    AS3[JWKS Provider\nkid轮换/公钥发布]:::cmp
-    AS4[Sessions & Device Risk]:::cmp
-    AS5[HTTP/gRPC API]:::cmp
-  end
 
-  subgraph User-Service[User Service]
-    US1[User 聚合]:::cmp
-    US2[Account 绑定]:::cmp
-    US3[User↔ActorLink\n(parent/guardian/doctor… + scope)]:::cmp
-    US4[PersonProfile(可选)]:::cmp
-    US5[HTTP/gRPC API]:::cmp
-  end
+classDiagram
+  class User {
+    +id: UUID
+    +status: int
+    +nickname: string
+    +avatar: string
+    +created_at: datetime
+    +updated_at: datetime
+  }
 
-  subgraph AuthZ-Service[PDP]
-    P1[RBAC: roles/user_roles\nrole_permissions 热加载]:::cmp
-    P2[Delegation: 调US的 HasDelegation]:::cmp
-    P3[Decision Engine\nAllow/AllowOnActor]:::cmp
-    P4[Cache(LRU+Redis)\n事件失效]:::cmp
-    P5[HTTP/gRPC API]:::cmp
-  end
+  class Account {
+    +id: bigint
+    +user_id: UUID
+    +provider: string  // wechat/qwechat/esign/local
+    +external_id: string // unionid/openid/uid
+    +meta_json: json
+    +created_at: datetime
+  }
 
-  subgraph Biz[业务服务]
-    C1[collection-server\nPEP中间件]:::cmp
-    H1[hospital-server\nPEP中间件]:::cmp
-    T1[training-server\nPEP中间件]:::cmp
-  end
+  class ActorLink {
+    +id: bigint
+    +user_id: UUID
+    +actor_type: string   // testee/patient/student/doctor/teacher
+    +actor_id: string
+    +scope_type: string   // system/org/project/questionnaire
+    +scope_id: string
+    +relation: string     // self/parent/guardian/doctor/...
+    +can_read: bool
+    +can_write: bool
+    +valid_from: datetime
+    +valid_to: datetime?
+    +granted_by: UUID?
+  }
 
-  C1--SDK-->P5
-  H1--SDK-->P5
-  T1--SDK-->P5
-  AS5--JWKS-->Biz
-  AS1--外部平台-->|
-  AS5--调用-->US5
-  P2--调用-->US5
+  class PersonProfile {
+    +id: UUID
+    +legal_name: string
+    +gender: tinyint
+    +dob: date
+    +id_type: string
+    +id_no_enc: bytes     // 字段级加密
+    +id_no_hash: bytes    // 检索/唯一约束
+    +created_at: datetime
+    +updated_at: datetime
+  }
 
-  classDef cmp fill:#fff,stroke:#333;
+  class Role {
+    +code: string  // writer/auditor/org_admin/...
+  }
+
+  class RolePermission {
+    +id: bigint
+    +role_code: string
+    +resource: string  // answersheet/testee/report/...
+    +action: string    // read/write/submit/lock/...
+  }
+
+  class UserRole {
+    +id: bigint
+    +user_id: UUID
+    +role_code: string
+    +scope_type: string
+    +scope_id: string
+    +granted_at: datetime
+    +revoked_at: datetime?
+  }
+
+  %% 关系
+  User "1" --> "*" Account : 绑定
+  User "1" --> "*" ActorLink : 关系/代填
+  PersonProfile <.. User : (可选绑定)
+  Role "1" --> "*" RolePermission : 定义权限
+  User "1" --> "*" UserRole : 被授予角色
+
 ```
 
-### 时序 1：微信登录（Account→User→JWT）
+### 运行时上下文（调用链/时序）
 
 ```mermaid
+
 sequenceDiagram
   autonumber
   participant MP as 微信小程序
   participant AS as Auth Service
   participant US as User Service
   participant JW as JWKS/KMS
+  participant B as collection-server
+  participant PDP as AuthZ Service
 
+  Note over MP,AS: ① 登录（Account→User→JWT）
   MP->>AS: POST /auth/wechat:login (js_code)
   AS->>AS: adapters.wechat.code2session → openid/unionid
   AS->>US: FindUserByAccount(provider=wechat, external_id=unionid)
   US-->>AS: user_id 或 空
-  AS->>US: 若为空则 CreateUser + BindAccount
+  AS->>US: 若无则 CreateUser + BindAccount
   US-->>AS: user_id
-  AS->>AS: 生成 sid / claims(sub=user_id, acct, iat, exp)
-  AS->>JW: 私钥签名（kid=K-2025-10）
-  AS-->>MP: {access_token(jwt), refresh_token, expires_in}
-```
+  AS->>JW: 用私钥签 JWT（sub=user_id, kid=K-2025-10）
+  AS-->>MP: {access_token, refresh_token}
 
-### 时序 2：业务 API 鉴权（RBAC + 关系授权）
-
-```mermaid
-sequenceDiagram
-  autonumber
-  participant FE as 前端
-  participant B as collection-server
-  participant PDP as AuthZ Service
-  participant US as User Service
-  FE->>B: POST /v1/answer-sheets/{id}:submit (Authorization: Bearer JWT)
-  B->>B: 中间件验签(JWKS)，解析 sub=user_id
+  Note over MP,B: ② 业务请求（RBAC + 关系授权）
+  MP->>B: POST /v1/answer-sheets/{id}:submit\nAuthorization: Bearer JWT
+  B->>B: 验签(JWKS) & 解析 sub=user_id
   B->>PDP: AllowOnActor(user_id, "answersheet","submit", scope=questionnaire:PHQ9, actor=testee:123, needWrite=true)
-  PDP->>PDP: RBAC：user_roles + role_permissions
-  PDP->>US: HasDelegation(user, actor=testee:123, scope=PHQ9)
+  PDP->>US: HasDelegation(user_id, actor=testee:123, scope=PHQ9)
   US-->>PDP: true/false
   PDP-->>B: allow=true/false, reason
-  B-->>FE: 200 / 403
+  B-->>MP: 200 / 403
+
+```
+
+### Monorepo 内部组件（服务与适配器）
+
+```mermaid
+
+flowchart TB
+  classDef cmp fill:#fff,stroke:#333,stroke-width:1px;
+
+  subgraph repo[iam-platform（Monorepo 根）]
+    subgraph AuthService[services/auth-service]
+      A1[adapters.wechat<br/>code2session / MP OA / webhook]:::cmp
+      A2[adapters.qwechat / esign / localpwd]:::cmp
+      A3[issuer<br/>JWT/Refresh 发行·旋转·黑名单]:::cmp
+      A4[jwks provider<br/>kid轮换/公钥发布]:::cmp
+      A5[http/grpc api]:::cmp
+    end
+
+    subgraph UserService[services/user-service]
+      U1[user 聚合]:::cmp
+      U2[account 绑定]:::cmp
+      U3[user↔actorLink（scope/有效期/读写）]:::cmp
+      U4[personProfile(可选)]:::cmp
+      U5[http/grpc api]:::cmp
+    end
+
+    subgraph AuthZService[services/authz-service]
+      Z1[rbac：roles / role_permissions 热加载]:::cmp
+      Z2[delegation：调用 user-service HasDelegation]:::cmp
+      Z3[decision：Allow / AllowOnActor]:::cmp
+      Z4[cache：LRU+Redis，事件驱动失效]:::cmp
+      Z5[http/grpc api]:::cmp
+    end
+
+    subgraph Libs[libs/（Monorepo 内共享库）]
+      L1[authn-middleware<br/>JWT 验签（JWKS 缓存）]:::cmp
+      L2[authz-client<br/>PDP SDK + 本地缓存]:::cmp
+      L3[common：errors / dto / tracing / config]:::cmp
+    end
+
+    subgraph Infra[infra/]
+      I1[helm / helmfile / compose]:::cmp
+      I2[migrations / seeds]:::cmp
+      I3[observability（otel/metrics/log）]:::cmp
+    end
+  end
+
+  %% 连接
+  A1 -- 账户映射 --> U2
+  A2 -- 账户映射 --> U2
+  Z2 -- 关系查询 --> U5
+  L1 -- 被三服务与业务服务复用 --> L1
+  L2 -- 被业务服务复用 --> Z5
+
 ```
