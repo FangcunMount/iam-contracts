@@ -9,7 +9,7 @@ import (
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user/port"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/infrastructure/mysql"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/infra/mysql"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	pkgerrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
 )

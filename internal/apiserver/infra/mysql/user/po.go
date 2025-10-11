@@ -6,7 +6,7 @@ import (
 	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 	"gorm.io/gorm"
 
-	base "github.com/fangcun-mount/iam-contracts/internal/apiserver/infrastructure/mysql"
+	base "github.com/fangcun-mount/iam-contracts/internal/apiserver/infra/mysql"
 )
 
 // UserPO 用户持久化对象
