@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # MySQL 服务
+  mysql:
+    build:
+      context: .
+      dockerfile: Dockerfile.mysql
+      args:
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+        MYSQL_DATABASE: ${MYSQL_DATABASE}
+        MYSQL_USER: ${MYSQL_USER}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        MYSQL_PORT: ${MYSQL_PORT}
+        TZ: ${TZ}
+    image: ${MYSQL_IMAGE_NAME:-web-mysql:latest}
+    container_name: ${MYSQL_CONTAINER_NAME:-web-mysql}
+    restart: unless-stopped
+    ports:
+      - "${MYSQL_PORT:-3306}:${MYSQL_PORT:-3306}"
+    environment:
+      TZ: ${TZ}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      # 数据持久化到宿主机
+      - ${MYSQL_DATA_PATH:-/data/mysql/web/data}:/var/lib/mysql
+      # 日志文件挂载到宿主机
+      - ${MYSQL_LOGS_PATH:-/data/logs/web/mysql}:/var/log/mysql
+    networks:
+      - web-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis 服务
+  redis:
+    build:
+      context: .
+      dockerfile: Dockerfile.redis
+      args:
+        REDIS_PASSWORD: ${REDIS_PASSWORD}
+        REDIS_PORT: ${REDIS_PORT}
+        TZ: ${TZ}
+    image: ${REDIS_IMAGE_NAME:-web-redis:latest}
+    container_name: ${REDIS_CONTAINER_NAME:-web-redis}
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:${REDIS_PORT:-6379}"
+    environment:
+      TZ: ${TZ}
+    volumes:
+      # 数据持久化到宿主机
+      - ${REDIS_DATA_PATH:-/data/redis/web/data}:/data
+      # 日志文件挂载到宿主机
+      - ${REDIS_LOGS_PATH:-/data/logs/web/redis}:/var/log/redis
+    networks:
+      - web-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  web-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 

@@ -1,0 +1,42 @@
+server:
+  mode: debug
+  healthz: true
+  middlewares:
+    - recovery
+    - enhanced_logger
+    - cors
+
+log:
+  level: debug
+  format: console
+  output-paths:
+    - stdout
+  error-output-paths:
+    - stderr
+
+insecure:
+  bind-address: 127.0.0.1
+  bind-port: 8080
+
+# 禁用HTTPS服务
+secure:
+  bind-address: 127.0.0.1
+  bind-port: 0  # 设置为0禁用HTTPS
+
+jwt:
+  key: web-framework-jwt-secret-key-2024
+  timeout: 24h
+  max-refresh: 168h
+  realm: web-framework
+
+# 数据库配置（可选）
+mysql:
+  host: ""
+  username: ""
+  password: ""
+  database: ""
+
+redis:
+  host: ""
+  port: 6379
+  database: 0

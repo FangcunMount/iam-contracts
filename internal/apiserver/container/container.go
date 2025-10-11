@@ -1,0 +1,124 @@
+package container
+
+import (
+	"context"
+	"fmt"
+
+	"gorm.io/gorm"
+
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/container/assembler"
+)
+
+// Container 容器
+// 负责管理所有模块的依赖注入和生命周期
+type Container struct {
+	// 数据库连接
+	mysqlDB *gorm.DB
+
+	// 业务模块
+	AuthModule *assembler.AuthModule
+	UserModule *assembler.UserModule
+
+	// 容器状态
+	initialized bool
+}
+
+// NewContainer 创建容器
+func NewContainer(mysqlDB *gorm.DB) *Container {
+	return &Container{
+		mysqlDB: mysqlDB,
+	}
+}
+
+// Initialize 初始化容器
+func (c *Container) Initialize() error {
+	if c.initialized {
+		return fmt.Errorf("container already initialized")
+	}
+
+	// 初始化认证模块
+	if err := c.initAuthModule(); err != nil {
+		return fmt.Errorf("failed to initialize auth module: %w", err)
+	}
+
+	// 初始化用户模块
+	if err := c.initUserModule(); err != nil {
+		return fmt.Errorf("failed to initialize user module: %w", err)
+	}
+
+	c.initialized = true
+	fmt.Printf("🏗️  Container initialized with modules: user, auth\n")
+
+	return nil
+}
+
+// initAuthModule 初始化认证模块
+func (c *Container) initAuthModule() error {
+	authModule := assembler.NewAuthModule()
+	if err := authModule.Initialize(c.mysqlDB); err != nil {
+		return fmt.Errorf("failed to initialize auth module: %w", err)
+	}
+	c.AuthModule = authModule
+	return nil
+}
+
+// initUserModule 初始化用户模块
+func (c *Container) initUserModule() error {
+	userModule := assembler.NewUserModule()
+	if err := userModule.Initialize(c.mysqlDB); err != nil {
+		return fmt.Errorf("failed to initialize user module: %w", err)
+	}
+	c.UserModule = userModule
+	return nil
+}
+
+// HealthCheck 健康检查
+func (c *Container) HealthCheck(ctx context.Context) error {
+	// 检查MySQL连接
+	if c.mysqlDB != nil {
+		if err := c.mysqlDB.WithContext(ctx).Raw("SELECT 1").Error; err != nil {
+			return fmt.Errorf("mysql health check failed: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// GetMySQLDB 获取MySQL数据库连接
+func (c *Container) GetMySQLDB() *gorm.DB {
+	return c.mysqlDB
+}
+
+// IsInitialized 检查容器是否已初始化
+func (c *Container) IsInitialized() bool {
+	return c.initialized
+}
+
+// PrintStatus 打印容器状态
+func (c *Container) PrintStatus() {
+	fmt.Printf("📊 Container Status:\n")
+	fmt.Printf("   • Initialized: %t\n", c.initialized)
+
+	// 数据库连接状态
+	fmt.Printf("   • MySQL: ")
+	if c.mysqlDB != nil {
+		fmt.Printf("✅\n")
+	} else {
+		fmt.Printf("❌\n")
+	}
+
+	// 模块状态
+	fmt.Printf("   • Auth Module: ")
+	if c.AuthModule != nil {
+		fmt.Printf("✅\n")
+	} else {
+		fmt.Printf("❌\n")
+	}
+
+	fmt.Printf("   • User Module: ")
+	if c.UserModule != nil {
+		fmt.Printf("✅\n")
+	} else {
+		fmt.Printf("❌\n")
+	}
+}

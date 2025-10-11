@@ -1,0 +1,27 @@
+FROM mysql:8.0
+
+# 设置标签信息
+LABEL maintainer="iam-contracts-team"
+LABEL version="1.0"
+LABEL description="MySQL for iam contracts System"
+
+# 设置环境变量
+ENV MYSQL_ROOT_PASSWORD=web_root_2024
+ENV MYSQL_DATABASE=web_framework
+ENV MYSQL_USER=web_app_user
+ENV MYSQL_PASSWORD=web_app_password_2024
+
+# 复制配置文件
+COPY ../../../configs/mysql/my.cnf /etc/mysql/conf.d/
+COPY ../../../configs/mysql/web_framework.sql /docker-entrypoint-initdb.d/
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# 暴露端口
+EXPOSE 3306
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD} || exit 1
