@@ -1,23 +1,23 @@
 package user
 
 import (
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
+	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 )
 
 // UserID 用户唯一标识
-type UserID = meta.ID
+type UserID = idutil.ID
 
 // NewUserID 创建用户ID
 func NewUserID(value uint64) UserID {
-	return meta.NewID(value)
+	return idutil.NewID(value)
 }
 
 // ChildID 儿童唯一标识
-type ChildID = meta.ID
+type ChildID = idutil.ID
 
 // NewChildID 创建儿童ID
 func NewChildID(value uint64) ChildID {
-	return meta.NewID(value)
+	return idutil.NewID(value)
 }
 
 // UserStatus 用户状态
