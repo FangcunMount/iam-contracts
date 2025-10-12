@@ -6,8 +6,8 @@ import (
 
 	childDomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/child"
 	childport "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/child/port"
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guradianship"
-	guardport "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guradianship/port"
+	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guardianship"
+	guardport "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guardianship/port"
 	userDomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user"
 	userport "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user/port"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
@@ -50,7 +50,7 @@ func (s *GuardianshipManager) AddGuardian(ctx context.Context, childID childDoma
 	}
 
 	// 检查重复
-	guardians, err := s.repo.FindListByChildID(ctx, childID)
+	guardians, err := s.repo.FindByChildID(ctx, childID)
 	if err != nil {
 		return perrors.WrapC(err, code.ErrDatabase, "find guardians failed")
 	}
@@ -79,7 +79,7 @@ func (s *GuardianshipManager) AddGuardian(ctx context.Context, childID childDoma
 
 // RemoveGuardian 撤销监护
 func (s *GuardianshipManager) RemoveGuardian(ctx context.Context, childID childDomain.ChildID, userID userDomain.UserID) error {
-	guardians, err := s.repo.FindListByChildID(ctx, childID)
+	guardians, err := s.repo.FindByChildID(ctx, childID)
 	if err != nil {
 		return perrors.WrapC(err, code.ErrDatabase, "find guardians failed")
 	}

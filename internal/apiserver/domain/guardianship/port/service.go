@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/child"
-	guardianship "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guradianship"
+	guardianship "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guardianship"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user"
 )
 
