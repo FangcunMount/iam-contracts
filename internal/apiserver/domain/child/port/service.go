@@ -24,3 +24,11 @@ type ChildProfileEditor interface {
 type SimilarChildFinder interface {
 	FindChilds(ctx context.Context, name string, gender meta.Gender, birthday meta.Birthday) (children []*child.Child, err error)
 }
+
+// ChildQueryer 儿童档案查询服务接口
+type ChildQueryer interface {
+	FindByID(ctx context.Context, childID child.ChildID) (*child.Child, error)
+	FindByIDCard(ctx context.Context, idCard meta.IDCard) (*child.Child, error)
+	FindListByName(ctx context.Context, name string) ([]*child.Child, error)
+	FindListByNameAndBirthday(ctx context.Context, name string, birthday meta.Birthday) ([]*child.Child, error)
+}
