@@ -1,0 +1,27 @@
+package user
+
+import (
+	"context"
+	"errors"
+
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user/port"
+	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
+	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
+	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"gorm.io/gorm"
+)
+
+func ensurePhoneUnique(ctx context.Context, repo port.UserRepository, phone meta.Phone) error {
+	if phone.IsEmpty() {
+		return perrors.WithCode(code.ErrUserBasicInfoInvalid, "phone cannot be empty")
+	}
+
+	_, err := repo.FindByPhone(ctx, phone)
+	if err == nil {
+		return perrors.WithCode(code.ErrUserAlreadyExists, "user with phone(%s) already exists", phone.String())
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil
+	}
+	return perrors.WrapC(err, code.ErrDatabase, "check user phone(%s) failed", phone.String())
+}
