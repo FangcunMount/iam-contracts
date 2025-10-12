@@ -27,8 +27,8 @@ func NewRepository(db *gorm.DB) port.GuardianshipRepository {
 }
 
 // Create 创建新的监护关系
-func (r *Repository) Create(ctx context.Context, g domain.Guardianship) error {
-	po := r.mapper.ToPO(&g)
+func (r *Repository) Create(ctx context.Context, g *domain.Guardianship) error {
+	po := r.mapper.ToPO(g)
 	return r.CreateAndSync(ctx, po, func(updated *GuardianshipPO) {
 		g.ID = int64(updated.ID.Value())
 		if updated.EstablishedAt.IsZero() {
@@ -39,20 +39,20 @@ func (r *Repository) Create(ctx context.Context, g domain.Guardianship) error {
 }
 
 // FindByID 根据 ID 查找监护关系
-func (r *Repository) FindByID(ctx context.Context, id idutil.ID) (domain.Guardianship, error) {
+func (r *Repository) FindByID(ctx context.Context, id idutil.ID) (*domain.Guardianship, error) {
 	po, err := r.BaseRepository.FindByID(ctx, id.Value())
 	if err != nil {
-		return domain.Guardianship{}, err
+		return nil, err
 	}
 	g := r.mapper.ToBO(po)
 	if g == nil {
-		return domain.Guardianship{}, gorm.ErrRecordNotFound
+		return nil, gorm.ErrRecordNotFound
 	}
-	return *g, nil
+	return g, nil
 }
 
 // FindByChildID 根据儿童 ID 查找监护关系
-func (r *Repository) FindByChildID(ctx context.Context, id child.ChildID) ([]domain.Guardianship, error) {
+func (r *Repository) FindByChildID(ctx context.Context, id child.ChildID) ([]*domain.Guardianship, error) {
 	var pos []*GuardianshipPO
 	if err := r.WithContext(ctx).Where("child_id = ?", id.Value()).Find(&pos).Error; err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (r *Repository) FindByChildID(ctx context.Context, id child.ChildID) ([]dom
 }
 
 // FindByUserID 根据监护人 ID 查找监护关系
-func (r *Repository) FindByUserID(ctx context.Context, id user.UserID) ([]domain.Guardianship, error) {
+func (r *Repository) FindByUserID(ctx context.Context, id user.UserID) ([]*domain.Guardianship, error) {
 	var pos []*GuardianshipPO
 	if err := r.WithContext(ctx).Where("user_id = ?", id.Value()).Find(&pos).Error; err != nil {
 		return nil, err
@@ -72,8 +72,8 @@ func (r *Repository) FindByUserID(ctx context.Context, id user.UserID) ([]domain
 }
 
 // Update 更新监护关系
-func (r *Repository) Update(ctx context.Context, g domain.Guardianship) error {
-	po := r.mapper.ToPO(&g)
+func (r *Repository) Update(ctx context.Context, g *domain.Guardianship) error {
+	po := r.mapper.ToPO(g)
 	return r.UpdateAndSync(ctx, po, func(updated *GuardianshipPO) {
 		g.ID = int64(updated.ID.Value())
 		g.EstablishedAt = updated.EstablishedAt
@@ -81,14 +81,14 @@ func (r *Repository) Update(ctx context.Context, g domain.Guardianship) error {
 	})
 }
 
-func (r *Repository) toDomainSlice(pos []*GuardianshipPO) []domain.Guardianship {
+func (r *Repository) toDomainSlice(pos []*GuardianshipPO) []*domain.Guardianship {
 	bos := r.mapper.ToBOs(pos)
-	guardianships := make([]domain.Guardianship, 0, len(bos))
+	guardianships := make([]*domain.Guardianship, 0, len(bos))
 	for _, bo := range bos {
 		if bo == nil {
 			continue
 		}
-		guardianships = append(guardianships, *bo)
+		guardianships = append(guardianships, bo)
 	}
 	return guardianships
 }
