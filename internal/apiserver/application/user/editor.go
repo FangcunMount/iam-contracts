@@ -41,7 +41,7 @@ func (s *UserProfileEditor) UpdateContact(ctx context.Context, userID domain.Use
 		u.UpdateEmail(email)
 	}
 
-	if err := s.repo.Update(ctx, *u); err != nil {
+	if err := s.repo.Update(ctx, u); err != nil {
 		return perrors.WrapC(err, code.ErrDatabase, "update contact for user(%s) failed", userID.String())
 	}
 
@@ -57,7 +57,7 @@ func (s *UserProfileEditor) UpdateIDCard(ctx context.Context, userID domain.User
 
 	u.UpdateIDCard(idCard)
 
-	if err := s.repo.Update(ctx, *u); err != nil {
+	if err := s.repo.Update(ctx, u); err != nil {
 		return perrors.WrapC(err, code.ErrDatabase, "update id card for user(%s) failed", userID.String())
 	}
 

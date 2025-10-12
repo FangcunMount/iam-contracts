@@ -31,7 +31,7 @@ func (s *UserStatusChanger) Activate(ctx context.Context, userID domain.UserID) 
 
 	u.Activate()
 
-	if err := s.repo.Update(ctx, *u); err != nil {
+	if err := s.repo.Update(ctx, u); err != nil {
 		return perrors.WrapC(err, code.ErrDatabase, "activate user(%s) failed", userID.String())
 	}
 
@@ -47,7 +47,7 @@ func (s *UserStatusChanger) Deactivate(ctx context.Context, userID domain.UserID
 
 	u.Deactivate()
 
-	if err := s.repo.Update(ctx, *u); err != nil {
+	if err := s.repo.Update(ctx, u); err != nil {
 		return perrors.WrapC(err, code.ErrDatabase, "deactivate user(%s) failed", userID.String())
 	}
 
@@ -63,7 +63,7 @@ func (s *UserStatusChanger) Block(ctx context.Context, userID domain.UserID) err
 
 	u.Block()
 
-	if err := s.repo.Update(ctx, *u); err != nil {
+	if err := s.repo.Update(ctx, u); err != nil {
 		return perrors.WrapC(err, code.ErrDatabase, "block user(%s) failed", userID.String())
 	}
 
