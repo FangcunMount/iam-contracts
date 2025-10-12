@@ -30,7 +30,7 @@ internal/apiserver/domain/
 │  ├─ child.go        # Child 实体
 │  ├─ vo.go           # Child 的值对象（身份证、生日等）
 │  └─ port/           # Child 相关的端口（仓储/服务接口）
-├─ guradianship/      # 注意仓库中使用的包名为 guradianship
+├─ guardianship/      # 域名已修正为 guardianship
 │  ├─ guardianship.go # Guardianship 实体（UserID, ChildID, Rel, EstablishedAt, RevokedAt）
 │  └─ port/           # Guardianship 的仓储与服务接口（repo.go / service.go）
 └─ user/
@@ -44,8 +44,8 @@ internal/apiserver/domain/
 - 每个领域对象配套实体 `*.go` 和值对象 `vo.go`。
 - 通过 `port` 包（接口）将基础设施依赖抽象，方便测试与替换实现。
 - 领域层定义了核心接口，例如：
-  - `domain/guradianship/port/repo.go` 定义 `GuardianshipRepository`（Create/Find/Update）
-  - `domain/guradianship/port/service.go` 定义应用可调用的服务接口（Manager/Examiner/Queryer）并以 `context.Context` 为首参。
+  - `domain/guardianship/port/repo.go` 定义 `GuardianshipRepository`（Create/Find/Update）
+  - `domain/guardianship/port/service.go` 定义应用可调用的服务接口（Manager/Examiner/Queryer）并以 `context.Context` 为首参。
 
 ## 2) 应用层 — `internal/apiserver/application`
 
@@ -114,7 +114,7 @@ internal/apiserver/infra/mysql/
   - 应用：`application/user/*`
 
 - Guardianship
-  - 接口：`domain/guradianship/port`（包括 `GuardianshipRepository` 与 `service.go` 中的 Manager/Examiner/Queryer）
+  - 接口：`domain/guardianship/port`（包括 `GuardianshipRepository` 与 `service.go` 中的 Manager/Examiner/Queryer）
   - 实现：`infra/mysql/guardianship/*`（PO/Mapper/Repo）
   - 应用：`application/guardianship/manager.go`, `examiner.go`, `query.go`
 

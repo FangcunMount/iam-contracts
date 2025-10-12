@@ -203,7 +203,7 @@ func Wrap(err error, message string) error {
 	}
 	if e, ok := err.(*withCode); ok {
 		return &withCode{
-			err:   fmt.Errorf(message),
+			err:   fmt.Errorf("%s", message),
 			code:  e.code,
 			cause: err,
 			stack: callers(),
