@@ -34,7 +34,7 @@ func (s *UserQueryer) FindByID(ctx context.Context, userID domain.UserID) (*doma
 		}
 		return nil, perrors.WrapC(err, code.ErrDatabase, "find user by id(%s) failed", userID.String())
 	}
-	return &u, nil
+	return u, nil
 }
 
 // FindByPhone 根据手机号查询用户
@@ -46,5 +46,5 @@ func (s *UserQueryer) FindByPhone(ctx context.Context, phone meta.Phone) (*domai
 		}
 		return nil, perrors.WrapC(err, code.ErrDatabase, "find user by phone(%s) failed", phone.String())
 	}
-	return &u, nil
+	return u, nil
 }

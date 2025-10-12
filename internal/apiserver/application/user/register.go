@@ -34,7 +34,7 @@ func (s *UserRegister) Register(ctx context.Context, name string, phone meta.Pho
 		return nil, err
 	}
 
-	if err := s.repo.Create(ctx, *u); err != nil {
+	if err := s.repo.Create(ctx, u); err != nil {
 		return nil, perrors.WrapC(err, code.ErrDatabase, "create user(%s) failed", phone.String())
 	}
 
@@ -43,5 +43,5 @@ func (s *UserRegister) Register(ctx context.Context, name string, phone meta.Pho
 		return nil, perrors.WrapC(err, code.ErrDatabase, "load user(%s) after creation failed", phone.String())
 	}
 
-	return &created, nil
+	return created, nil
 }
