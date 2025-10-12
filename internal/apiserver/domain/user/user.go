@@ -1,6 +1,10 @@
 package user
 
-import "github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
+import (
+	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
+	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
+	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+)
 
 // User 基础用户（身份锚点）
 type User struct {
@@ -11,6 +15,32 @@ type User struct {
 	IDCard meta.IDCard
 	Status UserStatus
 }
+
+// NewUser 创建新用户（完整信息）
+func NewUser(name string, phone meta.Phone, opts ...UserOption) (*User, error) {
+	if name == "" {
+		return nil, errors.WithCode(code.ErrUserBasicInfoInvalid, "name cannot be empty")
+	}
+	if phone.IsEmpty() {
+		return nil, errors.WithCode(code.ErrUserBasicInfoInvalid, "phone cannot be empty")
+	}
+
+	user := &User{Name: name, Phone: phone}
+	for _, opt := range opts {
+		opt(user)
+	}
+
+	return user, nil
+}
+
+// UserOption 用户选项，用于创建用户时的可选参数
+type UserOption func(*User)
+
+// With*** 用户选项函数
+func WithID(id UserID) UserOption              { return func(u *User) { u.ID = id } }
+func WithEmail(email meta.Email) UserOption    { return func(u *User) { u.Email = email } }
+func WithIDCard(idCard meta.IDCard) UserOption { return func(u *User) { u.IDCard = idCard } }
+func WithStatus(status UserStatus) UserOption  { return func(u *User) { u.Status = status } }
 
 // UserStatus 用户状态
 func (u *User) Activate()   { u.Status = UserActive }
