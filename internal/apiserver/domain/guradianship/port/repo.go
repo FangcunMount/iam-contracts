@@ -13,7 +13,7 @@ import (
 type GuardianshipRepository interface {
 	Create(ctx context.Context, guardianship *guardianship.Guardianship) error
 	FindByID(ctx context.Context, id idutil.ID) (*guardianship.Guardianship, error)
-	FindByChildID(ctx context.Context, id child.ChildID) (guardianships []*guardianship.Guardianship, err error)
-	FindByUserID(ctx context.Context, id user.UserID) (guardianships []*guardianship.Guardianship, err error)
+	FindListByChildID(ctx context.Context, id child.ChildID) (guardianships []*guardianship.Guardianship, err error)
+	FindListByUserID(ctx context.Context, id user.UserID) (guardianships []*guardianship.Guardianship, err error)
 	Update(ctx context.Context, guardianship *guardianship.Guardianship) error
 }
