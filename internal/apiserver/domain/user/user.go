@@ -22,9 +22,6 @@ func (u *User) IsUsable() bool   { return u.Status == UserActive }
 func (u *User) IsBlocked() bool  { return u.Status == UserBlocked }
 func (u *User) IsInactive() bool { return u.Status == UserInactive }
 
-// Rename 重命名用户
-func (u *User) Rename(n string) { u.Name = n }
-
 // UpdatePhone 更新手机号
 func (u *User) UpdatePhone(p meta.Phone) { u.Phone = p }
 
