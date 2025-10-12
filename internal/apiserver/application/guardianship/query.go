@@ -6,8 +6,8 @@ import (
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/child"
 	childport "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/child/port"
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guradianship"
-	guardport "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guradianship/port"
+	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guardianship"
+	guardport "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guardianship/port"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
@@ -30,7 +30,7 @@ func NewQueryService(r guardport.GuardianshipRepository, cr childport.ChildRepos
 // FindByUserIDAndChildID 实现
 func (s *GuardianshipQueryer) FindByUserIDAndChildID(ctx context.Context, userID user.UserID, childID child.ChildID) (*domain.Guardianship, error) {
 	// Note: keep signature compatible with interface (types should be user.UserID, child.ChildID)
-	guardians, err := s.repo.FindListByChildID(ctx, childID)
+	guardians, err := s.repo.FindByChildID(ctx, childID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, perrors.WithCode(code.ErrUserNotFound, "guardianship not found")
@@ -65,7 +65,7 @@ func (s *GuardianshipQueryer) FindByUserIDAndChildName(ctx context.Context, user
 		if c == nil {
 			continue
 		}
-		guardians, err := s.repo.FindListByChildID(ctx, c.ID)
+		guardians, err := s.repo.FindByChildID(ctx, c.ID)
 		if err != nil {
 			return nil, perrors.WrapC(err, code.ErrDatabase, "find guardians by child failed")
 		}
@@ -83,10 +83,10 @@ func (s *GuardianshipQueryer) FindByUserIDAndChildName(ctx context.Context, user
 
 // FindListByChildID 列出某儿童的监护人
 func (s *GuardianshipQueryer) FindListByChildID(ctx context.Context, childID child.ChildID) ([]*domain.Guardianship, error) {
-	return s.repo.FindListByChildID(ctx, childID)
+	return s.repo.FindByChildID(ctx, childID)
 }
 
 // FindListByUserID 列出用户监护的所有儿童
 func (s *GuardianshipQueryer) FindListByUserID(ctx context.Context, userID user.UserID) ([]*domain.Guardianship, error) {
-	return s.repo.FindListByUserID(ctx, userID)
+	return s.repo.FindByUserID(ctx, userID)
 }

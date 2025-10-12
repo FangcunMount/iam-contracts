@@ -4,7 +4,7 @@ import (
 	"context"
 
 	childDomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/child"
-	guardport "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guradianship/port"
+	guardport "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guardianship/port"
 	userDomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
@@ -24,7 +24,7 @@ func NewExaminer(r guardport.GuardianshipRepository) *PaternityExaminer {
 
 // IsGuardian 实现检查是否为监护人
 func (p *PaternityExaminer) IsGuardian(ctx context.Context, childID childDomain.ChildID, userID userDomain.UserID) (bool, error) {
-	guardians, err := p.repo.FindListByChildID(ctx, childID)
+	guardians, err := p.repo.FindByChildID(ctx, childID)
 	if err != nil {
 		return false, perrors.WrapC(err, code.ErrDatabase, "find guardians failed")
 	}

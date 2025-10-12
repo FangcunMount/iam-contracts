@@ -4,8 +4,8 @@ import (
 	"context"
 
 	child "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/child"
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guradianship"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guradianship/port"
+	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guardianship"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guardianship/port"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/infra/mysql"
 	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
@@ -52,7 +52,7 @@ func (r *Repository) FindByID(ctx context.Context, id idutil.ID) (*domain.Guardi
 }
 
 // FindByChildID 根据儿童 ID 查找监护关系
-func (r *Repository) FindListByChildID(ctx context.Context, id child.ChildID) ([]*domain.Guardianship, error) {
+func (r *Repository) FindByChildID(ctx context.Context, id child.ChildID) ([]*domain.Guardianship, error) {
 	var pos []*GuardianshipPO
 	if err := r.WithContext(ctx).Where("child_id = ?", id.Value()).Find(&pos).Error; err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (r *Repository) FindListByChildID(ctx context.Context, id child.ChildID) ([
 }
 
 // FindByUserID 根据监护人 ID 查找监护关系
-func (r *Repository) FindListByUserID(ctx context.Context, id user.UserID) ([]*domain.Guardianship, error) {
+func (r *Repository) FindByUserID(ctx context.Context, id user.UserID) ([]*domain.Guardianship, error) {
 	var pos []*GuardianshipPO
 	if err := r.WithContext(ctx).Where("user_id = ?", id.Value()).Find(&pos).Error; err != nil {
 		return nil, err
