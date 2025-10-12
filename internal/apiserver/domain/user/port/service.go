@@ -1,4 +1,4 @@
-package service
+package port
 
 import (
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user"

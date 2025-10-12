@@ -12,14 +12,6 @@ func NewUserID(value uint64) UserID {
 	return idutil.NewID(value)
 }
 
-// ChildID 儿童唯一标识
-type ChildID = idutil.ID
-
-// NewChildID 创建儿童ID
-func NewChildID(value uint64) ChildID {
-	return idutil.NewID(value)
-}
-
 // UserStatus 用户状态
 type UserStatus uint8
 
@@ -47,11 +39,3 @@ func (s UserStatus) String() string {
 		return "unknown"
 	}
 }
-
-type Relation string // 监护关系
-const (
-	RelSelf         Relation = "self"         // 自己
-	RelParent       Relation = "parent"       // 父母
-	RelGrandparents Relation = "grandparents" // 祖父母
-	RelOther        Relation = "other"        // 其他
-)
