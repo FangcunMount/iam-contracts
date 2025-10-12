@@ -20,3 +20,13 @@ func (idc IDCard) Name() string {
 func (idc IDCard) Number() string {
 	return idc.number
 }
+
+// String 返回身份证的字符串表示
+func (idc IDCard) String() string {
+	return idc.number
+}
+
+// Equal 比较两个 IDCard 是否相等
+func (idc IDCard) Equal(other IDCard) bool {
+	return idc.name == other.name && idc.number == other.number
+}
