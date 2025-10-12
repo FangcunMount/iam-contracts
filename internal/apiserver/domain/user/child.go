@@ -1,8 +1,6 @@
 package user
 
 import (
-	"time"
-
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
 )
 
@@ -12,7 +10,7 @@ type Child struct {
 	Name     string
 	IDCard   meta.IDCard
 	Gender   meta.Gender
-	Birthday time.Time
+	Birthday meta.Birthday
 	Height   meta.Height
 	Weight   meta.Weight
 }
@@ -24,8 +22,8 @@ func (c *Child) Rename(name string) { c.Name = name }
 func (c *Child) UpdateIDCard(idc meta.IDCard) { c.IDCard = idc }
 
 // UpdateProfile 更新基本信息
-func (c *Child) UpdateProfile(g meta.Gender, day time.Time) {
-	c.Gender, c.Birthday = g, day
+func (c *Child) UpdateProfile(g meta.Gender, d meta.Birthday) {
+	c.Gender, c.Birthday = g, d
 }
 
 // UpdateHeight 更新身高体重
