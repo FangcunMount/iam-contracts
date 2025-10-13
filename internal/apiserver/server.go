@@ -89,6 +89,11 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 	// 创建并初始化路由器
 	NewRouter(s.container).RegisterRoutes(s.genericAPIServer.Engine)
 
+	// 注册 gRPC 服务
+	if s.grpcServer != nil && s.container != nil && s.container.UserModule != nil && s.container.UserModule.IdentityGRPCService != nil {
+		s.grpcServer.RegisterService(s.container.UserModule.IdentityGRPCService)
+	}
+
 	log.Info("🏗️  Hexagonal Architecture initialized successfully!")
 	log.Info("   📦 Domain: user")
 	log.Info("   🔌 Ports: storage")

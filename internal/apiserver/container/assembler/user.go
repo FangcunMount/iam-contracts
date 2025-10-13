@@ -9,6 +9,7 @@ import (
 	mysqlchild "github.com/fangcun-mount/iam-contracts/internal/apiserver/infra/mysql/child"
 	mysqlguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/infra/mysql/guardianship"
 	mysqluser "github.com/fangcun-mount/iam-contracts/internal/apiserver/infra/mysql/user"
+	identitygrpc "github.com/fangcun-mount/iam-contracts/internal/apiserver/interface/grpc/identity"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/interface/restful/handler"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
@@ -21,6 +22,7 @@ type UserModule struct {
 	UserHandler         *handler.UserHandler
 	ChildHandler        *handler.ChildHandler
 	GuardianshipHandler *handler.GuardianshipHandler
+	IdentityGRPCService *identitygrpc.Service
 }
 
 // NewUserModule 创建用户模块
@@ -71,6 +73,12 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 
 	m.GuardianshipHandler = handler.NewGuardianshipHandler(
 		guardManagerSrv,
+		guardQuerySrv,
+	)
+
+	m.IdentityGRPCService = identitygrpc.NewService(
+		userQuerySrv,
+		childQuerySrv,
 		guardQuerySrv,
 	)
 
