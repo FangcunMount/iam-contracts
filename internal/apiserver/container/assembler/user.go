@@ -3,6 +3,8 @@ package assembler
 import (
 	"gorm.io/gorm"
 
+	appuser "github.com/fangcun-mount/iam-contracts/internal/apiserver/application/user"
+	mysqluser "github.com/fangcun-mount/iam-contracts/internal/apiserver/infra/mysql/user"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/interface/restful/handler"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
@@ -28,7 +30,18 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 	}
 
 	// 初始化 handler 层
-	m.UserHandler = handler.NewUserHandler()
+	repo := mysqluser.NewRepository(db)
+	registerSrv := appuser.NewRegisterService(repo)
+	statusSrv := appuser.NewStatusService(repo)
+	profileSrv := appuser.NewProfileService(repo)
+	querySrv := appuser.NewQueryService(repo)
+
+	m.UserHandler = handler.NewUserHandler(
+		registerSrv,
+		statusSrv,
+		profileSrv,
+		querySrv,
+	)
 
 	return nil
 }

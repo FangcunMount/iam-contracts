@@ -25,6 +25,7 @@ func NewRegisterService(repo port.UserRepository) *UserRegister {
 
 // Register 注册新用户
 func (s *UserRegister) Register(ctx context.Context, name string, phone meta.Phone) (*domain.User, error) {
+	// 确保手机号唯一
 	if err := ensurePhoneUnique(ctx, s.repo, phone); err != nil {
 		return nil, err
 	}
