@@ -20,38 +20,27 @@ func NewBaseHandler() *BaseHandler {
 	return &BaseHandler{}
 }
 
-// Envelope 标准响应结构。
-type Envelope struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message,omitempty"`
-	Data    interface{} `json:"data,omitempty"`
-}
-
 // Success 写出成功响应。
 func (h *BaseHandler) Success(c *gin.Context, data interface{}) {
-	h.SuccessWithMessage(c, "", data)
+	core.WriteResponse(c, nil, data)
 }
 
 // SuccessWithMessage 写出带消息的成功响应。
 func (h *BaseHandler) SuccessWithMessage(c *gin.Context, message string, data interface{}) {
-	payload := Envelope{
-		Code: code.ErrSuccess,
-		Data: data,
-	}
-	if message != "" {
-		payload.Message = message
+	if message == "" {
+		h.Success(c, data)
+		return
 	}
 
-	core.WriteResponse(c, nil, payload)
+	core.WriteResponse(c, nil, gin.H{
+		"message": message,
+		"data":    data,
+	})
 }
 
 // Created 写出 201 响应。
 func (h *BaseHandler) Created(c *gin.Context, data interface{}) {
-	payload := Envelope{
-		Code: code.ErrSuccess,
-		Data: data,
-	}
-	c.JSON(http.StatusCreated, payload)
+	c.JSON(http.StatusCreated, data)
 }
 
 // Error 写出错误响应。
