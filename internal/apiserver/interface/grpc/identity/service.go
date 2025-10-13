@@ -16,7 +16,7 @@ import (
 	guardport "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/guardianship/port"
 	userdomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user"
 	userport "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user/port"
-	identityv1 "github.com/fangcun-mount/iam-contracts/internal/apiserver/interface/grpc/pb/identity/v1"
+	identityv1 "github.com/fangcun-mount/iam-contracts/internal/apiserver/interface/grpc/pb/iam/identity/v1"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
 )
 
