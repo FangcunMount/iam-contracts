@@ -240,7 +240,7 @@ func (h *ChildHandler) PatchChild(c *gin.Context) {
 			}
 			hh, herr := meta.NewHeightFromFloat(float64(*req.HeightCm))
 			if herr != nil {
-				h.Error(c, perrors.WithCode(code.ErrInvalidArgument, herr.Error()))
+				h.Error(c, perrors.WithCode(code.ErrInvalidArgument, "%s", herr.Error()))
 				return
 			}
 			height = hh
@@ -257,7 +257,7 @@ func (h *ChildHandler) PatchChild(c *gin.Context) {
 				}
 				ww, werr := meta.NewWeightFromFloat(f)
 				if werr != nil {
-					h.Error(c, perrors.WithCode(code.ErrInvalidArgument, werr.Error()))
+					h.Error(c, perrors.WithCode(code.ErrInvalidArgument, "%s", werr.Error()))
 					return
 				}
 				weight = ww
@@ -349,7 +349,7 @@ func (h *ChildHandler) createChildRecord(c *gin.Context, req requestdto.ChildCre
 		}
 		hh, herr := meta.NewHeightFromFloat(float64(*req.HeightCm))
 		if herr != nil {
-			return nil, perrors.WithCode(code.ErrInvalidArgument, herr.Error())
+			return nil, perrors.WithCode(code.ErrInvalidArgument, "%s", herr.Error())
 		}
 		height = hh
 		heightUpdated = true
@@ -364,7 +364,7 @@ func (h *ChildHandler) createChildRecord(c *gin.Context, req requestdto.ChildCre
 		}
 		ww, werr := meta.NewWeightFromFloat(f)
 		if werr != nil {
-			return nil, perrors.WithCode(code.ErrInvalidArgument, werr.Error())
+			return nil, perrors.WithCode(code.ErrInvalidArgument, "%s", werr.Error())
 		}
 		weight = ww
 		weightUpdated = true
