@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -42,6 +43,15 @@ func (h *BaseHandler) SuccessWithMessage(c *gin.Context, message string, data in
 	}
 
 	core.WriteResponse(c, nil, payload)
+}
+
+// Created 写出 201 响应。
+func (h *BaseHandler) Created(c *gin.Context, data interface{}) {
+	payload := Envelope{
+		Code: code.ErrSuccess,
+		Data: data,
+	}
+	c.JSON(http.StatusCreated, payload)
 }
 
 // Error 写出错误响应。

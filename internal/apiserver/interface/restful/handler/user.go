@@ -19,7 +19,6 @@ import (
 type UserHandler struct {
 	*BaseHandler
 	registerSrv port.UserRegister
-	statusSrv   port.UserStatusChanger
 	profileSrv  port.UserProfileEditor
 	querySrv    port.UserQueryer
 }
@@ -27,49 +26,55 @@ type UserHandler struct {
 // NewUserHandler 创建用户处理器
 func NewUserHandler(
 	registerSrv port.UserRegister,
-	statusSrv port.UserStatusChanger,
 	profileSrv port.UserProfileEditor,
 	querySrv port.UserQueryer,
 ) *UserHandler {
 	return &UserHandler{
 		BaseHandler: NewBaseHandler(),
 		registerSrv: registerSrv,
-		statusSrv:   statusSrv,
 		profileSrv:  profileSrv,
 		querySrv:    querySrv,
 	}
 }
 
-// Register 注册用户
-func (h *UserHandler) Register(c *gin.Context) {
-	var req requestdto.RegisterUserRequest
+// CreateUser 创建用户
+func (h *UserHandler) CreateUser(c *gin.Context) {
+	var req requestdto.UserCreateRequest
 	if err := h.BindJSON(c, &req); err != nil {
 		h.Error(c, err)
 		return
 	}
 
+	name := strings.TrimSpace(req.Nickname)
+	phoneValue, emailValue := extractContactValues(req.Contacts)
+
+	if name == "" {
+		if phoneValue != "" {
+			name = phoneValue
+		} else if emailValue != "" {
+			name = emailValue
+		}
+	}
+	if name == "" {
+		h.ErrorWithCode(c, code.ErrUserBasicInfoInvalid, "nickname or contact must be provided")
+		return
+	}
+	if phoneValue == "" {
+		h.ErrorWithCode(c, code.ErrUserBasicInfoInvalid, "phone contact is required")
+		return
+	}
+
 	ctx := c.Request.Context()
 
-	created, err := h.registerSrv.Register(ctx, req.Name, meta.NewPhone(req.Phone))
+	created, err := h.registerSrv.Register(ctx, name, meta.NewPhone(phoneValue))
 	if err != nil {
 		h.Error(c, err)
 		return
 	}
 
-	if req.Email != "" {
+	if emailValue != "" {
 		var emptyPhone meta.Phone
-		if err := h.profileSrv.UpdateContact(ctx, created.ID, emptyPhone, meta.NewEmail(req.Email)); err != nil {
-			h.Error(c, err)
-			return
-		}
-	}
-
-	if req.IDCardNumber != "" {
-		name := req.IDCardName
-		if name == "" {
-			name = req.Name
-		}
-		if err := h.profileSrv.UpdateIDCard(ctx, created.ID, meta.NewIDCard(name, req.IDCardNumber)); err != nil {
+		if err := h.profileSrv.UpdateContact(ctx, created.ID, emptyPhone, meta.NewEmail(emailValue)); err != nil {
 			h.Error(c, err)
 			return
 		}
@@ -81,12 +86,12 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
-	h.Success(c, newUserResponse(user))
+	h.Created(c, newUserResponse(user))
 }
 
-// GetUser 根据 ID 获取用户
+// GetUser 根据 ID 查询用户
 func (h *UserHandler) GetUser(c *gin.Context) {
-	userID, err := parseUserID(c.Param("id"))
+	userID, err := parseUserID(c.Param("userId"))
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -101,75 +106,15 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 	h.Success(c, newUserResponse(u))
 }
 
-// GetUserByPhone 根据手机号获取用户
-func (h *UserHandler) GetUserByPhone(c *gin.Context) {
-	phone := strings.TrimSpace(c.Query("phone"))
-	if phone == "" {
-		h.ErrorWithCode(c, code.ErrInvalidArgument, "phone query parameter is required")
-		return
-	}
-
-	u, err := h.querySrv.FindByPhone(c.Request.Context(), meta.NewPhone(phone))
+// PatchUser 更新用户信息（昵称 / 联系方式）
+func (h *UserHandler) PatchUser(c *gin.Context) {
+	userID, err := parseUserID(c.Param("userId"))
 	if err != nil {
 		h.Error(c, err)
 		return
 	}
 
-	h.Success(c, newUserResponse(u))
-}
-
-// UpdateContact 更新用户联系方式
-func (h *UserHandler) UpdateContact(c *gin.Context) {
-	userID, err := parseUserID(c.Param("id"))
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	var req requestdto.UpdateContactRequest
-	if err := h.BindJSON(c, &req); err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	if req.IsEmpty() {
-		h.ErrorWithCode(c, code.ErrInvalidArgument, "either phone or email must be provided")
-		return
-	}
-
-	var phone meta.Phone
-	if strings.TrimSpace(req.Phone) != "" {
-		phone = meta.NewPhone(req.Phone)
-	}
-
-	var email meta.Email
-	if strings.TrimSpace(req.Email) != "" {
-		email = meta.NewEmail(req.Email)
-	}
-
-	if err := h.profileSrv.UpdateContact(c.Request.Context(), userID, phone, email); err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	u, err := h.querySrv.FindByID(c.Request.Context(), userID)
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	h.Success(c, newUserResponse(u))
-}
-
-// UpdateIDCard 更新用户身份证信息
-func (h *UserHandler) UpdateIDCard(c *gin.Context) {
-	userID, err := parseUserID(c.Param("id"))
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	var req requestdto.UpdateIDCardRequest
+	var req requestdto.UserUpdateRequest
 	if err := h.BindJSON(c, &req); err != nil {
 		h.Error(c, err)
 		return
@@ -177,20 +122,35 @@ func (h *UserHandler) UpdateIDCard(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	current, err := h.querySrv.FindByID(ctx, userID)
-	if err != nil {
-		h.Error(c, err)
-		return
+	if req.Nickname != nil {
+		if err := h.profileSrv.Rename(ctx, userID, strings.TrimSpace(*req.Nickname)); err != nil {
+			h.Error(c, err)
+			return
+		}
 	}
 
-	name := req.Name
-	if name == "" {
-		name = current.Name
-	}
+	if len(req.Contacts) > 0 {
+		phoneValue, emailValue := extractContactValues(req.Contacts)
 
-	if err := h.profileSrv.UpdateIDCard(ctx, userID, meta.NewIDCard(name, req.Number)); err != nil {
-		h.Error(c, err)
-		return
+		var phone meta.Phone
+		var email meta.Email
+		updateContact := false
+
+		if phoneValue != "" {
+			phone = meta.NewPhone(phoneValue)
+			updateContact = true
+		}
+		if emailValue != "" {
+			email = meta.NewEmail(emailValue)
+			updateContact = true
+		}
+
+		if updateContact {
+			if err := h.profileSrv.UpdateContact(ctx, userID, phone, email); err != nil {
+				h.Error(c, err)
+				return
+			}
+		}
 	}
 
 	u, err := h.querySrv.FindByID(ctx, userID)
@@ -200,48 +160,6 @@ func (h *UserHandler) UpdateIDCard(c *gin.Context) {
 	}
 
 	h.Success(c, newUserResponse(u))
-}
-
-// ChangeStatus 修改用户状态
-func (h *UserHandler) ChangeStatus(c *gin.Context) {
-	userID, err := parseUserID(c.Param("id"))
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	var req requestdto.ChangeStatusRequest
-	if err := h.BindJSON(c, &req); err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	switch strings.ToLower(strings.TrimSpace(req.Status)) {
-	case "active":
-		err = h.statusSrv.Activate(ctx, userID)
-	case "inactive":
-		err = h.statusSrv.Deactivate(ctx, userID)
-	case "blocked", "block":
-		err = h.statusSrv.Block(ctx, userID)
-	default:
-		h.ErrorWithCode(c, code.ErrUserStatusInvalid, "unsupported status: %s", req.Status)
-		return
-	}
-
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	u, err := h.querySrv.FindByID(ctx, userID)
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	h.SuccessWithMessage(c, "user status updated", newUserResponse(u))
 }
 
 // GetUserProfile 获取当前用户资料
@@ -267,19 +185,48 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 	h.Success(c, newUserResponse(u))
 }
 
+func extractContactValues(contacts []requestdto.UserContactUpsert) (phone string, email string) {
+	for _, contact := range contacts {
+		switch strings.ToLower(contact.Type) {
+		case "phone":
+			if phone == "" {
+				phone = strings.TrimSpace(contact.Value)
+			}
+		case "email":
+			if email == "" {
+				email = strings.TrimSpace(contact.Value)
+			}
+		}
+	}
+	return
+}
+
 func newUserResponse(u *domain.User) responsedto.UserResponse {
 	if u == nil {
 		return responsedto.UserResponse{}
 	}
-	return responsedto.UserResponse{
-		ID:       u.ID.Value(),
-		Name:     u.Name,
-		Phone:    u.Phone.String(),
-		Email:    u.Email.String(),
-		IDCard:   u.IDCard.String(),
+
+	resp := responsedto.UserResponse{
+		ID:       u.ID.String(),
 		Status:   u.Status.String(),
-		StatusID: u.Status.Value(),
+		Nickname: u.Name,
 	}
+
+	if !u.Phone.IsEmpty() {
+		resp.Contacts = append(resp.Contacts, responsedto.VerifiedContactResponse{
+			Type:  "phone",
+			Value: u.Phone.String(),
+		})
+	}
+
+	if !u.Email.IsEmpty() {
+		resp.Contacts = append(resp.Contacts, responsedto.VerifiedContactResponse{
+			Type:  "email",
+			Value: u.Email.String(),
+		})
+	}
+
+	return resp
 }
 
 func parseUserID(raw string) (domain.UserID, error) {

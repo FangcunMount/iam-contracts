@@ -21,6 +21,7 @@ type UserStatusChanger interface {
 
 // UserProfileEditor 用户资料编辑服务接口
 type UserProfileEditor interface {
+	Rename(ctx context.Context, userID user.UserID, name string) error
 	UpdateContact(ctx context.Context, userID user.UserID, phone meta.Phone, email meta.Email) error
 	UpdateIDCard(ctx context.Context, userID user.UserID, idCard meta.IDCard) error
 }

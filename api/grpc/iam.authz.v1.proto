@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package iam.authz.v1;
+option go_package = "github.com/yourorg/iam-contracts/api/grpc/iam/authz/v1;authzv1";
+
+message Scope {
+  string type = 1; // "system" | "org" | "questionnaire" | ...
+  string id   = 2; // "*" | "HOSP-001" | "PHQ9" | ...
+}
+
+message AllowReq {
+  string user_id  = 1; // JWT sub
+  string resource = 2; // e.g. "answersheet" | "identity.child"
+  string action   = 3; // "read" | "write" | "submit" | ...
+  Scope  scope    = 4; // if empty, treated as {system,"*"}
+  map<string,string> context = 5; // optional, reserved
+}
+
+message ActorRef {
+  string type = 1;  // "testee" | "patient" | "student" | ...
+  string id   = 2;  // actor id
+  Scope scope = 3;  // actor所属作用域（可选）
+}
+
+message AllowOnActorReq {
+  string user_id  = 1;
+  string resource = 2;
+  string action   = 3;
+  Scope  scope    = 4;
+  ActorRef actor  = 5;
+  map<string,string> context = 6;
+}
+
+message AllowResp {
+  bool allow   = 1;
+  string reason = 2; // "ok" | "no_role" | "no_guardianship" | "pdp_error"
+}
+
+message BatchAllowReq {
+  repeated AllowReq checks = 1;
+}
+
+message BatchAllowResp {
+  repeated AllowResp results = 1;
+}
+
+message ExplainReq {
+  AllowReq check = 1;
+}
+
+message ExplainResp {
+  bool allow = 1;
+  string reason = 2;
+  repeated string matched_policies = 3; // 可返回命中的 p/g 规则（可选）
+}
+
+service AuthZ {
+  rpc Allow        (AllowReq)        returns (AllowResp);
+  rpc AllowOnActor (AllowOnActorReq) returns (AllowResp);
+  rpc BatchAllow   (BatchAllowReq)   returns (BatchAllowResp);
+  rpc Explain      (ExplainReq)      returns (ExplainResp);
+}

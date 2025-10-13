@@ -1,69 +1,34 @@
-# IAM · Identity API（v1）
+# IAM API 指南
 
-本目录提供「基础用户（Identity）」模块的公开 API 文档与规范文件，面向调用方（业务后端、运营后台、网关）。
+本目录包含 IAM 的两类接口协议：
 
-- 规范：`identity.v1.yaml`（OpenAPI 3.1）
-- 版本：v1（向后兼容小改，破坏性升级将发布 v2）
+- **REST**（/api/rest）：面向运营后台、前端、脚本调用，资源导向、便于调试与审计；
+- **gRPC**（/api/grpc）：面向服务间高 QPS/低时延调用，主要用于**鉴权判定**与**监护读侧**。
 
-## 基础信息
+## 什么时候用哪一个？
 
-- Base URL：`/api/v1`
-- 认证：`Authorization: Bearer <JWT>`（JWT.sub = user_id）
-- 幂等：`POST` 支持 `X-Idempotency-Key`（建议 UUID，24h 内复用视为同一次）
-- 追踪：可上传 `X-Request-Id`，服务端将回显
-- 时间：ISO8601（UTC 或带时区）
-- 分页：`?limit=<1..100>&offset=<0..>`
+| 能力 | 建议协议 |
+|---|---|
+| PDP 判权（Allow/AllowOnActor/批量） | gRPC |
+| 监护判定（IsGuardian / ListChildren） | gRPC |
+| User/Child/Guardianship 的创建、更新、查询、注册 | REST |
+| “我的孩子” | REST（BFF 可转调 gRPC） |
 
-## RBAC & Scope（必读）
+## 安全与通用约定
 
-- 资源：`identity.user` / `identity.child` / `identity.guardian`
-- 动作：`read | write | register | grant | revoke`
-- Scope：`{scope_type, scope_id}`，默认 `{system,"*"}`
-- 判定：  
-  - 非对象型：`Allow(user, resource, action, scope)`  
-  - 对象型（涉及 Child）：`AllowOnActor = RBAC.Allow(...) ∧ Guardianship.HasGuardian(user, child)`
+- **认证**：JWT（`Authorization: Bearer <token>`）；gRPC 放在 `authorization` metadata。
+- **传输**：REST 走 HTTPS；gRPC 走 mTLS。
+- **幂等**：REST 的 `POST` 支持 `X-Idempotency-Key`；gRPC 幂等由调用方重试 + 语义保证。
+- **追踪**：`X-Request-Id`（REST）；`x-request-id`（gRPC metadata）。
 
-> **注意**：Scope 由路由/网关提取（例如 `/orgs/{orgId}/...` → `{org, orgId}`），调用方通常无需显式传入。
+## /api 文档结构
 
-## 错误返回
-
-```json
-{ "code":"Identity.ChildExists", "message":"child already exists", "requestId":"..." }
+```text
+api/
+├─ README.md                # 顶层说明（何时用 REST / gRPC）
+├─ rest/
+│  └─ identity.v1.yaml      # OpenAPI 3.1（User/Child/Guardianship）
+└─ grpc/
+   ├─ iam.authz.v1.proto    # PDP 判权（Allow/AllowOnActor/Batch/Explain）
+   └─ iam.identity.v1.proto # Identity 读侧（GetUser/GetChild/IsGuardian/ListChildren）
 ```
-
-### 常见错误码：
-| 错误码                     | 含义                             | HTTP 状态码 |
-|----------------------------|----------------------------------|-------------|
-| `InvalidArgument`          | 参数错误                         | 400         |
-| `Unauthenticated`          | 认证失败（缺少/无效 Token）     | 401         |
-| `Forbidden`                | 访问被拒绝                       | 403         |
-| `NotFound`                 | 资源未找到                       | 404         |
-| `Conflict`                 | 资源冲突                         | 409         |
-| `Internal`                 | 服务器内部错误                   | 500         |
-
-## 快速开始（cURL 示例）
-
-### (1) 注册孩子（并授当前用户为监护人）
-
-```bash
-curl -X POST "$HOST/api/v1/children:register" \
- -H "Authorization: Bearer $JWT" \
- -H "Content-Type: application/json" \
- -H "X-Idempotency-Key: $(uuidgen)" \
- -d '{
-   "legalName":"张三","gender":1,"dob":"2018-09-01",
-   "idType":"idcard","idNo":"4403**********1234",
-   "heightCm":120,"weightKg":"22.5","relation":"parent"
- }'
-```
-
-### (2) 撤销监护
-
-```bash
-curl -X POST "$HOST/api/v1/guardians:revoke" \
- -H "Authorization: Bearer $JWT" \
- -H "Content-Type: application/json" \
- -d '{"userId":"usr_parent","childId":"chd_001","relation":"parent"}'
-```
-
-更多接口与数据模型请见 identity.v1.yaml

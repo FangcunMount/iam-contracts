@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"strings"
 
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/domain/user/port"
@@ -21,6 +22,27 @@ var _ port.UserProfileEditor = (*UserProfileEditor)(nil)
 // NewProfileService 创建用户资料服务
 func NewProfileService(repo port.UserRepository) *UserProfileEditor {
 	return &UserProfileEditor{repo: repo}
+}
+
+// Rename 更新用户昵称
+func (s *UserProfileEditor) Rename(ctx context.Context, userID domain.UserID, name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return perrors.WithCode(code.ErrUserBasicInfoInvalid, "nickname cannot be empty")
+	}
+
+	u, err := NewQueryService(s.repo).FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	u.Name = name
+
+	if err := s.repo.Update(ctx, u); err != nil {
+		return perrors.WrapC(err, code.ErrDatabase, "rename user(%s) failed", userID.String())
+	}
+
+	return nil
 }
 
 // UpdateContact 更新用户联系方式
