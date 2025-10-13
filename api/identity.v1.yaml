@@ -1,0 +1,490 @@
+
+---
+
+### /api/identity.v1.yaml
+```yaml
+openapi: 3.1.0
+info:
+  title: IAM · Identity API
+  version: 1.0.0
+  description: 基础用户（Identity）模块接口：User / Child / Guardianship
+servers:
+  - url: https://api.example.com/api
+    description: Production
+  - url: http://localhost:8080/api
+    description: Local Dev
+security:
+  - bearerAuth: []
+tags:
+  - name: Users
+    description: 身份锚点（User）
+  - name: Children
+    description: 儿童档案（Child）
+  - name: Guardianship
+    description: 监护关系（Guardianship）
+
+paths:
+  /v1/users:
+    post:
+      tags: [Users]
+      summary: 创建用户（内部/管理）
+      description: AuthN 首次登录/绑定会调用；运营后台也可用。需要 `identity.user.write@system/*`
+      operationId: CreateUser
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateReq'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /v1/users/{userId}:
+    get:
+      tags: [Users]
+      summary: 查询用户
+      operationId: GetUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Users]
+      summary: 更新用户
+      operationId: PatchUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserUpdateReq' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/me/children:
+    get:
+      tags: [Children]
+      summary: 我的孩子（便捷）
+      operationId: ListMyChildren
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChildPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/children:register:
+    post:
+      tags: [Children]
+      summary: 注册孩子（建档 + 授当前用户为监护人）
+      operationId: RegisterChild
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChildRegisterReq' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChildRegisterResp' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/children:
+    post:
+      tags: [Children]
+      summary: 仅建档（不授监护；运营导入）
+      operationId: CreateChild
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChildCreateReq' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Child' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/children/{childId}:
+    get:
+      tags: [Children]
+      summary: 查询孩子
+      operationId: GetChild
+      parameters:
+        - $ref: '#/components/parameters/ChildId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Child' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Children]
+      summary: 更新孩子
+      operationId: PatchChild
+      parameters:
+        - $ref: '#/components/parameters/ChildId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChildUpdateReq' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Child' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/children:search:
+    get:
+      tags: [Children]
+      summary: 搜索孩子（运营）
+      operationId: SearchChildren
+      parameters:
+        - in: query
+          name: name
+          schema: { type: string }
+          description: 按姓名模糊
+        - in: query
+          name: dob
+          schema: { type: string, format: date }
+          description: 出生日期
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChildPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /v1/guardians:grant:
+    post:
+      tags: [Guardianship]
+      summary: 授予监护
+      operationId: GrantGuardian
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GuardianGrantReq' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Guardianship' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /v1/guardians:revoke:
+    post:
+      tags: [Guardianship]
+      summary: 撤销监护
+      operationId: RevokeGuardian
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GuardianRevokeReq' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer, format: int64 }
+                  revokedAt: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/guardians:
+    get:
+      tags: [Guardianship]
+      summary: 监护查询
+      operationId: ListGuardians
+      parameters:
+        - in: query
+          name: userId
+          schema: { type: string }
+        - in: query
+          name: childId
+          schema: { type: string }
+        - in: query
+          name: active
+          schema: { type: boolean }
+          description: 仅活动关系
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuardianshipPage'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    UserId:
+      in: path
+      name: userId
+      required: true
+      schema: { type: string }
+    ChildId:
+      in: path
+      name: childId
+      required: true
+      schema: { type: string }
+    Limit:
+      in: query
+      name: limit
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    Offset:
+      in: query
+      name: offset
+      schema: { type: integer, minimum: 0, default: 0 }
+    IdempotencyKey:
+      in: header
+      name: X-Idempotency-Key
+      schema: { type: string }
+      required: false
+      description: 幂等键，建议 UUID
+
+  responses:
+    Unauthorized:
+      description: 未认证
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/Error' } }
+    Forbidden:
+      description: 无权限
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/Error' } }
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/Error' } }
+    Conflict:
+      description: 冲突（幂等或唯一）
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/Error' } }
+    BadRequest:
+      description: 参数错误
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/Error' } }
+
+  schemas:
+    # ---- Users
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [active, inactive, blocked] }
+        nickname: { type: string }
+        avatar: { type: string, format: uri }
+        contacts:
+          type: array
+          items: { $ref: '#/components/schemas/VerifiedContact' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, status]
+
+    UserCreateReq:
+      type: object
+      properties:
+        nickname: { type: string }
+        avatar: { type: string, format: uri }
+        contacts:
+          type: array
+          items: { $ref: '#/components/schemas/VerifiedContactUpsert' }
+
+    UserUpdateReq:
+      type: object
+      properties:
+        nickname: { type: string }
+        avatar: { type: string, format: uri }
+        contacts:
+          type: array
+          items: { $ref: '#/components/schemas/VerifiedContactUpsert' }
+
+    VerifiedContact:
+      type: object
+      properties:
+        type: { type: string, enum: [email, phone] }
+        value: { type: string }
+        verifiedAt: { type: string, format: date-time }
+    VerifiedContactUpsert:
+      type: object
+      properties:
+        type: { type: string, enum: [email, phone] }
+        value: { type: string }
+
+    # ---- Children
+    Child:
+      type: object
+      properties:
+        id: { type: string }
+        legalName: { type: string }
+        gender: { type: integer, description: '0=unknown,1=male,2=female...' }
+        dob: { type: string, format: date }
+        idType: { type: string }
+        idMasked: { type: string, description: '掩码展示，不返回明文' }
+        heightCm: { type: integer, nullable: true }
+        weightKg: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, legalName, gender, dob, idType]
+
+    ChildCreateReq:
+      type: object
+      properties:
+        legalName: { type: string }
+        gender: { type: integer }
+        dob: { type: string, format: date }
+        idType: { type: string }
+        idNo: { type: string, description: '仅入参；服务端加密+哈希存储' }
+        heightCm: { type: integer, nullable: true }
+        weightKg: { type: string, nullable: true }
+      required: [legalName, gender, dob, idType, idNo]
+
+    ChildRegisterReq:
+      allOf:
+        - $ref: '#/components/schemas/ChildCreateReq'
+        - type: object
+          properties:
+            relation:
+              type: string
+              enum: [self, parent, guardian]
+              default: parent
+
+    ChildRegisterResp:
+      type: object
+      properties:
+        child: { $ref: '#/components/schemas/Child' }
+        guardianship: { $ref: '#/components/schemas/Guardianship' }
+
+    ChildUpdateReq:
+      type: object
+      properties:
+        legalName: { type: string }
+        gender: { type: integer }
+        dob: { type: string, format: date }
+        heightCm: { type: integer, nullable: true }
+        weightKg: { type: string, nullable: true }
+
+    ChildPage:
+      type: object
+      properties:
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Child' }
+
+    # ---- Guardianship
+    Guardianship:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        userId: { type: string }
+        childId: { type: string }
+        relation: { type: string, enum: [self, parent, guardian] }
+        since: { type: string, format: date-time }
+        revokedAt: { type: string, format: date-time, nullable: true }
+      required: [id, userId, childId, relation, since]
+
+    GuardianGrantReq:
+      type: object
+      properties:
+        userId: { type: string }
+        childId: { type: string }
+        relation: { type: string, enum: [self, parent, guardian] }
+      required: [userId, childId, relation]
+
+    GuardianRevokeReq:
+      type: object
+      properties:
+        userId: { type: string }
+        childId: { type: string }
+        relation: { type: string, enum: [self, parent, guardian] }
+      required: [userId, childId, relation]
+
+    GuardianshipPage:
+      type: object
+      properties:
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Guardianship' }
+
+    # ---- Common
+    Error:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }
+        requestId: { type: string }
