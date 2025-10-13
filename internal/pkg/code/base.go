@@ -1,67 +1,33 @@
 package code
 
-// Common: basic errors.
-// Code must start with 1xxxxx.
+// Common: basic errors (1xxxxx).
 const (
 	// ErrSuccess - 200: OK.
-	ErrSuccess int = iota + 100001
+	ErrSuccess = 100001
 
 	// ErrUnknown - 500: Internal server error.
-	ErrUnknown
+	ErrUnknown = 100002
 
 	// ErrBind - 400: Error occurred while binding the request body to the struct.
-	ErrBind
+	ErrBind = 100003
 
 	// ErrValidation - 400: Validation failed.
-	ErrValidation
-
-	// ErrTokenInvalid - 401: Token invalid.
-	ErrTokenInvalid
+	ErrValidation = 100004
 
 	// ErrPageNotFound - 404: Page not found.
-	ErrPageNotFound
+	ErrPageNotFound = 100006
 
 	// ErrInvalidArgument - 400: Invalid argument.
-	ErrInvalidArgument
+	ErrInvalidArgument = 100007
 
 	// ErrInvalidMessage - 400: Invalid message.
-	ErrInvalidMessage
+	ErrInvalidMessage = 100008
 )
 
 // common: database errors.
 const (
 	// ErrDatabase - 500: Database error.
 	ErrDatabase int = iota + 100101
-)
-
-// common: authorization and authentication errors.
-const (
-	// ErrEncrypt - 401: Error occurred while encrypting the user password.
-	ErrEncrypt int = iota + 100201
-
-	// ErrSignatureInvalid - 401: Signature is invalid.
-	ErrSignatureInvalid
-
-	// ErrExpired - 401: Token expired.
-	ErrExpired
-
-	// ErrInvalidAuthHeader - 401: Invalid authorization header.
-	ErrInvalidAuthHeader
-
-	// ErrMissingHeader - 401: The `Authorization` header was empty.
-	ErrMissingHeader
-
-	// ErrPasswordIncorrect - 401: Password was incorrect.
-	ErrPasswordIncorrect
-
-	// PermissionDenied - 403: Permission denied.
-	ErrPermissionDenied
-
-	// ErrTokenGeneration - 500: Failed to generate token.
-	ErrTokenGeneration
-
-	// ErrInternalServerError - 500: Internal server error.
-	ErrInternalServerError
 )
 
 // common: encode/decode errors.
@@ -98,4 +64,10 @@ const (
 
 	// ErrModuleNotFound - 404: Module not found.
 	ErrModuleNotFound
+)
+
+// Common: internal server failure.
+const (
+	// ErrInternalServerError - 500: Internal server error.
+	ErrInternalServerError = 100209
 )
