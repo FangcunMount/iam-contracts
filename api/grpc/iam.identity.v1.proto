@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package iam.identity.v1;
+option go_package = "github.com/fangcun-mount/iam-contracts/api/grpc/iam/identity/v1;identityv1";
+
+import "google/protobuf/timestamp.proto";
+
+message User {
+  string id = 1;
+  string status = 2;   // "active"|"inactive"|"blocked"
+  string nickname = 3;
+  string avatar = 4;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message Child {
+  string id = 1;
+  string legal_name = 2;
+  int32  gender = 3;
+  string dob = 4; // date (YYYY-MM-DD)
+  string id_type = 5;
+  // 不返回身份证明文；若需要掩码，请服务端渲染成另一个字段
+  int32  height_cm = 6;
+  string weight_kg = 7;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message Guardianship {
+  int64 id = 1;
+  string user_id = 2;
+  string child_id = 3;
+  string relation = 4; // "self"|"parent"|"guardian"
+  google.protobuf.Timestamp since = 5;
+  google.protobuf.Timestamp revoked_at = 6;
+}
+
+/******** 查询 ********/
+message GetUserReq   { string user_id = 1; }
+message GetChildReq  { string child_id = 1; }
+message GetUserResp  { User user = 1; }
+message GetChildResp { Child child = 1; }
+
+/******** 监护判定 ********/
+message IsGuardianReq  { string user_id = 1; string child_id = 2; }
+message IsGuardianResp { bool is_guardian = 1; }
+
+message ListChildrenReq {
+  string user_id = 1;
+  int32  limit = 2;  // default 20
+  int32  offset = 3; // default 0
+}
+message ListChildrenResp {
+  int32 total = 1;
+  repeated Child items = 2;
+}
+
+service IdentityRead {
+  rpc GetUser  (GetUserReq)  returns (GetUserResp);
+  rpc GetChild (GetChildReq) returns (GetChildResp);
+}
+
+service GuardianshipQuery {
+  rpc IsGuardian   (IsGuardianReq)   returns (IsGuardianResp);
+  rpc ListChildren (ListChildrenReq) returns (ListChildrenResp);
+}
