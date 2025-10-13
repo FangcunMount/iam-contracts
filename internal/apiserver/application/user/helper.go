@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// ensurePhoneUnique 确保手机号在系统中唯一
 func ensurePhoneUnique(ctx context.Context, repo port.UserRepository, phone meta.Phone) error {
 	if phone.IsEmpty() {
 		return perrors.WithCode(code.ErrUserBasicInfoInvalid, "phone cannot be empty")

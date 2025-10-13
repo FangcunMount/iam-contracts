@@ -88,8 +88,18 @@ func (r *Router) registerUserProtectedRoutes(apiV1 *gin.RouterGroup) {
 
 	users := apiV1.Group("/users")
 	{
-		// 获取当前用户资料相关
+		// 用户注册与查询
+		users.POST("", userHandler.Register)
+		users.GET("", userHandler.GetUserByPhone)
+
+		// 静态路由需要放在动态路由前
 		users.GET("/profile", userHandler.GetUserProfile)
+
+		// 用户资源管理
+		users.GET("/:id", userHandler.GetUser)
+		users.PUT("/:id/contact", userHandler.UpdateContact)
+		users.PUT("/:id/id-card", userHandler.UpdateIDCard)
+		users.PUT("/:id/status", userHandler.ChangeStatus)
 	}
 }
 
