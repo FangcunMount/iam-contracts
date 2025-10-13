@@ -80,26 +80,42 @@ func (r *Router) registerProtectedRoutes(engine *gin.Engine) {
 
 // registerUserProtectedRoutes 注册用户相关的受保护路由
 func (r *Router) registerUserProtectedRoutes(apiV1 *gin.RouterGroup) {
-	userHandler := r.container.UserModule.UserHandler
-
-	if userHandler == nil {
+	module := r.container.UserModule
+	if module == nil {
 		return
 	}
 
-	users := apiV1.Group("/users")
-	{
-		// 用户注册与查询
-		users.POST("", userHandler.Register)
-		users.GET("", userHandler.GetUserByPhone)
+	if module.UserHandler != nil {
+		users := apiV1.Group("/users")
+		{
+			users.POST("", module.UserHandler.CreateUser)
+			users.GET("/profile", module.UserHandler.GetUserProfile)
+			users.GET("/:userId", module.UserHandler.GetUser)
+			users.PATCH("/:userId", module.UserHandler.PatchUser)
+		}
+	}
 
-		// 静态路由需要放在动态路由前
-		users.GET("/profile", userHandler.GetUserProfile)
+	if module.ChildHandler != nil {
+		me := apiV1.Group("/me")
+		{
+			me.GET("/children", module.ChildHandler.ListMyChildren)
+		}
 
-		// 用户资源管理
-		users.GET("/:id", userHandler.GetUser)
-		users.PUT("/:id/contact", userHandler.UpdateContact)
-		users.PUT("/:id/id-card", userHandler.UpdateIDCard)
-		users.PUT("/:id/status", userHandler.ChangeStatus)
+		apiV1.POST("/children:register", module.ChildHandler.RegisterChild)
+		apiV1.GET("/children:search", module.ChildHandler.SearchChildren)
+
+		children := apiV1.Group("/children")
+		{
+			children.POST("", module.ChildHandler.CreateChild)
+			children.GET("/:childId", module.ChildHandler.GetChild)
+			children.PATCH("/:childId", module.ChildHandler.PatchChild)
+		}
+	}
+
+	if module.GuardianshipHandler != nil {
+		apiV1.POST("/guardians:grant", module.GuardianshipHandler.Grant)
+		apiV1.POST("/guardians:revoke", module.GuardianshipHandler.Revoke)
+		apiV1.GET("/guardians", module.GuardianshipHandler.List)
 	}
 }
 

@@ -1,12 +1,21 @@
 package response
 
+import "time"
+
+// VerifiedContactResponse 用户联系方式展示
+type VerifiedContactResponse struct {
+	Type       string     `json:"type"`
+	Value      string     `json:"value"`
+	VerifiedAt *time.Time `json:"verifiedAt,omitempty"`
+}
+
 // UserResponse 用户响应
 type UserResponse struct {
-	ID       uint64 `json:"id"`
-	Name     string `json:"name"`
-	Phone    string `json:"phone"`
-	Email    string `json:"email,omitempty"`
-	IDCard   string `json:"id_card,omitempty"`
-	Status   string `json:"status"`
-	StatusID uint8  `json:"status_id"`
+	ID        string                    `json:"id"`
+	Status    string                    `json:"status"`
+	Nickname  string                    `json:"nickname,omitempty"`
+	Avatar    string                    `json:"avatar,omitempty"`
+	Contacts  []VerifiedContactResponse `json:"contacts,omitempty"`
+	CreatedAt *time.Time                `json:"createdAt,omitempty"`
+	UpdatedAt *time.Time                `json:"updatedAt,omitempty"`
 }

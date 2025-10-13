@@ -3,7 +3,11 @@ package assembler
 import (
 	"gorm.io/gorm"
 
+	appchild "github.com/fangcun-mount/iam-contracts/internal/apiserver/application/child"
+	appguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/application/guardianship"
 	appuser "github.com/fangcun-mount/iam-contracts/internal/apiserver/application/user"
+	mysqlchild "github.com/fangcun-mount/iam-contracts/internal/apiserver/infra/mysql/child"
+	mysqlguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/infra/mysql/guardianship"
 	mysqluser "github.com/fangcun-mount/iam-contracts/internal/apiserver/infra/mysql/user"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/interface/restful/handler"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
@@ -14,7 +18,9 @@ import (
 // 负责组装用户相关的所有组件
 type UserModule struct {
 	// handler 层
-	UserHandler *handler.UserHandler
+	UserHandler         *handler.UserHandler
+	ChildHandler        *handler.ChildHandler
+	GuardianshipHandler *handler.GuardianshipHandler
 }
 
 // NewUserModule 创建用户模块
@@ -29,18 +35,43 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 		return errors.WithCode(code.ErrModuleInitializationFailed, "database connection is nil")
 	}
 
-	// 初始化 handler 层
-	repo := mysqluser.NewRepository(db)
-	registerSrv := appuser.NewRegisterService(repo)
-	statusSrv := appuser.NewStatusService(repo)
-	profileSrv := appuser.NewProfileService(repo)
-	querySrv := appuser.NewQueryService(repo)
+	// 初始化仓储
+	userRepo := mysqluser.NewRepository(db)
+	childRepo := mysqlchild.NewRepository(db)
+	guardRepo := mysqlguard.NewRepository(db)
 
+	// 用户服务
+	userRegisterSrv := appuser.NewRegisterService(userRepo)
+	userProfileSrv := appuser.NewProfileService(userRepo)
+	userQuerySrv := appuser.NewQueryService(userRepo)
+
+	// 儿童服务
+	childRegisterSrv := appchild.NewRegisterService(childRepo)
+	childProfileSrv := appchild.NewProfileService(childRepo)
+	childQuerySrv := appchild.NewQueryService(childRepo)
+
+	// 监护服务
+	guardManagerSrv := appguard.NewManagerService(guardRepo, childRepo, userRepo)
+	guardQuerySrv := appguard.NewQueryService(guardRepo, childRepo)
+
+	// 初始化 handler 层
 	m.UserHandler = handler.NewUserHandler(
-		registerSrv,
-		statusSrv,
-		profileSrv,
-		querySrv,
+		userRegisterSrv,
+		userProfileSrv,
+		userQuerySrv,
+	)
+
+	m.ChildHandler = handler.NewChildHandler(
+		childRegisterSrv,
+		childProfileSrv,
+		childQuerySrv,
+		guardManagerSrv,
+		guardQuerySrv,
+	)
+
+	m.GuardianshipHandler = handler.NewGuardianshipHandler(
+		guardManagerSrv,
+		guardQuerySrv,
 	)
 
 	return nil
