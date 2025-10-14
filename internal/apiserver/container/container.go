@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-redis/redis/v7"
 	"gorm.io/gorm"
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/container/assembler"
@@ -13,7 +14,8 @@ import (
 // 负责管理所有模块的依赖注入和生命周期
 type Container struct {
 	// 数据库连接
-	mysqlDB *gorm.DB
+	mysqlDB     *gorm.DB
+	redisClient *redis.Client
 
 	// 业务模块
 	AuthModule *assembler.AuthModule
@@ -24,9 +26,10 @@ type Container struct {
 }
 
 // NewContainer 创建容器
-func NewContainer(mysqlDB *gorm.DB) *Container {
+func NewContainer(mysqlDB *gorm.DB, redisClient *redis.Client) *Container {
 	return &Container{
-		mysqlDB: mysqlDB,
+		mysqlDB:     mysqlDB,
+		redisClient: redisClient,
 	}
 }
 
@@ -55,7 +58,7 @@ func (c *Container) Initialize() error {
 // initAuthModule 初始化认证模块
 func (c *Container) initAuthModule() error {
 	authModule := assembler.NewAuthModule()
-	if err := authModule.Initialize(c.mysqlDB); err != nil {
+	if err := authModule.Initialize(c.mysqlDB, c.redisClient); err != nil {
 		return fmt.Errorf("failed to initialize auth module: %w", err)
 	}
 	c.AuthModule = authModule
@@ -81,6 +84,13 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 		}
 	}
 
+	// 检查Redis连接
+	if c.redisClient != nil {
+		if err := c.redisClient.Ping().Err(); err != nil {
+			return fmt.Errorf("redis health check failed: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -102,6 +112,13 @@ func (c *Container) PrintStatus() {
 	// 数据库连接状态
 	fmt.Printf("   • MySQL: ")
 	if c.mysqlDB != nil {
+		fmt.Printf("✅\n")
+	} else {
+		fmt.Printf("❌\n")
+	}
+
+	fmt.Printf("   • Redis: ")
+	if c.redisClient != nil {
 		fmt.Printf("✅\n")
 	} else {
 		fmt.Printf("❌\n")

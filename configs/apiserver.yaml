@@ -50,6 +50,9 @@ redis:
   max-idle: 50 # 最大空闲连接数
   max-active: 100 # 最大活跃连接数
   timeout: 5s # 连接超时时间
+  # 用于认证模块的简化配置
+  addr: "127.0.0.1:6379" # Redis 地址（authn 模块使用）
+  db: 0 # 数据库编号（authn 模块使用）
 
 # 日志配置
 log:
@@ -73,6 +76,15 @@ log:
 # JWT 配置
 jwt:
   key: "web-framework-jwt-secret-key-2024" # JWT 签名密钥（生产环境请使用更强的密钥）
+  secret: "web-framework-jwt-secret-key-2024" # JWT 密钥（authn 模块使用）
   timeout: 24h # Token 有效期（24小时）
   max-refresh: 168h # 最大刷新时间（7天）
+  access-token-ttl: 15m # 访问令牌有效期（authn 模块使用）
+  refresh-token-ttl: 168h # 刷新令牌有效期（authn 模块使用，7天）
   realm: web-framework # JWT 领域名称
+
+# 微信小程序配置（认证模块使用）
+wechat:
+  mini-programs:
+    - app-id: "wxd1234567890abcdef" # 示例小程序 AppID
+      app-secret: "your-wechat-app-secret-here" # 示例小程序 AppSecret

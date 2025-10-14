@@ -1,6 +1,9 @@
 package apiserver
 
 import (
+	"github.com/go-redis/redis/v7"
+	"github.com/spf13/viper"
+
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/config"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/container"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/grpcserver"
@@ -63,6 +66,34 @@ func createAPIServer(cfg *config.Config) (*apiServer, error) {
 	return server, nil
 }
 
+// initRedisClient 初始化 Redis 客户端
+func (s *apiServer) initRedisClient() *redis.Client {
+	addr := viper.GetString("redis.addr")
+	password := viper.GetString("redis.password")
+	db := viper.GetInt("redis.db")
+
+	if addr == "" {
+		log.Warn("Redis address not configured, using default: localhost:6379")
+		addr = "localhost:6379"
+	}
+
+	client := redis.NewClient(&redis.Options{
+		Addr:     addr,
+		Password: password,
+		DB:       db,
+	})
+
+	// 测试连接
+	if err := client.Ping().Err(); err != nil {
+		log.Warnf("Failed to connect to Redis: %v", err)
+		log.Warn("Authentication module will run without Redis (token features disabled)")
+		return nil
+	}
+
+	log.Infof("✅ Redis connected successfully: %s (db: %d)", addr, db)
+	return client
+}
+
 // PrepareRun 准备运行 API 服务器（六边形架构版本）
 func (s *apiServer) PrepareRun() preparedAPIServer {
 	// 初始化数据库连接
@@ -77,8 +108,11 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 		mysqlDB = nil // 设置为nil，允许应用在没有MySQL的情况下运行
 	}
 
-	// 创建六边形架构容器（自动发现版本）
-	s.container = container.NewContainer(mysqlDB)
+	// 初始化 Redis 客户端
+	redisClient := s.initRedisClient()
+
+	// 创建六边形架构容器（传入 MySQL 和 Redis）
+	s.container = container.NewContainer(mysqlDB, redisClient)
 
 	// 初始化容器中的所有组件
 	if err := s.container.Initialize(); err != nil {
