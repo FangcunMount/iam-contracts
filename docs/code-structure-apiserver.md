@@ -78,28 +78,22 @@ internal/apiserver/application/
   - Examiner：判定某 user 是否为 child 的有效监护人
   - Queryer：执行查询（按 childID、userID、childName 等）
 
-## 3) 仓储层（MySQL 实现）— `internal/apiserver/infra/mysql`
+## 3) 仓储层（MySQL 实现）— `internal/pkg/database/mysql`
 
 结构摘录：
 
 ```text
 
-internal/apiserver/infra/mysql/
+internal/pkg/database/mysql/
 ├─ audit.go           # 审计字段与 Syncable 相关方法（SetID 等）
-├─ base.go            # BaseRepository 泛型封装（通用 CRUD）
-├─ child/             # Child 的 PO/mapper/repo 实现
-├─ guardianship/      # Guardianship 的 PO/mapper/repo 实现
-│  ├─ guardianship.go # GuardianshipPO（gorm model、钩子）
-│  ├─ mapper.go       # GuardianshipMapper (ToPO/ToBO/ToBOs)
-│  └─ repo.go         # 仓储实现（Create/FindBy.../Update）
-└─ user/              # User 的 PO/mapper/repo 实现
+└─ base.go            # BaseRepository 泛型封装（通用 CRUD）
 ```
 
 要点：
 
 - PO（持久化对象）与 Mapper 的分离便于 DB 与 domain 转换。
 - `BaseRepository[*PO]` 提供通用 Create/Find/Update 等，并暴露 CreateAndSync/UpdateAndSync 回调，用来把数据库生成的 ID/时间回写到 domain 对象。
-- `audit.go` 的 `SetID` 签名需与 `mysql.Syncable` 约定一致（仓库中已做相应调整）。
+- `audit.go` 的 `SetID` 签名需与 `database/mysql.Syncable` 约定一致（仓库中已做相应调整）。
 
 ## 4) 关键接口 → 实现 → 应用 的映射
 
