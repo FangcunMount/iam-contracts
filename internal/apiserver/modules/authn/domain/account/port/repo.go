@@ -35,8 +35,8 @@ type WeChatRepo interface {
 
 // OperationRepo —— 子实体（用户名/口令）
 type OperationRepo interface {
-	GetByUsername(ctx context.Context, username string) (*account.OperationCredential, error)
-	Create(ctx context.Context, cred *account.OperationCredential) error
+	GetByUsername(ctx context.Context, username string) (*account.OperationAccount, error)
+	Create(ctx context.Context, cred *account.OperationAccount) error
 	UpdateHash(ctx context.Context, username string, hash []byte, algo string, params []byte) error
 
 	// 失败次数累计与临时锁定（应在单条 SQL/事务内完成）

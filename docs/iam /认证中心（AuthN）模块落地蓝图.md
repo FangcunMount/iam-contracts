@@ -93,7 +93,7 @@ func (a *Account) Disable() { a.Status = StatusDisabled }
 func (a *Account) IsActive() bool { return a.Status == StatusActive }
 
 // 子实体（非聚合根）
-type OperationCredential struct {
+type OperationAccount struct {
     AccountID string
     Username  string
     PasswordHash []byte

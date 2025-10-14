@@ -50,8 +50,8 @@ func (a *Account) IsActive() bool { return a.Status == StatusActive }
 ### 2.2 子实体（受控，非聚合根）
 
 ```go
-// 运营口令（OperationCredential）
-type OperationCredential struct {
+// 运营口令（OperationAccount）
+type OperationAccount struct {
     AccountID     string
     Username      string
     PasswordHash  []byte     // Argon2id（推荐）或 bcrypt
