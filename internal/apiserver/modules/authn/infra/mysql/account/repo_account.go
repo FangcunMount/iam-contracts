@@ -112,3 +112,23 @@ func (r *AccountRepository) updateColumns(ctx context.Context, id domain.Account
 		Updates(updates).
 		Error
 }
+
+// ListByUserID 根据用户 ID 查询账号列表。
+func (r *AccountRepository) ListByUserID(ctx context.Context, userID userdomain.UserID) ([]*domain.Account, error) {
+	var pos []AccountPO
+	if err := r.db.WithContext(ctx).
+		Where("user_id = ?", idutil.ID(userID).Value()).
+		Find(&pos).
+		Error; err != nil {
+		return nil, err
+	}
+
+	accounts := make([]*domain.Account, 0, len(pos))
+	for i := range pos {
+		po := pos[i]
+		if acc := r.mapper.ToAccountBO(&po); acc != nil {
+			accounts = append(accounts, acc)
+		}
+	}
+	return accounts, nil
+}

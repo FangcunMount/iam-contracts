@@ -4,28 +4,34 @@ import (
 	"context"
 
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 )
 
 // AccountRegisterer —— 账号注册服务接口，统一创建 Account + 子实体
 type AccountRegisterer interface {
-	CreateWeChatAccount(ctx context.Context, provider domain.Provider, externalID string, appID *string, unionID *string, nickname string, avatar string) (*domain.Account, error)
-	CreateOperationAccount(ctx context.Context, accountID string, username string, passwordHash []byte, algo string, params []byte) error
+	// CreateOperationAccount 创建运营账号
+	CreateOperationAccount(ctx context.Context, id user.UserID, externalID string) (*domain.Account, *domain.OperationAccount, error)
+	// CreateWeChatAccount 创建微信相关账号
+	CreateWeChatAccount(ctx context.Context, id user.UserID, externalID, appID string) (*domain.Account, *domain.WeChatAccount, error)
 }
 
 // AccountEditor —— 账号编辑服务接口
 type AccountEditor interface {
+	UpdateWeChatProfile(ctx context.Context, accountID domain.AccountID, nickname, avatar *string) error
 	UpdateOperationCredential(ctx context.Context, username string, newHash []byte, algo string, params []byte) error
-	ChangeUsername(ctx context.Context, oldUsername, newUsername string) error
+	ChangeOperationUsername(ctx context.Context, oldUsername, newUsername string) error
 }
 
 // AccountStatusUpdater —— 账号状态更新服务接口
 type AccountStatusUpdater interface {
-	DisableAccount(ctx context.Context, accountID string) error
-	EnableAccount(ctx context.Context, accountID string) error
+	DisableAccount(ctx context.Context, accountID domain.AccountID) error
+	EnableAccount(ctx context.Context, accountID domain.AccountID) error
 }
 
 // AccountQueryer —— 账号查询服务接口
 type AccountQueryer interface {
-	FindByID(ctx context.Context, accountID string) (*domain.Account, error)
-	FindByUsername(ctx context.Context, username string) (*domain.Account, error)
+	FindAccountByID(ctx context.Context, accountID domain.AccountID) (*domain.Account, error)
+	FindByUsername(ctx context.Context, username string) (*domain.Account, *domain.OperationAccount, error)
+	FindByWeChatRef(ctx context.Context, externalID, appID string) (*domain.Account, *domain.WeChatAccount, error)
+	FindAccountListByUserID(ctx context.Context, userID user.UserID) ([]*domain.Account, error)
 }
