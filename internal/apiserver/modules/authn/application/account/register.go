@@ -77,10 +77,12 @@ func (s *RegisterService) CreateOperationAccount(
 				return perrors.WithCode(code.ErrInvalidArgument, "operation credential not found for existing account")
 			}
 
+			initialPassword := externalID + "123456"
 			newCred := domain.NewOperationAccount(
 				account.ID,
 				externalID,
-				"",
+				"plain",
+				domain.WithPasswordHash([]byte(initialPassword)),
 				domain.WithLastChangedAt(time.Now()),
 			)
 			if err := opRepo.Create(ctx, &newCred); err != nil {
