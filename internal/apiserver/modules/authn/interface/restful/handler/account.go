@@ -182,13 +182,12 @@ func (h *AccountHandler) BindWeChatAccount(c *gin.Context) {
 
 	existingAccount, _, err := h.query.FindByWeChatRef(ctx, openID, appID)
 	created := false
-	switch {
-	case err == nil:
+	if err == nil {
 		if idutil.ID(existingAccount.UserID) != idutil.ID(userID) {
 			h.ErrorWithCode(c, code.ErrInvalidArgument, "wechat binding already associated with another user")
 			return
 		}
-	case err != nil:
+	} else {
 		if !perrors.IsCode(err, code.ErrInvalidArgument) {
 			h.Error(c, err)
 			return
