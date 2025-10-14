@@ -3,6 +3,9 @@ package assembler
 import (
 	"gorm.io/gorm"
 
+	appacc "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/account"
+	appuow "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
+	mysqlacct "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
 )
@@ -11,6 +14,9 @@ import (
 // 负责组装认证相关的所有组件
 type AuthModule struct {
 	// 这里可以添加认证相关的组件
+	RegisterService *appacc.RegisterService
+	EditorService   *appacc.EditorService
+	QueryService    *appacc.QueryService
 }
 
 // NewAuthModule 创建认证模块
@@ -25,8 +31,18 @@ func (m *AuthModule) Initialize(params ...interface{}) error {
 		return errors.WithCode(code.ErrModuleInitializationFailed, "database connection is nil")
 	}
 
-	// 这里可以初始化认证相关的组件
-	// 目前简化处理，不依赖具体的业务逻辑
+	// 初始化仓储
+	accountRepo := mysqlacct.NewAccountRepository(db)
+	operationRepo := mysqlacct.NewOperationRepository(db)
+	wechatRepo := mysqlacct.NewWeChatRepository(db)
+
+	// 事务 UnitOfWork
+	u := appuow.NewUnitOfWork(db)
+
+	// 应用服务
+	m.RegisterService = appacc.NewRegisterService(accountRepo, wechatRepo, operationRepo, u)
+	m.EditorService = appacc.NewEditorService(wechatRepo, operationRepo, u)
+	m.QueryService = appacc.NewQueryService(accountRepo, wechatRepo, operationRepo)
 
 	return nil
 }
