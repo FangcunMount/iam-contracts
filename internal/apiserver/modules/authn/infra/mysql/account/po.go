@@ -14,7 +14,7 @@ type AccountPO struct {
 	UserID     idutil.ID `gorm:"column:user_id;type:bigint unsigned;not null;index:idx_user_provider,priority:1"`
 	Provider   string    `gorm:"column:provider;type:varchar(32);not null;index:idx_user_provider,priority:2;uniqueIndex:idx_provider_app_external,priority:1"`
 	ExternalID string    `gorm:"column:external_id;type:varchar(128);not null;uniqueIndex:idx_provider_app_external,priority:3"`
-	AppID      string    `gorm:"column:app_id;type:varchar(64);uniqueIndex:idx_provider_app_external,priority:2"`
+	AppID      *string   `gorm:"column:app_id;type:varchar(64);uniqueIndex:idx_provider_app_external,priority:2"`
 	Status     int8      `gorm:"column:status;type:tinyint;not null;default:1"`
 }
 

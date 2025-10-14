@@ -47,7 +47,10 @@ func (m *Mapper) ToAccountBO(po *AccountPO) *domain.Account {
 		domain.WithID(domain.AccountID(po.ID)),
 		domain.WithExternalID(po.ExternalID),
 		domain.WithStatus(domain.AccountStatus(po.Status)),
-		domain.WithAppID(po.AppID),
+	}
+
+	if po.AppID != nil {
+		opts = append(opts, domain.WithAppID(*po.AppID))
 	}
 
 	account := domain.NewAccount(userdomain.UserID(po.UserID), domain.Provider(po.Provider), opts...)
