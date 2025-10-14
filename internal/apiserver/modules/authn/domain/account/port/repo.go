@@ -2,44 +2,33 @@ package port
 
 import (
 	"context"
-	"time"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 )
 
-// 标准仓储错误（由 infra 层返回，应用/领域可据此分支）
-var (
-	ErrNotFound = errorString("not found")
-	ErrConflict = errorString("conflict") // 唯一键冲突/并发插入
-)
-
-type errorString string
-
-func (e errorString) Error() string { return string(e) }
-
-// AccountRepo —— 聚合根（统一锚点）
-// 唯一性：UNIQUE(provider, app_id, external_id)
+// 统一锚点
 type AccountRepo interface {
-	FindByRef(ctx context.Context, provider account.Provider, externalID string, appID *string) (*account.Account, error)
-	Create(ctx context.Context, a *account.Account) error
-	Disable(ctx context.Context, id string) error
+	Create(ctx context.Context, a *domain.Account) error
+	FindByID(ctx context.Context, id domain.AccountID) (*domain.Account, error)
+	FindByRef(ctx context.Context, provider domain.Provider, externalID string, appID *string) (*domain.Account, error)
+	UpdateStatus(ctx context.Context, id domain.AccountID, status domain.AccountStatus) error
+	UpdateUserID(ctx context.Context, id domain.AccountID, userID user.UserID) error
+	UpdateExternalRef(ctx context.Context, id domain.AccountID, externalID string, appID *string) error
 }
 
-// WeChatRepo —— 子实体（微信画像/专有字段）
+// 子实体：WeChat
 type WeChatRepo interface {
-	// Upsert：按 (app_id, openid) 幂等写入/更新画像
-	Upsert(ctx context.Context, wx *account.WeChatAccount) error
-	// FindByAppOpenID：便于外部身份直查
-	FindByAppOpenID(ctx context.Context, appID, openid string) (*account.WeChatAccount, error)
+	Create(ctx context.Context, wx *domain.WeChatAccount) error
+	FindByAccountID(ctx context.Context, accountID domain.AccountID) (*domain.WeChatAccount, error)
+	FindByAppOpenID(ctx context.Context, appID, openid string) (*domain.WeChatAccount, error)
 }
 
-// OperationRepo —— 子实体（用户名/口令）
+// 子实体：Operation
 type OperationRepo interface {
-	GetByUsername(ctx context.Context, username string) (*account.OperationAccount, error)
-	Create(ctx context.Context, cred *account.OperationAccount) error
+	Create(ctx context.Context, cred *domain.OperationAccount) error
+	FindByAccountID(ctx context.Context, accountID domain.AccountID) (*domain.OperationAccount, error)
+	FindByUsername(ctx context.Context, username string) (*domain.OperationAccount, error)
 	UpdateHash(ctx context.Context, username string, hash []byte, algo string, params []byte) error
-
-	// 失败次数累计与临时锁定（应在单条 SQL/事务内完成）
-	IncFailAndMaybeLock(ctx context.Context, username string, maxFail int, lockFor time.Duration) (newFailCount int, err error)
-	ResetFailures(ctx context.Context, username string) error
+	UpdateUsername(ctx context.Context, accountID domain.AccountID, newUsername string) error
 }
