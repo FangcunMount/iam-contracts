@@ -106,7 +106,7 @@ func (s *EditorService) ChangeOperationUsername(ctx context.Context, oldUsername
 
 	if _, err := s.operation.FindByUsername(ctx, newUsername); err == nil {
 		return perrors.WithCode(code.ErrInvalidArgument, "operation credential(%s) already exists", newUsername)
-	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return perrors.WrapC(err, code.ErrDatabase, "check operation credential(%s) failed", newUsername)
 	}
 
