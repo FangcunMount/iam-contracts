@@ -4,15 +4,14 @@ import (
 	"context"
 
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 )
 
 // AccountRegisterer —— 账号注册服务接口，统一创建 Account + 子实体
 type AccountRegisterer interface {
 	// CreateOperationAccount 创建运营账号
-	CreateOperationAccount(ctx context.Context, id user.UserID, externalID string) (*domain.Account, *domain.OperationAccount, error)
+	CreateOperationAccount(ctx context.Context, userID domain.UserID, externalID string) (*domain.Account, *domain.OperationAccount, error)
 	// CreateWeChatAccount 创建微信相关账号
-	CreateWeChatAccount(ctx context.Context, id user.UserID, externalID, appID string) (*domain.Account, *domain.WeChatAccount, error)
+	CreateWeChatAccount(ctx context.Context, userID domain.UserID, externalID, appID string) (*domain.Account, *domain.WeChatAccount, error)
 }
 
 // AccountEditor —— 账号编辑服务接口
@@ -37,5 +36,5 @@ type AccountQueryer interface {
 	FindByUsername(ctx context.Context, username string) (*domain.Account, *domain.OperationAccount, error)
 	FindByWeChatRef(ctx context.Context, externalID, appID string) (*domain.Account, *domain.WeChatAccount, error)
 	FindByRef(ctx context.Context, provider domain.Provider, externalID string, appID *string) (*domain.Account, error)
-	FindAccountListByUserID(ctx context.Context, userID user.UserID) ([]*domain.Account, error)
+	FindAccountListByUserID(ctx context.Context, userID domain.UserID) ([]*domain.Account, error)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 )
 
 // 统一锚点
@@ -13,7 +12,7 @@ type AccountRepo interface {
 	FindByID(ctx context.Context, id domain.AccountID) (*domain.Account, error)
 	FindByRef(ctx context.Context, provider domain.Provider, externalID string, appID *string) (*domain.Account, error)
 	UpdateStatus(ctx context.Context, id domain.AccountID, status domain.AccountStatus) error
-	UpdateUserID(ctx context.Context, id domain.AccountID, userID user.UserID) error
+	UpdateUserID(ctx context.Context, id domain.AccountID, userID domain.UserID) error
 	UpdateExternalRef(ctx context.Context, id domain.AccountID, externalID string, appID *string) error
 }
 

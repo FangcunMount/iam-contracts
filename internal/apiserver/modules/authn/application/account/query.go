@@ -7,7 +7,6 @@ import (
 
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
-	userdomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
 	"gorm.io/gorm"
@@ -126,10 +125,10 @@ func (s *QueryService) FindByRef(ctx context.Context, provider domain.Provider, 
 	return acc, nil
 }
 
-// FindAccountListByUserID 根据用户 ID 查询账号列表。
-func (s *QueryService) FindAccountListByUserID(ctx context.Context, userID userdomain.UserID) ([]*domain.Account, error) {
+// FindAccountListByUserID 根据 UserID 查询账号列表。
+func (s *QueryService) FindAccountListByUserID(ctx context.Context, userID domain.UserID) ([]*domain.Account, error) {
 	type accountLister interface {
-		ListByUserID(ctx context.Context, userID userdomain.UserID) ([]*domain.Account, error)
+		ListByUserID(ctx context.Context, userID domain.UserID) ([]*domain.Account, error)
 	}
 
 	if lister, ok := s.accounts.(accountLister); ok {
