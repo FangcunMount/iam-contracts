@@ -6,6 +6,9 @@ import (
 	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 )
 
+// InitialVersion 默认的乐观锁版本号起点。
+const InitialVersion uint32 = 1
+
 // Syncable aggregates the behaviour required by persistence entities so that
 // repositories can propagate auditing metadata back to domain models.
 type Syncable interface {
@@ -16,6 +19,7 @@ type Syncable interface {
 	GetCreatedBy() idutil.ID
 	GetUpdatedBy() idutil.ID
 	GetDeletedBy() idutil.ID
+	GetVersion() uint32
 	SetID(idutil.ID)
 	SetCreatedAt(time.Time)
 	SetUpdatedAt(time.Time)
@@ -23,6 +27,7 @@ type Syncable interface {
 	SetCreatedBy(idutil.ID)
 	SetUpdatedBy(idutil.ID)
 	SetDeletedBy(idutil.ID)
+	SetVersion(uint32)
 }
 
 // AuditFields provides reusable columns for ID and audit timestamps.
@@ -34,6 +39,7 @@ type AuditFields struct {
 	CreatedBy idutil.ID `gorm:"column:created_by;type:varchar(50)" json:"created_by"`
 	UpdatedBy idutil.ID `gorm:"column:updated_by;type:varchar(50)" json:"updated_by"`
 	DeletedBy idutil.ID `gorm:"column:deleted_by;type:varchar(50)" json:"deleted_by"`
+	Version   uint32    `gorm:"column:version;type:int unsigned;not null;default:1;version" json:"version"`
 }
 
 func (a *AuditFields) GetID() idutil.ID {
@@ -64,6 +70,10 @@ func (a *AuditFields) GetDeletedBy() idutil.ID {
 	return a.DeletedBy
 }
 
+func (a *AuditFields) GetVersion() uint32 {
+	return a.Version
+}
+
 func (a *AuditFields) SetID(id idutil.ID) {
 	a.ID = id
 }
@@ -90,4 +100,8 @@ func (a *AuditFields) SetUpdatedBy(id idutil.ID) {
 
 func (a *AuditFields) SetDeletedBy(id idutil.ID) {
 	a.DeletedBy = id
+}
+
+func (a *AuditFields) SetVersion(v uint32) {
+	a.Version = v
 }
