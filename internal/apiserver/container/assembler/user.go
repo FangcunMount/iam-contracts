@@ -3,14 +3,14 @@ package assembler
 import (
 	"gorm.io/gorm"
 
-	appchild "github.com/fangcun-mount/iam-contracts/internal/apiserver/application/child"
-	appguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/application/guardianship"
-	appuser "github.com/fangcun-mount/iam-contracts/internal/apiserver/application/user"
-	mysqlchild "github.com/fangcun-mount/iam-contracts/internal/apiserver/infra/mysql/child"
-	mysqlguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/infra/mysql/guardianship"
-	mysqluser "github.com/fangcun-mount/iam-contracts/internal/apiserver/infra/mysql/user"
-	identitygrpc "github.com/fangcun-mount/iam-contracts/internal/apiserver/interface/grpc/identity"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/interface/restful/handler"
+	appchild "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/child"
+	appguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/guardianship"
+	appuser "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/user"
+	mysqlchild "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/child"
+	mysqlguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/guardianship"
+	mysqluser "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
+	identitygrpc "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/grpc/identity"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/restful/handler"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
 )
