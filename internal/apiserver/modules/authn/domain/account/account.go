@@ -41,7 +41,7 @@ func (a *Account) Archive()  { a.Status = StatusArchived }
 func (a *Account) Delete()   { a.Status = StatusDeleted }
 
 // 状态检查方法
-func (a Account) IsActive() bool   { return a.Status == StatusActive }
-func (a Account) IsDisabled() bool { return a.Status == StatusDisabled }
-func (a Account) IsArchived() bool { return a.Status == StatusArchived }
-func (a Account) IsDeleted() bool  { return a.Status == StatusDeleted }
+func (a *Account) IsActive() bool   { return a.Status == StatusActive }
+func (a *Account) IsDisabled() bool { return a.Status == StatusDisabled }
+func (a *Account) IsArchived() bool { return a.Status == StatusArchived }
+func (a *Account) IsDeleted() bool  { return a.Status == StatusDeleted }
