@@ -71,14 +71,17 @@ func (r *WeChatRepository) FindByAppOpenID(ctx context.Context, appID, openid st
 	return wx, nil
 }
 
-// UpdateProfile 更新昵称与头像。
-func (r *WeChatRepository) UpdateProfile(ctx context.Context, accountID domain.AccountID, nickname, avatar *string) error {
+// UpdateProfile 更新昵称、头像、Meta。
+func (r *WeChatRepository) UpdateProfile(ctx context.Context, accountID domain.AccountID, nickname, avatar *string, meta []byte) error {
 	updates := make(map[string]any)
 	if nickname != nil {
 		updates["nickname"] = *nickname
 	}
 	if avatar != nil {
 		updates["avatar_url"] = *avatar
+	}
+	if meta != nil {
+		updates["meta"] = meta
 	}
 	if len(updates) == 0 {
 		return nil
@@ -87,6 +90,21 @@ func (r *WeChatRepository) UpdateProfile(ctx context.Context, accountID domain.A
 	updates["updated_by"] = idutil.NewID(0)
 	updates["version"] = gorm.Expr("version + 1")
 
+	return r.db.WithContext(ctx).
+		Model(&WeChatAccountPO{}).
+		Where("account_id = ?", idutil.ID(accountID).Value()).
+		Updates(updates).
+		Error
+}
+
+// UpdateUnionID 更新 UnionID。
+func (r *WeChatRepository) UpdateUnionID(ctx context.Context, accountID domain.AccountID, unionID string) error {
+	updates := map[string]any{
+		"union_id":   unionID,
+		"updated_at": time.Now(),
+		"updated_by": idutil.NewID(0),
+		"version":    gorm.Expr("version + 1"),
+	}
 	return r.db.WithContext(ctx).
 		Model(&WeChatAccountPO{}).
 		Where("account_id = ?", idutil.ID(accountID).Value()).

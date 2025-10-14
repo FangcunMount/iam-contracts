@@ -95,3 +95,29 @@ func (r *OperationRepository) UpdateUsername(ctx context.Context, accountID doma
 		Update("username", newUsername).
 		Error
 }
+
+// ResetFailures 清零失败次数。
+func (r *OperationRepository) ResetFailures(ctx context.Context, username string) error {
+	return r.db.WithContext(ctx).
+		Model(&OperationAccountPO{}).
+		Where("username = ?", username).
+		Updates(map[string]any{
+			"failed_attempts": 0,
+			"updated_at":      time.Now(),
+			"updated_by":      idutil.NewID(0),
+		}).
+		Error
+}
+
+// Unlock 解锁账号。
+func (r *OperationRepository) Unlock(ctx context.Context, username string) error {
+	return r.db.WithContext(ctx).
+		Model(&OperationAccountPO{}).
+		Where("username = ?", username).
+		Updates(map[string]any{
+			"locked_until": nil,
+			"updated_at":   time.Now(),
+			"updated_by":   idutil.NewID(0),
+		}).
+		Error
+}
