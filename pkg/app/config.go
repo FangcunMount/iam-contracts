@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/fangcun-mount/iam-contracts/pkg/util/homedir"
-	"github.com/gosuri/uitable"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -69,19 +68,4 @@ func addConfigFlag(basename string, fs *pflag.FlagSet) {
 		// 打印配置信息
 		fmt.Printf("Viper Config: %+v\n", viper.AllSettings())
 	})
-}
-
-// printConfig 打印配置
-func printConfig() {
-	if keys := viper.AllKeys(); len(keys) > 0 {
-		fmt.Printf("%v Configuration items:\n", progressMessage)
-		table := uitable.New()
-		table.Separator = " "
-		table.MaxColWidth = 80
-		table.RightAlign(0)
-		for _, k := range keys {
-			table.AddRow(fmt.Sprintf("%s:", k), viper.Get(k))
-		}
-		fmt.Printf("%v", table)
-	}
 }
