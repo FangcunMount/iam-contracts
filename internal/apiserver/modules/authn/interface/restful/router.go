@@ -1,17 +1,13 @@
 package restful
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 
 	authhandler "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/handler"
-	authstrategys "github.com/fangcun-mount/iam-contracts/internal/pkg/middleware/auth/strategys"
 )
 
 // Dependencies describes the external collaborators needed to expose authn endpoints.
 type Dependencies struct {
-	JWTStrategy    *authstrategys.JWTStrategy
 	AuthHandler    *authhandler.AuthHandler // 新的认证处理器
 	AccountHandler *authhandler.AccountHandler
 }
@@ -39,21 +35,6 @@ func Register(engine *gin.Engine) {
 
 	// 注册 JWKS 端点
 	registerJWKSEndpoints(engine, deps.AuthHandler)
-
-	// 保留旧的 JWT Strategy 端点（向后兼容，可选）
-	// registerAuthEndpoints(api.Group("/v1/auth"), deps.JWTStrategy)
-}
-
-func registerAuthEndpoints(group *gin.RouterGroup, strategy *authstrategys.JWTStrategy) {
-	if group == nil || strategy == nil {
-		return
-	}
-	group.POST("/login", strategy.LoginHandler)
-	group.POST("/logout", strategy.LogoutHandler)
-	group.POST("/token", strategy.RefreshHandler)
-	group.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	})
 }
 
 // registerAuthEndpointsV2 注册符合 API 文档的认证端点

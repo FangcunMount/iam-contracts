@@ -5,25 +5,23 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/container"
 	authnhttp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful"
 	authzhttp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/interface/restful"
 	userhttp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/restful"
+	authnMiddleware "github.com/fangcun-mount/iam-contracts/internal/pkg/middleware/authn"
 )
 
 // Router 集中的路由管理器
 type Router struct {
 	container *container.Container
-	auth      *Auth
 }
 
 // NewRouter 创建路由管理器
 func NewRouter(c *container.Container) *Router {
 	return &Router{
 		container: c,
-		auth:      NewAuth(c), // 初始化认证配置
 	}
 }
 
@@ -40,15 +38,31 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 		return
 	}
 
-	autoAuth := r.auth.CreateAuthMiddleware("auto")
-	jwtStrategy := r.auth.NewJWTAuth()
+	// 创建新的认证中间件
+	var authMiddleware *authnMiddleware.JWTAuthMiddleware
+	if r.container.AuthModule != nil && r.container.AuthModule.TokenService != nil {
+		authMiddleware = authnMiddleware.NewJWTAuthMiddleware(
+			r.container.AuthModule.TokenService,
+		)
+	}
 
+	// User 模块使用新中间件
 	userhttp.Provide(userhttp.Dependencies{
-		Module:         r.container.UserModule,
-		AuthMiddleware: autoAuth,
+		Module: r.container.UserModule,
+		AuthMiddleware: func() gin.HandlerFunc {
+			if authMiddleware != nil {
+				return authMiddleware.AuthRequired()
+			}
+			// 如果认证中间件未初始化，返回一个空的中间件
+			return func(c *gin.Context) {
+				c.Next()
+			}
+		}(),
 	})
+
+	// Authn 模块（公开端点）
 	authnhttp.Provide(authnhttp.Dependencies{
-		JWTStrategy:    &jwtStrategy,
+		AuthHandler:    r.container.AuthModule.AuthHandler,
 		AccountHandler: r.container.AuthModule.AccountHandler,
 	})
 	authzhttp.Provide(authzhttp.Dependencies{})
@@ -57,7 +71,7 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 	authnhttp.Register(engine)
 	authzhttp.Register(engine)
 
-	r.registerAdminRoutes(engine, autoAuth)
+	r.registerAdminRoutes(engine, authMiddleware)
 
 	fmt.Printf("🔗 Registered routes for: base, user, authn, authz\n")
 }
@@ -79,14 +93,14 @@ func (r *Router) registerBaseRoutes(engine *gin.Engine) {
 	// admin.Use(r.requireAdminRole()) // 需要实现管理员权限检查中间件
 }
 
-func (r *Router) registerAdminRoutes(engine *gin.Engine, authMiddleware gin.HandlerFunc) {
+func (r *Router) registerAdminRoutes(engine *gin.Engine, authMiddleware *authnMiddleware.JWTAuthMiddleware) {
 	if engine == nil {
 		return
 	}
 
 	apiV1 := engine.Group("/api/v1")
 	if authMiddleware != nil {
-		apiV1.Use(authMiddleware)
+		apiV1.Use(authMiddleware.AuthRequired())
 	}
 
 	admin := apiV1.Group("/admin")
@@ -122,11 +136,10 @@ func (r *Router) healthCheck(c *gin.Context) {
 			"adapters":    "mysql, http",
 			"application": "user_service",
 		},
-		"jwt_config": gin.H{
-			"realm":       viper.GetString("jwt.realm"),
-			"timeout":     viper.GetDuration("jwt.timeout").String(),
-			"max_refresh": viper.GetDuration("jwt.max-refresh").String(),
-			"key_loaded":  viper.GetString("jwt.key") != "", // 不显示实际密钥，只显示是否加载
+		"auth_system": gin.H{
+			"type":    "jwt",
+			"enabled": true,
+			"module":  "authn (DDD 4-layer)",
 		},
 	}
 
