@@ -2,6 +2,7 @@ package account
 
 import (
 	"context"
+	"time"
 
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
@@ -68,4 +69,27 @@ func (r *WeChatRepository) FindByAppOpenID(ctx context.Context, appID, openid st
 		return nil, gorm.ErrRecordNotFound
 	}
 	return wx, nil
+}
+
+// UpdateProfile 更新昵称与头像。
+func (r *WeChatRepository) UpdateProfile(ctx context.Context, accountID domain.AccountID, nickname, avatar *string) error {
+	updates := make(map[string]any)
+	if nickname != nil {
+		updates["nickname"] = *nickname
+	}
+	if avatar != nil {
+		updates["avatar_url"] = *avatar
+	}
+	if len(updates) == 0 {
+		return nil
+	}
+	updates["updated_at"] = time.Now()
+	updates["updated_by"] = idutil.NewID(0)
+	updates["version"] = gorm.Expr("version + 1")
+
+	return r.db.WithContext(ctx).
+		Model(&WeChatAccountPO{}).
+		Where("account_id = ?", idutil.ID(accountID).Value()).
+		Updates(updates).
+		Error
 }
