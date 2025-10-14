@@ -6,7 +6,8 @@ import (
 	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 )
 
-// Syncable 定义所有支持自动回填的实体结构
+// Syncable aggregates the behaviour required by persistence entities so that
+// repositories can propagate auditing metadata back to domain models.
 type Syncable interface {
 	GetID() idutil.ID
 	GetCreatedAt() time.Time
@@ -24,7 +25,7 @@ type Syncable interface {
 	SetDeletedBy(idutil.ID)
 }
 
-// AuditFields 用于统一管理 ID、创建时间和更新时间
+// AuditFields provides reusable columns for ID and audit timestamps.
 type AuditFields struct {
 	ID        idutil.ID `gorm:"primaryKey;autoIncrement"`
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`

@@ -3,7 +3,7 @@ package user
 import (
 	"time"
 
-	base "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql"
+	base "github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 	"gorm.io/gorm"
 )
