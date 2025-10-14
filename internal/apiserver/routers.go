@@ -48,7 +48,8 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 		AuthMiddleware: autoAuth,
 	})
 	authnhttp.Provide(authnhttp.Dependencies{
-		JWTStrategy: &jwtStrategy,
+		JWTStrategy:    &jwtStrategy,
+		AccountHandler: r.container.AuthModule.AccountHandler,
 	})
 	authzhttp.Provide(authzhttp.Dependencies{})
 

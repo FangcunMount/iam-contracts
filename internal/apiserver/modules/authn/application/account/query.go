@@ -101,6 +101,31 @@ func (s *QueryService) FindByWeChatRef(ctx context.Context, externalID, appID st
 	return acc, wx, nil
 }
 
+// FindByRef 按 provider/externalId/appId 查询账号。
+func (s *QueryService) FindByRef(ctx context.Context, provider domain.Provider, externalID string, appID *string) (*domain.Account, error) {
+	externalID = strings.TrimSpace(externalID)
+	if externalID == "" {
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "externalId cannot be empty")
+	}
+
+	var app *string
+	if appID != nil {
+		value := strings.TrimSpace(*appID)
+		if value != "" {
+			app = &value
+		}
+	}
+
+	acc, err := s.accounts.FindByRef(ctx, provider, externalID, app)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, perrors.WithCode(code.ErrInvalidArgument, "account not found")
+		}
+		return nil, perrors.WrapC(err, code.ErrDatabase, "find account by ref failed")
+	}
+	return acc, nil
+}
+
 // FindAccountListByUserID 根据用户 ID 查询账号列表。
 func (s *QueryService) FindAccountListByUserID(ctx context.Context, userID userdomain.UserID) ([]*domain.Account, error) {
 	type accountLister interface {

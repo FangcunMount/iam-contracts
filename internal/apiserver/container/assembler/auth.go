@@ -6,6 +6,7 @@ import (
 	appacc "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/account"
 	appuow "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
 	mysqlacct "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
+	authhandler "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/handler"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
 )
@@ -17,6 +18,8 @@ type AuthModule struct {
 	RegisterService *appacc.RegisterService
 	EditorService   *appacc.EditorService
 	QueryService    *appacc.QueryService
+	StatusService   *appacc.StatusService
+	AccountHandler  *authhandler.AccountHandler
 }
 
 // NewAuthModule 创建认证模块
@@ -43,6 +46,14 @@ func (m *AuthModule) Initialize(params ...interface{}) error {
 	m.RegisterService = appacc.NewRegisterService(accountRepo, wechatRepo, operationRepo, u)
 	m.EditorService = appacc.NewEditorService(wechatRepo, operationRepo, u)
 	m.QueryService = appacc.NewQueryService(accountRepo, wechatRepo, operationRepo)
+	m.StatusService = appacc.NewStatusService(accountRepo)
+
+	m.AccountHandler = authhandler.NewAccountHandler(
+		m.RegisterService,
+		m.EditorService,
+		m.StatusService,
+		m.QueryService,
+	)
 
 	return nil
 }

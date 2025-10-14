@@ -17,9 +17,12 @@ type AccountRegisterer interface {
 
 // AccountEditor —— 账号编辑服务接口
 type AccountEditor interface {
-	UpdateWeChatProfile(ctx context.Context, accountID domain.AccountID, nickname, avatar *string) error
+	UpdateWeChatProfile(ctx context.Context, accountID domain.AccountID, nickname, avatar *string, meta []byte) error
+	SetWeChatUnionID(ctx context.Context, accountID domain.AccountID, unionID string) error
 	UpdateOperationCredential(ctx context.Context, username string, newHash []byte, algo string, params []byte) error
 	ChangeOperationUsername(ctx context.Context, oldUsername, newUsername string) error
+	ResetOperationFailures(ctx context.Context, username string) error
+	UnlockOperationAccount(ctx context.Context, username string) error
 }
 
 // AccountStatusUpdater —— 账号状态更新服务接口
@@ -33,5 +36,6 @@ type AccountQueryer interface {
 	FindAccountByID(ctx context.Context, accountID domain.AccountID) (*domain.Account, error)
 	FindByUsername(ctx context.Context, username string) (*domain.Account, *domain.OperationAccount, error)
 	FindByWeChatRef(ctx context.Context, externalID, appID string) (*domain.Account, *domain.WeChatAccount, error)
+	FindByRef(ctx context.Context, provider domain.Provider, externalID string, appID *string) (*domain.Account, error)
 	FindAccountListByUserID(ctx context.Context, userID user.UserID) ([]*domain.Account, error)
 }

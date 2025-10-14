@@ -31,11 +31,12 @@ func NewEditorService(wx port.WeChatRepo, op port.OperationRepo, u uow.UnitOfWor
 	}
 }
 
-// UpdateWeChatProfile 更新微信昵称与头像。
-func (s *EditorService) UpdateWeChatProfile(ctx context.Context, accountID domain.AccountID, nickname, avatar *string) error {
+// UpdateWeChatProfile 更新微信资料。
+func (s *EditorService) UpdateWeChatProfile(ctx context.Context, accountID domain.AccountID, nickname, avatar *string, meta []byte) error {
 	nick, nickSet := normalizeOptionalString(nickname)
 	ava, avaSet := normalizeOptionalString(avatar)
-	if !nickSet && !avaSet {
+	metaSet := len(meta) > 0
+	if !nickSet && !avaSet && !metaSet {
 		return perrors.WithCode(code.ErrInvalidArgument, "no profile fields provided")
 	}
 
@@ -52,17 +53,35 @@ func (s *EditorService) UpdateWeChatProfile(ctx context.Context, accountID domai
 			return perrors.WrapC(err, code.ErrDatabase, "load wechat credential for account(%s) failed", accountIDString(accountID))
 		}
 
-		type profileUpdater interface {
-			UpdateProfile(ctx context.Context, accountID domain.AccountID, nickname, avatar *string) error
-		}
-
-		updater, ok := wxRepo.(profileUpdater)
-		if !ok {
-			return perrors.WithCode(code.ErrInternalServerError, "wechat repository does not support profile update")
-		}
-
-		if err := updater.UpdateProfile(ctx, accountID, nick, ava); err != nil {
+		if err := wxRepo.UpdateProfile(ctx, accountID, nick, ava, meta); err != nil {
 			return perrors.WrapC(err, code.ErrDatabase, "update wechat profile for account(%s) failed", accountIDString(accountID))
+		}
+		return nil
+	})
+}
+
+// SetWeChatUnionID 设置微信 UnionID。
+func (s *EditorService) SetWeChatUnionID(ctx context.Context, accountID domain.AccountID, unionID string) error {
+	unionID = strings.TrimSpace(unionID)
+	if unionID == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "unionId cannot be empty")
+	}
+
+	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		wxRepo := pickWeChatRepo(tx, s.wechat)
+		if wxRepo == nil {
+			return perrors.WithCode(code.ErrInternalServerError, "wechat repository not configured")
+		}
+
+		if _, err := wxRepo.FindByAccountID(ctx, accountID); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return perrors.WithCode(code.ErrInvalidArgument, "wechat credential for account(%s) not found", accountIDString(accountID))
+			}
+			return perrors.WrapC(err, code.ErrDatabase, "load wechat credential for account(%s) failed", accountIDString(accountID))
+		}
+
+		if err := wxRepo.UpdateUnionID(ctx, accountID, unionID); err != nil {
+			return perrors.WrapC(err, code.ErrDatabase, "update unionId for account(%s) failed", accountIDString(accountID))
 		}
 		return nil
 	})
@@ -137,6 +156,44 @@ func (s *EditorService) ChangeOperationUsername(ctx context.Context, oldUsername
 			return perrors.WrapC(err, code.ErrDatabase, "change operation username from %s to %s failed", oldUsername, newUsername)
 		}
 
+		return nil
+	})
+}
+
+// ResetOperationFailures 清零失败次数。
+func (s *EditorService) ResetOperationFailures(ctx context.Context, username string) error {
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "username cannot be empty")
+	}
+
+	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		opRepo := pickOperationRepo(tx, s.operation)
+		if opRepo == nil {
+			return perrors.WithCode(code.ErrInternalServerError, "operation repository not configured")
+		}
+		if err := opRepo.ResetFailures(ctx, username); err != nil {
+			return perrors.WrapC(err, code.ErrDatabase, "reset failures for %s failed", username)
+		}
+		return nil
+	})
+}
+
+// UnlockOperationAccount 解锁账号。
+func (s *EditorService) UnlockOperationAccount(ctx context.Context, username string) error {
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "username cannot be empty")
+	}
+
+	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		opRepo := pickOperationRepo(tx, s.operation)
+		if opRepo == nil {
+			return perrors.WithCode(code.ErrInternalServerError, "operation repository not configured")
+		}
+		if err := opRepo.Unlock(ctx, username); err != nil {
+			return perrors.WrapC(err, code.ErrDatabase, "unlock credential(%s) failed", username)
+		}
 		return nil
 	})
 }

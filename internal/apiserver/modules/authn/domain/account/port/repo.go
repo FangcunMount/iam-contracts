@@ -22,6 +22,8 @@ type WeChatRepo interface {
 	Create(ctx context.Context, wx *domain.WeChatAccount) error
 	FindByAccountID(ctx context.Context, accountID domain.AccountID) (*domain.WeChatAccount, error)
 	FindByAppOpenID(ctx context.Context, appID, openid string) (*domain.WeChatAccount, error)
+	UpdateProfile(ctx context.Context, accountID domain.AccountID, nickname, avatar *string, meta []byte) error
+	UpdateUnionID(ctx context.Context, accountID domain.AccountID, unionID string) error
 }
 
 // 子实体：Operation
@@ -31,4 +33,6 @@ type OperationRepo interface {
 	FindByUsername(ctx context.Context, username string) (*domain.OperationAccount, error)
 	UpdateHash(ctx context.Context, username string, hash []byte, algo string, params []byte) error
 	UpdateUsername(ctx context.Context, accountID domain.AccountID, newUsername string) error
+	ResetFailures(ctx context.Context, username string) error
+	Unlock(ctx context.Context, username string) error
 }
