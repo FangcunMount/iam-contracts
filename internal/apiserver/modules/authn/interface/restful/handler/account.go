@@ -12,10 +12,8 @@ import (
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
 	req "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/request"
 	resp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/response"
-	userdomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
-	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 )
 
 // AccountHandler exposes RESTful endpoints for account management.
@@ -183,7 +181,7 @@ func (h *AccountHandler) BindWeChatAccount(c *gin.Context) {
 	existingAccount, _, err := h.query.FindByWeChatRef(ctx, openID, appID)
 	created := false
 	if err == nil {
-		if idutil.ID(existingAccount.UserID) != idutil.ID(userID) {
+		if existingAccount.UserID != userID {
 			h.ErrorWithCode(c, code.ErrInvalidArgument, "wechat binding already associated with another user")
 			return
 		}
@@ -457,12 +455,12 @@ func (h *AccountHandler) getQueryInt(c *gin.Context, key string, defaultValue, m
 	return val
 }
 
-func parseUserID(raw string) (userdomain.UserID, error) {
+func parseUserID(raw string) (domain.UserID, error) {
 	value, err := ParseUint(strings.TrimSpace(raw), "user id")
 	if err != nil {
-		return userdomain.UserID{}, err
+		return 0, err
 	}
-	return userdomain.NewUserID(value), nil
+	return domain.NewUserID(value), nil
 }
 
 func parseAccountID(raw string) (domain.AccountID, error) {

@@ -6,7 +6,6 @@ import (
 
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
-	userdomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 	"gorm.io/gorm"
@@ -77,10 +76,10 @@ func (r *AccountRepository) UpdateStatus(ctx context.Context, id domain.AccountI
 	})
 }
 
-// UpdateUserID 更新账号关联的用户。
-func (r *AccountRepository) UpdateUserID(ctx context.Context, id domain.AccountID, userID userdomain.UserID) error {
+// UpdateUserID 更新账号关联的 UserID。
+func (r *AccountRepository) UpdateUserID(ctx context.Context, id domain.AccountID, userID domain.UserID) error {
 	return r.updateColumns(ctx, id, map[string]any{
-		"user_id": idutil.ID(userID),
+		"user_id": idutil.NewID(userID.Value()),
 	})
 }
 
@@ -113,11 +112,11 @@ func (r *AccountRepository) updateColumns(ctx context.Context, id domain.Account
 		Error
 }
 
-// ListByUserID 根据用户 ID 查询账号列表。
-func (r *AccountRepository) ListByUserID(ctx context.Context, userID userdomain.UserID) ([]*domain.Account, error) {
+// ListByUserID 根据 UserID 查询账号列表。
+func (r *AccountRepository) ListByUserID(ctx context.Context, userID domain.UserID) ([]*domain.Account, error) {
 	var pos []AccountPO
 	if err := r.db.WithContext(ctx).
-		Where("user_id = ?", idutil.ID(userID).Value()).
+		Where("user_id = ?", idutil.NewID(userID.Value()).Value()).
 		Find(&pos).
 		Error; err != nil {
 		return nil, err

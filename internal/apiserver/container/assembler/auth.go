@@ -3,10 +3,12 @@ package assembler
 import (
 	"gorm.io/gorm"
 
-	appacc "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/account"
-	appuow "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/account"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/adapter"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
 	mysqlacct "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
 	authhandler "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/handler"
+	mysqluser "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
 )
@@ -15,10 +17,10 @@ import (
 // 负责组装认证相关的所有组件
 type AuthModule struct {
 	// 这里可以添加认证相关的组件
-	RegisterService *appacc.RegisterService
-	EditorService   *appacc.EditorService
-	QueryService    *appacc.QueryService
-	StatusService   *appacc.StatusService
+	RegisterService *account.RegisterService
+	EditorService   *account.EditorService
+	QueryService    *account.QueryService
+	StatusService   *account.StatusService
 	AccountHandler  *authhandler.AccountHandler
 }
 
@@ -39,14 +41,20 @@ func (m *AuthModule) Initialize(params ...interface{}) error {
 	operationRepo := mysqlacct.NewOperationRepository(db)
 	wechatRepo := mysqlacct.NewWeChatRepository(db)
 
-	// 事务 UnitOfWork
-	u := appuow.NewUnitOfWork(db)
+	// 初始化用户仓储(用于防腐层)
+	userRepo := mysqluser.NewRepository(db)
 
-	// 应用服务
-	m.RegisterService = appacc.NewRegisterService(accountRepo, wechatRepo, operationRepo, u)
-	m.EditorService = appacc.NewEditorService(wechatRepo, operationRepo, u)
-	m.QueryService = appacc.NewQueryService(accountRepo, wechatRepo, operationRepo)
-	m.StatusService = appacc.NewStatusService(accountRepo)
+	// 创建用户适配器(防腐层)
+	userAdapter := adapter.NewUserAdapter(userRepo)
+
+	// 事务 UnitOfWork
+	unitOfWork := uow.NewUnitOfWork(db)
+
+	// 应用服务 - 注意注入 UserAdapter
+	m.RegisterService = account.NewRegisterService(accountRepo, wechatRepo, operationRepo, unitOfWork, userAdapter)
+	m.EditorService = account.NewEditorService(wechatRepo, operationRepo, unitOfWork)
+	m.QueryService = account.NewQueryService(accountRepo, wechatRepo, operationRepo)
+	m.StatusService = account.NewStatusService(accountRepo)
 
 	m.AccountHandler = authhandler.NewAccountHandler(
 		m.RegisterService,

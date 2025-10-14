@@ -4,7 +4,6 @@ import (
 	"time"
 
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	userdomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 )
 
@@ -23,7 +22,7 @@ func (m *Mapper) ToAccountPO(account *domain.Account) *AccountPO {
 	}
 
 	po := &AccountPO{
-		UserID:     idutil.ID(account.UserID),
+		UserID:     idutil.NewID(account.UserID.Value()), // authn.UserID 映射到数据库 UserID 字段
 		Provider:   string(account.Provider),
 		ExternalID: account.ExternalID,
 		AppID:      account.AppID,
@@ -53,7 +52,9 @@ func (m *Mapper) ToAccountBO(po *AccountPO) *domain.Account {
 		opts = append(opts, domain.WithAppID(*po.AppID))
 	}
 
-	account := domain.NewAccount(userdomain.UserID(po.UserID), domain.Provider(po.Provider), opts...)
+	// 数据库 UserID 字段转换为 authn.UserID
+	userID := domain.NewUserID(po.UserID.Value())
+	account := domain.NewAccount(userID, domain.Provider(po.Provider), opts...)
 	return &account
 }
 

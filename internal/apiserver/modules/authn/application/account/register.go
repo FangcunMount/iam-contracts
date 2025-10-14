@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/adapter"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
-	userdomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
 	"gorm.io/gorm"
@@ -17,33 +17,50 @@ import (
 
 // RegisterService 负责注册账号及其子实体。
 type RegisterService struct {
-	accounts  port.AccountRepo
-	wechat    port.WeChatRepo
-	operation port.OperationRepo
-	uow       uow.UnitOfWork
+	accounts    port.AccountRepo
+	wechat      port.WeChatRepo
+	operation   port.OperationRepo
+	uow         uow.UnitOfWork
+	userAdapter adapter.UserAdapter
 }
 
 var _ port.AccountRegisterer = (*RegisterService)(nil)
 
 // NewRegisterService 构造注册服务。
-func NewRegisterService(acc port.AccountRepo, wx port.WeChatRepo, op port.OperationRepo, u uow.UnitOfWork) *RegisterService {
+func NewRegisterService(
+	acc port.AccountRepo,
+	wx port.WeChatRepo,
+	op port.OperationRepo,
+	u uow.UnitOfWork,
+	ua adapter.UserAdapter,
+) *RegisterService {
 	return &RegisterService{
-		accounts:  acc,
-		wechat:    wx,
-		operation: op,
-		uow:       u,
+		accounts:    acc,
+		wechat:      wx,
+		operation:   op,
+		uow:         u,
+		userAdapter: ua,
 	}
 }
 
 // CreateOperationAccount 为用户创建（或返回已有的）运营后台账号。
 func (s *RegisterService) CreateOperationAccount(
 	ctx context.Context,
-	userID userdomain.UserID,
+	userID domain.UserID,
 	externalID string,
 ) (*domain.Account, *domain.OperationAccount, error) {
 	externalID = strings.TrimSpace(externalID)
 	if externalID == "" {
 		return nil, nil, perrors.WithCode(code.ErrInvalidArgument, "operation external_id cannot be empty")
+	}
+
+	// 校验 UserID 对应的用户是否存在
+	exists, err := s.userAdapter.ExistsUser(ctx, userID)
+	if err != nil {
+		return nil, nil, perrors.WrapC(err, code.ErrInternalServerError, "check user existence failed")
+	}
+	if !exists {
+		return nil, nil, perrors.WithCode(code.ErrUserNotFound, "user(%s) not found", userID.String())
 	}
 
 	var account *domain.Account
@@ -101,7 +118,7 @@ func (s *RegisterService) CreateOperationAccount(
 // CreateWeChatAccount 为用户创建（或返回已有的）微信账号。
 func (s *RegisterService) CreateWeChatAccount(
 	ctx context.Context,
-	userID userdomain.UserID,
+	userID domain.UserID,
 	externalID string,
 	appID string,
 ) (*domain.Account, *domain.WeChatAccount, error) {
@@ -109,6 +126,15 @@ func (s *RegisterService) CreateWeChatAccount(
 	appID = strings.TrimSpace(appID)
 	if externalID == "" || appID == "" {
 		return nil, nil, perrors.WithCode(code.ErrInvalidArgument, "wechat external_id and app_id cannot be empty")
+	}
+
+	// 校验 UserID 对应的用户是否存在
+	exists, err := s.userAdapter.ExistsUser(ctx, userID)
+	if err != nil {
+		return nil, nil, perrors.WrapC(err, code.ErrInternalServerError, "check user existence failed")
+	}
+	if !exists {
+		return nil, nil, perrors.WithCode(code.ErrUserNotFound, "user(%s) not found", userID.String())
 	}
 
 	var account *domain.Account
@@ -160,7 +186,7 @@ func (s *RegisterService) CreateWeChatAccount(
 func ensureAccountWithRepo(
 	ctx context.Context,
 	repo port.AccountRepo,
-	userID userdomain.UserID,
+	userID domain.UserID,
 	provider domain.Provider,
 	externalID string,
 	appID *string,
@@ -172,6 +198,7 @@ func ensureAccountWithRepo(
 	acc, err := repo.FindByRef(ctx, provider, externalID, appID)
 	switch {
 	case err == nil:
+		// 如果已有账号,检查是否需要更新 UserID
 		if acc.UserID != userID {
 			if err := repo.UpdateUserID(ctx, acc.ID, userID); err != nil {
 				return nil, false, perrors.WrapC(err, code.ErrDatabase, "bind user(%s) to account(%s) failed", userID.String(), accountIDString(acc.ID))

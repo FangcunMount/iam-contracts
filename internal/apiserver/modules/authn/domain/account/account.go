@@ -1,13 +1,9 @@
 package account
 
-import (
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
-)
-
 // Account 代表第三方登录账号
 type Account struct {
 	ID         AccountID
-	UserID     user.UserID
+	UserID     UserID   // 用户标识(来自用户中心)
 	Provider   Provider // op:password | wx:minip | wecom:qr
 	ExternalID string   // username | openid | open_userid(userid)
 	AppID      *string  // 微信小程序 appid | 企业微信 corpid
@@ -15,7 +11,7 @@ type Account struct {
 }
 
 // NewAccount 创建第三方登录账号
-func NewAccount(userID user.UserID, provider Provider, opts ...AccountOption) Account {
+func NewAccount(userID UserID, provider Provider, opts ...AccountOption) Account {
 	account := Account{
 		UserID:   userID,
 		Provider: provider,
