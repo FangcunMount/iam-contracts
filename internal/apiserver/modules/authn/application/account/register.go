@@ -46,40 +46,49 @@ func (s *RegisterService) CreateOperationAccount(
 		return nil, nil, perrors.WithCode(code.ErrInvalidArgument, "operation external_id cannot be empty")
 	}
 
-	// 确保账号存在
-	account, _, err := s.ensureAccount(ctx, userID, domain.ProviderPassword, externalID, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// 确保运营后台凭证存在（写操作放入事务）
+	var account *domain.Account
 	var cred *domain.OperationAccount
 	if err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		// 查询是否存在
-		existing, err := tx.Operation.FindByUsername(ctx, externalID)
-		if err == nil {
+		accRepo := pickAccountRepo(tx, s.accounts)
+		opRepo := pickOperationRepo(tx, s.operation)
+		if accRepo == nil || opRepo == nil {
+			return perrors.WithCode(code.ErrInternalServerError, "operation repositories not configured")
+		}
+
+		created := false
+		var err error
+		account, created, err = ensureAccountWithRepo(ctx, accRepo, userID, domain.ProviderPassword, externalID, nil)
+		if err != nil {
+			return err
+		}
+
+		existing, err := opRepo.FindByUsername(ctx, externalID)
+		switch {
+		case err == nil:
 			if existing.AccountID != account.ID {
 				return perrors.WithCode(code.ErrInvalidArgument, "operation credential belongs to another account")
 			}
 			cred = existing
 			return nil
-		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
+		case !errors.Is(err, gorm.ErrRecordNotFound):
 			return perrors.WrapC(err, code.ErrDatabase, "load operation credential failed")
-		}
+		default:
+			if !created {
+				return perrors.WithCode(code.ErrInvalidArgument, "operation credential not found for existing account")
+			}
 
-		// 不存在则创建
-		created := domain.NewOperationAccount(
-			account.ID,
-			externalID,
-			"",
-			domain.WithLastChangedAt(time.Now()),
-		)
-		if err := tx.Operation.Create(ctx, &created); err != nil {
-			return perrors.WrapC(err, code.ErrDatabase, "create operation credential failed")
+			newCred := domain.NewOperationAccount(
+				account.ID,
+				externalID,
+				"",
+				domain.WithLastChangedAt(time.Now()),
+			)
+			if err := opRepo.Create(ctx, &newCred); err != nil {
+				return perrors.WrapC(err, code.ErrDatabase, "create operation credential failed")
+			}
+			cred = &newCred
+			return nil
 		}
-		cred = &created
-		return nil
 	}); err != nil {
 		return nil, nil, err
 	}
@@ -100,48 +109,69 @@ func (s *RegisterService) CreateWeChatAccount(
 		return nil, nil, perrors.WithCode(code.ErrInvalidArgument, "wechat external_id and app_id cannot be empty")
 	}
 
-	// 确保 Account 账号存在
-	account, _, err := s.ensureAccount(ctx, userID, domain.ProviderWeChat, externalID, &appID)
-	if err != nil {
-		return nil, nil, err
-	}
+	var account *domain.Account
+	var wx *domain.WeChatAccount
+	if err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		accRepo := pickAccountRepo(tx, s.accounts)
+		wxRepo := pickWeChatRepo(tx, s.wechat)
+		if accRepo == nil || wxRepo == nil {
+			return perrors.WithCode(code.ErrInternalServerError, "wechat repositories not configured")
+		}
 
-	// 确保 WeChat 账号存在
-	wx, err := s.wechat.FindByAccountID(ctx, account.ID)
-	switch {
-	case err == nil: // 已存在，检查是否冲突
-		if wx.OpenID != externalID || wx.AppID != appID {
-			return nil, nil, perrors.WithCode(code.ErrInvalidArgument, "wechat credential conflicts with existing binding")
+		app := appID // create local copy for pointer usage
+		created := false
+		var err error
+		account, created, err = ensureAccountWithRepo(ctx, accRepo, userID, domain.ProviderWeChat, externalID, &app)
+		if err != nil {
+			return err
 		}
-	case errors.Is(err, gorm.ErrRecordNotFound): // 不存在，创建新的
-		created := domain.NewWeChatAccount(account.ID, appID, externalID)
-		if err := s.wechat.Create(ctx, &created); err != nil {
-			return nil, nil, perrors.WrapC(err, code.ErrDatabase, "create wechat credential failed")
+
+		existing, err := wxRepo.FindByAccountID(ctx, account.ID)
+		switch {
+		case err == nil:
+			if existing.OpenID != externalID || existing.AppID != appID {
+				return perrors.WithCode(code.ErrInvalidArgument, "wechat credential conflicts with existing binding")
+			}
+			wx = existing
+			return nil
+		case !errors.Is(err, gorm.ErrRecordNotFound):
+			return perrors.WrapC(err, code.ErrDatabase, "load wechat credential failed")
+		default:
+			if !created {
+				return perrors.WithCode(code.ErrInvalidArgument, "wechat credential not found for existing account")
+			}
+
+			newWx := domain.NewWeChatAccount(account.ID, appID, externalID)
+			if err := wxRepo.Create(ctx, &newWx); err != nil {
+				return perrors.WrapC(err, code.ErrDatabase, "create wechat credential failed")
+			}
+			wx = &newWx
+			return nil
 		}
-		wx = &created
-	default:
-		return nil, nil, perrors.WrapC(err, code.ErrDatabase, "load wechat credential failed")
+	}); err != nil {
+		return nil, nil, err
 	}
 
 	return account, wx, nil
 }
 
-// ensureAccount 确保指定的账号存在，若不存在则创建一个新的。
-func (s *RegisterService) ensureAccount(
+func ensureAccountWithRepo(
 	ctx context.Context,
+	repo port.AccountRepo,
 	userID userdomain.UserID,
 	provider domain.Provider,
 	externalID string,
 	appID *string,
 ) (*domain.Account, bool, error) {
-	acc, err := s.accounts.FindByRef(ctx, provider, externalID, appID)
+	if repo == nil {
+		return nil, false, perrors.WithCode(code.ErrInternalServerError, "account repository not configured")
+	}
+
+	acc, err := repo.FindByRef(ctx, provider, externalID, appID)
 	switch {
 	case err == nil:
 		if acc.UserID != userID {
-			// 把更新也放入事务中执行以保证原子性
-			if err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-				return tx.Accounts.UpdateUserID(ctx, acc.ID, userID)
-			}); err != nil {
+			if err := repo.UpdateUserID(ctx, acc.ID, userID); err != nil {
 				return nil, false, perrors.WrapC(err, code.ErrDatabase, "bind user(%s) to account(%s) failed", userID.String(), accountIDString(acc.ID))
 			}
 			acc.UserID = userID
@@ -160,10 +190,29 @@ func (s *RegisterService) ensureAccount(
 	}
 
 	newAccount := domain.NewAccount(userID, provider, opts...)
-	if err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		return tx.Accounts.Create(ctx, &newAccount)
-	}); err != nil {
+	if err := repo.Create(ctx, &newAccount); err != nil {
 		return nil, false, perrors.WrapC(err, code.ErrDatabase, "create account failed")
 	}
 	return &newAccount, true, nil
+}
+
+func pickAccountRepo(tx uow.TxRepositories, fallback port.AccountRepo) port.AccountRepo {
+	if tx.Accounts != nil {
+		return tx.Accounts
+	}
+	return fallback
+}
+
+func pickOperationRepo(tx uow.TxRepositories, fallback port.OperationRepo) port.OperationRepo {
+	if tx.Operation != nil {
+		return tx.Operation
+	}
+	return fallback
+}
+
+func pickWeChatRepo(tx uow.TxRepositories, fallback port.WeChatRepo) port.WeChatRepo {
+	if tx.WeChats != nil {
+		return tx.WeChats
+	}
+	return fallback
 }
