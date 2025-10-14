@@ -11,9 +11,9 @@ type WeChatAccount struct {
 	Meta      []byte  // 其他原始数据
 }
 
-func NewWeChatAccount(userID uint64, appid, openid string, opts ...WeChatAccountOption) WeChatAccount {
+func NewWeChatAccount(id AccountID, appid, openid string, opts ...WeChatAccountOption) WeChatAccount {
 	account := WeChatAccount{
-		AccountID: NewAccountID(0),
+		AccountID: id,
 		AppID:     appid,
 		OpenID:    openid,
 	}
