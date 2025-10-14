@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/uow"
 	childDomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child"
 	childport "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child/port"
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship"
@@ -19,90 +20,202 @@ type GuardianshipManager struct {
 	repo      guardport.GuardianshipRepository
 	childRepo childport.ChildRepository
 	userRepo  userport.UserRepository
+	uow       uow.UnitOfWork
 }
 
 // 确保实现
 var _ guardport.GuardianshipManager = (*GuardianshipManager)(nil)
 
 // NewManagerService 创建管理服务
-func NewManagerService(r guardport.GuardianshipRepository, cr childport.ChildRepository, ur userport.UserRepository) *GuardianshipManager {
-	return &GuardianshipManager{repo: r, childRepo: cr, userRepo: ur}
+func NewManagerService(r guardport.GuardianshipRepository, cr childport.ChildRepository, ur userport.UserRepository, tx uow.UnitOfWork) *GuardianshipManager {
+	return &GuardianshipManager{
+		repo:      r,
+		childRepo: cr,
+		userRepo:  ur,
+		uow:       tx,
+	}
 }
 
 // AddGuardian 添加监护人
 func (s *GuardianshipManager) AddGuardian(ctx context.Context, childID childDomain.ChildID, userID userDomain.UserID, relation domain.Relation) error {
-	// 校验 child
-	c, err := s.childRepo.FindByID(ctx, childID)
-	if err != nil {
-		return perrors.WrapC(err, code.ErrDatabase, "find child failed")
-	}
-	if c == nil {
-		return perrors.WithCode(code.ErrUserInvalid, "child not found")
-	}
+	return s.withTx(ctx, func(txRepos uow.TxRepositories) error {
+		childRepo := s.resolveChildRepo(txRepos)
+		guardRepo := s.resolveGuardRepo(txRepos)
+		userRepo := s.resolveUserRepo(txRepos)
 
-	// 校验 user
-	u, err := s.userRepo.FindByID(ctx, userID)
-	if err != nil {
-		return perrors.WrapC(err, code.ErrDatabase, "find user failed")
-	}
-	if u == nil {
-		return perrors.WithCode(code.ErrUserInvalid, "user not found")
-	}
-
-	// 检查重复
-	guardians, err := s.repo.FindByChildID(ctx, childID)
-	if err != nil {
-		return perrors.WrapC(err, code.ErrDatabase, "find guardians failed")
-	}
-	for _, g := range guardians {
-		if g == nil {
-			continue
+		c, err := childRepo.FindByID(ctx, childID)
+		if err != nil {
+			return perrors.WrapC(err, code.ErrDatabase, "find child failed")
 		}
-		if g.User == userID && g.IsActive() {
-			return perrors.WithCode(code.ErrUserInvalid, "guardian already exists")
+		if c == nil {
+			return perrors.WithCode(code.ErrUserInvalid, "child not found")
 		}
-	}
 
-	ng := &domain.Guardianship{
-		User:          userID,
-		Child:         childID,
-		Rel:           relation,
-		EstablishedAt: time.Now(),
-	}
+		u, err := userRepo.FindByID(ctx, userID)
+		if err != nil {
+			return perrors.WrapC(err, code.ErrDatabase, "find user failed")
+		}
+		if u == nil {
+			return perrors.WithCode(code.ErrUserInvalid, "user not found")
+		}
 
-	if err := s.repo.Create(ctx, ng); err != nil {
-		return perrors.WrapC(err, code.ErrDatabase, "create guardianship failed")
-	}
+		guardians, err := guardRepo.FindByChildID(ctx, childID)
+		if err != nil {
+			return perrors.WrapC(err, code.ErrDatabase, "find guardians failed")
+		}
+		for _, g := range guardians {
+			if g == nil {
+				continue
+			}
+			if g.User == userID && g.IsActive() {
+				return perrors.WithCode(code.ErrUserInvalid, "guardian already exists")
+			}
+		}
 
-	return nil
+		ng := &domain.Guardianship{
+			User:          userID,
+			Child:         childID,
+			Rel:           relation,
+			EstablishedAt: time.Now(),
+		}
+
+		if err := guardRepo.Create(ctx, ng); err != nil {
+			return perrors.WrapC(err, code.ErrDatabase, "create guardianship failed")
+		}
+
+		return nil
+	})
 }
 
 // RemoveGuardian 撤销监护
 func (s *GuardianshipManager) RemoveGuardian(ctx context.Context, childID childDomain.ChildID, userID userDomain.UserID) error {
-	guardians, err := s.repo.FindByChildID(ctx, childID)
+	return s.withTx(ctx, func(txRepos uow.TxRepositories) error {
+		guardRepo := s.resolveGuardRepo(txRepos)
+
+		guardians, err := guardRepo.FindByChildID(ctx, childID)
+		if err != nil {
+			return perrors.WrapC(err, code.ErrDatabase, "find guardians failed")
+		}
+
+		var target *domain.Guardianship
+		for _, g := range guardians {
+			if g == nil {
+				continue
+			}
+			if g.User == userID && g.IsActive() {
+				target = g
+				break
+			}
+		}
+
+		if target == nil {
+			return perrors.WithCode(code.ErrUserInvalid, "active guardian not found")
+		}
+
+		target.Revoke(time.Now())
+		if err := guardRepo.Update(ctx, target); err != nil {
+			return perrors.WrapC(err, code.ErrDatabase, "revoke guardianship failed")
+		}
+
+		return nil
+	})
+}
+
+// RegisterChildWithGuardian 在一个事务中创建儿童并授予监护权。
+func (s *GuardianshipManager) RegisterChildWithGuardian(ctx context.Context, params guardport.RegisterChildParams) (*domain.Guardianship, *childDomain.Child, error) {
+	if s.uow == nil {
+		return nil, nil, perrors.WithCode(code.ErrDatabase, "unit of work not configured")
+	}
+
+	var (
+		createdGuard *domain.Guardianship
+		createdChild *childDomain.Child
+	)
+
+	err := s.uow.WithinTx(ctx, func(txRepos uow.TxRepositories) error {
+		childRepo := s.resolveChildRepo(txRepos)
+		guardRepo := s.resolveGuardRepo(txRepos)
+		userRepo := s.resolveUserRepo(txRepos)
+
+		// 校验监护人存在
+		u, err := userRepo.FindByID(ctx, params.UserID)
+		if err != nil {
+			return perrors.WrapC(err, code.ErrDatabase, "find user(%d) failed", params.UserID.Value())
+		}
+		if u == nil {
+			return perrors.WithCode(code.ErrUserInvalid, "user(%d) not found", params.UserID.Value())
+		}
+
+		newChild, err := childDomain.NewChild(
+			params.Name,
+			childDomain.WithGender(params.Gender),
+			childDomain.WithBirthday(params.Birthday),
+		)
+		if err != nil {
+			return err
+		}
+
+		newChild.UpdateIDCard(params.IDCard)
+
+		height := newChild.Height
+		if params.Height != nil {
+			height = *params.Height
+		}
+		weight := newChild.Weight
+		if params.Weight != nil {
+			weight = *params.Weight
+		}
+		newChild.UpdateHeightWeight(height, weight)
+
+		if err := childRepo.Create(ctx, newChild); err != nil {
+			return perrors.WrapC(err, code.ErrDatabase, "create child(%s) failed", params.Name)
+		}
+
+		gs := &domain.Guardianship{
+			User:          params.UserID,
+			Child:         newChild.ID,
+			Rel:           params.Relation,
+			EstablishedAt: time.Now(),
+		}
+		if err := guardRepo.Create(ctx, gs); err != nil {
+			return perrors.WrapC(err, code.ErrDatabase, "create guardianship failed")
+		}
+
+		createdChild = newChild
+		createdGuard = gs
+		return nil
+	})
 	if err != nil {
-		return perrors.WrapC(err, code.ErrDatabase, "find guardians failed")
+		return nil, nil, err
 	}
 
-	var target *domain.Guardianship
-	for _, g := range guardians {
-		if g == nil {
-			continue
-		}
-		if g.User == userID && g.IsActive() {
-			target = g
-			break
-		}
-	}
+	return createdGuard, createdChild, nil
+}
 
-	if target == nil {
-		return perrors.WithCode(code.ErrUserInvalid, "active guardian not found")
+func (s *GuardianshipManager) withTx(ctx context.Context, fn func(uow.TxRepositories) error) error {
+	if s.uow == nil {
+		return fn(uow.TxRepositories{})
 	}
+	return s.uow.WithinTx(ctx, fn)
+}
 
-	target.Revoke(time.Now())
-	if err := s.repo.Update(ctx, target); err != nil {
-		return perrors.WrapC(err, code.ErrDatabase, "revoke guardianship failed")
+func (s *GuardianshipManager) resolveChildRepo(tx uow.TxRepositories) childport.ChildRepository {
+	if tx.Children != nil {
+		return tx.Children
 	}
+	return s.childRepo
+}
 
-	return nil
+func (s *GuardianshipManager) resolveGuardRepo(tx uow.TxRepositories) guardport.GuardianshipRepository {
+	if tx.Guardianships != nil {
+		return tx.Guardianships
+	}
+	return s.repo
+}
+
+func (s *GuardianshipManager) resolveUserRepo(tx uow.TxRepositories) userport.UserRepository {
+	if tx.Users != nil {
+		return tx.Users
+	}
+	return s.userRepo
 }

@@ -117,24 +117,55 @@ func (h *ChildHandler) RegisterChild(c *gin.Context) {
 		return
 	}
 
-	child, err := h.createChildRecord(c, req.ChildCreateRequest)
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
 	relation, err := parseRelation(req.Relation)
 	if err != nil {
 		h.Error(c, err)
 		return
 	}
 
-	if err := h.guardManager.AddGuardian(c.Request.Context(), child.ID, userID, relation); err != nil {
-		h.Error(c, err)
-		return
+	gender := meta.NewGender(uint8(*req.Gender))
+	birthday := meta.NewBirthday(strings.TrimSpace(req.DOB))
+	idCard := meta.NewIDCard(strings.TrimSpace(req.LegalName), strings.TrimSpace(req.IDNo))
+
+	var heightPtr *meta.Height
+	if req.HeightCm != nil {
+		if *req.HeightCm < 0 {
+			h.ErrorWithCode(c, code.ErrInvalidArgument, "heightCm must be >= 0")
+			return
+		}
+		hh, herr := meta.NewHeightFromFloat(float64(*req.HeightCm))
+		if herr != nil {
+			h.Error(c, perrors.WithCode(code.ErrInvalidArgument, "%s", herr.Error()))
+			return
+		}
+		heightPtr = &hh
 	}
 
-	gResp, err := h.guardQuery.FindByUserIDAndChildID(c.Request.Context(), userID, child.ID)
+	var weightPtr *meta.Weight
+	if strings.TrimSpace(req.WeightKg) != "" {
+		f, werr := strconv.ParseFloat(strings.TrimSpace(req.WeightKg), 64)
+		if werr != nil {
+			h.ErrorWithCode(c, code.ErrInvalidArgument, "invalid weightKg: %v", werr)
+			return
+		}
+		ww, werr := meta.NewWeightFromFloat(f)
+		if werr != nil {
+			h.Error(c, perrors.WithCode(code.ErrInvalidArgument, "%s", werr.Error()))
+			return
+		}
+		weightPtr = &ww
+	}
+
+	guardianship, child, err := h.guardManager.RegisterChildWithGuardian(c.Request.Context(), guardport.RegisterChildParams{
+		Name:     strings.TrimSpace(req.LegalName),
+		Gender:   gender,
+		Birthday: birthday,
+		IDCard:   idCard,
+		Height:   heightPtr,
+		Weight:   weightPtr,
+		UserID:   userID,
+		Relation: relation,
+	})
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -145,7 +176,7 @@ func (h *ChildHandler) RegisterChild(c *gin.Context) {
 
 	h.Created(c, responsedto.ChildRegisterResponse{
 		Child:        childResp,
-		Guardianship: newGuardianshipResponse(gResp),
+		Guardianship: newGuardianshipResponse(guardianship),
 	})
 }
 

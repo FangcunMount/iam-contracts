@@ -26,14 +26,15 @@ func (UserPO) TableName() string {
 
 // BeforeCreate 在创建前设置信息
 func (p *UserPO) BeforeCreate(tx *gorm.DB) error {
-	p.ID = idutil.NewID(idutil.GetIntID())
-	p.CreatedAt = time.Now()
-	p.UpdatedAt = time.Now()
-	p.CreatedBy = idutil.NewID(0)
-	p.UpdatedBy = idutil.NewID(0)
-	p.DeletedBy = idutil.NewID(0)
+    p.ID = idutil.NewID(idutil.GetIntID())
+    p.CreatedAt = time.Now()
+    p.UpdatedAt = time.Now()
+    p.CreatedBy = idutil.NewID(0)
+    p.UpdatedBy = idutil.NewID(0)
+    p.DeletedBy = idutil.NewID(0)
+    p.Version = base.InitialVersion
 
-	return nil
+    return nil
 }
 
 // BeforeUpdate 在更新前设置信息

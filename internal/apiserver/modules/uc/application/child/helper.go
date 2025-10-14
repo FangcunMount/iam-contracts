@@ -10,8 +10,8 @@ func toChildPointers(children []*domain.Child) []*domain.Child {
 	return children
 }
 
-// latestChild 从指针切片中选择 ID 最大的儿童（最新插入或最大雪花 id）
-func latestChild(children []*domain.Child) *domain.Child {
+// Latest 从指针切片中选择 ID 最大的儿童（最新插入或最大雪花 id）
+func Latest(children []*domain.Child) *domain.Child {
 	if len(children) == 0 {
 		return nil
 	}

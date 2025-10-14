@@ -6,12 +6,26 @@ import (
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child"
 	guardianship "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
+	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
 )
 
 // GuardianshipManager 监护人管理服务接口
 type GuardianshipManager interface {
 	AddGuardian(ctx context.Context, childID child.ChildID, userID user.UserID, relation guardianship.Relation) error
 	RemoveGuardian(ctx context.Context, childID child.ChildID, userID user.UserID) error
+	RegisterChildWithGuardian(ctx context.Context, params RegisterChildParams) (*guardianship.Guardianship, *child.Child, error)
+}
+
+// RegisterChildParams 聚合注册参数。
+type RegisterChildParams struct {
+	Name     string
+	Gender   meta.Gender
+	Birthday meta.Birthday
+	IDCard   meta.IDCard
+	Height   *meta.Height
+	Weight   *meta.Weight
+	UserID   user.UserID
+	Relation guardianship.Relation
 }
 
 // PaternityExaminer 亲子鉴定服务接口

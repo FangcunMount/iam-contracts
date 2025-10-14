@@ -5,6 +5,7 @@ import (
 
 	appchild "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/child"
 	appguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/guardianship"
+	appuow "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/uow"
 	appuser "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/user"
 	mysqlchild "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/child"
 	mysqlguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/guardianship"
@@ -42,6 +43,9 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 	childRepo := mysqlchild.NewRepository(db)
 	guardRepo := mysqlguard.NewRepository(db)
 
+	// 事务
+	uow := appuow.NewUnitOfWork(db)
+
 	// 用户服务
 	userRegisterSrv := appuser.NewRegisterService(userRepo)
 	userProfileSrv := appuser.NewProfileService(userRepo)
@@ -53,7 +57,7 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 	childQuerySrv := appchild.NewQueryService(childRepo)
 
 	// 监护服务
-	guardManagerSrv := appguard.NewManagerService(guardRepo, childRepo, userRepo)
+	guardManagerSrv := appguard.NewManagerService(guardRepo, childRepo, userRepo, uow)
 	guardQuerySrv := appguard.NewQueryService(guardRepo, childRepo)
 
 	// 初始化 handler 层

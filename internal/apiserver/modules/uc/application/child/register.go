@@ -43,9 +43,10 @@ func (s *ChildRegister) Register(ctx context.Context, name string, gender meta.G
 		return nil, perrors.WrapC(err, code.ErrDatabase, "find similar child(%s) failed", name)
 	}
 
-	if len(children) == 0 {
+	selected := Latest(children)
+	if selected == nil {
 		return nil, perrors.WithCode(code.ErrUserInvalid, "child(%s) not persisted", name)
 	}
 
-	return latestChild(children), nil
+	return selected, nil
 }

@@ -86,14 +86,15 @@ internal/apiserver/application/
 
 internal/pkg/database/mysql/
 ├─ audit.go           # 审计字段与 Syncable 相关方法（SetID 等）
-└─ base.go            # BaseRepository 泛型封装（通用 CRUD）
+├─ base.go            # BaseRepository 泛型封装（通用 CRUD）
+└─ uow.go             # UnitOfWork 封装（GORM Transaction helper）
 ```
 
 要点：
 
 - PO（持久化对象）与 Mapper 的分离便于 DB 与 domain 转换。
 - `BaseRepository[*PO]` 提供通用 Create/Find/Update 等，并暴露 CreateAndSync/UpdateAndSync 回调，用来把数据库生成的 ID/时间回写到 domain 对象。
-- `audit.go` 的 `SetID` 签名需与 `database/mysql.Syncable` 约定一致（仓库中已做相应调整）。
+- `audit.go` 的 `SetID`/`SetVersion` 签名需与 `database/mysql.Syncable` 约定一致（仓库中已做相应调整）。
 
 ## 4) 关键接口 → 实现 → 应用 的映射
 
