@@ -12,6 +12,7 @@ import (
 	guardrepo "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/guardianship"
 	userrepo "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
 	dbmysql "github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
+	txpkg "github.com/fangcun-mount/iam-contracts/internal/pkg/database/tx"
 )
 
 // TxRepositories 聚合事务中可使用的仓储集合。
@@ -25,6 +26,8 @@ type TxRepositories struct {
 type UnitOfWork interface {
 	WithinTx(ctx context.Context, fn func(tx TxRepositories) error) error
 }
+
+var _ txpkg.UnitOfWork[TxRepositories] = (*gormUnitOfWork)(nil)
 
 // NewUnitOfWork 创建基于 GORM 的 UnitOfWork。
 func NewUnitOfWork(db *gorm.DB) UnitOfWork {
