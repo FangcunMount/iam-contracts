@@ -6,26 +6,27 @@ import (
 	"gorm.io/gorm"
 )
 
-// 泛型结构体，支持任意实现了 Syncable 的实体类型
+// BaseRepository provides common CRUD helpers for GORM repositories.
 type BaseRepository[T Syncable] struct {
 	db *gorm.DB
 }
 
+// NewBaseRepository constructs a repository wrapper for the provided DB.
 func NewBaseRepository[T Syncable](db *gorm.DB) BaseRepository[T] {
 	return BaseRepository[T]{db: db}
 }
 
-// DB 获取数据库连接
+// DB exposes the underlying *gorm.DB for advanced usages.
 func (r *BaseRepository[T]) DB() *gorm.DB {
 	return r.db
 }
 
-// WithContext 带上下文的数据库连接
+// WithContext attaches a context to the DB handle.
 func (r *BaseRepository[T]) WithContext(ctx context.Context) *gorm.DB {
 	return r.db.WithContext(ctx)
 }
 
-// CreateAndSync 将实体插入数据库，并通过回调函数同步字段回 domain 层
+// CreateAndSync persists an entity and lets the caller sync generated fields back.
 func (r *BaseRepository[T]) CreateAndSync(ctx context.Context, entity T, sync func(T)) error {
 	result := r.db.WithContext(ctx).Create(entity)
 	if result.Error != nil {
@@ -35,7 +36,7 @@ func (r *BaseRepository[T]) CreateAndSync(ctx context.Context, entity T, sync fu
 	return nil
 }
 
-// UpdateAndSync 更新实体并同步时间戳等字段
+// UpdateAndSync updates an entity and triggers the sync callback.
 func (r *BaseRepository[T]) UpdateAndSync(ctx context.Context, entity T, sync func(T)) error {
 	result := r.db.WithContext(ctx).Updates(entity)
 	if result.Error != nil {
@@ -45,7 +46,7 @@ func (r *BaseRepository[T]) UpdateAndSync(ctx context.Context, entity T, sync fu
 	return nil
 }
 
-// FindByID 根据 ID 查询实体
+// FindByID retrieves a record by its identifier.
 func (r *BaseRepository[T]) FindByID(ctx context.Context, id uint64) (T, error) {
 	var entity T
 	result := r.db.WithContext(ctx).First(&entity, id)
@@ -56,31 +57,29 @@ func (r *BaseRepository[T]) FindByID(ctx context.Context, id uint64) (T, error) 
 	return entity, nil
 }
 
-// FindByField 根据字段查找记录
+// FindByField loads the first record matching the provided field condition.
 func (r *BaseRepository[T]) FindByField(ctx context.Context, model interface{}, field string, value interface{}) error {
-	err := r.db.WithContext(ctx).Where(field+" = ?", value).First(model).Error
-	return err // 直接返回错误，包括 gorm.ErrRecordNotFound
+	return r.db.WithContext(ctx).Where(field+" = ?", value).First(model).Error
 }
 
-// DeleteByID 根据 ID 删除实体
+// DeleteByID removes records by primary key.
 func (r *BaseRepository[T]) DeleteByID(ctx context.Context, id uint64) error {
 	var entity T
-	result := r.db.WithContext(ctx).Delete(&entity, id)
-	return result.Error
+	return r.db.WithContext(ctx).Delete(&entity, id).Error
 }
 
-// ExistsByID 判断是否存在指定 ID 的记录
+// ExistsByID checks if a record exists for the given ID.
 func (r *BaseRepository[T]) ExistsByID(ctx context.Context, id uint64) (bool, error) {
 	var count int64
 	var entity T
-	result := r.db.WithContext(ctx).Model(&entity).Where("id = ?", id).Count(&count)
-	if result.Error != nil {
-		return false, result.Error
+	err := r.db.WithContext(ctx).Model(&entity).Where("id = ?", id).Count(&count).Error
+	if err != nil {
+		return false, err
 	}
 	return count > 0, nil
 }
 
-// ExistsByField 检查字段值是否存在
+// ExistsByField checks uniqueness constraints against a field value.
 func (r *BaseRepository[T]) ExistsByField(ctx context.Context, model interface{}, field string, value interface{}) (bool, error) {
 	var count int64
 	if err := r.db.WithContext(ctx).Model(model).Where(field+" = ?", value).Count(&count).Error; err != nil {
@@ -89,8 +88,8 @@ func (r *BaseRepository[T]) ExistsByField(ctx context.Context, model interface{}
 	return count > 0, nil
 }
 
-// FindWithConditions 根据条件查找记录
-func (r *BaseRepository[T]) FindWithConditions(ctx context.Context, models interface{}, conditions map[string]interface{}) ([]T, error) {
+// FindWithConditions loads all matching records from the provided condition map.
+func (r *BaseRepository[T]) FindWithConditions(ctx context.Context, conditions map[string]interface{}) ([]T, error) {
 	db := r.db.WithContext(ctx)
 	for field, value := range conditions {
 		db = db.Where(field+" = ?", value)
@@ -102,7 +101,7 @@ func (r *BaseRepository[T]) FindWithConditions(ctx context.Context, models inter
 	return entities, nil
 }
 
-// FindList 查询列表
+// FindList queries paginated results while filling the consumer-provided model slice.
 func (r *BaseRepository[T]) FindList(ctx context.Context, models interface{}, conditions map[string]string, page, pageSize int) ([]T, error) {
 	db := r.db.WithContext(ctx)
 	for field, value := range conditions {
@@ -117,14 +116,14 @@ func (r *BaseRepository[T]) FindList(ctx context.Context, models interface{}, co
 	if err := db.Find(models).Error; err != nil {
 		return nil, err
 	}
-	entities := make([]T, 0)
+	var entities []T
 	if err := db.Find(&entities).Error; err != nil {
 		return nil, err
 	}
 	return entities, nil
 }
 
-// CountWithConditions 根据条件统计记录数
+// CountWithConditions returns the count for the supplied conditions.
 func (r *BaseRepository[T]) CountWithConditions(ctx context.Context, model interface{}, conditions map[string]string) (int64, error) {
 	var count int64
 	db := r.db.WithContext(ctx).Model(model)
