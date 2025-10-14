@@ -7,9 +7,9 @@ set -e
 
 echo "🔧 生成Proto文件..."
 
-# 设置路径
-PROTO_PATH="internal/apiserver/interface/grpc/proto"
-OUTPUT_PATH="internal/apiserver/interface/grpc"
+# 设置路径（按照新的 uc 模块目录）
+PROTO_PATH="api/grpc"
+OUTPUT_PATH="internal/apiserver/modules/uc/interface/grpc"
 
 # 检查protoc是否安装
 if ! command -v protoc &> /dev/null; then
