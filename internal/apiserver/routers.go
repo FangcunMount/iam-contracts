@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/container"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/container"
+	authnhttp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful"
+	authzhttp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/interface/restful"
+	userhttp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/restful"
 )
 
 // Router 集中的路由管理器
@@ -25,31 +29,42 @@ func NewRouter(c *container.Container) *Router {
 
 // RegisterRoutes 注册所有路由
 func (r *Router) RegisterRoutes(engine *gin.Engine) {
-	// 注册公开路由（不需要认证）
-	r.registerPublicRoutes(engine)
+	if engine == nil {
+		return
+	}
 
-	// 注册需要认证的路由
-	r.registerProtectedRoutes(engine)
+	r.registerBaseRoutes(engine)
 
-	fmt.Printf("🔗 Registered routes for: public, protected(user)\n")
+	if r.container == nil {
+		fmt.Printf("⚠️  container not initialized, skipped module route registration\n")
+		return
+	}
+
+	autoAuth := r.auth.CreateAuthMiddleware("auto")
+	jwtStrategy := r.auth.NewJWTAuth()
+
+	userhttp.Provide(userhttp.Dependencies{
+		Module:         r.container.UserModule,
+		AuthMiddleware: autoAuth,
+	})
+	authnhttp.Provide(authnhttp.Dependencies{
+		JWTStrategy: &jwtStrategy,
+	})
+	authzhttp.Provide(authzhttp.Dependencies{})
+
+	userhttp.Register(engine)
+	authnhttp.Register(engine)
+	authzhttp.Register(engine)
+
+	r.registerAdminRoutes(engine, autoAuth)
+
+	fmt.Printf("🔗 Registered routes for: base, user, authn, authz\n")
 }
 
-// registerPublicRoutes 注册公开路由（不需要认证）
-func (r *Router) registerPublicRoutes(engine *gin.Engine) {
-	// 健康检查和基础路由
+func (r *Router) registerBaseRoutes(engine *gin.Engine) {
 	engine.GET("/health", r.healthCheck)
 	engine.GET("/ping", r.ping)
 
-	// 认证相关的公开路由
-	auth := engine.Group("/auth")
-	{
-		jwtStrategy := r.auth.NewJWTAuth()
-		auth.POST("/login", jwtStrategy.LoginHandler)
-		auth.POST("/logout", jwtStrategy.LogoutHandler)
-		auth.POST("/refresh", jwtStrategy.RefreshHandler)
-	}
-
-	// 公开的API路由
 	publicAPI := engine.Group("/api/v1/public")
 	{
 		publicAPI.GET("/info", func(c *gin.Context) {
@@ -60,69 +75,20 @@ func (r *Router) registerPublicRoutes(engine *gin.Engine) {
 			})
 		})
 	}
+	// admin.Use(r.requireAdminRole()) // 需要实现管理员权限检查中间件
 }
 
-// registerProtectedRoutes 注册需要认证的路由
-func (r *Router) registerProtectedRoutes(engine *gin.Engine) {
-	// 创建需要认证的API组
-	apiV1 := engine.Group("/api/v1")
-
-	// 应用认证中间件
-	authMiddleware := r.auth.CreateAuthMiddleware("auto") // 自动选择Basic或JWT
-	apiV1.Use(authMiddleware)
-
-	// 注册用户相关的受保护路由
-	r.registerUserProtectedRoutes(apiV1)
-
-	// 管理员路由（需要额外的权限检查）
-	r.registerAdminRoutes(apiV1)
-}
-
-// registerUserProtectedRoutes 注册用户相关的受保护路由
-func (r *Router) registerUserProtectedRoutes(apiV1 *gin.RouterGroup) {
-	module := r.container.UserModule
-	if module == nil {
+func (r *Router) registerAdminRoutes(engine *gin.Engine, authMiddleware gin.HandlerFunc) {
+	if engine == nil {
 		return
 	}
 
-	if module.UserHandler != nil {
-		users := apiV1.Group("/users")
-		{
-			users.POST("", module.UserHandler.CreateUser)
-			users.GET("/profile", module.UserHandler.GetUserProfile)
-			users.GET("/:userId", module.UserHandler.GetUser)
-			users.PATCH("/:userId", module.UserHandler.PatchUser)
-		}
+	apiV1 := engine.Group("/api/v1")
+	if authMiddleware != nil {
+		apiV1.Use(authMiddleware)
 	}
 
-	if module.ChildHandler != nil {
-		me := apiV1.Group("/me")
-		{
-			me.GET("/children", module.ChildHandler.ListMyChildren)
-		}
-
-		apiV1.POST("/children:register", module.ChildHandler.RegisterChild)
-		apiV1.GET("/children:search", module.ChildHandler.SearchChildren)
-
-		children := apiV1.Group("/children")
-		{
-			children.POST("", module.ChildHandler.CreateChild)
-			children.GET("/:childId", module.ChildHandler.GetChild)
-			children.PATCH("/:childId", module.ChildHandler.PatchChild)
-		}
-	}
-
-	if module.GuardianshipHandler != nil {
-		apiV1.POST("/guardians:grant", module.GuardianshipHandler.Grant)
-		apiV1.POST("/guardians:revoke", module.GuardianshipHandler.Revoke)
-		apiV1.GET("/guardians", module.GuardianshipHandler.List)
-	}
-}
-
-// registerAdminRoutes 注册管理员路由
-func (r *Router) registerAdminRoutes(apiV1 *gin.RouterGroup) {
 	admin := apiV1.Group("/admin")
-	// admin.Use(r.requireAdminRole()) // 需要实现管理员权限检查中间件
 	{
 		admin.GET("/users", r.placeholder)      // 管理员获取所有用户
 		admin.GET("/statistics", r.placeholder) // 系统统计信息
