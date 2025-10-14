@@ -12,6 +12,7 @@ import (
 // Dependencies describes the external collaborators needed to expose authn endpoints.
 type Dependencies struct {
 	JWTStrategy    *authstrategys.JWTStrategy
+	AuthHandler    *authhandler.AuthHandler // 新的认证处理器
 	AccountHandler *authhandler.AccountHandler
 }
 
@@ -29,8 +30,18 @@ func Register(engine *gin.Engine) {
 	}
 
 	api := engine.Group("/api")
-	registerAuthEndpoints(api.Group("/v1/auth"), deps.JWTStrategy)
+
+	// 注册符合 API 文档的认证端点
+	registerAuthEndpointsV2(api.Group("/v1/auth"), deps.AuthHandler)
+
+	// 注册账户管理端点
 	registerAccountEndpoints(api.Group("/v1"), deps.AccountHandler)
+
+	// 注册 JWKS 端点
+	registerJWKSEndpoints(engine, deps.AuthHandler)
+
+	// 保留旧的 JWT Strategy 端点（向后兼容，可选）
+	// registerAuthEndpoints(api.Group("/v1/auth"), deps.JWTStrategy)
 }
 
 func registerAuthEndpoints(group *gin.RouterGroup, strategy *authstrategys.JWTStrategy) {
@@ -43,6 +54,29 @@ func registerAuthEndpoints(group *gin.RouterGroup, strategy *authstrategys.JWTSt
 	group.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+}
+
+// registerAuthEndpointsV2 注册符合 API 文档的认证端点
+func registerAuthEndpointsV2(group *gin.RouterGroup, handler *authhandler.AuthHandler) {
+	if group == nil || handler == nil {
+		return
+	}
+
+	// 认证端点(符合 API 文档)
+	group.POST("/login", handler.Login)                // POST /v1/auth/login - 统一登录
+	group.POST("/refresh_token", handler.RefreshToken) // POST /v1/auth/refresh_token - 刷新令牌
+	group.POST("/logout", handler.Logout)              // POST /v1/auth/logout - 登出
+	group.POST("/verify", handler.VerifyToken)         // POST /v1/auth/verify - 验证令牌
+}
+
+// registerJWKSEndpoints 注册 JWKS 端点
+func registerJWKSEndpoints(engine *gin.Engine, handler *authhandler.AuthHandler) {
+	if engine == nil || handler == nil {
+		return
+	}
+
+	// JWKS 端点（符合 API 文档）
+	engine.GET("/.well-known/jwks.json", handler.GetJWKS)
 }
 
 func registerAccountEndpoints(v1 *gin.RouterGroup, h *authhandler.AccountHandler) {

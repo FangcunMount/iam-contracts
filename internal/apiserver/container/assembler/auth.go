@@ -1,12 +1,20 @@
 package assembler
 
 import (
+	"github.com/go-redis/redis/v7"
+	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/account"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/adapter"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/login"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/token"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
+	authDomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
 	mysqlacct "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
+	redistoken "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/redis/token"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/wechat"
 	authhandler "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/handler"
 	mysqluser "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
@@ -16,12 +24,19 @@ import (
 // AuthModule 认证模块
 // 负责组装认证相关的所有组件
 type AuthModule struct {
-	// 这里可以添加认证相关的组件
+	// 账户管理服务
 	RegisterService *account.RegisterService
 	EditorService   *account.EditorService
 	QueryService    *account.QueryService
 	StatusService   *account.StatusService
-	AccountHandler  *authhandler.AccountHandler
+
+	// 认证服务
+	LoginService *login.LoginService
+	TokenService *token.TokenService
+
+	// HTTP 处理器
+	AccountHandler *authhandler.AccountHandler
+	AuthHandler    *authhandler.AuthHandler
 }
 
 // NewAuthModule 创建认证模块
@@ -30,37 +45,94 @@ func NewAuthModule() *AuthModule {
 }
 
 // Initialize 初始化模块
+// params[0]: *gorm.DB - 数据库连接
+// params[1]: *redis.Client - Redis 客户端
 func (m *AuthModule) Initialize(params ...interface{}) error {
+	if len(params) < 2 {
+		return errors.WithCode(code.ErrModuleInitializationFailed, "missing required parameters: db and redis client")
+	}
+
 	db := params[0].(*gorm.DB)
 	if db == nil {
 		return errors.WithCode(code.ErrModuleInitializationFailed, "database connection is nil")
 	}
 
-	// 初始化仓储
+	redisClient := params[1].(*redis.Client)
+	if redisClient == nil {
+		return errors.WithCode(code.ErrModuleInitializationFailed, "redis client is nil")
+	}
+
+	// ========== 基础设施层 ==========
+
+	// MySQL 仓储
 	accountRepo := mysqlacct.NewAccountRepository(db)
 	operationRepo := mysqlacct.NewOperationRepository(db)
 	wechatRepo := mysqlacct.NewWeChatRepository(db)
 
-	// 初始化用户仓储(用于防腐层)
+	// 用户仓储（防腐层）
 	userRepo := mysqluser.NewRepository(db)
-
-	// 创建用户适配器(防腐层)
 	userAdapter := adapter.NewUserAdapter(userRepo)
+
+	// 密码适配器
+	passwordAdapter := mysqlacct.NewPasswordAdapter(operationRepo)
+
+	// 微信适配器
+	wechatAuthAdapter := wechat.NewAuthAdapter()
+	// TODO: 从配置加载微信应用配置
+	// wechatAuthAdapter.WithAppConfig("wx1234567890", "your-app-secret")
+
+	// JWT Generator
+	jwtGenerator := jwt.NewGenerator(
+		viper.GetString("jwt.secret"), // TODO: 从配置加载
+		"iam-apiserver",               // issuer
+	)
+
+	// Redis Token Store
+	tokenStore := redistoken.NewRedisStore(redisClient)
 
 	// 事务 UnitOfWork
 	unitOfWork := uow.NewUnitOfWork(db)
 
-	// 应用服务 - 注意注入 UserAdapter
+	// ========== 领域层 ==========
+
+	// 认证器
+	basicAuthenticator := authDomain.NewBasicAuthenticator(accountRepo, operationRepo, passwordAdapter)
+	wechatAuthenticator := authDomain.NewWeChatAuthenticator(accountRepo, wechatRepo, wechatAuthAdapter)
+
+	// 认证服务
+	authService := authDomain.NewAuthenticationService(
+		basicAuthenticator,
+		wechatAuthenticator,
+	)
+
+	// 令牌服务
+	domainTokenService := authDomain.NewTokenService(
+		jwtGenerator,
+		tokenStore,
+	) // ========== 应用层 ==========
+
+	// 账户管理服务
 	m.RegisterService = account.NewRegisterService(accountRepo, wechatRepo, operationRepo, unitOfWork, userAdapter)
 	m.EditorService = account.NewEditorService(wechatRepo, operationRepo, unitOfWork)
 	m.QueryService = account.NewQueryService(accountRepo, wechatRepo, operationRepo)
 	m.StatusService = account.NewStatusService(accountRepo)
+
+	// 认证服务
+	m.LoginService = login.NewLoginService(authService, domainTokenService)
+	m.TokenService = token.NewTokenService(domainTokenService)
+
+	// ========== 接口层 ==========
 
 	m.AccountHandler = authhandler.NewAccountHandler(
 		m.RegisterService,
 		m.EditorService,
 		m.StatusService,
 		m.QueryService,
+	)
+
+	m.AuthHandler = authhandler.NewAuthHandler(
+		m.LoginService,
+		m.TokenService,
 	)
 
 	return nil
@@ -81,6 +153,6 @@ func (m *AuthModule) ModuleInfo() ModuleInfo {
 	return ModuleInfo{
 		Name:        "auth",
 		Version:     "1.0.0",
-		Description: "认证模块",
+		Description: "认证模块 - 支持多种认证方式和令牌管理",
 	}
 }

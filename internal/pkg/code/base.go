@@ -71,3 +71,15 @@ const (
 	// ErrInternalServerError - 500: Internal server error.
 	ErrInternalServerError = 100209
 )
+
+// Common: authentication and authorization errors.
+const (
+	// ErrUnauthenticated - 401: Authentication failed.
+	ErrUnauthenticated int = iota + 100501
+
+	// ErrUnauthorized - 403: Authorization failed.
+	ErrUnauthorized
+
+	// ErrInvalidCredentials - 401: Invalid credentials.
+	ErrInvalidCredentials
+)
