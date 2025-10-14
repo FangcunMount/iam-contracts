@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
+
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
@@ -16,15 +18,17 @@ import (
 type EditorService struct {
 	wechat    port.WeChatRepo
 	operation port.OperationRepo
+	uow       uow.UnitOfWork
 }
 
 var _ port.AccountEditor = (*EditorService)(nil)
 
 // NewEditorService 构造编辑服务。
-func NewEditorService(wx port.WeChatRepo, op port.OperationRepo) *EditorService {
+func NewEditorService(wx port.WeChatRepo, op port.OperationRepo, u uow.UnitOfWork) *EditorService {
 	return &EditorService{
 		wechat:    wx,
 		operation: op,
+		uow:       u,
 	}
 }
 
@@ -78,7 +82,9 @@ func (s *EditorService) UpdateOperationCredential(ctx context.Context, username 
 		return perrors.WrapC(err, code.ErrDatabase, "load operation credential(%s) failed", username)
 	}
 
-	if err := s.operation.UpdateHash(ctx, username, newHash, algo, params); err != nil {
+	if err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		return tx.Operation.UpdateHash(ctx, username, newHash, algo, params)
+	}); err != nil {
 		return perrors.WrapC(err, code.ErrDatabase, "update operation credential(%s) failed", username)
 	}
 
@@ -110,7 +116,9 @@ func (s *EditorService) ChangeOperationUsername(ctx context.Context, oldUsername
 		return perrors.WrapC(err, code.ErrDatabase, "check operation credential(%s) failed", newUsername)
 	}
 
-	if err := s.operation.UpdateUsername(ctx, cred.AccountID, newUsername); err != nil {
+	if err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		return tx.Operation.UpdateUsername(ctx, cred.AccountID, newUsername)
+	}); err != nil {
 		return perrors.WrapC(err, code.ErrDatabase, "change operation username from %s to %s failed", oldUsername, newUsername)
 	}
 

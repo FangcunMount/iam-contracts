@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
 	userdomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
@@ -19,16 +20,18 @@ type RegisterService struct {
 	accounts  port.AccountRepo
 	wechat    port.WeChatRepo
 	operation port.OperationRepo
+	uow       uow.UnitOfWork
 }
 
 var _ port.AccountRegisterer = (*RegisterService)(nil)
 
 // NewRegisterService 构造注册服务。
-func NewRegisterService(acc port.AccountRepo, wx port.WeChatRepo, op port.OperationRepo) *RegisterService {
+func NewRegisterService(acc port.AccountRepo, wx port.WeChatRepo, op port.OperationRepo, u uow.UnitOfWork) *RegisterService {
 	return &RegisterService{
 		accounts:  acc,
 		wechat:    wx,
 		operation: op,
+		uow:       u,
 	}
 }
 
@@ -49,26 +52,36 @@ func (s *RegisterService) CreateOperationAccount(
 		return nil, nil, err
 	}
 
-	// 确保运营后台凭证存在
-	cred, err := s.operation.FindByUsername(ctx, externalID)
-	switch {
-	case err == nil: // 已存在，直接返回
-		if cred.AccountID != account.ID {
-			return nil, nil, perrors.WithCode(code.ErrInvalidArgument, "operation credential belongs to another account")
+	// 确保运营后台凭证存在（写操作放入事务）
+	var cred *domain.OperationAccount
+	if err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		// 查询是否存在
+		existing, err := tx.Operation.FindByUsername(ctx, externalID)
+		if err == nil {
+			if existing.AccountID != account.ID {
+				return perrors.WithCode(code.ErrInvalidArgument, "operation credential belongs to another account")
+			}
+			cred = existing
+			return nil
 		}
-	case errors.Is(err, gorm.ErrRecordNotFound): // 不存在，创建新的
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return perrors.WrapC(err, code.ErrDatabase, "load operation credential failed")
+		}
+
+		// 不存在则创建
 		created := domain.NewOperationAccount(
 			account.ID,
 			externalID,
 			"",
 			domain.WithLastChangedAt(time.Now()),
 		)
-		if err := s.operation.Create(ctx, &created); err != nil {
-			return nil, nil, perrors.WrapC(err, code.ErrDatabase, "create operation credential failed")
+		if err := tx.Operation.Create(ctx, &created); err != nil {
+			return perrors.WrapC(err, code.ErrDatabase, "create operation credential failed")
 		}
 		cred = &created
-	default:
-		return nil, nil, perrors.WrapC(err, code.ErrDatabase, "load operation credential failed")
+		return nil
+	}); err != nil {
+		return nil, nil, err
 	}
 
 	return account, cred, nil
@@ -125,7 +138,10 @@ func (s *RegisterService) ensureAccount(
 	switch {
 	case err == nil:
 		if acc.UserID != userID {
-			if err := s.accounts.UpdateUserID(ctx, acc.ID, userID); err != nil {
+			// 把更新也放入事务中执行以保证原子性
+			if err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+				return tx.Accounts.UpdateUserID(ctx, acc.ID, userID)
+			}); err != nil {
 				return nil, false, perrors.WrapC(err, code.ErrDatabase, "bind user(%s) to account(%s) failed", userID.String(), accountIDString(acc.ID))
 			}
 			acc.UserID = userID
@@ -144,7 +160,9 @@ func (s *RegisterService) ensureAccount(
 	}
 
 	newAccount := domain.NewAccount(userID, provider, opts...)
-	if err := s.accounts.Create(ctx, &newAccount); err != nil {
+	if err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		return tx.Accounts.Create(ctx, &newAccount)
+	}); err != nil {
 		return nil, false, perrors.WrapC(err, code.ErrDatabase, "create account failed")
 	}
 	return &newAccount, true, nil
