@@ -10,7 +10,7 @@ type Account struct {
 	UserID     user.UserID
 	Provider   Provider // op:password | wx:minip | wecom:qr
 	ExternalID string   // username | openid | open_userid(userid)
-	AppID      string   // 微信小程序 appid | 企业微信 corpid
+	AppID      *string  // 微信小程序 appid | 企业微信 corpid
 	Status     AccountStatus
 }
 
@@ -31,7 +31,7 @@ type AccountOption func(*Account)
 
 func WithID(id AccountID) AccountOption             { return func(a *Account) { a.ID = id } }
 func WithExternalID(eid string) AccountOption       { return func(a *Account) { a.ExternalID = eid } }
-func WithAppID(appid string) AccountOption          { return func(a *Account) { a.AppID = appid } }
+func WithAppID(appid string) AccountOption          { return func(a *Account) { a.AppID = &appid } }
 func WithStatus(status AccountStatus) AccountOption { return func(a *Account) { a.Status = status } }
 
 // 状态变更方法

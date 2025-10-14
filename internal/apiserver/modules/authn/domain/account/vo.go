@@ -27,6 +27,21 @@ const (
 	StatusDeleted  AccountStatus = 3 // 已删除
 )
 
+func (s AccountStatus) String() string {
+	switch s {
+	case StatusDisabled:
+		return "disabled"
+	case StatusActive:
+		return "active"
+	case StatusArchived:
+		return "archived"
+	case StatusDeleted:
+		return "deleted"
+	default:
+		return "unknown"
+	}
+}
+
 // AccessClaims 访问令牌载荷，JWT 声明
 type AccessClaims struct {
 	Sub string `json:"sub"`
