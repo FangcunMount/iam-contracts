@@ -1,5 +1,5 @@
-// Package port 认证领域端口定义
-package port
+// Package driving 认证领域驱动端口定义
+package driving
 
 import (
 	"context"

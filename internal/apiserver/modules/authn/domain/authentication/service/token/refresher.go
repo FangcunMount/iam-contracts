@@ -5,23 +5,23 @@ import (
 	"time"
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port"
+	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
 )
 
-// TokenRefresher 令牌刷新器
+// TokenRefresher 令牌刷新者
 type TokenRefresher struct {
-	tokenGenerator port.TokenGenerator // JWT 生成器
-	tokenStore     port.TokenStore     // 令牌存储（Redis）
-	accessTTL      time.Duration       // 访问令牌有效期
-	refreshTTL     time.Duration       // 刷新令牌有效期
+	tokenGenerator drivenPort.TokenGenerator // JWT 生成器
+	tokenStore     drivenPort.TokenStore     // 令牌存储（Redis）
+	accessTTL      time.Duration             // 访问令牌有效期
+	refreshTTL     time.Duration             // 刷新令牌有效期
 }
 
-// NewTokenRefresher 创建令牌刷新器
+// NewTokenRefresher 创建令牌刷新者
 func NewTokenRefresher(
-	tokenGenerator port.TokenGenerator,
-	tokenStore port.TokenStore,
+	tokenGenerator drivenPort.TokenGenerator,
+	tokenStore drivenPort.TokenStore,
 	accessTTL time.Duration,
 	refreshTTL time.Duration,
 ) *TokenRefresher {

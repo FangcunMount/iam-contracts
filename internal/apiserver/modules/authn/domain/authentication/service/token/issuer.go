@@ -9,22 +9,22 @@ import (
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port"
+	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 )
 
 // TokenIssuer 令牌颁发者
 type TokenIssuer struct {
-	tokenGenerator port.TokenGenerator // JWT 生成器
-	tokenStore     port.TokenStore     // 令牌存储（Redis）
-	accessTTL      time.Duration       // 访问令牌有效期
-	refreshTTL     time.Duration       // 刷新令牌有效期
+	tokenGenerator drivenPort.TokenGenerator // JWT 生成器
+	tokenStore     drivenPort.TokenStore     // 令牌存储（Redis）
+	accessTTL      time.Duration             // 访问令牌有效期
+	refreshTTL     time.Duration             // 刷新令牌有效期
 }
 
 // NewTokenIssuer 创建令牌颁发者
 func NewTokenIssuer(
-	tokenGenerator port.TokenGenerator,
-	tokenStore port.TokenStore,
+	tokenGenerator drivenPort.TokenGenerator,
+	tokenStore drivenPort.TokenStore,
 	accessTTL time.Duration,
 	refreshTTL time.Duration,
 ) *TokenIssuer {

@@ -8,22 +8,22 @@ import (
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	accountPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port"
+	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 )
 
 // BasicAuthenticator 基础认证器（用户名密码认证）
 type BasicAuthenticator struct {
-	accountRepo   accountPort.AccountRepo   // 账号仓储
-	operationRepo accountPort.OperationRepo // 运营账号仓储
-	passwordPort  port.AccountPasswordPort  // 密码端口
+	accountRepo   accountPort.AccountRepo        // 账号仓储
+	operationRepo accountPort.OperationRepo      // 运营账号仓储
+	passwordPort  drivenPort.AccountPasswordPort // 密码端口
 }
 
 // NewBasicAuthenticator 创建基础认证器
 func NewBasicAuthenticator(
 	accountRepo accountPort.AccountRepo,
 	operationRepo accountPort.OperationRepo,
-	passwordPort port.AccountPasswordPort,
+	passwordPort drivenPort.AccountPasswordPort,
 ) *BasicAuthenticator {
 	return &BasicAuthenticator{
 		accountRepo:   accountRepo,

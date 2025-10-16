@@ -6,17 +6,17 @@ import (
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port"
+	drivingPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driving"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 )
 
 // Authenticator 认证服务（策略模式编排器）
 type Authenticator struct {
-	authenticators []port.Authenticator // 认证器列表
+	authenticators []drivingPort.Authenticator // 认证器列表
 }
 
 // NewAuthenticator 创建认证服务
-func NewAuthenticator(authenticators ...port.Authenticator) *Authenticator {
+func NewAuthenticator(authenticators ...drivingPort.Authenticator) *Authenticator {
 	return &Authenticator{
 		authenticators: authenticators,
 	}
@@ -32,7 +32,7 @@ func (s *Authenticator) Authenticate(ctx context.Context, credential authenticat
 	}
 
 	// 选择合适的认证器
-	var selectedAuthenticator port.Authenticator
+	var selectedAuthenticator drivingPort.Authenticator
 	for _, authenticator := range s.authenticators {
 		if authenticator.Supports(credential) {
 			selectedAuthenticator = authenticator
@@ -54,6 +54,6 @@ func (s *Authenticator) Authenticate(ctx context.Context, credential authenticat
 }
 
 // RegisterAuthenticator 注册认证器（用于动态扩展）
-func (s *Authenticator) RegisterAuthenticator(authenticator port.Authenticator) {
+func (s *Authenticator) RegisterAuthenticator(authenticator drivingPort.Authenticator) {
 	s.authenticators = append(s.authenticators, authenticator)
 }

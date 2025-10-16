@@ -1,4 +1,5 @@
-package port
+// Package driven 认证领域被驱动端口定义
+package driven
 
 import "context"
 

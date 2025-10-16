@@ -4,21 +4,21 @@ import (
 	"context"
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port"
+	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
 )
 
-// TokenVerifyer 令牌验证器
+// TokenVerifyer 令牌验证者
 type TokenVerifyer struct {
-	tokenGenerator port.TokenGenerator // JWT 生成器
-	tokenStore     port.TokenStore     // 令牌存储（Redis）
+	tokenGenerator drivenPort.TokenGenerator // JWT 生成器
+	tokenStore     drivenPort.TokenStore     // 令牌存储（Redis）
 }
 
-// NewTokenVerifyer 创建令牌验证器
+// NewTokenVerifyer 创建令牌验证者
 func NewTokenVerifyer(
-	tokenGenerator port.TokenGenerator,
-	tokenStore port.TokenStore,
+	tokenGenerator drivenPort.TokenGenerator,
+	tokenStore drivenPort.TokenStore,
 ) *TokenVerifyer {
 	return &TokenVerifyer{
 		tokenGenerator: tokenGenerator,
