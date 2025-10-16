@@ -10,7 +10,6 @@ import (
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/login"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/token"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
-	authDomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
 	mysqlacct "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
 	redistoken "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/redis/token"
@@ -19,6 +18,9 @@ import (
 	mysqluser "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+
+	authService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/authenticator"
+	tokenService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/token"
 )
 
 // AuthModule 认证模块
@@ -96,20 +98,17 @@ func (m *AuthModule) Initialize(params ...interface{}) error {
 	// ========== 领域层 ==========
 
 	// 认证器
-	basicAuthenticator := authDomain.NewBasicAuthenticator(accountRepo, operationRepo, passwordAdapter)
-	wechatAuthenticator := authDomain.NewWeChatAuthenticator(accountRepo, wechatRepo, wechatAuthAdapter)
-
-	// 认证服务
-	authService := authDomain.NewAuthenticationService(
-		basicAuthenticator,
-		wechatAuthenticator,
+	authenticator := authService.NewAuthenticator(
+		authService.NewBasicAuthenticator(accountRepo, operationRepo, passwordAdapter),
+		authService.NewWeChatAuthenticator(accountRepo, wechatRepo, wechatAuthAdapter),
 	)
 
 	// 令牌服务
-	domainTokenService := authDomain.NewTokenService(
-		jwtGenerator,
-		tokenStore,
-	) // ========== 应用层 ==========
+	tokenIssuer := tokenService.NewTokenIssuer(jwtGenerator, tokenStore, viper.GetDuration("auth.access_token_ttl"), viper.GetDuration("auth.refresh_token_ttl"))
+	tokenRefresher := tokenService.NewTokenRefresher(jwtGenerator, tokenStore, viper.GetDuration("auth.access_token_ttl"), viper.GetDuration("auth.refresh_token_ttl"))
+	tokenVerifyer := tokenService.NewTokenVerifyer(jwtGenerator, tokenStore)
+
+	// ========== 应用层 ==========
 
 	// 账户管理服务
 	m.RegisterService = account.NewRegisterService(accountRepo, wechatRepo, operationRepo, unitOfWork, userAdapter)
@@ -118,8 +117,8 @@ func (m *AuthModule) Initialize(params ...interface{}) error {
 	m.StatusService = account.NewStatusService(accountRepo)
 
 	// 认证服务
-	m.LoginService = login.NewLoginService(authService, domainTokenService)
-	m.TokenService = token.NewTokenService(domainTokenService)
+	m.LoginService = login.NewLoginService(authenticator, tokenIssuer)
+	m.TokenService = token.NewTokenService(tokenIssuer, tokenRefresher, tokenVerifyer)
 
 	// ========== 接口层 ==========
 
