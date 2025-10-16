@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/account"
+	accountApp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/account"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/adapter"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/login"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/token"
@@ -26,11 +26,11 @@ import (
 // AuthModule 认证模块
 // 负责组装认证相关的所有组件
 type AuthModule struct {
-	// 账户管理服务
-	RegisterService *account.RegisterService
-	EditorService   *account.EditorService
-	QueryService    *account.QueryService
-	StatusService   *account.StatusService
+	// 账户应用服务
+	AccountService          accountApp.AccountApplicationService
+	OperationAccountService accountApp.OperationAccountApplicationService
+	WeChatAccountService    accountApp.WeChatAccountApplicationService
+	LookupService           accountApp.AccountLookupApplicationService
 
 	// 认证服务
 	LoginService *login.LoginService
@@ -110,11 +110,11 @@ func (m *AuthModule) Initialize(params ...interface{}) error {
 
 	// ========== 应用层 ==========
 
-	// 账户管理服务
-	m.RegisterService = account.NewRegisterService(accountRepo, wechatRepo, operationRepo, unitOfWork, userAdapter)
-	m.EditorService = account.NewEditorService(wechatRepo, operationRepo, unitOfWork)
-	m.QueryService = account.NewQueryService(accountRepo, wechatRepo, operationRepo)
-	m.StatusService = account.NewStatusService(accountRepo)
+	// 账户应用服务
+	m.AccountService = accountApp.NewAccountApplicationService(unitOfWork, userAdapter)
+	m.OperationAccountService = accountApp.NewOperationAccountApplicationService(unitOfWork)
+	m.WeChatAccountService = accountApp.NewWeChatAccountApplicationService(unitOfWork)
+	m.LookupService = accountApp.NewAccountLookupApplicationService(unitOfWork)
 
 	// 认证服务
 	m.LoginService = login.NewLoginService(authenticator, tokenIssuer)
@@ -123,10 +123,10 @@ func (m *AuthModule) Initialize(params ...interface{}) error {
 	// ========== 接口层 ==========
 
 	m.AccountHandler = authhandler.NewAccountHandler(
-		m.RegisterService,
-		m.EditorService,
-		m.StatusService,
-		m.QueryService,
+		m.AccountService,
+		m.OperationAccountService,
+		m.WeChatAccountService,
+		m.LookupService,
 	)
 
 	m.AuthHandler = authhandler.NewAuthHandler(

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
 	drivingPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driving"
@@ -14,25 +13,26 @@ import (
 	"gorm.io/gorm"
 )
 
-// EditorService 负责账号相关的编辑能力。
+// EditorService 领域编辑服务
+// 职责：封装账号编辑的业务规则
+// 不包含：事务管理（由应用层负责）
 type EditorService struct {
 	wechat    drivenPort.WeChatRepo
 	operation drivenPort.OperationRepo
-	uow       uow.UnitOfWork
 }
 
 var _ drivingPort.AccountEditor = (*EditorService)(nil)
 
-// NewEditorService 构造编辑服务。
-func NewEditorService(wx drivenPort.WeChatRepo, op drivenPort.OperationRepo, u uow.UnitOfWork) *EditorService {
+// NewEditorService 构造编辑服务
+func NewEditorService(wx drivenPort.WeChatRepo, op drivenPort.OperationRepo) *EditorService {
 	return &EditorService{
 		wechat:    wx,
 		operation: op,
-		uow:       u,
 	}
 }
 
-// UpdateWeChatProfile 更新微信资料。
+// UpdateWeChatProfile 更新微信资料
+// 业务规则：至少提供一个字段，账号必须存在
 func (s *EditorService) UpdateWeChatProfile(ctx context.Context, accountID domain.AccountID, nickname, avatar *string, meta []byte) error {
 	nick, nickSet := normalizeOptionalString(nickname)
 	ava, avaSet := normalizeOptionalString(avatar)
@@ -41,52 +41,46 @@ func (s *EditorService) UpdateWeChatProfile(ctx context.Context, accountID domai
 		return perrors.WithCode(code.ErrInvalidArgument, "no profile fields provided")
 	}
 
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		if tx.WeChats == nil {
-			return perrors.WithCode(code.ErrInternalServerError, "wechat repository not configured")
+	// 验证微信账号存在
+	if _, err := s.wechat.FindByAccountID(ctx, accountID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return perrors.WithCode(code.ErrInvalidArgument, "wechat account for account(%s) not found", accountIDString(accountID))
 		}
+		return perrors.WrapC(err, code.ErrInternalServerError, "failed to find wechat account")
+	}
 
-		if _, err := tx.WeChats.FindByAccountID(ctx, accountID); err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return perrors.WithCode(code.ErrInvalidArgument, "wechat account for account(%s) not found", accountIDString(accountID))
-			}
-			return perrors.WrapC(err, code.ErrInternalServerError, "failed to find wechat account")
-		}
-
-		if err := tx.WeChats.UpdateProfile(ctx, accountID, nick, ava, meta); err != nil {
-			return perrors.WrapC(err, code.ErrInternalServerError, "failed to update wechat profile")
-		}
-		return nil
-	})
+	// 更新资料
+	if err := s.wechat.UpdateProfile(ctx, accountID, nick, ava, meta); err != nil {
+		return perrors.WrapC(err, code.ErrInternalServerError, "failed to update wechat profile")
+	}
+	return nil
 }
 
-// SetWeChatUnionID 设置微信 UnionID。
+// SetWeChatUnionID 设置微信 UnionID
+// 业务规则：unionID不能为空，账号必须存在
 func (s *EditorService) SetWeChatUnionID(ctx context.Context, accountID domain.AccountID, unionID string) error {
 	unionID = strings.TrimSpace(unionID)
 	if unionID == "" {
 		return perrors.WithCode(code.ErrInvalidArgument, "unionId cannot be empty")
 	}
 
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		if tx.WeChats == nil {
-			return perrors.WithCode(code.ErrInternalServerError, "wechat repository not configured")
+	// 验证微信账号存在
+	if _, err := s.wechat.FindByAccountID(ctx, accountID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return perrors.WithCode(code.ErrInvalidArgument, "wechat credential for account(%s) not found", accountIDString(accountID))
 		}
+		return perrors.WrapC(err, code.ErrDatabase, "load wechat credential for account(%s) failed", accountIDString(accountID))
+	}
 
-		if _, err := tx.WeChats.FindByAccountID(ctx, accountID); err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return perrors.WithCode(code.ErrInvalidArgument, "wechat credential for account(%s) not found", accountIDString(accountID))
-			}
-			return perrors.WrapC(err, code.ErrDatabase, "load wechat credential for account(%s) failed", accountIDString(accountID))
-		}
-
-		if err := tx.WeChats.UpdateUnionID(ctx, accountID, unionID); err != nil {
-			return perrors.WrapC(err, code.ErrDatabase, "update unionId for account(%s) failed", accountIDString(accountID))
-		}
-		return nil
-	})
+	// 更新UnionID
+	if err := s.wechat.UpdateUnionID(ctx, accountID, unionID); err != nil {
+		return perrors.WrapC(err, code.ErrDatabase, "update unionId for account(%s) failed", accountIDString(accountID))
+	}
+	return nil
 }
 
-// UpdateOperationCredential 更新运营后台凭证信息。
+// UpdateOperationCredential 更新运营后台凭证信息
+// 业务规则：用户名、密码哈希、算法都不能为空
 func (s *EditorService) UpdateOperationCredential(ctx context.Context, username string, newHash []byte, algo string, params []byte) error {
 	username = strings.TrimSpace(username)
 	if username == "" {
@@ -100,26 +94,23 @@ func (s *EditorService) UpdateOperationCredential(ctx context.Context, username 
 		return perrors.WithCode(code.ErrInvalidArgument, "hash algorithm cannot be empty")
 	}
 
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		if tx.Operation == nil {
-			return perrors.WithCode(code.ErrInternalServerError, "operation repository not configured")
+	// 验证运营账号存在
+	if _, err := s.operation.FindByUsername(ctx, username); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return perrors.WithCode(code.ErrInvalidArgument, "operation credential(%s) not found", username)
 		}
+		return perrors.WrapC(err, code.ErrDatabase, "load operation credential(%s) failed", username)
+	}
 
-		if _, err := tx.Operation.FindByUsername(ctx, username); err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return perrors.WithCode(code.ErrInvalidArgument, "operation credential(%s) not found", username)
-			}
-			return perrors.WrapC(err, code.ErrDatabase, "load operation credential(%s) failed", username)
-		}
-
-		if err := tx.Operation.UpdateHash(ctx, username, newHash, algo, params); err != nil {
-			return perrors.WrapC(err, code.ErrDatabase, "update operation credential(%s) failed", username)
-		}
-		return nil
-	})
+	// 更新密码哈希
+	if err := s.operation.UpdateHash(ctx, username, newHash, algo, params); err != nil {
+		return perrors.WrapC(err, code.ErrDatabase, "update operation credential(%s) failed", username)
+	}
+	return nil
 }
 
-// ChangeOperationUsername 修改运营后台账号用户名。
+// ChangeOperationUsername 修改运营后台账号用户名
+// 业务规则：新旧用户名都不能为空，新用户名不能已存在
 func (s *EditorService) ChangeOperationUsername(ctx context.Context, oldUsername, newUsername string) error {
 	oldUsername = strings.TrimSpace(oldUsername)
 	newUsername = strings.TrimSpace(newUsername)
@@ -130,67 +121,54 @@ func (s *EditorService) ChangeOperationUsername(ctx context.Context, oldUsername
 		return nil
 	}
 
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		if tx.Operation == nil {
-			return perrors.WithCode(code.ErrInternalServerError, "operation repository not configured")
+	// 验证旧账号存在
+	cred, err := s.operation.FindByUsername(ctx, oldUsername)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return perrors.WithCode(code.ErrInvalidArgument, "operation credential(%s) not found", oldUsername)
 		}
+		return perrors.WrapC(err, code.ErrDatabase, "load operation credential(%s) failed", oldUsername)
+	}
 
-		cred, err := tx.Operation.FindByUsername(ctx, oldUsername)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return perrors.WithCode(code.ErrInvalidArgument, "operation credential(%s) not found", oldUsername)
-			}
-			return perrors.WrapC(err, code.ErrDatabase, "load operation credential(%s) failed", oldUsername)
-		}
+	// 检查新用户名是否已存在
+	if _, err := s.operation.FindByUsername(ctx, newUsername); err == nil {
+		return perrors.WithCode(code.ErrInvalidArgument, "operation credential(%s) already exists", newUsername)
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return perrors.WrapC(err, code.ErrDatabase, "check operation credential(%s) failed", newUsername)
+	}
 
-		if _, err := tx.Operation.FindByUsername(ctx, newUsername); err == nil {
-			return perrors.WithCode(code.ErrInvalidArgument, "operation credential(%s) already exists", newUsername)
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return perrors.WrapC(err, code.ErrDatabase, "check operation credential(%s) failed", newUsername)
-		}
+	// 更新用户名
+	if err := s.operation.UpdateUsername(ctx, cred.AccountID, newUsername); err != nil {
+		return perrors.WrapC(err, code.ErrDatabase, "change operation username from %s to %s failed", oldUsername, newUsername)
+	}
 
-		if err := tx.Operation.UpdateUsername(ctx, cred.AccountID, newUsername); err != nil {
-			return perrors.WrapC(err, code.ErrDatabase, "change operation username from %s to %s failed", oldUsername, newUsername)
-		}
-
-		return nil
-	})
+	return nil
 }
 
-// ResetOperationFailures 清零失败次数。
+// ResetOperationFailures 清零失败次数
 func (s *EditorService) ResetOperationFailures(ctx context.Context, username string) error {
 	username = strings.TrimSpace(username)
 	if username == "" {
 		return perrors.WithCode(code.ErrInvalidArgument, "username cannot be empty")
 	}
 
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		if tx.Operation == nil {
-			return perrors.WithCode(code.ErrInternalServerError, "operation repository not configured")
-		}
-		if err := tx.Operation.ResetFailures(ctx, username); err != nil {
-			return perrors.WrapC(err, code.ErrDatabase, "reset failures for %s failed", username)
-		}
-		return nil
-	})
+	if err := s.operation.ResetFailures(ctx, username); err != nil {
+		return perrors.WrapC(err, code.ErrDatabase, "reset failures for %s failed", username)
+	}
+	return nil
 }
 
-// UnlockOperationAccount 解锁账号。
+// UnlockOperationAccount 解锁账号
 func (s *EditorService) UnlockOperationAccount(ctx context.Context, username string) error {
 	username = strings.TrimSpace(username)
 	if username == "" {
 		return perrors.WithCode(code.ErrInvalidArgument, "username cannot be empty")
 	}
 
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		if tx.Operation == nil {
-			return perrors.WithCode(code.ErrInternalServerError, "operation repository not configured")
-		}
-		if err := tx.Operation.Unlock(ctx, username); err != nil {
-			return perrors.WrapC(err, code.ErrDatabase, "unlock credential(%s) failed", username)
-		}
-		return nil
-	})
+	if err := s.operation.Unlock(ctx, username); err != nil {
+		return perrors.WrapC(err, code.ErrDatabase, "unlock credential(%s) failed", username)
+	}
+	return nil
 }
 
 func normalizeOptionalString(input *string) (*string, bool) {
