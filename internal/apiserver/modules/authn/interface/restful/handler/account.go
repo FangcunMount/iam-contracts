@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
+	drivingPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driving"
 	req "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/request"
 	resp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/response"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
@@ -19,18 +19,18 @@ import (
 // AccountHandler exposes RESTful endpoints for account management.
 type AccountHandler struct {
 	*BaseHandler
-	register port.AccountRegisterer
-	editor   port.AccountEditor
-	status   port.AccountStatusUpdater
-	query    port.AccountQueryer
+	register drivingPort.AccountRegisterer
+	editor   drivingPort.AccountEditor
+	status   drivingPort.AccountStatusUpdater
+	query    drivingPort.AccountQueryer
 }
 
 // NewAccountHandler constructs a new handler instance.
 func NewAccountHandler(
-	register port.AccountRegisterer,
-	editor port.AccountEditor,
-	status port.AccountStatusUpdater,
-	query port.AccountQueryer,
+	register drivingPort.AccountRegisterer,
+	editor drivingPort.AccountEditor,
+	status drivingPort.AccountStatusUpdater,
+	query drivingPort.AccountQueryer,
 ) *AccountHandler {
 	return &AccountHandler{
 		BaseHandler: NewBaseHandler(),

@@ -9,7 +9,8 @@ import (
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/adapter"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
+	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
+	drivingPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driving"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
 	"gorm.io/gorm"
@@ -17,20 +18,20 @@ import (
 
 // RegisterService 负责注册账号及其子实体。
 type RegisterService struct {
-	accounts    port.AccountRepo
-	wechat      port.WeChatRepo
-	operation   port.OperationRepo
+	accounts    drivenPort.AccountRepo
+	wechat      drivenPort.WeChatRepo
+	operation   drivenPort.OperationRepo
 	uow         uow.UnitOfWork
 	userAdapter adapter.UserAdapter
 }
 
-var _ port.AccountRegisterer = (*RegisterService)(nil)
+var _ drivingPort.AccountRegisterer = (*RegisterService)(nil)
 
 // NewRegisterService 构造注册服务。
 func NewRegisterService(
-	acc port.AccountRepo,
-	wx port.WeChatRepo,
-	op port.OperationRepo,
+	acc drivenPort.AccountRepo,
+	wx drivenPort.WeChatRepo,
+	op drivenPort.OperationRepo,
 	u uow.UnitOfWork,
 	ua adapter.UserAdapter,
 ) *RegisterService {
@@ -41,6 +42,13 @@ func NewRegisterService(
 		uow:         u,
 		userAdapter: ua,
 	}
+}
+
+// CreateAccount 创建账号（通用方法，根据externalID类型自动选择创建方式）
+func (s *RegisterService) CreateAccount(ctx context.Context, userID domain.UserID, externalID string) (*domain.Account, error) {
+	// 默认创建运营账号
+	account, _, err := s.CreateOperationAccount(ctx, userID, externalID)
+	return account, err
 }
 
 // CreateOperationAccount 为用户创建（或返回已有的）运营后台账号。
@@ -185,7 +193,7 @@ func (s *RegisterService) CreateWeChatAccount(
 
 func ensureAccountWithRepo(
 	ctx context.Context,
-	repo port.AccountRepo,
+	repo drivenPort.AccountRepo,
 	userID domain.UserID,
 	provider domain.Provider,
 	externalID string,
@@ -225,21 +233,21 @@ func ensureAccountWithRepo(
 	return &newAccount, true, nil
 }
 
-func pickAccountRepo(tx uow.TxRepositories, fallback port.AccountRepo) port.AccountRepo {
+func pickAccountRepo(tx uow.TxRepositories, fallback drivenPort.AccountRepo) drivenPort.AccountRepo {
 	if tx.Accounts != nil {
 		return tx.Accounts
 	}
 	return fallback
 }
 
-func pickOperationRepo(tx uow.TxRepositories, fallback port.OperationRepo) port.OperationRepo {
+func pickOperationRepo(tx uow.TxRepositories, fallback drivenPort.OperationRepo) drivenPort.OperationRepo {
 	if tx.Operation != nil {
 		return tx.Operation
 	}
 	return fallback
 }
 
-func pickWeChatRepo(tx uow.TxRepositories, fallback port.WeChatRepo) port.WeChatRepo {
+func pickWeChatRepo(tx uow.TxRepositories, fallback drivenPort.WeChatRepo) drivenPort.WeChatRepo {
 	if tx.WeChats != nil {
 		return tx.WeChats
 	}

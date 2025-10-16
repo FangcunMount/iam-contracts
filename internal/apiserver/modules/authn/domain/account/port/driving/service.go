@@ -1,4 +1,5 @@
-package port
+// Package driving 账号领域驱动端口定义
+package driving
 
 import (
 	"context"
@@ -8,6 +9,8 @@ import (
 
 // AccountRegisterer —— 账号注册服务接口，统一创建 Account + 子实体
 type AccountRegisterer interface {
+	// CreateAccount 创建账号
+	CreateAccount(ctx context.Context, userID domain.UserID, externalID string) (*domain.Account, error)
 	// CreateOperationAccount 创建运营账号
 	CreateOperationAccount(ctx context.Context, userID domain.UserID, externalID string) (*domain.Account, *domain.OperationAccount, error)
 	// CreateWeChatAccount 创建微信相关账号

@@ -6,7 +6,7 @@ import (
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	accountPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
+	accountDrivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
@@ -14,15 +14,15 @@ import (
 
 // WeChatAuthenticator 微信认证器
 type WeChatAuthenticator struct {
-	accountRepo accountPort.AccountRepo   // 账号仓储
-	wechatRepo  accountPort.WeChatRepo    // 微信账号仓储
-	wechatPort  drivenPort.WeChatAuthPort // 微信认证端口
+	accountRepo accountDrivenPort.AccountRepo // 账号仓储
+	wechatRepo  accountDrivenPort.WeChatRepo  // 微信账号仓储
+	wechatPort  drivenPort.WeChatAuthPort     // 微信认证端口
 }
 
 // NewWeChatAuthenticator 创建微信认证器
 func NewWeChatAuthenticator(
-	accountRepo accountPort.AccountRepo,
-	wechatRepo accountPort.WeChatRepo,
+	accountRepo accountDrivenPort.AccountRepo,
+	wechatRepo accountDrivenPort.WeChatRepo,
 	wechatPort drivenPort.WeChatAuthPort,
 ) *WeChatAuthenticator {
 	return &WeChatAuthenticator{

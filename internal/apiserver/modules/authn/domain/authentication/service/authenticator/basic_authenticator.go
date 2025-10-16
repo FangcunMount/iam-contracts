@@ -6,7 +6,7 @@ import (
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	accountPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
+	accountDrivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
@@ -14,15 +14,15 @@ import (
 
 // BasicAuthenticator 基础认证器（用户名密码认证）
 type BasicAuthenticator struct {
-	accountRepo   accountPort.AccountRepo        // 账号仓储
-	operationRepo accountPort.OperationRepo      // 运营账号仓储
-	passwordPort  drivenPort.AccountPasswordPort // 密码端口
+	accountRepo   accountDrivenPort.AccountRepo   // 账号仓储
+	operationRepo accountDrivenPort.OperationRepo // 运营账号仓储
+	passwordPort  drivenPort.AccountPasswordPort  // 密码端口
 }
 
 // NewBasicAuthenticator 创建基础认证器
 func NewBasicAuthenticator(
-	accountRepo accountPort.AccountRepo,
-	operationRepo accountPort.OperationRepo,
+	accountRepo accountDrivenPort.AccountRepo,
+	operationRepo accountDrivenPort.OperationRepo,
 	passwordPort drivenPort.AccountPasswordPort,
 ) *BasicAuthenticator {
 	return &BasicAuthenticator{
