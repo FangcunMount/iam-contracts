@@ -8,22 +8,22 @@ import (
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	accountPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port"
+	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 )
 
 // WeChatAuthenticator 微信认证器
 type WeChatAuthenticator struct {
-	accountRepo accountPort.AccountRepo // 账号仓储
-	wechatRepo  accountPort.WeChatRepo  // 微信账号仓储
-	wechatPort  port.WeChatAuthPort     // 微信认证端口
+	accountRepo accountPort.AccountRepo   // 账号仓储
+	wechatRepo  accountPort.WeChatRepo    // 微信账号仓储
+	wechatPort  drivenPort.WeChatAuthPort // 微信认证端口
 }
 
 // NewWeChatAuthenticator 创建微信认证器
 func NewWeChatAuthenticator(
 	accountRepo accountPort.AccountRepo,
 	wechatRepo accountPort.WeChatRepo,
-	wechatPort port.WeChatAuthPort,
+	wechatPort drivenPort.WeChatAuthPort,
 ) *WeChatAuthenticator {
 	return &WeChatAuthenticator{
 		accountRepo: accountRepo,
