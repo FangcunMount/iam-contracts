@@ -1,0 +1,52 @@
+package token
+
+import (
+	"context"
+
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port"
+	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
+	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+)
+
+// TokenVerifyer 令牌验证器
+type TokenVerifyer struct {
+	tokenGenerator port.TokenGenerator // JWT 生成器
+	tokenStore     port.TokenStore     // 令牌存储（Redis）
+}
+
+// NewTokenVerifyer 创建令牌验证器
+func NewTokenVerifyer(
+	tokenGenerator port.TokenGenerator,
+	tokenStore port.TokenStore,
+) *TokenVerifyer {
+	return &TokenVerifyer{
+		tokenGenerator: tokenGenerator,
+		tokenStore:     tokenStore,
+	}
+}
+
+// VerifyAccessToken 验证访问令牌
+func (s *TokenVerifyer) VerifyAccessToken(ctx context.Context, tokenValue string) (*authentication.TokenClaims, error) {
+	// 解析 JWT
+	claims, err := s.tokenGenerator.ParseAccessToken(tokenValue)
+	if err != nil {
+		return nil, perrors.WrapC(err, code.ErrTokenInvalid, "failed to parse access token")
+	}
+
+	// 检查过期
+	if claims.IsExpired() {
+		return nil, perrors.WithCode(code.ErrExpired, "access token has expired")
+	}
+
+	// 检查黑名单
+	isBlacklisted, err := s.tokenStore.IsBlacklisted(ctx, claims.TokenID)
+	if err != nil {
+		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to check token blacklist")
+	}
+	if isBlacklisted {
+		return nil, perrors.WithCode(code.ErrTokenInvalid, "access token has been revoked")
+	}
+
+	return claims, nil
+}

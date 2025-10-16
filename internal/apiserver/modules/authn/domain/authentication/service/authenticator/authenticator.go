@@ -1,4 +1,4 @@
-package authentication
+package authenticator
 
 import (
 	"context"
@@ -10,14 +10,14 @@ import (
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 )
 
-// AuthenticationService 认证服务（策略模式编排器）
-type AuthenticationService struct {
+// Authenticator 认证服务（策略模式编排器）
+type Authenticator struct {
 	authenticators []port.Authenticator // 认证器列表
 }
 
-// NewAuthenticationService 创建认证服务
-func NewAuthenticationService(authenticators ...port.Authenticator) *AuthenticationService {
-	return &AuthenticationService{
+// NewAuthenticator 创建认证服务
+func NewAuthenticator(authenticators ...port.Authenticator) *Authenticator {
+	return &Authenticator{
 		authenticators: authenticators,
 	}
 }
@@ -25,7 +25,7 @@ func NewAuthenticationService(authenticators ...port.Authenticator) *Authenticat
 // Authenticate 执行认证
 //
 // 根据凭证类型选择合适的认证器执行认证
-func (s *AuthenticationService) Authenticate(ctx context.Context, credential authentication.Credential) (*authentication.Authentication, error) {
+func (s *Authenticator) Authenticate(ctx context.Context, credential authentication.Credential) (*authentication.Authentication, error) {
 	// 验证凭证
 	if err := credential.Validate(); err != nil {
 		return nil, perrors.WrapC(err, code.ErrInvalidArgument, "invalid credential")
@@ -54,6 +54,6 @@ func (s *AuthenticationService) Authenticate(ctx context.Context, credential aut
 }
 
 // RegisterAuthenticator 注册认证器（用于动态扩展）
-func (s *AuthenticationService) RegisterAuthenticator(authenticator port.Authenticator) {
+func (s *Authenticator) RegisterAuthenticator(authenticator port.Authenticator) {
 	s.authenticators = append(s.authenticators, authenticator)
 }

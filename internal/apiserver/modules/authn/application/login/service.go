@@ -7,24 +7,25 @@ import (
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	authService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service"
+	authService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/authenticator"
+	tokenService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/token"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 )
 
 // LoginService 登录应用服务
 type LoginService struct {
-	authService  *authService.AuthenticationService // 认证服务
-	tokenService *authService.TokenService          // 令牌服务
+	authenticator *authService.Authenticator // 认证器（策略模式编排器）
+	tokenIssuer   *tokenService.TokenIssuer  // 令牌颁发者
 }
 
 // NewLoginService 创建登录应用服务
 func NewLoginService(
-	authService *authService.AuthenticationService,
-	tokenService *authService.TokenService,
+	authenticator *authService.Authenticator,
+	tokenIssuer *tokenService.TokenIssuer,
 ) *LoginService {
 	return &LoginService{
-		authService:  authService,
-		tokenService: tokenService,
+		authenticator: authenticator,
+		tokenIssuer:   tokenIssuer,
 	}
 }
 
@@ -54,7 +55,7 @@ func (s *LoginService) LoginWithPassword(ctx context.Context, req *LoginWithPass
 	credential := authentication.NewUsernamePasswordCredential(req.Username, req.Password)
 
 	// 2. 执行认证
-	auth, err := s.authService.Authenticate(ctx, credential)
+	auth, err := s.authenticator.Authenticate(ctx, credential)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +69,7 @@ func (s *LoginService) LoginWithPassword(ctx context.Context, req *LoginWithPass
 	}
 
 	// 4. 颁发令牌
-	tokenPair, err := s.tokenService.IssueToken(ctx, auth)
+	tokenPair, err := s.tokenIssuer.IssueToken(ctx, auth)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +109,7 @@ func (s *LoginService) LoginWithWeChat(ctx context.Context, req *LoginWithWeChat
 	credential := authentication.NewWeChatCodeCredential(req.Code, req.AppID)
 
 	// 2. 执行认证
-	auth, err := s.authService.Authenticate(ctx, credential)
+	auth, err := s.authenticator.Authenticate(ctx, credential)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +123,7 @@ func (s *LoginService) LoginWithWeChat(ctx context.Context, req *LoginWithWeChat
 	}
 
 	// 4. 颁发令牌
-	tokenPair, err := s.tokenService.IssueToken(ctx, auth)
+	tokenPair, err := s.tokenIssuer.IssueToken(ctx, auth)
 	if err != nil {
 		return nil, err
 	}

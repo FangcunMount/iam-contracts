@@ -7,19 +7,27 @@ import (
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
 	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 
-	authService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service"
+	tokenService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/token"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 )
 
 // TokenService 令牌应用服务
 type TokenService struct {
-	tokenService *authService.TokenService // 令牌领域服务
+	tokenIssuer    *tokenService.TokenIssuer    // 令牌颁发者
+	tokenRefresher *tokenService.TokenRefresher // 令牌刷新器
+	tokenVerifyer  *tokenService.TokenVerifyer  // 令牌验证器
 }
 
 // NewTokenService 创建令牌应用服务
-func NewTokenService(tokenService *authService.TokenService) *TokenService {
+func NewTokenService(
+	tokenIssuer *tokenService.TokenIssuer,
+	tokenRefresher *tokenService.TokenRefresher,
+	tokenVerifyer *tokenService.TokenVerifyer,
+) *TokenService {
 	return &TokenService{
-		tokenService: tokenService,
+		tokenIssuer:    tokenIssuer,
+		tokenRefresher: tokenRefresher,
+		tokenVerifyer:  tokenVerifyer,
 	}
 }
 
@@ -43,7 +51,7 @@ func (s *TokenService) VerifyToken(ctx context.Context, req *VerifyTokenRequest)
 	}
 
 	// 验证令牌
-	claims, err := s.tokenService.VerifyAccessToken(ctx, req.AccessToken)
+	claims, err := s.tokenVerifyer.VerifyAccessToken(ctx, req.AccessToken)
 	if err != nil {
 		// 如果是令牌无效或过期，返回 valid=false 而不是错误
 		if perrors.IsCode(err, code.ErrTokenInvalid) || perrors.IsCode(err, code.ErrExpired) {
@@ -83,7 +91,7 @@ func (s *TokenService) RefreshToken(ctx context.Context, req *RefreshTokenReques
 	}
 
 	// 刷新令牌
-	tokenPair, err := s.tokenService.RefreshToken(ctx, req.RefreshToken)
+	tokenPair, err := s.tokenRefresher.RefreshToken(ctx, req.RefreshToken)
 	if err != nil {
 		return nil, err
 	}
@@ -110,13 +118,13 @@ func (s *TokenService) Logout(ctx context.Context, req *LogoutRequest) error {
 	}
 
 	// 撤销访问令牌（加入黑名单）
-	if err := s.tokenService.RevokeToken(ctx, req.AccessToken); err != nil {
+	if err := s.tokenIssuer.RevokeToken(ctx, req.AccessToken); err != nil {
 		return err
 	}
 
 	// 如果提供了刷新令牌，也撤销它
 	if req.RefreshToken != "" {
-		if err := s.tokenService.RevokeRefreshToken(ctx, req.RefreshToken); err != nil {
+		if err := s.tokenRefresher.RevokeRefreshToken(ctx, req.RefreshToken); err != nil {
 			// 刷新令牌撤销失败不影响主流程，记录日志即可
 			// TODO: 添加日志
 		}
@@ -144,7 +152,7 @@ func (s *TokenService) GetUserInfo(ctx context.Context, req *GetUserInfoRequest)
 	}
 
 	// 验证并解析令牌
-	claims, err := s.tokenService.VerifyAccessToken(ctx, req.AccessToken)
+	claims, err := s.tokenVerifyer.VerifyAccessToken(ctx, req.AccessToken)
 	if err != nil {
 		return nil, err
 	}
