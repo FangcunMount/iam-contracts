@@ -5,7 +5,7 @@ import (
 	"time"
 
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
+	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 	"gorm.io/gorm"
@@ -18,10 +18,10 @@ type WeChatRepository struct {
 	db     *gorm.DB
 }
 
-var _ port.WeChatRepo = (*WeChatRepository)(nil)
+var _ drivenPort.WeChatRepo = (*WeChatRepository)(nil)
 
-// NewWeChatRepository 创建微信账号仓储。
-func NewWeChatRepository(db *gorm.DB) port.WeChatRepo {
+// NewWeChatRepository 构造。
+func NewWeChatRepository(db *gorm.DB) drivenPort.WeChatRepo {
 	return &WeChatRepository{
 		BaseRepository: mysql.NewBaseRepository[*WeChatAccountPO](db),
 		mapper:         NewMapper(),

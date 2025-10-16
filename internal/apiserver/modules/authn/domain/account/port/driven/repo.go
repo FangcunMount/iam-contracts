@@ -1,4 +1,5 @@
-package port
+// Package driven 账号领域被驱动端口定义
+package driven
 
 import (
 	"context"

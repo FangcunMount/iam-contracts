@@ -5,7 +5,7 @@ import (
 	"time"
 
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
+	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 	"gorm.io/gorm"
@@ -18,10 +18,10 @@ type AccountRepository struct {
 	db     *gorm.DB
 }
 
-var _ port.AccountRepo = (*AccountRepository)(nil)
+var _ drivenPort.AccountRepo = (*AccountRepository)(nil)
 
-// NewAccountRepository 创建账号仓储实现。
-func NewAccountRepository(db *gorm.DB) port.AccountRepo {
+// NewAccountRepository 构造。
+func NewAccountRepository(db *gorm.DB) drivenPort.AccountRepo {
 	return &AccountRepository{
 		BaseRepository: mysql.NewBaseRepository[*AccountPO](db),
 		mapper:         NewMapper(),

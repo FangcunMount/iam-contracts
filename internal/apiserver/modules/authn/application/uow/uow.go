@@ -5,7 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
+	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
 	acctrepo "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/database/tx"
@@ -13,9 +13,9 @@ import (
 
 // TxRepositories 聚合事务中可使用的仓储集合。
 type TxRepositories struct {
-	Accounts  port.AccountRepo
-	Operation port.OperationRepo
-	WeChats   port.WeChatRepo
+	Accounts  drivenPort.AccountRepo
+	Operation drivenPort.OperationRepo
+	WeChats   drivenPort.WeChatRepo
 }
 
 // UnitOfWork 提供业务事务边界。

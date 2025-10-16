@@ -5,20 +5,20 @@ import (
 	"context"
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	accountPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
+	accountDrivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 )
 
 // PasswordAdapter 账号密码适配器
 //
-// 实现 authentication.port.AccountPasswordPort 接口
+// 实现 authentication.port.driven.AccountPasswordPort 接口
 // 从 MySQL 数据库查询账号的密码哈希
 type PasswordAdapter struct {
-	operationRepo accountPort.OperationRepo
+	operationRepo accountDrivenPort.OperationRepo
 }
 
-// NewPasswordAdapter 创建密码适配器
-func NewPasswordAdapter(operationRepo accountPort.OperationRepo) *PasswordAdapter {
+// NewPasswordAdapter 构造密码适配器。
+func NewPasswordAdapter(operationRepo accountDrivenPort.OperationRepo) *PasswordAdapter {
 	return &PasswordAdapter{
 		operationRepo: operationRepo,
 	}

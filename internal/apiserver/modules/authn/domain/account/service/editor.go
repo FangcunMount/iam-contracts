@@ -1,4 +1,4 @@
-package account
+package service
 
 import (
 	"context"
@@ -42,20 +42,19 @@ func (s *EditorService) UpdateWeChatProfile(ctx context.Context, accountID domai
 	}
 
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		wxRepo := pickWeChatRepo(tx, s.wechat)
-		if wxRepo == nil {
+		if tx.WeChats == nil {
 			return perrors.WithCode(code.ErrInternalServerError, "wechat repository not configured")
 		}
 
-		if _, err := wxRepo.FindByAccountID(ctx, accountID); err != nil {
+		if _, err := tx.WeChats.FindByAccountID(ctx, accountID); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return perrors.WithCode(code.ErrInvalidArgument, "wechat credential for account(%s) not found", accountIDString(accountID))
+				return perrors.WithCode(code.ErrInvalidArgument, "wechat account for account(%s) not found", accountIDString(accountID))
 			}
-			return perrors.WrapC(err, code.ErrDatabase, "load wechat credential for account(%s) failed", accountIDString(accountID))
+			return perrors.WrapC(err, code.ErrInternalServerError, "failed to find wechat account")
 		}
 
-		if err := wxRepo.UpdateProfile(ctx, accountID, nick, ava, meta); err != nil {
-			return perrors.WrapC(err, code.ErrDatabase, "update wechat profile for account(%s) failed", accountIDString(accountID))
+		if err := tx.WeChats.UpdateProfile(ctx, accountID, nick, ava, meta); err != nil {
+			return perrors.WrapC(err, code.ErrInternalServerError, "failed to update wechat profile")
 		}
 		return nil
 	})
@@ -69,19 +68,18 @@ func (s *EditorService) SetWeChatUnionID(ctx context.Context, accountID domain.A
 	}
 
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		wxRepo := pickWeChatRepo(tx, s.wechat)
-		if wxRepo == nil {
+		if tx.WeChats == nil {
 			return perrors.WithCode(code.ErrInternalServerError, "wechat repository not configured")
 		}
 
-		if _, err := wxRepo.FindByAccountID(ctx, accountID); err != nil {
+		if _, err := tx.WeChats.FindByAccountID(ctx, accountID); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return perrors.WithCode(code.ErrInvalidArgument, "wechat credential for account(%s) not found", accountIDString(accountID))
 			}
 			return perrors.WrapC(err, code.ErrDatabase, "load wechat credential for account(%s) failed", accountIDString(accountID))
 		}
 
-		if err := wxRepo.UpdateUnionID(ctx, accountID, unionID); err != nil {
+		if err := tx.WeChats.UpdateUnionID(ctx, accountID, unionID); err != nil {
 			return perrors.WrapC(err, code.ErrDatabase, "update unionId for account(%s) failed", accountIDString(accountID))
 		}
 		return nil
@@ -103,19 +101,18 @@ func (s *EditorService) UpdateOperationCredential(ctx context.Context, username 
 	}
 
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		opRepo := pickOperationRepo(tx, s.operation)
-		if opRepo == nil {
+		if tx.Operation == nil {
 			return perrors.WithCode(code.ErrInternalServerError, "operation repository not configured")
 		}
 
-		if _, err := opRepo.FindByUsername(ctx, username); err != nil {
+		if _, err := tx.Operation.FindByUsername(ctx, username); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return perrors.WithCode(code.ErrInvalidArgument, "operation credential(%s) not found", username)
 			}
 			return perrors.WrapC(err, code.ErrDatabase, "load operation credential(%s) failed", username)
 		}
 
-		if err := opRepo.UpdateHash(ctx, username, newHash, algo, params); err != nil {
+		if err := tx.Operation.UpdateHash(ctx, username, newHash, algo, params); err != nil {
 			return perrors.WrapC(err, code.ErrDatabase, "update operation credential(%s) failed", username)
 		}
 		return nil
@@ -134,12 +131,11 @@ func (s *EditorService) ChangeOperationUsername(ctx context.Context, oldUsername
 	}
 
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		opRepo := pickOperationRepo(tx, s.operation)
-		if opRepo == nil {
+		if tx.Operation == nil {
 			return perrors.WithCode(code.ErrInternalServerError, "operation repository not configured")
 		}
 
-		cred, err := opRepo.FindByUsername(ctx, oldUsername)
+		cred, err := tx.Operation.FindByUsername(ctx, oldUsername)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return perrors.WithCode(code.ErrInvalidArgument, "operation credential(%s) not found", oldUsername)
@@ -147,13 +143,13 @@ func (s *EditorService) ChangeOperationUsername(ctx context.Context, oldUsername
 			return perrors.WrapC(err, code.ErrDatabase, "load operation credential(%s) failed", oldUsername)
 		}
 
-		if _, err := opRepo.FindByUsername(ctx, newUsername); err == nil {
+		if _, err := tx.Operation.FindByUsername(ctx, newUsername); err == nil {
 			return perrors.WithCode(code.ErrInvalidArgument, "operation credential(%s) already exists", newUsername)
 		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return perrors.WrapC(err, code.ErrDatabase, "check operation credential(%s) failed", newUsername)
 		}
 
-		if err := opRepo.UpdateUsername(ctx, cred.AccountID, newUsername); err != nil {
+		if err := tx.Operation.UpdateUsername(ctx, cred.AccountID, newUsername); err != nil {
 			return perrors.WrapC(err, code.ErrDatabase, "change operation username from %s to %s failed", oldUsername, newUsername)
 		}
 
@@ -169,11 +165,10 @@ func (s *EditorService) ResetOperationFailures(ctx context.Context, username str
 	}
 
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		opRepo := pickOperationRepo(tx, s.operation)
-		if opRepo == nil {
+		if tx.Operation == nil {
 			return perrors.WithCode(code.ErrInternalServerError, "operation repository not configured")
 		}
-		if err := opRepo.ResetFailures(ctx, username); err != nil {
+		if err := tx.Operation.ResetFailures(ctx, username); err != nil {
 			return perrors.WrapC(err, code.ErrDatabase, "reset failures for %s failed", username)
 		}
 		return nil
@@ -188,11 +183,10 @@ func (s *EditorService) UnlockOperationAccount(ctx context.Context, username str
 	}
 
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		opRepo := pickOperationRepo(tx, s.operation)
-		if opRepo == nil {
+		if tx.Operation == nil {
 			return perrors.WithCode(code.ErrInternalServerError, "operation repository not configured")
 		}
-		if err := opRepo.Unlock(ctx, username); err != nil {
+		if err := tx.Operation.Unlock(ctx, username); err != nil {
 			return perrors.WrapC(err, code.ErrDatabase, "unlock credential(%s) failed", username)
 		}
 		return nil
