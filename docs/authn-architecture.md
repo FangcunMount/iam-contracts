@@ -58,7 +58,7 @@ internal/apiserver/modules/authn/
 │   │   └── service.go              # 登录服务（编排认证器+令牌签发）
 │   ├── token/                      # Token 管理应用服务
 │   │   └── service.go              # Token 签发/刷新/撤销
-│   ├── jwks/                       # ❷ 新增：应用服务
+│   ├── jwks/                       # JWKS 发布应用服务
 │   │   └── query.go                # PublicJWKSApp（产出 /.well-known/jwks.json）
 │   ├── adapter/                    # 适配器（跨模块调用）
 │   │   ├── user_adapter.go         # UC 模块适配器接口
@@ -104,7 +104,7 @@ internal/apiserver/modules/authn/
 │   │   │           └── driving/            # 驱动端口
 │   │   │               └── [reserved]      # 预留
 │   │   
-│   └── jwks/                         # ❶ 新增：密钥发布子域（只管公钥&发布元数据）
+│   └── jwks/                         # JWKS 发布子域（只管公钥&发布元数据）
 │       ├── key.go                    # Key/PublicJWK/KeyStatus 等实体
 │       ├── vo.go                     # JWKS/CacheTag/RotationPolicy(预留)
 │       └── port/
