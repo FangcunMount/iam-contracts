@@ -408,6 +408,94 @@ sequenceDiagram
 2. **AuthN 模块（Authentication）**：JWT 签发、JWKS 发布、多端登录适配
 3. **AuthZ 模块（Authorization）**：RBAC 决策、权限缓存、委派授权
 
+### 部署架构
+
+```mermaid
+graph TB
+    subgraph "客户端层"
+        MP[微信小程序]
+        WEB[Web 管理后台]
+        API_CLIENT[第三方 API 客户端]
+    end
+
+    subgraph "网关层"
+        NGINX[Nginx<br/>负载均衡/SSL终结]
+        KONG[Kong Gateway<br/>API 网关<br/>限流/认证]
+    end
+
+    subgraph "IAM 服务集群"
+        IAM1[IAM Server 1<br/>:8080]
+        IAM2[IAM Server 2<br/>:8080]
+        IAM3[IAM Server 3<br/>:8080]
+    end
+
+    subgraph "业务服务集群"
+        COLLECTION[测评服务集群]
+        REPORT[报告服务集群]
+        HOSPITAL[医疗服务集群]
+    end
+
+    subgraph "数据存储层"
+        MYSQL_M[(MySQL Master<br/>主库-写)]
+        MYSQL_S1[(MySQL Slave 1<br/>从库-读)]
+        MYSQL_S2[(MySQL Slave 2<br/>从库-读)]
+        
+        REDIS_M[(Redis Master<br/>缓存/会话)]
+        REDIS_S[(Redis Slave<br/>备份)]
+    end
+
+    subgraph "基础设施"
+        JWKS[JWKS 公钥服务<br/>/.well-known/jwks.json]
+        KMS[密钥管理<br/>JWT 私钥轮换]
+        MQ[消息队列<br/>Redis Stream]
+        MONITOR[监控<br/>Prometheus/Grafana]
+        LOG[日志<br/>ELK Stack]
+    end
+
+    MP --> NGINX
+    WEB --> NGINX
+    API_CLIENT --> KONG
+    
+    NGINX --> IAM1
+    NGINX --> IAM2
+    NGINX --> IAM3
+    KONG --> IAM1
+    KONG --> IAM2
+    
+    IAM1 --> MYSQL_M
+    IAM2 --> MYSQL_S1
+    IAM3 --> MYSQL_S2
+    
+    IAM1 --> REDIS_M
+    IAM2 --> REDIS_M
+    IAM3 --> REDIS_M
+    
+    REDIS_M -.复制.-> REDIS_S
+    MYSQL_M -.复制.-> MYSQL_S1
+    MYSQL_M -.复制.-> MYSQL_S2
+    
+    IAM1 --> JWKS
+    IAM1 --> KMS
+    IAM1 --> MQ
+    
+    COLLECTION -.验证 JWT.-> JWKS
+    REPORT -.验证 JWT.-> JWKS
+    HOSPITAL -.验证 JWT.-> JWKS
+    
+    COLLECTION -.授权查询.-> IAM1
+    REPORT -.授权查询.-> IAM2
+    
+    IAM1 --> MONITOR
+    IAM1 --> LOG
+    
+    style IAM1 fill:#e1f5ff
+    style IAM2 fill:#e1f5ff
+    style IAM3 fill:#e1f5ff
+    style MYSQL_M fill:#ffe1e1
+    style REDIS_M fill:#fff4e1
+    style JWKS fill:#e1ffe1
+```
+
 详细架构设计请参阅 [架构文档](#-文档导航)。
 
 ---
