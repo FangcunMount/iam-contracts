@@ -1,4 +1,4 @@
-# IAM Platform · 企业级身份与访问管理平台
+# IAM Contracts · 企业级身份与访问管理平台
 
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -6,7 +6,7 @@
 
 > 🔐 为多租户 SaaS 平台提供统一的身份认证、细粒度授权、角色管理和委派代填能力
 
-**IAM Platform** 是一个基于六边形架构、领域驱动设计（DDD）和 CQRS 模式构建的企业级身份与访问管理系统，专为 ToB/ToG SaaS 场景设计，支持多租户隔离、多端登录、灵活的 RBAC 授权和复杂的代填关系管理。
+**IAM Contracts** 是一个基于六边形架构、领域驱动设计（DDD）和 CQRS 模式构建的企业级身份与访问管理系统，专为 ToB/ToG SaaS 场景设计，支持多租户隔离、多端登录、灵活的 RBAC 授权和复杂的代填关系管理。
 
 ---
 
@@ -136,13 +136,13 @@ make docker-build   # 构建 Docker 镜像
 
 ```mermaid
 C4Context
-  title IAM Platform 系统上下文图
+  title IAM Contracts 系统上下文图
 
   Person(wechat_user, "微信用户", "小程序端用户：测评者/被测者/监护人")
   Person(web_user, "Web 用户", "PC/Web 后台：管理员/审核员")
   Person(admin, "系统管理员", "租户管理/角色配置")
 
-  System(iam, "IAM Platform", "身份认证·授权·用户管理·RBAC")
+  System(iam, "IAM Contracts", "身份认证·授权·用户管理·RBAC")
   
   System_Ext(wechat, "微信平台", "微信登录/UnionID")
   System_Ext(collection, "测评服务", "问卷/量表核心业务")
@@ -164,7 +164,7 @@ C4Context
 
 ### 整体架构（六边形架构 + DDD + CQRS）
 
-IAM Platform 采用 **六边形架构（Hexagonal Architecture）** + **领域驱动设计（DDD）** + **CQRS** 模式：
+IAM Contracts 采用 **六边形架构（Hexagonal Architecture）** + **领域驱动设计（DDD）** + **CQRS** 模式：
 
 ```mermaid
 graph TB
@@ -327,7 +327,7 @@ type UserQueryApplicationService interface {
 sequenceDiagram
     autonumber
     participant MP as 微信小程序
-    participant IAM as IAM Platform
+    participant IAM as IAM Contracts
     participant WX as 微信API
     participant DB as MySQL
     participant Redis as Redis
@@ -363,7 +363,7 @@ sequenceDiagram
     autonumber
     participant Client as 客户端
     participant BizSvc as 业务服务<br/>(collection-server)
-    participant IAM as IAM Platform
+    participant IAM as IAM Contracts
     participant Cache as Redis Cache
 
     Note over Client,BizSvc: 业务请求 + 授权检查
