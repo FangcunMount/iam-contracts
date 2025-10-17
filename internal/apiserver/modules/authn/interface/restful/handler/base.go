@@ -31,7 +31,7 @@ func (h *BaseHandler) Created(c *gin.Context, data interface{}) {
 
 // NoContent 输出 204 响应。
 func (h *BaseHandler) NoContent(c *gin.Context) {
-	c.Status(http.StatusNoContent)
+	c.AbortWithStatus(http.StatusNoContent)
 }
 
 // Error 输出错误响应。

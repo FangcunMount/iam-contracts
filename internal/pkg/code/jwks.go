@@ -6,64 +6,64 @@ import (
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
 )
 
-// JWKS 密钥管理相关错误 (100300+)
+// JWKS 密钥管理相关错误 (102xxx)
 const (
 	// ErrInvalidKid - 400: Invalid kid: kid cannot be empty.
-	ErrInvalidKid = 100301
+	ErrInvalidKid = 102001
 
 	// ErrInvalidJWK - 400: Invalid JWK: kty cannot be empty.
-	ErrInvalidJWK = 100302
+	ErrInvalidJWK = 102002
 
 	// ErrInvalidJWKUse - 400: Invalid JWK: use must be 'sig'.
-	ErrInvalidJWKUse = 100303
+	ErrInvalidJWKUse = 102003
 
 	// ErrInvalidJWKAlg - 400: Invalid JWK: alg cannot be empty.
-	ErrInvalidJWKAlg = 100304
+	ErrInvalidJWKAlg = 102004
 
 	// ErrKidMismatch - 400: Kid mismatch: key.Kid and JWK.Kid must be equal.
-	ErrKidMismatch = 100305
+	ErrKidMismatch = 102005
 
 	// ErrUnsupportedKty - 400: Unsupported key type.
-	ErrUnsupportedKty = 100306
+	ErrUnsupportedKty = 102006
 
 	// ErrMissingRSAParams - 400: Missing RSA parameters: n and e are required.
-	ErrMissingRSAParams = 100307
+	ErrMissingRSAParams = 102007
 
 	// ErrMissingECParams - 400: Missing EC parameters: crv, x, y are required.
-	ErrMissingECParams = 100308
+	ErrMissingECParams = 102008
 
 	// ErrMissingOKPParams - 400: Missing OKP parameters: crv, x are required.
-	ErrMissingOKPParams = 100309
+	ErrMissingOKPParams = 102009
 
 	// ErrInvalidStateTransition - 400: Invalid key state transition.
-	ErrInvalidStateTransition = 100310
+	ErrInvalidStateTransition = 102010
 
 	// ErrInvalidTimeRange - 400: Invalid time range: NotAfter must be after NotBefore.
-	ErrInvalidTimeRange = 100311
+	ErrInvalidTimeRange = 102011
 
 	// ErrEmptyJWKS - 400: JWKS cannot be empty.
-	ErrEmptyJWKS = 100312
+	ErrEmptyJWKS = 102012
 
 	// ErrInvalidRotationInterval - 400: Rotation interval must be positive.
-	ErrInvalidRotationInterval = 100313
+	ErrInvalidRotationInterval = 102013
 
 	// ErrInvalidGracePeriod - 400: Grace period must be positive.
-	ErrInvalidGracePeriod = 100314
+	ErrInvalidGracePeriod = 102014
 
 	// ErrInvalidMaxKeys - 400: Max keys must be at least 2.
-	ErrInvalidMaxKeys = 100315
+	ErrInvalidMaxKeys = 102015
 
 	// ErrGracePeriodTooLong - 400: Grace period must be shorter than rotation interval.
-	ErrGracePeriodTooLong = 100316
+	ErrGracePeriodTooLong = 102016
 
 	// ErrKeyNotFound - 404: Key not found.
-	ErrKeyNotFound = 100320
+	ErrKeyNotFound = 102020
 
 	// ErrNoActiveKey - 404: No active key available.
-	ErrNoActiveKey = 100321
+	ErrNoActiveKey = 102021
 
 	// ErrKeyAlreadyExists - 409: Key with this kid already exists.
-	ErrKeyAlreadyExists = 100322
+	ErrKeyAlreadyExists = 102022
 )
 
 // nolint: gochecknoinits

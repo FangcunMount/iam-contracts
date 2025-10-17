@@ -1,5 +1,9 @@
 package code
 
+import (
+	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+)
+
 // Common: basic errors (1xxxxx).
 const (
 	// ErrSuccess - 200: OK.
@@ -83,3 +87,65 @@ const (
 	// ErrInvalidCredentials - 401: Invalid credentials.
 	ErrInvalidCredentials
 )
+
+func init() {
+	registerBase(ErrSuccess, 200, "OK")
+	registerBase(ErrUnknown, 500, "Internal server error")
+	registerBase(ErrBind, 400, "Error occurred while binding the request body to the struct")
+	registerBase(ErrValidation, 400, "Validation failed")
+	registerBase(ErrPageNotFound, 404, "Page not found")
+	registerBase(ErrInvalidArgument, 400, "Invalid argument")
+	registerBase(ErrInvalidMessage, 400, "Invalid message")
+	registerBase(ErrDatabase, 500, "Database error")
+	registerBase(ErrEncrypt, 401, "Error occurred while encrypting the user password")
+	registerBase(ErrSignatureInvalid, 401, "Signature is invalid")
+	registerBase(ErrExpired, 401, "Token expired")
+	registerBase(ErrInvalidAuthHeader, 401, "Invalid authorization header")
+	registerBase(ErrMissingHeader, 401, "The `Authorization` header was empty")
+	registerBase(ErrPasswordIncorrect, 401, "Password was incorrect")
+	registerBase(ErrPermissionDenied, 403, "Permission denied")
+	registerBase(ErrEncodingFailed, 500, "Encoding failed due to an error with the data")
+	registerBase(ErrDecodingFailed, 500, "Decoding failed due to an error with the data")
+	registerBase(ErrInvalidJSON, 500, "Data is not valid JSON")
+	registerBase(ErrEncodingJSON, 500, "JSON data could not be encoded")
+	registerBase(ErrDecodingJSON, 500, "JSON data could not be decoded")
+	registerBase(ErrInvalidYaml, 500, "Data is not valid Yaml")
+	registerBase(ErrEncodingYaml, 500, "Yaml data could not be encoded")
+	registerBase(ErrDecodingYaml, 500, "Yaml data could not be decoded")
+	registerBase(ErrModuleInitializationFailed, 500, "Module initialization failed")
+	registerBase(ErrModuleNotFound, 404, "Module not found")
+	registerBase(ErrInternalServerError, 500, "Internal server error")
+	registerBase(ErrUnauthenticated, 401, "Authentication failed")
+	registerBase(ErrUnauthorized, 403, "Authorization failed")
+	registerBase(ErrInvalidCredentials, 401, "Invalid credentials")
+}
+
+func registerBase(code int, httpStatus int, message string) {
+	errors.MustRegister(&baseCoder{
+		code:       code,
+		httpStatus: httpStatus,
+		message:    message,
+	})
+}
+
+type baseCoder struct {
+	code       int
+	httpStatus int
+	message    string
+}
+
+func (c *baseCoder) Code() int {
+	return c.code
+}
+
+func (c *baseCoder) String() string {
+	return c.message
+}
+
+func (c *baseCoder) Reference() string {
+	return ""
+}
+
+func (c *baseCoder) HTTPStatus() int {
+	return c.httpStatus
+}
