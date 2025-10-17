@@ -1,6 +1,8 @@
 package assembler
 
 import (
+	"context"
+
 	"github.com/go-redis/redis/v7"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
@@ -12,12 +14,14 @@ import (
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/token"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
 	acctDriven "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
 	jwksDriven "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/crypto"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
 	mysqlacct "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
 	jwksMysql "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/jwks"
 	redistoken "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/redis/token"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/scheduler"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/wechat"
 	authhandler "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/handler"
 	mysqluser "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
@@ -46,11 +50,20 @@ type AuthnModule struct {
 	// JWKS 应用服务
 	KeyManagementApp *jwksApp.KeyManagementAppService
 	KeyPublishApp    *jwksApp.KeyPublishAppService
+	KeyRotationApp   *jwksApp.KeyRotationAppService
 
 	// HTTP 处理器
 	AccountHandler *authhandler.AccountHandler
 	AuthHandler    *authhandler.AuthHandler
 	JWKSHandler    *authhandler.JWKSHandler
+
+	// 调度器
+	RotationScheduler interface {
+		Start(ctx context.Context) error
+		Stop() error
+		IsRunning() bool
+		TriggerNow(ctx context.Context) error
+	}
 }
 
 // NewAuthnModule 创建认证模块
@@ -89,6 +102,9 @@ func (m *AuthnModule) Initialize(params ...interface{}) error {
 	if err := m.initializeInterface(); err != nil {
 		return err
 	}
+
+	// 初始化调度器（可选）
+	m.initializeSchedulers()
 
 	return nil
 }
@@ -213,6 +229,7 @@ type domainComponents struct {
 	// JWKS 服务
 	keyManager    *jwksService.KeyManager
 	keySetBuilder *jwksService.KeySetBuilder
+	keyRotation   *jwksService.KeyRotation
 }
 
 // initializeDomain 初始化领域层
@@ -252,6 +269,16 @@ func (m *AuthnModule) initializeDomain(infra *infrastructureComponents) (*domain
 	domain.keyManager = jwksService.NewKeyManager(infra.keyRepo, infra.keyGenerator)
 	domain.keySetBuilder = jwksService.NewKeySetBuilder(infra.keyRepo)
 
+	// 密钥轮换服务
+	rotationPolicy := jwks.DefaultRotationPolicy()
+	logger := log.New(log.NewOptions())
+	domain.keyRotation = jwksService.NewKeyRotation(
+		infra.keyRepo,
+		infra.keyGenerator,
+		rotationPolicy,
+		logger,
+	)
+
 	return domain, nil
 }
 
@@ -271,6 +298,7 @@ func (m *AuthnModule) initializeApplication(infra *infrastructureComponents, dom
 	logger := log.New(log.NewOptions())
 	m.KeyManagementApp = jwksApp.NewKeyManagementAppService(domain.keyManager, logger)
 	m.KeyPublishApp = jwksApp.NewKeyPublishAppService(domain.keySetBuilder, logger)
+	m.KeyRotationApp = jwksApp.NewKeyRotationAppService(domain.keyRotation, logger)
 
 	return nil
 }
@@ -298,6 +326,76 @@ func (m *AuthnModule) initializeInterface() error {
 	return nil
 }
 
+// initializeSchedulers 初始化调度器
+func (m *AuthnModule) initializeSchedulers() {
+	logger := log.New(log.NewOptions())
+
+	// ========================================
+	// 使用 Cron 调度器（推荐生产环境）
+	// ========================================
+	// 优势：资源节省 95.8%，精确时间控制
+	cronSpec := "0 2 * * *" // 每天凌晨2点检查一次
+
+	m.RotationScheduler = scheduler.NewKeyRotationCronScheduler(
+		m.KeyRotationApp,
+		cronSpec,
+		logger,
+	)
+
+	log.Infow("Key rotation scheduler initialized",
+		"type", "cron",
+		"cronSpec", cronSpec,
+		"description", "每天凌晨2点检查密钥轮换",
+	)
+
+	// ========================================
+	// Ticker 调度器（已弃用，保留供参考）
+	// ========================================
+	// 如需切换回 Ticker 方式，取消以下注释并注释掉上面的 Cron 配置：
+	//
+	// checkInterval := 1 * time.Hour
+	// m.RotationScheduler = scheduler.NewKeyRotationScheduler(
+	// 	m.KeyRotationApp,
+	// 	checkInterval,
+	// 	logger,
+	// )
+	// log.Infow("Key rotation scheduler initialized",
+	// 	"type", "ticker",
+	// 	"checkInterval", checkInterval,
+	// )
+
+	_ = logger // 避免未使用的变量警告
+}
+
+// StartSchedulers 启动调度器
+func (m *AuthnModule) StartSchedulers(ctx context.Context) error {
+	if m.RotationScheduler == nil {
+		log.Info("Key rotation scheduler not initialized, skipping")
+		return nil
+	}
+
+	if err := m.RotationScheduler.Start(ctx); err != nil {
+		return errors.WithCode(code.ErrUnknown, "failed to start rotation scheduler: %v", err)
+	}
+
+	log.Info("All schedulers started successfully")
+	return nil
+}
+
+// StopSchedulers 停止调度器
+func (m *AuthnModule) StopSchedulers() error {
+	if m.RotationScheduler == nil {
+		return nil
+	}
+
+	if err := m.RotationScheduler.Stop(); err != nil {
+		return errors.WithCode(code.ErrUnknown, "failed to stop rotation scheduler: %v", err)
+	}
+
+	log.Info("All schedulers stopped successfully")
+	return nil
+}
+
 // CheckHealth 检查模块健康状态
 func (m *AuthnModule) CheckHealth() error {
 	return nil
@@ -305,6 +403,10 @@ func (m *AuthnModule) CheckHealth() error {
 
 // Cleanup 清理模块资源
 func (m *AuthnModule) Cleanup() error {
+	// 停止所有调度器
+	if err := m.StopSchedulers(); err != nil {
+		log.Warnw("Failed to stop schedulers", "error", err)
+	}
 	return nil
 }
 
