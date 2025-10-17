@@ -18,8 +18,8 @@ type Container struct {
 	redisClient *redis.Client
 
 	// 业务模块
-	AuthModule *assembler.AuthModule
-	UserModule *assembler.UserModule
+	AuthnModule *assembler.AuthnModule
+	UserModule  *assembler.UserModule
 
 	// 容器状态
 	initialized bool
@@ -57,11 +57,11 @@ func (c *Container) Initialize() error {
 
 // initAuthModule 初始化认证模块
 func (c *Container) initAuthModule() error {
-	authModule := assembler.NewAuthModule()
+	authModule := assembler.NewAuthnModule()
 	if err := authModule.Initialize(c.mysqlDB, c.redisClient); err != nil {
 		return fmt.Errorf("failed to initialize auth module: %w", err)
 	}
-	c.AuthModule = authModule
+	c.AuthnModule = authModule
 	return nil
 }
 
@@ -125,8 +125,8 @@ func (c *Container) PrintStatus() {
 	}
 
 	// 模块状态
-	fmt.Printf("   • Auth Module: ")
-	if c.AuthModule != nil {
+	fmt.Printf("   • Authn Module: ")
+	if c.AuthnModule != nil {
 		fmt.Printf("✅\n")
 	} else {
 		fmt.Printf("❌\n")

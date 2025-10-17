@@ -40,9 +40,9 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 
 	// 创建新的认证中间件
 	var authMiddleware *authnMiddleware.JWTAuthMiddleware
-	if r.container.AuthModule != nil && r.container.AuthModule.TokenService != nil {
+	if r.container.AuthnModule != nil && r.container.AuthnModule.TokenService != nil {
 		authMiddleware = authnMiddleware.NewJWTAuthMiddleware(
-			r.container.AuthModule.TokenService,
+			r.container.AuthnModule.TokenService,
 		)
 	}
 
@@ -62,8 +62,8 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 
 	// Authn 模块（公开端点）
 	authnhttp.Provide(authnhttp.Dependencies{
-		AuthHandler:    r.container.AuthModule.AuthHandler,
-		AccountHandler: r.container.AuthModule.AccountHandler,
+		AuthHandler:    r.container.AuthnModule.AuthHandler,
+		AccountHandler: r.container.AuthnModule.AccountHandler,
 	})
 	authzhttp.Provide(authzhttp.Dependencies{})
 
