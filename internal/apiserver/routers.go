@@ -64,6 +64,7 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 	authnhttp.Provide(authnhttp.Dependencies{
 		AuthHandler:    r.container.AuthnModule.AuthHandler,
 		AccountHandler: r.container.AuthnModule.AccountHandler,
+		JWKSHandler:    r.container.AuthnModule.JWKSHandler,
 	})
 	authzhttp.Provide(authzhttp.Dependencies{})
 

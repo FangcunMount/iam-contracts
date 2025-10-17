@@ -16,6 +16,20 @@ const (
 	KeyRetired                      // 已下线，不发布
 )
 
+// String 返回状态的字符串表示
+func (s KeyStatus) String() string {
+	switch s {
+	case KeyActive:
+		return "active"
+	case KeyGrace:
+		return "grace"
+	case KeyRetired:
+		return "retired"
+	default:
+		return "unknown"
+	}
+}
+
 // Key 密钥实体（聚合根）
 type Key struct {
 	Kid       string
