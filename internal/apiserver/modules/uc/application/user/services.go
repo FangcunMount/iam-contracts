@@ -8,14 +8,10 @@ import (
 
 // ============= 应用服务接口（Driving Ports）=============
 
-// UserApplicationService 用户应用服务 - 基本管理
+// UserApplicationService 用户应用服务 - 基本管理（命令）
 type UserApplicationService interface {
 	// Register 注册新用户
 	Register(ctx context.Context, dto RegisterUserDTO) (*UserResult, error)
-	// GetByID 根据 ID 查询用户
-	GetByID(ctx context.Context, userID string) (*UserResult, error)
-	// GetByPhone 根据手机号查询用户
-	GetByPhone(ctx context.Context, phone string) (*UserResult, error)
 }
 
 // UserProfileApplicationService 用户资料应用服务
@@ -36,6 +32,14 @@ type UserStatusApplicationService interface {
 	Deactivate(ctx context.Context, userID string) error
 	// Block 封禁用户
 	Block(ctx context.Context, userID string) error
+}
+
+// UserQueryApplicationService 用户查询应用服务（只读）
+type UserQueryApplicationService interface {
+	// GetByID 根据 ID 查询用户
+	GetByID(ctx context.Context, userID string) (*UserResult, error)
+	// GetByPhone 根据手机号查询用户
+	GetByPhone(ctx context.Context, phone string) (*UserResult, error)
 }
 
 // ============= DTOs =============

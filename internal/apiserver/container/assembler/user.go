@@ -38,31 +38,44 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 	// 事务
 	uow := appuow.NewUnitOfWork(db)
 
-	// 用户应用服务
+	// 用户应用服务（命令）
 	userAppSrv := appuser.NewUserApplicationService(uow)
 	userProfileAppSrv := appuser.NewUserProfileApplicationService(uow)
 
-	// 儿童应用服务
+	// 用户查询服务
+	userQuerySrv := appuser.NewUserQueryApplicationService(uow)
+
+	// 儿童应用服务（命令）
 	childAppSrv := appchild.NewChildApplicationService(uow)
 	childProfileAppSrv := appchild.NewChildProfileApplicationService(uow)
 
+	// 儿童查询服务
+	childQuerySrv := appchild.NewChildQueryApplicationService(uow)
+
 	// 监护关系应用服务
 	guardAppSrv := appguard.NewGuardianshipApplicationService(uow)
+
+	// 监护关系查询服务
+	guardQuerySrv := appguard.NewGuardianshipQueryApplicationService(uow)
 
 	// 初始化 handler 层
 	m.UserHandler = handler.NewUserHandler(
 		userAppSrv,
 		userProfileAppSrv,
+		userQuerySrv,
 	)
 
 	m.ChildHandler = handler.NewChildHandler(
 		childAppSrv,
 		childProfileAppSrv,
 		guardAppSrv,
+		guardQuerySrv,
+		childQuerySrv,
 	)
 
 	m.GuardianshipHandler = handler.NewGuardianshipHandler(
 		guardAppSrv,
+		guardQuerySrv,
 	)
 
 	// TODO: IdentityGRPCService 需要查询服务，暂时跳过

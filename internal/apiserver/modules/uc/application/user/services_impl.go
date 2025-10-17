@@ -10,6 +10,12 @@ import (
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
 )
 
+// ============= 应用服务实现 =============
+
+// ======================================
+// ==== UserApplicationService 实现 =====
+// ======================================
+
 // userApplicationService 用户应用服务实现
 type userApplicationService struct {
 	uow uow.UnitOfWork
@@ -56,58 +62,9 @@ func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserD
 	return result, err
 }
 
-// GetByID 根据 ID 查询用户
-func (s *userApplicationService) GetByID(ctx context.Context, userID string) (*UserResult, error) {
-	var result *UserResult
-
-	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		// 创建领域服务
-		queryService := domainservice.NewQueryService(tx.Users)
-
-		// 转换 ID
-		id, err := parseUserID(userID)
-		if err != nil {
-			return err
-		}
-
-		// 调用领域服务查询
-		user, err := queryService.FindByID(ctx, id)
-		if err != nil {
-			return err
-		}
-
-		// 转换为 DTO
-		result = toUserResult(user)
-		return nil
-	})
-
-	return result, err
-}
-
-// GetByPhone 根据手机号查询用户
-func (s *userApplicationService) GetByPhone(ctx context.Context, phone string) (*UserResult, error) {
-	var result *UserResult
-
-	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		// 创建领域服务
-		queryService := domainservice.NewQueryService(tx.Users)
-
-		// 转换手机号
-		phoneVO := meta.NewPhone(phone)
-
-		// 调用领域服务查询
-		user, err := queryService.FindByPhone(ctx, phoneVO)
-		if err != nil {
-			return err
-		}
-
-		// 转换为 DTO
-		result = toUserResult(user)
-		return nil
-	})
-
-	return result, err
-}
+// =============================================
+// ==== UserProfileApplicationService 实现 =====
+// =============================================
 
 // userProfileApplicationService 用户资料应用服务实现
 type userProfileApplicationService struct {
@@ -195,6 +152,10 @@ func (s *userProfileApplicationService) UpdateIDCard(ctx context.Context, userID
 	})
 }
 
+// ===========================================
+// ==== UserStatusApplicationService 实现 =====
+// ===========================================
+
 // userStatusApplicationService 用户状态应用服务实现
 type userStatusApplicationService struct {
 	uow uow.UnitOfWork
@@ -272,6 +233,66 @@ func (s *userStatusApplicationService) Block(ctx context.Context, userID string)
 		// 持久化修改
 		return tx.Users.Update(ctx, user)
 	})
+}
+
+// ===========================================
+// ==== UserQueryApplicationService 实现 =====
+// ===========================================
+
+// userQueryApplicationService 用户查询应用服务实现
+type userQueryApplicationService struct {
+	uow uow.UnitOfWork
+}
+
+// NewUserQueryApplicationService 创建用户查询应用服务
+func NewUserQueryApplicationService(uow uow.UnitOfWork) UserQueryApplicationService {
+	return &userQueryApplicationService{uow: uow}
+}
+
+// GetByID 根据 ID 查询用户
+func (s *userQueryApplicationService) GetByID(ctx context.Context, userID string) (*UserResult, error) {
+	var result *UserResult
+
+	// 查询操作也通过 UoW，但不需要写操作，可以直接使用只读事务
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		queryService := domainservice.NewQueryService(tx.Users)
+
+		userIDObj, err := parseUserID(userID)
+		if err != nil {
+			return err
+		}
+
+		user, err := queryService.FindByID(ctx, userIDObj)
+		if err != nil {
+			return err
+		}
+
+		result = toUserResult(user)
+		return nil
+	})
+
+	return result, err
+}
+
+// GetByPhone 根据手机号查询用户
+func (s *userQueryApplicationService) GetByPhone(ctx context.Context, phone string) (*UserResult, error) {
+	var result *UserResult
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		queryService := domainservice.NewQueryService(tx.Users)
+
+		phoneObj := meta.NewPhone(phone)
+
+		user, err := queryService.FindByPhone(ctx, phoneObj)
+		if err != nil {
+			return err
+		}
+
+		result = toUserResult(user)
+		return nil
+	})
+
+	return result, err
 }
 
 // ============= DTO 转换辅助函数 =============

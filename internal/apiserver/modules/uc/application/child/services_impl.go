@@ -12,6 +12,10 @@ import (
 
 // ============= 应用服务实现 =============
 
+// ======================================
+// ==== ChildApplicationService 实现 =====
+// ======================================
+
 // childApplicationService 儿童应用服务实现
 type childApplicationService struct {
 	uow uow.UnitOfWork
@@ -80,84 +84,9 @@ func (s *childApplicationService) Register(ctx context.Context, dto RegisterChil
 	return result, err
 }
 
-// GetByID 根据 ID 查询儿童
-func (s *childApplicationService) GetByID(ctx context.Context, childID string) (*ChildResult, error) {
-	var result *ChildResult
-
-	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		// 创建领域服务
-		queryService := domainservice.NewQueryService(tx.Children)
-
-		// 转换 ID
-		id, err := parseChildID(childID)
-		if err != nil {
-			return err
-		}
-
-		// 调用领域服务查询
-		child, err := queryService.FindByID(ctx, id)
-		if err != nil {
-			return err
-		}
-
-		// 转换为 DTO
-		result = toChildResult(child)
-		return nil
-	})
-
-	return result, err
-}
-
-// GetByIDCard 根据身份证查询儿童
-func (s *childApplicationService) GetByIDCard(ctx context.Context, idCard string) (*ChildResult, error) {
-	var result *ChildResult
-
-	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		// 创建领域服务
-		queryService := domainservice.NewQueryService(tx.Children)
-
-		// 转换身份证
-		idCardVO := meta.NewIDCard("", idCard)
-
-		// 调用领域服务查询
-		child, err := queryService.FindByIDCard(ctx, idCardVO)
-		if err != nil {
-			return err
-		}
-
-		// 转换为 DTO
-		result = toChildResult(child)
-		return nil
-	})
-
-	return result, err
-}
-
-// FindSimilar 查找相似儿童（姓名、性别、生日）
-func (s *childApplicationService) FindSimilar(ctx context.Context, name string, gender string, birthday string) ([]*ChildResult, error) {
-	var results []*ChildResult
-
-	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		// 创建领域服务
-		queryService := domainservice.NewQueryService(tx.Children)
-
-		// 转换值对象
-		genderVO := parseGender(gender)
-		birthdayVO := meta.NewBirthday(birthday)
-
-		// 调用领域服务查询
-		children, err := queryService.FindSimilar(ctx, name, genderVO, birthdayVO)
-		if err != nil {
-			return err
-		}
-
-		// 转换为 DTO
-		results = toChildResults(children)
-		return nil
-	})
-
-	return results, err
-}
+// ==============================================
+// ==== ChildProfileApplicationService 实现 =====
+// ==============================================
 
 // childProfileApplicationService 儿童资料应用服务实现
 type childProfileApplicationService struct {
@@ -271,6 +200,87 @@ func (s *childProfileApplicationService) UpdateHeightWeight(ctx context.Context,
 		// 持久化修改
 		return tx.Children.Update(ctx, child)
 	})
+}
+
+// ============================================
+// ==== ChildQueryApplicationService 实现 =====
+// ============================================
+
+// childQueryApplicationService 儿童查询应用服务实现
+type childQueryApplicationService struct {
+	uow uow.UnitOfWork
+}
+
+// NewChildQueryApplicationService 创建儿童查询应用服务
+func NewChildQueryApplicationService(uow uow.UnitOfWork) ChildQueryApplicationService {
+	return &childQueryApplicationService{uow: uow}
+}
+
+// GetByID 根据 ID 查询儿童
+func (s *childQueryApplicationService) GetByID(ctx context.Context, childID string) (*ChildResult, error) {
+	var result *ChildResult
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		queryService := domainservice.NewQueryService(tx.Children)
+
+		childIDObj, err := parseChildID(childID)
+		if err != nil {
+			return err
+		}
+
+		child, err := queryService.FindByID(ctx, childIDObj)
+		if err != nil {
+			return err
+		}
+
+		result = toChildResult(child)
+		return nil
+	})
+
+	return result, err
+}
+
+// GetByIDCard 根据身份证查询儿童
+func (s *childQueryApplicationService) GetByIDCard(ctx context.Context, idCard string) (*ChildResult, error) {
+	var result *ChildResult
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		queryService := domainservice.NewQueryService(tx.Children)
+
+		idCardObj := meta.NewIDCard("", idCard)
+
+		child, err := queryService.FindByIDCard(ctx, idCardObj)
+		if err != nil {
+			return err
+		}
+
+		result = toChildResult(child)
+		return nil
+	})
+
+	return result, err
+}
+
+// FindSimilar 查找相似儿童（姓名、性别、生日）
+func (s *childQueryApplicationService) FindSimilar(ctx context.Context, name string, gender string, birthday string) ([]*ChildResult, error) {
+	var results []*ChildResult
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		queryService := domainservice.NewQueryService(tx.Children)
+
+		genderObj := parseGender(gender)
+		birthdayObj := meta.NewBirthday(birthday)
+
+		children, err := queryService.FindSimilar(ctx, name, genderObj, birthdayObj)
+		if err != nil {
+			return err
+		}
+
+		results = toChildResults(children)
+		return nil
+	})
+
+	return results, err
 }
 
 // ============= DTO 转换辅助函数 =============

@@ -6,16 +6,10 @@ import (
 
 // ============= 应用服务接口（Driving Ports）=============
 
-// ChildApplicationService 儿童应用服务 - 基本管理
+// ChildApplicationService 儿童应用服务 - 基本管理（命令）
 type ChildApplicationService interface {
 	// Register 注册新儿童档案
 	Register(ctx context.Context, dto RegisterChildDTO) (*ChildResult, error)
-	// GetByID 根据 ID 查询儿童
-	GetByID(ctx context.Context, childID string) (*ChildResult, error)
-	// GetByIDCard 根据身份证查询儿童
-	GetByIDCard(ctx context.Context, idCard string) (*ChildResult, error)
-	// FindSimilar 查找相似儿童（姓名、性别、生日）
-	FindSimilar(ctx context.Context, name string, gender string, birthday string) ([]*ChildResult, error)
 }
 
 // ChildProfileApplicationService 儿童资料应用服务
@@ -28,6 +22,16 @@ type ChildProfileApplicationService interface {
 	UpdateProfile(ctx context.Context, dto UpdateChildProfileDTO) error
 	// UpdateHeightWeight 更新身高体重
 	UpdateHeightWeight(ctx context.Context, dto UpdateHeightWeightDTO) error
+}
+
+// ChildQueryApplicationService 儿童查询应用服务（只读）
+type ChildQueryApplicationService interface {
+	// GetByID 根据 ID 查询儿童
+	GetByID(ctx context.Context, childID string) (*ChildResult, error)
+	// GetByIDCard 根据身份证查询儿童
+	GetByIDCard(ctx context.Context, idCard string) (*ChildResult, error)
+	// FindSimilar 查找相似儿童（姓名、性别、生日）
+	FindSimilar(ctx context.Context, name string, gender string, birthday string) ([]*ChildResult, error)
 }
 
 // ============= DTOs =============
