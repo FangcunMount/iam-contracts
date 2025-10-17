@@ -53,6 +53,9 @@ func (s *LoginService) LoginWithPassword(ctx context.Context, req *LoginWithPass
 
 	// 1. 创建用户名密码凭证
 	credential := authentication.NewUsernamePasswordCredential(req.Username, req.Password)
+	if !s.authenticator.Supports(credential) {
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "unsupported credential type: %s", credential.Type())
+	}
 
 	// 2. 执行认证
 	auth, err := s.authenticator.Authenticate(ctx, credential)
@@ -107,6 +110,9 @@ func (s *LoginService) LoginWithWeChat(ctx context.Context, req *LoginWithWeChat
 
 	// 1. 创建微信凭证
 	credential := authentication.NewWeChatCodeCredential(req.Code, req.AppID)
+	if !s.authenticator.Supports(credential) {
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "unsupported credential type: %s", credential.Type())
+	}
 
 	// 2. 执行认证
 	auth, err := s.authenticator.Authenticate(ctx, credential)

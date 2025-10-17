@@ -15,6 +15,9 @@ type Authenticator struct {
 	authenticators []drivingPort.Authenticator // 认证器列表
 }
 
+// 确保 Authenticator 实现了 drivingPort.Authenticator 接口
+var _ drivingPort.Authenticator = (*Authenticator)(nil)
+
 // NewAuthenticator 创建认证服务
 func NewAuthenticator(authenticators ...drivingPort.Authenticator) *Authenticator {
 	return &Authenticator{
@@ -22,8 +25,17 @@ func NewAuthenticator(authenticators ...drivingPort.Authenticator) *Authenticato
 	}
 }
 
+// Supports 判断是否支持该凭证类型
+func (s *Authenticator) Supports(credential authentication.Credential) bool {
+	for _, authenticator := range s.authenticators {
+		if authenticator.Supports(credential) {
+			return true
+		}
+	}
+	return false
+}
+
 // Authenticate 执行认证
-//
 // 根据凭证类型选择合适的认证器执行认证
 func (s *Authenticator) Authenticate(ctx context.Context, credential authentication.Credential) (*authentication.Authentication, error) {
 	// 验证凭证
