@@ -1,6 +1,7 @@
 package errors
 
 import (
+	stdErrors "errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -108,16 +109,16 @@ func ParseCoder(err error) Coder {
 		return nil
 	}
 
-	if v, ok := err.(*withCode); ok {
+	// 尝试从错误链中查找 *withCode
+	var v *withCode
+	if stdErrors.As(err, &v) {
 		if coder, ok := codes[v.code]; ok {
 			return coder
 		}
 	}
 
 	return unknownCoder
-}
-
-// IsCode reports whether any error in err's chain contains the given error code.
+} // IsCode reports whether any error in err's chain contains the given error code.
 func IsCode(err error, code int) bool {
 	if v, ok := err.(*withCode); ok {
 		if v.code == code {

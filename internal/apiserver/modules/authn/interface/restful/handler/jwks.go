@@ -58,7 +58,7 @@ func (h *JWKSHandler) GetJWKS(c *gin.Context) {
 	// 检查客户端缓存
 	clientETag := c.GetHeader("If-None-Match")
 	if clientETag != "" && clientETag == result.ETag {
-		c.Status(http.StatusNotModified)
+		c.AbortWithStatus(http.StatusNotModified)
 		return
 	}
 

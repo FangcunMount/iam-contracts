@@ -412,7 +412,7 @@ func TestCleanupExpiredKeys(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, float64(3), response["deleted_count"])
+		assert.Equal(t, float64(3), response["deletedCount"])
 
 		mockMgmt.AssertExpectations(t)
 	})
