@@ -1,267 +1,572 @@
-# iam-contracts
+# IAM Platform · 企业级身份与访问管理平台
 
-IAM（Identity & Access Management），是 User Service + Auth Service + AuthZ Service 的“对外契约”（OpenAPI/Proto、资源-动作表、错误码、JWKS 规范等）
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Architecture](https://img.shields.io/badge/Architecture-Hexagonal%20%2B%20DDD%20%2B%20CQRS-brightgreen)](docs/architecture-overview.md)
 
-## 整体架构
+> 🔐 为多租户 SaaS 平台提供统一的身份认证、细粒度授权、角色管理和委派代填能力
 
-### 全局上下文（C4-Context）
+**IAM Platform** 是一个基于六边形架构、领域驱动设计（DDD）和 CQRS 模式构建的企业级身份与访问管理系统，专为 ToB/ToG SaaS 场景设计，支持多租户隔离、多端登录、灵活的 RBAC 授权和复杂的代填关系管理。
 
-```mermaid
-flowchart LR
-  classDef svc fill:#eef,stroke:#446,stroke-width:1px;
-  classDef biz fill:#fefee0,stroke:#b9a,stroke-width:1px;
-  classDef infra fill:#f8f8f8,stroke:#999,stroke-width:1px;
-  classDef c fill:#fff,stroke:#666,stroke-width:1px;
+---
 
-  subgraph Clients[Clients]
-    A1["WeChat 小程序"]:::c
-    A2["运营后台 Web"]:::c
-    A3["第三方应用"]:::c
-  end
+## 📋 目录
 
-  subgraph IAM["IAM 平台 / Monorepo 运行时边界"]
-    US["User Service\nUser / Account / ActorLink / Profile"]:::svc
-    AS["Auth Service\n登录 / JWT / Refresh / JWKS"]:::svc
-    PDP["AuthZ Service\nRBAC + 关系授权判定"]:::svc
-  end
+- [核心特性](#-核心特性)
+- [快速开始](#-快速开始)
+- [架构设计](#-架构设计)
+- [项目结构](#-项目结构)
+- [技术栈](#-技术栈)
+- [文档导航](#-文档导航)
+- [开发指南](#-开发指南)
+- [贡献指南](#-贡献指南)
+- [许可证](#-许可证)
 
-  subgraph Biz["业务域服务"]
-    B1["collection-server\n量表测评"]:::biz
-    B2["hospital-server\n互联网医院"]:::biz
-    B3["training-server\n训练中心"]:::biz
-  end
+---
 
-  subgraph Infra["共享基础设施"]
-    MQ["Event Bus\nRedis Stream / Kafka"]:::infra
-    KMS["KMS\n密钥管理"]:::infra
-    JWKS["JWKS 公钥集"]:::infra
-    RDB["MySQL"]:::infra
-    RED["Redis"]:::infra
-    O11y["日志 / 指标 / 链路"]:::infra
-  end
+## 🚀 核心特性
 
-  %% 客户端登录到 AS
-  A1 -->|WeChat code / OAuth2+PKCE| AS
-  A2 -->|OAuth2+PKCE| AS
-  A3 -->|OAuth2 授权码 / 客户端凭据| AS
-  AS -->|Access / Refresh JWT| A1
-  AS -->|JWKS 发布| JWKS
+### 统一认证（Authentication）
 
-  %% 业务服务校验&鉴权
-  B1 -->|Bearer JWT| AS
-  B2 -->|Bearer JWT| AS
-  B3 -->|Bearer JWT| AS
+- **多端支持**：微信小程序、企业微信、Web、PC 客户端
+- **多账户绑定**：支持微信 UnionID/OpenID、手机号、邮箱、CA 证书、本地密码
+- **JWT + JWKS**：标准 OAuth 2.0/OIDC 协议，支持密钥轮换和公钥发布
+- **令牌管理**：Access Token、Refresh Token、黑名单机制
 
-  B1 -->|鉴权请求| PDP
-  B2 -->|鉴权请求| PDP
-  B3 -->|鉴权请求| PDP
-  PDP -->|关系授权查询| US
+### 灵活授权（Authorization）
 
-  %% 存储与密钥
-  US --- RDB
-  PDP --- RDB
-  AS --- RDB
-  AS --- RED
-  PDP --- RED
-  AS --- KMS
-  AS --- JWKS
+- **RBAC 授权**：基于角色的权限控制，支持资源和操作级细粒度权限
+- **作用域隔离**：支持 `system`、`tenant`、`org`、`project`、`questionnaire` 等多级作用域
+- **委派代填**：支持监护人代未成年人、医生代患者、教师代学生等复杂业务场景
+- **CQRS 架构**：命令与查询分离，查询性能优化，写操作事务一致性保证
 
-  %% 事件
-  US == 发布事件 ==> MQ
-  PDP == 订阅失效事件 ==> MQ
+### 多租户管理
+
+- **租户隔离**：数据和权限按租户完全隔离
+- **组织结构**：支持层级部门、医院科室、学校班级等多种组织形式
+- **租户配置**：每个租户可独立配置认证方式、权限策略
+
+### 集成友好
+
+- **HTTP/gRPC API**：提供 RESTful 和 gRPC 双协议支持
+- **JWKS 端点**：业务服务可自行验签 JWT，无需每次调用 IAM
+- **中间件 SDK**：提供 Go/Java/Node.js 认证授权中间件
+
+---
+
+## 🏁 快速开始
+
+### 前置条件
+
+- **Go**: 1.21 或更高版本
+- **MySQL**: 8.0+
+- **Redis**: 7.0+
+- **Docker** (可选，用于本地开发环境)
+
+### 本地开发
+
+#### 1. 克隆仓库
+
+```bash
+git clone https://github.com/fangcun-mount/iam-contracts.git
+cd iam-contracts
 ```
 
-### 模型服务设计（核心数据/关系）
+#### 2. 启动基础设施（使用 Docker Compose）
+
+```bash
+cd build/docker/infra
+docker-compose up -d
+```
+
+这将启动 MySQL 和 Redis 服务。
+
+#### 3. 配置环境变量
+
+```bash
+cp configs/env/config.env.example configs/env/config.env
+# 编辑 config.env 填入数据库连接信息、微信 AppID/Secret 等
+```
+
+#### 4. 运行数据库迁移
+
+```bash
+make migrate-up
+```
+
+#### 5. 生成 JWT 密钥对
+
+```bash
+cd scripts/cert
+./generate-dev-cert.sh
+```
+
+#### 6. 启动 API Server
+
+```bash
+make run
+# 或使用开发脚本
+./scripts/dev.sh
+```
+
+#### 7. 验证服务
+
+```bash
+curl http://localhost:8080/healthz
+# 输出: {"status":"ok"}
+```
+
+### 使用 Makefile
+
+项目提供了常用的 Makefile 命令：
+
+```bash
+make help           # 查看所有可用命令
+make build          # 编译二进制文件
+make test           # 运行单元测试
+make lint           # 代码静态检查
+make docker-build   # 构建 Docker 镜像
+```
+
+---
+
+## 🏛 架构设计
+
+### 系统上下文（C4 Context）
 
 ```mermaid
+C4Context
+  title IAM Platform 系统上下文图
 
+  Person(wechat_user, "微信用户", "小程序端用户：测评者/被测者/监护人")
+  Person(web_user, "Web 用户", "PC/Web 后台：管理员/审核员")
+  Person(admin, "系统管理员", "租户管理/角色配置")
+
+  System(iam, "IAM Platform", "身份认证·授权·用户管理·RBAC")
+  
+  System_Ext(wechat, "微信平台", "微信登录/UnionID")
+  System_Ext(collection, "测评服务", "问卷/量表核心业务")
+  System_Ext(report, "报告服务", "报告生成与分发")
+  System_Ext(hospital, "医疗服务", "互联网医院业务")
+
+  Rel(wechat_user, iam, "登录、绑定账户、设置代填关系", "HTTPS/JWT")
+  Rel(web_user, iam, "用户管理、角色分配", "HTTPS/JWT")
+  Rel(admin, iam, "租户配置、权限管理", "HTTPS/JWT")
+  
+  Rel(iam, wechat, "获取 OpenID/UnionID", "HTTPS")
+  
+  Rel(collection, iam, "验证 JWT、查询权限/代填关系", "gRPC/JWKS")
+  Rel(report, iam, "验证用户身份、检查权限", "gRPC/JWKS")
+  Rel(hospital, iam, "患者身份验证、医生授权", "gRPC/JWKS")
+
+  UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+```
+
+### 整体架构（六边形架构 + DDD + CQRS）
+
+IAM Platform 采用 **六边形架构（Hexagonal Architecture）** + **领域驱动设计（DDD）** + **CQRS** 模式：
+
+```mermaid
+graph TB
+    subgraph "Interface Layer 接口层"
+        REST[RESTful API<br/>Gin Router]
+        GRPC[gRPC API<br/>Protocol Buffers]
+        EVENT[Event Consumer<br/>Redis Stream]
+    end
+
+    subgraph "Application Layer 应用层"
+        subgraph "CQRS 分离"
+            CMD[Command Services<br/>命令服务<br/>- Register<br/>- Update<br/>- Delete]
+            QUERY[Query Services<br/>查询服务<br/>- GetByID<br/>- List<br/>- Search]
+        end
+        UOW[Unit of Work<br/>工作单元]
+    end
+
+    subgraph "Domain Layer 领域层"
+        AGG[Aggregates<br/>聚合根<br/>User/Role/Tenant]
+        ENTITY[Entities<br/>实体<br/>Account/ActorLink]
+        VO[Value Objects<br/>值对象<br/>UserID/Email]
+        DSVC[Domain Services<br/>领域服务]
+        REPO_IF[Repository Interfaces<br/>仓储接口]
+    end
+
+    subgraph "Infrastructure Layer 基础设施层"
+        REPO_IMPL[Repository Impl<br/>MySQL/GORM]
+        CACHE[Cache<br/>Redis]
+        WECHAT[WeChat SDK<br/>第三方登录]
+        JWT[JWT/JWKS<br/>令牌管理]
+        LOG[Logging<br/>Zap]
+    end
+
+    REST --> CMD
+    REST --> QUERY
+    GRPC --> CMD
+    GRPC --> QUERY
+    EVENT --> CMD
+    
+    CMD --> UOW
+    QUERY --> REPO_IF
+    
+    UOW --> AGG
+    CMD --> DSVC
+    QUERY --> DSVC
+    
+    AGG --> ENTITY
+    AGG --> VO
+    DSVC --> REPO_IF
+    
+    REPO_IF -.实现.-> REPO_IMPL
+    REPO_IF -.实现.-> CACHE
+    
+    REPO_IMPL --> CACHE
+    CMD --> WECHAT
+    CMD --> JWT
+
+    style CMD fill:#e1f5ff
+    style QUERY fill:#fff4e1
+    style AGG fill:#f0e1ff
+    style REPO_IMPL fill:#e1ffe1
+```
+
+### 核心领域模型
+
+```mermaid
 classDiagram
-  class User {
-    +id: UUID
-    +status: int
-    +nickname: string
-    +avatar: string
-    +created_at: datetime
-    +updated_at: datetime
-  }
+    class User {
+        +UUID id
+        +string nickname
+        +string avatar
+        +int status
+        +datetime created_at
+        --领域行为--
+        +BindAccount(account)
+        +AddActorLink(link)
+        +AssignRole(role, scope)
+    }
 
-  class Account {
-    +id: bigint
-    +user_id: UUID
-    +provider: string  // wechat/qwechat/esign/local
-    +external_id: string // unionid/openid/uid
-    +meta_json: json
-    +created_at: datetime
-  }
+    class Account {
+        +bigint id
+        +UUID user_id
+        +string provider
+        +string external_id
+        +bool is_primary
+    }
 
-  class ActorLink {
-    +id: bigint
-    +user_id: UUID
-    +actor_type: string   // testee/patient/student/doctor/teacher
-    +actor_id: string
-    +scope_type: string   // system/org/project/questionnaire
-    +scope_id: string
-    +relation: string     // self/parent/guardian/doctor/...
-    +can_read: bool
-    +can_write: bool
-    +valid_from: datetime
-    +valid_to: datetime?
-    +granted_by: UUID?
-  }
+    class ActorLink {
+        +bigint id
+        +UUID user_id
+        +string actor_type
+        +string actor_id
+        +string scope_type
+        +string scope_id
+        +string relation
+        +bool can_read
+        +bool can_write
+        +datetime valid_from
+        +datetime valid_to
+        --领域行为--
+        +IsValid() bool
+        +HasPermission(action) bool
+    }
 
-  class PersonProfile {
-    +id: UUID
-    +legal_name: string
-    +gender: tinyint
-    +dob: date
-    +id_type: string
-    +id_no_enc: bytes     // 字段级加密
-    +id_no_hash: bytes    // 检索/唯一约束
-    +created_at: datetime
-    +updated_at: datetime
-  }
+    class Role {
+        +string code
+        +string name
+        +string description
+    }
 
-  class Role {
-    +code: string  // writer/auditor/org_admin/...
-  }
+    class UserRole {
+        +bigint id
+        +UUID user_id
+        +string role_code
+        +string scope_type
+        +string scope_id
+        +datetime granted_at
+        +datetime revoked_at
+    }
 
-  class RolePermission {
-    +id: bigint
-    +role_code: string
-    +resource: string  // answersheet/testee/report/...
-    +action: string    // read/write/submit/lock/...
-  }
+    class RolePermission {
+        +bigint id
+        +string role_code
+        +string resource
+        +string action
+    }
 
-  class UserRole {
-    +id: bigint
-    +user_id: UUID
-    +role_code: string
-    +scope_type: string
-    +scope_id: string
-    +granted_at: datetime
-    +revoked_at: datetime?
-  }
-
-  %% 关系
-  User "1" --> "*" Account : 绑定
-  User "1" --> "*" ActorLink : 关系/代填
-  PersonProfile <.. User : (可选绑定)
-  Role "1" --> "*" RolePermission : 定义权限
-  User "1" --> "*" UserRole : 被授予角色
-
+    User "1" --> "*" Account : 绑定多个账户
+    User "1" --> "*" ActorLink : 代填/委派关系
+    User "1" --> "*" UserRole : 拥有角色
+    Role "1" --> "*" RolePermission : 定义权限
+    Role "1" --> "*" UserRole : 授予用户
 ```
 
-### 运行时上下文（调用链/时序）
+### CQRS 模式
+
+项目实施了完整的 CQRS（Command Query Responsibility Segregation）架构：
+
+- **Command Services（命令服务）**：处理所有写操作（创建、更新、删除），保证强一致性和事务完整性
+- **Query Services（查询服务）**：处理所有读操作，优化查询性能，支持缓存和读副本
+
+**示例**：
+
+```go
+// Command Service - 处理用户注册
+type UserApplicationService interface {
+    Register(ctx context.Context, cmd RegisterUserCommand) (*UserDTO, error)
+}
+
+// Query Service - 处理用户查询
+type UserQueryApplicationService interface {
+    GetByID(ctx context.Context, userID string) (*UserDTO, error)
+    GetByPhone(ctx context.Context, phone string) (*UserDTO, error)
+}
+```
+
+### 认证流程（微信小程序登录）
 
 ```mermaid
-
 sequenceDiagram
-  autonumber
-  participant MP as 微信小程序
-  participant AS as Auth Service
-  participant US as User Service
-  participant JW as JWKS/KMS
-  participant B as collection-server
-  participant PDP as AuthZ Service
+    autonumber
+    participant MP as 微信小程序
+    participant IAM as IAM Platform
+    participant WX as 微信API
+    participant DB as MySQL
+    participant Redis as Redis
 
-  Note over MP,AS: ① 登录（Account→User→JWT）
-  MP->>AS: POST /auth/wechat:login (js_code)
-  AS->>AS: adapters.wechat.code2session → openid/unionid
-  AS->>US: FindUserByAccount(provider=wechat, external_id=unionid)
-  US-->>AS: user_id 或 空
-  AS->>US: 若无则 CreateUser + BindAccount
-  US-->>AS: user_id
-  AS->>JW: 用私钥签 JWT（sub=user_id, kid=K-2025-10）
-  AS-->>MP: {access_token, refresh_token}
-
-  Note over MP,B: ② 业务请求（RBAC + 关系授权）
-  MP->>B: POST /v1/answer-sheets/{id}:submit\nAuthorization: Bearer JWT
-  B->>B: 验签(JWKS) & 解析 sub=user_id
-  B->>PDP: AllowOnActor(user_id, "answersheet","submit", scope=questionnaire:PHQ9, actor=testee:123, needWrite=true)
-  PDP->>US: HasDelegation(user_id, actor=testee:123, scope=PHQ9)
-  US-->>PDP: true/false
-  PDP-->>B: allow=true/false, reason
-  B-->>MP: 200 / 403
-
+    Note over MP,IAM: 用户登录流程
+    MP->>IAM: POST /auth/wechat/login<br/>{js_code}
+    IAM->>WX: code2session(js_code)
+    WX-->>IAM: {openid, unionid, session_key}
+    
+    IAM->>DB: FindUserByAccount<br/>(provider=wechat, external_id=unionid)
+    
+    alt 用户不存在
+        IAM->>DB: CreateUser() + BindAccount()
+        DB-->>IAM: new_user_id
+    else 用户已存在
+        DB-->>IAM: existing_user_id
+    end
+    
+    Note over IAM: 签发 JWT
+    IAM->>IAM: GenerateJWT<br/>(sub=user_id, kid=K-2025-10)
+    IAM->>Redis: SET refresh_token<br/>(TTL=30天)
+    
+    IAM-->>MP: {<br/>  access_token,<br/>  refresh_token,<br/>  expires_in<br/>}
+    
+    Note over MP: 存储 token
+    MP->>MP: wx.setStorageSync<br/>('access_token')
 ```
 
-### Monorepo 内部组件（服务与适配器）
+### 授权流程（RBAC + 委派代填）
 
 ```mermaid
-flowchart TB
-  classDef cmp fill:#fff,stroke:#333,stroke-width:1px;
+sequenceDiagram
+    autonumber
+    participant Client as 客户端
+    participant BizSvc as 业务服务<br/>(collection-server)
+    participant IAM as IAM Platform
+    participant Cache as Redis Cache
 
-  subgraph repo["iam-platform\nMonorepo 根"]
-    subgraph AuthService["services/auth-service"]
-      A1["adapters.wechat\ncode2session / MP OA / webhook"]:::cmp
-      A2["adapters.qwechat / esign / localpwd"]:::cmp
-      A3["issuer\nJWT / Refresh 发行·旋转·黑名单"]:::cmp
-      A4["jwks provider\nkid 轮换 / 公钥发布"]:::cmp
-      A5["http / grpc api"]:::cmp
+    Note over Client,BizSvc: 业务请求 + 授权检查
+    Client->>BizSvc: POST /answer-sheets/{id}:submit<br/>Authorization: Bearer JWT
+    
+    BizSvc->>BizSvc: 验签 JWT (JWKS)<br/>解析 user_id
+    
+    Note over BizSvc,IAM: 检查权限
+    BizSvc->>IAM: gRPC: CheckPermission<br/>{user_id, resource, action, scope}
+    
+    IAM->>Cache: GET permission_cache<br/>(user:{user_id}:perm)
+    
+    alt 缓存命中
+        Cache-->>IAM: cached_permissions
+    else 缓存未命中
+        IAM->>IAM: Query DB:<br/>- user_roles<br/>- role_permissions
+        IAM->>Cache: SET permission_cache<br/>(TTL=5min)
     end
-
-    subgraph UserService["services/user-service"]
-      U1["user 聚合"]:::cmp
-      U2["account 绑定"]:::cmp
-      U3["user↔actorLink\nscope / 有效期 / 读写"]:::cmp
-      U4["personProfile\n可选"]:::cmp
-      U5["http / grpc api"]:::cmp
+    
+    IAM->>IAM: Evaluate RBAC:<br/>user → roles → permissions
+    
+    alt 需要代填权限
+        Note over BizSvc,IAM: 检查委派关系
+        BizSvc->>IAM: CheckDelegation<br/>{user_id, actor_type, actor_id, scope}
+        IAM->>IAM: Query actor_links:<br/>- relation<br/>- can_read/can_write<br/>- valid_from/valid_to
+        IAM-->>BizSvc: delegation_result
     end
-
-    subgraph AuthZService["services/authz-service"]
-      Z1["rbac\nroles / role_permissions 热加载"]:::cmp
-      Z2["delegation\n调用 user-service HasDelegation"]:::cmp
-      Z3["decision\nAllow / AllowOnActor"]:::cmp
-      Z4["cache\nLRU + Redis，事件驱动失效"]:::cmp
-      Z5["http / grpc api"]:::cmp
+    
+    IAM-->>BizSvc: {<br/>  allowed: true/false,<br/>  reason: "...",<br/>  cached: true<br/>}
+    
+    alt 授权成功
+        BizSvc->>BizSvc: 执行业务逻辑
+        BizSvc-->>Client: 200 OK
+    else 授权失败
+        BizSvc-->>Client: 403 Forbidden<br/>{error: "insufficient_permission"}
     end
-
-    subgraph Libs["libs\nMonorepo 内共享库"]
-      L1["authn-middleware\nJWT 验签 / JWKS 缓存"]:::cmp
-      L2["authz-client\nPDP SDK + 本地缓存"]:::cmp
-      L3["common\nerrors / dto / tracing / config"]:::cmp
-    end
-
-    subgraph Infra["infra/"]
-      I1["helm / helmfile / compose"]:::cmp
-      I2["migrations / seeds"]:::cmp
-      I3["observability\notel / metrics / log"]:::cmp
-    end
-  end
-
-  %% 连接
-  A1 -->|账户映射| U2
-  A2 -->|账户映射| U2
-  Z2 -->|关系查询| U5
-  L1 -->|三大服务共用| A5
-  L1 -->|三大服务共用| U5
-  L1 -->|三大服务共用| Z5
-  L2 -->|业务服务复用| Z5
 ```
 
-## 代码结构
+### 核心模块
 
-以下以代码块形式展示项目的目录树，便于快速浏览仓库布局：
+1. **UC 模块（User Center）**：用户、账户、角色、委派关系管理
+2. **AuthN 模块（Authentication）**：JWT 签发、JWKS 发布、多端登录适配
+3. **AuthZ 模块（Authorization）**：RBAC 决策、权限缓存、委派授权
+
+详细架构设计请参阅 [架构文档](#-文档导航)。
+
+---
+
+## 📁 项目结构
 
 ```text
 iam-contracts/
-├─ cmd/                # 可执行程序入口 (例如 cmd/apiserver)
-├─ configs/            # 配置文件与证书 (yaml, env, mysql/redis 等)
-├─ build/              # 构建/打包/infra 相关脚本与说明
-├─ internal/           # 应用内部实现（不可被外部模块导入）
-│  └─ apiserver/       # API server：路由、组装、domain、infra 适配器
-├─ pkg/                # 可复用库（log/errors/database/util 等）
-├─ proto/              # Protobuf / gRPC 定义与生成脚本（如存在）
-├─ docs/               # 文档、设计说明、操作手册
-├─ scripts/            # 开发与维护脚本
-├─ Makefile
-└─ go.mod / go.sum
+├── cmd/                        # 可执行程序入口
+│   └── apiserver/              # API Server 主程序
+├── configs/                    # 配置文件
+│   ├── apiserver.yaml          # 主配置文件
+│   ├── env/                    # 环境变量配置
+│   └── cert/                   # JWT 密钥证书
+├── internal/                   # 内部应用代码（不对外暴露）
+│   └── apiserver/
+│       ├── application/        # 应用层（Command & Query Services）
+│       ├── domain/             # 领域层（实体、值对象、仓储接口）
+│       ├── infrastructure/     # 基础设施层（MySQL、Redis、外部 API）
+│       ├── interface/          # 接口层（RESTful、gRPC）
+│       └── container/          # 依赖注入容器
+├── pkg/                        # 可复用公共库
+│   ├── log/                    # 日志库
+│   ├── errors/                 # 错误处理
+│   ├── database/               # 数据库注册中心
+│   └── auth/                   # JWT/JWKS 工具
+├── docs/                       # 项目文档
+│   ├── architecture-overview.md    # 整体架构设计
+│   ├── uc-architecture.md          # UC 模块设计
+│   └── authn-architecture.md       # 认证模块设计
+├── build/                      # 构建脚本与 Docker 文件
+├── scripts/                    # 开发运维脚本
+└── Makefile                    # 构建自动化
 ```
 
-简单约定：
+**目录设计原则**：
 
-- `internal/` 用于包含服务实现与业务逻辑（通常按六边形架构组织：ports/adapters/domain）。
-- `pkg/` 提供可复用的库，尽量保持无全局状态，便于在 monorepo 内多服务复用。
-- 配置中的敏感信息请使用 Vault / CI secrets 或环境变量注入，不要把明文凭证提交到仓库。
+- `internal/`：应用内部实现，按六边形架构分层
+- `pkg/`：可复用库，保持无状态，便于跨服务复用
+- `configs/`：配置文件，敏感信息使用环境变量或密钥管理服务
 
-如需更细粒度的目录说明（比如每个包的职责与常见入口函数），我可以把此内容拆成 `docs/code-structure.md` 并在 README 中链接过去。
+---
+
+## 🛠 技术栈
+
+| 类别 | 技术 | 说明 |
+|------|------|------|
+| **语言** | Go 1.21+ | 高性能、强类型、并发友好 |
+| **Web 框架** | Gin | 轻量级 HTTP 路由框架 |
+| **gRPC** | Google gRPC | 高性能 RPC 框架 |
+| **数据库** | MySQL 8.0+ | 关系型数据库，支持事务和复杂查询 |
+| **缓存** | Redis 7.0+ | 高性能缓存和分布式锁 |
+| **ORM** | GORM | Go 对象关系映射库 |
+| **日志** | Zap | 高性能结构化日志 |
+| **配置** | Viper | 多格式配置管理（YAML/ENV） |
+| **JWT** | golang-jwt/jwt | JWT 签发与验签 |
+| **依赖注入** | Wire (Google) | 编译期依赖注入代码生成 |
+| **认证** | 微信 SDK | 微信小程序/企业微信登录 |
+| **容器化** | Docker + Docker Compose | 本地开发环境 |
+| **部署** | Kubernetes + Helm | 生产环境容器编排 |
+
+---
+
+## 📚 文档导航
+
+完整的项目文档位于 `docs/` 目录：
+
+| 文档 | 说明 |
+|------|------|
+| [**架构概览**](docs/architecture-overview.md) | 整体架构设计、C4 模型、技术栈、部署架构 |
+| [**UC 模块设计**](docs/uc-architecture.md) | 用户中心详细设计、CQRS 实现、领域模型、数据库 Schema |
+| [**认证模块设计**](docs/authn-architecture.md) | JWT 管理、JWKS 发布、密钥轮换、多端登录适配 |
+| [**文档索引**](docs/README.md) | 所有文档的导航入口 |
+
+### 快速链接
+
+- [框架概览](docs/framework-overview.md)：六边形架构、DDD、CQRS 详解
+- [数据库注册中心](docs/database-registry.md)：多数据库连接管理
+- [错误处理](docs/error-handling.md)：统一错误码和错误处理机制
+- [日志系统](docs/logging-system.md)：结构化日志和日志轮转
+- [认证流程](docs/authentication.md)：多端登录和 JWT 签发流程
+
+---
+
+## 👨‍💻 开发指南
+
+### API 文档
+
+启动服务后，访问以下端点获取 API 文档：
+
+- **Swagger UI**: `http://localhost:8080/swagger/index.html`
+- **JWKS 公钥**: `http://localhost:8080/.well-known/jwks.json`
+
+### 添加新功能
+
+遵循六边形架构的分层结构：
+
+1. **Domain Layer**：定义实体、值对象、仓储接口
+2. **Application Layer**：实现 Command Service 和 Query Service
+3. **Infrastructure Layer**：实现仓储（MySQL/Redis）
+4. **Interface Layer**：暴露 HTTP/gRPC API
+
+### 运行测试
+
+```bash
+# 运行所有测试
+make test
+
+# 运行特定模块测试
+go test ./internal/apiserver/application/user/...
+
+# 生成测试覆盖率报告
+make test-coverage
+```
+
+### 代码规范
+
+- 遵循 [Uber Go Style Guide](https://github.com/uber-go/guide/blob/master/style.md)
+- 使用 `golangci-lint` 进行静态检查：`make lint`
+- 提交前运行：`make fmt` 格式化代码
+
+---
+
+## 🤝 贡献指南
+
+我们欢迎所有形式的贡献！
+
+1. **Fork** 本仓库
+2. 创建特性分支：`git checkout -b feature/amazing-feature`
+3. 提交更改：`git commit -m 'Add amazing feature'`
+4. 推送到分支：`git push origin feature/amazing-feature`
+5. 提交 **Pull Request**
+
+### 贡献类型
+
+- 🐛 Bug 修复
+- ✨ 新功能
+- 📝 文档改进
+- ♻️ 代码重构
+- ✅ 测试覆盖
+
+请确保：
+
+- 所有测试通过：`make test`
+- 代码通过 lint 检查：`make lint`
+- 更新相关文档
+
+---
+
+## 📄 许可证
+
+本项目采用 [MIT License](LICENSE) 开源协议。
+
+---
+
+## 📞 联系我们
+
+- **项目维护者**: [fangcun-mount](https://github.com/fangcun-mount)
+- **问题反馈**: [GitHub Issues](https://github.com/fangcun-mount/iam-contracts/issues)
+
+---
+Built with ❤️ using Go and Hexagonal Architecture
