@@ -48,6 +48,7 @@ type AuthnModule struct {
 	// HTTP 处理器
 	AccountHandler *authhandler.AccountHandler
 	AuthHandler    *authhandler.AuthHandler
+	JWKSHandler    *authhandler.JWKSHandler
 }
 
 // NewAuthnModule 创建认证模块
@@ -155,6 +156,11 @@ func (m *AuthnModule) Initialize(params ...interface{}) error {
 	m.AuthHandler = authhandler.NewAuthHandler(
 		m.LoginService,
 		m.TokenService,
+	)
+
+	m.JWKSHandler = authhandler.NewJWKSHandler(
+		m.KeyManagementApp,
+		m.KeyPublishApp,
 	)
 
 	return nil

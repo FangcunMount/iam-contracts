@@ -8,8 +8,9 @@ import (
 
 // Dependencies describes the external collaborators needed to expose authn endpoints.
 type Dependencies struct {
-	AuthHandler    *authhandler.AuthHandler // 新的认证处理器
-	AccountHandler *authhandler.AccountHandler
+	AuthHandler    *authhandler.AuthHandler    // 新的认证处理器
+	AccountHandler *authhandler.AccountHandler // 账户管理处理器
+	JWKSHandler    *authhandler.JWKSHandler    // JWKS 处理器
 }
 
 var deps Dependencies
@@ -33,8 +34,11 @@ func Register(engine *gin.Engine) {
 	// 注册账户管理端点
 	registerAccountEndpoints(api.Group("/v1"), deps.AccountHandler)
 
-	// 注册 JWKS 端点
-	registerJWKSEndpoints(engine, deps.AuthHandler)
+	// 注册 JWKS 端点（公开端点）
+	registerJWKSPublicEndpoints(engine, deps.JWKSHandler)
+
+	// 注册 JWKS 管理端点（管理员接口）
+	registerJWKSAdminEndpoints(api.Group("/v1/admin"), deps.JWKSHandler)
 }
 
 // registerAuthEndpointsV2 注册符合 API 文档的认证端点
@@ -50,14 +54,35 @@ func registerAuthEndpointsV2(group *gin.RouterGroup, handler *authhandler.AuthHa
 	group.POST("/verify", handler.VerifyToken)         // POST /v1/auth/verify - 验证令牌
 }
 
-// registerJWKSEndpoints 注册 JWKS 端点
-func registerJWKSEndpoints(engine *gin.Engine, handler *authhandler.AuthHandler) {
+// registerJWKSPublicEndpoints 注册 JWKS 公开端点
+func registerJWKSPublicEndpoints(engine *gin.Engine, handler *authhandler.JWKSHandler) {
 	if engine == nil || handler == nil {
 		return
 	}
 
-	// JWKS 端点（符合 API 文档）
+	// JWKS 公开端点（无需认证）
 	engine.GET("/.well-known/jwks.json", handler.GetJWKS)
+}
+
+// registerJWKSAdminEndpoints 注册 JWKS 管理端点
+func registerJWKSAdminEndpoints(admin *gin.RouterGroup, handler *authhandler.JWKSHandler) {
+	if admin == nil || handler == nil {
+		return
+	}
+
+	// JWKS 管理端点（需要管理员权限）
+	jwks := admin.Group("/jwks")
+	{
+		// 密钥管理
+		jwks.POST("/keys", handler.CreateKey)                        // 创建密钥
+		jwks.GET("/keys", handler.ListKeys)                          // 列出密钥
+		jwks.GET("/keys/:kid", handler.GetKey)                       // 获取密钥详情
+		jwks.POST("/keys/:kid/retire", handler.RetireKey)            // 退役密钥
+		jwks.POST("/keys/:kid/force-retire", handler.ForceRetireKey) // 强制退役密钥
+		jwks.POST("/keys/:kid/grace", handler.EnterGracePeriod)      // 进入宽限期
+		jwks.POST("/keys/cleanup", handler.CleanupExpiredKeys)       // 清理过期密钥
+		jwks.GET("/keys/publishable", handler.GetPublishableKeys)    // 获取可发布的密钥
+	}
 }
 
 func registerAccountEndpoints(v1 *gin.RouterGroup, h *authhandler.AccountHandler) {
