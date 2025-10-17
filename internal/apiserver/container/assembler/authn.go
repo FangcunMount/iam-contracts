@@ -7,20 +7,25 @@ import (
 
 	accountApp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/account"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/adapter"
+	jwksApp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/login"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/token"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/crypto"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
 	mysqlacct "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
+	jwksMysql "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/jwks"
 	redistoken "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/redis/token"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/wechat"
 	authhandler "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/handler"
 	mysqluser "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/fangcun-mount/iam-contracts/pkg/log"
 
 	authService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/authenticator"
 	tokenService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/token"
+	jwksService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/service"
 )
 
 // AuthnModule 认证模块
@@ -35,6 +40,10 @@ type AuthnModule struct {
 	// 认证服务
 	LoginService *login.LoginService
 	TokenService *token.TokenService
+
+	// JWKS 应用服务
+	KeyManagementApp *jwksApp.KeyManagementAppService
+	KeyPublishApp    *jwksApp.KeyPublishAppService
 
 	// HTTP 处理器
 	AccountHandler *authhandler.AccountHandler
@@ -108,6 +117,15 @@ func (m *AuthnModule) Initialize(params ...interface{}) error {
 	tokenRefresher := tokenService.NewTokenRefresher(jwtGenerator, tokenStore, viper.GetDuration("auth.access_token_ttl"), viper.GetDuration("auth.refresh_token_ttl"))
 	tokenVerifyer := tokenService.NewTokenVerifyer(jwtGenerator, tokenStore)
 
+	// JWKS 基础设施
+	keyRepo := jwksMysql.NewKeyRepository(db)
+	keyGenerator := crypto.NewRSAKeyGenerator()                           // 默认 2048 位
+	_ = crypto.NewPEMPrivateKeyResolver(viper.GetString("jwks.keys_dir")) // 私钥解析器（暂未使用，预留用于签名）
+
+	// JWKS 领域服务
+	keyManager := jwksService.NewKeyManager(keyRepo, keyGenerator)
+	keySetBuilder := jwksService.NewKeySetBuilder(keyRepo)
+
 	// ========== 应用层 ==========
 
 	// 账户应用服务
@@ -119,6 +137,11 @@ func (m *AuthnModule) Initialize(params ...interface{}) error {
 	// 认证服务
 	m.LoginService = login.NewLoginService(authenticator, tokenIssuer)
 	m.TokenService = token.NewTokenService(tokenIssuer, tokenRefresher, tokenVerifyer)
+
+	// JWKS 应用服务
+	logger := log.New(log.NewOptions())
+	m.KeyManagementApp = jwksApp.NewKeyManagementAppService(keyManager, logger)
+	m.KeyPublishApp = jwksApp.NewKeyPublishAppService(keySetBuilder, logger)
 
 	// ========== 接口层 ==========
 

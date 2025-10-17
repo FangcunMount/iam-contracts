@@ -127,7 +127,7 @@ func GenerateETag(content []byte) string {
 
 // ==================== RotationPolicy 值对象 ====================
 
-// RotationPolicy 密钥轮换策略（预留：第二版可启用自动轮换）
+// RotationPolicy 密钥轮换策略
 type RotationPolicy struct {
 	RotationInterval time.Duration // 轮换间隔（如 30 天）
 	GracePeriod      time.Duration // 宽限期（如 7 天）
