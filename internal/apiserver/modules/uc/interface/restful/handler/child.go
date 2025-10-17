@@ -1,48 +1,39 @@
 package handler
 
 import (
-	"math"
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
-	childdomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child"
-	childport "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child/port"
-	guarddomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship"
-	guardport "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship/port"
+	appchild "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/child"
+	appguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/guardianship"
 	requestdto "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/restful/request"
 	responsedto "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/restful/response"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
-	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
 )
 
 // ChildHandler 儿童档案 REST 处理器
 type ChildHandler struct {
 	*BaseHandler
-	registerSrv  childport.ChildRegister
-	profileSrv   childport.ChildProfileEditor
-	querySrv     childport.ChildQueryer
-	guardManager guardport.GuardianshipManager
-	guardQuery   guardport.GuardianshipQueryer
+	childApp   appchild.ChildApplicationService
+	profileApp appchild.ChildProfileApplicationService
+	guardApp   appguard.GuardianshipApplicationService
 }
 
 // NewChildHandler 创建儿童档案处理器
 func NewChildHandler(
-	registerSrv childport.ChildRegister,
-	profileSrv childport.ChildProfileEditor,
-	querySrv childport.ChildQueryer,
-	guardManager guardport.GuardianshipManager,
-	guardQuery guardport.GuardianshipQueryer,
+	childApp appchild.ChildApplicationService,
+	profileApp appchild.ChildProfileApplicationService,
+	guardApp appguard.GuardianshipApplicationService,
 ) *ChildHandler {
 	return &ChildHandler{
-		BaseHandler:  NewBaseHandler(),
-		registerSrv:  registerSrv,
-		profileSrv:   profileSrv,
-		querySrv:     querySrv,
-		guardManager: guardManager,
-		guardQuery:   guardQuery,
+		BaseHandler: NewBaseHandler(),
+		childApp:    childApp,
+		profileApp:  profileApp,
+		guardApp:    guardApp,
 	}
 }
 
@@ -60,13 +51,8 @@ func (h *ChildHandler) ListMyChildren(c *gin.Context) {
 		return
 	}
 
-	userID, err := parseUserID(rawID)
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	guardianships, err := h.guardQuery.FindListByUserID(c.Request.Context(), userID)
+	// 列出用户监护的所有儿童
+	guardianships, err := h.guardApp.ListChildrenByUserID(c.Request.Context(), rawID)
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -77,12 +63,13 @@ func (h *ChildHandler) ListMyChildren(c *gin.Context) {
 		if g == nil {
 			continue
 		}
-		child, err := h.querySrv.FindByID(c.Request.Context(), g.Child)
+		// 查询儿童详细信息
+		child, err := h.childApp.GetByID(c.Request.Context(), g.ChildID)
 		if err != nil {
 			h.Error(c, err)
 			return
 		}
-		resp := newChildResponse(child)
+		resp := childResultToResponse(child)
 		children = append(children, resp)
 	}
 
@@ -111,76 +98,50 @@ func (h *ChildHandler) RegisterChild(c *gin.Context) {
 		return
 	}
 
-	userID, err := parseUserID(rawUserID)
+	// 构建注册 DTO
+	registerDTO := appguard.RegisterChildWithGuardianDTO{
+		ChildName:     strings.TrimSpace(req.LegalName),
+		ChildGender:   genderIntToString(req.Gender),
+		ChildBirthday: strings.TrimSpace(req.DOB),
+		ChildIDCard:   strings.TrimSpace(req.IDNo),
+		ChildHeight:   parseHeightCm(req.HeightCm),
+		ChildWeight:   parseWeightKg(req.WeightKg),
+		UserID:        rawUserID,
+		Relation:      req.Relation,
+	}
+
+	// 调用应用服务注册儿童并建立监护关系
+	result, err := h.guardApp.RegisterChildWithGuardian(c.Request.Context(), registerDTO)
 	if err != nil {
 		h.Error(c, err)
 		return
 	}
 
-	relation, err := parseRelation(req.Relation)
-	if err != nil {
-		h.Error(c, err)
-		return
+	// 构建响应
+	childResp := responsedto.ChildResponse{
+		ID:        result.ChildID,
+		LegalName: result.ChildName,
+		Gender:    stringGenderToInt(result.ChildGender),
+		DOB:       result.ChildBirthday,
+		IDType:    req.IDType,
+		IDMasked:  maskIDCard(result.ChildID),
 	}
 
-	gender := meta.NewGender(uint8(*req.Gender))
-	birthday := meta.NewBirthday(strings.TrimSpace(req.DOB))
-	idCard := meta.NewIDCard(strings.TrimSpace(req.LegalName), strings.TrimSpace(req.IDNo))
-
-	var heightPtr *meta.Height
-	if req.HeightCm != nil {
-		if *req.HeightCm < 0 {
-			h.ErrorWithCode(c, code.ErrInvalidArgument, "heightCm must be >= 0")
-			return
-		}
-		hh, herr := meta.NewHeightFromFloat(float64(*req.HeightCm))
-		if herr != nil {
-			h.Error(c, perrors.WithCode(code.ErrInvalidArgument, "%s", herr.Error()))
-			return
-		}
-		heightPtr = &hh
+	guardResp := responsedto.GuardianshipResponse{
+		ID:       result.ID,
+		UserID:   result.UserID,
+		ChildID:  result.ChildID,
+		Relation: result.Relation,
+		Since:    parseTime(result.EstablishedAt),
 	}
-
-	var weightPtr *meta.Weight
-	if strings.TrimSpace(req.WeightKg) != "" {
-		f, werr := strconv.ParseFloat(strings.TrimSpace(req.WeightKg), 64)
-		if werr != nil {
-			h.ErrorWithCode(c, code.ErrInvalidArgument, "invalid weightKg: %v", werr)
-			return
-		}
-		ww, werr := meta.NewWeightFromFloat(f)
-		if werr != nil {
-			h.Error(c, perrors.WithCode(code.ErrInvalidArgument, "%s", werr.Error()))
-			return
-		}
-		weightPtr = &ww
-	}
-
-	guardianship, child, err := h.guardManager.RegisterChildWithGuardian(c.Request.Context(), guardport.RegisterChildParams{
-		Name:     strings.TrimSpace(req.LegalName),
-		Gender:   gender,
-		Birthday: birthday,
-		IDCard:   idCard,
-		Height:   heightPtr,
-		Weight:   weightPtr,
-		UserID:   userID,
-		Relation: relation,
-	})
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	childResp := newChildResponse(child)
-	childResp.IDType = req.IDType
 
 	h.Created(c, responsedto.ChildRegisterResponse{
 		Child:        childResp,
-		Guardianship: newGuardianshipResponse(guardianship),
+		Guardianship: guardResp,
 	})
 }
 
-// CreateChild 仅创建儿童档案
+// CreateChild 仅创建儿童档案（不建立监护关系）
 func (h *ChildHandler) CreateChild(c *gin.Context) {
 	var req requestdto.ChildCreateRequest
 	if err := h.BindJSON(c, &req); err != nil {
@@ -188,13 +149,23 @@ func (h *ChildHandler) CreateChild(c *gin.Context) {
 		return
 	}
 
-	child, err := h.createChildRecord(c, req)
+	// 构建注册 DTO
+	dto := appchild.RegisterChildDTO{
+		Name:     strings.TrimSpace(req.LegalName),
+		Gender:   genderIntToString(req.Gender),
+		Birthday: strings.TrimSpace(req.DOB),
+		IDCard:   strings.TrimSpace(req.IDNo),
+		Height:   parseHeightCm(req.HeightCm),
+		Weight:   parseWeightKg(req.WeightKg),
+	}
+
+	result, err := h.childApp.Register(c.Request.Context(), dto)
 	if err != nil {
 		h.Error(c, err)
 		return
 	}
 
-	resp := newChildResponse(child)
+	resp := childResultToResponse(result)
 	resp.IDType = req.IDType
 
 	h.Created(c, resp)
@@ -202,26 +173,26 @@ func (h *ChildHandler) CreateChild(c *gin.Context) {
 
 // GetChild 查询儿童档案
 func (h *ChildHandler) GetChild(c *gin.Context) {
-	childID, err := parseChildID(c.Param("childId"))
+	childID := c.Param("id")
+	if strings.TrimSpace(childID) == "" {
+		h.ErrorWithCode(c, code.ErrInvalidArgument, "child id is required")
+		return
+	}
+
+	child, err := h.childApp.GetByID(c.Request.Context(), childID)
 	if err != nil {
 		h.Error(c, err)
 		return
 	}
 
-	child, err := h.querySrv.FindByID(c.Request.Context(), childID)
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	h.Success(c, newChildResponse(child))
+	h.Success(c, childResultToResponse(child))
 }
 
 // PatchChild 更新儿童档案
 func (h *ChildHandler) PatchChild(c *gin.Context) {
-	childID, err := parseChildID(c.Param("childId"))
-	if err != nil {
-		h.Error(c, err)
+	childID := c.Param("id")
+	if strings.TrimSpace(childID) == "" {
+		h.ErrorWithCode(c, code.ErrInvalidArgument, "child id is required")
 		return
 	}
 
@@ -232,294 +203,227 @@ func (h *ChildHandler) PatchChild(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	current, err := h.querySrv.FindByID(ctx, childID)
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
 
-	if req.LegalName != nil {
-		if err := h.profileSrv.Rename(ctx, childID, strings.TrimSpace(*req.LegalName)); err != nil {
+	// 更新姓名
+	if req.LegalName != nil && strings.TrimSpace(*req.LegalName) != "" {
+		if err := h.profileApp.Rename(ctx, childID, strings.TrimSpace(*req.LegalName)); err != nil {
 			h.Error(c, err)
 			return
 		}
 	}
 
+	// 更新性别和生日
 	if req.Gender != nil || req.DOB != nil {
-		gender := current.Gender
+		dto := appchild.UpdateChildProfileDTO{
+			ChildID: childID,
+		}
 		if req.Gender != nil {
-			gender = meta.NewGender(uint8(*req.Gender))
+			dto.Gender = genderIntToString(req.Gender)
 		}
-
-		birthday := current.Birthday
 		if req.DOB != nil {
-			birthday = meta.NewBirthday(strings.TrimSpace(*req.DOB))
+			dto.Birthday = strings.TrimSpace(*req.DOB)
 		}
-
-		if err := h.profileSrv.UpdateProfile(ctx, childID, gender, birthday); err != nil {
+		if err := h.profileApp.UpdateProfile(ctx, dto); err != nil {
 			h.Error(c, err)
 			return
 		}
 	}
 
+	// 更新身高体重
 	if req.HeightCm != nil || req.WeightKg != nil {
-		height := current.Height
+		height := uint32(0)
+		weight := uint32(0)
+
 		if req.HeightCm != nil {
-			if *req.HeightCm < 0 {
-				h.ErrorWithCode(c, code.ErrInvalidArgument, "heightCm must be >= 0")
-				return
-			}
-			hh, herr := meta.NewHeightFromFloat(float64(*req.HeightCm))
-			if herr != nil {
-				h.Error(c, perrors.WithCode(code.ErrInvalidArgument, "%s", herr.Error()))
-				return
-			}
-			height = hh
+			height = uint32(*req.HeightCm)
 		}
-
-		weight := current.Weight
 		if req.WeightKg != nil {
-			value := strings.TrimSpace(*req.WeightKg)
-			if value != "" {
-				f, perr := strconv.ParseFloat(value, 64)
-				if perr != nil {
-					h.ErrorWithCode(c, code.ErrInvalidArgument, "invalid weightKg: %v", perr)
-					return
-				}
-				ww, werr := meta.NewWeightFromFloat(f)
-				if werr != nil {
-					h.Error(c, perrors.WithCode(code.ErrInvalidArgument, "%s", werr.Error()))
-					return
-				}
-				weight = ww
-			}
+			f, _ := strconv.ParseFloat(strings.TrimSpace(*req.WeightKg), 64)
+			weight = uint32(f * 1000) // kg转克
 		}
 
-		if err := h.profileSrv.UpdateHeightWeight(ctx, childID, height, weight); err != nil {
+		dto := appchild.UpdateHeightWeightDTO{
+			ChildID: childID,
+			Height:  height,
+			Weight:  weight,
+		}
+		if err := h.profileApp.UpdateHeightWeight(ctx, dto); err != nil {
 			h.Error(c, err)
 			return
 		}
 	}
 
-	child, err := h.querySrv.FindByID(ctx, childID)
+	// 返回更新后的儿童信息
+	child, err := h.childApp.GetByID(ctx, childID)
 	if err != nil {
 		h.Error(c, err)
 		return
 	}
 
-	h.Success(c, newChildResponse(child))
+	h.Success(c, childResultToResponse(child))
 }
 
-// SearchChildren 搜索儿童档案
+// SearchChildren 搜索相似儿童（根据姓名、性别、生日）
 func (h *ChildHandler) SearchChildren(c *gin.Context) {
-	var req requestdto.ChildSearchQuery
-	if err := h.BindQuery(c, &req); err != nil {
+	var query requestdto.ChildSearchQuery
+	if err := h.BindQuery(c, &query); err != nil {
 		h.Error(c, err)
 		return
 	}
 
-	var (
-		children []*childdomain.Child
-		err      error
-	)
-
-	if req.DOB != nil && strings.TrimSpace(*req.DOB) != "" {
-		children, err = h.querySrv.FindListByNameAndBirthday(c.Request.Context(), req.Name, meta.NewBirthday(strings.TrimSpace(*req.DOB)))
-	} else {
-		children, err = h.querySrv.FindListByName(c.Request.Context(), req.Name)
+	name := strings.TrimSpace(query.Name)
+	birthday := ""
+	if query.DOB != nil {
+		birthday = strings.TrimSpace(*query.DOB)
 	}
 
+	// SearchQuery 中没有 Gender，这里使用空字符串
+	children, err := h.childApp.FindSimilar(c.Request.Context(), name, "", birthday)
 	if err != nil {
 		h.Error(c, err)
 		return
 	}
 
-	items := make([]responsedto.ChildResponse, 0, len(children))
+	var items []responsedto.ChildResponse
 	for _, child := range children {
-		if child == nil {
-			continue
+		if child != nil {
+			items = append(items, childResultToResponse(child))
 		}
-		items = append(items, newChildResponse(child))
 	}
 
 	total := len(items)
-	sliced := sliceChildren(items, req.Offset, req.Limit)
+	sliced := sliceChildren(items, query.Offset, query.Limit)
 
 	h.Success(c, responsedto.ChildPageResponse{
 		Total:  total,
-		Limit:  req.Limit,
-		Offset: req.Offset,
+		Limit:  query.Limit,
+		Offset: query.Offset,
 		Items:  sliced,
 	})
 }
 
-func (h *ChildHandler) createChildRecord(c *gin.Context, req requestdto.ChildCreateRequest) (*childdomain.Child, error) {
-	if req.Gender == nil {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "gender is required")
-	}
+// ========== 辅助函数 ==========
 
-	gender := meta.NewGender(uint8(*req.Gender))
-	birthday := meta.NewBirthday(strings.TrimSpace(req.DOB))
-
-	ctx := c.Request.Context()
-
-	child, err := h.registerSrv.Register(ctx, strings.TrimSpace(req.LegalName), gender, birthday)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := h.profileSrv.UpdateIDCard(ctx, child.ID, meta.NewIDCard(req.LegalName, strings.TrimSpace(req.IDNo))); err != nil {
-		return nil, err
-	}
-
-	height := child.Height
-	heightUpdated := false
-	if req.HeightCm != nil {
-		if *req.HeightCm < 0 {
-			return nil, perrors.WithCode(code.ErrInvalidArgument, "heightCm must be >= 0")
-		}
-		hh, herr := meta.NewHeightFromFloat(float64(*req.HeightCm))
-		if herr != nil {
-			return nil, perrors.WithCode(code.ErrInvalidArgument, "%s", herr.Error())
-		}
-		height = hh
-		heightUpdated = true
-	}
-
-	weight := child.Weight
-	weightUpdated := false
-	if strings.TrimSpace(req.WeightKg) != "" {
-		f, werr := strconv.ParseFloat(strings.TrimSpace(req.WeightKg), 64)
-		if werr != nil {
-			return nil, perrors.WithCode(code.ErrInvalidArgument, "invalid weightKg: %v", werr)
-		}
-		ww, werr := meta.NewWeightFromFloat(f)
-		if werr != nil {
-			return nil, perrors.WithCode(code.ErrInvalidArgument, "%s", werr.Error())
-		}
-		weight = ww
-		weightUpdated = true
-	}
-
-	if heightUpdated || weightUpdated {
-		if err := h.profileSrv.UpdateHeightWeight(ctx, child.ID, height, weight); err != nil {
-			return nil, err
-		}
-	}
-
-	return h.querySrv.FindByID(ctx, child.ID)
-}
-
-func parseChildID(raw string) (childdomain.ChildID, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return childdomain.ChildID{}, perrors.WithCode(code.ErrInvalidArgument, "child id cannot be empty")
-	}
-
-	id, err := strconv.ParseUint(raw, 10, 64)
-	if err != nil {
-		return childdomain.ChildID{}, perrors.WithCode(code.ErrInvalidArgument, "invalid child id: %s", raw)
-	}
-
-	return childdomain.NewChildID(id), nil
-}
-
-func newChildResponse(child *childdomain.Child) responsedto.ChildResponse {
-	if child == nil {
+// childResultToResponse 将应用服务返回的 ChildResult 转换为响应 DTO
+func childResultToResponse(result *appchild.ChildResult) responsedto.ChildResponse {
+	if result == nil {
 		return responsedto.ChildResponse{}
 	}
 
 	resp := responsedto.ChildResponse{
-		ID:        child.ID.String(),
-		LegalName: child.Name,
-		DOB:       child.Birthday.String(),
-		IDMasked:  maskID(child.IDCard.String()),
+		ID:        result.ID,
+		LegalName: result.Name,
+		DOB:       result.Birthday,
+		IDMasked:  maskIDCard(result.IDCard),
 	}
 
-	if v := int(child.Gender.Value()); v != 0 {
-		gender := v
-		resp.Gender = &gender
+	// 性别转换
+	if result.Gender != "" {
+		gender := stringGenderToInt(result.Gender)
+		resp.Gender = gender
 	}
 
-	if child.Height.Tenths() > 0 {
-		height := int(math.Round(child.Height.Float()))
-		resp.HeightCm = &height
+	// 身高（厘米）
+	if result.Height > 0 {
+		h := int(result.Height)
+		resp.HeightCm = &h
 	}
 
-	if child.Weight.Tenths() > 0 {
-		weight := child.Weight.String()
-		resp.WeightKg = &weight
+	// 体重（千克，字符串格式）
+	if result.Weight > 0 {
+		kg := float64(result.Weight) / 1000.0
+		w := fmt.Sprintf("%.2f", kg)
+		resp.WeightKg = &w
 	}
 
 	return resp
 }
 
-func sliceChildren(children []responsedto.ChildResponse, offset, limit int) []responsedto.ChildResponse {
+// genderIntToString 将前端的整数性别转换为字符串
+func genderIntToString(gender *int) string {
+	if gender == nil {
+		return ""
+	}
+	switch *gender {
+	case 1:
+		return "male"
+	case 2:
+		return "female"
+	default:
+		return ""
+	}
+}
+
+// stringGenderToInt 将字符串性别转换为整数指针
+func stringGenderToInt(gender string) *int {
+	var g int
+	switch strings.ToLower(gender) {
+	case "male":
+		g = 1
+	case "female":
+		g = 2
+	default:
+		return nil
+	}
+	return &g
+}
+
+// parseHeightCm 解析身高（厘米）
+func parseHeightCm(heightCm *int) *uint32 {
+	if heightCm == nil || *heightCm <= 0 {
+		return nil
+	}
+	h := uint32(*heightCm)
+	return &h
+}
+
+// parseWeightKg 解析体重（千克字符串转克）
+func parseWeightKg(weightKg string) *uint32 {
+	if strings.TrimSpace(weightKg) == "" {
+		return nil
+	}
+	f, err := strconv.ParseFloat(strings.TrimSpace(weightKg), 64)
+	if err != nil || f <= 0 {
+		return nil
+	}
+	w := uint32(f * 1000) // 千克转克
+	return &w
+}
+
+// maskIDCard 脱敏身份证号
+func maskIDCard(idCard string) string {
+	if len(idCard) < 6 {
+		return idCard
+	}
+	return idCard[:6] + "********" + idCard[len(idCard)-4:]
+}
+
+// sliceChildren 分页切片
+func sliceChildren(items []responsedto.ChildResponse, offset, limit int) []responsedto.ChildResponse {
 	if limit <= 0 {
 		limit = 20
 	}
 	if offset < 0 {
 		offset = 0
 	}
-	if offset >= len(children) {
+	if offset >= len(items) {
 		return []responsedto.ChildResponse{}
 	}
-
 	end := offset + limit
-	if end > len(children) {
-		end = len(children)
+	if end > len(items) {
+		end = len(items)
 	}
-
-	return children[offset:end]
+	return items[offset:end]
 }
 
-func parseRelation(raw string) (guarddomain.Relation, error) {
-	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "self":
-		return guarddomain.RelSelf, nil
-	case "parent":
-		return guarddomain.RelParent, nil
-	case "guardian":
-		return guarddomain.RelOther, nil
-	default:
-		return "", perrors.WithCode(code.ErrInvalidArgument, "unsupported relation: %s", raw)
+// parseTime 解析时间字符串（ISO 8601 格式）
+func parseTime(timeStr string) time.Time {
+	if timeStr == "" {
+		return time.Time{}
 	}
-}
-
-func newGuardianshipResponse(g *guarddomain.Guardianship) responsedto.GuardianshipResponse {
-	if g == nil {
-		return responsedto.GuardianshipResponse{}
+	t, err := time.Parse(time.RFC3339, timeStr)
+	if err != nil {
+		return time.Now()
 	}
-
-	resp := responsedto.GuardianshipResponse{
-		ID:       g.ID,
-		UserID:   g.User.String(),
-		ChildID:  g.Child.String(),
-		Relation: relationToString(g.Rel),
-		Since:    g.EstablishedAt,
-	}
-	if g.RevokedAt != nil {
-		resp.RevokedAt = g.RevokedAt
-	}
-
-	return resp
-}
-
-func relationToString(rel guarddomain.Relation) string {
-	switch rel {
-	case guarddomain.RelSelf:
-		return "self"
-	case guarddomain.RelParent:
-		return "parent"
-	default:
-		return "guardian"
-	}
-}
-
-func maskID(id string) string {
-	id = strings.TrimSpace(id)
-	if len(id) <= 4 {
-		return id
-	}
-	return id[:2] + strings.Repeat("*", len(id)-4) + id[len(id)-2:]
+	return t
 }

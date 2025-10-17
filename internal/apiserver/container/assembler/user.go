@@ -7,10 +7,6 @@ import (
 	appguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/guardianship"
 	appuow "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/uow"
 	appuser "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/user"
-	mysqlchild "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/child"
-	mysqlguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/guardianship"
-	mysqluser "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
-	identitygrpc "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/grpc/identity"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/restful/handler"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
@@ -23,7 +19,8 @@ type UserModule struct {
 	UserHandler         *handler.UserHandler
 	ChildHandler        *handler.ChildHandler
 	GuardianshipHandler *handler.GuardianshipHandler
-	IdentityGRPCService *identitygrpc.Service
+	// IdentityGRPCService 暂时注释，待实现
+	// IdentityGRPCService *identitygrpc.Service
 }
 
 // NewUserModule 创建用户模块
@@ -38,53 +35,38 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 		return errors.WithCode(code.ErrModuleInitializationFailed, "database connection is nil")
 	}
 
-	// 初始化仓储
-	userRepo := mysqluser.NewRepository(db)
-	childRepo := mysqlchild.NewRepository(db)
-	guardRepo := mysqlguard.NewRepository(db)
-
 	// 事务
 	uow := appuow.NewUnitOfWork(db)
 
-	// 用户服务
-	userRegisterSrv := appuser.NewRegisterService(userRepo)
-	userProfileSrv := appuser.NewProfileService(userRepo)
-	userQuerySrv := appuser.NewQueryService(userRepo)
+	// 用户应用服务
+	userAppSrv := appuser.NewUserApplicationService(uow)
+	userProfileAppSrv := appuser.NewUserProfileApplicationService(uow)
 
-	// 儿童服务
-	childRegisterSrv := appchild.NewRegisterService(childRepo)
-	childProfileSrv := appchild.NewProfileService(childRepo)
-	childQuerySrv := appchild.NewQueryService(childRepo)
+	// 儿童应用服务
+	childAppSrv := appchild.NewChildApplicationService(uow)
+	childProfileAppSrv := appchild.NewChildProfileApplicationService(uow)
 
-	// 监护服务
-	guardManagerSrv := appguard.NewManagerService(guardRepo, childRepo, userRepo, uow)
-	guardQuerySrv := appguard.NewQueryService(guardRepo, childRepo)
+	// 监护关系应用服务
+	guardAppSrv := appguard.NewGuardianshipApplicationService(uow)
 
 	// 初始化 handler 层
 	m.UserHandler = handler.NewUserHandler(
-		userRegisterSrv,
-		userProfileSrv,
-		userQuerySrv,
+		userAppSrv,
+		userProfileAppSrv,
 	)
 
 	m.ChildHandler = handler.NewChildHandler(
-		childRegisterSrv,
-		childProfileSrv,
-		childQuerySrv,
-		guardManagerSrv,
-		guardQuerySrv,
+		childAppSrv,
+		childProfileAppSrv,
+		guardAppSrv,
 	)
 
 	m.GuardianshipHandler = handler.NewGuardianshipHandler(
-		guardManagerSrv,
-		guardQuerySrv,
+		guardAppSrv,
 	)
 
-	m.IdentityGRPCService = identitygrpc.NewService(
-		userQuerySrv,
-		childQuerySrv,
-		guardQuerySrv,
-	)
+	// TODO: IdentityGRPCService 需要查询服务，暂时跳过
+	// m.IdentityGRPCService = identitygrpc.NewService(...)
 
 	return nil
 }
