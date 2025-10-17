@@ -21,6 +21,8 @@ type ChildHandler struct {
 	childApp   appchild.ChildApplicationService
 	profileApp appchild.ChildProfileApplicationService
 	guardApp   appguard.GuardianshipApplicationService
+	guardQuery appguard.GuardianshipQueryApplicationService
+	childQuery appchild.ChildQueryApplicationService
 }
 
 // NewChildHandler 创建儿童档案处理器
@@ -28,12 +30,16 @@ func NewChildHandler(
 	childApp appchild.ChildApplicationService,
 	profileApp appchild.ChildProfileApplicationService,
 	guardApp appguard.GuardianshipApplicationService,
+	guardQuery appguard.GuardianshipQueryApplicationService,
+	childQuery appchild.ChildQueryApplicationService,
 ) *ChildHandler {
 	return &ChildHandler{
 		BaseHandler: NewBaseHandler(),
 		childApp:    childApp,
 		profileApp:  profileApp,
 		guardApp:    guardApp,
+		guardQuery:  guardQuery,
+		childQuery:  childQuery,
 	}
 }
 
@@ -52,7 +58,7 @@ func (h *ChildHandler) ListMyChildren(c *gin.Context) {
 	}
 
 	// 列出用户监护的所有儿童
-	guardianships, err := h.guardApp.ListChildrenByUserID(c.Request.Context(), rawID)
+	guardianships, err := h.guardQuery.ListChildrenByUserID(c.Request.Context(), rawID)
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -64,7 +70,7 @@ func (h *ChildHandler) ListMyChildren(c *gin.Context) {
 			continue
 		}
 		// 查询儿童详细信息
-		child, err := h.childApp.GetByID(c.Request.Context(), g.ChildID)
+		child, err := h.childQuery.GetByID(c.Request.Context(), g.ChildID)
 		if err != nil {
 			h.Error(c, err)
 			return
@@ -179,7 +185,7 @@ func (h *ChildHandler) GetChild(c *gin.Context) {
 		return
 	}
 
-	child, err := h.childApp.GetByID(c.Request.Context(), childID)
+	child, err := h.childQuery.GetByID(c.Request.Context(), childID)
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -254,7 +260,7 @@ func (h *ChildHandler) PatchChild(c *gin.Context) {
 	}
 
 	// 返回更新后的儿童信息
-	child, err := h.childApp.GetByID(ctx, childID)
+	child, err := h.childQuery.GetByID(ctx, childID)
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -278,7 +284,7 @@ func (h *ChildHandler) SearchChildren(c *gin.Context) {
 	}
 
 	// SearchQuery 中没有 Gender，这里使用空字符串
-	children, err := h.childApp.FindSimilar(c.Request.Context(), name, "", birthday)
+	children, err := h.childQuery.FindSimilar(c.Request.Context(), name, "", birthday)
 	if err != nil {
 		h.Error(c, err)
 		return

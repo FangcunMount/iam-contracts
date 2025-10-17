@@ -13,16 +13,19 @@ import (
 // GuardianshipHandler 监护关系 REST 处理器
 type GuardianshipHandler struct {
 	*BaseHandler
-	guardApp appguard.GuardianshipApplicationService
+	guardApp   appguard.GuardianshipApplicationService
+	guardQuery appguard.GuardianshipQueryApplicationService
 }
 
 // NewGuardianshipHandler 创建监护处理器
 func NewGuardianshipHandler(
 	guardApp appguard.GuardianshipApplicationService,
+	guardQuery appguard.GuardianshipQueryApplicationService,
 ) *GuardianshipHandler {
 	return &GuardianshipHandler{
 		BaseHandler: NewBaseHandler(),
 		guardApp:    guardApp,
+		guardQuery:  guardQuery,
 	}
 }
 
@@ -46,7 +49,7 @@ func (h *GuardianshipHandler) Grant(c *gin.Context) {
 	}
 
 	// 查询返回监护关系
-	result, err := h.guardApp.GetByUserIDAndChildID(c.Request.Context(), req.UserID, req.ChildID)
+	result, err := h.guardQuery.GetByUserIDAndChildID(c.Request.Context(), req.UserID, req.ChildID)
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -74,7 +77,7 @@ func (h *GuardianshipHandler) Revoke(c *gin.Context) {
 	}
 
 	// 查询返回监护关系（包含撤销时间）
-	result, err := h.guardApp.GetByUserIDAndChildID(c.Request.Context(), req.UserID, req.ChildID)
+	result, err := h.guardQuery.GetByUserIDAndChildID(c.Request.Context(), req.UserID, req.ChildID)
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -98,7 +101,7 @@ func (h *GuardianshipHandler) List(c *gin.Context) {
 	switch {
 	case req.UserID != "" && req.ChildID != "":
 		// 查询特定用户和儿童的监护关系
-		result, qerr := h.guardApp.GetByUserIDAndChildID(c.Request.Context(), req.UserID, req.ChildID)
+		result, qerr := h.guardQuery.GetByUserIDAndChildID(c.Request.Context(), req.UserID, req.ChildID)
 		if qerr != nil {
 			h.Error(c, qerr)
 			return
@@ -110,10 +113,10 @@ func (h *GuardianshipHandler) List(c *gin.Context) {
 		}
 	case req.UserID != "":
 		// 查询用户的所有监护关系
-		results, err = h.guardApp.ListChildrenByUserID(c.Request.Context(), req.UserID)
+		results, err = h.guardQuery.ListChildrenByUserID(c.Request.Context(), req.UserID)
 	case req.ChildID != "":
 		// 查询儿童的所有监护人
-		results, err = h.guardApp.ListGuardiansByChildID(c.Request.Context(), req.ChildID)
+		results, err = h.guardQuery.ListGuardiansByChildID(c.Request.Context(), req.ChildID)
 	default:
 		results = []*appguard.GuardianshipResult{}
 	}

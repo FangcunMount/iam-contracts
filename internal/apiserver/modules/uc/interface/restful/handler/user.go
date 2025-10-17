@@ -18,17 +18,20 @@ type UserHandler struct {
 	*BaseHandler
 	userApp    appuser.UserApplicationService
 	profileApp appuser.UserProfileApplicationService
+	userQuery  appuser.UserQueryApplicationService
 }
 
 // NewUserHandler 创建用户处理器
 func NewUserHandler(
 	userApp appuser.UserApplicationService,
 	profileApp appuser.UserProfileApplicationService,
+	userQuery appuser.UserQueryApplicationService,
 ) *UserHandler {
 	return &UserHandler{
 		BaseHandler: NewBaseHandler(),
-		userApp:    userApp,
-		profileApp: profileApp,
+		userApp:     userApp,
+		profileApp:  profileApp,
+		userQuery:   userQuery,
 	}
 }
 
@@ -82,7 +85,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 
-	u, err := h.userApp.GetByID(c.Request.Context(), userID)
+	u, err := h.userQuery.GetByID(c.Request.Context(), userID)
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -129,7 +132,7 @@ func (h *UserHandler) PatchUser(c *gin.Context) {
 		}
 	}
 
-	u, err := h.userApp.GetByID(ctx, userID)
+	u, err := h.userQuery.GetByID(ctx, userID)
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -152,7 +155,7 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 		return
 	}
 
-	u, err := h.userApp.GetByID(c.Request.Context(), userID)
+	u, err := h.userQuery.GetByID(c.Request.Context(), userID)
 	if err != nil {
 		h.Error(c, err)
 		return

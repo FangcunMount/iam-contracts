@@ -14,6 +14,10 @@ type GuardianshipApplicationService interface {
 	RemoveGuardian(ctx context.Context, dto RemoveGuardianDTO) error
 	// RegisterChildWithGuardian 同时注册儿童和监护关系
 	RegisterChildWithGuardian(ctx context.Context, dto RegisterChildWithGuardianDTO) (*GuardianshipResult, error)
+}
+
+// GuardianshipQueryApplicationService 监护关系查询应用服务（只读）
+type GuardianshipQueryApplicationService interface {
 	// IsGuardian 检查是否为监护人
 	IsGuardian(ctx context.Context, userID string, childID string) (bool, error)
 	// GetByUserIDAndChildID 查询监护关系
