@@ -69,8 +69,8 @@ func (g *Generator) GenerateAccessToken(auth *authentication.Authentication, exp
 	}
 
 	claims := CustomClaims{
-		UserID:    auth.UserID.Value(),
-		AccountID: idutil.ID(auth.AccountID).Value(),
+		UserID:    auth.UserID.Uint64(),
+		AccountID: idutil.ID(auth.AccountID).Uint64(),
 		StandardClaims: jwt.StandardClaims{
 			Id:        tokenID,
 			Issuer:    g.issuer,

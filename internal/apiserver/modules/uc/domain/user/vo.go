@@ -15,6 +15,10 @@ func NewUserID(value uint64) UserID {
 // UserStatus 用户状态
 type UserStatus uint8
 
+func (s UserStatus) Uint64() interface{} {
+	panic("unimplemented")
+}
+
 const (
 	UserActive   UserStatus = 1 + iota // 1：活跃
 	UserInactive                       // 2：非活跃

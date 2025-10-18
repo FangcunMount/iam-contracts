@@ -28,13 +28,13 @@ func NewRepository(db *gorm.DB) port.ChildRepository {
 func (r *Repository) Create(ctx context.Context, child *domain.Child) error {
 	po := r.mapper.ToPO(child)
 	return r.CreateAndSync(ctx, po, func(updated *ChildPO) {
-		child.ID = domain.NewChildID(updated.ID.Value())
+		child.ID = domain.NewChildID(updated.ID.Uint64())
 	})
 }
 
 // FindByID 根据 ID 查找儿童档案
 func (r *Repository) FindByID(ctx context.Context, id domain.ChildID) (*domain.Child, error) {
-	po, err := r.BaseRepository.FindByID(ctx, id.Value())
+	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
 	if err != nil {
 		return nil, err
 	}
@@ -134,6 +134,6 @@ func (r *Repository) toChildren(pos []*ChildPO) []*domain.Child {
 func (r *Repository) Update(ctx context.Context, child *domain.Child) error {
 	po := r.mapper.ToPO(child)
 	return r.UpdateAndSync(ctx, po, func(updated *ChildPO) {
-		child.ID = domain.NewChildID(updated.ID.Value())
+		child.ID = domain.NewChildID(updated.ID.Uint64())
 	})
 }

@@ -25,7 +25,11 @@ func NewUser(name string, phone meta.Phone, opts ...UserOption) (*User, error) {
 		return nil, errors.WithCode(code.ErrUserBasicInfoInvalid, "phone cannot be empty")
 	}
 
-	user := &User{Name: name, Phone: phone}
+	user := &User{
+		Name:   name,
+		Phone:  phone,
+		Status: UserActive, // 新用户默认为活跃状态
+	}
 	for _, opt := range opts {
 		opt(user)
 	}

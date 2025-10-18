@@ -43,7 +43,7 @@ func (m *GuardianshipMapper) ToBO(po *GuardianshipPO) *domain.Guardianship {
 	}
 
 	gBO := &domain.Guardianship{
-		ID:            int64(po.ID.Value()),
+		ID:            int64(po.ID.Uint64()),
 		User:          user.UserID(po.UserID),
 		Child:         child.ChildID(po.ChildID),
 		Rel:           domain.Relation(po.Relation),

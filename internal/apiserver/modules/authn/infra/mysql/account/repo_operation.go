@@ -41,7 +41,7 @@ func (r *OperationRepository) Create(ctx context.Context, cred *domain.Operation
 func (r *OperationRepository) FindByAccountID(ctx context.Context, accountID domain.AccountID) (*domain.OperationAccount, error) {
 	var po OperationAccountPO
 	err := r.db.WithContext(ctx).
-		Where("account_id = ?", idutil.ID(accountID).Value()).
+		Where("account_id = ?", idutil.ID(accountID).Uint64()).
 		First(&po).
 		Error
 	if err != nil {
@@ -91,7 +91,7 @@ func (r *OperationRepository) UpdateHash(ctx context.Context, username string, h
 func (r *OperationRepository) UpdateUsername(ctx context.Context, accountID domain.AccountID, newUsername string) error {
 	return r.db.WithContext(ctx).
 		Model(&OperationAccountPO{}).
-		Where("account_id = ?", idutil.ID(accountID).Value()).
+		Where("account_id = ?", idutil.ID(accountID).Uint64()).
 		Update("username", newUsername).
 		Error
 }

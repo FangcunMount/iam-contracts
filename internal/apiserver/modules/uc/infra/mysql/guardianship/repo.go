@@ -30,7 +30,7 @@ func NewRepository(db *gorm.DB) port.GuardianshipRepository {
 func (r *Repository) Create(ctx context.Context, g *domain.Guardianship) error {
 	po := r.mapper.ToPO(g)
 	return r.CreateAndSync(ctx, po, func(updated *GuardianshipPO) {
-		g.ID = int64(updated.ID.Value())
+		g.ID = int64(updated.ID.Uint64())
 		if updated.EstablishedAt.IsZero() {
 			return
 		}
@@ -40,7 +40,7 @@ func (r *Repository) Create(ctx context.Context, g *domain.Guardianship) error {
 
 // FindByID 根据 ID 查找监护关系
 func (r *Repository) FindByID(ctx context.Context, id idutil.ID) (*domain.Guardianship, error) {
-	po, err := r.BaseRepository.FindByID(ctx, id.Value())
+	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (r *Repository) FindByID(ctx context.Context, id idutil.ID) (*domain.Guardi
 // FindByChildID 根据儿童 ID 查找监护关系
 func (r *Repository) FindByChildID(ctx context.Context, id child.ChildID) ([]*domain.Guardianship, error) {
 	var pos []*GuardianshipPO
-	if err := r.WithContext(ctx).Where("child_id = ?", id.Value()).Find(&pos).Error; err != nil {
+	if err := r.WithContext(ctx).Where("child_id = ?", id.Uint64()).Find(&pos).Error; err != nil {
 		return nil, err
 	}
 
@@ -64,7 +64,7 @@ func (r *Repository) FindByChildID(ctx context.Context, id child.ChildID) ([]*do
 // FindByUserID 根据监护人 ID 查找监护关系
 func (r *Repository) FindByUserID(ctx context.Context, id user.UserID) ([]*domain.Guardianship, error) {
 	var pos []*GuardianshipPO
-	if err := r.WithContext(ctx).Where("user_id = ?", id.Value()).Find(&pos).Error; err != nil {
+	if err := r.WithContext(ctx).Where("user_id = ?", id.Uint64()).Find(&pos).Error; err != nil {
 		return nil, err
 	}
 
@@ -75,7 +75,7 @@ func (r *Repository) FindByUserID(ctx context.Context, id user.UserID) ([]*domai
 func (r *Repository) Update(ctx context.Context, g *domain.Guardianship) error {
 	po := r.mapper.ToPO(g)
 	return r.UpdateAndSync(ctx, po, func(updated *GuardianshipPO) {
-		g.ID = int64(updated.ID.Value())
+		g.ID = int64(updated.ID.Uint64())
 		g.EstablishedAt = updated.EstablishedAt
 		g.RevokedAt = updated.RevokedAt
 	})

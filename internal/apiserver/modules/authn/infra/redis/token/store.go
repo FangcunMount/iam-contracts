@@ -42,8 +42,8 @@ func (s *RedisStore) SaveRefreshToken(ctx context.Context, token *authentication
 
 	data := refreshTokenData{
 		TokenID:   token.ID,
-		UserID:    token.UserID.Value(),
-		AccountID: idutil.ID(token.AccountID).Value(),
+		UserID:    token.UserID.Uint64(),
+		AccountID: idutil.ID(token.AccountID).Uint64(),
 		ExpiresAt: token.ExpiresAt,
 	}
 

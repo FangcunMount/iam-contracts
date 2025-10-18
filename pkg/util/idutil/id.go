@@ -1,6 +1,7 @@
 package idutil
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -15,8 +16,8 @@ func NewID(value uint64) ID {
 	return ID{value: value}
 }
 
-// Value 获取 ID 的数值
-func (id ID) Value() uint64 {
+// Uint64 返回 ID 的 uint64 值
+func (id ID) Uint64() uint64 {
 	return id.value
 }
 
@@ -72,6 +73,16 @@ func (id *ID) Scan(src interface{}) error {
 	default:
 		return fmt.Errorf("cannot scan type %T into ID", src)
 	}
+}
+
+// GormDBDataType 实现 schema.GormDBDataTypeInterface，告诉 GORM 数据类型
+func (ID) GormDBDataType(db string) string {
+	return "bigint"
+}
+
+// Value 实现 driver.Valuer 接口，将 ID 写入数据库
+func (id ID) Value() (driver.Value, error) {
+	return int64(id.value), nil
 }
 
 // IsZero 是否为零值

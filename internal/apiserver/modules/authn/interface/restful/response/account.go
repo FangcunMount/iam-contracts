@@ -53,7 +53,7 @@ func NewAccount(acc *domain.Account) Account {
 	}
 	resp := Account{
 		ID:         idutil.ID(acc.ID).String(),
-		UserID:     idutil.NewID(acc.UserID.Value()).String(),
+		UserID:     idutil.NewID(acc.UserID.Uint64()).String(),
 		Provider:   string(acc.Provider),
 		ExternalID: acc.ExternalID,
 		Status:     statusToString(acc.Status),

@@ -137,7 +137,7 @@ func TestNewChildID(t *testing.T) {
 	id := child.NewChildID(67890)
 
 	// Assert
-	assert.Equal(t, uint64(67890), id.Value())
+	assert.Equal(t, uint64(67890), id.Uint64())
 }
 
 // ==================== Child 综合场景测试 ====================

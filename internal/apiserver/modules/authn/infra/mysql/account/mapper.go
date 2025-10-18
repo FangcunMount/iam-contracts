@@ -22,7 +22,7 @@ func (m *Mapper) ToAccountPO(account *domain.Account) *AccountPO {
 	}
 
 	po := &AccountPO{
-		UserID:     idutil.NewID(account.UserID.Value()), // authn.UserID 映射到数据库 UserID 字段
+		UserID:     idutil.NewID(account.UserID.Uint64()), // authn.UserID 映射到数据库 UserID 字段
 		Provider:   string(account.Provider),
 		ExternalID: account.ExternalID,
 		AppID:      account.AppID,
@@ -53,7 +53,7 @@ func (m *Mapper) ToAccountBO(po *AccountPO) *domain.Account {
 	}
 
 	// 数据库 UserID 字段转换为 authn.UserID
-	userID := domain.NewUserID(po.UserID.Value())
+	userID := domain.NewUserID(po.UserID.Uint64())
 	account := domain.NewAccount(userID, domain.Provider(po.Provider), opts...)
 	return &account
 }

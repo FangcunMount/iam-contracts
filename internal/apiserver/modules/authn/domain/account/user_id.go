@@ -28,9 +28,14 @@ func ParseUserID(s string) (UserID, error) {
 	return UserID(id), nil
 }
 
-// Value 返回 uint64 值
-func (u UserID) Value() uint64 {
+// Uint64 返回 uint64 值
+func (u UserID) Uint64() uint64 {
 	return uint64(u)
+}
+
+// Value 实现 driver.Valuer 接口
+func (u UserID) Value() (driver.Value, error) {
+	return int64(u), nil
 }
 
 // String 返回字符串表示

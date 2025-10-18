@@ -22,7 +22,7 @@ func Latest(children []*domain.Child) *domain.Child {
 		if c == nil {
 			continue
 		}
-		value := c.ID.Value()
+		value := c.ID.Uint64()
 		if selected == nil || value > maxID {
 			selected = c
 			maxID = value
