@@ -4,8 +4,8 @@ package handler
 import (
 	"strconv"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/resource"
 	domainResource "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource/port/driving"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/interface/restful/dto"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
@@ -13,14 +13,21 @@ import (
 )
 
 // ResourceHandler 资源处理器
+//
+// 依赖倒置原则：Handler 依赖 driving 接口，不依赖具体实现
 type ResourceHandler struct {
-	resourceService *resource.Service
+	commander driving.ResourceCommander // 命令服务（写操作）
+	queryer   driving.ResourceQueryer   // 查询服务（读操作）
 }
 
 // NewResourceHandler 创建资源处理器
-func NewResourceHandler(resourceService *resource.Service) *ResourceHandler {
+func NewResourceHandler(
+	commander driving.ResourceCommander,
+	queryer driving.ResourceQueryer,
+) *ResourceHandler {
 	return &ResourceHandler{
-		resourceService: resourceService,
+		commander: commander,
+		queryer:   queryer,
 	}
 }
 
@@ -39,7 +46,7 @@ func (h *ResourceHandler) CreateResource(c *gin.Context) {
 		return
 	}
 
-	cmd := resource.CreateResourceCommand{
+	cmd := driving.CreateResourceCommand{
 		Key:         req.Key,
 		DisplayName: req.DisplayName,
 		AppName:     req.AppName,
@@ -49,7 +56,7 @@ func (h *ResourceHandler) CreateResource(c *gin.Context) {
 		Description: req.Description,
 	}
 
-	createdResource, err := h.resourceService.CreateResource(c.Request.Context(), cmd)
+	createdResource, err := h.commander.CreateResource(c.Request.Context(), cmd)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -80,14 +87,14 @@ func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 		return
 	}
 
-	cmd := resource.UpdateResourceCommand{
+	cmd := driving.UpdateResourceCommand{
 		ID:          domainResource.NewResourceID(resourceID),
-		DisplayName: req.DisplayName,
+		DisplayName: &req.DisplayName,
 		Actions:     req.Actions,
-		Description: req.Description,
+		Description: &req.Description,
 	}
 
-	updatedResource, err := h.resourceService.UpdateResource(c.Request.Context(), cmd)
+	updatedResource, err := h.commander.UpdateResource(c.Request.Context(), cmd)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -109,7 +116,7 @@ func (h *ResourceHandler) DeleteResource(c *gin.Context) {
 		return
 	}
 
-	err = h.resourceService.DeleteResource(c.Request.Context(), domainResource.NewResourceID(resourceID))
+	err = h.commander.DeleteResource(c.Request.Context(), domainResource.NewResourceID(resourceID))
 	if err != nil {
 		handleError(c, err)
 		return
@@ -132,7 +139,7 @@ func (h *ResourceHandler) GetResource(c *gin.Context) {
 		return
 	}
 
-	foundResource, err := h.resourceService.GetResourceByID(c.Request.Context(), domainResource.NewResourceID(resourceID))
+	foundResource, err := h.queryer.GetResourceByID(c.Request.Context(), domainResource.NewResourceID(resourceID))
 	if err != nil {
 		handleError(c, err)
 		return
@@ -151,7 +158,7 @@ func (h *ResourceHandler) GetResource(c *gin.Context) {
 func (h *ResourceHandler) GetResourceByKey(c *gin.Context) {
 	key := c.Param("key")
 
-	foundResource, err := h.resourceService.GetResourceByKey(c.Request.Context(), key)
+	foundResource, err := h.queryer.GetResourceByKey(c.Request.Context(), key)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -175,12 +182,12 @@ func (h *ResourceHandler) ListResources(c *gin.Context) {
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 
-	query := resource.ListResourceQuery{
+	query := driving.ListResourcesQuery{
 		Offset: offset,
 		Limit:  limit,
 	}
 
-	result, err := h.resourceService.ListResources(c.Request.Context(), query)
+	result, err := h.queryer.ListResources(c.Request.Context(), query)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -209,12 +216,7 @@ func (h *ResourceHandler) ValidateAction(c *gin.Context) {
 		return
 	}
 
-	query := resource.ValidateActionQuery{
-		ResourceKey: req.ResourceKey,
-		Action:      req.Action,
-	}
-
-	valid, err := h.resourceService.ValidateAction(c.Request.Context(), query)
+	valid, err := h.queryer.ValidateAction(c.Request.Context(), req.ResourceKey, req.Action)
 	if err != nil {
 		handleError(c, err)
 		return
