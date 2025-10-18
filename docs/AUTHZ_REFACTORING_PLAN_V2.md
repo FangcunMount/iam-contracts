@@ -3,6 +3,7 @@
 ## 问题分析
 
 当前 authz 模块存在的架构问题：
+
 1. ❌ **缺少 driving 端口定义**：没有在 domain/port/driving 中定义用例接口
 2. ❌ **未遵循 CQRS**：Command 和 Query 没有分离
 3. ❌ **应用服务职责不清**：应用服务直接包含业务逻辑，而不是实现 driving 接口
@@ -64,12 +65,14 @@
 ## 核心原则
 
 ### 1. 端口与适配器（Hexagonal Architecture）
+
 - **Driving Ports（驱动端口）**：在 `domain/port/driving` 定义用例接口
 - **Driven Ports（被驱动端口）**：在 `domain/port/driven` 定义仓储接口
 - **应用层实现 Driving Ports**
 - **基础设施层实现 Driven Ports**
 
 ### 2. CQRS（命令查询职责分离）
+
 - **Commander 接口**：处理写操作（Create, Update, Delete）
 - **Queryer 接口**：处理读操作（Get, List, Validate）
 - **好处**：
@@ -78,6 +81,7 @@
   - 便于实现不同的优化策略（读缓存、写事务）
 
 ### 3. 领域服务的正确使用
+
 - **领域服务不对外暴露**：不被接口层直接调用
 - **被应用服务编排**：应用服务调用领域服务完成业务逻辑
 - **封装业务规则**：唯一性检查、验证、复杂计算
@@ -97,6 +101,7 @@ git checkout internal/apiserver/modules/authz/application/resource/service.go
 ```
 
 **理由**：
+
 - 当前的 ResourceManager 设计是错误的
 - 领域服务不应该直接被注入到应用服务
 - 需要先定义 driving 端口
@@ -106,6 +111,7 @@ git checkout internal/apiserver/modules/authz/application/resource/service.go
 ### 阶段 2：定义 Resource Driving 端口（CQRS）（1.5小时）
 
 **2.1 创建 ResourceCommander 接口**
+
 ```go
 // domain/resource/port/driving/commander.go
 package driving
@@ -135,6 +141,7 @@ type UpdateResourceCommand struct {
 ```
 
 **2.2 创建 ResourceQueryer 接口**
+
 ```go
 // domain/resource/port/driving/queryer.go
 package driving
@@ -162,6 +169,7 @@ type ListResourcesResult struct {
 ### 阶段 3：创建 Resource 领域服务（内部使用）（1小时）
 
 **3.1 创建 ResourceManager（不对外暴露）**
+
 ```go
 // domain/resource/service/manager.go
 package service
@@ -179,6 +187,7 @@ func (m *ResourceManager) validateResourceParameters(opts CreateResourceOptions)
 ```
 
 **关键点**：
+
 - ✅ 领域服务是内部实现细节
 - ✅ 不被接口层直接调用
 - ✅ 被应用服务编排使用
@@ -188,6 +197,7 @@ func (m *ResourceManager) validateResourceParameters(opts CreateResourceOptions)
 ### 阶段 4：应用服务实现 Driving 接口（1.5小时）
 
 **4.1 ResourceCommandService 实现 ResourceCommander**
+
 ```go
 // application/resource/command_service.go
 package resource
@@ -225,6 +235,7 @@ func (s *ResourceCommandService) CreateResource(
 ```
 
 **4.2 ResourceQueryService 实现 ResourceQueryer**
+
 ```go
 // application/resource/query_service.go
 package resource
@@ -258,6 +269,7 @@ func (s *ResourceQueryService) ListResources(
 ```
 
 **关键点**：
+
 - ✅ 应用服务实现 driving 接口
 - ✅ 应用服务编排领域服务
 - ✅ Command 和 Query 分离
@@ -267,6 +279,7 @@ func (s *ResourceQueryService) ListResources(
 ### 阶段 5：更新接口层和容器（1小时）
 
 **5.1 更新 ResourceHandler**
+
 ```go
 // interface/restful/handler/resource.go
 type ResourceHandler struct {
@@ -301,6 +314,7 @@ func (h *ResourceHandler) CreateResource(c *gin.Context) {
 ```
 
 **5.2 更新 AuthzModule Assembler**
+
 ```go
 // container/assembler/authz.go
 func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *redis.Client) error {
@@ -326,24 +340,28 @@ func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *redis.Client) error {
 ### 阶段 6-9：重复相同模式重构其他模块
 
 #### 阶段 6：Role 模块（3小时）
+
 - 定义 RoleCommander / RoleQueryer
 - 创建 RoleManager 领域服务
 - RoleCommandService / RoleQueryService 实现接口
 - 更新 Handler 和 Assembler
 
 #### 阶段 7：Policy 模块（4小时）
+
 - 定义 PolicyCommander / PolicyQueryer
 - 创建 PolicyManager 领域服务（版本管理、Casbin同步）
 - PolicyCommandService / PolicyQueryService 实现接口
 - 更新 Handler 和 Assembler
 
 #### 阶段 8：Assignment 模块（4小时）
+
 - 定义 AssignmentCommander / AssignmentQueryer
 - 创建 AssignmentManager 领域服务（事务、Casbin分组）
 - AssignmentCommandService / AssignmentQueryService 实现接口
 - 更新 Handler 和 Assembler
 
 #### 阶段 9：验证和测试（3小时）
+
 - 编译验证
 - 单元测试
 - 集成测试
@@ -353,12 +371,14 @@ func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *redis.Client) error {
 ## 架构对比
 
 ### ❌ 错误的架构（之前的设计）
+
 ```
 Handler -> Application Service -> Domain Service (直接注入) -> Repository
                                   ↑ 错误：领域服务不应该直接暴露
 ```
 
 ### ✅ 正确的架构
+
 ```
 Handler -> Driving Interface (port/driving)
               ↓ (实现)
@@ -400,6 +420,7 @@ Handler -> Driving Interface (port/driving)
 ## 参考代码（authn 模块）
 
 参考文件：
+
 - `domain/account/port/driving/service.go` - Driving 接口定义
 - `domain/account/service/manager.go` - 领域服务实现
 - `application/account/account_app_service.go` - 应用服务实现接口

@@ -15,6 +15,7 @@
 ## Phase 1: 创建领域服务结构
 
 ### 1.1 创建角色领域服务
+
 - [ ] 创建 `domain/role/service/` 目录
 - [ ] 创建 `RoleManager` 领域服务
   - 职责：角色的创建、更新、删除、查询
@@ -24,6 +25,7 @@
     - 角色键值生成规则
 
 ### 1.2 创建角色分配领域服务
+
 - [ ] 创建 `domain/assignment/service/` 目录
 - [ ] 创建 `AssignmentManager` 领域服务
   - 职责：角色分配的授予和撤销
@@ -33,6 +35,7 @@
     - 主体标识符生成规则（SubjectKey, RoleKey）
 
 ### 1.3 创建策略领域服务
+
 - [ ] 创建 `domain/policy/service/` 目录
 - [ ] 创建 `PolicyManager` 领域服务
   - 职责：策略规则的管理和版本控制
@@ -43,6 +46,7 @@
     - 策略的一致性保证（Casbin + 版本 + 通知）
 
 ### 1.4 创建资源领域服务
+
 - [ ] 创建 `domain/resource/service/` 目录
 - [ ] 创建 `ResourceManager` 领域服务
   - 职责：资源目录的管理和验证
@@ -56,12 +60,15 @@
 ## Phase 2: 重构角色模块
 
 ### 2.1 创建 RoleManager 领域服务
+
 - [ ] 定义 `RoleManager` 结构
+
   ```go
   type RoleManager struct {
       roleRepo driven.RoleRepo
   }
   ```
+
 - [ ] 实现 `CreateRole(ctx, name, displayName, tenantID, opts) (*Role, error)`
   - 包含名称唯一性检查
   - 领域对象创建
@@ -80,6 +87,7 @@
   - 分页查询
 
 ### 2.2 重构角色应用服务
+
 - [ ] 简化 `application/role/Service`
 - [ ] 注入 `RoleManager` 领域服务
 - [ ] 将业务逻辑委托给领域服务
@@ -93,7 +101,9 @@
 ## Phase 3: 重构角色分配模块
 
 ### 3.1 创建 AssignmentManager 领域服务
+
 - [ ] 定义 `AssignmentManager` 结构
+
   ```go
   type AssignmentManager struct {
       assignmentRepo driven.AssignmentRepo
@@ -101,6 +111,7 @@
       casbinPort     policyDriven.CasbinPort
   }
   ```
+
 - [ ] 实现 `GrantRole(ctx, subjectType, subjectID, roleID, tenantID, grantedBy) (*Assignment, error)`
   - 角色存在性和租户隔离检查
   - 创建分配领域对象
@@ -116,6 +127,7 @@
 - [ ] 实现查询方法
 
 ### 3.2 重构角色分配应用服务
+
 - [ ] 简化 `application/assignment/Service`
 - [ ] 注入 `AssignmentManager` 领域服务
 - [ ] 将业务逻辑委托给领域服务
@@ -125,7 +137,9 @@
 ## Phase 4: 重构策略模块
 
 ### 4.1 创建 PolicyManager 领域服务
+
 - [ ] 定义 `PolicyManager` 结构
+
   ```go
   type PolicyManager struct {
       policyVersionRepo policyDriven.PolicyVersionRepo
@@ -135,6 +149,7 @@
       versionNotifier   policyDriven.VersionNotifier
   }
   ```
+
 - [ ] 实现 `AddPolicyRule(ctx, roleID, resourceID, action, tenantID, changedBy, reason) error`
   - 角色和资源的存在性检查
   - 租户隔离检查
@@ -147,6 +162,7 @@
 - [ ] 实现查询方法
 
 ### 4.2 重构策略应用服务
+
 - [ ] 简化 `application/policy/Service`
 - [ ] 注入 `PolicyManager` 领域服务
 - [ ] 将业务逻辑委托给领域服务
@@ -156,12 +172,15 @@
 ## Phase 5: 重构资源模块
 
 ### 5.1 创建 ResourceManager 领域服务
+
 - [ ] 定义 `ResourceManager` 结构
+
   ```go
   type ResourceManager struct {
       resourceRepo resourceDriven.ResourceRepo
   }
   ```
+
 - [ ] 实现 `CreateResource(ctx, key, actions, opts) (*Resource, error)`
   - 资源键唯一性检查
   - 领域对象创建
@@ -173,6 +192,7 @@
 - [ ] 实现查询方法
 
 ### 5.2 重构资源应用服务
+
 - [ ] 简化 `application/resource/Service`
 - [ ] 注入 `ResourceManager` 领域服务
 - [ ] 将业务逻辑委托给领域服务
@@ -182,14 +202,18 @@
 ## Phase 6: 更新 Assembler 和测试
 
 ### 6.1 更新 AuthzModule Assembler
+
 - [ ] 创建领域服务实例
+
   ```go
   roleManager := roleService.NewRoleManager(roleRepository)
   assignmentManager := assignmentService.NewAssignmentManager(assignmentRepository, roleRepository, casbinAdapter)
   policyManager := policyService.NewPolicyManager(policyVersionRepository, roleRepository, resourceRepository, casbinAdapter, versionNotifier)
   resourceManager := resourceService.NewResourceManager(resourceRepository)
   ```
+
 - [ ] 注入到应用服务
+
   ```go
   m.RoleService = role.NewService(roleManager)
   m.AssignmentService = assignment.NewService(assignmentManager)
@@ -198,11 +222,13 @@
   ```
 
 ### 6.2 编写单元测试
+
 - [ ] 为每个领域服务编写单元测试
 - [ ] Mock 仓储接口
 - [ ] 测试业务规则和异常场景
 
 ### 6.3 集成测试
+
 - [ ] 测试应用服务 → 领域服务 → 仓储的完整链路
 - [ ] 测试 Casbin 同步
 - [ ] 测试版本通知
@@ -213,11 +239,13 @@
 ## Phase 7: 文档和验证
 
 ### 7.1 更新文档
+
 - [ ] 更新架构文档（`docs/uc-architecture.md`）
 - [ ] 创建重构总结文档
 - [ ] 更新 API 文档（如果有变化）
 
 ### 7.2 编译和验证
+
 - [ ] 编译整个项目 `go build ./...`
 - [ ] 运行所有测试 `go test ./...`
 - [ ] 代码质量检查 `go vet ./...`
@@ -228,6 +256,7 @@
 ## 预期效果
 
 ### 重构前（当前）
+
 ```
 HTTP Request
     ↓
@@ -245,6 +274,7 @@ Repository
 ```
 
 ### 重构后（目标）
+
 ```
 HTTP Request
     ↓

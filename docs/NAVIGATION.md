@@ -135,18 +135,23 @@ docs/
 ## 📖 按模块查找
 
 ### 需要了解认证？
+
 → 从 [authentication/authentication-design.md](./authentication/authentication-design.md) 开始
 
 ### 需要了解授权？
+
 → 从 [authorization/authz-overview.md](./authorization/authz-overview.md) 开始
 
 ### 需要了解架构？
+
 → 从 [architecture-overview.md](./architecture-overview.md) 开始
 
 ### 需要集成认证？
+
 → 查看 [authentication/authentication-integration.md](./authentication/authentication-integration.md)
 
 ### 需要实现权限控制？
+
 → 查看 [authorization/README.md](./authorization/README.md)
 
 ## 🎨 文档类型说明
