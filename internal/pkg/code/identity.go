@@ -1,5 +1,11 @@
 package code
 
+import (
+	"net/http"
+
+	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+)
+
 // Base user & identity module errors.
 const (
 	// ErrUserNotFound - 404: User not found.
@@ -41,3 +47,49 @@ const (
 	// ErrIdentityGuardianshipNotFound - 404: 监护关系不存在
 	ErrIdentityGuardianshipNotFound = 110105
 )
+
+// nolint: gochecknoinits
+func init() {
+	registerIdentity()
+}
+
+func registerIdentity() {
+	// Base user & identity module errors
+	errors.MustRegister(&identityCoder{code: ErrUserNotFound, status: http.StatusNotFound, msg: "User not found"})
+	errors.MustRegister(&identityCoder{code: ErrUserAlreadyExists, status: http.StatusBadRequest, msg: "User already exist"})
+	errors.MustRegister(&identityCoder{code: ErrUserBasicInfoInvalid, status: http.StatusBadRequest, msg: "User basic info is invalid"})
+	errors.MustRegister(&identityCoder{code: ErrUserStatusInvalid, status: http.StatusBadRequest, msg: "User status is invalid"})
+	errors.MustRegister(&identityCoder{code: ErrUserInvalid, status: http.StatusBadRequest, msg: "User is invalid"})
+	errors.MustRegister(&identityCoder{code: ErrUserBlocked, status: http.StatusForbidden, msg: "User is blocked"})
+	errors.MustRegister(&identityCoder{code: ErrUserInactive, status: http.StatusForbidden, msg: "User is inactive"})
+
+	// Identity (child, guardianship) module errors
+	errors.MustRegister(&identityCoder{code: ErrIdentityUserBlocked, status: http.StatusForbidden, msg: "用户被封禁"})
+	errors.MustRegister(&identityCoder{code: ErrIdentityChildExists, status: http.StatusBadRequest, msg: "儿童档案已存在"})
+	errors.MustRegister(&identityCoder{code: ErrIdentityChildNotFound, status: http.StatusNotFound, msg: "儿童不存在"})
+	errors.MustRegister(&identityCoder{code: ErrIdentityGuardianshipExists, status: http.StatusBadRequest, msg: "监护关系已存在"})
+	errors.MustRegister(&identityCoder{code: ErrIdentityGuardianshipNotFound, status: http.StatusNotFound, msg: "监护关系不存在"})
+}
+
+// identityCoder 实现 errors.Coder 接口
+type identityCoder struct {
+	code   int
+	status int
+	msg    string
+}
+
+func (c *identityCoder) Code() int {
+	return c.code
+}
+
+func (c *identityCoder) HTTPStatus() int {
+	return c.status
+}
+
+func (c *identityCoder) String() string {
+	return c.msg
+}
+
+func (c *identityCoder) Reference() string {
+	return ""
+}
