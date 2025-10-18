@@ -9,8 +9,9 @@ import (
 
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/assignment"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/policy"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/resource"
+	resourceApp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/resource"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/role"
+	resourceService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource/service"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/casbin"
 	assignmentInfra "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/assignment"
 	policyInfra "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/policy"
@@ -22,11 +23,10 @@ import (
 
 // AuthzModule 授权模块
 type AuthzModule struct {
-	// Application Services
+	// Application Services (旧模块，待重构)
 	RoleService       *role.Service
 	AssignmentService *assignment.Service
 	PolicyService     *policy.Service
-	ResourceService   *resource.Service
 
 	// HTTP Handlers
 	RoleHandler       *handler.RoleHandler
@@ -73,17 +73,27 @@ func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *redis2.Client) error 
 		"authz:policy_changed",
 	)
 
-	// 4. 初始化应用服务
+	// 4. 初始化领域服务（Resource 模块）
+	resourceManager := resourceService.NewResourceManager(resourceRepository)
+
+	// 5. 初始化应用服务
+	// Resource 模块 - CQRS 分离
+	resourceCommander := resourceApp.NewResourceCommandService(resourceManager, resourceRepository)
+	resourceQueryer := resourceApp.NewResourceQueryService(resourceRepository)
+
+	// 其他模块（待重构）
 	m.RoleService = role.NewService(roleRepository)
 	m.AssignmentService = assignment.NewService(assignmentRepository, roleRepository, casbinAdapter)
 	m.PolicyService = policy.NewService(policyVersionRepository, roleRepository, resourceRepository, casbinAdapter, versionNotifier)
-	m.ResourceService = resource.NewService(resourceRepository)
 
-	// 5. 初始化 HTTP 处理器
+	// 6. 初始化 HTTP 处理器
+	// Resource Handler - 依赖 driving 接口（CQRS）
+	m.ResourceHandler = handler.NewResourceHandler(resourceCommander, resourceQueryer)
+
+	// 其他 Handler（待重构）
 	m.RoleHandler = handler.NewRoleHandler(m.RoleService)
 	m.AssignmentHandler = handler.NewAssignmentHandler(m.AssignmentService)
 	m.PolicyHandler = handler.NewPolicyHandler(m.PolicyService)
-	m.ResourceHandler = handler.NewResourceHandler(m.ResourceService)
 
 	fmt.Printf("✅ Authz module initialized\n")
 	return nil
