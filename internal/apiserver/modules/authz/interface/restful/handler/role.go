@@ -4,8 +4,8 @@ package handler
 import (
 	"strconv"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/role"
 	domainRole "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driving"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/interface/restful/dto"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
@@ -13,14 +13,21 @@ import (
 )
 
 // RoleHandler 角色处理器
+//
+// 依赖倒置原则：Handler 依赖 driving 接口，不依赖具体实现
 type RoleHandler struct {
-	roleService *role.Service
+	commander driving.RoleCommander // 命令服务（写操作）
+	queryer   driving.RoleQueryer   // 查询服务（读操作）
 }
 
 // NewRoleHandler 创建角色处理器
-func NewRoleHandler(roleService *role.Service) *RoleHandler {
+func NewRoleHandler(
+	commander driving.RoleCommander,
+	queryer driving.RoleQueryer,
+) *RoleHandler {
 	return &RoleHandler{
-		roleService: roleService,
+		commander: commander,
+		queryer:   queryer,
 	}
 }
 
@@ -41,14 +48,14 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 
 	tenantID := getTenantID(c)
 
-	cmd := role.CreateRoleCommand{
+	cmd := driving.CreateRoleCommand{
 		Name:        req.Name,
 		DisplayName: req.DisplayName,
 		TenantID:    tenantID,
 		Description: req.Description,
 	}
 
-	createdRole, err := h.roleService.CreateRole(c.Request.Context(), cmd)
+	createdRole, err := h.commander.CreateRole(c.Request.Context(), cmd)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -79,13 +86,13 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 		return
 	}
 
-	cmd := role.UpdateRoleCommand{
+	cmd := driving.UpdateRoleCommand{
 		ID:          domainRole.NewRoleID(roleID),
-		DisplayName: req.DisplayName,
-		Description: req.Description,
+		DisplayName: &req.DisplayName,
+		Description: &req.Description,
 	}
 
-	updatedRole, err := h.roleService.UpdateRole(c.Request.Context(), cmd)
+	updatedRole, err := h.commander.UpdateRole(c.Request.Context(), cmd)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -107,9 +114,7 @@ func (h *RoleHandler) DeleteRole(c *gin.Context) {
 		return
 	}
 
-	tenantID := getTenantID(c)
-
-	err = h.roleService.DeleteRole(c.Request.Context(), domainRole.NewRoleID(roleID), tenantID)
+	err = h.commander.DeleteRole(c.Request.Context(), domainRole.NewRoleID(roleID))
 	if err != nil {
 		handleError(c, err)
 		return
@@ -132,9 +137,7 @@ func (h *RoleHandler) GetRole(c *gin.Context) {
 		return
 	}
 
-	tenantID := getTenantID(c)
-
-	foundRole, err := h.roleService.GetRoleByID(c.Request.Context(), domainRole.NewRoleID(roleID), tenantID)
+	foundRole, err := h.queryer.GetRoleByID(c.Request.Context(), domainRole.NewRoleID(roleID))
 	if err != nil {
 		handleError(c, err)
 		return
@@ -160,13 +163,13 @@ func (h *RoleHandler) ListRoles(c *gin.Context) {
 
 	tenantID := getTenantID(c)
 
-	listQuery := role.ListRoleQuery{
+	listQuery := driving.ListRolesQuery{
 		TenantID: tenantID,
 		Offset:   query.Offset,
 		Limit:    query.Limit,
 	}
 
-	result, err := h.roleService.ListRoles(c.Request.Context(), listQuery)
+	result, err := h.queryer.ListRoles(c.Request.Context(), listQuery)
 	if err != nil {
 		handleError(c, err)
 		return
