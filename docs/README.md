@@ -39,6 +39,7 @@
 - [快速参考](./authentication/authentication-quick-reference.md) - API 速查表
 
 **核心特性**:
+
 - ✅ 多渠道登录（微信小程序、企业微信、本地密码）
 - ✅ JWT Token 管理（签发、验证、刷新、撤销）
 - ✅ JWKS 公钥发布与密钥轮换
@@ -68,6 +69,7 @@
 - [策略示例](./authorization/policy_init.csv) - 初始策略配置
 
 **核心特性**:
+
 - ✅ RBAC 模型（角色继承 + 域隔离）
 - ✅ 域对象级权限控制
 - ✅ 两段式权限判定（*_all / *_own）
@@ -241,21 +243,25 @@ docs/
 ## 🎨 技术栈
 
 ### 后端框架
+
 - **Go 1.21+**: 编程语言
 - **Gin**: Web 框架
 - **gRPC**: RPC 框架
 - **GORM**: ORM 框架
 
 ### 认证授权
+
 - **JWT**: Token 认证
 - **Casbin**: 权限引擎
 - **Argon2**: 密码哈希
 
 ### 存储
+
 - **MySQL**: 主数据库
 - **Redis**: 缓存 & Pub/Sub
 
 ### 开发工具
+
 - **Air**: 热重载
 - **golangci-lint**: 代码检查
 - **protoc**: gRPC 代码生成
