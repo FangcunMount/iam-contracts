@@ -32,13 +32,13 @@ type Syncable interface {
 
 // AuditFields provides reusable columns for ID and audit timestamps.
 type AuditFields struct {
-	ID        idutil.ID `gorm:"primaryKey;autoIncrement"`
+	ID        idutil.ID `gorm:"primaryKey;type:bigint"`
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
 	DeletedAt time.Time `gorm:"column:deleted_at;index"`
-	CreatedBy idutil.ID `gorm:"column:created_by;type:varchar(50)" json:"created_by"`
-	UpdatedBy idutil.ID `gorm:"column:updated_by;type:varchar(50)" json:"updated_by"`
-	DeletedBy idutil.ID `gorm:"column:deleted_by;type:varchar(50)" json:"deleted_by"`
+	CreatedBy idutil.ID `gorm:"column:created_by;type:bigint" json:"created_by"`
+	UpdatedBy idutil.ID `gorm:"column:updated_by;type:bigint" json:"updated_by"`
+	DeletedBy idutil.ID `gorm:"column:deleted_by;type:bigint" json:"deleted_by"`
 	Version   uint32    `gorm:"column:version;type:int unsigned;not null;default:1;version" json:"version"`
 }
 
