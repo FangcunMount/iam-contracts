@@ -4,7 +4,7 @@ package handler
 import (
 	"strconv"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/policy"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy/port/driving"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/interface/restful/dto"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
@@ -14,13 +14,15 @@ import (
 
 // PolicyHandler 策略处理器
 type PolicyHandler struct {
-	policyService *policy.Service
+	commander driving.PolicyCommander
+	queryer   driving.PolicyQueryer
 }
 
 // NewPolicyHandler 创建策略处理器
-func NewPolicyHandler(policyService *policy.Service) *PolicyHandler {
+func NewPolicyHandler(commander driving.PolicyCommander, queryer driving.PolicyQueryer) *PolicyHandler {
 	return &PolicyHandler{
-		policyService: policyService,
+		commander: commander,
+		queryer:   queryer,
 	}
 }
 
@@ -42,7 +44,7 @@ func (h *PolicyHandler) AddPolicyRule(c *gin.Context) {
 	tenantID := getTenantID(c)
 	changedBy := getUserID(c)
 
-	cmd := policy.AddPolicyRuleCommand{
+	cmd := driving.AddPolicyRuleCommand{
 		RoleID:     req.RoleID,
 		ResourceID: resource.NewResourceID(req.ResourceID),
 		Action:     req.Action,
@@ -51,7 +53,7 @@ func (h *PolicyHandler) AddPolicyRule(c *gin.Context) {
 		Reason:     req.Reason,
 	}
 
-	err := h.policyService.AddPolicyRule(c.Request.Context(), cmd)
+	err := h.commander.AddPolicyRule(c.Request.Context(), cmd)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -78,7 +80,7 @@ func (h *PolicyHandler) RemovePolicyRule(c *gin.Context) {
 	tenantID := getTenantID(c)
 	changedBy := getUserID(c)
 
-	cmd := policy.RemovePolicyRuleCommand{
+	cmd := driving.RemovePolicyRuleCommand{
 		RoleID:     req.RoleID,
 		ResourceID: resource.NewResourceID(req.ResourceID),
 		Action:     req.Action,
@@ -87,7 +89,7 @@ func (h *PolicyHandler) RemovePolicyRule(c *gin.Context) {
 		Reason:     req.Reason,
 	}
 
-	err := h.policyService.RemovePolicyRule(c.Request.Context(), cmd)
+	err := h.commander.RemovePolicyRule(c.Request.Context(), cmd)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -112,12 +114,12 @@ func (h *PolicyHandler) GetPoliciesByRole(c *gin.Context) {
 
 	tenantID := getTenantID(c)
 
-	query := policy.GetPoliciesByRoleQuery{
+	query := driving.GetPoliciesByRoleQuery{
 		RoleID:   roleID,
 		TenantID: tenantID,
 	}
 
-	rules, err := h.policyService.GetPoliciesByRole(c.Request.Context(), query)
+	rules, err := h.queryer.GetPoliciesByRole(c.Request.Context(), query)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -145,11 +147,11 @@ func (h *PolicyHandler) GetPoliciesByRole(c *gin.Context) {
 func (h *PolicyHandler) GetCurrentVersion(c *gin.Context) {
 	tenantID := getTenantID(c)
 
-	query := policy.GetCurrentVersionQuery{
+	query := driving.GetCurrentVersionQuery{
 		TenantID: tenantID,
 	}
 
-	version, err := h.policyService.GetCurrentVersion(c.Request.Context(), query)
+	version, err := h.queryer.GetCurrentVersion(c.Request.Context(), query)
 	if err != nil {
 		handleError(c, err)
 		return
