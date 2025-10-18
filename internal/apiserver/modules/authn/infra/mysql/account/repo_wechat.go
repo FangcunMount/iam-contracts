@@ -41,7 +41,7 @@ func (r *WeChatRepository) Create(ctx context.Context, wx *domain.WeChatAccount)
 func (r *WeChatRepository) FindByAccountID(ctx context.Context, accountID domain.AccountID) (*domain.WeChatAccount, error) {
 	var po WeChatAccountPO
 	err := r.db.WithContext(ctx).
-		Where("account_id = ?", idutil.ID(accountID).Value()).
+		Where("account_id = ?", idutil.ID(accountID).Uint64()).
 		First(&po).
 		Error
 	if err != nil {
@@ -92,7 +92,7 @@ func (r *WeChatRepository) UpdateProfile(ctx context.Context, accountID domain.A
 
 	return r.db.WithContext(ctx).
 		Model(&WeChatAccountPO{}).
-		Where("account_id = ?", idutil.ID(accountID).Value()).
+		Where("account_id = ?", idutil.ID(accountID).Uint64()).
 		Updates(updates).
 		Error
 }
@@ -107,7 +107,7 @@ func (r *WeChatRepository) UpdateUnionID(ctx context.Context, accountID domain.A
 	}
 	return r.db.WithContext(ctx).
 		Model(&WeChatAccountPO{}).
-		Where("account_id = ?", idutil.ID(accountID).Value()).
+		Where("account_id = ?", idutil.ID(accountID).Uint64()).
 		Updates(updates).
 		Error
 }

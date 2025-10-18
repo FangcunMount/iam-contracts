@@ -35,10 +35,10 @@ func (s *GuardianshipRegister) RegisterChildWithGuardian(ctx context.Context, pa
 	// 验证监护人（用户）存在
 	userEntity, err := s.userRepo.FindByID(ctx, params.UserID)
 	if err != nil {
-		return nil, nil, perrors.WrapC(err, code.ErrDatabase, "find user(%d) failed", params.UserID.Value())
+		return nil, nil, perrors.WrapC(err, code.ErrDatabase, "find user(%d) failed", params.UserID.Uint64())
 	}
 	if userEntity == nil {
-		return nil, nil, perrors.WithCode(code.ErrUserInvalid, "user(%d) not found", params.UserID.Value())
+		return nil, nil, perrors.WithCode(code.ErrUserInvalid, "user(%d) not found", params.UserID.Uint64())
 	}
 
 	// 创建儿童实体

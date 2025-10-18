@@ -29,7 +29,7 @@ func NewUserAdapter(userRepo userport.UserRepository) UserAdapter {
 // ExistsUser 检查用户是否存在
 func (a *userAdapterImpl) ExistsUser(ctx context.Context, userID account.UserID) (bool, error) {
 	// 将 authn 的 UserID 转换为 uc 的 UserID
-	ucUserID := userdomain.NewUserID(userID.Value())
+	ucUserID := userdomain.NewUserID(userID.Uint64())
 
 	user, err := a.userRepo.FindByID(ctx, ucUserID)
 	if err != nil {
@@ -44,7 +44,7 @@ func (a *userAdapterImpl) ExistsUser(ctx context.Context, userID account.UserID)
 
 // GetUserStatus 获取用户状态
 func (a *userAdapterImpl) GetUserStatus(ctx context.Context, userID account.UserID) (string, error) {
-	ucUserID := userdomain.NewUserID(userID.Value())
+	ucUserID := userdomain.NewUserID(userID.Uint64())
 
 	user, err := a.userRepo.FindByID(ctx, ucUserID)
 	if err != nil {
@@ -60,7 +60,7 @@ func (a *userAdapterImpl) GetUserStatus(ctx context.Context, userID account.User
 
 // IsUserActive 检查用户是否活跃
 func (a *userAdapterImpl) IsUserActive(ctx context.Context, userID account.UserID) (bool, error) {
-	ucUserID := userdomain.NewUserID(userID.Value())
+	ucUserID := userdomain.NewUserID(userID.Uint64())
 
 	user, err := a.userRepo.FindByID(ctx, ucUserID)
 	if err != nil {

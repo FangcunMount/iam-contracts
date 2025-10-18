@@ -39,7 +39,7 @@ func (r *AccountRepository) Create(ctx context.Context, a *domain.Account) error
 
 // FindByID 根据主键查询账号。
 func (r *AccountRepository) FindByID(ctx context.Context, id domain.AccountID) (*domain.Account, error) {
-	po, err := r.BaseRepository.FindByID(ctx, idutil.ID(id).Value())
+	po, err := r.BaseRepository.FindByID(ctx, idutil.ID(id).Uint64())
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (r *AccountRepository) UpdateStatus(ctx context.Context, id domain.AccountI
 // UpdateUserID 更新账号关联的 UserID。
 func (r *AccountRepository) UpdateUserID(ctx context.Context, id domain.AccountID, userID domain.UserID) error {
 	return r.updateColumns(ctx, id, map[string]any{
-		"user_id": idutil.NewID(userID.Value()),
+		"user_id": idutil.NewID(userID.Uint64()),
 	})
 }
 
@@ -107,7 +107,7 @@ func (r *AccountRepository) updateColumns(ctx context.Context, id domain.Account
 
 	return r.db.WithContext(ctx).
 		Model(&AccountPO{}).
-		Where("id = ?", idutil.ID(id).Value()).
+		Where("id = ?", idutil.ID(id).Uint64()).
 		Updates(updates).
 		Error
 }
@@ -116,7 +116,7 @@ func (r *AccountRepository) updateColumns(ctx context.Context, id domain.Account
 func (r *AccountRepository) ListByUserID(ctx context.Context, userID domain.UserID) ([]*domain.Account, error) {
 	var pos []AccountPO
 	if err := r.db.WithContext(ctx).
-		Where("user_id = ?", idutil.NewID(userID.Value()).Value()).
+		Where("user_id = ?", idutil.NewID(userID.Uint64()).Uint64()).
 		Find(&pos).
 		Error; err != nil {
 		return nil, err

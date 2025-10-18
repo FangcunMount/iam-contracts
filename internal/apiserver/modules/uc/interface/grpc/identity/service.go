@@ -12,7 +12,6 @@ import (
 
 	childdomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child"
 	childport "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child/port"
-	guardianshipdomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship"
 	guardport "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship/port"
 	userdomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 	userport "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user/port"
@@ -255,17 +254,6 @@ func toProtoChild(c *childdomain.Child) *identityv1.Child {
 	}
 
 	return child
-}
-
-func relationToString(rel guardianshipdomain.Relation) string {
-	switch rel {
-	case guardianshipdomain.RelSelf:
-		return "self"
-	case guardianshipdomain.RelParent:
-		return "parent"
-	default:
-		return "guardian"
-	}
 }
 
 func toGRPCError(err error) error {

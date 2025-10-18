@@ -28,13 +28,13 @@ func NewRepository(db *gorm.DB) port.UserRepository {
 func (r *Repository) Create(ctx context.Context, u *domain.User) error {
 	po := r.mapper.ToPO(u)
 	return r.CreateAndSync(ctx, po, func(updated *UserPO) {
-		u.ID = domain.NewUserID(updated.ID.Value())
+		u.ID = domain.NewUserID(updated.ID.Uint64())
 	})
 }
 
 // FindByID 根据ID查找用户
 func (r *Repository) FindByID(ctx context.Context, id domain.UserID) (*domain.User, error) {
-	po, err := r.BaseRepository.FindByID(ctx, id.Value())
+	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
 	if err != nil {
 		return nil, err
 	}
@@ -63,6 +63,6 @@ func (r *Repository) FindByPhone(ctx context.Context, phone meta.Phone) (*domain
 func (r *Repository) Update(ctx context.Context, u *domain.User) error {
 	po := r.mapper.ToPO(u)
 	return r.UpdateAndSync(ctx, po, func(updated *UserPO) {
-		u.ID = domain.NewUserID(updated.ID.Value())
+		u.ID = domain.NewUserID(updated.ID.Uint64())
 	})
 }

@@ -65,8 +65,8 @@ func (s *TokenService) VerifyToken(ctx context.Context, req *VerifyTokenRequest)
 	// 构造响应
 	return &VerifyTokenResponse{
 		Valid:     true,
-		UserID:    claims.UserID.Value(),
-		AccountID: idutil.ID(claims.AccountID).Value(),
+		UserID:    claims.UserID.Uint64(),
+		AccountID: idutil.ID(claims.AccountID).Uint64(),
 		TokenID:   claims.TokenID,
 	}, nil
 }
@@ -159,7 +159,7 @@ func (s *TokenService) GetUserInfo(ctx context.Context, req *GetUserInfoRequest)
 
 	// 返回用户信息
 	return &GetUserInfoResponse{
-		UserID:    claims.UserID.Value(),
-		AccountID: idutil.ID(claims.AccountID).Value(),
+		UserID:    claims.UserID.Uint64(),
+		AccountID: idutil.ID(claims.AccountID).Uint64(),
 	}, nil
 }

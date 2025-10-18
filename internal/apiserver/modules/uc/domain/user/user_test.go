@@ -30,7 +30,7 @@ func TestNewUser_Success(t *testing.T) {
 	assert.Equal(t, phone, u.Phone)
 	assert.True(t, u.Email.IsEmpty(), "email should be empty by default")
 	assert.Equal(t, "", u.IDCard.Number(), "id card should be empty by default")
-	assert.Equal(t, user.UserStatus(0), u.Status, "status should be zero value by default")
+	assert.Equal(t, user.UserActive, u.Status, "status should be UserActive by default")
 }
 
 func TestNewUser_WithOptions(t *testing.T) {
@@ -225,5 +225,5 @@ func TestUserStatus_String(t *testing.T) {
 func TestNewUserID(t *testing.T) {
 	// 测试创建 UserID
 	id := user.NewUserID(12345)
-	assert.Equal(t, uint64(12345), id.Value())
+	assert.Equal(t, uint64(12345), id.Uint64())
 }
