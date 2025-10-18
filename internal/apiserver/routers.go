@@ -66,7 +66,18 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 		AccountHandler: r.container.AuthnModule.AccountHandler,
 		JWKSHandler:    r.container.AuthnModule.JWKSHandler,
 	})
-	authzhttp.Provide(authzhttp.Dependencies{})
+
+	// Authz 模块（授权管理）
+	if r.container.AuthzModule != nil {
+		authzhttp.Provide(authzhttp.Dependencies{
+			RoleHandler:       r.container.AuthzModule.RoleHandler,
+			AssignmentHandler: r.container.AuthzModule.AssignmentHandler,
+			PolicyHandler:     r.container.AuthzModule.PolicyHandler,
+			ResourceHandler:   r.container.AuthzModule.ResourceHandler,
+		})
+	} else {
+		authzhttp.Provide(authzhttp.Dependencies{})
+	}
 
 	userhttp.Register(engine)
 	authnhttp.Register(engine)

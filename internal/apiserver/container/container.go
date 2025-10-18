@@ -20,6 +20,7 @@ type Container struct {
 	// 业务模块
 	AuthnModule *assembler.AuthnModule
 	UserModule  *assembler.UserModule
+	AuthzModule *assembler.AuthzModule
 
 	// 容器状态
 	initialized bool
@@ -49,8 +50,13 @@ func (c *Container) Initialize() error {
 		return fmt.Errorf("failed to initialize user module: %w", err)
 	}
 
+	// 初始化授权模块
+	if err := c.initAuthzModule(); err != nil {
+		return fmt.Errorf("failed to initialize authz module: %w", err)
+	}
+
 	c.initialized = true
-	fmt.Printf("🏗️  Container initialized with modules: user, auth\n")
+	fmt.Printf("🏗️  Container initialized with modules: user, auth, authz\n")
 
 	return nil
 }
@@ -72,6 +78,16 @@ func (c *Container) initUserModule() error {
 		return fmt.Errorf("failed to initialize user module: %w", err)
 	}
 	c.UserModule = userModule
+	return nil
+}
+
+// initAuthzModule 初始化授权模块
+func (c *Container) initAuthzModule() error {
+	authzModule := assembler.NewAuthzModule()
+	if err := authzModule.Initialize(c.mysqlDB, c.redisClient); err != nil {
+		return fmt.Errorf("failed to initialize authz module: %w", err)
+	}
+	c.AuthzModule = authzModule
 	return nil
 }
 
@@ -134,6 +150,13 @@ func (c *Container) PrintStatus() {
 
 	fmt.Printf("   • User Module: ")
 	if c.UserModule != nil {
+		fmt.Printf("✅\n")
+	} else {
+		fmt.Printf("❌\n")
+	}
+
+	fmt.Printf("   • Authz Module: ")
+	if c.AuthzModule != nil {
 		fmt.Printf("✅\n")
 	} else {
 		fmt.Printf("❌\n")
