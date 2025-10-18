@@ -9,30 +9,35 @@
 ### 1. DTO 层 (5个文件)
 
 #### common.go - 通用响应结构
+
 - **Response**: 标准成功响应 `{code, message, data}`
 - **ListResponse**: 分页列表响应 `{code, message, data, total, offset, limit}`
 - **ErrorResponse**: 错误响应 `{code, message, error}`
 - **辅助函数**: NewResponse(), NewListResponse(), NewErrorResponse()
 
 #### role.go - 角色管理 DTO
+
 - **CreateRoleRequest**: 创建角色请求 (name, display_name, description)
 - **UpdateRoleRequest**: 更新角色请求 (display_name, description)
 - **RoleResponse**: 角色响应 (id, name, display_name, tenant_id, description)
 - **ListRoleQuery**: 角色列表查询 (offset, limit)
 
 #### assignment.go - 角色分配 DTO
+
 - **GrantRequest**: 授予角色请求 (subject_type: user/group, subject_id, role_id)
 - **RevokeRequest**: 撤销角色请求 (subject_type, subject_id, role_id)
 - **AssignmentResponse**: 分配响应 (id, subject_type, subject_id, role_id, tenant_id, granted_by)
 - **验证标签**: `binding:"required,oneof=user group"` 确保主体类型正确
 
 #### policy.go - 策略管理 DTO
+
 - **AddPolicyRequest**: 添加策略请求 (role_id, resource_id, action, changed_by, reason)
 - **RemovePolicyRequest**: 移除策略请求 (role_id, resource_id, action, changed_by, reason)
 - **PolicyRuleResponse**: 策略规则响应 (subject, domain, object, action)
 - **PolicyVersionResponse**: 策略版本响应 (tenant_id, version, changed_by, reason)
 
 #### resource.go - 资源管理 DTO
+
 - **CreateResourceRequest**: 创建资源请求 (key, display_name, app_name, domain, type, actions[])
 - **UpdateResourceRequest**: 更新资源请求 (display_name, actions, description)
 - **ResourceResponse**: 资源响应 (id, key, display_name, app_name, domain, type, actions, description)
@@ -62,6 +67,7 @@ func successNoContent(c *gin.Context)
 ```
 
 #### role.go - RoleHandler (6个方法)
+
 - **CreateRole**: POST /authz/roles - 创建角色
 - **UpdateRole**: PUT /authz/roles/{id} - 更新角色
 - **DeleteRole**: DELETE /authz/roles/{id} - 删除角色
@@ -70,11 +76,13 @@ func successNoContent(c *gin.Context)
 - **toRoleResponse**: 领域对象 → DTO 转换
 
 **关键实现**:
+
 - 使用 `getTenantID(c)` 实现租户隔离
 - 使用 `handleError(c, err)` 统一错误处理
 - ID 解析: `strconv.ParseUint(c.Param("id"), 10, 64)`
 
 #### assignment.go - AssignmentHandler (5个方法)
+
 - **GrantRole**: POST /authz/assignments/grant - 授予角色
 - **RevokeRole**: POST /authz/assignments/revoke - 撤销角色
 - **RevokeRoleByID**: DELETE /authz/assignments/{id} - 根据ID撤销
@@ -83,22 +91,26 @@ func successNoContent(c *gin.Context)
 - **convertToSubjectType**: 字符串 → SubjectType 转换 (user/group)
 
 **关键实现**:
+
 - 主体类型转换: `convertToSubjectType(req.SubjectType)` 确保类型安全
 - 使用 `getUserID(c)` 记录授权人
 - 命令模式: 所有修改操作使用 Command 对象
 
 #### policy.go - PolicyHandler (4个方法)
+
 - **AddPolicyRule**: POST /authz/policies - 添加策略规则
 - **RemovePolicyRule**: DELETE /authz/policies - 移除策略规则
 - **GetPoliciesByRole**: GET /authz/roles/{role_id}/policies - 获取角色策略
 - **GetCurrentVersion**: GET /authz/policies/version - 获取当前策略版本
 
 **关键实现**:
+
 - 版本查询: 使用 `GetCurrentVersionQuery{TenantID: tenantID}`
 - 策略规则响应: Casbin (Sub, Dom, Obj, Act) → DTO (Subject, Domain, Object, Action)
 - 记录变更原因: ChangedBy + Reason 用于审计
 
 #### resource.go - ResourceHandler (8个方法)
+
 - **CreateResource**: POST /authz/resources - 创建资源
 - **UpdateResource**: PUT /authz/resources/{id} - 更新资源
 - **DeleteResource**: DELETE /authz/resources/{id} - 删除资源
@@ -109,6 +121,7 @@ func successNoContent(c *gin.Context)
 - **toResourceResponse**: 领域对象 → DTO 转换
 
 **关键实现**:
+
 - 双路由支持: 按ID查询 `/resources/{id}` 和按键查询 `/resources/key/{key}`
 - 动作验证: `ValidateActionQuery{ResourceKey, Action}` → `{Valid: bool}`
 - 资源目录: 支持 AppName, Domain, Type 字段但当前查询不过滤
