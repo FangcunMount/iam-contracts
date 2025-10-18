@@ -11,10 +11,10 @@ import (
 // PolicyVersionPO 策略版本持久化对象
 type PolicyVersionPO struct {
 	base.AuditFields
-	TenantID  string `gorm:"column:tenant_id;type:varchar(64);not null;uniqueIndex"`
-	Version   int64  `gorm:"column:version;type:bigint;not null"`
-	ChangedBy string `gorm:"column:changed_by;type:varchar(64)"`
-	Reason    string `gorm:"column:reason;type:varchar(512)"`
+	TenantID      string `gorm:"column:tenant_id;type:varchar(64);not null;uniqueIndex:idx_tenant_version,priority:1"`
+	PolicyVersion int64  `gorm:"column:policy_version;type:bigint;not null;uniqueIndex:idx_tenant_version,priority:2"`
+	ChangedBy     string `gorm:"column:changed_by;type:varchar(64)"`
+	Reason        string `gorm:"column:reason;type:varchar(512)"`
 }
 
 // TableName 指定表名
@@ -31,7 +31,7 @@ func (p *PolicyVersionPO) BeforeCreate(tx *gorm.DB) error {
 	p.CreatedBy = idutil.NewID(0)
 	p.UpdatedBy = idutil.NewID(0)
 	p.DeletedBy = idutil.NewID(0)
-	// Note: Version field is policy version, not audit version
+	p.Version = base.InitialVersion // AuditFields 的版本字段
 	return nil
 }
 
