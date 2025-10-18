@@ -1,0 +1,60 @@
+resources:
+  - key: "scale:form:*"
+    display_name: "量表表单"
+    app_name: "scale"
+    domain: "form"
+    type: "*"
+    actions:
+      - create
+      - read_all
+      - read_own
+      - update_all
+      - update_own
+      - delete_all
+      - delete_own
+      - approve
+      - export
+    description: "量表表单资源，包含创建、查看、编辑、删除、审批等操作"
+
+  - key: "scale:report:*"
+    display_name: "量表报告"
+    app_name: "scale"
+    domain: "report"
+    type: "*"
+    actions:
+      - read_all
+      - export
+    description: "量表报告资源，支持查看和导出"
+
+  - key: "ops:user:*"
+    display_name: "用户管理"
+    app_name: "ops"
+    domain: "user"
+    type: "*"
+    actions:
+      - read_all
+      - update_all
+      - disable_all
+    description: "运营后台用户管理，支持查看、编辑、禁用用户"
+
+  - key: "ops:role:*"
+    display_name: "角色管理"
+    app_name: "ops"
+    domain: "role"
+    type: "*"
+    actions:
+      - create
+      - read_all
+      - update_all
+      - delete_all
+    description: "角色管理资源，支持创建、查看、编辑、删除角色"
+
+  - key: "ops:permission:*"
+    display_name: "权限管理"
+    app_name: "ops"
+    domain: "permission"
+    type: "*"
+    actions:
+      - read_all
+      - update_all
+    description: "权限管理资源，支持查看和分配权限"
