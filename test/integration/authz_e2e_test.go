@@ -3,10 +3,10 @@ package test
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
-	casbin "github.com/casbin/casbin/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
@@ -17,16 +17,15 @@ import (
 	resourceApp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/resource"
 	roleApp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/role"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
-	assignmentService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/service"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/port/driving"
+	assignmentService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/service"
 	policyDriving "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy/port/driving"
 	policyService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy/service"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
 	resourceDriving "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource/port/driving"
 	resourceService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource/service"
 	roleDriving "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driving"
 	roleService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role/service"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/casbin"
+	casbinInfra "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/casbin"
 	assignmentInfra "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/assignment"
 	policyInfra "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/policy"
 	resourceInfra "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/resource"
@@ -40,50 +39,50 @@ func TestAuthzEndToEnd(t *testing.T) {
 	// 1. 准备测试环境
 	ctx := context.Background()
 	tenantID := "test-tenant-001"
-	
+
 	// 初始化数据库（使用 SQLite 内存数据库）
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
-	
+
 	// 自动迁移
 	err = autoMigrate(db)
 	require.NoError(t, err)
-	
+
 	// 初始化 Casbin
 	modelPath := createCasbinModel(t)
-	casbinAdapter, err := casbin.NewCasbinAdapter(db, modelPath)
+	casbinAdapter, err := casbinInfra.NewCasbinAdapter(db, modelPath)
 	require.NoError(t, err)
-	
+
 	// 初始化仓储
 	resourceRepo := resourceInfra.NewResourceRepository(db)
 	roleRepo := roleInfra.NewRoleRepository(db)
 	policyVersionRepo := policyInfra.NewPolicyVersionRepository(db)
 	assignmentRepo := assignmentInfra.NewAssignmentRepository(db)
-	
+
 	// 初始化领域服务
 	resourceManager := resourceService.NewResourceManager(resourceRepo)
 	roleManager := roleService.NewRoleManager(roleRepo)
 	policyManager := policyService.NewPolicyManager(roleRepo, resourceRepo)
 	assignmentManager := assignmentService.NewAssignmentManager(assignmentRepo, roleRepo)
-	
+
 	// 初始化应用服务
 	resourceCommander := resourceApp.NewResourceCommandService(resourceManager, resourceRepo)
 	roleCommander := roleApp.NewRoleCommandService(roleManager, roleRepo)
 	policyCommander := policyApp.NewPolicyCommandService(policyManager, policyVersionRepo, casbinAdapter, nil)
 	assignmentCommander := assignmentApp.NewAssignmentCommandService(assignmentManager, assignmentRepo, casbinAdapter)
-	
+
 	// 2. 创建资源
 	t.Log("步骤 1: 创建资源")
 	orderResource, err := resourceCommander.CreateResource(ctx, resourceDriving.CreateResourceCommand{
 		Key:         "order",
-		Name:        "订单",
+		DisplayName: "订单",
 		Description: "订单资源",
 		Actions:     []string{"read", "write", "delete"},
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "order", orderResource.Key)
-	t.Logf("✓ 创建资源成功: %s (ID: %d)", orderResource.Name, orderResource.ID.Uint64())
-	
+	t.Logf("✓ 创建资源成功: %s (ID: %d)", orderResource.DisplayName, orderResource.ID.Uint64())
+
 	// 3. 创建角色
 	t.Log("步骤 2: 创建角色")
 	adminRole, err := roleCommander.CreateRole(ctx, roleDriving.CreateRoleCommand{
@@ -95,7 +94,7 @@ func TestAuthzEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "order-admin", adminRole.Name)
 	t.Logf("✓ 创建角色成功: %s (ID: %d)", adminRole.DisplayName, adminRole.ID.Uint64())
-	
+
 	// 4. 配置策略规则
 	t.Log("步骤 3: 配置策略规则")
 	err = policyCommander.AddPolicyRule(ctx, policyDriving.AddPolicyRuleCommand{
@@ -108,7 +107,7 @@ func TestAuthzEndToEnd(t *testing.T) {
 	})
 	require.NoError(t, err)
 	t.Log("✓ 添加策略规则成功: order-admin -> order:read")
-	
+
 	err = policyCommander.AddPolicyRule(ctx, policyDriving.AddPolicyRuleCommand{
 		RoleID:     adminRole.ID.Uint64(),
 		ResourceID: orderResource.ID,
@@ -119,7 +118,7 @@ func TestAuthzEndToEnd(t *testing.T) {
 	})
 	require.NoError(t, err)
 	t.Log("✓ 添加策略规则成功: order-admin -> order:write")
-	
+
 	// 5. 给用户赋权
 	t.Log("步骤 4: 给用户赋权")
 	userID := "user-alice"
@@ -133,10 +132,10 @@ func TestAuthzEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, assignmentResult)
 	t.Logf("✓ 用户赋权成功: %s -> %s", userID, adminRole.DisplayName)
-	
+
 	// 6. 权限检查（使用 DomainGuard）
 	t.Log("步骤 5: 权限检查")
-	
+
 	// 创建 DomainGuard
 	enforcer := casbinAdapter.GetEnforcer()
 	guard, err := dominguard.NewDomainGuard(dominguard.Config{
@@ -144,25 +143,25 @@ func TestAuthzEndToEnd(t *testing.T) {
 		CacheTTL: 5 * time.Minute,
 	})
 	require.NoError(t, err)
-	
+
 	// 检查用户是否有 order:read 权限
 	allowed, err := guard.CheckPermission(ctx, userID, tenantID, "order", "read")
 	require.NoError(t, err)
 	assert.True(t, allowed, "用户应该有 order:read 权限")
 	t.Log("✓ 权限检查通过: user-alice 有 order:read 权限")
-	
+
 	// 检查用户是否有 order:write 权限
 	allowed, err = guard.CheckPermission(ctx, userID, tenantID, "order", "write")
 	require.NoError(t, err)
 	assert.True(t, allowed, "用户应该有 order:write 权限")
 	t.Log("✓ 权限检查通过: user-alice 有 order:write 权限")
-	
+
 	// 检查用户是否有 order:delete 权限（没有授予）
 	allowed, err = guard.CheckPermission(ctx, userID, tenantID, "order", "delete")
 	require.NoError(t, err)
 	assert.False(t, allowed, "用户不应该有 order:delete 权限")
 	t.Log("✓ 权限检查通过: user-alice 没有 order:delete 权限（符合预期）")
-	
+
 	// 7. 撤销权限
 	t.Log("步骤 6: 撤销权限")
 	err = assignmentCommander.RevokeByID(ctx, driving.RevokeByIDCommand{
@@ -171,14 +170,14 @@ func TestAuthzEndToEnd(t *testing.T) {
 	})
 	require.NoError(t, err)
 	t.Log("✓ 撤销权限成功")
-	
+
 	// 8. 验证权限已撤销
 	t.Log("步骤 7: 验证权限已撤销")
 	allowed, err = guard.CheckPermission(ctx, userID, tenantID, "order", "read")
 	require.NoError(t, err)
 	assert.False(t, allowed, "权限撤销后，用户不应该有 order:read 权限")
 	t.Log("✓ 权限检查通过: user-alice 已没有 order:read 权限")
-	
+
 	t.Log("\n🎉 端到端集成测试通过！")
 }
 
@@ -189,7 +188,7 @@ func autoMigrate(db *gorm.DB) error {
 		&roleInfra.RolePO{},
 		&policyInfra.PolicyVersionPO{},
 		&assignmentInfra.AssignmentPO{},
-		&casbin.CasbinRule{},
+		&casbinInfra.CasbinRule{},
 	)
 }
 
