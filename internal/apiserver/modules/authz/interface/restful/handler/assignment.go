@@ -4,8 +4,8 @@ package handler
 import (
 	"strconv"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/assignment"
 	domainAssignment "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/port/driving"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/interface/restful/dto"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
@@ -14,13 +14,15 @@ import (
 
 // AssignmentHandler 角色分配处理器
 type AssignmentHandler struct {
-	assignmentService *assignment.Service
+	commander driving.AssignmentCommander
+	queryer   driving.AssignmentQueryer
 }
 
 // NewAssignmentHandler 创建角色分配处理器
-func NewAssignmentHandler(assignmentService *assignment.Service) *AssignmentHandler {
+func NewAssignmentHandler(commander driving.AssignmentCommander, queryer driving.AssignmentQueryer) *AssignmentHandler {
 	return &AssignmentHandler{
-		assignmentService: assignmentService,
+		commander: commander,
+		queryer:   queryer,
 	}
 }
 
@@ -60,7 +62,7 @@ func (h *AssignmentHandler) GrantRole(c *gin.Context) {
 		return
 	}
 
-	cmd := assignment.GrantCommand{
+	cmd := driving.GrantCommand{
 		SubjectType: subjectType,
 		SubjectID:   req.SubjectID,
 		RoleID:      req.RoleID,
@@ -68,7 +70,7 @@ func (h *AssignmentHandler) GrantRole(c *gin.Context) {
 		GrantedBy:   grantedBy,
 	}
 
-	grantedAssignment, err := h.assignmentService.Grant(c.Request.Context(), cmd)
+	grantedAssignment, err := h.commander.Grant(c.Request.Context(), cmd)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -100,14 +102,14 @@ func (h *AssignmentHandler) RevokeRole(c *gin.Context) {
 		return
 	}
 
-	cmd := assignment.RevokeCommand{
+	cmd := driving.RevokeCommand{
 		SubjectType: subjectType,
 		SubjectID:   req.SubjectID,
 		RoleID:      req.RoleID,
 		TenantID:    tenantID,
 	}
 
-	err = h.assignmentService.Revoke(c.Request.Context(), cmd)
+	err = h.commander.Revoke(c.Request.Context(), cmd)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -131,12 +133,12 @@ func (h *AssignmentHandler) RevokeRoleByID(c *gin.Context) {
 
 	tenantID := getTenantID(c)
 
-	cmd := assignment.RevokeByIDCommand{
+	cmd := driving.RevokeByIDCommand{
 		AssignmentID: domainAssignment.NewAssignmentID(assignmentID),
 		TenantID:     tenantID,
 	}
 
-	err = h.assignmentService.RevokeByID(c.Request.Context(), cmd)
+	err = h.commander.RevokeByID(c.Request.Context(), cmd)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -170,13 +172,13 @@ func (h *AssignmentHandler) ListAssignmentsBySubject(c *gin.Context) {
 		return
 	}
 
-	query := assignment.ListBySubjectQuery{
+	query := driving.ListBySubjectQuery{
 		SubjectType: subjectType,
 		SubjectID:   subjectID,
 		TenantID:    tenantID,
 	}
 
-	result, err := h.assignmentService.ListBySubject(c.Request.Context(), query)
+	result, err := h.queryer.ListBySubject(c.Request.Context(), query)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -206,12 +208,12 @@ func (h *AssignmentHandler) ListAssignmentsByRole(c *gin.Context) {
 
 	tenantID := getTenantID(c)
 
-	query := assignment.ListByRoleQuery{
+	query := driving.ListByRoleQuery{
 		RoleID:   roleID,
 		TenantID: tenantID,
 	}
 
-	result, err := h.assignmentService.ListByRole(c.Request.Context(), query)
+	result, err := h.queryer.ListByRole(c.Request.Context(), query)
 	if err != nil {
 		handleError(c, err)
 		return
