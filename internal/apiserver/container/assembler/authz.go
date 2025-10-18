@@ -7,10 +7,11 @@ import (
 	redis2 "github.com/go-redis/redis/v7"
 	"gorm.io/gorm"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/assignment"
+	assignmentApp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/assignment"
 	policyApp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/policy"
 	resourceApp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/resource"
 	roleApp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/application/role"
+	assignmentService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/service"
 	policyService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy/service"
 	resourceService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource/service"
 	roleService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role/service"
@@ -25,9 +26,6 @@ import (
 
 // AuthzModule 授权模块
 type AuthzModule struct {
-	// Application Services (旧模块，待重构)
-	AssignmentService *assignment.Service
-
 	// HTTP Handlers
 	RoleHandler       *handler.RoleHandler
 	AssignmentHandler *handler.AssignmentHandler
@@ -80,6 +78,8 @@ func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *redis2.Client) error 
 	roleManager := roleService.NewRoleManager(roleRepository)
 	// Policy 模块
 	policyManager := policyService.NewPolicyManager(roleRepository, resourceRepository)
+	// Assignment 模块
+	assignmentManager := assignmentService.NewAssignmentManager(assignmentRepository, roleRepository)
 
 	// 5. 初始化应用服务 - CQRS 分离
 	// Resource 模块
@@ -91,9 +91,9 @@ func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *redis2.Client) error 
 	// Policy 模块
 	policyCommander := policyApp.NewPolicyCommandService(policyManager, policyVersionRepository, casbinAdapter, versionNotifier)
 	policyQueryer := policyApp.NewPolicyQueryService(policyManager, policyVersionRepository, casbinAdapter)
-
-	// 其他模块（待重构）
-	m.AssignmentService = assignment.NewService(assignmentRepository, roleRepository, casbinAdapter)
+	// Assignment 模块
+	assignmentCommander := assignmentApp.NewAssignmentCommandService(assignmentManager, assignmentRepository, casbinAdapter)
+	assignmentQueryer := assignmentApp.NewAssignmentQueryService(assignmentManager, assignmentRepository)
 
 	// 6. 初始化 HTTP 处理器 - 依赖 driving 接口（CQRS）
 	// Resource Handler
@@ -102,8 +102,7 @@ func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *redis2.Client) error 
 	m.RoleHandler = handler.NewRoleHandler(roleCommander, roleQueryer)
 	// Policy Handler
 	m.PolicyHandler = handler.NewPolicyHandler(policyCommander, policyQueryer)
-
-	// 其他 Handler（待重构）
-	m.AssignmentHandler = handler.NewAssignmentHandler(m.AssignmentService)
+	// Assignment Handler
+	m.AssignmentHandler = handler.NewAssignmentHandler(assignmentCommander, assignmentQueryer)
 	return nil
 }
