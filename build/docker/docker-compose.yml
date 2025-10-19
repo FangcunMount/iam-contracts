@@ -12,6 +12,8 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
     container_name: iam-apiserver
     image: iam-contracts:latest
+    env_file:
+      - ../../configs/env/config.env
     ports:
       - "8080:8080"
     volumes:
@@ -46,15 +48,16 @@ services:
     container_name: iam-mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-iam}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-iam_contracts}
       MYSQL_USER: ${MYSQL_USER:-iam}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-iam123}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-2gy0dCwG}
       TZ: Asia/Shanghai
     ports:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ../../scripts/sql:/docker-entrypoint-initdb.d:ro
+      - ../../scripts/sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ../../scripts/sql/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
       - ../../configs/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     command:
       - --character-set-server=utf8mb4
@@ -87,6 +90,36 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Nginx 反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: iam-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Nginx 配置
+      - ../../configs/nginx/conf.d:/etc/nginx/conf.d:ro
+      # SSL 证书（需要手动放置到宿主机）
+      - /data/ssl:/etc/nginx/ssl:ro
+      # Let's Encrypt ACME 验证目录
+      - /var/www/certbot:/var/www/certbot:ro
+    networks:
+      - iam-network
+    depends_on:
+      - iam-apiserver
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   iam-network:
