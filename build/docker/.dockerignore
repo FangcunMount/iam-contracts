@@ -1,0 +1,77 @@
+# Docker 相关文件
+Dockerfile
+.dockerignore
+
+# 忽略构建产物
+bin/
+dist/
+tmp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# 忽略日志和临时文件
+logs/
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# 忽略测试相关
+coverage/
+*.out
+*.test
+
+# 忽略 IDE 和编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 忽略依赖
+vendor/
+node_modules/
+
+# 忽略环境配置
+.env
+.env.local
+*.env.local
+
+# 忽略备份文件
+*.backup
+*.backup.*
+*.bak
+
+# 忽略证书和密钥（开发环境的除外）
+*.key
+*.crt
+*.pem
+!configs/cert/*.crt
+!configs/cert/*.key
+
+# Git 相关
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD 相关
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+.travis.yml
+
+# 文档（可选，如果镜像不需要文档）
+docs/
+README.md
+LICENSE
+*.md
+!README.md
+
+# 脚本（保留必要的脚本）
+scripts/dev
+scripts/dev.sh
+scripts/cert/

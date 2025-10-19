@@ -2,21 +2,42 @@
 
 本目录包含 IAM Contracts 项目的数据库初始化脚本和工具。
 
+## ⚠️ 重要说明
+
+**推荐使用 v2.0 版本的脚本**，该版本完全对齐代码中的 PO 定义。
+
+**主要改进**：
+
+- ✅ ID 类型统一为 `BIGINT UNSIGNED` (Snowflake ID)
+- ✅ 添加完整的审计字段 (`created_by`, `updated_by`, `deleted_by`)
+- ✅ 修正字段类型 (status, gender, height, weight)
+- ✅ 添加正确的唯一索引
+- ✅ 表名统一添加模块前缀 (`auth_`, `authz_`)
+- ✅ 认证表拆分为三表设计
+
+详细对比分析请查看：[`docs/DATABASE_DESIGN_ANALYSIS.md`](../../docs/DATABASE_DESIGN_ANALYSIS.md)
+
 ## 文件列表
 
-| 文件 | 说明 | 类型 |
-|------|------|------|
-| `init.sql` | 数据库表结构初始化 SQL | SQL脚本 |
-| `seed.sql` | 种子数据加载 SQL | SQL脚本 |
-| `init-db.sh` | 数据库初始化 Shell 脚本 | Shell脚本 |
-| `reset-db.sh` | 数据库重置 Shell 脚本（开发环境） | Shell脚本 |
+| 文件 | 说明 | 状态 | 类型 |
+|------|------|------|------|
+| `init.sql` | 数据库表结构初始化 SQL (v1.0) | ⚠️ 已废弃 | SQL脚本 |
+| `seed.sql` | 种子数据加载 SQL (v1.0) | ⚠️ 已废弃 | SQL脚本 |
+| `init_v2.sql` | 数据库表结构初始化 SQL (v2.0) | ✅ 推荐 | SQL脚本 |
+| `seed_v2.sql` | 种子数据加载 SQL (v2.0) | ✅ 推荐 | SQL脚本 |
+| `init-db.sh` | 数据库初始化 Shell 脚本 | 🔄 需更新 | Shell脚本 |
+| `reset-db.sh` | 数据库重置 Shell 脚本（开发环境） | 🔄 需更新 | Shell脚本 |
 
-## 快速开始
+## 快速开始 (v2.0)
 
 ### 方式1: 使用 Makefile（推荐）
 
 ```bash
-# 完整初始化（创建表 + 加载种子数据）
+# 使用 v2.0 版本完整初始化（创建表 + 加载种子数据）
+mysql -u root -p < scripts/sql/init_v2.sql
+mysql -u root -p iam_contracts < scripts/sql/seed_v2.sql
+
+# 或者使用原有命令（待更新到 v2.0）
 make db-init
 
 # 仅创建表结构
@@ -35,7 +56,62 @@ make db-status
 make db-connect
 ```
 
-### 方式2: 使用 Shell 脚本
+### 方式2: 使用 GORM AutoMigrate（开发环境推荐）
+
+GORM 会根据代码中的 PO 定义自动创建/更新表结构：
+
+```go
+package main
+
+import (
+    "gorm.io/driver/mysql"
+    "gorm.io/gorm"
+    
+    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
+    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/child"
+    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/guardianship"
+    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
+    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/jwks"
+    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/resource"
+    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/role"
+    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/assignment"
+)
+
+func main() {
+    dsn := "root:password@tcp(127.0.0.1:3306)/iam_contracts?charset=utf8mb4&parseTime=True&loc=Local"
+    db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+    if err != nil {
+        panic(err)
+    }
+    
+    // 自动迁移
+    err = db.AutoMigrate(
+        // 用户中心
+        &user.UserPO{},
+        &child.ChildPO{},
+        &guardianship.GuardianshipPO{},
+        
+        // 认证
+        &account.AccountPO{},
+        &account.WeChatAccountPO{},
+        &account.OperationAccountPO{},
+        &jwks.KeyPO{},
+        
+        // 授权
+        &resource.ResourcePO{},
+        &role.RolePO{},
+        &assignment.AssignmentPO{},
+    )
+    
+    if err != nil {
+        panic(err)
+    }
+    
+    println("✅ 数据库表结构自动迁移完成")
+}
+```
+
+### 方式3: 使用 Shell 脚本（待更新）
 
 ```bash
 # 完整初始化
