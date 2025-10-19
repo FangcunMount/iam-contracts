@@ -25,9 +25,9 @@ pipeline {
         // Docker 网络
         DOCKER_NETWORK = 'iam-network'
         
-        // Git 信息
-        GIT_COMMIT_SHORT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-        BUILD_TIME = sh(returnStdout: true, script: 'date -u +"%Y-%m-%d_%H:%M:%S"').trim()
+        // Git 信息 (将在 Setup 阶段设置)
+        GIT_COMMIT_SHORT = ''
+        BUILD_TIME = ''
     }
     
     options {
@@ -68,11 +68,16 @@ pipeline {
                 deleteDir()
                 checkout scm
                 script {
+                    // 在 checkout 后设置 Git 相关变量
+                    env.GIT_COMMIT_SHORT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    env.BUILD_TIME = sh(returnStdout: true, script: 'date -u +"%Y-%m-%d_%H:%M:%S"').trim()
+                    
                     echo "================================================"
                     echo "  项目: ${PROJECT_NAME}"
                     echo "  分支: ${env.GIT_BRANCH}"
-                    echo "  提交: ${GIT_COMMIT_SHORT}"
+                    echo "  提交: ${env.GIT_COMMIT_SHORT}"
                     echo "  构建: #${env.BUILD_NUMBER}"
+                    echo "  时间: ${env.BUILD_TIME}"
                     echo "  部署模式: ${params.DEPLOY_MODE}"
                     echo "================================================"
                 }
@@ -366,42 +371,59 @@ pipeline {
         success {
             script {
                 echo '✅ 部署成功！'
-                echo """
-                ================================================
-                🎉 部署成功
-                ================================================
-                项目: ${PROJECT_NAME}
-                分支: ${env.GIT_BRANCH}
-                提交: ${GIT_COMMIT_SHORT}
-                构建: #${env.BUILD_NUMBER}
-                时间: ${BUILD_TIME}
-                部署模式: ${env.DEPLOY_MODE}
-                ================================================
-                """
+                // 使用 try-catch 防止变量未定义导致错误
+                try {
+                    echo """
+                    ================================================
+                    🎉 部署成功
+                    ================================================
+                    项目: ${env.PROJECT_NAME ?: 'iam-contracts'}
+                    分支: ${env.GIT_BRANCH ?: 'unknown'}
+                    提交: ${env.GIT_COMMIT_SHORT ?: 'unknown'}
+                    构建: #${env.BUILD_NUMBER ?: '0'}
+                    时间: ${env.BUILD_TIME ?: 'unknown'}
+                    部署模式: ${env.DEPLOY_MODE ?: 'unknown'}
+                    ================================================
+                    """
+                } catch (Exception e) {
+                    echo "部署成功（部分信息获取失败）"
+                }
             }
         }
         
         failure {
             script {
                 echo '❌ 部署失败！'
-                echo """
-                ================================================
-                ⚠️ 部署失败
-                ================================================
-                项目: ${PROJECT_NAME}
-                分支: ${env.GIT_BRANCH}
-                构建: #${env.BUILD_NUMBER}
-                ================================================
-                请检查构建日志
-                """
+                // 使用 try-catch 防止变量未定义导致错误
+                try {
+                    echo """
+                    ================================================
+                    ⚠️ 部署失败
+                    ================================================
+                    项目: ${env.PROJECT_NAME ?: 'iam-contracts'}
+                    分支: ${env.GIT_BRANCH ?: 'unknown'}
+                    构建: #${env.BUILD_NUMBER ?: '0'}
+                    ================================================
+                    请检查构建日志
+                    """
+                } catch (Exception e) {
+                    echo "部署失败（详细信息获取失败）"
+                }
             }
         }
         
         always {
-            echo '🧹 清理工作空间...'
-            sh '''
-                rm -rf deploy coverage
-            '''
+            script {
+                // 使用 try-catch 防止在 node 外执行 sh 命令
+                try {
+                    echo '🧹 清理工作空间...'
+                    sh '''
+                        rm -rf deploy coverage
+                    '''
+                } catch (Exception e) {
+                    echo "清理跳过（工作空间不可用）: ${e.message}"
+                }
+            }
         }
     }
 }
