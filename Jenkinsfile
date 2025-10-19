@@ -69,11 +69,12 @@ pipeline {
                 checkout scm
                 script {
                     // 在 checkout 后设置 Git 相关变量
+                    env.GIT_COMMIT = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
                     env.GIT_COMMIT_SHORT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    env.GIT_BRANCH = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
                     env.BUILD_TIME = sh(returnStdout: true, script: 'date -u +"%Y-%m-%d_%H:%M:%S"').trim()
-                    
                     echo "================================================"
-                    echo "  项目: ${PROJECT_NAME}"
+                    echo "  项目: ${env.PROJECT_NAME}"
                     echo "  分支: ${env.GIT_BRANCH}"
                     echo "  提交: ${env.GIT_COMMIT_SHORT}"
                     echo "  构建: #${env.BUILD_NUMBER}"
@@ -193,8 +194,8 @@ pipeline {
                     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
                         -ldflags "-s -w \
                             -X main.Version=${VERSION} \
-                            -X main.BuildTime=${BUILD_TIME} \
-                            -X main.GitCommit=${GIT_COMMIT_SHORT}" \
+                            -X main.BuildTime=${env.BUILD_TIME} \
+                            -X main.GitCommit=${env.GIT_COMMIT_SHORT}" \
                         -o ${BUILD_DIR}/${BINARY_NAME} \
                         ./cmd/apiserver/
                     
@@ -220,8 +221,8 @@ pipeline {
                 script {
                     def buildArgs = [
                         "VERSION=${env.VERSION}",
-                        "BUILD_TIME=${BUILD_TIME}",
-                        "GIT_COMMIT=${GIT_COMMIT_SHORT}"
+                        "BUILD_TIME=${env.BUILD_TIME}",
+                        "GIT_COMMIT=${env.GIT_COMMIT_SHORT}"
                     ]
                     def noCacheFlag = env.DOCKER_NO_CACHE == 'true' ? '--no-cache' : ''
                     
