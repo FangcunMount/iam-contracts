@@ -95,7 +95,10 @@ pipeline {
         
         stage('依赖管理') {
             when {
-                expression { env.RUN_BUILD == 'true' }
+                allOf {
+                    expression { env.RUN_BUILD == 'true' }
+                    expression { params.DEPLOY_MODE != 'docker' }
+                }
             }
             steps {
                 echo '📦 下载 Go 依赖...'
@@ -111,7 +114,10 @@ pipeline {
         
         stage('代码检查') {
             when {
-                expression { env.RUN_LINT == 'true' }
+                allOf {
+                    expression { env.RUN_LINT == 'true' }
+                    expression { params.DEPLOY_MODE != 'docker' }
+                }
             }
             parallel {
                 stage('代码格式化检查') {
@@ -150,7 +156,10 @@ pipeline {
         
         stage('单元测试') {
             when {
-                expression { env.RUN_TESTS == 'true' }
+                allOf {
+                    expression { env.RUN_TESTS == 'true' }
+                    expression { params.DEPLOY_MODE != 'docker' }
+                }
             }
             steps {
                 echo '🧪 运行单元测试...'

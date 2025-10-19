@@ -400,7 +400,7 @@ make version
   构建时间: 2025-10-18_13:44:21
   Git 提交: 2ab78ae
   Git 分支: main
-  Go 版本:  go version go1.24.0 darwin/arm64
+  Go 版本:  go version go1.23.0 darwin/arm64
 ```
 
 ## 参考资料
