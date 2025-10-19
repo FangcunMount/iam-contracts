@@ -83,11 +83,13 @@ mysql -u root -p iam_contracts < seed.sql
 可以通过以下方式修改：
 
 **Makefile**:
+
 ```bash
 make db-init DB_HOST=localhost DB_PORT=3306 DB_USER=root DB_PASSWORD=mypass DB_NAME=iam_contracts
 ```
 
 **环境变量**:
+
 ```bash
 export DB_HOST=localhost
 export DB_PORT=3306
@@ -103,17 +105,20 @@ export DB_NAME=iam_contracts
 创建数据库和所有表结构，包括：
 
 **用户中心 (UC)**:
+
 - users - 用户表
 - children - 儿童表
 - guardianships - 监护关系表
 
 **认证中心 (AuthN)**:
+
 - accounts - 账户表
 - sessions - 会话表
 - signing_keys - 签名密钥表
 - token_blacklist - Token黑名单表
 
 **授权中心 (AuthZ)**:
+
 - resources - 资源表
 - roles - 角色表
 - user_roles - 用户角色关联表
@@ -121,6 +126,7 @@ export DB_NAME=iam_contracts
 - casbin_rule - Casbin策略规则表
 
 **系统表**:
+
 - tenants - 租户表
 - system_configs - 系统配置表
 - operation_logs - 操作日志表
@@ -160,7 +166,7 @@ export DB_NAME=iam_contracts
 
 **选项**:
 
-```
+```text
 -h, --help              显示帮助信息
 -H, --host HOST         数据库主机 (默认: 127.0.0.1)
 -P, --port PORT         数据库端口 (默认: 3306)
@@ -183,6 +189,7 @@ export DB_NAME=iam_contracts
 3. 双重确认机制
 
 **安全措施**:
+
 - 需要输入数据库名称确认
 - 需要输入 "yes" 进行二次确认
 - 红色警告提示
@@ -289,6 +296,7 @@ bash init-db.sh
 📖 [数据库初始化指南](../../docs/DATABASE_INITIALIZATION.md)
 
 包含：
+
 - 详细的数据库结构说明
 - ER 图和关系模型
 - 完整的操作指南
