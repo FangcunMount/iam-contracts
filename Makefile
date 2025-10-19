@@ -522,3 +522,98 @@ docker-mysql-clean: ## 清理 Docker MySQL 数据（删除容器和数据卷）
 
 docker-mysql-logs: ## 查看 Docker MySQL 日志
 	@docker logs -f iam-mysql
+
+# ============================================================================
+# Docker 构建和部署
+# ============================================================================
+
+.PHONY: docker-build docker-run docker-stop docker-clean docker-push
+.PHONY: docker-compose-up docker-compose-down docker-compose-restart
+
+docker-build: ## 构建 Docker 镜像
+	@echo "$(COLOR_BOLD)$(COLOR_BLUE)🐳 构建 Docker 镜像...$(COLOR_RESET)"
+	@docker build \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_TIME=$(BUILD_TIME) \
+		--build-arg GIT_COMMIT=$(GIT_COMMIT) \
+		-f build/docker/Dockerfile \
+		-t $(PROJECT_NAME):$(VERSION) \
+		-t $(PROJECT_NAME):latest \
+		.
+	@echo "$(COLOR_GREEN)✅ Docker 镜像构建完成$(COLOR_RESET)"
+	@docker images $(PROJECT_NAME)
+
+docker-run: ## 运行 Docker 容器
+	@echo "$(COLOR_BLUE)🐳 运行 Docker 容器...$(COLOR_RESET)"
+	@docker run -d \
+		--name $(PROJECT_NAME) \
+		-p 8080:8080 \
+		-v $(PWD)/configs:/app/configs:ro \
+		-v $(PWD)/logs:/app/logs \
+		$(PROJECT_NAME):latest
+	@echo "$(COLOR_GREEN)✅ Docker 容器已启动$(COLOR_RESET)"
+
+docker-stop: ## 停止 Docker 容器
+	@echo "$(COLOR_YELLOW)⏹️  停止 Docker 容器...$(COLOR_RESET)"
+	@docker stop $(PROJECT_NAME) 2>/dev/null || true
+	@docker rm $(PROJECT_NAME) 2>/dev/null || true
+	@echo "$(COLOR_GREEN)✅ Docker 容器已停止$(COLOR_RESET)"
+
+docker-clean: ## 清理 Docker 镜像和容器
+	@echo "$(COLOR_RED)🧹 清理 Docker 资源...$(COLOR_RESET)"
+	@docker stop $(PROJECT_NAME) 2>/dev/null || true
+	@docker rm $(PROJECT_NAME) 2>/dev/null || true
+	@docker rmi $(PROJECT_NAME):latest 2>/dev/null || true
+	@echo "$(COLOR_GREEN)✅ Docker 资源已清理$(COLOR_RESET)"
+
+docker-push: ## 推送 Docker 镜像到仓库
+	@echo "$(COLOR_BLUE)📤 推送 Docker 镜像...$(COLOR_RESET)"
+	@docker tag $(PROJECT_NAME):$(VERSION) $(DOCKER_REGISTRY)/$(PROJECT_NAME):$(VERSION)
+	@docker tag $(PROJECT_NAME):$(VERSION) $(DOCKER_REGISTRY)/$(PROJECT_NAME):latest
+	@docker push $(DOCKER_REGISTRY)/$(PROJECT_NAME):$(VERSION)
+	@docker push $(DOCKER_REGISTRY)/$(PROJECT_NAME):latest
+	@echo "$(COLOR_GREEN)✅ Docker 镜像已推送$(COLOR_RESET)"
+
+docker-compose-up: ## 使用 docker-compose 启动所有服务
+	@echo "$(COLOR_BLUE)🐳 启动 Docker Compose 服务...$(COLOR_RESET)"
+	@docker-compose -f build/docker/docker-compose.yml up -d
+	@echo "$(COLOR_GREEN)✅ 服务已启动$(COLOR_RESET)"
+	@docker-compose -f build/docker/docker-compose.yml ps
+
+docker-compose-down: ## 停止 docker-compose 服务
+	@echo "$(COLOR_YELLOW)⏹️  停止 Docker Compose 服务...$(COLOR_RESET)"
+	@docker-compose -f build/docker/docker-compose.yml down
+	@echo "$(COLOR_GREEN)✅ 服务已停止$(COLOR_RESET)"
+
+docker-compose-restart: ## 重启 docker-compose 服务
+	@echo "$(COLOR_BLUE)🔄 重启 Docker Compose 服务...$(COLOR_RESET)"
+	@docker-compose -f build/docker/docker-compose.yml restart
+	@echo "$(COLOR_GREEN)✅ 服务已重启$(COLOR_RESET)"
+
+docker-compose-logs: ## 查看 docker-compose 日志
+	@docker-compose -f build/docker/docker-compose.yml logs -f
+
+# ============================================================================
+# 部署相关
+# ============================================================================
+
+.PHONY: deploy deploy-prepare deploy-check
+
+deploy-prepare: ## 准备部署文件
+	@echo "$(COLOR_BLUE)📦 准备部署文件...$(COLOR_RESET)"
+	@mkdir -p deploy
+	@cp $(APISERVER_BIN) deploy/
+	@cp -r configs deploy/
+	@cp scripts/deploy.sh deploy/
+	@chmod +x deploy/deploy.sh
+	@echo "$(COLOR_GREEN)✅ 部署文件已准备$(COLOR_RESET)"
+
+deploy-check: ## 检查部署环境
+	@echo "$(COLOR_BLUE)🔍 检查部署环境...$(COLOR_RESET)"
+	@echo "部署主机: $(DEPLOY_HOST)"
+	@echo "部署路径: $(DEPLOY_PATH)"
+	@echo "SSH 用户: $(DEPLOY_USER)"
+	@echo ""
+	@echo "测试 SSH 连接..."
+	@ssh -o ConnectTimeout=5 $(DEPLOY_USER)@$(DEPLOY_HOST) "echo '✅ SSH 连接成功'" || \
+		echo "$(COLOR_RED)❌ SSH 连接失败$(COLOR_RESET)"
