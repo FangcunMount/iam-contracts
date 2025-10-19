@@ -60,6 +60,8 @@ COLOR_RED := \033[31m
 .PHONY: proto proto-gen
 .PHONY: install install-tools create-dirs
 .PHONY: up down re st log
+.PHONY: db-init db-migrate db-seed db-reset db-connect db-status db-backup
+.PHONY: docker-mysql-up docker-mysql-down docker-mysql-clean docker-mysql-logs
 
 # ============================================================================
 # 帮助信息
@@ -84,7 +86,10 @@ help: ## 显示帮助信息
 	@echo "$(COLOR_BOLD)🛠️  开发工具:$(COLOR_RESET)"
 	@grep -E '^(dev|test|lint|fmt).*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
 	@echo ""
-	@echo "$(COLOR_BOLD)📚 其他命令:$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)�️  数据库管理:$(COLOR_RESET)"
+	@grep -E '^(db-|docker-mysql-).*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(COLOR_BOLD)�📚 其他命令:$(COLOR_RESET)"
 	@grep -E '^(deps|proto|install|clean|version|debug|up|down|st).*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
 	@echo ""
 
@@ -407,3 +412,113 @@ down: stop ## 停止服务（别名）
 re: restart ## 重启服务（别名）
 st: status ## 查看状态（别名）
 log: logs ## 查看日志（别名）
+
+# ============================================================================
+# 数据库管理
+# ============================================================================
+
+# 数据库配置
+DB_HOST ?= 127.0.0.1
+DB_PORT ?= 3306
+DB_USER ?= root
+DB_PASSWORD ?=
+DB_NAME ?= iam_contracts
+
+db-init: ## 初始化数据库（创建表结构 + 加载种子数据）
+	@echo "$(COLOR_BOLD)$(COLOR_BLUE)🗄️  初始化数据库...$(COLOR_RESET)"
+	@chmod +x scripts/sql/init-db.sh
+	@DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_NAME=$(DB_NAME) \
+		scripts/sql/init-db.sh --skip-confirm
+	@echo "$(COLOR_GREEN)✅ 数据库初始化完成$(COLOR_RESET)"
+
+db-migrate: ## 仅创建数据库表结构（不加载种子数据）
+	@echo "$(COLOR_BOLD)$(COLOR_BLUE)🗄️  创建数据库表结构...$(COLOR_RESET)"
+	@chmod +x scripts/sql/init-db.sh
+	@DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_NAME=$(DB_NAME) \
+		scripts/sql/init-db.sh --schema-only --skip-confirm
+	@echo "$(COLOR_GREEN)✅ 表结构创建完成$(COLOR_RESET)"
+
+db-seed: ## 仅加载种子数据（需要表已存在）
+	@echo "$(COLOR_BOLD)$(COLOR_BLUE)🌱 加载种子数据...$(COLOR_RESET)"
+	@chmod +x scripts/sql/init-db.sh
+	@DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_NAME=$(DB_NAME) \
+		scripts/sql/init-db.sh --seed-only --skip-confirm
+	@echo "$(COLOR_GREEN)✅ 种子数据加载完成$(COLOR_RESET)"
+
+db-reset: ## 重置数据库（删除并重新创建，危险操作！）
+	@echo "$(COLOR_BOLD)$(COLOR_RED)⚠️  重置数据库...$(COLOR_RESET)"
+	@chmod +x scripts/sql/reset-db.sh
+	@DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_NAME=$(DB_NAME) \
+		scripts/sql/reset-db.sh
+	@echo "$(COLOR_GREEN)✅ 数据库重置完成$(COLOR_RESET)"
+
+db-connect: ## 连接到数据库
+	@echo "$(COLOR_CYAN)🔌 连接到数据库 $(DB_NAME)...$(COLOR_RESET)"
+	@if [ -n "$(DB_PASSWORD)" ]; then \
+		mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME); \
+	else \
+		mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) $(DB_NAME); \
+	fi
+
+db-status: ## 查看数据库状态
+	@echo "$(COLOR_CYAN)🔍 数据库状态:$(COLOR_RESET)"
+	@if [ -n "$(DB_PASSWORD)" ]; then \
+		mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -p$(DB_PASSWORD) -e "\
+			SELECT TABLE_NAME AS '表名', TABLE_ROWS AS '行数', TABLE_COMMENT AS '说明' \
+			FROM information_schema.TABLES \
+			WHERE TABLE_SCHEMA = '$(DB_NAME)' \
+			ORDER BY TABLE_NAME;" 2>/dev/null || echo "$(COLOR_YELLOW)⚠️  无法连接到数据库$(COLOR_RESET)"; \
+	else \
+		mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -e "\
+			SELECT TABLE_NAME AS '表名', TABLE_ROWS AS '行数', TABLE_COMMENT AS '说明' \
+			FROM information_schema.TABLES \
+			WHERE TABLE_SCHEMA = '$(DB_NAME)' \
+			ORDER BY TABLE_NAME;" 2>/dev/null || echo "$(COLOR_YELLOW)⚠️  无法连接到数据库$(COLOR_RESET)"; \
+	fi
+
+db-backup: ## 备份数据库
+	@echo "$(COLOR_CYAN)💾 备份数据库...$(COLOR_RESET)"
+	@BACKUP_FILE="backups/$(DB_NAME)_$(shell date +%Y%m%d_%H%M%S).sql"; \
+	mkdir -p backups; \
+	if [ -n "$(DB_PASSWORD)" ]; then \
+		mysqldump -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) > $$BACKUP_FILE; \
+	else \
+		mysqldump -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) $(DB_NAME) > $$BACKUP_FILE; \
+	fi; \
+	echo "$(COLOR_GREEN)✅ 数据库已备份到: $$BACKUP_FILE$(COLOR_RESET)"
+
+# ============================================================================
+# Docker MySQL 管理（开发环境）
+# ============================================================================
+
+docker-mysql-up: ## 启动 Docker MySQL 容器（开发环境）
+	@echo "$(COLOR_CYAN)🐳 启动 Docker MySQL 容器...$(COLOR_RESET)"
+	@docker run -d \
+		--name iam-mysql \
+		-e MYSQL_ROOT_PASSWORD=root \
+		-e MYSQL_DATABASE=$(DB_NAME) \
+		-p $(DB_PORT):3306 \
+		-v iam-mysql-data:/var/lib/mysql \
+		mysql:8.0 \
+		--character-set-server=utf8mb4 \
+		--collation-server=utf8mb4_unicode_ci
+	@echo "$(COLOR_GREEN)✅ MySQL 容器已启动$(COLOR_RESET)"
+	@echo "$(COLOR_YELLOW)⏳ 等待 MySQL 启动完成（约 10 秒）...$(COLOR_RESET)"
+	@sleep 10
+	@echo "$(COLOR_GREEN)✅ MySQL 已就绪，可以执行初始化: make db-init DB_PASSWORD=root$(COLOR_RESET)"
+
+docker-mysql-down: ## 停止并删除 Docker MySQL 容器
+	@echo "$(COLOR_CYAN)🐳 停止 Docker MySQL 容器...$(COLOR_RESET)"
+	@docker stop iam-mysql 2>/dev/null || true
+	@docker rm iam-mysql 2>/dev/null || true
+	@echo "$(COLOR_GREEN)✅ MySQL 容器已停止$(COLOR_RESET)"
+
+docker-mysql-clean: ## 清理 Docker MySQL 数据（删除容器和数据卷）
+	@echo "$(COLOR_RED)⚠️  清理 Docker MySQL 数据...$(COLOR_RESET)"
+	@docker stop iam-mysql 2>/dev/null || true
+	@docker rm iam-mysql 2>/dev/null || true
+	@docker volume rm iam-mysql-data 2>/dev/null || true
+	@echo "$(COLOR_GREEN)✅ MySQL 数据已清理$(COLOR_RESET)"
+
+docker-mysql-logs: ## 查看 Docker MySQL 日志
+	@docker logs -f iam-mysql

@@ -72,48 +72,86 @@ git clone https://github.com/fangcun-mount/iam-contracts.git
 cd iam-contracts
 ```
 
-#### 2. 启动基础设施（使用 Docker Compose）
+#### 2. 安装依赖
 
 ```bash
-cd build/docker/infra
-docker-compose up -d
+# 下载 Go 依赖
+make deps
+
+# 安装开发工具（可选）
+make install-tools
 ```
 
-这将启动 MySQL 和 Redis 服务。
-
-#### 3. 配置环境变量
+#### 3. 启动数据库（使用 Docker）
 
 ```bash
-cp configs/env/config.env.example configs/env/config.env
-# 编辑 config.env 填入数据库连接信息、微信 AppID/Secret 等
+# 启动 MySQL 容器
+make docker-mysql-up
+
+# 或使用现有 MySQL 服务
+# 确保 MySQL 8.0+ 正在运行
 ```
 
-#### 4. 运行数据库迁移
+#### 4. 初始化数据库
 
 ```bash
-make migrate-up
+# 创建数据库、表结构和加载种子数据
+make db-init
+
+# 使用自定义数据库连接
+make db-init DB_HOST=localhost DB_USER=root DB_PASSWORD=mypassword
+
+# 或使用环境变量
+export DB_HOST=localhost
+export DB_USER=root
+export DB_PASSWORD=mypassword
+make db-init
 ```
 
-#### 5. 生成 JWT 密钥对
+**默认账户**:
+- 系统管理员: `admin` / `admin123`
+- 演示租户管理员: `zhangsan` / `admin123`
+- 演示租户监护人: `lisi` / `admin123`
+
+⚠️ **安全提示**: 生产环境部署后请立即修改默认密码！
+
+#### 5. 构建项目
 
 ```bash
-cd scripts/cert
-./generate-dev-cert.sh
+# 构建 API Server
+make build
+
+# 查看构建版本
+make version
 ```
 
 #### 6. 启动 API Server
 
 ```bash
+# 启动服务
 make run
-# 或使用开发脚本
-./scripts/dev.sh
+
+# 或使用开发模式（热更新）
+make dev
+
+# 查看服务状态
+make status
 ```
 
 #### 7. 验证服务
 
 ```bash
+# 健康检查
 curl http://localhost:8080/healthz
 # 输出: {"status":"ok"}
+
+# 测试登录（使用默认账户）
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+
+# 获取 JWKS 公钥
+curl http://localhost:8080/.well-known/jwks.json
 ```
 
 ### 使用 Makefile
