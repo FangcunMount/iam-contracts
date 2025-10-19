@@ -109,6 +109,7 @@ make db-init
 ```
 
 **默认账户**:
+
 - 系统管理员: `admin` / `admin123`
 - 演示租户管理员: `zhangsan` / `admin123`
 - 演示租户监护人: `lisi` / `admin123`
