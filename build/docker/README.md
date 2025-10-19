@@ -6,7 +6,7 @@
 
 ### Dockerfile
 多阶段构建的 Docker 镜像配置：
-- **构建阶段**：使用 golang:1.24-alpine 编译 Go 应用
+- **构建阶段**：使用 golang:1.23-alpine 编译 Go 应用
 - **运行阶段**：使用 alpine:3.19 最小化镜像
 - **特性**：
   - 非 root 用户运行（安全）
