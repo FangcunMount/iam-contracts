@@ -5,6 +5,7 @@
 ## 版本规范
 
 遵循语义化版本规范（Semantic Versioning）：
+
 - **MAJOR**: 不兼容的 API 变更
 - **MINOR**: 向后兼容的功能新增
 - **PATCH**: 向后兼容的问题修复
@@ -109,9 +110,11 @@
 ### 索引 (Indexes)
 
 #### 主键索引
+
 - 所有表使用 VARCHAR(64) 或 BIGINT UNSIGNED 作为主键
 
 #### 唯一索引
+
 - `accounts`: (provider, external_id)
 - `sessions`: (refresh_token)
 - `signing_keys`: (kid)
@@ -123,6 +126,7 @@
 - `casbin_rule`: (ptype, v0, v1, v2, v3, v4, v5)
 
 #### 普通索引
+
 - `users`: tenant_id, phone, email, id_card, status, deleted_at
 - `children`: tenant_id, (name, birthday), id_card, deleted_at
 - `guardianships`: tenant_id, user_id, child_id, (user_id, child_id), deleted_at
@@ -161,21 +165,25 @@
 ### 种子数据 (Seed Data)
 
 #### 租户
+
 - ✅ 系统租户 (SYSTEM)
 - ✅ 演示租户 (DEMO)
 
 #### 用户
+
 - ✅ 系统管理员 (admin)
 - ✅ 演示租户管理员 (zhangsan)
 - ✅ 演示租户监护人 (lisi)
 
 #### 角色
+
 - ✅ 超级管理员 (SUPER_ADMIN)
 - ✅ 管理员 (ADMIN)
 - ✅ 普通用户 (USER)
 - ✅ 监护人 (GUARDIAN)
 
 #### 资源
+
 - ✅ 用户中心资源 (15个)
   - 用户管理 API (5个)
   - 儿童管理 API (5个)
@@ -186,10 +194,12 @@
   - 角色管理 API
 
 #### 测试数据
+
 - ✅ 测试儿童 (3个)
 - ✅ 测试监护关系 (3个)
 
 #### 系统配置
+
 - ✅ JWT 配置
 - ✅ 密钥轮换配置
 - ✅ 业务规则配置
@@ -227,21 +237,27 @@
 ### [版本号] - YYYY-MM-DD
 
 #### 新增 (Added)
+
 - 新增的表、字段、索引
 
 #### 变更 (Changed)
+
 - 修改的字段类型、长度、默认值等
 
 #### 废弃 (Deprecated)
+
 - 即将删除的功能（保持兼容）
 
 #### 删除 (Removed)
+
 - 已删除的表、字段、索引
 
 #### 修复 (Fixed)
+
 - 数据修复、约束修正等
 
 #### 安全 (Security)
+
 - 安全相关的变更
 
 ---

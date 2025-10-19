@@ -24,21 +24,21 @@
 
 ### Shell 脚本
 
-3. **`scripts/sql/init-db.sh`** (可执行)
+1. **`scripts/sql/init-db.sh`** (可执行)
    - 功能完善的初始化脚本
    - 支持命令行参数和环境变量
    - 连接测试和错误处理
    - 彩色输出
    - 交互式确认
 
-4. **`scripts/sql/reset-db.sh`** (可执行)
+2. **`scripts/sql/reset-db.sh`** (可执行)
    - 数据库重置脚本（开发环境）
    - 双重确认机制
    - 危险操作警告
 
 ### 文档
 
-5. **`docs/DATABASE_INITIALIZATION.md`** (698 行)
+1. **`docs/DATABASE_INITIALIZATION.md`** (698 行)
    - 完整的数据库初始化指南
    - 数据库结构详解
    - ER 图和关系说明
@@ -46,13 +46,13 @@
    - 常见操作指南
    - 故障排除方案
 
-6. **`scripts/sql/README.md`** (307 行)
+2. **`scripts/sql/README.md`** (307 行)
    - 脚本使用说明
    - 快速开始指南
    - 配置说明
    - Docker 环境说明
 
-7. **`scripts/sql/CHANGELOG.md`** (337 行)
+3. **`scripts/sql/CHANGELOG.md`** (337 行)
    - 数据库变更日志
    - 版本历史记录
    - 迁移指南
@@ -65,6 +65,7 @@
 添加了数据库管理命令：
 
 **数据库操作**:
+
 - `make db-init` - 完整初始化（创建表 + 种子数据）
 - `make db-migrate` - 仅创建表结构
 - `make db-seed` - 仅加载种子数据
@@ -74,12 +75,14 @@
 - `make db-backup` - 备份数据库
 
 **Docker MySQL**:
+
 - `make docker-mysql-up` - 启动 MySQL 容器
 - `make docker-mysql-down` - 停止 MySQL 容器
 - `make docker-mysql-clean` - 清理 MySQL 数据
 - `make docker-mysql-logs` - 查看 MySQL 日志
 
 **环境变量支持**:
+
 ```makefile
 DB_HOST ?= 127.0.0.1
 DB_PORT ?= 3306
@@ -105,17 +108,20 @@ DB_NAME ?= iam_contracts
 **17 张数据表**，按模块划分：
 
 #### 用户中心 (3 张表)
+
 - `users` - 用户表
 - `children` - 儿童表
 - `guardianships` - 监护关系表
 
 #### 认证中心 (4 张表)
+
 - `accounts` - 账户表
 - `sessions` - 会话表
 - `signing_keys` - 签名密钥表
 - `token_blacklist` - Token 黑名单表
 
 #### 授权中心 (5 张表)
+
 - `resources` - 资源表
 - `roles` - 角色表
 - `user_roles` - 用户角色关联表
@@ -123,6 +129,7 @@ DB_NAME ?= iam_contracts
 - `casbin_rule` - Casbin 策略规则表
 
 #### 系统表 (3 张表)
+
 - `tenants` - 租户表
 - `system_configs` - 系统配置表
 - `operation_logs` - 操作日志表
@@ -168,24 +175,29 @@ DB_NAME ?= iam_contracts
 ### 资源 (25+ 个)
 
 **用户中心**: 15 个 API 资源
+
 - 用户管理 (5 个): LIST, CREATE, GET, UPDATE, DELETE
 - 儿童管理 (5 个): LIST, CREATE, GET, UPDATE, DELETE
 - 监护关系 (5 个): LIST, CREATE, GET, REVOKE
 
 **认证中心**: 4 个 API 资源
+
 - LOGIN, LOGOUT, REFRESH, JWKS
 
 **授权中心**: 6 个 API 资源
+
 - 角色管理 (6 个): LIST, CREATE, GET, UPDATE, DELETE, ASSIGN
 
 ### 测试数据
 
 **儿童**: 3 个
+
 - 小明 (男, 2018-05-15)
 - 小红 (女, 2019-08-20)
 - 小刚 (男, 2020-03-10)
 
 **监护关系**: 3 个
+
 - 张三 → 小明 (father)
 - 张三 → 小红 (father)
 - 李四 → 小明 (mother)
@@ -301,7 +313,7 @@ JOIN roles r ON ur.role_id = r.id;
 
 ## 📝 文档结构
 
-```
+```text
 docs/
 ├── DATABASE_INITIALIZATION.md    (新增, 698 行)
 │   ├── 快速开始
@@ -326,6 +338,7 @@ scripts/sql/
 ### 1. 灵活配置
 
 支持三种配置方式：
+
 - 命令行参数
 - 环境变量
 - 配置文件（通过 Makefile）
