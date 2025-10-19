@@ -607,6 +607,8 @@ iam-contracts/
 | [**架构概览**](docs/architecture-overview.md) | 整体架构设计、C4 模型、技术栈、部署架构 |
 | [**UC 模块设计**](docs/uc-architecture.md) | 用户中心详细设计、CQRS 实现、领域模型、数据库 Schema |
 | [**认证模块设计**](docs/authn-architecture.md) | JWT 管理、JWKS 发布、密钥轮换、多端登录适配 |
+| [**部署总览**](docs/DEPLOYMENT.md) | 多种部署方式、配置说明、监控管理 |
+| [**Jenkins 部署**](docs/JENKINS_QUICKSTART.md) | Jenkins CI/CD 快速配置指南 |
 | [**文档索引**](docs/README.md) | 所有文档的导航入口 |
 
 ### 快速链接
@@ -619,7 +621,88 @@ iam-contracts/
 
 ---
 
-## 👨‍💻 开发指南
+## � 生产环境部署
+
+### Jenkins CI/CD 自动化部署（推荐）
+
+使用 Jenkins Pipeline 实现自动化构建、测试和部署：
+
+```bash
+# 1. 查看快速开始指南
+cat docs/JENKINS_QUICKSTART.md
+
+# 2. 配置 Jenkins（详见文档）
+# - 配置 SSH 凭据
+# - 创建 Pipeline 任务
+# - 配置 Git 仓库
+
+# 3. 触发部署
+git push origin main
+```
+
+**特点**：
+- ✅ 自动化构建、测试、部署
+- ✅ 健康检查和自动回滚
+- ✅ 版本管理和备份
+
+📖 **详细文档**：
+- [Jenkins 快速开始](docs/JENKINS_QUICKSTART.md) - 快速配置指南
+- [Jenkins 完整部署指南](docs/JENKINS_DEPLOYMENT.md) - 详细配置步骤
+- [部署总览](docs/DEPLOYMENT.md) - 所有部署方式说明
+
+### Docker 部署
+
+```bash
+# 构建镜像
+make docker-build
+
+# 使用 Docker Compose 启动
+make docker-compose-up
+
+# 查看日志
+docker-compose -f build/docker/docker-compose.yml logs -f iam-apiserver
+
+# 停止服务
+make docker-compose-down
+```
+
+### Systemd 服务部署
+
+```bash
+# 1. 编译
+make build
+
+# 2. 复制文件到部署目录
+sudo cp bin/apiserver /opt/iam-contracts/bin/
+sudo cp -r configs /opt/iam-contracts/
+
+# 3. 安装 systemd 服务
+sudo cp build/systemd/iam-apiserver.service /etc/systemd/system/
+sudo systemctl daemon-reload
+
+# 4. 启动服务
+sudo systemctl start iam-apiserver
+sudo systemctl enable iam-apiserver
+
+# 5. 查看状态
+sudo systemctl status iam-apiserver
+```
+
+### 使用部署脚本
+
+```bash
+# 使用自动化部署脚本
+./scripts/deploy.sh deploy    # 部署
+./scripts/deploy.sh start      # 启动
+./scripts/deploy.sh stop       # 停止
+./scripts/deploy.sh restart    # 重启
+./scripts/deploy.sh health     # 健康检查
+./scripts/deploy.sh rollback   # 回滚
+```
+
+---
+
+## �👨‍💻 开发指南
 
 ### API 文档
 
