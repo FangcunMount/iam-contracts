@@ -623,14 +623,10 @@ docker-compose-logs: ## 查看 docker-compose 日志
 
 .PHONY: deploy deploy-prepare deploy-check
 
-deploy-prepare: ## 准备部署文件
-	@echo "$(COLOR_BLUE)📦 准备部署文件...$(COLOR_RESET)"
-	@mkdir -p deploy
-	@cp $(APISERVER_BIN) deploy/
-	@cp -r configs deploy/
-	@cp scripts/deploy.sh deploy/
-	@chmod +x deploy/deploy.sh
-	@echo "$(COLOR_GREEN)✅ 部署文件已准备$(COLOR_RESET)"
+deploy-prepare: ## 准备部署文件 (已废弃，现使用 Docker 部署)
+	@echo "$(COLOR_YELLOW)⚠️  此命令已废弃，现在使用 Docker 部署$(COLOR_RESET)"
+	@echo "$(COLOR_BLUE)请使用: git push origin main (自动触发 CI/CD)$(COLOR_RESET)"
+	@echo "$(COLOR_BLUE)或查看: .github/workflows/cicd.yml$(COLOR_RESET)"
 
 deploy-check: ## 检查部署环境
 	@echo "$(COLOR_BLUE)🔍 检查部署环境...$(COLOR_RESET)"
