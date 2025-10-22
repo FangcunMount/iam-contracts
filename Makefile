@@ -18,6 +18,12 @@ BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 
+# Docker 镜像信息（可通过环境变量覆盖）
+DOCKER_REGISTRY ?= ghcr.io
+DOCKER_REPOSITORY ?= fangcunmount
+DOCKER_IMAGE := $(DOCKER_REGISTRY)/$(DOCKER_REPOSITORY)/$(PROJECT_NAME)
+DOCKER_TAG ?= latest
+
 # Go 相关
 GO := go
 GO_BUILD := $(GO) build
@@ -537,11 +543,11 @@ docker-build: ## 构建 Docker 镜像
 		--build-arg BUILD_TIME=$(BUILD_TIME) \
 		--build-arg GIT_COMMIT=$(GIT_COMMIT) \
 		-f build/docker/Dockerfile \
-		-t $(PROJECT_NAME):$(VERSION) \
-		-t $(PROJECT_NAME):latest \
+		-t $(DOCKER_IMAGE):$(VERSION) \
+		-t $(DOCKER_IMAGE):latest \
 		.
 	@echo "$(COLOR_GREEN)✅ Docker 镜像构建完成$(COLOR_RESET)"
-	@docker images $(PROJECT_NAME)
+	@docker images $(DOCKER_IMAGE)
 
 docker-run: ## 运行 Docker 容器
 	@echo "$(COLOR_BLUE)🐳 运行 Docker 容器...$(COLOR_RESET)"
@@ -550,7 +556,7 @@ docker-run: ## 运行 Docker 容器
 		-p 8080:8080 \
 		-v $(PWD)/configs:/app/configs:ro \
 		-v $(PWD)/logs:/app/logs \
-		$(PROJECT_NAME):latest
+		$(DOCKER_IMAGE):$(DOCKER_TAG)
 	@echo "$(COLOR_GREEN)✅ Docker 容器已启动$(COLOR_RESET)"
 
 docker-stop: ## 停止 Docker 容器
@@ -563,15 +569,13 @@ docker-clean: ## 清理 Docker 镜像和容器
 	@echo "$(COLOR_RED)🧹 清理 Docker 资源...$(COLOR_RESET)"
 	@docker stop $(PROJECT_NAME) 2>/dev/null || true
 	@docker rm $(PROJECT_NAME) 2>/dev/null || true
-	@docker rmi $(PROJECT_NAME):latest 2>/dev/null || true
+	@docker rmi $(DOCKER_IMAGE):latest 2>/dev/null || true
 	@echo "$(COLOR_GREEN)✅ Docker 资源已清理$(COLOR_RESET)"
 
 docker-push: ## 推送 Docker 镜像到仓库
 	@echo "$(COLOR_BLUE)📤 推送 Docker 镜像...$(COLOR_RESET)"
-	@docker tag $(PROJECT_NAME):$(VERSION) $(DOCKER_REGISTRY)/$(PROJECT_NAME):$(VERSION)
-	@docker tag $(PROJECT_NAME):$(VERSION) $(DOCKER_REGISTRY)/$(PROJECT_NAME):latest
-	@docker push $(DOCKER_REGISTRY)/$(PROJECT_NAME):$(VERSION)
-	@docker push $(DOCKER_REGISTRY)/$(PROJECT_NAME):latest
+	@docker push $(DOCKER_IMAGE):$(VERSION)
+	@docker push $(DOCKER_IMAGE):latest
 	@echo "$(COLOR_GREEN)✅ Docker 镜像已推送$(COLOR_RESET)"
 
 docker-compose-up: ## 使用 docker-compose 启动所有服务
