@@ -37,23 +37,23 @@ func TestStartShutdownCalledOnDefaultSignals(t *testing.T) {
 	c := make(chan int, 100)
 
 	psm := NewPosixSignalManager()
-	psm.Start(startShutdownFunc(func(sm shutdown.ShutdownManager) {
+	_ = psm.Start(startShutdownFunc(func(sm shutdown.ShutdownManager) {
 		c <- 1
 	}))
 
 	time.Sleep(time.Millisecond)
 
-	syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	_ = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
 
 	waitSig(t, c)
 
-	psm.Start(startShutdownFunc(func(sm shutdown.ShutdownManager) {
+	_ = psm.Start(startShutdownFunc(func(sm shutdown.ShutdownManager) {
 		c <- 1
 	}))
 
 	time.Sleep(time.Millisecond)
 
-	syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
+	_ = syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
 
 	waitSig(t, c)
 }
@@ -62,13 +62,13 @@ func TestStartShutdownCalledCustomSignal(t *testing.T) {
 	c := make(chan int, 100)
 
 	psm := NewPosixSignalManager(syscall.SIGHUP)
-	psm.Start(startShutdownFunc(func(sm shutdown.ShutdownManager) {
+	_ = psm.Start(startShutdownFunc(func(sm shutdown.ShutdownManager) {
 		c <- 1
 	}))
 
 	time.Sleep(time.Millisecond)
 
-	syscall.Kill(syscall.Getpid(), syscall.SIGHUP)
+	_ = syscall.Kill(syscall.Getpid(), syscall.SIGHUP)
 
 	waitSig(t, c)
 }
