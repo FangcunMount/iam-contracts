@@ -11,6 +11,7 @@ import (
 	authzhttp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/interface/restful"
 	userhttp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/restful"
 	authnMiddleware "github.com/fangcun-mount/iam-contracts/internal/pkg/middleware/authn"
+	"github.com/fangcun-mount/iam-contracts/pkg/log"
 )
 
 // Router 集中的路由管理器
@@ -44,6 +45,8 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 		authMiddleware = authnMiddleware.NewJWTAuthMiddleware(
 			r.container.AuthnModule.TokenService,
 		)
+	} else {
+		log.Warn("Authn module unavailable; routes will be exposed without JWT middleware")
 	}
 
 	// User 模块使用新中间件
@@ -61,11 +64,15 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 	})
 
 	// Authn 模块（公开端点）
-	authnhttp.Provide(authnhttp.Dependencies{
-		AuthHandler:    r.container.AuthnModule.AuthHandler,
-		AccountHandler: r.container.AuthnModule.AccountHandler,
-		JWKSHandler:    r.container.AuthnModule.JWKSHandler,
-	})
+	if r.container.AuthnModule != nil {
+		authnhttp.Provide(authnhttp.Dependencies{
+			AuthHandler:    r.container.AuthnModule.AuthHandler,
+			AccountHandler: r.container.AuthnModule.AccountHandler,
+			JWKSHandler:    r.container.AuthnModule.JWKSHandler,
+		})
+	} else {
+		authnhttp.Provide(authnhttp.Dependencies{})
+	}
 
 	// Authz 模块（授权管理）
 	if r.container.AuthzModule != nil {
@@ -80,8 +87,16 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 	}
 
 	userhttp.Register(engine)
-	authnhttp.Register(engine)
-	authzhttp.Register(engine)
+	if r.container.AuthnModule != nil {
+		authnhttp.Register(engine)
+	} else {
+		log.Warn("Authn endpoints disabled because module failed to initialize")
+	}
+	if r.container.AuthzModule != nil {
+		authzhttp.Register(engine)
+	} else {
+		log.Warn("Authz endpoints disabled because module failed to initialize")
+	}
 
 	r.registerAdminRoutes(engine, authMiddleware)
 

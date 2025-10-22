@@ -13,14 +13,12 @@ server:
   write-timeout: 60   # 秒
   run-mode: "release"   # Gin 开发模式, 可选值有：debug, release, test
 
-# 数据库配置
-database:
-  driver: "mysql"
-  host: "${IAM_APISERVER_DATABASE_HOST:127.0.0.1}"
-  port: "${IAM_APISERVER_DATABASE_PORT:3306}"
-  username: "${IAM_APISERVER_DATABASE_USERNAME:iam}"
-  password: "${IAM_APISERVER_DATABASE_PASSWORD:iam_contracts_pass123}"
-  dbname: "${IAM_APISERVER_DATABASE_DBNAME:iam_contracts}"
+# MySQL 配置
+mysql:
+  host: "${IAM_APISERVER_MYSQL_HOST:127.0.0.1:3306}"
+  username: "${IAM_APISERVER_MYSQL_USERNAME:iam}"
+  password: "${IAM_APISERVER_MYSQL_PASSWORD:iam_contracts_pass123}"
+  database: "${IAM_APISERVER_MYSQL_DATABASE:iam_contracts}"
   max-idle-conns: 10
   max-open-conns: 100
   conn-max-lifetime: 3600  # 秒
@@ -30,6 +28,7 @@ database:
 redis:
   host: "${IAM_APISERVER_REDIS_HOST:127.0.0.1}"
   port: "${IAM_APISERVER_REDIS_PORT:6379}"
+  addr: "${IAM_APISERVER_REDIS_ADDR:127.0.0.1:6379}"
   password: "${IAM_APISERVER_REDIS_PASSWORD:}"
   db: "${IAM_APISERVER_REDIS_DB:1}"  # 使用专用的数据库索引
   pool-size: 100
