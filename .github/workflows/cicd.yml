@@ -409,17 +409,27 @@ jobs:
             # 等待服务就绪并执行健康检查
             echo "Waiting for service to be ready..."
             ATTEMPTS=0
-            until curl -sf http://localhost:8080/healthz > /dev/null || [ $ATTEMPTS -ge 12 ]; do
-              sleep 5
+            MAX_ATTEMPTS=30  # 30次 × 5秒 = 150秒 (2.5分钟)
+            
+            while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
+              if curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
+                echo "✅ API health check passed (attempt $ATTEMPTS)"
+                sudo docker ps --filter "name=iam-apiserver" --format "table {{.Names}}\t{{.Status}}"
+                break
+              fi
+              
               ATTEMPTS=$((ATTEMPTS + 1))
+              if [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; then
+                echo "⏳ Health check attempt $ATTEMPTS/$MAX_ATTEMPTS failed, retrying in 5 seconds..."
+                sleep 5
+              fi
             done
-
-            echo "Performing health check..."
-            if curl -sf http://localhost:8080/healthz > /dev/null; then
-              echo "✅ API health check passed"
-              sudo docker ps --filter "name=iam-apiserver" --format "table {{.Names}}\t{{.Status}}"
-            else
-              echo "❌ Service failed to start"
+            
+            # 最终验证
+            if [ $ATTEMPTS -ge $MAX_ATTEMPTS ]; then
+              echo "❌ Service failed to start after $MAX_ATTEMPTS attempts"
+              echo "Checking container status..."
+              sudo docker ps -a --filter "name=iam-apiserver"
               echo "Checking container logs..."
               sudo docker logs --tail 100 iam-apiserver || true
               exit 1
