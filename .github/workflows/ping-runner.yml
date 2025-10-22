@@ -1,15 +1,16 @@
 name: Ping Runner
 
-# Required Secrets: PRODUCTION_HOST, PRODUCTION_USERNAME, PRODUCTION_SSH_KEY, PRODUCTION_SSH_PORT
+# Quick health check for production server and services
+# Required Secrets: SVRA_HOST, SVRA_USERNAME, SVRA_SSH_KEY, SVRA_SSH_PORT
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */6 * * *'  # Every 6 hours
 
 jobs:
   ping-production:
-    name: Check Production Server A
+    name: Production Server Quick Check
     runs-on: ubuntu-latest
     timeout-minutes: 5
     
@@ -17,90 +18,134 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: SSH Health Check
+      - name: System Health Check
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
-            echo "=== Production Server A Health Check ==="
+            echo "=========================================="
+            echo "Production Server (SVRA) - Quick Check"
+            echo "=========================================="
             echo "Hostname: $(hostname)"
             echo "Uptime: $(uptime)"
+            echo "Date: $(date)"
             echo ""
+            
+            # Memory
             echo "Memory:"
             free -h | grep -E "Mem|Swap"
             echo ""
+            
+            # Disk
             echo "Disk:"
-            df -h | grep -E "^/dev/"
+            df -h | grep -E "^/dev/" | head -3
             echo ""
+            
+            # CPU
             echo "CPU:"
             top -bn1 | grep "Cpu(s)"
+            echo ""
             
-      - name: Check IAM Docker Service
+            # Load Average
+            echo "Load Average:"
+            uptime | awk -F'load average:' '{print $2}'
+            echo "=========================================="
+            
+      - name: Docker Service Check
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
-            echo "=== IAM Docker Container Status ==="
+            echo "=========================================="
+            echo "Docker Service Status"
+            echo "=========================================="
             
-            # Check if Docker is running
+            # Check Docker daemon
             if ! sudo docker info >/dev/null 2>&1; then
               echo "❌ Docker daemon is not running"
               exit 1
             fi
+            echo "✅ Docker daemon is running"
+            echo ""
             
-            # Check IAM container
+            # Check all running containers
+            echo "Running containers:"
+            sudo docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | head -6
+            echo ""
+            
+            # Check IAM container specifically
             if sudo docker ps --filter "name=iam-apiserver" --format "{{.Names}}" | grep -q "iam-apiserver"; then
               echo "✅ IAM container is running"
               
-              # Get container status
               CONTAINER_STATUS=$(sudo docker ps --filter "name=iam-apiserver" --format "{{.Status}}")
               CONTAINER_HEALTH=$(sudo docker inspect --format='{{.State.Health.Status}}' iam-apiserver 2>/dev/null || echo "no healthcheck")
               
               echo "Status: $CONTAINER_STATUS"
               echo "Health: $CONTAINER_HEALTH"
               
-              # Show container details
-              sudo docker ps --filter "name=iam-apiserver" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-              
-              # Warn if unhealthy
               if [ "$CONTAINER_HEALTH" = "unhealthy" ]; then
-                echo "⚠️ Container is unhealthy"
+                echo "⚠️ WARNING: Container is unhealthy"
                 echo "Recent logs:"
-                sudo docker logs --tail 20 iam-apiserver
-              fi
-              
-              # Quick API health check
-              echo ""
-              echo "=== API Health Check ==="
-              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/healthz 2>/dev/null || echo "000")
-              if [ "$HTTP_CODE" = "200" ]; then
-                echo "✅ API responding: $HTTP_CODE"
-              else
-                echo "⚠️ API status: $HTTP_CODE"
+                sudo docker logs --tail 15 iam-apiserver
               fi
             else
-              echo "❌ IAM container is not running"
+              echo "❌ IAM container is NOT running"
               sudo docker ps -a --filter "name=iam-apiserver"
               exit 1
             fi
+            echo "=========================================="
+            
+      - name: API Health Check
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
+          script: |
+            echo "=========================================="
+            echo "API Health Check"
+            echo "=========================================="
+            
+            # HTTP endpoint
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/healthz 2>/dev/null || echo "000")
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ HTTP API (8080): OK ($HTTP_CODE)"
+            else
+              echo "❌ HTTP API (8080): Failed ($HTTP_CODE)"
+              exit 1
+            fi
+            
+            # HTTPS endpoint (if accessible)
+            HTTPS_CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://localhost:9444/healthz 2>/dev/null || echo "000")
+            if [ "$HTTPS_CODE" = "200" ]; then
+              echo "✅ HTTPS API (9444): OK ($HTTPS_CODE)"
+            else
+              echo "⚠️ HTTPS API (9444): $HTTPS_CODE (may require valid cert)"
+            fi
+            
+            echo "=========================================="
 
   ping-github:
-    name: Check GitHub Runner
+    name: GitHub Runner Check
     runs-on: ubuntu-latest
     steps:
       - name: Runner Info
         run: |
-          echo "=== GitHub Runner Info ==="
+          echo "=========================================="
+          echo "GitHub Runner Info"
+          echo "=========================================="
           echo "OS: ${{ runner.os }}"
           echo "Name: ${{ runner.name }}"
           echo "Arch: ${{ runner.arch }}"
-          echo "✅ Runner OK"
+          echo "✅ GitHub Runner OK"
+          echo "=========================================="
 
   report:
     name: Status Report
@@ -108,15 +153,25 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     steps:
-      - name: Report
+      - name: Generate Report
         run: |
-          echo "=== Status Report ==="
-          echo "Production: ${{ needs.ping-production.result }}"
-          echo "GitHub: ${{ needs.ping-github.result }}"
+          echo "=========================================="
+          echo "Ping Runner - Status Report"
+          echo "=========================================="
+          echo "Production Server: ${{ needs.ping-production.result }}"
+          echo "GitHub Runner: ${{ needs.ping-github.result }}"
+          echo "Time: $(date)"
+          echo ""
           
           if [ "${{ needs.ping-production.result }}" != "success" ]; then
-            echo "⚠️ Production check failed!"
+            echo "❌ Production check failed!"
             exit 1
           fi
           
-          echo "✅ All OK"
+          if [ "${{ needs.ping-github.result }}" != "success" ]; then
+            echo "❌ GitHub runner check failed!"
+            exit 1
+          fi
+          
+          echo "✅ All checks passed"
+          echo "=========================================="
