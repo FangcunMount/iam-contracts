@@ -234,7 +234,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: https://iam.example.com
+      url: https://iam.yangshujie.com
     steps:
       - name: Checkout
         uses: actions/checkout@v4
