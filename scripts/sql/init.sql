@@ -1,7 +1,7 @@
 -- ============================================================================
 -- IAM Contracts 数据库初始化脚本 v2.0
 -- ============================================================================
--- 数据库: iam_contracts
+-- 数据库: aim
 -- 版本: 2.0.0
 -- 创建时间: 2025-10-19
 -- 说明: 此版本完全对齐代码中的 PO 定义，修正了 v1.0 中的所有不一致问题
@@ -21,16 +21,18 @@
 -- ============================================================================
 
 -- 创建数据库
-CREATE DATABASE IF NOT EXISTS iam_contracts 
+CREATE DATABASE IF NOT EXISTS aim 
     DEFAULT CHARACTER SET utf8mb4 
     DEFAULT COLLATE utf8mb4_unicode_ci;
 
+USE aim;
+
 -- 创建用户并授权（如果不存在）
-CREATE USER IF NOT EXISTS 'iam'@'%' IDENTIFIED BY '2gy0dCwG';
-GRANT ALL PRIVILEGES ON iam_contracts.* TO 'iam'@'%';
+CREATE USER IF NOT EXISTS 'fcm_admin'@'%' IDENTIFIED BY 'RfDtf6SGkGFeB9qZQtX';
+GRANT ALL PRIVILEGES ON aim.* TO 'fcm_admin'@'%';
 FLUSH PRIVILEGES;
 
-USE iam_contracts;
+USE aim;
 
 -- ============================================================================
 -- 用户中心 (User Center) 表结构
@@ -462,7 +464,7 @@ SELECT
 FROM 
     information_schema.TABLES 
 WHERE 
-    TABLE_SCHEMA = 'iam_contracts'
+    TABLE_SCHEMA = 'aim'
 ORDER BY 
     TABLE_NAME;
 
