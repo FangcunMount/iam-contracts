@@ -318,6 +318,25 @@ jobs:
             sudo chown -R $(whoami):$(whoami) /opt/iam
             sudo chown -R $(whoami):$(whoami) /var/log/iam-contracts
             
+            # 创建环境变量文件(从 GitHub Secrets 生成实际值)
+            echo "Creating environment configuration..."
+            sudo mkdir -p /opt/iam/configs/env
+            sudo tee /opt/iam/configs/env/config.prod.env > /dev/null <<EOF
+            # Auto-generated production environment configuration
+            MYSQL_HOST=${{ secrets.MYSQL_HOST }}
+            MYSQL_PORT=3306
+            MYSQL_USERNAME=${{ secrets.MYSQL_USERNAME }}
+            MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+            MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
+            REDIS_HOST=${{ secrets.REDIS_HOST }}
+            REDIS_PORT=${{ secrets.REDIS_PORT || 6379 }}
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            REDIS_DB=${{ secrets.REDIS_DB || 1 }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            EOF
+            sudo chmod 600 /opt/iam/configs/env/config.prod.env
+            sudo chown $(whoami):$(whoami) /opt/iam/configs/env/config.prod.env
+            
                         # 安装 systemd 服务(如果不存在或需要更新)
             echo "Installing systemd service..."
             # 更新服务文件中的用户为当前用户
