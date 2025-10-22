@@ -316,16 +316,7 @@ jobs:
             echo "Stopping IAM service..."
             sudo systemctl stop iam-apiserver || echo "Service not running"
             
-            # Run database migrations (if Makefile exists)
-            if [ -f "/opt/iam/Makefile" ]; then
-              echo "Running database migrations..."
-              cd /opt/iam
-              make migrate || echo "Migration skipped"
-            else
-              echo "Makefile not found, skipping migrations"
-            fi
-            
-            # Start service
+            # Start service with new binary
             echo "Starting IAM service..."
             sudo systemctl start iam-apiserver
             
