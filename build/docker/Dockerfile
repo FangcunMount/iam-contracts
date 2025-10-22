@@ -75,11 +75,11 @@ RUN mkdir -p /app/logs /var/log/iam-contracts && \
 USER app
 
 # 暴露端口
-EXPOSE 8080
+EXPOSE 9080 9444
 
-# 健康检查
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8080/healthz || exit 1
+# 健康检查 (检查实际监听的端口 9080)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:9080/healthz || exit 1
 
 # 启动命令
 ENTRYPOINT ["/app/apiserver"]
