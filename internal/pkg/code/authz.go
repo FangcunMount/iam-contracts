@@ -6,31 +6,31 @@ import (
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
 )
 
-// Authorization errors (102xxx).
+// Authorization errors (103xxx - changed from 102xxx to avoid conflict with JWKS).
 const (
 	// ErrPermissionDenied - 403: Permission denied.
 	ErrPermissionDenied = 100207
 
 	// ErrRoleNotFound - 404: Role not found.
-	ErrRoleNotFound = 102001
+	ErrRoleNotFound = 103001
 
 	// ErrRoleAlreadyExists - 409: Role already exists.
-	ErrRoleAlreadyExists = 102002
+	ErrRoleAlreadyExists = 103002
 
 	// ErrResourceNotFound - 404: Resource not found.
-	ErrResourceNotFound = 102003
+	ErrResourceNotFound = 103003
 
 	// ErrResourceAlreadyExists - 409: Resource already exists.
-	ErrResourceAlreadyExists = 102004
+	ErrResourceAlreadyExists = 103004
 
 	// ErrAssignmentNotFound - 404: Assignment not found.
-	ErrAssignmentNotFound = 102005
+	ErrAssignmentNotFound = 103005
 
 	// ErrInvalidAction - 400: Invalid action for resource.
-	ErrInvalidAction = 102006
+	ErrInvalidAction = 103006
 
 	// ErrPolicyVersionNotFound - 404: Policy version not found.
-	ErrPolicyVersionNotFound = 102007
+	ErrPolicyVersionNotFound = 103007
 )
 
 // nolint: gochecknoinits
