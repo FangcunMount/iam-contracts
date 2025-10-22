@@ -153,9 +153,9 @@ jobs:
           cache: true
           
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
+          version: v2.1.6  # 与本地版本一致
           args: --timeout=5m
 
   build:
