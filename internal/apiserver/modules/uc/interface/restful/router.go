@@ -59,8 +59,8 @@ func registerChildRoutes(api *gin.RouterGroup, module *assembler.UserModule) {
 		me.GET("/children", module.ChildHandler.ListMyChildren)
 	}
 
-	api.POST("/children:register", module.ChildHandler.RegisterChild)
-	api.GET("/children:search", module.ChildHandler.SearchChildren)
+	api.POST("/children/register", module.ChildHandler.RegisterChild)
+	api.GET("/children/search", module.ChildHandler.SearchChildren)
 
 	children := api.Group("/children")
 	{
