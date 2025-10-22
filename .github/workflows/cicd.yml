@@ -262,8 +262,18 @@ jobs:
             echo "Starting deployment to Production Server (SVRA)"
             echo "=========================================="
             
-            # Navigate to project directory
-            cd /opt/iam
+            # Initialize or update Git repository
+            if [ ! -d "/opt/iam/.git" ]; then
+              echo "First deployment: Cloning repository..."
+              sudo mkdir -p /opt/iam
+              cd /opt
+              sudo git clone https://github.com/FangcunMount/iam-contracts.git iam
+              cd /opt/iam
+              sudo chown -R $(whoami):$(whoami) /opt/iam
+            else
+              echo "Repository exists, updating..."
+              cd /opt/iam
+            fi
             
             # Fix Git safe.directory warning (Git 2.35.2+ security feature)
             echo "Configuring Git safe directory..."
