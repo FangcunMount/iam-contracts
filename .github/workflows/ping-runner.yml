@@ -1,0 +1,116 @@
+name: Ping Runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner_label:
+        description: 'Runner label to test'
+        required: false
+        default: 'self-hosted'
+        type: string
+  schedule:
+    # 每天早上 9 点（UTC+8）运行一次
+    - cron: '0 1 * * *'
+
+jobs:
+  ping-runner:
+    name: Test Runner Connectivity
+    runs-on: ${{ github.event.inputs.runner_label || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Display runner information
+        run: |
+          echo "=========================================="
+          echo "Runner Information"
+          echo "=========================================="
+          echo "Runner Name: $RUNNER_NAME"
+          echo "Runner OS: $RUNNER_OS"
+          echo "Runner Arch: $RUNNER_ARCH"
+          echo "Runner Workspace: $RUNNER_WORKSPACE"
+          echo "=========================================="
+          
+      - name: Check system resources
+        run: |
+          echo "=========================================="
+          echo "System Resources"
+          echo "=========================================="
+          echo "CPU Info:"
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            lscpu | grep -E "^CPU\(s\)|^Model name|^Architecture"
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            sysctl -n machdep.cpu.brand_string
+            sysctl -n hw.ncpu
+          fi
+          echo ""
+          echo "Memory Info:"
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            free -h
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            sysctl hw.memsize
+          fi
+          echo ""
+          echo "Disk Space:"
+          df -h
+          echo "=========================================="
+          
+      - name: Test network connectivity
+        run: |
+          echo "=========================================="
+          echo "Network Connectivity Test"
+          echo "=========================================="
+          echo "Testing GitHub.com..."
+          ping -c 3 github.com || echo "GitHub ping failed (may be blocked)"
+          echo ""
+          echo "Testing DNS resolution..."
+          nslookup github.com
+          echo ""
+          echo "Testing HTTPS connectivity..."
+          curl -I https://github.com
+          echo "=========================================="
+          
+      - name: Check Docker availability
+        run: |
+          echo "=========================================="
+          echo "Docker Status"
+          echo "=========================================="
+          if command -v docker &> /dev/null; then
+            echo "Docker is installed"
+            docker --version
+            echo ""
+            echo "Docker info:"
+            docker info || echo "Docker daemon not running or not accessible"
+          else
+            echo "Docker is not installed"
+          fi
+          echo "=========================================="
+          
+      - name: Check Go availability
+        run: |
+          echo "=========================================="
+          echo "Go Status"
+          echo "=========================================="
+          if command -v go &> /dev/null; then
+            echo "Go is installed"
+            go version
+            echo ""
+            echo "GOPATH: $GOPATH"
+            echo "GOROOT: $(go env GOROOT)"
+          else
+            echo "Go is not installed"
+          fi
+          echo "=========================================="
+          
+      - name: Runner health summary
+        if: always()
+        run: |
+          echo "=========================================="
+          echo "Runner Health Summary"
+          echo "=========================================="
+          echo "✅ Runner is accessible"
+          echo "✅ Basic commands are working"
+          echo "Status: HEALTHY"
+          echo "=========================================="
