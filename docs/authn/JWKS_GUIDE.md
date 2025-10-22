@@ -228,10 +228,10 @@ Accept: application/json
 
 ```json
 {
-  "issuer": "https://iam.example.com",
-  "authorization_endpoint": "https://iam.example.com/auth/authorize",
-  "token_endpoint": "https://iam.example.com/auth/token",
-  "jwks_uri": "https://iam.example.com/.well-known/jwks.json",
+  "issuer": "https://iam.yangshujie.com",
+  "authorization_endpoint": "https://iam.yangshujie.com/auth/authorize",
+  "token_endpoint": "https://iam.yangshujie.com/auth/token",
+  "jwks_uri": "https://iam.yangshujie.com/.well-known/jwks.json",
   "response_types_supported": ["code", "token"],
   "subject_types_supported": ["public"],
   "id_token_signing_alg_values_supported": ["RS256"],
@@ -588,7 +588,7 @@ import jwksClient from 'jwks-rsa';
 
 // 创建 JWKS 客户端
 const client = jwksClient({
-  jwksUri: 'https://iam.example.com/.well-known/jwks.json',
+  jwksUri: 'https://iam.yangshujie.com/.well-known/jwks.json',
   cache: true,
   cacheMaxAge: 3600000, // 1 小时
   rateLimit: true,
@@ -611,7 +611,7 @@ function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
 export function verifyToken(token: string): Promise<jwt.JwtPayload> {
   return new Promise((resolve, reject) => {
     jwt.verify(token, getKey, {
-      issuer: 'https://iam.example.com',
+      issuer: 'https://iam.yangshujie.com',
       algorithms: ['RS256']
     }, (err, decoded) => {
       if (err) {
@@ -709,7 +709,7 @@ func fetchJWKS(url string, etag string) (*http.Response, error) {
 echo "YOUR_TOKEN" | cut -d'.' -f1 | base64 -d | jq .kid
 
 # 2. 检查 JWKS 是否包含该 kid
-curl https://iam.example.com/.well-known/jwks.json | jq '.keys[].kid'
+curl https://iam.yangshujie.com/.well-known/jwks.json | jq '.keys[].kid'
 
 # 3. 强制刷新 JWKS 缓存
 # (业务服务端实现刷新逻辑)
