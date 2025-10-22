@@ -1,5 +1,7 @@
 name: Ping Runner
 
+# Required Secrets: PRODUCTION_HOST, PRODUCTION_USERNAME, PRODUCTION_SSH_KEY, PRODUCTION_SSH_PORT
+
 on:
   workflow_dispatch:
   schedule:

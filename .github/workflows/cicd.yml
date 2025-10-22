@@ -1,14 +1,13 @@
 name: CI/CD Pipeline
 
-# ⚠️ 注意：GitHub Actions 会显示 "Context access might be invalid" 警告
-# 这是正常的！这些 Secrets 需要在 GitHub 仓库设置中配置：
+# 必需的 Secrets 配置 (在 GitHub 仓库设置中配置)
 # Settings → Secrets and variables → Actions
 # 
-# 必需的 Secrets（Organization 级别）：
+# Organization 级别 Secrets:
 #   - SVRA_HOST, SVRA_USERNAME, SVRA_SSH_KEY, SVRA_SSH_PORT
 #   - MYSQL_HOST, MYSQL_PORT, REDIS_HOST, REDIS_PORT
 #
-# 必需的 Secrets（Repository 级别）：
+# Repository 级别 Secrets:
 #   - MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DBNAME
 #   - REDIS_PASSWORD, REDIS_DB
 #
@@ -32,32 +31,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check Required Secrets
+        env:
+          SVRA_HOST: ${{ secrets.SVRA_HOST }}
+          SVRA_USERNAME: ${{ secrets.SVRA_USERNAME }}
+          SVRA_SSH_KEY: ${{ secrets.SVRA_SSH_KEY }}
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
         run: |
           echo "🔍 Validating required secrets..."
           
           # 初始化验证状态
           VALIDATION_FAILED=0
           
-          # 检查部署相关的 secrets（仅在 main 分支需要）
+          # 检查部署相关的 secrets(仅在 main 分支需要)
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
             echo "📋 Checking deployment secrets for main branch..."
             
             # 服务器连接
-            if [ -z "${{ secrets.SVRA_HOST }}" ]; then
+            if [ -z "$SVRA_HOST" ]; then
               echo "❌ SVRA_HOST is not set"
               VALIDATION_FAILED=1
             else
               echo "✅ SVRA_HOST is set"
             fi
             
-            if [ -z "${{ secrets.SVRA_USERNAME }}" ]; then
+            if [ -z "$SVRA_USERNAME" ]; then
               echo "❌ SVRA_USERNAME is not set"
               VALIDATION_FAILED=1
             else
               echo "✅ SVRA_USERNAME is set"
             fi
             
-            if [ -z "${{ secrets.SVRA_SSH_KEY }}" ]; then
+            if [ -z "$SVRA_SSH_KEY" ]; then
               echo "❌ SVRA_SSH_KEY is not set"
               VALIDATION_FAILED=1
             else
@@ -65,28 +72,28 @@ jobs:
             fi
             
             # 数据库连接
-            if [ -z "${{ secrets.MYSQL_HOST }}" ]; then
+            if [ -z "$MYSQL_HOST" ]; then
               echo "❌ MYSQL_HOST is not set"
               VALIDATION_FAILED=1
             else
               echo "✅ MYSQL_HOST is set"
             fi
             
-            if [ -z "${{ secrets.MYSQL_USERNAME }}" ]; then
+            if [ -z "$MYSQL_USERNAME" ]; then
               echo "❌ MYSQL_USERNAME is not set"
               VALIDATION_FAILED=1
             else
               echo "✅ MYSQL_USERNAME is set"
             fi
             
-            if [ -z "${{ secrets.MYSQL_PASSWORD }}" ]; then
+            if [ -z "$MYSQL_PASSWORD" ]; then
               echo "❌ MYSQL_PASSWORD is not set"
               VALIDATION_FAILED=1
             else
               echo "✅ MYSQL_PASSWORD is set"
             fi
             
-            if [ -z "${{ secrets.MYSQL_DBNAME }}" ]; then
+            if [ -z "$MYSQL_DBNAME" ]; then
               echo "❌ MYSQL_DBNAME is not set"
               VALIDATION_FAILED=1
             else
