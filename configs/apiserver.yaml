@@ -63,6 +63,11 @@ cors:
     - "Authorization"
 
 # HTTPS 服务器相关配置
+tls:
+  cert: /etc/iam-contracts/ssl/iam.yangshujie.com.crt
+  key: /etc/iam-contracts/ssl/iam.yangshujie.com.key
+  strict: false
+
 secure:
   bind-address: 0.0.0.0
   bind-port: 9444
