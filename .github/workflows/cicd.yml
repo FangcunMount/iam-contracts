@@ -205,9 +205,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -215,29 +212,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-            
-      - name: Build and push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./build/docker/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+      - name: Build Docker image
+        run: |
+          make docker-build
+        env:
+          DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
+          DOCKER_REPOSITORY: fangcunmount
+          DOCKER_TAG: latest
+      
+      - name: Push Docker image
+        run: |
+          make docker-push
+        env:
+          DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
+          DOCKER_REPOSITORY: fangcunmount
 
   deploy:
     name: Deploy to Production
@@ -265,7 +253,6 @@ jobs:
           mkdir -p deploy-package
           cp ./artifacts/iam-apiserver deploy-package/
           cp -r configs deploy-package/
-          cp build/systemd/iam-apiserver.service deploy-package/
           tar -czf deploy-package.tar.gz -C deploy-package .
           
       - name: Upload deployment package
@@ -293,8 +280,8 @@ jobs:
             echo "=========================================="
             
             # Create directory structure
-            sudo mkdir -p /opt/iam/_output/bin
             sudo mkdir -p /opt/iam/configs
+            sudo mkdir -p /opt/iam/configs/env
             sudo mkdir -p /var/log/iam-contracts
             
             # Backup current version
@@ -302,9 +289,13 @@ jobs:
             BACKUP_DIR="/opt/backups/iam/deployments"
             sudo mkdir -p $BACKUP_DIR
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-            sudo tar -czf $BACKUP_DIR/backup_${TIMESTAMP}.tar.gz \
-                -C /opt/iam _output/bin/iam-apiserver configs/apiserver.yaml \
+            if [ -d "/opt/iam/configs" ] && [ "$(ls -A /opt/iam/configs 2>/dev/null)" != "" ]; then
+              sudo tar -czf $BACKUP_DIR/backup_${TIMESTAMP}.tar.gz \
+                /opt/iam/configs /var/log/iam-contracts \
                 2>/dev/null || echo "No previous version to backup"
+            else
+              echo "No previous version to backup"
+            fi
             
             # Extract new version
             echo "Extracting new deployment package..."
@@ -313,14 +304,12 @@ jobs:
             mkdir -p $DEPLOY_TMP
             cd $DEPLOY_TMP
             tar -xzf /tmp/deploy-package.tar.gz
-            sudo mv iam-apiserver /opt/iam/_output/bin/
             sudo cp -r configs/* /opt/iam/configs/
-            sudo chown -R $(whoami):$(whoami) /opt/iam
-            sudo chown -R $(whoami):$(whoami) /var/log/iam-contracts
+            sudo chown -R 1000:1000 /opt/iam/configs
+            sudo chown -R 1000:1000 /var/log/iam-contracts
             
             # 创建环境变量文件(从 GitHub Secrets 生成实际值)
             echo "Creating environment configuration..."
-            sudo mkdir -p /opt/iam/configs/env
             sudo tee /opt/iam/configs/env/config.prod.env > /dev/null <<EOF
             # Auto-generated production environment configuration
             MYSQL_HOST=${{ secrets.MYSQL_HOST }}
@@ -335,55 +324,62 @@ jobs:
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             EOF
             sudo chmod 600 /opt/iam/configs/env/config.prod.env
-            sudo chown $(whoami):$(whoami) /opt/iam/configs/env/config.prod.env
-            
-                        # 安装 systemd 服务(如果不存在或需要更新)
-            echo "Installing systemd service..."
-            # 更新服务文件中的用户为当前用户
-            sed "s/User=deploy/User=$(whoami)/g; s/Group=deploy/Group=$(id -gn)/g" \
-              iam-apiserver.service > iam-apiserver.service.tmp
-            sudo mv iam-apiserver.service.tmp /etc/systemd/system/iam-apiserver.service
-            sudo systemctl daemon-reload
-            sudo systemctl enable iam-apiserver
+            sudo chown 1000:1000 /opt/iam/configs/env/config.prod.env
+
+            # 清理旧的 systemd 部署（如果存在）
+            echo "Cleaning up legacy systemd service..."
+            if sudo systemctl list-unit-files 2>/dev/null | grep -q '^iam-apiserver.service'; then
+              sudo systemctl stop iam-apiserver 2>/dev/null || true
+              sudo systemctl disable iam-apiserver 2>/dev/null || true
+              sudo rm -f /etc/systemd/system/iam-apiserver.service
+              sudo systemctl daemon-reload
+            fi
             
             # 清理临时目录
             cd /tmp
             rm -rf $DEPLOY_TMP
             rm -f deploy-package.tar.gz
             
-            # Pull latest Docker image (optional, for Docker-based deployment)
+            # Pull latest Docker image
             echo "Pulling latest Docker image..."
-            docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest || echo "Docker pull skipped"
-            
-            # Stop service
-            echo "Stopping IAM service..."
-            sudo systemctl stop iam-apiserver 2>/dev/null || echo "Service not running"
-            
-            # Start service with new binary
-            echo "Starting IAM service..."
-            sudo systemctl start iam-apiserver
-            
-            # Wait for service to be ready
+            docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+            # 停止并移除旧容器
+            if docker ps -a --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
+              echo "Stopping existing Docker container..."
+              docker stop iam-apiserver || true
+              docker rm iam-apiserver || true
+            fi
+
+            # 启动 Docker 容器
+            echo "Starting IAM service with Docker..."
+            docker run -d \
+              --name iam-apiserver \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              -p 9444:9444 \
+              -v /opt/iam/configs:/app/configs \
+              -v /var/log/iam-contracts:/app/logs \
+              --env-file /opt/iam/configs/env/config.prod.env \
+              ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+              --config=/app/configs/apiserver.yaml
+
+            # 等待服务就绪并执行健康检查
             echo "Waiting for service to be ready..."
-            sleep 10
-            
-            # Health check
+            ATTEMPTS=0
+            until curl -sf http://localhost:8080/healthz > /dev/null || [ $ATTEMPTS -ge 12 ]; do
+              sleep 5
+              ATTEMPTS=$((ATTEMPTS + 1))
+            done
+
             echo "Performing health check..."
-            if systemctl is-active --quiet iam-apiserver; then
-              echo "✅ Service is running"
-              systemctl status iam-apiserver --no-pager | head -10
-              
-              # API health check
-              if curl -sf http://localhost:8080/healthz > /dev/null; then
-                echo "✅ API health check passed"
-              else
-                echo "⚠️ API health check failed"
-                exit 1
-              fi
+            if curl -sf http://localhost:8080/healthz > /dev/null; then
+              echo "✅ API health check passed"
+              docker ps --filter "name=iam-apiserver" --format "table {{.Names}}\t{{.Status}}"
             else
               echo "❌ Service failed to start"
-              echo "Checking logs..."
-              sudo journalctl -u iam-apiserver -n 50 --no-pager
+              echo "Checking container logs..."
+              docker logs --tail 100 iam-apiserver || true
               exit 1
             fi
             
@@ -403,13 +399,15 @@ jobs:
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
+            set -e
             echo "Verifying deployment..."
             
             # Check service status
-            if systemctl is-active --quiet iam-apiserver; then
-              echo "✅ Service is active"
+            if docker ps --filter "name=iam-apiserver" --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
+              echo "✅ Docker container is running"
             else
-              echo "❌ Service is not active"
+              echo "❌ Docker container is not running"
+              docker ps -a --filter "name=iam-apiserver"
               exit 1
             fi
             
@@ -424,7 +422,7 @@ jobs:
             
             # Check version
             echo "Deployed version:"
-            /opt/iam/_output/bin/iam-apiserver version || echo "Version check skipped"
+            docker exec iam-apiserver /app/apiserver version || echo "Version check skipped"
             
             echo "✅ Deployment verification passed"
 
