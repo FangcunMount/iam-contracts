@@ -351,8 +351,8 @@ func BenchmarkPEMPrivateKeyResolver_ResolveSigningKey(b *testing.B) {
 	}
 
 	pemFile, _ := os.Create(pemPath)
-	pem.Encode(pemFile, pemBlock)
-	pemFile.Close()
+	_ = pem.Encode(pemFile, pemBlock)
+	_ = pemFile.Close()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

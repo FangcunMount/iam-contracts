@@ -143,10 +143,10 @@ func TestBasicAuthenticator_Authenticate_Success(t *testing.T) {
 		account.WithExternalID("testuser"),
 		account.WithStatus(account.StatusActive),
 	)
-	accountRepo.Create(ctx, &acc)
+	_ = accountRepo.Create(ctx, &acc)
 
 	opAccount := account.NewOperationAccount(accountID, "testuser", "bcrypt")
-	operationRepo.Create(ctx, &opAccount)
+	_ = operationRepo.Create(ctx, &opAccount)
 
 	// 创建密码哈希
 	passwordHash, err := authentication.HashPassword("password123", authentication.AlgorithmBcrypt)
@@ -212,10 +212,10 @@ func TestBasicAuthenticator_Authenticate_WrongPassword(t *testing.T) {
 		account.WithExternalID("testuser"),
 		account.WithStatus(account.StatusActive),
 	)
-	accountRepo.Create(ctx, &acc)
+	_ = accountRepo.Create(ctx, &acc)
 
 	opAccount := account.NewOperationAccount(accountID, "testuser", "bcrypt")
-	operationRepo.Create(ctx, &opAccount)
+	_ = operationRepo.Create(ctx, &opAccount)
 
 	// 创建密码哈希 (正确密码)
 	passwordHash, err := authentication.HashPassword("correct_password", authentication.AlgorithmBcrypt)
@@ -255,10 +255,10 @@ func TestBasicAuthenticator_Authenticate_AccountDisabled(t *testing.T) {
 		account.WithExternalID("testuser"),
 		account.WithStatus(account.StatusDisabled), // 禁用状态
 	)
-	accountRepo.Create(ctx, &acc)
+	_ = accountRepo.Create(ctx, &acc)
 
 	opAccount := account.NewOperationAccount(accountID, "testuser", "bcrypt")
-	operationRepo.Create(ctx, &opAccount)
+	_ = operationRepo.Create(ctx, &opAccount)
 
 	// 创建密码哈希
 	passwordHash, err := authentication.HashPassword("password123", authentication.AlgorithmBcrypt)
