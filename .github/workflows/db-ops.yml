@@ -29,10 +29,10 @@ jobs:
       - name: Backup Database
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
             BACKUP_DIR="/opt/backups/iam"
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -41,10 +41,11 @@ jobs:
             mkdir -p $BACKUP_DIR
             
             echo "Starting database backup..."
-            mysqldump -h ${{ secrets.DB_HOST }} \
-                      -u ${{ secrets.DB_USERNAME }} \
-                      -p'${{ secrets.DB_PASSWORD }}' \
-                      ${{ secrets.DB_DATABASE }} > $BACKUP_DIR/$BACKUP_FILE
+            mysqldump -h ${{ secrets.MYSQL_HOST }} \
+                      -P ${{ secrets.MYSQL_PORT }} \
+                      -u ${{ secrets.MYSQL_USERNAME }} \
+                      -p'${{ secrets.MYSQL_PASSWORD }}' \
+                      ${{ secrets.MYSQL_DBNAME }} > $BACKUP_DIR/$BACKUP_FILE
             
             gzip $BACKUP_DIR/$BACKUP_FILE
             echo "✅ Backup completed: ${BACKUP_FILE}.gz"
@@ -65,10 +66,10 @@ jobs:
       - name: Restore Database
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
             BACKUP_DIR="/opt/backups/iam"
             BACKUP_FILE="${{ github.event.inputs.backup_name }}"
@@ -87,10 +88,11 @@ jobs:
             
             echo "Restoring from: $BACKUP_FILE"
             gunzip -c $BACKUP_DIR/$BACKUP_FILE | \
-            mysql -h ${{ secrets.DB_HOST }} \
-                  -u ${{ secrets.DB_USERNAME }} \
-                  -p'${{ secrets.DB_PASSWORD }}' \
-                  ${{ secrets.DB_DATABASE }}
+            mysql -h ${{ secrets.MYSQL_HOST }} \
+                  -P ${{ secrets.MYSQL_PORT }} \
+                  -u ${{ secrets.MYSQL_USERNAME }} \
+                  -p'${{ secrets.MYSQL_PASSWORD }}' \
+                  ${{ secrets.MYSQL_DBNAME }}
             
             echo "✅ Database restored successfully"
 
@@ -105,10 +107,10 @@ jobs:
       - name: Run Migrations
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
             cd /opt/iam-contracts
             
@@ -128,17 +130,18 @@ jobs:
       - name: Check Database Status
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
             echo "=== Database Status ==="
             
             # Check MySQL connection
-            mysql -h ${{ secrets.DB_HOST }} \
-                  -u ${{ secrets.DB_USERNAME }} \
-                  -p'${{ secrets.DB_PASSWORD }}' \
+            mysql -h ${{ secrets.MYSQL_HOST }} \
+                  -P ${{ secrets.MYSQL_PORT }} \
+                  -u ${{ secrets.MYSQL_USERNAME }} \
+                  -p'${{ secrets.MYSQL_PASSWORD }}' \
                   -e "SELECT VERSION();" 2>/dev/null && \
             echo "✅ MySQL connection OK" || \
             echo "❌ MySQL connection failed"
@@ -146,22 +149,24 @@ jobs:
             # Show database size
             echo ""
             echo "Database size:"
-            mysql -h ${{ secrets.DB_HOST }} \
-                  -u ${{ secrets.DB_USERNAME }} \
-                  -p'${{ secrets.DB_PASSWORD }}' \
+            mysql -h ${{ secrets.MYSQL_HOST }} \
+                  -P ${{ secrets.MYSQL_PORT }} \
+                  -u ${{ secrets.MYSQL_USERNAME }} \
+                  -p'${{ secrets.MYSQL_PASSWORD }}' \
                   -e "SELECT table_schema AS 'Database', 
                      ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size (MB)' 
                      FROM information_schema.tables 
-                     WHERE table_schema = '${{ secrets.DB_DATABASE }}' 
+                     WHERE table_schema = '${{ secrets.MYSQL_DBNAME }}' 
                      GROUP BY table_schema;"
             
             # Show tables
             echo ""
             echo "Tables:"
-            mysql -h ${{ secrets.DB_HOST }} \
-                  -u ${{ secrets.DB_USERNAME }} \
-                  -p'${{ secrets.DB_PASSWORD }}' \
-                  ${{ secrets.DB_DATABASE }} \
+            mysql -h ${{ secrets.MYSQL_HOST }} \
+                  -P ${{ secrets.MYSQL_PORT }} \
+                  -u ${{ secrets.MYSQL_USERNAME }} \
+                  -p'${{ secrets.MYSQL_PASSWORD }}' \
+                  ${{ secrets.MYSQL_DBNAME }} \
                   -e "SHOW TABLES;"
             
             # List backups
