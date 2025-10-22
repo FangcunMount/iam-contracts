@@ -88,10 +88,10 @@ GET /.well-known/openid-configuration
 
 Response: 200 OK
 {
-  "issuer": "https://iam.example.com",
-  "authorization_endpoint": "https://iam.example.com/auth/authorize",
-  "token_endpoint": "https://iam.example.com/auth/token",
-  "jwks_uri": "https://iam.example.com/.well-known/jwks.json",
+  "issuer": "https://iam.yangshujie.com",
+  "authorization_endpoint": "https://iam.yangshujie.com/auth/authorize",
+  "token_endpoint": "https://iam.yangshujie.com/auth/token",
+  "jwks_uri": "https://iam.yangshujie.com/.well-known/jwks.json",
   "response_types_supported": ["code", "token"],
   "subject_types_supported": ["public"],
   "id_token_signing_alg_values_supported": ["RS256"]
@@ -257,7 +257,7 @@ func main() {
     
     // 创建认证中间件
     authMiddleware := middleware.NewAuthMiddleware(
-        "https://iam.example.com/.well-known/jwks.json",
+        "https://iam.yangshujie.com/.well-known/jwks.json",
     )
     
     // 公开路由（无需认证）
