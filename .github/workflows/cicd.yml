@@ -190,7 +190,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: iam-apiserver
-          path: _output/bin/iam-apiserver
+          path: bin/apiserver
           retention-days: 7
 
   docker:
@@ -259,6 +259,8 @@ jobs:
       
       - name: Prepare deployment files
         run: |
+          # artifact 文件名是 apiserver,需要重命名为 iam-apiserver
+          mv ./artifacts/apiserver ./artifacts/iam-apiserver
           chmod +x ./artifacts/iam-apiserver
           mkdir -p deploy-package
           cp ./artifacts/iam-apiserver deploy-package/
