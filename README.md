@@ -673,8 +673,8 @@ make docker-compose-down
 make build
 
 # 2. 复制文件到部署目录
-sudo cp bin/apiserver /opt/iam-contracts/bin/
-sudo cp -r configs /opt/iam-contracts/
+sudo cp bin/apiserver /opt/iam/bin/
+sudo cp -r configs /opt/iam/
 
 # 3. 安装 systemd 服务
 sudo cp build/systemd/iam-apiserver.service /etc/systemd/system/
