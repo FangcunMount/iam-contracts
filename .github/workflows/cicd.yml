@@ -1,0 +1,488 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      deploy_environment:
+        description: 'Deployment environment'
+        required: true
+        type: choice
+        options:
+          - 'dev'
+          - 'staging'
+          - 'prod'
+      skip_tests:
+        description: 'Skip tests'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  GO_VERSION: '1.24'
+  PROJECT_NAME: 'iam-contracts'
+  BINARY_NAME: 'apiserver'
+
+jobs:
+  # ============================================================================
+  # CI Jobs
+  # ============================================================================
+  
+  lint:
+    name: Code Linting
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          
+      - name: Run golangci-lint
+        run: |
+          golangci-lint run --timeout=10m --verbose ./...
+          
+      - name: Check code formatting
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "The following files are not formatted:"
+            gofmt -l .
+            exit 1
+          fi
+          echo "✅ All files are properly formatted"
+  
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ !github.event.inputs.skip_tests }}
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: iam_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          
+      - name: Download dependencies
+        run: |
+          go mod download
+          go mod verify
+          
+      - name: Run unit tests
+        env:
+          DB_HOST: localhost
+          DB_PORT: 3306
+          DB_NAME: iam_test
+          DB_USER: root
+          DB_PASSWORD: root
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+        run: |
+          make test-unit || go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+          
+      - name: Generate coverage report
+        run: |
+          go tool cover -func=coverage.out
+          
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          
+      - name: Archive test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            coverage.out
+            *.log
+  
+  build:
+    name: Build Binary
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: ${{ always() && !cancelled() && (needs.test.result == 'success' || github.event.inputs.skip_tests) }}
+    timeout-minutes: 15
+    
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [amd64, arm64]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          
+      - name: Get version info
+        id: version
+        run: |
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "v0.0.0-dev")
+          BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
+          GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
+          echo "git_commit=$GIT_COMMIT" >> $GITHUB_OUTPUT
+          
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          BINARY_OUTPUT="bin/${BINARY_NAME}-${GOOS}-${GOARCH}"
+          
+          go build \
+            -ldflags "-s -w \
+              -X main.Version=${{ steps.version.outputs.version }} \
+              -X main.BuildTime=${{ steps.version.outputs.build_time }} \
+              -X main.GitCommit=${{ steps.version.outputs.git_commit }}" \
+            -o $BINARY_OUTPUT \
+            ./cmd/apiserver
+          
+          chmod +x $BINARY_OUTPUT
+          ls -lh $BINARY_OUTPUT
+          
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: bin/*
+          retention-days: 7
+  
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name != 'pull_request'
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/${{ env.PROJECT_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./build/docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+      - name: Image digest
+        run: echo ${{ steps.meta.outputs.digest }}
+  
+  # ============================================================================
+  # CD Jobs
+  # ============================================================================
+  
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: self-hosted
+    needs: [docker-build]
+    if: github.ref == 'refs/heads/develop' || github.event.inputs.deploy_environment == 'dev'
+    environment:
+      name: development
+      url: ${{ secrets.DEV_API_URL }}
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Create deployment directory
+        run: |
+          sudo mkdir -p /opt/iam-contracts/dev
+          sudo chown $USER:$USER /opt/iam-contracts/dev
+          
+      - name: Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-linux-amd64
+          path: ./bin
+          
+      - name: Deploy binary
+        run: |
+          chmod +x bin/apiserver-linux-amd64
+          sudo cp bin/apiserver-linux-amd64 /opt/iam-contracts/dev/apiserver
+          sudo cp configs/apiserver.yaml /opt/iam-contracts/dev/
+          
+      - name: Restart service
+        run: |
+          sudo systemctl restart iam-apiserver-dev || echo "Service not configured"
+          
+      - name: Wait for service to be ready
+        run: |
+          timeout 60 bash -c 'until curl -f http://localhost:8080/health; do sleep 2; done' || exit 1
+          
+      - name: Verify deployment
+        run: |
+          curl -f http://localhost:8080/health
+          curl -f http://localhost:8080/version
+  
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: self-hosted
+    needs: [docker-build]
+    if: startsWith(github.ref, 'refs/heads/release/') || github.event.inputs.deploy_environment == 'staging'
+    environment:
+      name: staging
+      url: ${{ secrets.STAGING_API_URL }}
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Deploy with Docker Compose
+        run: |
+          cd build/docker
+          docker-compose pull
+          docker-compose up -d
+          
+      - name: Wait for service to be ready
+        run: |
+          timeout 60 bash -c 'until curl -f ${{ secrets.STAGING_API_URL }}/health; do sleep 2; done' || exit 1
+          
+      - name: Run smoke tests
+        run: |
+          curl -f ${{ secrets.STAGING_API_URL }}/health
+          curl -f ${{ secrets.STAGING_API_URL }}/version
+  
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: self-hosted
+    needs: [docker-build]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.deploy_environment == 'prod'
+    environment:
+      name: production
+      url: ${{ secrets.PROD_API_URL }}
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Create backup
+        run: |
+          echo "Creating backup before deployment..."
+          BACKUP_DIR="/opt/backups/iam-contracts"
+          sudo mkdir -p $BACKUP_DIR
+          BACKUP_FILE="$BACKUP_DIR/backup-$(date +%Y%m%d-%H%M%S).tar.gz"
+          sudo tar -czf $BACKUP_FILE /opt/iam-contracts/prod/ 2>/dev/null || echo "No previous deployment to backup"
+          
+      - name: Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-linux-amd64
+          path: ./bin
+          
+      - name: Deploy with blue-green strategy
+        run: |
+          # Stop old service
+          sudo systemctl stop iam-apiserver || echo "Service not running"
+          
+          # Deploy new binary
+          sudo mkdir -p /opt/iam-contracts/prod
+          chmod +x bin/apiserver-linux-amd64
+          sudo cp bin/apiserver-linux-amd64 /opt/iam-contracts/prod/apiserver
+          sudo cp configs/apiserver.yaml /opt/iam-contracts/prod/
+          
+          # Start new service
+          sudo systemctl start iam-apiserver
+          
+      - name: Wait for service to be ready
+        run: |
+          timeout 120 bash -c 'until curl -f ${{ secrets.PROD_API_URL }}/health; do sleep 2; done' || exit 1
+          
+      - name: Verify deployment
+        run: |
+          curl -f ${{ secrets.PROD_API_URL }}/health
+          VERSION=$(curl -s ${{ secrets.PROD_API_URL }}/version | jq -r '.version')
+          echo "Deployed version: $VERSION"
+          
+      - name: Run health checks
+        run: |
+          # Test critical endpoints
+          curl -f ${{ secrets.PROD_API_URL }}/health
+          curl -f ${{ secrets.PROD_API_URL }}/version
+          curl -f ${{ secrets.PROD_API_URL }}/metrics || echo "Metrics endpoint not available"
+          
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "Deployment failed, initiating rollback..."
+          # Restore from backup
+          LATEST_BACKUP=$(ls -t /opt/backups/iam-contracts/backup-*.tar.gz 2>/dev/null | head -1)
+          if [ -n "$LATEST_BACKUP" ]; then
+            sudo tar -xzf $LATEST_BACKUP -C /
+            sudo systemctl restart iam-apiserver
+          fi
+          
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = context.ref.replace('refs/tags/', '');
+            const release = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tag,
+              name: `Release ${tag}`,
+              body: `Production deployment of ${tag}`,
+              draft: false,
+              prerelease: false
+            });
+            console.log(`Created release: ${release.data.html_url}`);
+  
+  # ============================================================================
+  # Notification Jobs
+  # ============================================================================
+  
+  notify-success:
+    name: Notify Success
+    runs-on: ubuntu-latest
+    needs: [deploy-dev, deploy-staging, deploy-prod]
+    if: success()
+    
+    steps:
+      - name: Send success notification
+        run: |
+          echo "=========================================="
+          echo "✅ CI/CD Pipeline Completed Successfully"
+          echo "=========================================="
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Workflow: ${{ github.workflow }}"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "=========================================="
+  
+  notify-failure:
+    name: Notify Failure
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, docker-build, deploy-dev, deploy-staging, deploy-prod]
+    if: failure()
+    
+    steps:
+      - name: Create failure issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `❌ CI/CD Pipeline Failed - ${context.workflow} - ${new Date().toISOString()}`;
+            const body = `
+            ## Pipeline Failure Report
+            
+            **Workflow:** ${context.workflow}
+            **Branch:** ${context.ref}
+            **Commit:** ${context.sha}
+            **Run ID:** ${context.runId}
+            **Trigger:** ${context.eventName}
+            
+            ### Workflow Link
+            ${context.payload.repository.html_url}/actions/runs/${context.runId}
+            
+            ### Quick Actions
+            - [ ] Review workflow logs
+            - [ ] Check for code issues
+            - [ ] Verify configuration
+            - [ ] Re-run failed jobs
+            `;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['bug', 'ci/cd', 'automated']
+            });

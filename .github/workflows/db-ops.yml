@@ -1,0 +1,213 @@
+name: Database Operations
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Database operation to perform'
+        required: true
+        type: choice
+        options:
+          - 'backup'
+          - 'restore'
+          - 'migrate'
+          - 'seed'
+          - 'health-check'
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - 'dev'
+          - 'staging'
+          - 'prod'
+      backup_file:
+        description: 'Backup file name (for restore operation)'
+        required: false
+        type: string
+
+env:
+  DB_BACKUP_DIR: /opt/backups/iam-contracts
+  
+jobs:
+  db-health-check:
+    name: Database Health Check
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.operation == 'health-check' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up environment variables
+        run: |
+          echo "DB_HOST=${{ secrets[format('DB_HOST_{0}', github.event.inputs.environment)] }}" >> $GITHUB_ENV
+          echo "DB_PORT=${{ secrets[format('DB_PORT_{0}', github.event.inputs.environment)] }}" >> $GITHUB_ENV
+          echo "DB_NAME=${{ secrets[format('DB_NAME_{0}', github.event.inputs.environment)] }}" >> $GITHUB_ENV
+          
+      - name: Install MySQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
+          
+      - name: Check database connectivity
+        env:
+          DB_USER: ${{ secrets[format('DB_USER_{0}', github.event.inputs.environment)] }}
+          DB_PASSWORD: ${{ secrets[format('DB_PASSWORD_{0}', github.event.inputs.environment)] }}
+        run: |
+          echo "Checking connection to $DB_HOST:$DB_PORT/$DB_NAME..."
+          mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD -e "SELECT 1" $DB_NAME
+          echo "✅ Database connection successful"
+          
+      - name: Check database tables
+        env:
+          DB_USER: ${{ secrets[format('DB_USER_{0}', github.event.inputs.environment)] }}
+          DB_PASSWORD: ${{ secrets[format('DB_PASSWORD_{0}', github.event.inputs.environment)] }}
+        run: |
+          echo "Listing tables in database..."
+          mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD -e "SHOW TABLES;" $DB_NAME
+          
+      - name: Database size information
+        env:
+          DB_USER: ${{ secrets[format('DB_USER_{0}', github.event.inputs.environment)] }}
+          DB_PASSWORD: ${{ secrets[format('DB_PASSWORD_{0}', github.event.inputs.environment)] }}
+        run: |
+          echo "Database size information..."
+          mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD -e "
+            SELECT 
+              table_schema AS 'Database',
+              ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size (MB)'
+            FROM information_schema.tables
+            WHERE table_schema = '$DB_NAME'
+            GROUP BY table_schema;
+          "
+  
+  db-backup:
+    name: Database Backup
+    runs-on: self-hosted
+    if: ${{ github.event.inputs.operation == 'backup' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set backup filename
+        run: |
+          BACKUP_FILE="iam-contracts-${{ github.event.inputs.environment }}-$(date +%Y%m%d-%H%M%S).sql"
+          echo "BACKUP_FILE=$BACKUP_FILE" >> $GITHUB_ENV
+          echo "BACKUP_PATH=${{ env.DB_BACKUP_DIR }}/$BACKUP_FILE" >> $GITHUB_ENV
+          
+      - name: Create backup directory
+        run: |
+          sudo mkdir -p ${{ env.DB_BACKUP_DIR }}
+          sudo chown $USER:$USER ${{ env.DB_BACKUP_DIR }}
+          
+      - name: Backup database
+        env:
+          DB_HOST: ${{ secrets[format('DB_HOST_{0}', github.event.inputs.environment)] }}
+          DB_PORT: ${{ secrets[format('DB_PORT_{0}', github.event.inputs.environment)] }}
+          DB_NAME: ${{ secrets[format('DB_NAME_{0}', github.event.inputs.environment)] }}
+          DB_USER: ${{ secrets[format('DB_USER_{0}', github.event.inputs.environment)] }}
+          DB_PASSWORD: ${{ secrets[format('DB_PASSWORD_{0}', github.event.inputs.environment)] }}
+        run: |
+          echo "Creating backup: $BACKUP_FILE"
+          mysqldump -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD \
+            --single-transaction \
+            --routines \
+            --triggers \
+            --events \
+            $DB_NAME > $BACKUP_PATH
+          
+          # Compress the backup
+          gzip $BACKUP_PATH
+          echo "✅ Backup created: ${BACKUP_PATH}.gz"
+          
+      - name: Verify backup
+        run: |
+          if [ -f "${BACKUP_PATH}.gz" ]; then
+            SIZE=$(du -h "${BACKUP_PATH}.gz" | cut -f1)
+            echo "✅ Backup file size: $SIZE"
+            ls -lh "${BACKUP_PATH}.gz"
+          else
+            echo "❌ Backup file not found"
+            exit 1
+          fi
+          
+      - name: Cleanup old backups
+        run: |
+          echo "Cleaning up backups older than 30 days..."
+          find ${{ env.DB_BACKUP_DIR }} -name "iam-contracts-${{ github.event.inputs.environment }}-*.sql.gz" -mtime +30 -delete
+          echo "Remaining backups:"
+          ls -lh ${{ env.DB_BACKUP_DIR }}/iam-contracts-${{ github.event.inputs.environment }}-*.sql.gz
+  
+  db-migrate:
+    name: Database Migration
+    runs-on: self-hosted
+    if: ${{ github.event.inputs.operation == 'migrate' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+          
+      - name: Run migrations
+        env:
+          DB_HOST: ${{ secrets[format('DB_HOST_{0}', github.event.inputs.environment)] }}
+          DB_PORT: ${{ secrets[format('DB_PORT_{0}', github.event.inputs.environment)] }}
+          DB_NAME: ${{ secrets[format('DB_NAME_{0}', github.event.inputs.environment)] }}
+          DB_USER: ${{ secrets[format('DB_USER_{0}', github.event.inputs.environment)] }}
+          DB_PASSWORD: ${{ secrets[format('DB_PASSWORD_{0}', github.event.inputs.environment)] }}
+        run: |
+          echo "Running database migrations for ${{ github.event.inputs.environment }}..."
+          make db-migrate
+          echo "✅ Migrations completed"
+  
+  db-seed:
+    name: Database Seeding
+    runs-on: self-hosted
+    if: ${{ github.event.inputs.operation == 'seed' && github.event.inputs.environment != 'prod' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+          
+      - name: Seed database
+        env:
+          DB_HOST: ${{ secrets[format('DB_HOST_{0}', github.event.inputs.environment)] }}
+          DB_PORT: ${{ secrets[format('DB_PORT_{0}', github.event.inputs.environment)] }}
+          DB_NAME: ${{ secrets[format('DB_NAME_{0}', github.event.inputs.environment)] }}
+          DB_USER: ${{ secrets[format('DB_USER_{0}', github.event.inputs.environment)] }}
+          DB_PASSWORD: ${{ secrets[format('DB_PASSWORD_{0}', github.event.inputs.environment)] }}
+        run: |
+          echo "Seeding database for ${{ github.event.inputs.environment }}..."
+          make db-seed
+          echo "✅ Database seeding completed"
+  
+  notify-completion:
+    name: Notify Operation Completion
+    runs-on: ubuntu-latest
+    needs: [db-health-check, db-backup, db-migrate, db-seed]
+    if: always()
+    
+    steps:
+      - name: Send notification
+        run: |
+          echo "=========================================="
+          echo "Database Operation Completed"
+          echo "=========================================="
+          echo "Operation: ${{ github.event.inputs.operation }}"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Status: ${{ job.status }}"
+          echo "Timestamp: $(date)"
+          echo "=========================================="

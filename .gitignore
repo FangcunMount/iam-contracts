@@ -43,4 +43,14 @@ logs/
 .Spotlight-V100
 .Trashes
 ehthumbs.db
-Thumbs.db 
+Thumbs.db
+
+# GitHub Actions secrets (never commit!)
+.github/workflows/secrets
+.github/workflows/*.secret
+.github/workflows/*.key
+
+# Environment files with sensitive data
+*.env.local
+*.env.production
+.env.*.local 
