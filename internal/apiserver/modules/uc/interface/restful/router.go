@@ -75,7 +75,7 @@ func registerGuardianshipRoutes(api *gin.RouterGroup, module *assembler.UserModu
 		return
 	}
 
-	api.POST("/guardians:grant", module.GuardianshipHandler.Grant)
-	api.POST("/guardians:revoke", module.GuardianshipHandler.Revoke)
+	api.POST("/guardians/grant", module.GuardianshipHandler.Grant)
+	api.POST("/guardians/revoke", module.GuardianshipHandler.Revoke)
 	api.GET("/guardians", module.GuardianshipHandler.List)
 }
