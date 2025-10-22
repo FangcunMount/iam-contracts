@@ -1,7 +1,5 @@
 # golangci-lint 配置文件
-# golangci-lint v2.x 配置格式
-
-version: "2"
+# 兼容 v1 和 v2
 
 run:
   timeout: 5m
