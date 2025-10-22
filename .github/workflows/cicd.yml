@@ -265,6 +265,7 @@ jobs:
           mkdir -p deploy-package
           cp ./artifacts/iam-apiserver deploy-package/
           cp -r configs deploy-package/
+          cp build/systemd/iam-apiserver.service deploy-package/
           tar -czf deploy-package.tar.gz -C deploy-package .
           
       - name: Upload deployment package
@@ -315,6 +316,18 @@ jobs:
             sudo cp -r configs/* /opt/iam/configs/
             sudo chown -R $(whoami):$(whoami) /opt/iam
             
+            # 安装 systemd 服务(如果不存在或需要更新)
+            echo "Installing systemd service..."
+            # 创建日志目录
+            sudo mkdir -p /var/log/iam-contracts
+            sudo chown $(whoami):$(whoami) /var/log/iam-contracts
+            
+            # 更新服务文件中的用户为当前用户
+            sed "s/User=deploy/User=$(whoami)/g; s/Group=deploy/Group=$(id -gn)/g" iam-apiserver.service > iam-apiserver.service.tmp
+            sudo mv iam-apiserver.service.tmp /etc/systemd/system/iam-apiserver.service
+            sudo systemctl daemon-reload
+            sudo systemctl enable iam-apiserver
+            
             # 清理临时目录
             cd /tmp
             rm -rf $DEPLOY_TMP
@@ -326,7 +339,7 @@ jobs:
             
             # Stop service
             echo "Stopping IAM service..."
-            sudo systemctl stop iam-apiserver || echo "Service not running"
+            sudo systemctl stop iam-apiserver 2>/dev/null || echo "Service not running"
             
             # Start service with new binary
             echo "Starting IAM service..."
