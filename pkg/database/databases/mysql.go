@@ -52,6 +52,9 @@ func (m *MySQLConnection) Connect() error {
 		true,
 		"Local")
 
+	// 打印 dsn
+	log.Printf("Connecting to MySQL at %s/%s as user %s", m.config.Host, m.config.Database, m.config.Username)
+
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: m.config.Logger,
 	})
