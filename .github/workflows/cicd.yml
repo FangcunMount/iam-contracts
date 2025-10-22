@@ -1,5 +1,19 @@
 name: CI/CD Pipeline
 
+# ⚠️ 注意：GitHub Actions 会显示 "Context access might be invalid" 警告
+# 这是正常的！这些 Secrets 需要在 GitHub 仓库设置中配置：
+# Settings → Secrets and variables → Actions
+# 
+# 必需的 Secrets（Organization 级别）：
+#   - SVRA_HOST, SVRA_USERNAME, SVRA_SSH_KEY, SVRA_SSH_PORT
+#   - MYSQL_HOST, MYSQL_PORT, REDIS_HOST, REDIS_PORT
+#
+# 必需的 Secrets（Repository 级别）：
+#   - MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DBNAME
+#   - REDIS_PASSWORD, REDIS_DB
+#
+# validate-secrets job 会在运行时验证这些 Secrets 是否存在
+
 on:
   push:
     branches: [ main, develop ]
@@ -13,8 +27,87 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  validate-secrets:
+    name: Validate Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Required Secrets
+        run: |
+          echo "🔍 Validating required secrets..."
+          
+          # 初始化验证状态
+          VALIDATION_FAILED=0
+          
+          # 检查部署相关的 secrets（仅在 main 分支需要）
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "📋 Checking deployment secrets for main branch..."
+            
+            # 服务器连接
+            if [ -z "${{ secrets.SVRA_HOST }}" ]; then
+              echo "❌ SVRA_HOST is not set"
+              VALIDATION_FAILED=1
+            else
+              echo "✅ SVRA_HOST is set"
+            fi
+            
+            if [ -z "${{ secrets.SVRA_USERNAME }}" ]; then
+              echo "❌ SVRA_USERNAME is not set"
+              VALIDATION_FAILED=1
+            else
+              echo "✅ SVRA_USERNAME is set"
+            fi
+            
+            if [ -z "${{ secrets.SVRA_SSH_KEY }}" ]; then
+              echo "❌ SVRA_SSH_KEY is not set"
+              VALIDATION_FAILED=1
+            else
+              echo "✅ SVRA_SSH_KEY is set"
+            fi
+            
+            # 数据库连接
+            if [ -z "${{ secrets.MYSQL_HOST }}" ]; then
+              echo "❌ MYSQL_HOST is not set"
+              VALIDATION_FAILED=1
+            else
+              echo "✅ MYSQL_HOST is set"
+            fi
+            
+            if [ -z "${{ secrets.MYSQL_USERNAME }}" ]; then
+              echo "❌ MYSQL_USERNAME is not set"
+              VALIDATION_FAILED=1
+            else
+              echo "✅ MYSQL_USERNAME is set"
+            fi
+            
+            if [ -z "${{ secrets.MYSQL_PASSWORD }}" ]; then
+              echo "❌ MYSQL_PASSWORD is not set"
+              VALIDATION_FAILED=1
+            else
+              echo "✅ MYSQL_PASSWORD is set"
+            fi
+            
+            if [ -z "${{ secrets.MYSQL_DBNAME }}" ]; then
+              echo "❌ MYSQL_DBNAME is not set"
+              VALIDATION_FAILED=1
+            else
+              echo "✅ MYSQL_DBNAME is set"
+            fi
+          else
+            echo "ℹ️ Skipping deployment secrets check (not on main branch)"
+          fi
+          
+          # 检查结果
+          echo ""
+          if [ $VALIDATION_FAILED -eq 1 ]; then
+            echo "❌ Secrets validation failed! Please configure missing secrets."
+            exit 1
+          else
+            echo "✅ All required secrets are configured!"
+          fi
+
   test:
     name: Run Tests
+    needs: [validate-secrets]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -151,15 +244,15 @@ jobs:
       - name: Deploy to Production Server
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
             set -e
             
             echo "=========================================="
-            echo "Starting deployment to Production Server A"
+            echo "Starting deployment to Production Server (SVRA)"
             echo "=========================================="
             
             # Navigate to project directory
@@ -235,10 +328,10 @@ jobs:
       - name: Verify Deployment
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
             echo "Verifying deployment..."
             

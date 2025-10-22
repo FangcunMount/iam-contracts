@@ -18,13 +18,13 @@ jobs:
       - name: System Health Check
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
             echo "=========================================="
-            echo "Production Server A - Health Check"
+            echo "Production Server (SVRA) - Health Check"
             echo "=========================================="
             
             # System Info
@@ -62,10 +62,10 @@ jobs:
       - name: IAM Service Check
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
             echo "=========================================="
             echo "IAM Service Status"
@@ -98,10 +98,10 @@ jobs:
       - name: Network Check
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
             echo "=========================================="
             echo "Network Status"
@@ -134,10 +134,10 @@ jobs:
       - name: Database Check
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
             echo "=========================================="
             echo "Database Health Check"
@@ -145,18 +145,20 @@ jobs:
             
             # Check MySQL connection
             if command -v mysql >/dev/null 2>&1; then
-              if mysql -h ${{ secrets.DB_HOST }} \
-                       -u ${{ secrets.DB_USERNAME }} \
-                       -p'${{ secrets.DB_PASSWORD }}' \
+              if mysql -h ${{ secrets.MYSQL_HOST }} \
+                       -P ${{ secrets.MYSQL_PORT }} \
+                       -u ${{ secrets.MYSQL_USERNAME }} \
+                       -p'${{ secrets.MYSQL_PASSWORD }}' \
                        -e "SELECT 1;" >/dev/null 2>&1; then
                 echo "✅ Database connection OK"
                 
                 # Show database stats
                 echo ""
                 echo "Active connections:"
-                mysql -h ${{ secrets.DB_HOST }} \
-                      -u ${{ secrets.DB_USERNAME }} \
-                      -p'${{ secrets.DB_PASSWORD }}' \
+                mysql -h ${{ secrets.MYSQL_HOST }} \
+                      -P ${{ secrets.MYSQL_PORT }} \
+                      -u ${{ secrets.MYSQL_USERNAME }} \
+                      -p'${{ secrets.MYSQL_PASSWORD }}' \
                       -e "SHOW STATUS LIKE 'Threads_connected';"
               else
                 echo "❌ Database connection failed"
@@ -171,10 +173,10 @@ jobs:
       - name: Disk Space Alert
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
             echo "=========================================="
             echo "Disk Space Monitoring"
