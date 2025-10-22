@@ -1,6 +1,6 @@
 # GitHub Actions Workflows
 
-本项目使用 GitHub Actions 实现自动化 CI/CD 流程，针对简化的部署环境（本地开发 + 单个生产服务器）进行了优化。
+本项目使用 GitHub Actions 实现自动化 CI/CD 流程和运维监控，采用 Docker 容器化部署架构。
 
 ## 📋 目录
 
@@ -15,79 +15,243 @@
 
 ## 工作流概览
 
-### 1. **ping-runner.yml** - Runner 连通性测试
-
-- **触发方式**: 手动触发 或 每6小时自动执行
-- **用途**: 检查生产服务器和 GitHub Runner 的连通性
-- **运行时间**: ~1 分钟
-- **检查内容**:
-  - SSH 连接测试
-  - 系统资源状态（CPU、内存、磁盘）
-  - IAM 服务运行状态
-  - GitHub Runner 状态
-
-### 2. **db-ops.yml** - 数据库操作
-
-- **触发方式**: 手动触发
-- **运行时间**: 视操作而定
-- **支持操作**:
-  - `backup`: 备份数据库（保留最近10次备份）
-  - `restore`: 从备份恢复数据库
-  - `migrate`: 运行数据库迁移
-  - `status`: 查看数据库状态和可用备份
-
-**使用方法**:
-
-```bash
-# 在 GitHub 页面操作
-Actions → Database Operations → Run workflow → 选择操作类型
-# 如需恢复，输入备份文件名（如：iam_backup_20231022_120000.sql.gz）
-```
-
-### 3. **server-check.yml** - 服务器健康检查
-
-- **触发方式**: 手动触发 或 每30分钟自动执行
-- **运行时间**: ~2-3 分钟
-- **检查内容**:
-  - 系统健康状态（CPU、内存、磁盘、负载）
-  - IAM 服务状态（自动重启失败的服务）
-  - 网络状态和端口监听
-  - 数据库连接测试
-  - 磁盘空间预警（>80% 触发警告）
-
-### 4. **cicd.yml** - 主 CI/CD 流程
+### 1. **cicd.yml** - 主 CI/CD 流程
 
 - **触发方式**:
   - Push 到 main/develop 分支
   - Pull Request 到 main 分支
-  - 手动触发
+  - 手动触发 (workflow_dispatch)
 - **运行时间**: ~10-15 分钟
-- **流程**:
+- **执行流程**:
 
 ```text
-Test (3-5分钟)
+Validate Secrets (验证配置)
   ↓
-Lint (2-3分钟)
+Test (单元测试) ━━━┓
+                   ┣━━→ Parallel
+Lint (代码检查) ━━━┛
   ↓
-Build (2-3分钟)
+Build (编译构建)
   ↓
-Docker (3-4分钟) ← 仅 main 分支
+Docker (镜像构建) ← 仅 main 分支，推送到 ghcr.io
   ↓
-Deploy (2-3分钟) ← 仅 main 分支
+Deploy (部署到生产) ← 仅 main 分支
   ↓
-Verify (验证部署)
+Health Check (健康验证，最长 150 秒)
 ```
 
-**部署步骤**:
+**部署步骤详解**:
 
-1. 备份当前版本
-2. 拉取最新代码
-3. 构建 Docker 镜像
-4. 停止服务
-5. 运行数据库迁移
-6. 启动服务
-7. 健康检查
-8. 验证部署
+1. SSH 连接到生产服务器 (SVRA)
+2. 备份当前版本到 `/opt/backups/iam/deployments/`
+3. 拉取最新 Docker 镜像 `ghcr.io/fangcunmount/iam-contracts:latest`
+4. 停止现有容器 (iam-apiserver)
+5. 清理旧容器和镜像
+6. 启动新容器（端口映射 8080:9080, 9444:9444）
+7. 健康检查（轮询 `/healthz` 端点）
+8. 验证部署成功
+
+**关键配置**:
+
+- Go 版本: 1.24
+- Docker Registry: ghcr.io
+- Image: `fangcunmount/iam-contracts:latest`
+- 健康检查超时: 150 秒
+
+---
+
+### 2. **db-ops.yml** - 数据库操作
+
+- **触发方式**:
+  - **自动触发**: 每天北京时间凌晨 01:00（UTC 17:00）自动备份
+  - **手动触发**: workflow_dispatch，支持 4 种操作
+- **运行时间**: 1-5 分钟（视操作而定）
+- **支持操作**:
+  - `backup`: 备份数据库（保留最近 **3 次**备份）
+  - `restore`: 从指定备份恢复数据库
+  - `migrate`: 运行数据库迁移（在 Docker 容器内执行）
+  - `status`: 查看数据库状态和可用备份
+
+**自动备份策略**:
+
+```yaml
+时间: 每天北京时间 01:00
+保留: 最近 3 次备份
+位置: /opt/backups/iam/database/
+格式: iam_backup_YYYYMMDD_HHMMSS.sql.gz
+```
+
+**使用方法**:
+
+```bash
+# 手动触发
+Actions → Database Operations → Run workflow
+
+# 选择操作:
+- backup: 立即备份（无需参数）
+- restore: 恢复备份（需输入文件名，如 iam_backup_20231024_010000.sql.gz）
+- migrate: 数据库迁移
+- status: 查看状态和备份列表
+```
+
+**安全特性**:
+
+- ✅ 使用环境变量传递密码，避免暴露在日志中
+- ✅ 备份包含存储过程、触发器（--routines, --triggers）
+- ✅ 使用事务一致性备份（--single-transaction）
+- ⚠️ 恢复操作有 5 秒延迟和警告提示
+
+---
+
+### 3. **server-check.yml** - 服务器健康检查
+
+- **触发方式**:
+  - 自动触发: 每 30 分钟执行一次
+  - 手动触发: workflow_dispatch
+- **运行时间**: ~2-3 分钟
+- **检查内容**:
+
+**系统健康**:
+
+- CPU 使用率
+- 内存使用情况（已用/总量/百分比）
+- 磁盘使用（根分区，>80% 触发警告）
+- 系统负载（Load Average）
+- Top 5 CPU 占用进程
+
+**Docker 服务**:
+
+- Docker daemon 状态
+- IAM 容器运行状态
+- 容器健康检查状态（healthy/unhealthy）
+- **自动恢复**: 检测到 unhealthy 容器自动重启
+
+**网络与 API**:
+
+- 端口监听状态（8080, 9444）
+- HTTP API 健康检查（localhost:8080/healthz）
+- HTTPS API 健康检查（localhost:9444/healthz）
+
+**数据库与 Redis**:
+
+- MySQL 连接测试（使用环境变量，安全）
+- Redis 连接测试
+- 不暴露密码到日志
+
+**告警机制**:
+
+- 磁盘使用 >80%: 触发警告
+- Docker 未运行: 任务失败
+- 容器 unhealthy: 自动重启并记录
+- API 无响应: 任务失败
+
+---
+
+### 4. **ping-runner.yml** - 快速连通性检查
+
+- **触发方式**:
+  - 自动触发: 每 6 小时执行一次
+  - 手动触发: workflow_dispatch
+- **运行时间**: ~1 分钟
+- **检查内容**:
+
+**生产服务器 (SVRA)**:
+
+- 系统状态（主机名、运行时间、日期）
+- 资源概览（内存、磁盘、CPU、负载）
+
+**Docker 服务**:
+
+- Docker daemon 状态
+- 所有运行中的容器列表
+- IAM 容器详细状态
+
+**API 健康**:
+
+- HTTP API (8080): 健康检查
+- HTTPS API (9444): 健康检查
+
+**GitHub Runner**:
+
+- Runner 信息（OS、名称、架构）
+
+**特点**:
+
+- 轻量级快速检查
+- 并行执行（生产服务器 + GitHub Runner）
+- 提供整体状态报告
+
+---
+
+### 5. **test-ssh.yml** - SSH 连接测试（新增）
+
+- **触发方式**: 仅手动触发 (workflow_dispatch)
+- **运行时间**: ~1 分钟
+- **用途**: 验证 SSH 配置和服务器状态
+
+**检查内容**:
+
+**GitHub Runner 信息**:
+
+- Runner OS、架构、名称
+- **UTC 时间**（用于验证 cron 时间计算）
+
+**SSH 连接测试**:
+
+- 服务器基本信息（主机名、用户、工作目录）
+
+**时区信息**（重要）:
+
+- 服务器本地时间
+- UTC 时间
+- 时区配置（Asia/Shanghai 等）
+- 用于验证自动备份时间是否正确
+
+**系统信息**:
+
+- 操作系统和内核版本
+- 系统运行时间
+
+**Docker 状态**:
+
+- Docker 版本
+- 运行中的容器数量
+
+**IAM 服务状态**:
+
+- 容器运行状态
+- 容器详细信息
+
+**资源使用**:
+
+- 磁盘空间（根分区）
+- 内存使用情况
+
+**使用场景**:
+
+- ✅ 验证 SVRA_* Secrets 配置是否正确
+- ✅ 确认服务器时区（验证自动备份时间）
+- ✅ 排查 SSH 连接问题
+- ✅ 快速诊断服务器和服务状态
+- ✅ 验证 cron 时间计算（UTC vs 北京时间）
+
+---
+
+## 工作流时间表
+
+| 工作流 | 触发方式 | 频率 | 用途 |
+|--------|---------|------|------|
+| **cicd.yml** | push/PR/手动 | 按需 | 持续集成和部署 |
+| **db-ops.yml** | **自动**/手动 | **每天 01:00** | 数据库备份和操作 |
+| **server-check.yml** | 自动/手动 | 每 30 分钟 | 深度健康检查 |
+| **ping-runner.yml** | 自动/手动 | 每 6 小时 | 快速连通性检查 |
+| **test-ssh.yml** | 仅手动 | - | SSH 和时区验证 |
+
+**⏰ 时区说明**:
+
+- GitHub Actions cron 使用 **UTC 时间**
+- `0 17 * * *` (UTC 17:00) = **北京时间 01:00**（次日）
+- 服务器备份文件时间戳使用**服务器本地时间**
 
 ---
 
@@ -96,27 +260,51 @@ Verify (验证部署)
 ### 当前架构
 
 ```text
-开发环境: MacBook (本地开发)
-    ↓
-  GitHub
-    ↓
-生产环境: SVRA (服务器 A)
+开发环境 (MacBook)
+    ↓ git push
+GitHub (CI/CD)
+    ↓ Docker deploy
+生产环境 (SVRA)
+  ├─ Docker: iam-apiserver
+  ├─ MySQL: RDS
+  └─ Redis: Container
 ```
 
-### 服务器要求
+### 技术栈
 
-- **操作系统**: Linux (推荐 Ubuntu 20.04+)
-- **Go 版本**: 1.21+
-- **Docker**: 用于容器化部署
-- **MySQL**: 5.7+ 或 8.0+
-- **Redis**: 5.0+
-- **systemd**: 用于服务管理
+**开发与构建**:
+
+- **Go**: 1.24
+- **框架**: Gin v1.10.1
+- **构建**: Docker multi-stage build
+- **镜像仓库**: GitHub Container Registry (ghcr.io)
+
+**部署架构**:
+
+- **容器化**: Docker
+- **服务器**: 单台生产服务器 (SVRA)
+- **网络**: 0.0.0.0 绑定（支持 Docker 端口映射）
+- **端口映射**:
+  - HTTP: 8080(host) → 9080(container)
+  - HTTPS: 9444(host) → 9444(container)
+  - gRPC: 9090(container内部)
+
+**数据存储**:
+
+- **MySQL**: RDS 托管服务
+- **Redis**: Docker 容器
+
+**监控与备份**:
+
+- **健康检查**: 多层（Docker HEALTHCHECK + GitHub Actions）
+- **自动备份**: 每天凌晨 01:00（保留 3 次）
+- **自动恢复**: unhealthy 容器自动重启
 
 ---
 
 ## Secrets 配置
 
-### 配置步骤
+### 配置位置
 
 1. **进入 Settings**
    - **Repository Secrets**: `Settings` → `Secrets and variables` → `Actions`
@@ -130,90 +318,570 @@ Verify (验证部署)
 
 #### Organization Secrets（组织级别，8个）
 
-| Secret 名称 | 说明 | 示例值 |
-|------------|------|--------|
-| `SVRA_HOST` | 生产服务器 IP 或域名 | `192.168.1.100` 或 `svra.example.com` |
-| `SVRA_USERNAME` | SSH 登录用户名 | `deploy` 或 `root` |
-| `SVRA_SSH_KEY` | SSH 私钥（完整内容） | 见下方 SSH 配置 |
-| `SVRA_SSH_PORT` | SSH 端口 | `22`（默认） |
-| `MYSQL_HOST` | MySQL 服务器地址 | `192.168.1.101` |
-| `MYSQL_PORT` | MySQL 端口 | `3306` |
-| `REDIS_HOST` | Redis 服务器地址 | `192.168.1.102` |
-| `REDIS_PORT` | Redis 端口 | `6379` |
+**服务器连接**:
+
+| Secret 名称 | 说明 | 示例值 | 使用场景 |
+|------------|------|--------|---------|
+| `SVRA_HOST` | 生产服务器 IP/域名 | `192.168.1.100` | 所有 SSH 操作 |
+| `SVRA_USERNAME` | SSH 登录用户名 | `deploy` | 所有 SSH 操作 |
+| `SVRA_SSH_KEY` | SSH 私钥（完整） | 见下方 SSH 配置 | 所有 SSH 操作 |
+| `SVRA_SSH_PORT` | SSH 端口 | `22` | 所有 SSH 操作 |
+
+**数据库连接** (共享配置):
+
+| Secret 名称 | 说明 | 示例值 | 使用场景 |
+|------------|------|--------|---------|
+| `MYSQL_HOST` | MySQL 服务器地址 | `192.168.1.101` | 应用运行、健康检查 |
+| `MYSQL_PORT` | MySQL 端口 | `3306` | 应用运行、健康检查 |
+| `REDIS_HOST` | Redis 服务器地址 | `localhost` | 应用运行、健康检查 |
+| `REDIS_PORT` | Redis 端口 | `6379` | 应用运行、健康检查 |
 
 #### Repository Secrets（仓库级别，5个）
 
-| Secret 名称 | 说明 | 示例值 |
-|------------|------|--------|
-| `MYSQL_USERNAME` | MySQL 用户名 | `iam_user` |
-| `MYSQL_PASSWORD` | MySQL 密码 | `your_secure_password` |
-| `MYSQL_DBNAME` | 数据库名称 | `iam_db` |
-| `REDIS_PASSWORD` | Redis 密码 | `your_redis_password` |
-| `REDIS_DB` | Redis 数据库编号 | `0` |
+**数据库凭证** (敏感信息):
 
-### SSH 密钥配置
-
-#### 1. 生成 SSH 密钥对
-
-```bash
-# 在本地生成密钥
-ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_actions_deploy
-
-# 会生成两个文件:
-# ~/.ssh/github_actions_deploy      (私钥)
-# ~/.ssh/github_actions_deploy.pub  (公钥)
-```
-
-#### 2. 配置生产服务器
-
-```bash
-# 将公钥添加到 SVRA 服务器
-ssh-copy-id -i ~/.ssh/github_actions_deploy.pub user@svra-host
-
-# 或手动添加
-cat ~/.ssh/github_actions_deploy.pub | ssh user@svra-host "cat >> ~/.ssh/authorized_keys"
-
-# 在服务器上设置权限
-ssh user@svra-host "chmod 600 ~/.ssh/authorized_keys"
-```
-
-#### 3. 添加私钥到 GitHub
-
-```bash
-# 复制私钥内容
-cat ~/.ssh/github_actions_deploy
-
-# 在 GitHub 上添加:
-# Settings → Secrets → New secret
-# Name: SVRA_SSH_KEY
-# Value: 粘贴完整的私钥内容（包括 -----BEGIN 和 -----END 行）
-```
-
-#### 4. 测试连接
-
-```bash
-# 使用私钥测试连接
-ssh -i ~/.ssh/github_actions_deploy user@svra-host
-```
+| Secret 名称 | 说明 | 示例值 | 使用场景 |
+|------------|------|--------|---------|
+| `MYSQL_USERNAME` | MySQL 用户名 | `iam_user` | 应用、备份、健康检查 |
+| `MYSQL_PASSWORD` | MySQL 密码 | `your_secure_password` | 应用、备份、健康检查 |
+| `MYSQL_DBNAME` | 数据库名称 | `iam_db` | 应用、备份、健康检查 |
+| `REDIS_PASSWORD` | Redis 密码 | `your_redis_password` | 应用、健康检查 |
+| `REDIS_DB` | Redis 数据库编号 | `0` | 应用配置 |
 
 ### ✅ 验证配置
 
-配置完成后，运行以下工作流验证：
+配置完成后，**强烈建议**按以下顺序验证：
+
+#### 1. SSH 连接和时区验证
 
 ```bash
-# 1. 测试 SSH 连通性
+Actions → Test SSH Connection → Run workflow
+```
+
+验证内容：
+
+- ✅ SSH 连接成功
+- ✅ 服务器时区正确（Asia/Shanghai）
+- ✅ UTC 时间与本地时间转换正确
+- ✅ Docker 和 IAM 服务运行正常
+
+**预期输出示例**：
+
+```text
+Time Information:
+  Local Time: 2023-10-24 15:30:00 CST  ← 北京时间
+  UTC Time: 2023-10-24 07:30:00 UTC    ← UTC 时间
+Timezone Configuration:
+  Time zone: Asia/Shanghai (CST, +0800)
+```
+
+#### 2. 快速连通性检查
+
+```bash
 Actions → Ping Runner → Run workflow
+```
 
-# 2. 查看数据库状态
+验证内容：
+
+- ✅ 生产服务器响应
+- ✅ 系统资源正常
+- ✅ Docker 服务运行
+- ✅ API 端点可访问
+
+#### 3. 数据库状态检查
+
+```bash
 Actions → Database Operations → Run workflow → 选择 "status"
+```
 
-# 3. 健康检查
+验证内容：
+
+- ✅ MySQL 连接成功
+- ✅ 数据库可访问
+- ✅ 表结构正常
+- ✅ 备份目录存在
+
+#### 4. 完整健康检查
+
+```bash
 Actions → Server Health Check → Run workflow
+```
+
+验证内容：
+
+- ✅ 系统健康（CPU、内存、磁盘）
+- ✅ Docker 服务正常
+- ✅ IAM 容器健康
+- ✅ 网络和 API 正常
+- ✅ 数据库和 Redis 连接正常
+
+#### 5. 测试自动备份（可选）
+
+等待自动备份运行（北京时间凌晨 01:00），或手动触发：
+
+```bash
+Actions → Database Operations → Run workflow → 选择 "backup"
+```
+
+然后检查：
+
+```bash
+Actions → Database Operations → Run workflow → 选择 "status"
+# 查看 "Available backups" 部分
 ```
 
 ---
 
 ## 使用指南
+
+### 日常开发流程
+
+#### 1. 功能开发（develop 分支）
+
+```bash
+# 创建功能分支
+git checkout -b feature/user-management develop
+
+# 开发并本地测试
+make test
+make lint
+make build
+
+# 提交代码
+git add .
+git commit -m "feat: add user management feature"
+git push origin feature/user-management
+
+# 创建 PR 到 develop 分支
+# GitHub 自动运行: test + lint
+```
+
+#### 2. 发布到生产（main 分支）
+
+```bash
+# 合并 develop 到 main
+git checkout main
+git merge develop
+git push origin main
+
+# 自动触发完整 CI/CD 流程:
+# 1. Validate Secrets
+# 2. Test + Lint (并行)
+# 3. Build
+# 4. Docker Build & Push
+# 5. Deploy to Production
+# 6. Health Check
+```
+
+#### 3. 紧急修复（hotfix）
+
+```bash
+# 从 main 创建 hotfix 分支
+git checkout -b hotfix/critical-bug main
+
+# 修复并测试
+make test
+
+# 提交并合并回 main
+git add .
+git commit -m "fix: resolve critical security issue"
+git push origin hotfix/critical-bug
+
+# 创建 PR 到 main，快速审查后合并
+# 自动触发部署
+```
+
+### 数据库管理
+
+#### 自动备份
+
+- **时间**: 每天北京时间凌晨 01:00
+- **保留**: 最近 3 次备份
+- **位置**: `/opt/backups/iam/database/`
+- **无需手动干预**
+
+#### 手动备份
+
+```bash
+# 重要操作前建议手动备份
+Actions → Database Operations → Run workflow → 选择 "backup"
+```
+
+#### 恢复数据库
+
+```bash
+# 1. 查看可用备份
+Actions → Database Operations → Run workflow → 选择 "status"
+
+# 2. 记录要恢复的备份文件名
+# 例如: iam_backup_20231024_010000.sql.gz
+
+# 3. 执行恢复
+Actions → Database Operations → Run workflow → 选择 "restore"
+# 输入备份文件名: iam_backup_20231024_010000.sql.gz
+
+# ⚠️ 注意: 5 秒延迟给你反悔的机会
+```
+
+#### 数据库迁移
+
+```bash
+# 在容器内运行迁移
+Actions → Database Operations → Run workflow → 选择 "migrate"
+
+# 迁移会自动在以下情况执行:
+# 1. 每次部署时（cicd.yml）
+# 2. 应用启动时（如果配置了）
+```
+
+### 监控和告警
+
+#### 查看工作流状态
+
+访问: `https://github.com/FangcunMount/iam-contracts/actions`
+
+**自动监控时间表**:
+
+- ⏰ **01:00** (北京时间) - 数据库自动备份
+- ⏰ **每 30 分钟** - 服务器健康检查
+- ⏰ **每 6 小时** - 快速连通性检查
+
+#### 添加状态徽章（可选）
+
+在项目 `README.md` 中添加：
+
+```markdown
+![CI/CD](https://github.com/FangcunMount/iam-contracts/workflows/CI/CD%20Pipeline/badge.svg)
+![Health](https://github.com/FangcunMount/iam-contracts/workflows/Server%20Health%20Check/badge.svg)
+![Ping](https://github.com/FangcunMount/iam-contracts/workflows/Ping%20Runner/badge.svg)
+```
+
+#### GitHub Actions 通知设置
+
+1. 进入 `Settings` → `Notifications`
+2. 勾选 `Actions`
+3. 选择通知方式：
+   - Email（推荐：仅失败时通知）
+   - Web
+   - Mobile
+
+---
+
+## 故障排查
+
+### 常见问题
+
+#### 1. SSH 连接失败
+
+**错误信息**: `Permission denied (publickey)`
+
+**排查步骤**:
+
+```bash
+# 1. 验证 SSH 配置
+Actions → Test SSH Connection → Run workflow
+# 查看详细错误信息
+
+# 2. 检查 Secrets 是否正确配置
+Settings → Secrets → 确认 SVRA_* 存在
+
+# 3. 测试本地 SSH 连接
+ssh -i ~/.ssh/your_key user@server-host
+
+# 4. 检查服务器 authorized_keys
+ssh user@server "cat ~/.ssh/authorized_keys"
+
+# 5. 检查服务器 SSH 日志
+ssh user@server "sudo journalctl -u ssh -n 50"
+```
+
+**解决方案**:
+
+- 确保私钥格式正确（包括 BEGIN/END 行）
+- 验证公钥在服务器 `~/.ssh/authorized_keys` 中
+- 检查文件权限: `chmod 600 ~/.ssh/authorized_keys`
+- 确认 SSH 配置允许公钥认证: `PubkeyAuthentication yes`
+
+#### 2. 部署失败 - 健康检查超时
+
+**症状**: 部署显示 "Health check failed after 150 seconds"
+
+**排查步骤**:
+
+```bash
+# 1. 检查容器状态
+Actions → Ping Runner → Run workflow
+# 或
+Actions → Server Health Check → Run workflow
+
+# 2. SSH 登录查看容器日志
+ssh user@server
+sudo docker ps -a | grep iam-apiserver
+sudo docker logs --tail 100 iam-apiserver
+
+# 3. 检查端口绑定
+sudo docker port iam-apiserver
+sudo netstat -tlnp | grep -E "8080|9080|9444"
+
+# 4. 手动测试 API
+curl http://localhost:8080/healthz
+curl -k https://localhost:9444/healthz
+```
+
+**常见原因**:
+
+- ❌ 配置文件错误（apiserver.yaml）
+- ❌ 数据库连接失败
+- ❌ 端口被占用
+- ❌ 容器内存不足
+
+**解决方案**:
+
+```bash
+# 检查配置
+sudo docker exec iam-apiserver cat /opt/iam/configs/apiserver.yaml
+
+# 重启容器
+sudo docker restart iam-apiserver
+
+# 查看详细日志
+sudo docker logs --tail 200 iam-apiserver
+
+# 如果需要回滚
+cd /opt/backups/iam/deployments
+# 找到最近的备份并恢复
+```
+
+#### 3. 数据库连接失败
+
+**错误信息**: `Access denied` 或 `Can't connect to MySQL server`
+
+**排查步骤**:
+
+```bash
+# 1. 验证数据库配置
+Actions → Database Operations → Run workflow → "status"
+
+# 2. 测试数据库连接
+ssh user@server
+mysql -h $MYSQL_HOST -P $MYSQL_PORT -u $MYSQL_USERNAME -p
+
+# 3. 检查数据库用户权限
+mysql -u root -p
+> SELECT user, host FROM mysql.user WHERE user='iam_user';
+> SHOW GRANTS FOR 'iam_user'@'%';
+
+# 4. 检查网络连接
+ping $MYSQL_HOST
+telnet $MYSQL_HOST 3306
+```
+
+**解决方案**:
+
+- 确认 Secrets 中的数据库凭证正确
+- 检查 RDS 安全组规则（允许服务器 IP）
+- 验证数据库用户权限
+- 检查数据库防火墙规则
+
+#### 4. Docker 容器 unhealthy
+
+**症状**: 容器状态显示 `(unhealthy)`
+
+**自动恢复**:
+
+- `server-check.yml` 会自动检测并重启 unhealthy 容器
+
+**手动排查**:
+
+```bash
+# 1. 查看健康检查日志
+sudo docker inspect --format='{{json .State.Health}}' iam-apiserver | jq
+
+# 2. 手动执行健康检查命令
+sudo docker exec iam-apiserver curl -f http://localhost:9080/healthz
+
+# 3. 查看应用日志
+sudo docker logs --tail 100 iam-apiserver
+
+# 4. 检查资源使用
+sudo docker stats iam-apiserver --no-stream
+```
+
+**常见原因**:
+
+- `/healthz` 端点返回非 200 状态
+- 应用启动时间过长（超过 30 秒 start-period）
+- 内存不足导致应用崩溃
+- 数据库连接池耗尽
+
+#### 5. 自动备份失败
+
+**症状**: `db-ops.yml` workflow 失败
+
+**排查步骤**:
+
+```bash
+# 1. 查看工作流日志
+Actions → Database Operations → 查看失败的运行
+
+# 2. 检查备份目录
+ssh user@server
+ls -lh /opt/backups/iam/database/
+df -h  # 检查磁盘空间
+
+# 3. 手动执行备份命令
+mysqldump -h $MYSQL_HOST -P $MYSQL_PORT -u $MYSQL_USERNAME -p \
+  --single-transaction --routines --triggers $MYSQL_DBNAME > test_backup.sql
+```
+
+**解决方案**:
+
+- 确保 `/opt/backups/iam/database/` 目录存在且有写权限
+- 检查磁盘空间是否充足
+- 验证数据库凭证正确
+- 检查 mysqldump 命令是否安装
+
+#### 6. 时区问题 - 备份时间不对
+
+**症状**: 备份没有在预期时间执行
+
+**验证步骤**:
+
+```bash
+# 1. 检查服务器时区
+Actions → Test SSH Connection → Run workflow
+# 查看 "Time Information" 和 "Timezone Configuration"
+
+# 2. 验证 cron 表达式
+# GitHub Actions 使用 UTC 时间
+# 0 17 * * * (UTC 17:00) = 北京时间 01:00
+
+# 3. 查看最近的备份时间
+Actions → Database Operations → "status"
+# 查看备份文件的时间戳
+```
+
+**时区转换参考**:
+
+```text
+北京时间 = UTC + 8 小时
+
+想要的北京时间 → UTC cron
+01:00 → 0 17 * * *  (17:00 UTC)
+02:00 → 0 18 * * *  (18:00 UTC)
+03:00 → 0 19 * * *  (19:00 UTC)
+```
+
+#### 7. 回滚到之前版本
+
+**快速回滚**:
+
+```bash
+# 1. SSH 登录服务器
+ssh user@server
+
+# 2. 查看可用备份
+ls -lht /opt/backups/iam/deployments/ | head -6
+
+# 3. 选择要回滚的版本
+BACKUP_DIR="/opt/backups/iam/deployments/backup_20231024_100000"
+
+# 4. 停止当前服务
+sudo docker stop iam-apiserver
+sudo docker rm iam-apiserver
+
+# 5. 使用备份的镜像
+cd $BACKUP_DIR
+# 查看备份信息
+cat deployment_info.txt
+
+# 6. 拉取特定版本镜像（如果有 image ID）
+sudo docker pull ghcr.io/fangcunmount/iam-contracts:specific-tag
+
+# 7. 启动容器
+sudo docker run -d \
+  --name iam-apiserver \
+  -p 8080:9080 \
+  -p 9444:9444 \
+  --restart unless-stopped \
+  ghcr.io/fangcunmount/iam-contracts:specific-tag
+
+# 8. 验证服务
+curl http://localhost:8080/healthz
+```
+
+**数据库回滚**:
+
+```bash
+# 如果需要恢复数据库
+Actions → Database Operations → "restore"
+# 选择对应时间的备份
+```
+
+---
+
+## 最佳实践
+
+### SSH 密钥配置指南
+
+#### 1. 生成 SSH 密钥对
+
+```bash
+# 在本地生成密钥（推荐使用 ed25519 算法）
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_actions_deploy
+
+# 会生成两个文件:
+# ~/.ssh/github_actions_deploy      (私钥) ← 用于 GitHub Secrets
+# ~/.ssh/github_actions_deploy.pub  (公钥) ← 用于服务器
+```
+
+#### 2. 配置生产服务器
+
+```bash
+# 方法 1: 使用 ssh-copy-id (推荐)
+ssh-copy-id -i ~/.ssh/github_actions_deploy.pub user@svra-host
+
+# 方法 2: 手动添加
+cat ~/.ssh/github_actions_deploy.pub | ssh user@svra-host "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+
+# 在服务器上设置正确权限
+ssh user@svra-host "chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
+```
+
+#### 3. 添加私钥到 GitHub Secrets
+
+```bash
+# 1. 复制私钥内容
+cat ~/.ssh/github_actions_deploy
+# 或使用 pbcopy (macOS)
+cat ~/.ssh/github_actions_deploy | pbcopy
+
+# 2. 在 GitHub 上添加:
+# Settings → Secrets → New organization secret
+# Name: SVRA_SSH_KEY
+# Value: 粘贴完整的私钥内容（必须包括 -----BEGIN 和 -----END 行）
+```
+
+#### 4. 测试 SSH 连接
+
+```bash
+# 本地测试
+ssh -i ~/.ssh/github_actions_deploy user@svra-host
+
+# GitHub Actions 测试
+Actions → Test SSH Connection → Run workflow
+```
+
+#### 5. 安全建议
+
+- ✅ 使用 ed25519 算法（比 RSA 更安全更快）
+- ✅ 为密钥添加有意义的注释（-C 参数）
+- ✅ 定期轮换密钥（建议每 3-6 个月）
+- ✅ 限制密钥用途（仅用于 CI/CD）
+- ✅ 不要复用个人 SSH 密钥
+- ❌ 不要在私钥上设置密码（GitHub Actions 无法交互输入）
+
+### 开发流程最佳实践
 
 ### 首次部署
 
@@ -345,374 +1013,113 @@ journalctl -u iam-apiserver -f
 
 ```markdown
 ![CI/CD](https://github.com/FangcunMount/iam-contracts/workflows/CI/CD%20Pipeline/badge.svg)
-![Health Check](https://github.com/FangcunMount/iam-contracts/workflows/Server%20Health%20Check/badge.svg)
-```
-
----
-
-## 故障排查
-
-### 常见问题
-
-#### 1. SSH 连接失败
-
-**错误信息**: `Permission denied (publickey)`
-
-**解决方案**:
-
-```bash
-# 1. 检查私钥是否正确配置在 GitHub Secrets
-# 2. 验证公钥在服务器上
-ssh user@svra-host "cat ~/.ssh/authorized_keys | grep github-actions"
-
-# 3. 测试本地连接
-ssh -i ~/.ssh/github_actions_deploy user@svra-host
-
-# 4. 检查服务器 SSH 配置
-ssh user@svra-host "sudo cat /etc/ssh/sshd_config | grep PubkeyAuthentication"
-# 确保: PubkeyAuthentication yes
-
-# 5. 查看 SSH 日志
-ssh user@svra-host "sudo journalctl -u ssh -n 50"
-```
-
-#### 2. 部署失败
-
-**排查步骤**:
-
-```bash
-# 1. 查看 GitHub Actions 日志
-Actions → 失败的 workflow → 查看详细日志
-
-# 2. SSH 登录服务器检查
-ssh user@svra-host
-
-# 3. 检查服务状态
-sudo systemctl status iam-apiserver
-
-# 4. 查看应用日志
-sudo journalctl -u iam-apiserver -n 100 --no-pager
-
-# 5. 检查磁盘空间
-df -h
-
-# 6. 检查内存使用
-free -h
-```
-
-#### 3. 服务未启动
-
-```bash
-# 检查服务状态
-sudo systemctl status iam-apiserver
-
-# 查看错误日志
-sudo journalctl -u iam-apiserver -n 100
-
-# 检查配置文件
-cat /opt/iam/configs/apiserver.yaml
-
-# 手动启动服务
-sudo systemctl start iam-apiserver
-
-# 如果仍失败，查看详细错误
-sudo systemctl start iam-apiserver -l
-```
-
-#### 4. 数据库连接失败
-
-**错误信息**: `Access denied for user` 或 `Can't connect to MySQL server`
-
-**解决方案**:
-
-```bash
-# 1. 测试数据库连接
-mysql -h $MYSQL_HOST -P $MYSQL_PORT -u $MYSQL_USERNAME -p
-
-# 2. 检查数据库用户权限
-mysql -u root -p
-> SELECT user, host FROM mysql.user WHERE user='iam_user';
-> SHOW GRANTS FOR 'iam_user'@'%';
-
-# 3. 检查防火墙
-sudo ufw status
-sudo iptables -L -n | grep 3306
-
-# 4. 检查 MySQL 绑定地址
-sudo cat /etc/mysql/mysql.conf.d/mysqld.cnf | grep bind-address
-# 应该是: bind-address = 0.0.0.0 或注释掉
-```
-
-#### 5. 回滚到之前版本
-
-```bash
-# 1. SSH 登录服务器
-ssh user@svra-host
-
-# 2. 查看可用备份
-ls -lh /opt/backups/iam/deployments/
-
-# 3. 停止服务
-sudo systemctl stop iam-apiserver
-
-# 4. 恢复备份
-cd /opt/iam
-BACKUP_FILE="backup_20231022_120000.tar.gz"
-tar -xzf /opt/backups/iam/deployments/$BACKUP_FILE
-
-# 5. 启动服务
-sudo systemctl start iam-apiserver
-
-# 6. 验证服务
-sudo systemctl status iam-apiserver
-curl http://localhost:8080/healthz
-```
-
-### 日志查看
-
-```bash
-# GitHub Actions 日志
-GitHub → Actions → 选择 workflow run → 查看每个 job 的日志
-
-# 服务器系统日志
-sudo journalctl -u iam-apiserver -f          # 实时查看
-sudo journalctl -u iam-apiserver -n 100       # 查看最近100行
-sudo journalctl -u iam-apiserver --since today # 查看今天的日志
-
-# 应用日志（如果配置了文件日志）
-tail -f /var/log/iam/apiserver.log
-```
-
----
-
-## 最佳实践
-
-### 开发流程
-
-#### 1. 提交前本地测试
-
-```bash
-# 运行测试
-make test
-
-# 代码检查
-make lint
-
-# 本地构建
-make build
-
-# 运行服务
-./_output/bin/iam-apiserver
-```
-
-#### 2. 使用有意义的提交信息
-
-```bash
-# 推荐的提交格式
-feat: 新功能
-fix: 修复bug
-docs: 文档更新
-style: 代码格式调整
-refactor: 重构
-test: 测试相关
-chore: 构建或辅助工具变动
-
-# 好的例子
-git commit -m "feat: add user authentication"
-git commit -m "fix: resolve database connection timeout"
-git commit -m "docs: update API documentation"
-
-# 避免
-git commit -m "update"
-git commit -m "fix bug"
-git commit -m "changes"
-```
-
-#### 3. 分支管理
-
-```bash
-# 功能开发
-git checkout -b feature/user-management
-git push origin feature/user-management
-# 创建 PR → 代码审查 → 合并到 develop
-
-# 紧急修复
-git checkout -b hotfix/critical-bug
-git push origin hotfix/critical-bug
-# 创建 PR → 测试 → 合并到 main
-```
-
-### 部署策略
-
-#### 1. 定期备份数据库
-
-```bash
-# 自动备份（已配置）
-# - GitHub Actions 手动触发
-# - 保留最近10次备份
-
-# 重要操作前手动备份
-Actions → Database Operations → backup
-
-# 定期测试恢复流程（每月一次）
-Actions → Database Operations → restore
-```
-
-#### 2. 监控服务器资源
-
-```bash
-# 自动监控（已配置）
-# - 每30分钟健康检查
-# - 磁盘空间 >80% 告警
-
-# 手动检查
-ssh user@svra-host
-df -h                    # 磁盘空间
-free -h                  # 内存使用
-top                      # CPU 和进程
-systemctl status iam-apiserver
-```
-
-#### 3. 日志管理
-
-```bash
-# 定期清理日志（建议每月）
-ssh user@svra-host
-sudo journalctl --vacuum-time=30d  # 保留30天
-sudo journalctl --vacuum-size=1G   # 限制1GB
-```
-
-### 安全实践
-
-#### 1. 定期更新密钥
-
-```bash
-# 建议每3-6个月更新
-# - SSH 密钥
-# - 数据库密码
-# - Redis 密码
-# - API tokens
-```
-
-#### 2. 最小权限原则
-
-```bash
-# 数据库用户只授予必要权限
-CREATE USER 'iam_user'@'%' IDENTIFIED BY 'password';
-GRANT SELECT, INSERT, UPDATE, DELETE ON iam_db.* TO 'iam_user'@'%';
-# 不要授予 DROP, CREATE, ALTER 等权限
-```
-
-#### 3. 审计日志
-
-```bash
-# 定期检查（建议每周）
-# - GitHub Actions 执行历史
-# - 失败的部署记录
-# - 服务器登录日志
-# - 数据库访问日志
-```
-
-### 性能优化
-
-#### 1. 构建缓存
-
-```yaml
-# GitHub Actions 已配置 Go 模块缓存
-# Docker 层缓存
-# 减少构建时间 30-50%
-```
-
-#### 2. 并行执行
-
-```yaml
-# test 和 lint 可以并行执行
-# 多个健康检查并行运行
-```
-
-#### 3. 工作流优化
-
-```bash
-# 只在必要时触发完整流程
-# PR: 只运行 test + lint
-# Push to develop: test + lint + build
-# Push to main: 完整 CI/CD 流程
+![Health](https://github.com/FangcunMount/iam-contracts/workflows/Server%20Health%20Check/badge.svg)
+![Ping](https://github.com/FangcunMount/iam-contracts/workflows/Ping%20Runner/badge.svg)
 ```
 
 ---
 
 ## 附加资源
 
-### 相关文档
+### 项目文档
 
 - [架构概览](../../docs/architecture-overview.md)
 - [部署检查清单](../../docs/DEPLOYMENT_CHECKLIST.md)
-- [API 参考](../../docs/authn/API_REFERENCE.md)
+- [认证文档](../../docs/authn/README.md)
+- [授权文档](../../docs/authz/README.md)
 
-### 外部链接
+### 外部资源
 
-- [GitHub Actions 文档](https://docs.github.com/en/actions)
+- [GitHub Actions 官方文档](https://docs.github.com/en/actions)
 - [GitHub Secrets 安全指南](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
 - [Docker 最佳实践](https://docs.docker.com/develop/dev-best-practices/)
+- [Conventional Commits](https://www.conventionalcommits.org/)
 
 ### 命令行工具
 
 ```bash
-# GitHub CLI (gh)
+# GitHub CLI
 brew install gh
-gh auth login
-gh workflow list
-gh run list
-gh run view <run-id> --log
+gh workflow list                    # 列出所有工作流
+gh run list --workflow=cicd.yml    # 查看特定工作流运行
+gh run view <run-id> --log         # 查看运行日志
 
 # Docker
-docker ps
-docker logs iam-apiserver
-docker system prune -a  # 清理未使用的镜像
-
-# systemd
-systemctl status iam-apiserver
-journalctl -u iam-apiserver -f
-systemctl restart iam-apiserver
+docker ps                           # 查看运行中的容器
+docker logs iam-apiserver           # 查看容器日志
+docker stats iam-apiserver          # 查看资源使用
+docker system prune -a              # 清理未使用的资源
 ```
 
 ---
 
 ## 🎯 快速参考
 
-### 常用命令速查
+### 工作流时间表
+
+| 时间 | 工作流 | 操作 |
+|------|--------|------|
+| **01:00** (每天) | db-ops.yml | 自动备份数据库 |
+| **每 30 分钟** | server-check.yml | 深度健康检查 |
+| **每 6 小时** | ping-runner.yml | 快速连通性检查 |
+| 代码 push | cicd.yml | CI/CD 流程 |
+
+### 常用操作
 
 ```bash
-# 触发部署
+# 部署到生产
 git push origin main
 
-# 查看服务状态
-ssh user@svra "systemctl status iam-apiserver"
-
-# 查看日志
-ssh user@svra "journalctl -u iam-apiserver -n 50"
-
-# 备份数据库
+# 手动备份数据库
 Actions → Database Operations → backup
+
+# 查看数据库状态
+Actions → Database Operations → status
 
 # 健康检查
 Actions → Server Health Check → Run workflow
 
-# 回滚部署
-ssh user@svra "cd /opt/iam && git checkout <commit-hash>"
-ssh user@svra "systemctl restart iam-apiserver"
+# SSH 连接测试
+Actions → Test SSH Connection → Run workflow
+
+# 查看容器日志
+ssh user@svra "sudo docker logs --tail 100 iam-apiserver"
 ```
 
-### 工作流执行时间
-
-| 工作流 | 平均时间 | 触发方式 |
-|--------|---------|---------|
-| Ping Runner | ~1分钟 | 手动/每6小时 |
-| CI/CD Pipeline | ~10-15分钟 | push/PR/手动 |
-| Database Operations | 1-5分钟 | 手动 |
-| Server Health Check | ~2-3分钟 | 手动/每30分钟 |
-
 ### Secrets 清单
+
+**Organization Secrets (8个)**:
+
+```text
+SVRA_HOST, SVRA_USERNAME, SVRA_SSH_KEY, SVRA_SSH_PORT
+MYSQL_HOST, MYSQL_PORT, REDIS_HOST, REDIS_PORT
+```
+
+**Repository Secrets (5个)**:
+
+```text
+MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DBNAME
+REDIS_PASSWORD, REDIS_DB
+```
+
+### 时区转换参考
+
+GitHub Actions cron 使用 **UTC 时间**：
+
+| 北京时间 | UTC 时间 | Cron 表达式 |
+|---------|---------|------------|
+| 01:00 | 17:00 (前一天) | `0 17 * * *` |
+| 02:00 | 18:00 (前一天) | `0 18 * * *` |
+| 03:00 | 19:00 (前一天) | `0 19 * * *` |
+| 10:00 | 02:00 | `0 2 * * *` |
+
+---
+
+**最后更新**: 2025年10月23日
+
+**维护**: FangcunMount Team
+
+**支持**: 通过 GitHub Issues 提交问题或建议
 
 **✅ Organization Secrets (8个)**:
 SVRA_HOST, SVRA_USERNAME, SVRA_SSH_KEY, SVRA_SSH_PORT,
