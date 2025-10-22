@@ -102,7 +102,7 @@ func IsSupportedAlgorithm(algorithm string) bool {
 }
 
 // getKeySizeForAlgorithm 根据算法获取推荐的密钥大小
-func (g *RSAKeyGenerator) getKeySizeForAlgorithm(alg string) int {
+func (g *RSAKeyGenerator) getKeySizeForAlgorithm(_ string) int {
 	// RS256, RS384, RS512 都使用相同的密钥大小
 	// 区别在于哈希算法（SHA-256, SHA-384, SHA-512）
 	// 2048 位对所有算法都足够安全
