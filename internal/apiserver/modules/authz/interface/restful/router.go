@@ -46,13 +46,13 @@ func Register(engine *gin.Engine) {
 		// ============ 角色管理 ============
 		roles := authzGroup.Group("/roles")
 		{
-			roles.POST("", deps.RoleHandler.CreateRole)                                      // 创建角色
-			roles.PUT("/:id", deps.RoleHandler.UpdateRole)                                   // 更新角色
-			roles.DELETE("/:id", deps.RoleHandler.DeleteRole)                                // 删除角色
-			roles.GET("/:id", deps.RoleHandler.GetRole)                                      // 获取角色详情
-			roles.GET("", deps.RoleHandler.ListRoles)                                        // 列出角色
-			roles.GET("/:role_id/assignments", deps.AssignmentHandler.ListAssignmentsByRole) // 列出角色的分配记录
-			roles.GET("/:role_id/policies", deps.PolicyHandler.GetPoliciesByRole)            // 获取角色的策略列表
+			roles.POST("", deps.RoleHandler.CreateRole)                                 // 创建角色
+			roles.PUT("/:id", deps.RoleHandler.UpdateRole)                              // 更新角色
+			roles.DELETE("/:id", deps.RoleHandler.DeleteRole)                           // 删除角色
+			roles.GET("/:id", deps.RoleHandler.GetRole)                                 // 获取角色详情
+			roles.GET("", deps.RoleHandler.ListRoles)                                   // 列出角色
+			roles.GET("/:id/assignments", deps.AssignmentHandler.ListAssignmentsByRole) // 列出角色的分配记录
+			roles.GET("/:id/policies", deps.PolicyHandler.GetPoliciesByRole)            // 获取角色的策略列表
 		}
 
 		// ============ 角色分配 ============

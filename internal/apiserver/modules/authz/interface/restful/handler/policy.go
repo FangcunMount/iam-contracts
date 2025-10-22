@@ -102,11 +102,11 @@ func (h *PolicyHandler) RemovePolicyRule(c *gin.Context) {
 // @Summary 获取角色的策略列表
 // @Tags Policy
 // @Produce json
-// @Param role_id path string true "角色ID"
+// @Param id path string true "角色ID"
 // @Success 200 {object} dto.Response{data=[]dto.PolicyRuleResponse}
-// @Router /authz/roles/{role_id}/policies [get]
+// @Router /authz/roles/{id}/policies [get]
 func (h *PolicyHandler) GetPoliciesByRole(c *gin.Context) {
-	roleID, err := strconv.ParseUint(c.Param("role_id"), 10, 64)
+	roleID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		handleError(c, errors.WithCode(code.ErrInvalidArgument, "角色ID格式错误"))
 		return

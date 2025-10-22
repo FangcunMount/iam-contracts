@@ -196,11 +196,11 @@ func (h *AssignmentHandler) ListAssignmentsBySubject(c *gin.Context) {
 // @Summary 列出角色的分配记录
 // @Tags Assignment
 // @Produce json
-// @Param role_id path string true "角色ID"
+// @Param id path string true "角色ID"
 // @Success 200 {object} dto.Response{data=[]dto.AssignmentResponse}
-// @Router /authz/roles/{role_id}/assignments [get]
+// @Router /authz/roles/{id}/assignments [get]
 func (h *AssignmentHandler) ListAssignmentsByRole(c *gin.Context) {
-	roleID, err := strconv.ParseUint(c.Param("role_id"), 10, 64)
+	roleID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		handleError(c, errors.WithCode(code.ErrInvalidArgument, "角色ID格式错误"))
 		return
