@@ -20,10 +20,10 @@ import (
 
 const (
 	// RecommendedHomeDir 定义了所有服务配置的默认目录
-	RecommendedHomeDir = ".web-framework"
+	RecommendedHomeDir = ".iam-apiserver"
 
 	// RecommendedEnvPrefix 定义了所有服务的 ENV 前缀
-	RecommendedEnvPrefix = "WEB"
+	RecommendedEnvPrefix = "IAM_APISERVER"
 )
 
 // Config 是用于配置 GenericAPIServer 的结构体
@@ -89,7 +89,7 @@ func NewConfig() *Config {
 		EnableProfiling: true,
 		EnableMetrics:   true,
 		Jwt: &JwtInfo{
-			Realm:      "web-framework jwt",
+			Realm:      "iam-apiserver jwt",
 			Timeout:    1 * time.Hour,
 			MaxRefresh: 1 * time.Hour,
 		},
