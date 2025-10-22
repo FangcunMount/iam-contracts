@@ -229,7 +229,7 @@ jobs:
 
   deploy:
     name: Deploy to Production
-    needs: [build]
+    needs: [build, docker]  # 等待 Docker 镜像构建完成后再部署
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
