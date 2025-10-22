@@ -36,27 +36,52 @@ jobs:
           username: ${{ secrets.SVRA_USERNAME }}
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
+          envs: MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME
+        env:
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
+          MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
           script: |
-            BACKUP_DIR="/opt/backups/iam"
+            BACKUP_DIR="/opt/backups/iam/database"
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
             BACKUP_FILE="iam_backup_${TIMESTAMP}.sql"
             
-            mkdir -p $BACKUP_DIR
+            sudo mkdir -p $BACKUP_DIR
             
             echo "Starting database backup..."
-            mysqldump -h ${{ secrets.MYSQL_HOST }} \
-                      -P ${{ secrets.MYSQL_PORT }} \
-                      -u ${{ secrets.MYSQL_USERNAME }} \
-                      -p'${{ secrets.MYSQL_PASSWORD }}' \
-                      ${{ secrets.MYSQL_DBNAME }} > $BACKUP_DIR/$BACKUP_FILE
+            echo "Database: $MYSQL_DBNAME"
+            echo "Timestamp: $TIMESTAMP"
             
-            gzip $BACKUP_DIR/$BACKUP_FILE
-            echo "✅ Backup completed: ${BACKUP_FILE}.gz"
-            echo "Size: $(du -h $BACKUP_DIR/${BACKUP_FILE}.gz | cut -f1)"
+            # Use environment variables to avoid exposing password in logs
+            mysqldump -h "$MYSQL_HOST" \
+                      -P "${MYSQL_PORT:-3306}" \
+                      -u "$MYSQL_USERNAME" \
+                      -p"$MYSQL_PASSWORD" \
+                      --single-transaction \
+                      --routines \
+                      --triggers \
+                      "$MYSQL_DBNAME" > "$BACKUP_DIR/$BACKUP_FILE" 2>&1
             
-            # Keep only last 7 days of backups
-            find $BACKUP_DIR -name "iam_backup_*.sql.gz" -mtime +7 -delete
-            echo "Old backups cleaned up"
+            if [ $? -eq 0 ]; then
+              gzip "$BACKUP_DIR/$BACKUP_FILE"
+              BACKUP_SIZE=$(du -h "$BACKUP_DIR/${BACKUP_FILE}.gz" | cut -f1)
+              echo "✅ Backup completed: ${BACKUP_FILE}.gz"
+              echo "Size: $BACKUP_SIZE"
+              
+              # Keep only last 7 days of backups
+              find "$BACKUP_DIR" -name "iam_backup_*.sql.gz" -mtime +7 -delete
+              echo "Old backups cleaned up"
+              
+              # List recent backups
+              echo ""
+              echo "Recent backups:"
+              ls -lht "$BACKUP_DIR" | head -6
+            else
+              echo "❌ Backup failed"
+              exit 1
+            fi
 
   db-restore:
     name: Database Restore
@@ -73,31 +98,54 @@ jobs:
           username: ${{ secrets.SVRA_USERNAME }}
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
+          envs: MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,BACKUP_FILE_INPUT
+        env:
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
+          MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
+          BACKUP_FILE_INPUT: ${{ github.event.inputs.backup_name }}
           script: |
-            BACKUP_DIR="/opt/backups/iam"
-            BACKUP_FILE="${{ github.event.inputs.backup_name }}"
+            BACKUP_DIR="/opt/backups/iam/database"
+            BACKUP_FILE="$BACKUP_FILE_INPUT"
             
             if [ -z "$BACKUP_FILE" ]; then
               echo "❌ Backup name is required for restore operation"
+              echo ""
+              echo "Available backups:"
+              ls -lht "$BACKUP_DIR" | head -11
               exit 1
             fi
             
             if [ ! -f "$BACKUP_DIR/$BACKUP_FILE" ]; then
               echo "❌ Backup file not found: $BACKUP_FILE"
+              echo ""
               echo "Available backups:"
-              ls -lh $BACKUP_DIR/
+              ls -lht "$BACKUP_DIR" | head -11
               exit 1
             fi
             
-            echo "Restoring from: $BACKUP_FILE"
-            gunzip -c $BACKUP_DIR/$BACKUP_FILE | \
-            mysql -h ${{ secrets.MYSQL_HOST }} \
-                  -P ${{ secrets.MYSQL_PORT }} \
-                  -u ${{ secrets.MYSQL_USERNAME }} \
-                  -p'${{ secrets.MYSQL_PASSWORD }}' \
-                  ${{ secrets.MYSQL_DBNAME }}
+            echo "⚠️ WARNING: This will overwrite the current database!"
+            echo "Backup file: $BACKUP_FILE"
+            echo "Target database: $MYSQL_DBNAME"
+            echo "Restoring in 5 seconds..."
+            sleep 5
             
-            echo "✅ Database restored successfully"
+            echo "Restoring database..."
+            gunzip -c "$BACKUP_DIR/$BACKUP_FILE" | \
+            mysql -h "$MYSQL_HOST" \
+                  -P "${MYSQL_PORT:-3306}" \
+                  -u "$MYSQL_USERNAME" \
+                  -p"$MYSQL_PASSWORD" \
+                  "$MYSQL_DBNAME" 2>&1
+            
+            if [ $? -eq 0 ]; then
+              echo "✅ Database restored successfully from $BACKUP_FILE"
+            else
+              echo "❌ Database restore failed"
+              exit 1
+            fi
 
   db-migrate:
     name: Database Migration
@@ -115,12 +163,30 @@ jobs:
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
-            cd /opt/iam
+            echo "=== Database Migration ==="
             
-            echo "Running database migrations..."
-            make migrate
+            # Check if IAM container is running
+            if ! sudo docker ps --filter "name=iam-apiserver" --format "{{.Names}}" | grep -q "iam-apiserver"; then
+              echo "❌ IAM container is not running"
+              exit 1
+            fi
             
-            echo "✅ Migrations completed"
+            echo "Running database migrations from Docker container..."
+            
+            # Execute migration inside the container
+            # Assuming the container has migration tools or can run them
+            if sudo docker exec iam-apiserver sh -c "command -v migrate >/dev/null 2>&1"; then
+              sudo docker exec iam-apiserver migrate -version
+              echo "Running migrations..."
+              sudo docker exec iam-apiserver migrate up
+              echo "✅ Migrations completed"
+            else
+              echo "⚠️ Migration tool not found in container"
+              echo "Note: Migrations may need to be run manually or through application startup"
+              echo ""
+              echo "Container logs:"
+              sudo docker logs --tail 50 iam-apiserver | grep -i "migrat\|schema\|table"
+            fi
 
   db-status:
     name: Database Status
@@ -137,42 +203,76 @@ jobs:
           username: ${{ secrets.SVRA_USERNAME }}
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
+          envs: MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME
+        env:
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
+          MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
           script: |
             echo "=== Database Status ==="
             
             # Check MySQL connection
-            mysql -h ${{ secrets.MYSQL_HOST }} \
-                  -P ${{ secrets.MYSQL_PORT }} \
-                  -u ${{ secrets.MYSQL_USERNAME }} \
-                  -p'${{ secrets.MYSQL_PASSWORD }}' \
-                  -e "SELECT VERSION();" 2>/dev/null && \
-            echo "✅ MySQL connection OK" || \
-            echo "❌ MySQL connection failed"
+            if mysql -h "$MYSQL_HOST" \
+                  -P "${MYSQL_PORT:-3306}" \
+                  -u "$MYSQL_USERNAME" \
+                  -p"$MYSQL_PASSWORD" \
+                  -e "SELECT VERSION();" 2>/dev/null; then
+              echo "✅ MySQL connection OK"
+              
+              # Show MySQL version
+              mysql -h "$MYSQL_HOST" \
+                    -P "${MYSQL_PORT:-3306}" \
+                    -u "$MYSQL_USERNAME" \
+                    -p"$MYSQL_PASSWORD" \
+                    -e "SELECT VERSION();" 2>/dev/null | tail -1
+            else
+              echo "❌ MySQL connection failed"
+              exit 1
+            fi
             
             # Show database size
             echo ""
             echo "Database size:"
-            mysql -h ${{ secrets.MYSQL_HOST }} \
-                  -P ${{ secrets.MYSQL_PORT }} \
-                  -u ${{ secrets.MYSQL_USERNAME }} \
-                  -p'${{ secrets.MYSQL_PASSWORD }}' \
+            mysql -h "$MYSQL_HOST" \
+                  -P "${MYSQL_PORT:-3306}" \
+                  -u "$MYSQL_USERNAME" \
+                  -p"$MYSQL_PASSWORD" \
                   -e "SELECT table_schema AS 'Database', 
                      ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size (MB)' 
                      FROM information_schema.tables 
-                     WHERE table_schema = '${{ secrets.MYSQL_DBNAME }}' 
-                     GROUP BY table_schema;"
+                     WHERE table_schema = '$MYSQL_DBNAME' 
+                     GROUP BY table_schema;" 2>/dev/null
             
             # Show tables
             echo ""
             echo "Tables:"
-            mysql -h ${{ secrets.MYSQL_HOST }} \
-                  -P ${{ secrets.MYSQL_PORT }} \
-                  -u ${{ secrets.MYSQL_USERNAME }} \
-                  -p'${{ secrets.MYSQL_PASSWORD }}' \
-                  ${{ secrets.MYSQL_DBNAME }} \
-                  -e "SHOW TABLES;"
+            mysql -h "$MYSQL_HOST" \
+                  -P "${MYSQL_PORT:-3306}" \
+                  -u "$MYSQL_USERNAME" \
+                  -p"$MYSQL_PASSWORD" \
+                  "$MYSQL_DBNAME" \
+                  -e "SHOW TABLES;" 2>/dev/null
+            
+            # Show table row counts
+            echo ""
+            echo "Table statistics:"
+            mysql -h "$MYSQL_HOST" \
+                  -P "${MYSQL_PORT:-3306}" \
+                  -u "$MYSQL_USERNAME" \
+                  -p"$MYSQL_PASSWORD" \
+                  "$MYSQL_DBNAME" \
+                  -e "SELECT table_name AS 'Table', 
+                      table_rows AS 'Rows',
+                      ROUND(data_length / 1024 / 1024, 2) AS 'Data (MB)',
+                      ROUND(index_length / 1024 / 1024, 2) AS 'Index (MB)'
+                      FROM information_schema.tables 
+                      WHERE table_schema = '$MYSQL_DBNAME' 
+                      ORDER BY data_length DESC 
+                      LIMIT 10;" 2>/dev/null
             
             # List backups
             echo ""
             echo "Available backups:"
-            ls -lh /opt/backups/iam/ | tail -10
+            ls -lht /opt/backups/iam/database/ 2>/dev/null | head -11 || echo "No backups found"
