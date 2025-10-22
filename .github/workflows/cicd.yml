@@ -315,13 +315,13 @@ jobs:
             echo "Creating environment configuration..."
             sudo tee /opt/iam/configs/env/config.prod.env > /dev/null <<EOF
             # Auto-generated production environment configuration
-            IAM_APISERVER_DATABASE_HOST=${{ secrets.MYSQL_HOST }}
-            IAM_APISERVER_DATABASE_PORT=3306
-            IAM_APISERVER_DATABASE_USERNAME=${{ secrets.MYSQL_USERNAME }}
-            IAM_APISERVER_DATABASE_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-            IAM_APISERVER_DATABASE_DBNAME=${{ secrets.MYSQL_DATABASE }}
+            IAM_APISERVER_MYSQL_HOST=${{ secrets.MYSQL_HOST }}:${{ secrets.MYSQL_PORT || 3306 }}
+            IAM_APISERVER_MYSQL_USERNAME=${{ secrets.MYSQL_USERNAME }}
+            IAM_APISERVER_MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+            IAM_APISERVER_MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
             IAM_APISERVER_REDIS_HOST=${{ secrets.REDIS_HOST }}
             IAM_APISERVER_REDIS_PORT=${{ secrets.REDIS_PORT || 6379 }}
+            IAM_APISERVER_REDIS_ADDR=${{ secrets.REDIS_HOST }}:${{ secrets.REDIS_PORT || 6379 }}
             IAM_APISERVER_REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
             IAM_APISERVER_REDIS_DB=${{ secrets.REDIS_DB || 1 }}
             IAM_APISERVER_JWT_SECRET=${{ secrets.JWT_SECRET }}
