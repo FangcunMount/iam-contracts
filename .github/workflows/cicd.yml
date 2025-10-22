@@ -265,6 +265,10 @@ jobs:
             # Navigate to project directory
             cd /opt/iam
             
+            # Fix Git safe.directory warning (Git 2.35.2+ security feature)
+            echo "Configuring Git safe directory..."
+            git config --global --add safe.directory /opt/iam
+            
             # Backup current version
             echo "Creating backup..."
             BACKUP_DIR="/opt/backups/iam/deployments"
