@@ -128,13 +128,13 @@ func (f *fundamental) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			io.WriteString(s, f.msg)
+			_, _ = io.WriteString(s, f.msg)
 			f.stack.Format(s, verb)
 			return
 		}
 		fallthrough
 	case 's':
-		io.WriteString(s, f.msg)
+		_, _ = io.WriteString(s, f.msg)
 	case 'q':
 		fmt.Fprintf(s, "%q", f.msg)
 	}
@@ -188,7 +188,7 @@ func (w *withStack) Format(s fmt.State, verb rune) {
 		}
 		fallthrough
 	case 's':
-		io.WriteString(s, w.Error())
+		_, _ = io.WriteString(s, w.Error())
 	case 'q':
 		fmt.Fprintf(s, "%q", w.Error())
 	}
