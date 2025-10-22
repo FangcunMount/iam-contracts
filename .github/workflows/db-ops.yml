@@ -21,7 +21,7 @@ on:
         type: string
   
   schedule:
-    - cron: '0 2 * * *'  # 每天凌晨 2:00 UTC (北京时间 10:00) 自动备份
+    - cron: '0 17 * * *'  # 每天 17:00 UTC (北京时间凌晨 01:00) 自动备份
 
 jobs:
   db-backup:
