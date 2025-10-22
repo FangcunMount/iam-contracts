@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -197,8 +198,7 @@ func (a *App) runCommand(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		// 打印配置信息
-		fmt.Printf("Viper Config: %+v\n", viper.AllSettings())
+		printViperConfig(a.basename)
 
 		// 如果选项不为空，则反序列化选项
 		if err := viper.Unmarshal(a.options); err != nil {
@@ -258,6 +258,28 @@ func (a *App) applyOptionRules() error {
 	}
 
 	return nil
+}
+
+// printViperConfig 输出当前 viper 读取到的配置以及关键环境变量，用于调试覆盖行为
+func printViperConfig(basename string) {
+	fmt.Printf("Viper Config (AllSettings): %+v\n", viper.AllSettings())
+
+	envPrefix := strings.Replace(strings.ToUpper(basename), "-", "_", -1)
+	fmt.Printf("Using env prefix: %s_\n", envPrefix)
+
+	// 打印常用的覆盖变量，便于排查是否生效
+	keys := []string{
+		"IAM_APISERVER_MYSQL_HOST",
+		"IAM_APISERVER_MYSQL_USERNAME",
+		"IAM_APISERVER_MYSQL_DATABASE",
+		"IAM_APISERVER_REDIS_HOST",
+		"IAM_APISERVER_REDIS_PORT",
+		"IAM_APISERVER_REDIS_ADDR",
+		"IAM_APISERVER_JWT_SECRET",
+	}
+	for _, key := range keys {
+		fmt.Printf("ENV %s=%s\n", key, os.Getenv(key))
+	}
 }
 
 // printWorkingDir 打印工作目录
