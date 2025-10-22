@@ -16,11 +16,11 @@ server:
 # 数据库配置
 database:
   driver: "mysql"
-  host: "mysql"
-  port: 3306
-  username: "iam"
-  password: "iam_contracts_pass123"
-  dbname: "iam_contracts"
+  host: "${IAM_APISERVER_DATABASE_HOST:127.0.0.1}"
+  port: "${IAM_APISERVER_DATABASE_PORT:3306}"
+  username: "${IAM_APISERVER_DATABASE_USERNAME:iam}"
+  password: "${IAM_APISERVER_DATABASE_PASSWORD:iam_contracts_pass123}"
+  dbname: "${IAM_APISERVER_DATABASE_DBNAME:iam_contracts}"
   max-idle-conns: 10
   max-open-conns: 100
   conn-max-lifetime: 3600  # 秒
@@ -28,10 +28,10 @@ database:
 
 # Redis 配置
 redis:
-  host: "redis"
-  port: 6379
-  password: ""
-  db: 1  # 使用专用的数据库索引
+  host: "${IAM_APISERVER_REDIS_HOST:127.0.0.1}"
+  port: "${IAM_APISERVER_REDIS_PORT:6379}"
+  password: "${IAM_APISERVER_REDIS_PASSWORD:}"
+  db: "${IAM_APISERVER_REDIS_DB:1}"  # 使用专用的数据库索引
   pool-size: 100
   min-idle-conns: 10
 
@@ -45,7 +45,7 @@ log:
 
 # jwt 配置
 jwt:
-  secret: ""
+  secret: "${IAM_APISERVER_JWT_SECRET:}"
   expire: 86400
 
 # cors 配置
