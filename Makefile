@@ -23,6 +23,11 @@ DOCKER_REGISTRY ?= ghcr.io
 DOCKER_REPOSITORY ?= fangcunmount
 DOCKER_IMAGE := $(DOCKER_REGISTRY)/$(DOCKER_REPOSITORY)/$(PROJECT_NAME)
 DOCKER_TAG ?= latest
+LOG_DIR_HOST ?= /data/logs/iam
+TLS_CERT_HOST ?= /data/ssl/certs/iam.yangshujie.com.crt
+TLS_KEY_HOST ?= /data/ssl/private/iam.yangshujie.com.key
+TLS_CERT_DEST ?= /etc/iam-contracts/ssl/iam.yangshujie.com.crt
+TLS_KEY_DEST ?= /etc/iam-contracts/ssl/iam.yangshujie.com.key
 
 # Go 相关
 GO := go
@@ -551,11 +556,26 @@ docker-build: ## 构建 Docker 镜像
 
 docker-run: ## 运行 Docker 容器
 	@echo "$(COLOR_BLUE)🐳 运行 Docker 容器...$(COLOR_RESET)"
-	@docker run -d \
+	@docker network ls --format '{{.Name}}' | grep -w iam-network >/dev/null 2>&1 || docker network create iam-network
+	@mkdir -p $(LOG_DIR_HOST) >/dev/null 2>&1 || true
+	@TLS_MOUNTS=""; \
+	if [ -f "$(TLS_CERT_HOST)" ]; then \
+		TLS_MOUNTS="$$TLS_MOUNTS -v $(TLS_CERT_HOST):$(TLS_CERT_DEST):ro"; \
+	else \
+		echo "$(COLOR_YELLOW)⚠️  未找到 TLS 证书文件: $(TLS_CERT_HOST)$(COLOR_RESET)"; \
+	fi; \
+	if [ -f "$(TLS_KEY_HOST)" ]; then \
+		TLS_MOUNTS="$$TLS_MOUNTS -v $(TLS_KEY_HOST):$(TLS_KEY_DEST):ro"; \
+	else \
+		echo "$(COLOR_YELLOW)⚠️  未找到 TLS 私钥文件: $(TLS_KEY_HOST)$(COLOR_RESET)"; \
+	fi; \
+	docker run -d \
 		--name $(PROJECT_NAME) \
+		--network iam-network \
 		-p 8080:8080 \
 		-v $(PWD)/configs:/app/configs:ro \
-		-v $(PWD)/logs:/app/logs \
+		-v $(LOG_DIR_HOST):/var/log/iam-contracts \
+		$$TLS_MOUNTS \
 		$(DOCKER_IMAGE):$(DOCKER_TAG)
 	@echo "$(COLOR_GREEN)✅ Docker 容器已启动$(COLOR_RESET)"
 

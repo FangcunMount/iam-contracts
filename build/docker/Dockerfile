@@ -68,8 +68,8 @@ COPY --from=builder /build/apiserver /app/apiserver
 COPY --chown=app:app configs /app/configs
 
 # 创建日志目录
-RUN mkdir -p /app/logs && \
-    chown -R app:app /app
+RUN mkdir -p /app/logs /var/log/iam-contracts && \
+    chown -R app:app /app /var/log/iam-contracts
 
 # 切换到非 root 用户
 USER app
