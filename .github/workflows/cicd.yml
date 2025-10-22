@@ -38,7 +38,7 @@ jobs:
           MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+          MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
         run: |
           echo "🔍 Validating required secrets..."
           
@@ -93,11 +93,11 @@ jobs:
               echo "✅ MYSQL_PASSWORD is set"
             fi
             
-            if [ -z "$MYSQL_DATABASE" ]; then
-              echo "❌ MYSQL_DATABASE is not set"
+            if [ -z "$MYSQL_DBNAME" ]; then
+              echo "❌ MYSQL_DBNAME is not set"
               VALIDATION_FAILED=1
             else
-              echo "✅ MYSQL_DATABASE is set"
+              echo "✅ MYSQL_DBNAME is set"
             fi
           else
             echo "ℹ️ Skipping deployment secrets check (not on main branch)"
@@ -318,7 +318,7 @@ jobs:
             IAM_APISERVER_MYSQL_HOST=${{ secrets.MYSQL_HOST }}:${{ secrets.MYSQL_PORT || 3306 }}
             IAM_APISERVER_MYSQL_USERNAME=${{ secrets.MYSQL_USERNAME }}
             IAM_APISERVER_MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-            IAM_APISERVER_MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
+            IAM_APISERVER_MYSQL_DATABASE=${{ secrets.MYSQL_DBNAME }}
             IAM_APISERVER_REDIS_HOST=${{ secrets.REDIS_HOST }}
             IAM_APISERVER_REDIS_PORT=${{ secrets.REDIS_PORT || 6379 }}
             IAM_APISERVER_REDIS_ADDR=${{ secrets.REDIS_HOST }}:${{ secrets.REDIS_PORT || 6379 }}
