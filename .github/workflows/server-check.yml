@@ -61,7 +61,7 @@ jobs:
             
             echo "=========================================="
 
-      - name: IAM Service Check
+      - name: Docker Service Check
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SVRA_HOST }}
@@ -70,105 +70,175 @@ jobs:
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
             echo "=========================================="
-            echo "IAM Service Status"
+            echo "Docker Service Status"
             echo "=========================================="
             
-            # Check service status
-            if systemctl is-active --quiet iam-apiserver; then
-              echo "✅ IAM service is RUNNING"
-              echo ""
-              echo "Service details:"
-              systemctl status iam-apiserver --no-pager | head -20
-              echo ""
-              echo "Process info:"
-              ps aux | grep iam-apiserver | grep -v grep
-            else
-              echo "❌ IAM service is NOT RUNNING"
-              echo "Attempting to restart service..."
-              sudo systemctl restart iam-apiserver
-              sleep 5
-              if systemctl is-active --quiet iam-apiserver; then
-                echo "✅ Service restarted successfully"
-              else
-                echo "❌ Service restart failed"
-                exit 1
-              fi
+            # Check if Docker is running
+            if ! sudo docker info >/dev/null 2>&1; then
+              echo "❌ Docker is not running"
+              exit 1
             fi
-            
-            echo "=========================================="
-
-      - name: Network Check
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SVRA_HOST }}
-          username: ${{ secrets.SVRA_USERNAME }}
-          key: ${{ secrets.SVRA_SSH_KEY }}
-          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
-          script: |
-            echo "=========================================="
-            echo "Network Status"
-            echo "=========================================="
-            
-            # Check listening ports
-            echo "Listening ports:"
-            ss -tlnp | grep -E ":(80|443|8080|8443|3306|6379)" || echo "No services on common ports"
+            echo "✅ Docker daemon is running"
             echo ""
             
-            # Check network connections
-            echo "Active connections:"
-            ss -s
-            echo ""
-            
-            # Check if API is responding
-            echo "API Health Check:"
-            if command -v curl >/dev/null 2>&1; then
-              if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/healthz | grep -q "200"; then
-                echo "✅ API is responding"
-              else
-                echo "⚠️ API health check returned non-200 status"
-              fi
-            else
-              echo "curl not available"
-            fi
-            
-            echo "=========================================="
-
-      - name: Database Check
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SVRA_HOST }}
-          username: ${{ secrets.SVRA_USERNAME }}
-          key: ${{ secrets.SVRA_SSH_KEY }}
-          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
-          script: |
-            echo "=========================================="
-            echo "Database Health Check"
-            echo "=========================================="
-            
-            # Check MySQL connection
-            if command -v mysql >/dev/null 2>&1; then
-              if mysql -h ${{ secrets.MYSQL_HOST }} \
-                       -P ${{ secrets.MYSQL_PORT }} \
-                       -u ${{ secrets.MYSQL_USERNAME }} \
-                       -p'${{ secrets.MYSQL_PASSWORD }}' \
-                       -e "SELECT 1;" >/dev/null 2>&1; then
-                echo "✅ Database connection OK"
-                
-                # Show database stats
+            # Check IAM container status
+            if sudo docker ps --filter "name=iam-apiserver" --format "{{.Names}}" | grep -q "iam-apiserver"; then
+              CONTAINER_STATUS=$(sudo docker ps --filter "name=iam-apiserver" --format "{{.Status}}")
+              CONTAINER_HEALTH=$(sudo docker inspect --format='{{.State.Health.Status}}' iam-apiserver 2>/dev/null || echo "no healthcheck")
+              
+              echo "✅ IAM container is RUNNING"
+              echo "Status: $CONTAINER_STATUS"
+              echo "Health: $CONTAINER_HEALTH"
+              echo ""
+              
+              if [ "$CONTAINER_HEALTH" = "unhealthy" ]; then
+                echo "⚠️ Container is unhealthy, checking logs..."
+                sudo docker logs --tail 50 iam-apiserver
                 echo ""
-                echo "Active connections:"
-                mysql -h ${{ secrets.MYSQL_HOST }} \
-                      -P ${{ secrets.MYSQL_PORT }} \
-                      -u ${{ secrets.MYSQL_USERNAME }} \
-                      -p'${{ secrets.MYSQL_PASSWORD }}' \
-                      -e "SHOW STATUS LIKE 'Threads_connected';"
+                echo "Attempting to restart container..."
+                sudo docker restart iam-apiserver
+                sleep 10
+                
+                NEW_HEALTH=$(sudo docker inspect --format='{{.State.Health.Status}}' iam-apiserver 2>/dev/null || echo "no healthcheck")
+                if [ "$NEW_HEALTH" = "healthy" ] || [ "$NEW_HEALTH" = "no healthcheck" ]; then
+                  echo "✅ Container restarted and is now healthy"
+                else
+                  echo "❌ Container still unhealthy after restart"
+                  exit 1
+                fi
+              fi
+              
+              echo "Container details:"
+              sudo docker ps --filter "name=iam-apiserver" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            else
+              echo "❌ IAM container is NOT RUNNING"
+              echo "Checking if container exists..."
+              if sudo docker ps -a --filter "name=iam-apiserver" --format "{{.Names}}" | grep -q "iam-apiserver"; then
+                echo "Container exists but stopped. Starting container..."
+                sudo docker start iam-apiserver
+                sleep 10
+                if sudo docker ps --filter "name=iam-apiserver" --format "{{.Names}}" | grep -q "iam-apiserver"; then
+                  echo "✅ Container started successfully"
+                else
+                  echo "❌ Failed to start container"
+                  sudo docker logs --tail 50 iam-apiserver
+                  exit 1
+                fi
               else
-                echo "❌ Database connection failed"
+                echo "❌ Container does not exist - deployment may be needed"
                 exit 1
               fi
-            else
-              echo "MySQL client not available"
             fi
+            
+            echo "=========================================="
+
+      - name: Network & API Health Check
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
+          script: |
+            echo "=========================================="
+            echo "Network & API Health Status"
+            echo "=========================================="
+            
+            # Check Docker network
+            echo "Docker networks:"
+            sudo docker network ls | grep -E "iam-network|bridge"
+            echo ""
+            
+            # Check container ports
+            echo "IAM Container ports:"
+            sudo docker port iam-apiserver 2>/dev/null || echo "Container not running"
+            echo ""
+            
+            # Check listening ports on host
+            echo "Host listening ports (Docker mapped):"
+            ss -tlnp | grep -E ":(80|443|8080|9444)" || echo "No mapped ports found"
+            echo ""
+            
+            # Check API health endpoints
+            echo "API Health Check:"
+            
+            # Check HTTP endpoint (through Docker port mapping)
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/healthz 2>/dev/null || echo "000")
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ HTTP API (8080) is responding: $HTTP_STATUS"
+            else
+              echo "❌ HTTP API (8080) health check failed: $HTTP_STATUS"
+              echo "Checking container logs..."
+              sudo docker logs --tail 20 iam-apiserver
+            fi
+            
+            # Check HTTPS endpoint (if accessible)
+            HTTPS_STATUS=$(curl -sk -o /dev/null -w "%{http_code}" https://localhost:9444/healthz 2>/dev/null || echo "000")
+            if [ "$HTTPS_STATUS" = "200" ]; then
+              echo "✅ HTTPS API (9444) is responding: $HTTPS_STATUS"
+            else
+              echo "⚠️ HTTPS API (9444) status: $HTTPS_STATUS (may require valid cert)"
+            fi
+            
+            echo ""
+            echo "Network connections summary:"
+            ss -s
+            
+            echo "=========================================="
+
+      - name: Database & Redis Check
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
+          script: |
+            echo "=========================================="
+            echo "Database & Cache Health Check"
+            echo "=========================================="
+            
+            # Check Redis container
+            echo "Redis Status:"
+            if sudo docker ps --filter "name=redis" --format "{{.Names}}" | grep -q "redis"; then
+              REDIS_STATUS=$(sudo docker ps --filter "name=redis" --format "{{.Status}}")
+              REDIS_HEALTH=$(sudo docker inspect --format='{{.State.Health.Status}}' redis 2>/dev/null || echo "no healthcheck")
+              echo "✅ Redis container is running"
+              echo "Status: $REDIS_STATUS"
+              echo "Health: $REDIS_HEALTH"
+              
+              # Test Redis connection from IAM container
+              if sudo docker exec iam-apiserver sh -c "command -v redis-cli >/dev/null 2>&1"; then
+                if sudo docker exec iam-apiserver redis-cli -h redis ping 2>/dev/null | grep -q "PONG"; then
+                  echo "✅ Redis connection from IAM container: OK"
+                fi
+              fi
+            else
+              echo "❌ Redis container is not running"
+            fi
+            echo ""
+            
+            # Check MySQL/RDS connectivity from container
+            echo "MySQL/RDS Connectivity:"
+            # Use container's environment to test database connection
+            if sudo docker exec iam-apiserver sh -c "command -v nc >/dev/null 2>&1 || command -v telnet >/dev/null 2>&1"; then
+              # Test port connectivity without exposing credentials
+              DB_HOST="${{ secrets.MYSQL_HOST }}"
+              DB_PORT="${{ secrets.MYSQL_PORT }}"
+              
+              if sudo docker exec iam-apiserver sh -c "nc -z -w5 ${DB_HOST%:*} ${DB_PORT:-3306} 2>/dev/null"; then
+                echo "✅ Database host ${DB_HOST} is reachable"
+              else
+                echo "⚠️ Database host ${DB_HOST} connectivity check failed"
+              fi
+            else
+              echo "ℹ️ Network tools not available in container for connectivity test"
+            fi
+            
+            # Check from container logs if database connection was successful
+            echo ""
+            echo "Recent database connection logs:"
+            sudo docker logs --tail 100 iam-apiserver 2>&1 | grep -i "mysql\|database" | tail -5
             
             echo "=========================================="
 
