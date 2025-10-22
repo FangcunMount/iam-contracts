@@ -306,11 +306,18 @@ jobs:
             
             # Extract new version
             echo "Extracting new deployment package..."
-            cd /tmp
-            tar -xzf deploy-package.tar.gz
+            # 创建临时工作目录,避免在 /tmp 根目录解压的权限问题
+            DEPLOY_TMP="/tmp/iam-deploy-$$"
+            mkdir -p $DEPLOY_TMP
+            cd $DEPLOY_TMP
+            tar -xzf /tmp/deploy-package.tar.gz
             sudo mv iam-apiserver /opt/iam/_output/bin/
             sudo cp -r configs/* /opt/iam/configs/
             sudo chown -R $(whoami):$(whoami) /opt/iam
+            
+            # 清理临时目录
+            cd /tmp
+            rm -rf $DEPLOY_TMP
             rm -f deploy-package.tar.gz
             
             # Pull latest Docker image (optional, for Docker-based deployment)
