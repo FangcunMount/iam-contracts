@@ -8,8 +8,8 @@ Wants=mysql.service redis.service
 Type=simple
 User=deploy
 Group=deploy
-WorkingDirectory=/opt/iam/bin
-ExecStart=/opt/iam/bin/apiserver --config=/opt/iam/configs/apiserver.yaml
+WorkingDirectory=/opt/iam/_output/bin
+ExecStart=/opt/iam/_output/bin/iam-apiserver --config=/opt/iam/configs/apiserver.yaml
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=10
