@@ -199,7 +199,7 @@ func (s *GenericAPIServer) ping(ctx context.Context) error {
 		if err == nil && resp.StatusCode == http.StatusOK {
 			log.Info("The router has been deployed successfully.")
 
-			resp.Body.Close()
+			_ = resp.Body.Close()
 
 			return nil
 		}

@@ -164,5 +164,5 @@ func (c *CasbinAdapter) Enforcer() *casbin.CachedEnforcer {
 
 // InvalidateCache 清除缓存
 func (c *CasbinAdapter) InvalidateCache() {
-	c.enforcer.InvalidateCache()
+	_ = c.enforcer.InvalidateCache()
 }

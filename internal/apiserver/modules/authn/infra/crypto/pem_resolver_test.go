@@ -39,7 +39,7 @@ func savePrivateKeyPKCS1(t *testing.T, dir, filename string, privateKey *rsa.Pri
 
 	pemFile, err := os.Create(pemPath)
 	require.NoError(t, err)
-	defer pemFile.Close()
+	defer func() { _ = pemFile.Close() }()
 
 	err = pem.Encode(pemFile, pemBlock)
 	require.NoError(t, err)
@@ -59,7 +59,7 @@ func savePrivateKeyPKCS8(t *testing.T, dir, filename string, privateKey *rsa.Pri
 
 	pemFile, err := os.Create(pemPath)
 	require.NoError(t, err)
-	defer pemFile.Close()
+	defer func() { _ = pemFile.Close() }()
 
 	err = pem.Encode(pemFile, pemBlock)
 	require.NoError(t, err)
@@ -317,7 +317,7 @@ func TestPEMPrivateKeyResolver_GetPEMPath(t *testing.T) {
 			// 清理目录
 			entries, _ := os.ReadDir(keysDir)
 			for _, entry := range entries {
-				os.Remove(filepath.Join(keysDir, entry.Name()))
+				_ = os.Remove(filepath.Join(keysDir, entry.Name()))
 			}
 
 			// 创建测试文件
