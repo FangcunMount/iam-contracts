@@ -86,7 +86,7 @@ func (n *VersionNotifier) Subscribe(ctx context.Context, handler drivenPort.Vers
 	// 等待订阅确认
 	_, err := n.pubsub.Receive(ctx)
 	if err != nil {
-		n.pubsub.Close()
+		_ = n.pubsub.Close()
 		n.pubsub = nil
 		return fmt.Errorf("failed to subscribe: %w", err)
 	}

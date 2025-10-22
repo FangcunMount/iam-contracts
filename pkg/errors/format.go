@@ -84,11 +84,11 @@ func (w *withCode) Format(state fmt.State, verb rune) {
 			str.Write(byts)
 		}
 
-		fmt.Fprintf(state, "%s", strings.Trim(str.String(), "\r\n\t"))
+		_, _ = fmt.Fprintf(state, "%s", strings.Trim(str.String(), "\r\n\t"))
 	default:
 		finfo := buildFormatInfo(w)
 		// Externally-safe error message
-		fmt.Fprintf(state, "%s", finfo.message)
+		_, _ = fmt.Fprintf(state, "%s", finfo.message)
 	}
 }
 

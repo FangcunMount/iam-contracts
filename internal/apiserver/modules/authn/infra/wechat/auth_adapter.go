@@ -92,7 +92,7 @@ func (a *AuthAdapter) ExchangeOpenID(ctx context.Context, code, appID string) (s
 	if err != nil {
 		return "", fmt.Errorf("failed to send request to wechat: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// 解析响应
 	var wxResp WeChatAuthResponse

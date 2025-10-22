@@ -177,7 +177,7 @@ func (g *DomainGuard) GetResourceDisplayName(key string) string {
 // watchPolicyChanges 监听策略变更
 func (g *DomainGuard) watchPolicyChanges(redisClient *redis.Client, topic string) {
 	pubsub := redisClient.Subscribe(topic)
-	defer pubsub.Close()
+	defer func() { _ = pubsub.Close() }()
 
 	ch := pubsub.Channel()
 	for msg := range ch {
