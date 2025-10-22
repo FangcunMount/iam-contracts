@@ -19,11 +19,15 @@ on:
         description: 'Backup name (for restore operation)'
         required: false
         type: string
+  
+  schedule:
+    - cron: '0 2 * * *'  # 每天凌晨 2:00 UTC (北京时间 10:00) 自动备份
 
 jobs:
   db-backup:
     name: Database Backup
-    if: github.event.inputs.operation == 'backup'
+    # 定时触发或手动选择 backup 操作时执行
+    if: github.event_name == 'schedule' || github.event.inputs.operation == 'backup'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -70,14 +74,15 @@ jobs:
               echo "✅ Backup completed: ${BACKUP_FILE}.gz"
               echo "Size: $BACKUP_SIZE"
               
-              # Keep only last 7 days of backups
-              find "$BACKUP_DIR" -name "iam_backup_*.sql.gz" -mtime +7 -delete
-              echo "Old backups cleaned up"
+              # Keep only last 3 backups
+              echo "Cleaning old backups (keeping last 3)..."
+              cd "$BACKUP_DIR"
+              ls -t iam_backup_*.sql.gz | tail -n +4 | xargs -r rm -f
               
               # List recent backups
               echo ""
-              echo "Recent backups:"
-              ls -lht "$BACKUP_DIR" | head -6
+              echo "Current backups:"
+              ls -lht "$BACKUP_DIR"/iam_backup_*.sql.gz 2>/dev/null | head -4
             else
               echo "❌ Backup failed"
               exit 1
