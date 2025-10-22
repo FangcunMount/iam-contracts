@@ -112,7 +112,7 @@ jobs:
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           script: |
-            cd /opt/iam-contracts
+            cd /opt/iam
             
             echo "Running database migrations..."
             make migrate

@@ -256,7 +256,7 @@ jobs:
             echo "=========================================="
             
             # Navigate to project directory
-            cd /opt/iam-contracts
+            cd /opt/iam
             
             # Backup current version
             echo "Creating backup..."
@@ -354,7 +354,7 @@ jobs:
             
             # Check version
             echo "Deployed version:"
-            /opt/iam-contracts/_output/bin/iam-apiserver version || echo "Version check skipped"
+            /opt/iam/_output/bin/iam-apiserver version || echo "Version check skipped"
             
             echo "✅ Deployment verification passed"
 
