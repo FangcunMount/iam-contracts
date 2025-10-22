@@ -2,115 +2,83 @@ name: Ping Runner
 
 on:
   workflow_dispatch:
-    inputs:
-      runner_label:
-        description: 'Runner label to test'
-        required: false
-        default: 'self-hosted'
-        type: string
   schedule:
-    # 每天早上 9 点（UTC+8）运行一次
-    - cron: '0 1 * * *'
+    - cron: '0 */6 * * *'
 
 jobs:
-  ping-runner:
-    name: Test Runner Connectivity
-    runs-on: ${{ github.event.inputs.runner_label || 'ubuntu-latest' }}
+  ping-production:
+    name: Check Production Server A
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Display runner information
-        run: |
-          echo "=========================================="
-          echo "Runner Information"
-          echo "=========================================="
-          echo "Runner Name: $RUNNER_NAME"
-          echo "Runner OS: $RUNNER_OS"
-          echo "Runner Arch: $RUNNER_ARCH"
-          echo "Runner Workspace: $RUNNER_WORKSPACE"
-          echo "=========================================="
-          
-      - name: Check system resources
-        run: |
-          echo "=========================================="
-          echo "System Resources"
-          echo "=========================================="
-          echo "CPU Info:"
-          if [ "$RUNNER_OS" = "Linux" ]; then
-            lscpu | grep -E "^CPU\(s\)|^Model name|^Architecture"
-          elif [ "$RUNNER_OS" = "macOS" ]; then
-            sysctl -n machdep.cpu.brand_string
-            sysctl -n hw.ncpu
-          fi
-          echo ""
-          echo "Memory Info:"
-          if [ "$RUNNER_OS" = "Linux" ]; then
-            free -h
-          elif [ "$RUNNER_OS" = "macOS" ]; then
-            sysctl hw.memsize
-          fi
-          echo ""
-          echo "Disk Space:"
-          df -h
-          echo "=========================================="
-          
-      - name: Test network connectivity
-        run: |
-          echo "=========================================="
-          echo "Network Connectivity Test"
-          echo "=========================================="
-          echo "Testing GitHub.com..."
-          ping -c 3 github.com || echo "GitHub ping failed (may be blocked)"
-          echo ""
-          echo "Testing DNS resolution..."
-          nslookup github.com
-          echo ""
-          echo "Testing HTTPS connectivity..."
-          curl -I https://github.com
-          echo "=========================================="
-          
-      - name: Check Docker availability
-        run: |
-          echo "=========================================="
-          echo "Docker Status"
-          echo "=========================================="
-          if command -v docker &> /dev/null; then
-            echo "Docker is installed"
-            docker --version
+      - name: SSH Health Check
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          script: |
+            echo "=== Production Server A Health Check ==="
+            echo "Hostname: $(hostname)"
+            echo "Uptime: $(uptime)"
             echo ""
-            echo "Docker info:"
-            docker info || echo "Docker daemon not running or not accessible"
-          else
-            echo "Docker is not installed"
-          fi
-          echo "=========================================="
-          
-      - name: Check Go availability
-        run: |
-          echo "=========================================="
-          echo "Go Status"
-          echo "=========================================="
-          if command -v go &> /dev/null; then
-            echo "Go is installed"
-            go version
+            echo "Memory:"
+            free -h | grep -E "Mem|Swap"
             echo ""
-            echo "GOPATH: $GOPATH"
-            echo "GOROOT: $(go env GOROOT)"
-          else
-            echo "Go is not installed"
-          fi
-          echo "=========================================="
-          
-      - name: Runner health summary
-        if: always()
+            echo "Disk:"
+            df -h | grep -E "^/dev/"
+            echo ""
+            echo "CPU:"
+            top -bn1 | grep "Cpu(s)"
+            
+      - name: Check IAM Service
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          script: |
+            if systemctl is-active --quiet iam-apiserver; then
+              echo "✅ IAM service is running"
+              systemctl status iam-apiserver --no-pager | head -20
+            else
+              echo "❌ IAM service is not running"
+              exit 1
+            fi
+
+  ping-github:
+    name: Check GitHub Runner
+    runs-on: ubuntu-latest
+    steps:
+      - name: Runner Info
         run: |
-          echo "=========================================="
-          echo "Runner Health Summary"
-          echo "=========================================="
-          echo "✅ Runner is accessible"
-          echo "✅ Basic commands are working"
-          echo "Status: HEALTHY"
-          echo "=========================================="
+          echo "=== GitHub Runner Info ==="
+          echo "OS: ${{ runner.os }}"
+          echo "Name: ${{ runner.name }}"
+          echo "Arch: ${{ runner.arch }}"
+          echo "✅ Runner OK"
+
+  report:
+    name: Status Report
+    needs: [ping-production, ping-github]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Report
+        run: |
+          echo "=== Status Report ==="
+          echo "Production: ${{ needs.ping-production.result }}"
+          echo "GitHub: ${{ needs.ping-github.result }}"
+          
+          if [ "${{ needs.ping-production.result }}" != "success" ]; then
+            echo "⚠️ Production check failed!"
+            exit 1
+          fi
+          
+          echo "✅ All OK"
