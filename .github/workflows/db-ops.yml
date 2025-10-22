@@ -1,5 +1,8 @@
 name: Database Operations
 
+# Required Secrets: SVRA_HOST, SVRA_USERNAME, SVRA_SSH_KEY, SVRA_SSH_PORT
+# Required Secrets: MYSQL_HOST, MYSQL_PORT, MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DBNAME
+
 on:
   workflow_dispatch:
     inputs:

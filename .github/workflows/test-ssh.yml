@@ -1,5 +1,7 @@
 name: Test SSH Connection
 
+# Required Secrets: SVRA_HOST, SVRA_USERNAME, SVRA_SSH_KEY, SVRA_SSH_PORT
+
 on:
   workflow_dispatch:  # 手动触发
 
