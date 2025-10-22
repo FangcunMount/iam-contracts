@@ -51,6 +51,10 @@ func (r *RedisConnection) Connect() error {
 		addrs = []string{addr}
 	}
 
+	// 打印连接信息
+	log.Printf("Connecting to Redis at %v", addrs)
+
+	// 创建 Redis 客户端
 	var client redis.UniversalClient
 
 	if r.config.EnableCluster {
