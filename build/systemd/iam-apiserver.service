@@ -8,8 +8,8 @@ Wants=mysql.service redis.service
 Type=simple
 User=deploy
 Group=deploy
-WorkingDirectory=/opt/iam-contracts/bin
-ExecStart=/opt/iam-contracts/bin/apiserver --config=/opt/iam-contracts/configs/apiserver.yaml
+WorkingDirectory=/opt/iam/bin
+ExecStart=/opt/iam/bin/apiserver --config=/opt/iam/configs/apiserver.yaml
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=10
@@ -23,7 +23,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/log/iam-contracts /opt/iam-contracts/logs
+ReadWritePaths=/var/log/iam-contracts /opt/iam/logs
 
 # 资源限制
 LimitNOFILE=65536
@@ -31,7 +31,7 @@ LimitNPROC=4096
 
 # 环境变量（可选）
 Environment="GO_ENV=production"
-EnvironmentFile=-/opt/iam-contracts/configs/env/config.prod.env
+EnvironmentFile=-/opt/iam/configs/env/config.prod.env
 
 [Install]
 WantedBy=multi-user.target

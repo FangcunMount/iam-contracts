@@ -15,7 +15,7 @@ pipeline {
         // 部署配置
         DEPLOY_USER = 'deploy'
         DEPLOY_HOST = '${DEPLOY_HOST}' // 从 Jenkins 凭据中获取
-        DEPLOY_PATH = '/opt/iam-contracts'
+        DEPLOY_PATH = '/opt/iam'
         
         // 服务配置
         CONFIG_FILE = 'configs/apiserver.yaml'

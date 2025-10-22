@@ -1,0 +1,23 @@
+name: Test SSH Connection
+
+on:
+  workflow_dispatch:  # 手动触发
+
+jobs:
+  test-ssh:
+    name: Test SSH Connection to SVRA
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test SSH Connection
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
+          script: |
+            echo "✅ SSH connection successful!"
+            echo "Server: $(hostname)"
+            echo "User: $(whoami)"
+            echo "Date: $(date)"
+            echo "Working directory: $(pwd)"

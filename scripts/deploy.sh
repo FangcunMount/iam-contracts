@@ -11,7 +11,7 @@ set -e
 # ============================================================================
 
 APP_NAME="apiserver"
-DEPLOY_DIR="/opt/iam-contracts"
+DEPLOY_DIR="/opt/iam"
 BIN_DIR="${DEPLOY_DIR}/bin"
 CONFIG_DIR="${DEPLOY_DIR}/configs"
 LOG_DIR="/var/log/iam-contracts"

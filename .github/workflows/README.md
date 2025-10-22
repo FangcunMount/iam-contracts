@@ -224,9 +224,9 @@ Actions → Server Health Check → Run workflow
 ssh user@svra-host
 
 # 创建必要目录
-sudo mkdir -p /opt/iam-contracts
+sudo mkdir -p /opt/iam
 sudo mkdir -p /opt/backups/iam
-sudo chown -R $USER:$USER /opt/iam-contracts /opt/backups/iam
+sudo chown -R $USER:$USER /opt/iam /opt/backups/iam
 
 # 克隆仓库
 cd /opt
@@ -410,7 +410,7 @@ sudo systemctl status iam-apiserver
 sudo journalctl -u iam-apiserver -n 100
 
 # 检查配置文件
-cat /opt/iam-contracts/configs/apiserver.yaml
+cat /opt/iam/configs/apiserver.yaml
 
 # 手动启动服务
 sudo systemctl start iam-apiserver
@@ -456,7 +456,7 @@ ls -lh /opt/backups/iam/deployments/
 sudo systemctl stop iam-apiserver
 
 # 4. 恢复备份
-cd /opt/iam-contracts
+cd /opt/iam
 BACKUP_FILE="backup_20231022_120000.tar.gz"
 tar -xzf /opt/backups/iam/deployments/$BACKUP_FILE
 
@@ -699,7 +699,7 @@ Actions → Database Operations → backup
 Actions → Server Health Check → Run workflow
 
 # 回滚部署
-ssh user@svra "cd /opt/iam-contracts && git checkout <commit-hash>"
+ssh user@svra "cd /opt/iam && git checkout <commit-hash>"
 ssh user@svra "systemctl restart iam-apiserver"
 ```
 
