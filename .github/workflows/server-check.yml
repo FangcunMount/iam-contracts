@@ -2,246 +2,217 @@ name: Server Health Check
 
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Target environment to check'
-        required: true
-        type: choice
-        options:
-          - 'dev'
-          - 'staging'
-          - 'prod'
-      check_type:
-        description: 'Type of health check'
-        required: true
-        type: choice
-        options:
-          - 'full'
-          - 'quick'
-          - 'api-only'
-          - 'database-only'
   schedule:
-    # 每小时运行一次健康检查
-    - cron: '0 * * * *'
+    - cron: '*/30 * * * *'
 
-env:
-  TIMEOUT_SECONDS: 10
-  
 jobs:
-  server-health-check:
-    name: Server Health Check
+  health-check:
+    name: Production Server Health Check
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Set environment variables
-        run: |
-          ENV="${{ github.event.inputs.environment || 'prod' }}"
-          echo "ENVIRONMENT=$ENV" >> $GITHUB_ENV
-          echo "API_URL=${{ secrets[format('API_URL_{0}', github.event.inputs.environment || 'prod')] }}" >> $GITHUB_ENV
-          
-      - name: Check API endpoint accessibility
-        if: ${{ github.event.inputs.check_type != 'database-only' }}
-        run: |
-          echo "=========================================="
-          echo "API Endpoint Health Check"
-          echo "=========================================="
-          echo "Checking API at: $API_URL"
-          
-          # Health endpoint
-          echo "Testing /health endpoint..."
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time $TIMEOUT_SECONDS "$API_URL/health" || echo "000")
-          
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Health endpoint is responding (HTTP $HTTP_CODE)"
-          else
-            echo "❌ Health endpoint returned HTTP $HTTP_CODE"
-            exit 1
-          fi
-          
-      - name: Check API version endpoint
-        if: ${{ github.event.inputs.check_type == 'full' || github.event.inputs.check_type == 'api-only' }}
-        run: |
-          echo "Testing /version endpoint..."
-          RESPONSE=$(curl -s --max-time $TIMEOUT_SECONDS "$API_URL/version" || echo "{}")
-          echo "Response: $RESPONSE"
-          
-          if echo "$RESPONSE" | grep -q "version"; then
-            echo "✅ Version endpoint is responding correctly"
-          else
-            echo "⚠️ Version endpoint response is unexpected"
-          fi
-          
-      - name: Check API response time
-        if: ${{ github.event.inputs.check_type == 'full' || github.event.inputs.check_type == 'api-only' }}
-        run: |
-          echo "Measuring API response time..."
-          RESPONSE_TIME=$(curl -s -o /dev/null -w "%{time_total}" --max-time $TIMEOUT_SECONDS "$API_URL/health")
-          echo "Response time: ${RESPONSE_TIME}s"
-          
-          # Check if response time is acceptable (< 2 seconds)
-          if (( $(echo "$RESPONSE_TIME < 2.0" | bc -l) )); then
-            echo "✅ Response time is acceptable"
-          else
-            echo "⚠️ Response time is slow (${RESPONSE_TIME}s)"
-          fi
-          
-      - name: Check database connectivity
-        if: ${{ github.event.inputs.check_type == 'full' || github.event.inputs.check_type == 'database-only' }}
-        run: |
-          echo "=========================================="
-          echo "Database Health Check"
-          echo "=========================================="
-          
-          # Install MySQL client
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq mysql-client > /dev/null 2>&1
-          
-          # Check database connection
-          DB_HOST="${{ secrets[format('DB_HOST_{0}', github.event.inputs.environment || 'prod')] }}"
-          DB_PORT="${{ secrets[format('DB_PORT_{0}', github.event.inputs.environment || 'prod')] }}"
-          DB_NAME="${{ secrets[format('DB_NAME_{0}', github.event.inputs.environment || 'prod')] }}"
-          DB_USER="${{ secrets[format('DB_USER_{0}', github.event.inputs.environment || 'prod')] }}"
-          DB_PASSWORD="${{ secrets[format('DB_PASSWORD_{0}', github.event.inputs.environment || 'prod')] }}"
-          
-          echo "Testing database connection..."
-          if mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD -e "SELECT 1" $DB_NAME > /dev/null 2>&1; then
-            echo "✅ Database connection successful"
-          else
-            echo "❌ Database connection failed"
-            exit 1
-          fi
-          
-      - name: Check SSL certificate
-        if: ${{ github.event.inputs.check_type == 'full' }}
-        run: |
-          echo "=========================================="
-          echo "SSL Certificate Check"
-          echo "=========================================="
-          
-          # Extract domain from API_URL
-          DOMAIN=$(echo $API_URL | sed -e 's|^https://||' -e 's|/.*||')
-          
-          if [[ $API_URL == https://* ]]; then
-            echo "Checking SSL certificate for $DOMAIN..."
-            
-            # Get certificate expiry date
-            EXPIRY_DATE=$(echo | openssl s_client -servername $DOMAIN -connect $DOMAIN:443 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
-            
-            if [ -n "$EXPIRY_DATE" ]; then
-              echo "Certificate expiry: $EXPIRY_DATE"
-              
-              # Calculate days until expiry
-              EXPIRY_EPOCH=$(date -d "$EXPIRY_DATE" +%s 2>/dev/null || date -j -f "%b %d %H:%M:%S %Y %Z" "$EXPIRY_DATE" +%s 2>/dev/null)
-              CURRENT_EPOCH=$(date +%s)
-              DAYS_UNTIL_EXPIRY=$(( ($EXPIRY_EPOCH - $CURRENT_EPOCH) / 86400 ))
-              
-              echo "Days until expiry: $DAYS_UNTIL_EXPIRY"
-              
-              if [ $DAYS_UNTIL_EXPIRY -lt 30 ]; then
-                echo "⚠️ SSL certificate expires in less than 30 days!"
-              else
-                echo "✅ SSL certificate is valid"
-              fi
-            else
-              echo "⚠️ Unable to retrieve SSL certificate information"
-            fi
-          else
-            echo "⚠️ API is not using HTTPS"
-          fi
-          
-      - name: Check server resources
-        if: ${{ github.event.inputs.check_type == 'full' && contains(github.event.inputs.environment, 'prod') == false }}
+      - name: System Health Check
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets[format('SERVER_HOST_{0}', github.event.inputs.environment)] }}
-          username: ${{ secrets[format('SERVER_USER_{0}', github.event.inputs.environment)] }}
-          key: ${{ secrets[format('SSH_PRIVATE_KEY_{0}', github.event.inputs.environment)] }}
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
           script: |
             echo "=========================================="
-            echo "Server Resource Check"
+            echo "Production Server A - Health Check"
             echo "=========================================="
             
+            # System Info
+            echo "Server: $(hostname)"
+            echo "Uptime: $(uptime)"
+            echo "Date: $(date)"
+            echo ""
+            
+            # CPU
             echo "CPU Usage:"
-            top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print "CPU Usage: " 100 - $1"%"}'
-            
+            top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1"%"}'
             echo ""
+            
+            # Memory
             echo "Memory Usage:"
-            free -h | grep Mem | awk '{print "Used: " $3 " / Total: " $2 " (" $3/$2*100 "%)"}'
-            
+            free -h | awk 'NR==2{printf "Used: %s / Total: %s (%.2f%%)\n", $3, $2, $3*100/$2}'
             echo ""
+            
+            # Disk
             echo "Disk Usage:"
-            df -h / | awk 'NR==2 {print "Used: " $3 " / Total: " $2 " (" $5 ")"}'
-            
+            df -h | grep -E "^/dev/" | awk '{print $1 ": " $5 " used (" $3 "/" $2 ")"}'
             echo ""
-            echo "Service Status:"
-            systemctl is-active iam-apiserver || echo "⚠️ Service is not running"
             
-      - name: Test authentication flow
-        if: ${{ github.event.inputs.check_type == 'full' || github.event.inputs.check_type == 'api-only' }}
+            # Load Average
+            echo "Load Average:"
+            uptime | awk -F'load average:' '{print $2}'
+            echo ""
+            
+            # Check for high CPU processes
+            echo "Top 5 CPU processes:"
+            ps aux --sort=-%cpu | head -6
+            
+            echo "=========================================="
+
+      - name: IAM Service Check
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          script: |
+            echo "=========================================="
+            echo "IAM Service Status"
+            echo "=========================================="
+            
+            # Check service status
+            if systemctl is-active --quiet iam-apiserver; then
+              echo "✅ IAM service is RUNNING"
+              echo ""
+              echo "Service details:"
+              systemctl status iam-apiserver --no-pager | head -20
+              echo ""
+              echo "Process info:"
+              ps aux | grep iam-apiserver | grep -v grep
+            else
+              echo "❌ IAM service is NOT RUNNING"
+              echo "Attempting to restart service..."
+              sudo systemctl restart iam-apiserver
+              sleep 5
+              if systemctl is-active --quiet iam-apiserver; then
+                echo "✅ Service restarted successfully"
+              else
+                echo "❌ Service restart failed"
+                exit 1
+              fi
+            fi
+            
+            echo "=========================================="
+
+      - name: Network Check
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          script: |
+            echo "=========================================="
+            echo "Network Status"
+            echo "=========================================="
+            
+            # Check listening ports
+            echo "Listening ports:"
+            ss -tlnp | grep -E ":(80|443|8080|8443|3306|6379)" || echo "No services on common ports"
+            echo ""
+            
+            # Check network connections
+            echo "Active connections:"
+            ss -s
+            echo ""
+            
+            # Check if API is responding
+            echo "API Health Check:"
+            if command -v curl >/dev/null 2>&1; then
+              if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/healthz | grep -q "200"; then
+                echo "✅ API is responding"
+              else
+                echo "⚠️ API health check returned non-200 status"
+              fi
+            else
+              echo "curl not available"
+            fi
+            
+            echo "=========================================="
+
+      - name: Database Check
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          script: |
+            echo "=========================================="
+            echo "Database Health Check"
+            echo "=========================================="
+            
+            # Check MySQL connection
+            if command -v mysql >/dev/null 2>&1; then
+              if mysql -h ${{ secrets.DB_HOST }} \
+                       -u ${{ secrets.DB_USERNAME }} \
+                       -p'${{ secrets.DB_PASSWORD }}' \
+                       -e "SELECT 1;" >/dev/null 2>&1; then
+                echo "✅ Database connection OK"
+                
+                # Show database stats
+                echo ""
+                echo "Active connections:"
+                mysql -h ${{ secrets.DB_HOST }} \
+                      -u ${{ secrets.DB_USERNAME }} \
+                      -p'${{ secrets.DB_PASSWORD }}' \
+                      -e "SHOW STATUS LIKE 'Threads_connected';"
+              else
+                echo "❌ Database connection failed"
+                exit 1
+              fi
+            else
+              echo "MySQL client not available"
+            fi
+            
+            echo "=========================================="
+
+      - name: Disk Space Alert
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          script: |
+            echo "=========================================="
+            echo "Disk Space Monitoring"
+            echo "=========================================="
+            
+            # Check if any filesystem is > 80% full
+            df -h | grep -E "^/dev/" | awk '{
+              gsub(/%/, "", $5);
+              if ($5 > 80) {
+                print "⚠️ WARNING: "$1" is "$5"% full ("$3"/"$2")";
+                alert=1
+              }
+            } END {
+              if (!alert) print "✅ All filesystems OK"
+            }'
+            
+            echo "=========================================="
+
+  report:
+    name: Health Check Report
+    needs: [health-check]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Generate Report
         run: |
           echo "=========================================="
-          echo "Authentication Flow Test"
+          echo "Health Check Report"
           echo "=========================================="
+          echo "Status: ${{ needs.health-check.result }}"
+          echo "Time: $(date)"
+          echo ""
           
-          # Test login endpoint
-          echo "Testing login endpoint..."
-          LOGIN_RESPONSE=$(curl -s -X POST \
-            -H "Content-Type: application/json" \
-            -d '{"username":"test","password":"test"}' \
-            --max-time $TIMEOUT_SECONDS \
-            "$API_URL/api/v1/login" || echo "{}")
-          
-          if echo "$LOGIN_RESPONSE" | grep -q "token\|error"; then
-            echo "✅ Login endpoint is responding"
+          if [ "${{ needs.health-check.result }}" == "success" ]; then
+            echo "✅ All health checks passed"
           else
-            echo "⚠️ Login endpoint response is unexpected"
+            echo "❌ Health check failed - please investigate"
+            exit 1
           fi
           
-      - name: Generate health report
-        if: always()
-        run: |
           echo "=========================================="
-          echo "Health Check Summary"
-          echo "=========================================="
-          echo "Environment: ${{ github.event.inputs.environment || 'prod' }}"
-          echo "Check Type: ${{ github.event.inputs.check_type || 'scheduled' }}"
-          echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-          echo "Status: ${{ job.status }}"
-          echo "=========================================="
-          
-      - name: Create issue on failure
-        if: failure() && github.event.inputs.environment == 'prod'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const title = `🚨 Production Health Check Failed - ${new Date().toISOString()}`;
-            const body = `
-            ## Health Check Failure Report
-            
-            **Environment:** ${{ github.event.inputs.environment }}
-            **Check Type:** ${{ github.event.inputs.check_type }}
-            **Time:** ${new Date().toUTCString()}
-            **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            
-            ### Details
-            The automated health check has detected issues with the production environment.
-            Please investigate immediately.
-            
-            ### Quick Actions
-            - [ ] Check server logs
-            - [ ] Verify database connectivity
-            - [ ] Check API endpoints
-            - [ ] Review recent deployments
-            `;
-            
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: title,
-              body: body,
-              labels: ['bug', 'production', 'health-check']
-            });
