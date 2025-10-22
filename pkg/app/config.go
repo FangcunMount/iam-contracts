@@ -41,22 +41,30 @@ func addConfigFlag(basename string, fs *pflag.FlagSet) {
 		// 若指定了配置文件地址，则直接使用
 		if cfgFile != "" {
 			viper.SetConfigFile(cfgFile)
+			fmt.Printf("[config] SetConfigFile -> %s\n", cfgFile)
 		} else {
 			// 没有指定配置文件地址，则使用当前目录
 			viper.AddConfigPath(".")
+			fmt.Println("[config] AddConfigPath -> .")
 			// 添加 configs 目录
 			viper.AddConfigPath("configs")
+			fmt.Println("[config] AddConfigPath -> configs")
 
 			// 如果basename包含多个单词，则添加配置路径
 			if names := strings.Split(basename, "-"); len(names) > 1 {
 				// 添加用户家目录下的配置路径
-				viper.AddConfigPath(filepath.Join(homedir.HomeDir(), "."+names[0]))
+				userPath := filepath.Join(homedir.HomeDir(), "."+names[0])
+				viper.AddConfigPath(userPath)
+				fmt.Printf("[config] AddConfigPath -> %s\n", userPath)
 				// 添加系统配置路径
-				viper.AddConfigPath(filepath.Join("/etc", names[0]))
+				systemPath := filepath.Join("/etc", names[0])
+				viper.AddConfigPath(systemPath)
+				fmt.Printf("[config] AddConfigPath -> %s\n", systemPath)
 			}
 
 			// 设置配置文件名
 			viper.SetConfigName(basename)
+			fmt.Printf("[config] SetConfigName -> %s\n", basename)
 		}
 
 		// 读取配置文件
@@ -66,6 +74,7 @@ func addConfigFlag(basename string, fs *pflag.FlagSet) {
 		}
 
 		// 打印配置信息
-		fmt.Printf("Viper Config: %+v\n", viper.AllSettings())
+		fmt.Printf("[config] ConfigFileUsed -> %s\n", viper.ConfigFileUsed())
+		fmt.Printf("[config] AllSettings -> %+v\n", viper.AllSettings())
 	})
 }
