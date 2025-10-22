@@ -1,82 +1,10 @@
-# golangci-lint 配置文件
-# 本地使用 v2，GitHub Actions 使用 v1（会忽略 version 字段）
+# golangci-lint 配置文件 - 简化版本适配 v2
 
 version: "2"
 
 run:
   timeout: 5m
-  tests: true
 
 linters:
   disable:
     - staticcheck  # 禁用 staticcheck（太严格，有太多建议性警告）
-
-linters-settings:
-  errcheck:
-    # 忽略某些常见的不需要检查错误的函数调用
-    exclude-functions:
-      # 格式化输出函数 - 通常不需要检查错误
-      - (fmt.Fprintf)
-      - (fmt.Fprintln)
-      - (fmt.Fprint)
-      - (fmt.Printf)
-      - (fmt.Println)
-      - (fmt.Print)
-      # 写入函数 - 在某些场景下可以忽略
-      - (io.WriteString)
-      - (*bytes.Buffer).Write
-      - (*bytes.Buffer).WriteString
-      # 关闭函数 - 在 defer 中通常忽略错误
-      - (*database/sql.Rows).Close
-      - (*database/sql.Tx).Rollback
-      # Redis PubSub
-      - (*github.com/redis/go-redis/v9.PubSub).Close
-      # 其他常见场景
-      - (*os.File).Close  # 在 defer 中的 Close 通常忽略
-
-  staticcheck:
-    # 禁用所有 staticcheck 检查（太严格）
-    checks: ["inherit"]
-
-  govet:
-    check-shadowing: false  # 不检查变量遮蔽
-
-issues:
-  # 排除某些路径
-  exclude-rules:
-    # 测试文件中可以忽略某些规则
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gosec
-        - dupl
-    
-    # 忽略 staticcheck 的某些建议性规则（使用正则表达式匹配）
-    - linters:
-        - staticcheck
-      text: "^SA1019"  # 使用已废弃的 API
-    - linters:
-        - staticcheck
-      text: "^SA1029"  # context.WithValue 使用内置类型
-    - linters:
-        - staticcheck
-      text: "^SA9003"  # 空分支
-    - linters:
-        - staticcheck
-      text: "^QF1004"  # strings.ReplaceAll 建议
-    - linters:
-        - staticcheck
-      text: "^QF1008"  # 嵌入字段选择器简化建议
-    - linters:
-        - staticcheck
-      text: "^QF1003"  # tagged switch 建议
-    - linters:
-        - staticcheck
-      text: "^ST1005"  # 错误字符串大写建议
-
-  # 最大问题数量（0 表示无限制）
-  max-issues-per-linter: 0
-  max-same-issues: 0
-
-  # 不排除默认的排除规则
-  exclude-use-default: false
