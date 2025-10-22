@@ -368,6 +368,15 @@ jobs:
               echo "⚠️ TLS certificate or key not found under /data/ssl, HTTPS may fail"
             fi
 
+            GHCR_USERNAME="${{ github.actor }}"
+            GHCR_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+            if [ -n "$GHCR_TOKEN" ]; then
+              echo "Logging into GitHub Container Registry..."
+              echo "$GHCR_TOKEN" | sudo docker login ${{ env.DOCKER_REGISTRY }} -u "$GHCR_USERNAME" --password-stdin >/dev/null
+            else
+              echo "⚠️ No GitHub token available, docker pull may fail"
+            fi
+
             DOCKER_OPTIONS="--name iam-apiserver \
               --restart unless-stopped \
               --network iam-network \
