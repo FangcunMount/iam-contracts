@@ -295,6 +295,8 @@ jobs:
             # Create directory structure
             sudo mkdir -p /opt/iam/_output/bin
             sudo mkdir -p /opt/iam/configs
+            sudo mkdir -p /opt/iam/logs
+            sudo mkdir -p /var/log/iam-contracts
             
             # Backup current version
             echo "Creating backup..."
