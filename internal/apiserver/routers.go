@@ -96,9 +96,9 @@ func (r *Router) registerBaseRoutes(engine *gin.Engine) {
 	{
 		publicAPI.GET("/info", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
-				"service":     "web-framework",
+				"service":     "iam-apiserver",
 				"version":     "1.0.0",
-				"description": "Web框架系统",
+				"description": "IAM Contracts API Server",
 			})
 		})
 	}
