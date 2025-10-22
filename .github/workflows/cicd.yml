@@ -391,11 +391,72 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     steps:
-      - name: Deployment Status
+      - name: Prepare notification message
+        id: message
         run: |
-          if [ "${{ needs.deploy.result }}" == "success" ]; then
-            echo "✅ Deployment to production succeeded"
+          DEPLOY_STATUS="${{ needs.deploy.result }}"
+          TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+          COMMIT_SHA="${{ github.sha }}"
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          ACTOR="${{ github.actor }}"
+          
+          if [ "$DEPLOY_STATUS" == "success" ]; then
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="成功"
+            COLOR="#00FF00"
           else
-            echo "❌ Deployment to production failed"
+            STATUS_EMOJI="❌"
+            STATUS_TEXT="失败"
+            COLOR="#FF0000"
+          fi
+          
+          # For Enterprise WeChat
+          WECHAT_MSG=$(cat <<EOF
+          {
+            "msgtype": "markdown",
+            "markdown": {
+              "content": "## ${STATUS_EMOJI} IAM 部署通知\n\n**状态**: <font color=\"${COLOR}\">${STATUS_TEXT}</font>\n**环境**: Production (SVRA)\n**时间**: ${TIMESTAMP}\n**提交**: ${COMMIT_SHA:0:7}\n**信息**: ${COMMIT_MSG}\n**操作人**: ${ACTOR}\n\n[查看详情](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            }
+          }
+          EOF
+          )
+          
+          echo "wechat_msg<<EOF" >> $GITHUB_OUTPUT
+          echo "$WECHAT_MSG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          echo "status=${STATUS_TEXT}" >> $GITHUB_OUTPUT
+          echo "emoji=${STATUS_EMOJI}" >> $GITHUB_OUTPUT
+      
+      # 企业微信通知 (需要配置 WECHAT_WEBHOOK secret)
+      - name: Send WeChat notification
+        if: vars.ENABLE_WECHAT_NOTIFICATION == 'true'
+        run: |
+          curl -X POST "${{ secrets.WECHAT_WEBHOOK }}" \
+            -H 'Content-Type: application/json' \
+            -d '${{ steps.message.outputs.wechat_msg }}'
+      
+      # GitHub Issue 评论通知 (如果失败)
+      - name: Comment on related issue
+        if: failure() && github.event_name == 'push'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const message = `## ${{ steps.message.outputs.emoji }} 部署失败通知
+            
+            **环境**: Production
+            **提交**: ${{ github.sha }}
+            **时间**: ${new Date().toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}
+            
+            [查看失败详情](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            
+            // 可以在这里添加逻辑查找相关 issue 并评论
+            console.log(message);
+      
+      # 简单的日志输出(始终执行)
+      - name: Log deployment status
+        run: |
+          echo "${{ steps.message.outputs.emoji }} Deployment to production: ${{ steps.message.outputs.status }}"
+          if [ "${{ needs.deploy.result }}" != "success" ]; then
             exit 1
           fi
