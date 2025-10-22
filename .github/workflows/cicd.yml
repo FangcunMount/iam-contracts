@@ -380,7 +380,7 @@ jobs:
             DOCKER_OPTIONS="--name iam-apiserver \
               --restart unless-stopped \
               --network iam-network \
-              -p 8080:8080 \
+              -p 8080:9080 \
               -p 9444:9444 \
               -v /opt/iam/configs:/app/configs \
               -v $LOG_DIR_HOST:/var/log/iam-contracts \
