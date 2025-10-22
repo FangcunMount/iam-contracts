@@ -325,6 +325,16 @@ jobs:
             REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
             REDIS_DB=${{ secrets.REDIS_DB || 1 }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
+            WEB_FRAMEWORK_DATABASE_HOST=${{ secrets.MYSQL_HOST }}
+            WEB_FRAMEWORK_DATABASE_PORT=3306
+            WEB_FRAMEWORK_DATABASE_USERNAME=${{ secrets.MYSQL_USERNAME }}
+            WEB_FRAMEWORK_DATABASE_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+            WEB_FRAMEWORK_DATABASE_DBNAME=${{ secrets.MYSQL_DATABASE }}
+            WEB_FRAMEWORK_REDIS_HOST=${{ secrets.REDIS_HOST }}
+            WEB_FRAMEWORK_REDIS_PORT=${{ secrets.REDIS_PORT || 6379 }}
+            WEB_FRAMEWORK_REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            WEB_FRAMEWORK_REDIS_DB=${{ secrets.REDIS_DB || 1 }}
+            WEB_FRAMEWORK_JWT_SECRET=${{ secrets.JWT_SECRET }}
             EOF
             sudo chmod 600 /opt/iam/configs/env/config.prod.env
             sudo chown 1000:1000 /opt/iam/configs/env/config.prod.env
