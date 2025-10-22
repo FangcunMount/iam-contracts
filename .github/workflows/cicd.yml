@@ -306,7 +306,10 @@ jobs:
             tar -xzf /tmp/deploy-package.tar.gz
             sudo cp -r configs/* /opt/iam/configs/
             sudo chown -R 1000:1000 /opt/iam/configs
-            sudo chown -R 1000:1000 /var/log/iam-contracts
+            
+            LOG_DIR_HOST="/data/logs/iam"
+            sudo mkdir -p $LOG_DIR_HOST
+            sudo chown -R 1000:1000 $LOG_DIR_HOST
             
             # 创建环境变量文件(从 GitHub Secrets 生成实际值)
             echo "Creating environment configuration..."
@@ -339,28 +342,58 @@ jobs:
             cd /tmp
             rm -rf $DEPLOY_TMP
             rm -f deploy-package.tar.gz
-            
+
+            # 确保专用 Docker 网络存在
+            if ! sudo docker network ls --format '{{.Name}}' | grep -w iam-network > /dev/null 2>&1; then
+              echo "Creating Docker network iam-network..."
+              sudo docker network create iam-network
+            fi
+
+            CERT_DEST_PATH=$(sudo sed -n 's/^[[:space:]]*cert-file:[[:space:]]*\(.*\)$/\1/p' /opt/iam/configs/apiserver.yaml | head -n1 | tr -d '\"')
+            KEY_DEST_PATH=$(sudo sed -n 's/^[[:space:]]*private-key-file:[[:space:]]*\(.*\)$/\1/p' /opt/iam/configs/apiserver.yaml | head -n1 | tr -d '\"')
+            if [ -z "$CERT_DEST_PATH" ]; then
+              CERT_DEST_PATH="/etc/iam-contracts/ssl/iam.yangshujie.com.crt"
+            fi
+            if [ -z "$KEY_DEST_PATH" ]; then
+              KEY_DEST_PATH="/etc/iam-contracts/ssl/iam.yangshujie.com.key"
+            fi
+            CERT_FILENAME=$(basename "$CERT_DEST_PATH")
+            KEY_FILENAME=$(basename "$KEY_DEST_PATH")
+            CERT_HOST_PATH="/data/ssl/certs/$CERT_FILENAME"
+            KEY_HOST_PATH="/data/ssl/private/$KEY_FILENAME"
+            TLS_MOUNTS=""
+            if [ -f "$CERT_HOST_PATH" ] && [ -f "$KEY_HOST_PATH" ]; then
+              TLS_MOUNTS="-v $CERT_HOST_PATH:$CERT_DEST_PATH:ro -v $KEY_HOST_PATH:$KEY_DEST_PATH:ro"
+            else
+              echo "⚠️ TLS certificate or key not found under /data/ssl, HTTPS may fail"
+            fi
+
+            DOCKER_OPTIONS="--name iam-apiserver \
+              --restart unless-stopped \
+              --network iam-network \
+              -p 8080:8080 \
+              -p 9444:9444 \
+              -v /opt/iam/configs:/app/configs \
+              -v $LOG_DIR_HOST:/var/log/iam-contracts \
+              --env-file /opt/iam/configs/env/config.prod.env"
+            if [ -n "$TLS_MOUNTS" ]; then
+              DOCKER_OPTIONS="$DOCKER_OPTIONS $TLS_MOUNTS"
+            fi
+
             # Pull latest Docker image
             echo "Pulling latest Docker image..."
-            docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            sudo docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
             # 停止并移除旧容器
-            if docker ps -a --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
+            if sudo docker ps -a --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
               echo "Stopping existing Docker container..."
-              docker stop iam-apiserver || true
-              docker rm iam-apiserver || true
+              sudo docker stop iam-apiserver || true
+              sudo docker rm iam-apiserver || true
             fi
 
             # 启动 Docker 容器
             echo "Starting IAM service with Docker..."
-            docker run -d \
-              --name iam-apiserver \
-              --restart unless-stopped \
-              -p 8080:8080 \
-              -p 9444:9444 \
-              -v /opt/iam/configs:/app/configs \
-              -v /var/log/iam-contracts:/app/logs \
-              --env-file /opt/iam/configs/env/config.prod.env \
+            sudo docker run -d $DOCKER_OPTIONS \
               ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
               --config=/app/configs/apiserver.yaml
 
@@ -375,11 +408,11 @@ jobs:
             echo "Performing health check..."
             if curl -sf http://localhost:8080/healthz > /dev/null; then
               echo "✅ API health check passed"
-              docker ps --filter "name=iam-apiserver" --format "table {{.Names}}\t{{.Status}}"
+              sudo docker ps --filter "name=iam-apiserver" --format "table {{.Names}}\t{{.Status}}"
             else
               echo "❌ Service failed to start"
               echo "Checking container logs..."
-              docker logs --tail 100 iam-apiserver || true
+              sudo docker logs --tail 100 iam-apiserver || true
               exit 1
             fi
             
@@ -403,11 +436,11 @@ jobs:
             echo "Verifying deployment..."
             
             # Check service status
-            if docker ps --filter "name=iam-apiserver" --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
+            if sudo docker ps --filter "name=iam-apiserver" --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
               echo "✅ Docker container is running"
             else
               echo "❌ Docker container is not running"
-              docker ps -a --filter "name=iam-apiserver"
+              sudo docker ps -a --filter "name=iam-apiserver"
               exit 1
             fi
             
@@ -422,7 +455,7 @@ jobs:
             
             # Check version
             echo "Deployed version:"
-            docker exec iam-apiserver /app/apiserver version || echo "Version check skipped"
+            sudo docker exec iam-apiserver /app/apiserver version || echo "Version check skipped"
             
             echo "✅ Deployment verification passed"
 
