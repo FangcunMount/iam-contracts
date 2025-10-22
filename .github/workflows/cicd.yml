@@ -261,9 +261,9 @@ jobs:
             # Backup current version
             echo "Creating backup..."
             BACKUP_DIR="/opt/backups/iam/deployments"
-            mkdir -p $BACKUP_DIR
+            sudo mkdir -p $BACKUP_DIR
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-            tar -czf $BACKUP_DIR/backup_${TIMESTAMP}.tar.gz \
+            sudo tar -czf $BACKUP_DIR/backup_${TIMESTAMP}.tar.gz \
                 _output/bin/iam-apiserver \
                 configs/apiserver.yaml 2>/dev/null || echo "No previous version to backup"
             
@@ -319,7 +319,7 @@ jobs:
             
             # Clean up old backups (keep last 10)
             echo "Cleaning up old backups..."
-            ls -t $BACKUP_DIR/backup_*.tar.gz | tail -n +11 | xargs rm -f 2>/dev/null || true
+            sudo ls -t $BACKUP_DIR/backup_*.tar.gz 2>/dev/null | tail -n +11 | xargs -r sudo rm -f 2>/dev/null || true
             
             echo "=========================================="
             echo "✅ Deployment completed successfully"
