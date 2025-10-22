@@ -38,7 +38,7 @@ jobs:
             echo "CPU:"
             top -bn1 | grep "Cpu(s)"
             
-      - name: Check IAM Service
+      - name: Check IAM Docker Service
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.PRODUCTION_HOST }}
@@ -46,11 +46,47 @@ jobs:
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
           port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
           script: |
-            if systemctl is-active --quiet iam-apiserver; then
-              echo "✅ IAM service is running"
-              systemctl status iam-apiserver --no-pager | head -20
+            echo "=== IAM Docker Container Status ==="
+            
+            # Check if Docker is running
+            if ! sudo docker info >/dev/null 2>&1; then
+              echo "❌ Docker daemon is not running"
+              exit 1
+            fi
+            
+            # Check IAM container
+            if sudo docker ps --filter "name=iam-apiserver" --format "{{.Names}}" | grep -q "iam-apiserver"; then
+              echo "✅ IAM container is running"
+              
+              # Get container status
+              CONTAINER_STATUS=$(sudo docker ps --filter "name=iam-apiserver" --format "{{.Status}}")
+              CONTAINER_HEALTH=$(sudo docker inspect --format='{{.State.Health.Status}}' iam-apiserver 2>/dev/null || echo "no healthcheck")
+              
+              echo "Status: $CONTAINER_STATUS"
+              echo "Health: $CONTAINER_HEALTH"
+              
+              # Show container details
+              sudo docker ps --filter "name=iam-apiserver" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+              
+              # Warn if unhealthy
+              if [ "$CONTAINER_HEALTH" = "unhealthy" ]; then
+                echo "⚠️ Container is unhealthy"
+                echo "Recent logs:"
+                sudo docker logs --tail 20 iam-apiserver
+              fi
+              
+              # Quick API health check
+              echo ""
+              echo "=== API Health Check ==="
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/healthz 2>/dev/null || echo "000")
+              if [ "$HTTP_CODE" = "200" ]; then
+                echo "✅ API responding: $HTTP_CODE"
+              else
+                echo "⚠️ API status: $HTTP_CODE"
+              fi
             else
-              echo "❌ IAM service is not running"
+              echo "❌ IAM container is not running"
+              sudo docker ps -a --filter "name=iam-apiserver"
               exit 1
             fi
 
