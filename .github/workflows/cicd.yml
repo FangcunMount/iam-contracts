@@ -238,7 +238,7 @@ jobs:
 
   deploy:
     name: Deploy to Production
-    needs: [docker]
+    needs: [build, docker]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
@@ -247,6 +247,30 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: iam-apiserver
+          path: ./artifacts
+      
+      - name: Prepare deployment files
+        run: |
+          chmod +x ./artifacts/iam-apiserver
+          mkdir -p deploy-package
+          cp ./artifacts/iam-apiserver deploy-package/
+          cp -r configs deploy-package/
+          tar -czf deploy-package.tar.gz -C deploy-package .
+          
+      - name: Upload deployment package
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SVRA_HOST }}
+          username: ${{ secrets.SVRA_USERNAME }}
+          key: ${{ secrets.SVRA_SSH_KEY }}
+          port: ${{ secrets.SVRA_SSH_PORT || 22 }}
+          source: "deploy-package.tar.gz"
+          target: "/tmp"
         
       - name: Deploy to Production Server
         uses: appleboy/ssh-action@v1.0.0
@@ -262,22 +286,9 @@ jobs:
             echo "Starting deployment to Production Server (SVRA)"
             echo "=========================================="
             
-            # Initialize or update Git repository
-            if [ ! -d "/opt/iam/.git" ]; then
-              echo "First deployment: Cloning repository..."
-              sudo mkdir -p /opt/iam
-              cd /opt
-              sudo git clone https://github.com/FangcunMount/iam-contracts.git iam
-              cd /opt/iam
-              sudo chown -R $(whoami):$(whoami) /opt/iam
-            else
-              echo "Repository exists, updating..."
-              cd /opt/iam
-            fi
-            
-            # Fix Git safe.directory warning (Git 2.35.2+ security feature)
-            echo "Configuring Git safe directory..."
-            git config --global --add safe.directory /opt/iam
+            # Create directory structure
+            sudo mkdir -p /opt/iam/_output/bin
+            sudo mkdir -p /opt/iam/configs
             
             # Backup current version
             echo "Creating backup..."
@@ -285,30 +296,34 @@ jobs:
             sudo mkdir -p $BACKUP_DIR
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
             sudo tar -czf $BACKUP_DIR/backup_${TIMESTAMP}.tar.gz \
-                _output/bin/iam-apiserver \
-                configs/apiserver.yaml 2>/dev/null || echo "No previous version to backup"
+                -C /opt/iam _output/bin/iam-apiserver configs/apiserver.yaml \
+                2>/dev/null || echo "No previous version to backup"
             
-            # Pull latest code
-            echo "Pulling latest code..."
-            git fetch origin
-            git checkout main
-            git pull origin main
+            # Extract new version
+            echo "Extracting new deployment package..."
+            cd /tmp
+            tar -xzf deploy-package.tar.gz
+            sudo mv iam-apiserver /opt/iam/_output/bin/
+            sudo cp -r configs/* /opt/iam/configs/
+            sudo chown -R $(whoami):$(whoami) /opt/iam
+            rm -f deploy-package.tar.gz
             
-            # Pull latest Docker image
+            # Pull latest Docker image (optional, for Docker-based deployment)
             echo "Pulling latest Docker image..."
-            docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest || echo "Docker pull skipped"
             
             # Stop service
             echo "Stopping IAM service..."
             sudo systemctl stop iam-apiserver || echo "Service not running"
             
-            # Update binary (if not using Docker)
-            echo "Building new binary..."
-            make build
-            
-            # Run database migrations
-            echo "Running database migrations..."
-            make migrate || echo "Migration skipped"
+            # Run database migrations (if Makefile exists)
+            if [ -f "/opt/iam/Makefile" ]; then
+              echo "Running database migrations..."
+              cd /opt/iam
+              make migrate || echo "Migration skipped"
+            else
+              echo "Makefile not found, skipping migrations"
+            fi
             
             # Start service
             echo "Starting IAM service..."
