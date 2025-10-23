@@ -4,9 +4,9 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Architecture](https://img.shields.io/badge/Architecture-Hexagonal%20%2B%20DDD%20%2B%20CQRS-brightgreen)](docs/architecture-overview.md)
 
-> 🔐 为多租户 SaaS 平台提供统一的身份认证、细粒度授权、角色管理和委派代填能力
+> 🔐 为心理健康测评平台提供统一的身份认证、细粒度授权、角色管理和监护关系管理能力
 
-**IAM Contracts** 是一个基于六边形架构、领域驱动设计（DDD）和 CQRS 模式构建的企业级身份与访问管理系统，专为 ToB/ToG SaaS 场景设计，支持多租户隔离、多端登录、灵活的 RBAC 授权和复杂的代填关系管理。
+**IAM Contracts** 是一个基于六边形架构、领域驱动设计（DDD）和 CQRS 模式构建的企业级身份与访问管理系统，专为心理健康测评等医疗健康场景设计，支持多端登录、灵活的 RBAC 授权和复杂的监护人-儿童关系管理。
 
 ---
 
@@ -28,29 +28,30 @@
 
 ### 统一认证（Authentication）
 
-- **多端支持**：微信小程序、企业微信、Web、PC 客户端
-- **多账户绑定**：支持微信 UnionID/OpenID、手机号、邮箱、CA 证书、本地密码
-- **JWT + JWKS**：标准 OAuth 2.0/OIDC 协议，支持密钥轮换和公钥发布
-- **令牌管理**：Access Token、Refresh Token、黑名单机制
+- **多端支持**：微信小程序、Web 管理后台
+- **多账户绑定**：支持微信 UnionID/OpenID、手机号、本地账号密码
+- **JWT + JWKS**：标准 JWT 令牌机制，支持公钥验签和令牌验证
+- **令牌管理**：Access Token、Refresh Token、会话管理
 
 ### 灵活授权（Authorization）
 
 - **RBAC 授权**：基于角色的权限控制，支持资源和操作级细粒度权限
-- **作用域隔离**：支持 `system`、`tenant`、`org`、`project`、`questionnaire` 等多级作用域
-- **委派代填**：支持监护人代未成年人、医生代患者、教师代学生等复杂业务场景
-- **CQRS 架构**：命令与查询分离，查询性能优化，写操作事务一致性保证
+- **Casbin 引擎**：使用 Casbin 实现高性能权限决策
+- **权限缓存**：Redis 缓存提升授权性能
+- **CQRS 架构**：命令与查询分离，读写性能优化
 
-### 多租户管理
+### 监护关系管理
 
-- **租户隔离**：数据和权限按租户完全隔离
-- **组织结构**：支持层级部门、医院科室、学校班级等多种组织形式
-- **租户配置**：每个租户可独立配置认证方式、权限策略
+- **监护人-儿童绑定**：支持家长监护未成年人完成心理测评
+- **关系验证**：完整的监护关系创建、查询、解除流程
+- **数据隔离**：监护人仅可访问其监护儿童的数据
+- **儿童档案**：独立的儿童信息管理（姓名、性别、生日、身份证等）
 
 ### 集成友好
 
 - **HTTP/gRPC API**：提供 RESTful 和 gRPC 双协议支持
 - **JWKS 端点**：业务服务可自行验签 JWT，无需每次调用 IAM
-- **中间件 SDK**：提供 Go/Java/Node.js 认证授权中间件
+- **中间件支持**：提供 Go 语言认证授权中间件（dominguard）
 
 ---
 
@@ -177,26 +178,24 @@ make docker-build   # 构建 Docker 镜像
 C4Context
   title IAM Contracts 系统上下文图
 
-  Person(wechat_user, "微信用户", "小程序端用户：测评者/被测者/监护人")
-  Person(web_user, "Web 用户", "PC/Web 后台：管理员/审核员")
-  Person(admin, "系统管理员", "租户管理/角色配置")
+  Person(guardian, "监护人", "家长：管理儿童档案、设置监护关系")
+  Person(child, "儿童", "被监护人：完成心理测评")
+  Person(admin, "系统管理员", "管理用户、角色和权限")
 
-  System(iam, "IAM Contracts", "身份认证·授权·用户管理·RBAC")
+  System(iam, "IAM Contracts", "身份认证·授权·用户管理·监护关系")
   
   System_Ext(wechat, "微信平台", "微信登录/UnionID")
-  System_Ext(collection, "测评服务", "问卷/量表核心业务")
-  System_Ext(report, "报告服务", "报告生成与分发")
-  System_Ext(hospital, "医疗服务", "互联网医院业务")
+  System_Ext(scale, "测评服务", "心理量表/问卷核心业务")
+  System_Ext(report, "报告服务", "测评报告生成与查看")
 
-  Rel(wechat_user, iam, "登录、绑定账户、设置代填关系", "HTTPS/JWT")
-  Rel(web_user, iam, "用户管理、角色分配", "HTTPS/JWT")
-  Rel(admin, iam, "租户配置、权限管理", "HTTPS/JWT")
+  Rel(guardian, iam, "微信登录、创建儿童档案、绑定监护关系", "HTTPS/JWT")
+  Rel(admin, iam, "用户管理、角色分配、权限配置", "HTTPS/JWT")
   
   Rel(iam, wechat, "获取 OpenID/UnionID", "HTTPS")
   
-  Rel(collection, iam, "验证 JWT、查询权限/代填关系", "gRPC/JWKS")
-  Rel(report, iam, "验证用户身份、检查权限", "gRPC/JWKS")
-  Rel(hospital, iam, "患者身份验证、医生授权", "gRPC/JWKS")
+  Rel(scale, iam, "验证 JWT、查询监护关系", "gRPC/JWKS")
+  Rel(report, iam, "验证用户身份、检查访问权限", "gRPC/JWKS")
+  Rel(child, scale, "完成测评（监护人代填）", "HTTPS")
 
   UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
 ```
@@ -222,9 +221,9 @@ graph TB
     end
 
     subgraph "Domain Layer 领域层"
-        AGG[Aggregates<br/>聚合根<br/>User/Role/Tenant]
-        ENTITY[Entities<br/>实体<br/>Account/ActorLink]
-        VO[Value Objects<br/>值对象<br/>UserID/Email]
+        AGG[Aggregates<br/>聚合根<br/>User/Child/Role]
+        ENTITY[Entities<br/>实体<br/>Account/Guardianship]
+        VO[Value Objects<br/>值对象<br/>UserID/IDCard]
         DSVC[Domain Services<br/>领域服务]
         REPO_IF[Repository Interfaces<br/>仓储接口]
     end
@@ -274,13 +273,13 @@ classDiagram
     class User {
         +UUID id
         +string nickname
+        +string phone
         +string avatar
         +int status
         +datetime created_at
         --领域行为--
         +BindAccount(account)
-        +AddActorLink(link)
-        +AssignRole(role, scope)
+        +CreateGuardianship(child)
     }
 
     class Account {
@@ -291,51 +290,60 @@ classDiagram
         +bool is_primary
     }
 
-    class ActorLink {
+    class Child {
+        +bigint id
+        +string name
+        +string id_card
+        +string gender
+        +date birthday
+        +int height
+        +int weight
+        --领域行为--
+        +UpdateProfile(data)
+    }
+
+    class Guardianship {
         +bigint id
         +UUID user_id
-        +string actor_type
-        +string actor_id
-        +string scope_type
-        +string scope_id
+        +bigint child_id
         +string relation
-        +bool can_read
-        +bool can_write
-        +datetime valid_from
-        +datetime valid_to
+        +bool is_primary
+        +datetime created_at
         --领域行为--
         +IsValid() bool
-        +HasPermission(action) bool
     }
 
     class Role {
-        +string code
+        +uint64 id
         +string name
+        +string display_name
+        +string tenant_id
         +string description
     }
 
-    class UserRole {
-        +bigint id
-        +UUID user_id
-        +string role_code
-        +string scope_type
-        +string scope_id
+    class Assignment {
+        +uint64 id
+        +string subject_type
+        +string subject_id
+        +uint64 role_id
+        +string tenant_id
         +datetime granted_at
-        +datetime revoked_at
     }
 
-    class RolePermission {
-        +bigint id
-        +string role_code
-        +string resource
+    class Policy {
+        +uint64 id
+        +uint64 role_id
+        +string resource_key
         +string action
+        +string effect
     }
 
     User "1" --> "*" Account : 绑定多个账户
-    User "1" --> "*" ActorLink : 代填/委派关系
-    User "1" --> "*" UserRole : 拥有角色
-    Role "1" --> "*" RolePermission : 定义权限
-    Role "1" --> "*" UserRole : 授予用户
+    User "1" --> "*" Guardianship : 监护关系
+    Child "1" --> "*" Guardianship : 被监护
+    User "1" --> "*" Assignment : 角色赋权
+    Role "1" --> "*" Policy : 定义权限
+    Role "1" --> "*" Assignment : 授予主体
 ```
 
 ### CQRS 模式
@@ -395,43 +403,43 @@ sequenceDiagram
     MP->>MP: wx.setStorageSync<br/>('access_token')
 ```
 
-### 授权流程（RBAC + 委派代填）
+### 授权流程（RBAC + 监护关系验证）
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant Client as 客户端
-    participant BizSvc as 业务服务<br/>(collection-server)
+    participant BizSvc as 业务服务<br/>(scale-server)
     participant IAM as IAM Contracts
     participant Cache as Redis Cache
 
     Note over Client,BizSvc: 业务请求 + 授权检查
-    Client->>BizSvc: POST /answer-sheets/{id}:submit<br/>Authorization: Bearer JWT
+    Client->>BizSvc: POST /scales/{id}/answer<br/>Authorization: Bearer JWT
     
     BizSvc->>BizSvc: 验签 JWT (JWKS)<br/>解析 user_id
     
     Note over BizSvc,IAM: 检查权限
-    BizSvc->>IAM: gRPC: CheckPermission<br/>{user_id, resource, action, scope}
+    BizSvc->>IAM: gRPC: CheckPermission<br/>{user_id, resource, action}
     
     IAM->>Cache: GET permission_cache<br/>(user:{user_id}:perm)
     
     alt 缓存命中
         Cache-->>IAM: cached_permissions
     else 缓存未命中
-        IAM->>IAM: Query DB:<br/>- user_roles<br/>- role_permissions
+        IAM->>IAM: Query DB:<br/>- assignments<br/>- policies (Casbin)
         IAM->>Cache: SET permission_cache<br/>(TTL=5min)
     end
     
-    IAM->>IAM: Evaluate RBAC:<br/>user → roles → permissions
+    IAM->>IAM: Casbin Enforce:<br/>user → role → resource:action
     
-    alt 需要代填权限
-        Note over BizSvc,IAM: 检查委派关系
-        BizSvc->>IAM: CheckDelegation<br/>{user_id, actor_type, actor_id, scope}
-        IAM->>IAM: Query actor_links:<br/>- relation<br/>- can_read/can_write<br/>- valid_from/valid_to
-        IAM-->>BizSvc: delegation_result
+    alt 需要监护关系验证
+        Note over BizSvc,IAM: 检查监护关系
+        BizSvc->>IAM: gRPC: IsGuardian<br/>{user_id, child_id}
+        IAM->>IAM: Query guardianships:<br/>- user_id + child_id<br/>- is_primary
+        IAM-->>BizSvc: {is_guardian: true/false}
     end
     
-    IAM-->>BizSvc: {<br/>  allowed: true/false,<br/>  reason: "...",<br/>  cached: true<br/>}
+    IAM-->>BizSvc: {<br/>  allowed: true/false,<br/>  reason: "..."<br/>}
     
     alt 授权成功
         BizSvc->>BizSvc: 执行业务逻辑
@@ -443,9 +451,9 @@ sequenceDiagram
 
 ### 核心模块
 
-1. **UC 模块（User Center）**：用户、账户、角色、委派关系管理
-2. **AuthN 模块（Authentication）**：JWT 签发、JWKS 发布、多端登录适配
-3. **AuthZ 模块（Authorization）**：RBAC 决策、权限缓存、委派授权
+1. **UC 模块（User Center）**：用户管理、账户绑定、儿童档案、监护关系
+2. **AuthN 模块（Authentication）**：JWT 签发、JWKS 发布、微信登录、会话管理
+3. **AuthZ 模块（Authorization）**：RBAC 决策（Casbin）、权限缓存、角色赋权
 
 ### 部署架构
 
@@ -469,9 +477,8 @@ graph TB
     end
 
     subgraph "业务服务集群"
-        COLLECTION[测评服务集群]
-        REPORT[报告服务集群]
-        HOSPITAL[医疗服务集群]
+        SCALE[心理测评服务]
+        REPORT[报告服务]
     end
 
     subgraph "数据存储层"
@@ -514,15 +521,12 @@ graph TB
     MYSQL_M -.复制.-> MYSQL_S2
     
     IAM1 --> JWKS
-    IAM1 --> KMS
-    IAM1 --> MQ
     
-    COLLECTION -.验证 JWT.-> JWKS
+    SCALE -.验证 JWT.-> JWKS
     REPORT -.验证 JWT.-> JWKS
-    HOSPITAL -.验证 JWT.-> JWKS
     
-    COLLECTION -.授权查询.-> IAM1
-    REPORT -.授权查询.-> IAM2
+    SCALE -.监护关系查询.-> IAM1
+    REPORT -.权限验证.-> IAM2
     
     IAM1 --> MONITOR
     IAM1 --> LOG
@@ -547,34 +551,44 @@ iam-contracts/
 │   └── apiserver/              # API Server 主程序
 ├── configs/                    # 配置文件
 │   ├── apiserver.yaml          # 主配置文件
-│   ├── env/                    # 环境变量配置
-│   └── cert/                   # JWT 密钥证书
+│   ├── casbin_model.conf       # Casbin 权限模型
+│   └── env/                    # 环境变量配置
 ├── internal/                   # 内部应用代码（不对外暴露）
 │   └── apiserver/
-│       ├── application/        # 应用层（Command & Query Services）
-│       ├── domain/             # 领域层（实体、值对象、仓储接口）
-│       ├── infrastructure/     # 基础设施层（MySQL、Redis、外部 API）
-│       ├── interface/          # 接口层（RESTful、gRPC）
-│       └── container/          # 依赖注入容器
+│       ├── modules/            # 业务模块
+│       │   ├── uc/             # 用户中心（User/Child/Guardianship）
+│       │   ├── authn/          # 认证模块（JWT/JWKS/WeChat）
+│       │   └── authz/          # 授权模块（Role/Policy/Assignment）
+│       ├── container/          # 依赖注入容器
+│       └── routers.go          # 路由配置
 ├── pkg/                        # 可复用公共库
-│   ├── log/                    # 日志库
+│   ├── log/                    # 日志库（Zap）
 │   ├── errors/                 # 错误处理
 │   ├── database/               # 数据库注册中心
+│   ├── dominguard/             # 权限守卫中间件
 │   └── auth/                   # JWT/JWKS 工具
+├── api/                        # API 定义
+│   ├── grpc/                   # gRPC Proto 文件
+│   └── rest/                   # RESTful API OpenAPI 规范
 ├── docs/                       # 项目文档
-│   ├── architecture-overview.md    # 整体架构设计
-│   ├── uc-architecture.md          # UC 模块设计
-│   └── authn-architecture.md       # 认证模块设计
-├── build/                      # 构建脚本与 Docker 文件
+│   ├── uc/                     # UC 模块文档
+│   ├── authn/                  # 认证模块文档
+│   ├── authz/                  # 授权模块文档
+│   └── deploy/                 # 部署文档
+├── build/docker/               # Docker 部署文件
 ├── scripts/                    # 开发运维脚本
+│   ├── dev.sh                  # 开发环境启动
+│   ├── sql/                    # 数据库脚本
+│   ├── proto/                  # Proto 生成脚本
+│   └── cert/                   # 证书生成脚本
 └── Makefile                    # 构建自动化
 ```
 
 **目录设计原则**：
 
-- `internal/`：应用内部实现，按六边形架构分层
-- `pkg/`：可复用库，保持无状态，便于跨服务复用
-- `configs/`：配置文件，敏感信息使用环境变量或密钥管理服务
+- `internal/apiserver/modules/`：按业务模块组织，每个模块采用六边形架构（领域层、应用层、基础设施层、接口层）
+- `pkg/`：可复用库，无业务逻辑，便于跨服务复用
+- `configs/`：配置文件，敏感信息通过环境变量注入
 
 ---
 
@@ -586,15 +600,15 @@ iam-contracts/
 | **Web 框架** | Gin | 轻量级 HTTP 路由框架 |
 | **gRPC** | Google gRPC | 高性能 RPC 框架 |
 | **数据库** | MySQL 8.0+ | 关系型数据库，支持事务和复杂查询 |
-| **缓存** | Redis 7.0+ | 高性能缓存和分布式锁 |
+| **缓存** | Redis 7.0+ | 高性能缓存和会话管理 |
 | **ORM** | GORM | Go 对象关系映射库 |
+| **权限引擎** | Casbin | 灵活的访问控制框架 |
 | **日志** | Zap | 高性能结构化日志 |
 | **配置** | Viper | 多格式配置管理（YAML/ENV） |
 | **JWT** | golang-jwt/jwt | JWT 签发与验签 |
-| **依赖注入** | Wire (Google) | 编译期依赖注入代码生成 |
-| **认证** | 微信 SDK | 微信小程序/企业微信登录 |
-| **容器化** | Docker + Docker Compose | 本地开发环境 |
-| **部署** | Kubernetes + Helm | 生产环境容器编排 |
+| **认证** | 微信 SDK | 微信小程序登录 |
+| **容器化** | Docker | Docker 部署 |
+| **CI/CD** | GitHub Actions | 自动化构建与部署 |
 
 ---
 
@@ -613,91 +627,73 @@ iam-contracts/
 
 ### 快速链接
 
-- [框架概览](docs/framework-overview.md)：六边形架构、DDD、CQRS 详解
-- [数据库注册中心](docs/database-registry.md)：多数据库连接管理
-- [错误处理](docs/error-handling.md)：统一错误码和错误处理机制
-- [日志系统](docs/logging-system.md)：结构化日志和日志轮转
-- [认证流程](docs/authentication.md)：多端登录和 JWT 签发流程
+- [UC 模块](docs/uc/)：用户、儿童档案、监护关系管理
+- [认证模块](docs/authn/)：JWT、JWKS、微信登录
+- [授权模块](docs/authz/)：Casbin RBAC、角色赋权
+- [部署指南](docs/deploy/)：数据库初始化、系统部署
 
 ---
 
-## � 生产环境部署
+## 🚀 生产环境部署
 
-### Jenkins CI/CD 自动化部署（推荐）
+### GitHub Actions CI/CD 自动化部署（推荐）
 
-使用 Jenkins Pipeline 实现自动化构建、测试和部署：
+项目使用 GitHub Actions 实现自动化构建和 Docker 部署：
 
 ```bash
-# 1. 查看快速开始指南
-cat docs/JENKINS_QUICKSTART.md
-
-# 2. 配置 Jenkins（详见文档）
-# - 配置 SSH 凭据
-# - 创建 Pipeline 任务
-# - 配置 Git 仓库
-
-# 3. 触发部署
+# 触发自动部署
 git push origin main
 ```
 
-**特点**：
-- ✅ 自动化构建、测试、部署
-- ✅ 健康检查和自动回滚
-- ✅ 版本管理和备份
+**工作流程**：
 
-📖 **详细文档**：
-- [Jenkins 快速开始](docs/JENKINS_QUICKSTART.md) - 快速配置指南
-- [Jenkins 完整部署指南](docs/JENKINS_DEPLOYMENT.md) - 详细配置步骤
-- [部署总览](docs/DEPLOYMENT.md) - 所有部署方式说明
+1. **cicd.yml**：代码推送到 main 分支自动触发
+   - 编译 Go 二进制文件
+   - 构建 Docker 镜像推送到 GHCR
+   - SSH 连接服务器拉取最新镜像
+   - 重启 Docker 容器
+   - 健康检查验证部署成功
 
-### Docker 部署
+2. **db-ops.yml**：数据库操作
+   - 每天凌晨 01:00 自动备份数据库
+   - 支持手动触发备份、恢复、初始化
+
+3. **server-check.yml**：每 30 分钟健康检查
+   - Docker 容器状态
+   - 服务响应检查
+   - 自动告警
+
+📖 **详细文档**：[GitHub Actions 工作流](.github/workflows/README.md)
+
+### Docker 部署（生产环境）
 
 ```bash
-# 构建镜像
-make docker-build
+# 拉取最新镜像
+docker pull ghcr.io/fangcunmount/iam-contracts:latest
 
-# 使用 Docker Compose 启动
-make docker-compose-up
+# 启动容器
+docker run -d \
+  --name iam-apiserver \
+  -p 9080:8080 \
+  -p 9444:9444 \
+  --env-file .env \
+  ghcr.io/fangcunmount/iam-contracts:latest
 
 # 查看日志
-docker-compose -f build/docker/docker-compose.yml logs -f iam-apiserver
+docker logs -f iam-apiserver
 
 # 停止服务
-make docker-compose-down
+docker stop iam-apiserver
 ```
 
-### Systemd 服务部署
+### 本地开发环境
 
 ```bash
-# 1. 编译
-make build
+# 使用 Air 热更新启动
+./scripts/dev.sh
 
-# 2. 复制文件到部署目录
-sudo cp bin/apiserver /opt/iam/bin/
-sudo cp -r configs /opt/iam/
-
-# 3. 安装 systemd 服务
-sudo cp build/systemd/iam-apiserver.service /etc/systemd/system/
-sudo systemctl daemon-reload
-
-# 4. 启动服务
-sudo systemctl start iam-apiserver
-sudo systemctl enable iam-apiserver
-
-# 5. 查看状态
-sudo systemctl status iam-apiserver
-```
-
-### 使用部署脚本
-
-```bash
-# 使用自动化部署脚本
-./scripts/deploy.sh deploy    # 部署
-./scripts/deploy.sh start      # 启动
-./scripts/deploy.sh stop       # 停止
-./scripts/deploy.sh restart    # 重启
-./scripts/deploy.sh health     # 健康检查
-./scripts/deploy.sh rollback   # 回滚
+# 或使用 Make
+make dev
 ```
 
 ---
@@ -727,7 +723,8 @@ sudo systemctl status iam-apiserver
 make test
 
 # 运行特定模块测试
-go test ./internal/apiserver/application/user/...
+go test ./internal/apiserver/modules/uc/...
+go test ./internal/apiserver/modules/authz/...
 
 # 生成测试覆盖率报告
 make test-coverage
