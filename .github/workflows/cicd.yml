@@ -317,8 +317,8 @@ jobs:
             # TLS 路径（读取无需 sudo）
             CERT_DEST_PATH=$(sed -n 's/^[[:space:]]*cert-file:[[:space:]]*"\?\(.*\)"\?/\1/p' /opt/iam/configs/apiserver.yaml | head -n1)
             KEY_DEST_PATH=$(sed -n 's/^[[:space:]]*private-key-file:[[:space:]]*"\?\(.*\)"\?/\1/p' /opt/iam/configs/apiserver.yaml | head -n1)
-            CERT_DEST_PATH=${CERT_DEST_PATH:-/etc/iam-contracts/ssl/iam.yangshujie.com.crt}
-            KEY_DEST_PATH=${KEY_DEST_PATH:-/etc/iam-contracts/ssl/iam.yangshujie.com.key}
+            CERT_DEST_PATH=${CERT_DEST_PATH:-/etc/iam-contracts/ssl/yangshujie.com.crt}
+            KEY_DEST_PATH=${KEY_DEST_PATH:-/etc/iam-contracts/ssl/yangshujie.com.key}
             CERT_HOST_PATH="/data/ssl/certs/$(basename "$CERT_DEST_PATH")"
             KEY_HOST_PATH="/data/ssl/private/$(basename "$KEY_DEST_PATH")"
             TLS_MOUNTS=""
