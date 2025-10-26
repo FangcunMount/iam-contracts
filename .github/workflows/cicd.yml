@@ -2,17 +2,21 @@ name: CI/CD Pipeline
 
 # 必需的 Secrets 配置 (在 GitHub 仓库设置中配置)
 # Settings → Secrets and variables → Actions
-# 
+#
 # Organization 级别 Secrets:
 #   - SVRA_HOST, SVRA_USERNAME, SVRA_SSH_KEY, SVRA_SSH_PORT
 #   - MYSQL_HOST, MYSQL_PORT, REDIS_HOST, REDIS_PORT
+#   - SVRA_SUDO_PASSWORD       # 可选；如果远端未配置 NOPASSWD 则必填（部署用户的 sudo 密码）
 #
 # Repository 级别 Secrets:
 #   - MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DBNAME
 #   - REDIS_PASSWORD, REDIS_DB
 #   - DOCKERHUB_USERNAME, DOCKERHUB_TOKEN (可选，用于推送镜像到 Docker Hub 备份)
+#   - JWT_SECRET
 #
-# validate-secrets job 会在运行时验证这些 Secrets 是否存在
+# 说明：
+# - 如果服务器已为部署用户配置了免密 sudo（NOPASSWD），可不设置 SVRA_SUDO_PASSWORD。
+# - validate-secrets job 不会强制校验 SVRA_SUDO_PASSWORD，是否必填取决于服务器 sudo 策略。
 
 on:
   push:
@@ -42,74 +46,24 @@ jobs:
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
         run: |
           echo "🔍 Validating required secrets..."
-          
-          # 初始化验证状态
           VALIDATION_FAILED=0
-          
-          # 检查部署相关的 secrets(仅在 main 分支需要)
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
             echo "📋 Checking deployment secrets for main branch..."
-            
-            # 服务器连接
-            if [ -z "$SVRA_HOST" ]; then
-              echo "❌ SVRA_HOST is not set"
-              VALIDATION_FAILED=1
-            else
-              echo "✅ SVRA_HOST is set"
-            fi
-            
-            if [ -z "$SVRA_USERNAME" ]; then
-              echo "❌ SVRA_USERNAME is not set"
-              VALIDATION_FAILED=1
-            else
-              echo "✅ SVRA_USERNAME is set"
-            fi
-            
-            if [ -z "$SVRA_SSH_KEY" ]; then
-              echo "❌ SVRA_SSH_KEY is not set"
-              VALIDATION_FAILED=1
-            else
-              echo "✅ SVRA_SSH_KEY is set"
-            fi
-            
-            # 数据库连接(应用运行时必需)
-            if [ -z "$MYSQL_HOST" ]; then
-              echo "❌ MYSQL_HOST is not set"
-              VALIDATION_FAILED=1
-            else
-              echo "✅ MYSQL_HOST is set"
-            fi
-            
-            if [ -z "$MYSQL_USERNAME" ]; then
-              echo "❌ MYSQL_USERNAME is not set"
-              VALIDATION_FAILED=1
-            else
-              echo "✅ MYSQL_USERNAME is set"
-            fi
-            
-            if [ -z "$MYSQL_PASSWORD" ]; then
-              echo "❌ MYSQL_PASSWORD is not set"
-              VALIDATION_FAILED=1
-            else
-              echo "✅ MYSQL_PASSWORD is set"
-            fi
-            
-            if [ -z "$MYSQL_DBNAME" ]; then
-              echo "❌ MYSQL_DBNAME is not set"
-              VALIDATION_FAILED=1
-            else
-              echo "✅ MYSQL_DBNAME is set"
-            fi
+            if [ -z "$SVRA_HOST" ]; then echo "❌ SVRA_HOST is not set"; VALIDATION_FAILED=1; else echo "✅ SVRA_HOST is set"; fi
+            if [ -z "$SVRA_USERNAME" ]; then echo "❌ SVRA_USERNAME is not set"; VALIDATION_FAILED=1; else echo "✅ SVRA_USERNAME is set"; fi
+            if [ -z "$SVRA_SSH_KEY" ]; then echo "❌ SVRA_SSH_KEY is not set"; VALIDATION_FAILED=1; else echo "✅ SVRA_SSH_KEY is set"; fi
+            if [ -z "$MYSQL_HOST" ]; then echo "❌ MYSQL_HOST is not set"; VALIDATION_FAILED=1; else echo "✅ MYSQL_HOST is set"; fi
+            if [ -z "$MYSQL_USERNAME" ]; then echo "❌ MYSQL_USERNAME is not set"; VALIDATION_FAILED=1; else echo "✅ MYSQL_USERNAME is set"; fi
+            if [ -z "$MYSQL_PASSWORD" ]; then echo "❌ MYSQL_PASSWORD is not set"; VALIDATION_FAILED=1; else echo "✅ MYSQL_PASSWORD is set"; fi
+            if [ -z "$MYSQL_DBNAME" ]; then echo "❌ MYSQL_DBNAME is not set"; VALIDATION_FAILED=1; else echo "✅ MYSQL_DBNAME is set"; fi
+            echo "ℹ️ 如果远端未配置 NOPASSWD，请在 Secrets 中设置 SVRA_SUDO_PASSWORD。"
           else
             echo "ℹ️ Skipping deployment secrets check (not on main branch)"
           fi
-          
-          # 检查结果
           echo ""
           if [ $VALIDATION_FAILED -eq 1 ]; then
             echo "⚠️ Secrets validation failed! Please configure missing secrets."
             echo "ℹ️ Continuing anyway for non-deployment jobs..."
-            # 不再 exit 1,允许后续 job 继续运行
           else
             echo "✅ All required secrets are configured!"
           fi
@@ -117,31 +71,26 @@ jobs:
   test:
     name: Run Tests
     needs: [validate-secrets]
-    if: always()  # 即使 validate-secrets 失败也继续运行
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-          
       - name: Get dependencies
         run: |
           go mod download
           go mod verify
-          
       - name: Run tests
         run: |
           go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
-          
       - name: Generate coverage report
         run: |
           go tool cover -func=coverage.out
-          
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
@@ -155,38 +104,33 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-          
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
-          version: v2.1.6  # 与本地版本一致
+          version: v2.1.6
           args: --timeout=5m
 
   build:
     name: Build Application
     needs: [test, lint]
     runs-on: ubuntu-latest
-    if: always()  # 即使 test/lint 失败也继续构建
+    if: always()
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-          
       - name: Build
         run: |
           make build
-          
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -205,20 +149,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          
       - name: Build Docker image
         run: |
           make docker-build
@@ -226,31 +167,25 @@ jobs:
           DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
           DOCKER_REPOSITORY: fangcunmount
           DOCKER_TAG: latest
-      
       - name: Push to GitHub Container Registry
         run: |
           make docker-push
         env:
           DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
           DOCKER_REPOSITORY: fangcunmount
-      
       - name: Tag and Push to Docker Hub
         run: |
-          # 从 GHCR 镜像创建 Docker Hub 标签
           docker tag ghcr.io/fangcunmount/iam-contracts:latest ${{ secrets.DOCKERHUB_USERNAME }}/iam-contracts:latest
           docker tag ghcr.io/fangcunmount/iam-contracts:latest ${{ secrets.DOCKERHUB_USERNAME }}/iam-contracts:${{ github.sha }}
-          
-          # 推送到 Docker Hub
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/iam-contracts:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/iam-contracts:${{ github.sha }}
-          
           echo "✅ 镜像已推送到 Docker Hub:"
           echo "   - ${{ secrets.DOCKERHUB_USERNAME }}/iam-contracts:latest"
           echo "   - ${{ secrets.DOCKERHUB_USERNAME }}/iam-contracts:${{ github.sha }}"
 
   deploy:
     name: Deploy to Production
-    needs: [build, docker]  # 等待 Docker 镜像构建完成后再部署
+    needs: [build, docker]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
@@ -259,23 +194,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: iam-apiserver
           path: ./artifacts
-      
+
       - name: Prepare deployment files
         run: |
-          # artifact 文件名是 apiserver,需要重命名为 iam-apiserver
+          # artifact 文件名是 apiserver，需要重命名为 iam-apiserver
           mv ./artifacts/apiserver ./artifacts/iam-apiserver
           chmod +x ./artifacts/iam-apiserver
           mkdir -p deploy-package
           cp ./artifacts/iam-apiserver deploy-package/
           cp -r configs deploy-package/
           tar -czf deploy-package.tar.gz -C deploy-package .
-          
+
       - name: Upload deployment package
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -285,65 +220,65 @@ jobs:
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
           source: "deploy-package.tar.gz"
           target: "/tmp"
-        
-      # === 改动 1：仅修改此 ssh 步（env 透传 + SUDO 助手） ===
+
+      # ---- 第一个 SSH 步：部署到服务器（已改为每条 sudo 都传密码）----
       - name: Deploy to Production Server
         uses: appleboy/ssh-action@v1.0.0
         env:
-          # 基本镜像信息
+          # 透传到远端使用
           DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
-          IMAGE_NAME:      ${{ env.IMAGE_NAME }}
-          GHCR_USERNAME:   ${{ github.actor }}
-          GHCR_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          # 应用运行所需配置（从 Secrets 转为环境变量）
-          MYSQL_HOST:      ${{ secrets.MYSQL_HOST }}
-          MYSQL_PORT:      ${{ secrets.MYSQL_PORT }}
-          MYSQL_USERNAME:  ${{ secrets.MYSQL_USERNAME }}
-          MYSQL_PASSWORD:  ${{ secrets.MYSQL_PASSWORD }}
-          MYSQL_DBNAME:    ${{ secrets.MYSQL_DBNAME }}
-          REDIS_HOST:      ${{ secrets.REDIS_HOST }}
-          REDIS_PORT:      ${{ secrets.REDIS_PORT }}
-          REDIS_DB:        ${{ secrets.REDIS_DB }}
-          REDIS_PASSWORD:  ${{ secrets.REDIS_PASSWORD }}
-          JWT_SECRET:      ${{ secrets.JWT_SECRET }}
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
+          MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
 
-          # 可选：sudo 密码（如目标机未配置 NOPASSWD）
-          SUDO_PASSWORD:   ${{ secrets.SVRA_SUDO_PASSWORD }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT || 6379 }}
+          REDIS_DB: ${{ secrets.REDIS_DB || 1 }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SUDO_PASSWORD: ${{ secrets.SVRA_SUDO_PASSWORD }}
         with:
           host: ${{ secrets.SVRA_HOST }}
           username: ${{ secrets.SVRA_USERNAME }}
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
-          envs: |
-            DOCKER_REGISTRY,IMAGE_NAME,GHCR_USERNAME,GHCR_TOKEN,
-            MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,
-            REDIS_HOST,REDIS_PORT,REDIS_DB,REDIS_PASSWORD,JWT_SECRET,
-            SUDO_PASSWORD
+          # 这些变量会被注入到远端 session 的环境中
+          envs: DOCKER_REGISTRY,IMAGE_NAME,GHCR_USERNAME,GHCR_TOKEN,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,REDIS_HOST,REDIS_PORT,REDIS_DB,REDIS_PASSWORD,JWT_SECRET,SUDO_PASSWORD
           script: |
             set -Eeuo pipefail
 
-            # ----- SUDO 助手：免密优先，否则用 -S 从 SUDO_PASSWORD 读取 -----
-            SUDO="sudo"
-            if ! $SUDO -n true 2>/dev/null; then
-              if [ -n "${SUDO_PASSWORD:-}" ]; then
-                echo "$SUDO_PASSWORD" | sudo -S -v
-                SUDO="sudo -S"
-              else
+            # ----- SUDO 助手 v2：免密优先；若需密码则每次 sudo 都喂密码 -----
+            if sudo -n true 2>/dev/null; then
+              SUDO="sudo"
+              echo "ℹ️ Using passwordless sudo (NOPASSWD)."
+            else
+              if [ -z "${SUDO_PASSWORD:-}" ]; then
                 echo "❌ sudo needs password. Provide SVRA_SUDO_PASSWORD or configure NOPASSWD." >&2
                 exit 1
               fi
+              sudo_pw() { sudo -S "$@" <<<"$SUDO_PASSWORD"; }
+              export -f sudo_pw
+              SUDO="sudo_pw"
+              $SUDO -v || true
+              echo "ℹ️ Using sudo with password via STDIN for every command."
             fi
 
             echo "=========================================="
             echo "Starting deployment to Production Server (SVRA)"
             echo "=========================================="
-            
+
             # Create directory structure
             $SUDO mkdir -p /opt/iam/configs
             $SUDO mkdir -p /opt/iam/configs/env
             $SUDO mkdir -p /var/log/iam-contracts
-            
+
             # Backup current version
             echo "Creating backup..."
             BACKUP_DIR="/opt/backups/iam/deployments"
@@ -356,7 +291,7 @@ jobs:
             else
               echo "No previous version to backup"
             fi
-            
+
             # Extract new version
             echo "Extracting new deployment package..."
             DEPLOY_TMP="/tmp/iam-deploy-$$"
@@ -365,12 +300,12 @@ jobs:
             tar -xzf /tmp/deploy-package.tar.gz
             $SUDO cp -r configs/* /opt/iam/configs/
             $SUDO chown -R 1000:1000 /opt/iam/configs
-            
+
             LOG_DIR_HOST="/data/logs/iam"
             $SUDO mkdir -p "$LOG_DIR_HOST"
             $SUDO chown -R 1000:1000 "$LOG_DIR_HOST"
-            
-            # 写入环境变量文件（使用 envs 透传值）
+
+            # 写入环境变量文件（使用 envs 透传值；此处在远端展开）
             echo "Creating environment configuration..."
             $SUDO bash -c "cat > /opt/iam/configs/env/config.prod.env <<EOF
             # Auto-generated production environment configuration
@@ -385,10 +320,11 @@ jobs:
             IAM_APISERVER_REDIS_DB=\${REDIS_DB:-1}
             IAM_APISERVER_JWT_SECRET=\${JWT_SECRET}
             EOF"
+            # 让变量生效（此处 heredoc 已在远端展开；保守起见使用 envsubst 不是必须）
             $SUDO chmod 600 /opt/iam/configs/env/config.prod.env
             $SUDO chown 1000:1000 /opt/iam/configs/env/config.prod.env
 
-            # 清理临时目录
+            # 清理临时目录与上传包
             cd /tmp
             rm -rf "$DEPLOY_TMP"
             rm -f /tmp/deploy-package.tar.gz
@@ -455,7 +391,7 @@ jobs:
             # 健康检查
             echo "Waiting for service to be ready..."
             ATTEMPTS=0
-            MAX_ATTEMPTS=30  # 30次 × 5秒 = 150秒
+            MAX_ATTEMPTS=30
             while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
               if curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
                 echo "✅ API health check passed (attempt $ATTEMPTS)"
@@ -475,19 +411,19 @@ jobs:
               echo "Checking container status..."
               $SUDO docker ps -a --filter "name=iam-apiserver" || true
               echo "Checking container logs..."
-              $SUDO docker logs --tail 200 iam-apiserver || true
+              $SUDO docker logs --tail 2000 iam-apiserver || true
               exit 1
             fi
 
-            # 清理旧备份 (保留 10 个)
+            # 清理旧备份（保留 10 个）
             echo "Cleaning up old backups..."
-            $SUDO ls -t "$BACKUP_DIR"/backup_*.tar.gz 2>/dev/null | tail -n +11 | xargs -r $SUDO rm -f 2>/dev/null || true
+            $SUDO bash -c 'ls -t '"$BACKUP_DIR"'/backup_*.tar.gz 2>/dev/null | tail -n +11 | xargs -r rm -f 2>/dev/null || true'
 
             echo "=========================================="
             echo "✅ Deployment completed successfully"
             echo "=========================================="
-            
-      # === 改动 2：仅修改此 ssh 步（SUDO 助手） ===
+
+      # ---- 第二个 SSH 步：部署后验证（同样兼容需要 sudo 密码的环境）----
       - name: Verify Deployment
         uses: appleboy/ssh-action@v1.0.0
         env:
@@ -501,38 +437,43 @@ jobs:
           script: |
             set -Eeuo pipefail
 
-            SUDO="sudo"
-            if ! $SUDO -n true 2>/dev/null; then
-              if [ -n "${SUDO_PASSWORD:-}" ]; then
-                echo "$SUDO_PASSWORD" | sudo -S -v
-                SUDO="sudo -S"
+            if sudo -n true 2>/dev/null; then
+              SUDO="sudo"
+            else
+              if [ -z "${SUDO_PASSWORD:-}" ]; then
+                echo "❌ sudo needs password. Provide SVRA_SUDO_PASSWORD or configure NOPASSWD." >&2
+                exit 1
               fi
+              sudo_pw() { sudo -S "$@" <<<"$SUDO_PASSWORD"; }
+              export -f sudo_pw
+              SUDO="sudo_pw"
+              $SUDO -v || true
             fi
 
             echo "Verifying deployment..."
-            
+
             # Check service status
             if $SUDO docker ps --filter "name=iam-apiserver" --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
               echo "✅ Docker container is running"
             else
               echo "❌ Docker container is not running"
-              $SUDO docker ps -a --filter "name=iam-apiserver"
+              $SUDO docker ps -a --filter "name=iam-apiserver" || true
               exit 1
             fi
-            
+
             # Check API response
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/healthz)
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/healthz || echo "000")
             if [ "$RESPONSE" = "200" ]; then
               echo "✅ API is responding correctly"
             else
               echo "❌ API returned status: $RESPONSE"
               exit 1
             fi
-            
+
             # Check version
             echo "Deployed version:"
             $SUDO docker exec iam-apiserver /app/apiserver version || echo "Version check skipped"
-            
+
             echo "✅ Deployment verification passed"
 
   notify:
