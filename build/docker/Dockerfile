@@ -71,6 +71,10 @@ COPY --chown=app:app configs /app/configs
 RUN mkdir -p /app/logs /var/log/iam-contracts && \
     chown -R app:app /app /var/log/iam-contracts
 
+# 预创建 TLS 目录，避免按文件挂载失败
+RUN mkdir -p /etc/iam-contracts/ssl && \
+    chmod 755 /etc/iam-contracts /etc/iam-contracts/ssl
+
 # 切换到非 root 用户
 USER app
 
