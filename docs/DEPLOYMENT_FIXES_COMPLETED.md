@@ -324,12 +324,12 @@ Nginx 服务配置了 SSL，但证书需要手动放置：
 
 ```bash
 # 证书应该放在宿主机的这个位置
-/data/ssl/iam.yangshujie.com.crt
-/data/ssl/iam.yangshujie.com.key
+/data/ssl/yangshujie.com.crt
+/data/ssl/yangshujie.com.key
 
 # 权限设置
-sudo chmod 644 /data/ssl/iam.yangshujie.com.crt
-sudo chmod 600 /data/ssl/iam.yangshujie.com.key
+sudo chmod 644 /data/ssl/yangshujie.com.crt
+sudo chmod 600 /data/ssl/yangshujie.com.key
 ```
 
 **如果没有证书**，有两个选择：
@@ -339,16 +339,16 @@ sudo chmod 600 /data/ssl/iam.yangshujie.com.key
 # 安装 certbot
 sudo apt-get install certbot
 
-# 申请证书
-sudo certbot certonly --webroot \
-  -w /var/www/certbot \
-  -d iam.yangshujie.com \
+# 申请证书（示例：DNS 验证明申请 yangshujie.com 通配符证书）
+sudo certbot certonly --manual --preferred-challenges dns \
+  -d yangshujie.com \
+  -d '*.yangshujie.com' \
   --email your-email@example.com \
   --agree-tos
 
 # 复制到 /data/ssl
-sudo cp /etc/letsencrypt/live/iam.yangshujie.com/fullchain.pem /data/ssl/iam.yangshujie.com.crt
-sudo cp /etc/letsencrypt/live/iam.yangshujie.com/privkey.pem /data/ssl/iam.yangshujie.com.key
+sudo cp /etc/letsencrypt/live/yangshujie.com/fullchain.pem /data/ssl/yangshujie.com.crt
+sudo cp /etc/letsencrypt/live/yangshujie.com/privkey.pem /data/ssl/yangshujie.com.key
 ```
 
 **选项 2**: 暂时注释掉 HTTPS 相关配置
