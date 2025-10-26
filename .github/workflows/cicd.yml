@@ -286,32 +286,71 @@ jobs:
           source: "deploy-package.tar.gz"
           target: "/tmp"
         
+      # === 改动 1：仅修改此 ssh 步（env 透传 + SUDO 助手） ===
       - name: Deploy to Production Server
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          # 基本镜像信息
+          DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
+          IMAGE_NAME:      ${{ env.IMAGE_NAME }}
+          GHCR_USERNAME:   ${{ github.actor }}
+          GHCR_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
+
+          # 应用运行所需配置（从 Secrets 转为环境变量）
+          MYSQL_HOST:      ${{ secrets.MYSQL_HOST }}
+          MYSQL_PORT:      ${{ secrets.MYSQL_PORT }}
+          MYSQL_USERNAME:  ${{ secrets.MYSQL_USERNAME }}
+          MYSQL_PASSWORD:  ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DBNAME:    ${{ secrets.MYSQL_DBNAME }}
+          REDIS_HOST:      ${{ secrets.REDIS_HOST }}
+          REDIS_PORT:      ${{ secrets.REDIS_PORT }}
+          REDIS_DB:        ${{ secrets.REDIS_DB }}
+          REDIS_PASSWORD:  ${{ secrets.REDIS_PASSWORD }}
+          JWT_SECRET:      ${{ secrets.JWT_SECRET }}
+
+          # 可选：sudo 密码（如目标机未配置 NOPASSWD）
+          SUDO_PASSWORD:   ${{ secrets.SVRA_SUDO_PASSWORD }}
         with:
           host: ${{ secrets.SVRA_HOST }}
           username: ${{ secrets.SVRA_USERNAME }}
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
+          envs: |
+            DOCKER_REGISTRY,IMAGE_NAME,GHCR_USERNAME,GHCR_TOKEN,
+            MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,
+            REDIS_HOST,REDIS_PORT,REDIS_DB,REDIS_PASSWORD,JWT_SECRET,
+            SUDO_PASSWORD
           script: |
-            set -e
-            
+            set -Eeuo pipefail
+
+            # ----- SUDO 助手：免密优先，否则用 -S 从 SUDO_PASSWORD 读取 -----
+            SUDO="sudo"
+            if ! $SUDO -n true 2>/dev/null; then
+              if [ -n "${SUDO_PASSWORD:-}" ]; then
+                echo "$SUDO_PASSWORD" | sudo -S -v
+                SUDO="sudo -S"
+              else
+                echo "❌ sudo needs password. Provide SVRA_SUDO_PASSWORD or configure NOPASSWD." >&2
+                exit 1
+              fi
+            fi
+
             echo "=========================================="
             echo "Starting deployment to Production Server (SVRA)"
             echo "=========================================="
             
             # Create directory structure
-            sudo mkdir -p /opt/iam/configs
-            sudo mkdir -p /opt/iam/configs/env
-            sudo mkdir -p /var/log/iam-contracts
+            $SUDO mkdir -p /opt/iam/configs
+            $SUDO mkdir -p /opt/iam/configs/env
+            $SUDO mkdir -p /var/log/iam-contracts
             
             # Backup current version
             echo "Creating backup..."
             BACKUP_DIR="/opt/backups/iam/deployments"
-            sudo mkdir -p $BACKUP_DIR
+            $SUDO mkdir -p "$BACKUP_DIR"
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
             if [ -d "/opt/iam/configs" ] && [ "$(ls -A /opt/iam/configs 2>/dev/null)" != "" ]; then
-              sudo tar -czf $BACKUP_DIR/backup_${TIMESTAMP}.tar.gz \
+              $SUDO tar -czf "$BACKUP_DIR/backup_${TIMESTAMP}.tar.gz" \
                 /opt/iam/configs /var/log/iam-contracts \
                 2>/dev/null || echo "No previous version to backup"
             else
@@ -320,68 +359,53 @@ jobs:
             
             # Extract new version
             echo "Extracting new deployment package..."
-            # 创建临时工作目录,避免在 /tmp 根目录解压的权限问题
             DEPLOY_TMP="/tmp/iam-deploy-$$"
-            mkdir -p $DEPLOY_TMP
-            cd $DEPLOY_TMP
+            mkdir -p "$DEPLOY_TMP"
+            cd "$DEPLOY_TMP"
             tar -xzf /tmp/deploy-package.tar.gz
-            sudo cp -r configs/* /opt/iam/configs/
-            sudo chown -R 1000:1000 /opt/iam/configs
+            $SUDO cp -r configs/* /opt/iam/configs/
+            $SUDO chown -R 1000:1000 /opt/iam/configs
             
             LOG_DIR_HOST="/data/logs/iam"
-            sudo mkdir -p $LOG_DIR_HOST
-            sudo chown -R 1000:1000 $LOG_DIR_HOST
+            $SUDO mkdir -p "$LOG_DIR_HOST"
+            $SUDO chown -R 1000:1000 "$LOG_DIR_HOST"
             
-            # 创建环境变量文件(从 GitHub Secrets 生成实际值)
+            # 写入环境变量文件（使用 envs 透传值）
             echo "Creating environment configuration..."
-            sudo tee /opt/iam/configs/env/config.prod.env > /dev/null <<EOF
+            $SUDO bash -c "cat > /opt/iam/configs/env/config.prod.env <<EOF
             # Auto-generated production environment configuration
-            IAM_APISERVER_MYSQL_HOST=${{ secrets.MYSQL_HOST }}:${{ secrets.MYSQL_PORT || 3306 }}
-            IAM_APISERVER_MYSQL_USERNAME=${{ secrets.MYSQL_USERNAME }}
-            IAM_APISERVER_MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-            IAM_APISERVER_MYSQL_DATABASE=${{ secrets.MYSQL_DBNAME }}
-            IAM_APISERVER_REDIS_HOST=${{ secrets.REDIS_HOST }}
-            IAM_APISERVER_REDIS_PORT=${{ secrets.REDIS_PORT || 6379 }}
-            IAM_APISERVER_REDIS_ADDR=${{ secrets.REDIS_HOST }}:${{ secrets.REDIS_PORT || 6379 }}
-            IAM_APISERVER_REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-            IAM_APISERVER_REDIS_DB=${{ secrets.REDIS_DB || 1 }}
-            IAM_APISERVER_JWT_SECRET=${{ secrets.JWT_SECRET }}
-            EOF
-            sudo chmod 600 /opt/iam/configs/env/config.prod.env
-            sudo chown 1000:1000 /opt/iam/configs/env/config.prod.env
+            IAM_APISERVER_MYSQL_HOST=\${MYSQL_HOST}:\${MYSQL_PORT:-3306}
+            IAM_APISERVER_MYSQL_USERNAME=\${MYSQL_USERNAME}
+            IAM_APISERVER_MYSQL_PASSWORD=\${MYSQL_PASSWORD}
+            IAM_APISERVER_MYSQL_DATABASE=\${MYSQL_DBNAME}
+            IAM_APISERVER_REDIS_HOST=\${REDIS_HOST}
+            IAM_APISERVER_REDIS_PORT=\${REDIS_PORT:-6379}
+            IAM_APISERVER_REDIS_ADDR=\${REDIS_HOST}:\${REDIS_PORT:-6379}
+            IAM_APISERVER_REDIS_PASSWORD=\${REDIS_PASSWORD}
+            IAM_APISERVER_REDIS_DB=\${REDIS_DB:-1}
+            IAM_APISERVER_JWT_SECRET=\${JWT_SECRET}
+            EOF"
+            $SUDO chmod 600 /opt/iam/configs/env/config.prod.env
+            $SUDO chown 1000:1000 /opt/iam/configs/env/config.prod.env
 
-            # 清理旧的 systemd 部署（如果存在）
-            echo "Cleaning up legacy systemd service..."
-            if sudo systemctl list-unit-files 2>/dev/null | grep -q '^iam-apiserver.service'; then
-              sudo systemctl stop iam-apiserver 2>/dev/null || true
-              sudo systemctl disable iam-apiserver 2>/dev/null || true
-              sudo rm -f /etc/systemd/system/iam-apiserver.service
-              sudo systemctl daemon-reload
-            fi
-            
             # 清理临时目录
             cd /tmp
-            rm -rf $DEPLOY_TMP
-            rm -f deploy-package.tar.gz
+            rm -rf "$DEPLOY_TMP"
+            rm -f /tmp/deploy-package.tar.gz
 
             # 确保专用 Docker 网络存在
-            if ! sudo docker network ls --format '{{.Name}}' | grep -w iam-network > /dev/null 2>&1; then
+            if ! $SUDO docker network ls --format '{{.Name}}' | grep -w iam-network > /dev/null 2>&1; then
               echo "Creating Docker network iam-network..."
-              sudo docker network create iam-network
+              $SUDO docker network create iam-network
             fi
 
-            CERT_DEST_PATH=$(sudo sed -n 's/^[[:space:]]*cert-file:[[:space:]]*\(.*\)$/\1/p' /opt/iam/configs/apiserver.yaml | head -n1 | tr -d '\"')
-            KEY_DEST_PATH=$(sudo sed -n 's/^[[:space:]]*private-key-file:[[:space:]]*\(.*\)$/\1/p' /opt/iam/configs/apiserver.yaml | head -n1 | tr -d '\"')
-            if [ -z "$CERT_DEST_PATH" ]; then
-              CERT_DEST_PATH="/etc/iam-contracts/ssl/iam.yangshujie.com.crt"
-            fi
-            if [ -z "$KEY_DEST_PATH" ]; then
-              KEY_DEST_PATH="/etc/iam-contracts/ssl/iam.yangshujie.com.key"
-            fi
-            CERT_FILENAME=$(basename "$CERT_DEST_PATH")
-            KEY_FILENAME=$(basename "$KEY_DEST_PATH")
-            CERT_HOST_PATH="/data/ssl/certs/$CERT_FILENAME"
-            KEY_HOST_PATH="/data/ssl/private/$KEY_FILENAME"
+            # 解析 TLS 路径（如配置）
+            CERT_DEST_PATH=$($SUDO sed -n 's/^[[:space:]]*cert-file:[[:space:]]*"\?\(.*\)"\?/\1/p' /opt/iam/configs/apiserver.yaml | head -n1)
+            KEY_DEST_PATH=$($SUDO sed -n 's/^[[:space:]]*private-key-file:[[:space:]]*"\?\(.*\)"\?/\1/p' /opt/iam/configs/apiserver.yaml | head -n1)
+            CERT_DEST_PATH=${CERT_DEST_PATH:-/etc/iam-contracts/ssl/iam.yangshujie.com.crt}
+            KEY_DEST_PATH=${KEY_DEST_PATH:-/etc/iam-contracts/ssl/iam.yangshujie.com.key}
+            CERT_HOST_PATH="/data/ssl/certs/$(basename "$CERT_DEST_PATH")"
+            KEY_HOST_PATH="/data/ssl/private/$(basename "$KEY_DEST_PATH")"
             TLS_MOUNTS=""
             if [ -f "$CERT_HOST_PATH" ] && [ -f "$KEY_HOST_PATH" ]; then
               TLS_MOUNTS="-v $CERT_HOST_PATH:$CERT_DEST_PATH:ro -v $KEY_HOST_PATH:$KEY_DEST_PATH:ro"
@@ -389,15 +413,27 @@ jobs:
               echo "⚠️ TLS certificate or key not found under /data/ssl, HTTPS may fail"
             fi
 
-            GHCR_USERNAME="${{ github.actor }}"
-            GHCR_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-            if [ -n "$GHCR_TOKEN" ]; then
+            # GHCR 登录（如有 Token）
+            if [ -n "${GHCR_TOKEN:-}" ]; then
               echo "Logging into GitHub Container Registry..."
-              echo "$GHCR_TOKEN" | sudo docker login ${{ env.DOCKER_REGISTRY }} -u "$GHCR_USERNAME" --password-stdin >/dev/null
-            else
-              echo "⚠️ No GitHub token available, docker pull may fail"
+              echo "$GHCR_TOKEN" | $SUDO docker login "$DOCKER_REGISTRY" -u "$GHCR_USERNAME" --password-stdin >/dev/null || true
             fi
 
+            # 拉取镜像
+            echo "Pulling latest Docker image..."
+            if ! $SUDO docker pull "$DOCKER_REGISTRY/$IMAGE_NAME:latest"; then
+              echo "⚠️ Pull with auth failed, trying anonymous..."
+              $SUDO docker pull "$DOCKER_REGISTRY/$IMAGE_NAME:latest" || true
+            fi
+
+            # 停掉旧容器
+            if $SUDO docker ps -a --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
+              echo "Stopping existing Docker container..."
+              $SUDO docker stop iam-apiserver || true
+              $SUDO docker rm iam-apiserver || true
+            fi
+
+            # 组合运行参数
             DOCKER_OPTIONS="--name iam-apiserver \
               --restart unless-stopped \
               --network iam-network \
@@ -410,77 +446,77 @@ jobs:
               DOCKER_OPTIONS="$DOCKER_OPTIONS $TLS_MOUNTS"
             fi
 
-            # Pull latest Docker image
-            echo "Pulling latest Docker image..."
-            sudo docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-
-            # 停止并移除旧容器
-            if sudo docker ps -a --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
-              echo "Stopping existing Docker container..."
-              sudo docker stop iam-apiserver || true
-              sudo docker rm iam-apiserver || true
-            fi
-
-            # 启动 Docker 容器
+            # 启动
             echo "Starting IAM service with Docker..."
-            sudo docker run -d $DOCKER_OPTIONS \
-              ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            $SUDO docker run -d $DOCKER_OPTIONS \
+              "$DOCKER_REGISTRY/$IMAGE_NAME:latest" \
               --config=/app/configs/apiserver.yaml
 
-            # 等待服务就绪并执行健康检查
+            # 健康检查
             echo "Waiting for service to be ready..."
             ATTEMPTS=0
-            MAX_ATTEMPTS=30  # 30次 × 5秒 = 150秒 (2.5分钟)
-            
+            MAX_ATTEMPTS=30  # 30次 × 5秒 = 150秒
             while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
               if curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
                 echo "✅ API health check passed (attempt $ATTEMPTS)"
-                sudo docker ps --filter "name=iam-apiserver" --format "table {{.Names}}\t{{.Status}}"
+                $SUDO docker ps --filter "name=iam-apiserver" --format "table {{.Names}}\t{{.Status}}"
                 break
               fi
-              
               ATTEMPTS=$((ATTEMPTS + 1))
               if [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; then
                 echo "⏳ Health check attempt $ATTEMPTS/$MAX_ATTEMPTS failed, retrying in 5 seconds..."
                 sleep 5
               fi
             done
-            
+
             # 最终验证
             if [ $ATTEMPTS -ge $MAX_ATTEMPTS ]; then
               echo "❌ Service failed to start after $MAX_ATTEMPTS attempts"
               echo "Checking container status..."
-              sudo docker ps -a --filter "name=iam-apiserver"
+              $SUDO docker ps -a --filter "name=iam-apiserver" || true
               echo "Checking container logs..."
-              sudo docker logs --tail 100 iam-apiserver || true
+              $SUDO docker logs --tail 200 iam-apiserver || true
               exit 1
             fi
-            
-            # Clean up old backups (keep last 10)
+
+            # 清理旧备份 (保留 10 个)
             echo "Cleaning up old backups..."
-            sudo ls -t $BACKUP_DIR/backup_*.tar.gz 2>/dev/null | tail -n +11 | xargs -r sudo rm -f 2>/dev/null || true
-            
+            $SUDO ls -t "$BACKUP_DIR"/backup_*.tar.gz 2>/dev/null | tail -n +11 | xargs -r $SUDO rm -f 2>/dev/null || true
+
             echo "=========================================="
             echo "✅ Deployment completed successfully"
             echo "=========================================="
             
+      # === 改动 2：仅修改此 ssh 步（SUDO 助手） ===
       - name: Verify Deployment
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          SUDO_PASSWORD: ${{ secrets.SVRA_SUDO_PASSWORD }}
         with:
           host: ${{ secrets.SVRA_HOST }}
           username: ${{ secrets.SVRA_USERNAME }}
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
+          envs: SUDO_PASSWORD
           script: |
-            set -e
+            set -Eeuo pipefail
+
+            SUDO="sudo"
+            if ! $SUDO -n true 2>/dev/null; then
+              if [ -n "${SUDO_PASSWORD:-}" ]; then
+                echo "$SUDO_PASSWORD" | sudo -S -v
+                SUDO="sudo -S"
+              fi
+            fi
+
             echo "Verifying deployment..."
             
             # Check service status
-            if sudo docker ps --filter "name=iam-apiserver" --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
+            if $SUDO docker ps --filter "name=iam-apiserver" --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
               echo "✅ Docker container is running"
             else
               echo "❌ Docker container is not running"
-              sudo docker ps -a --filter "name=iam-apiserver"
+              $SUDO docker ps -a --filter "name=iam-apiserver"
               exit 1
             fi
             
@@ -495,7 +531,7 @@ jobs:
             
             # Check version
             echo "Deployed version:"
-            sudo docker exec iam-apiserver /app/apiserver version || echo "Version check skipped"
+            $SUDO docker exec iam-apiserver /app/apiserver version || echo "Version check skipped"
             
             echo "✅ Deployment verification passed"
 
