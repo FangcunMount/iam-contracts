@@ -233,12 +233,12 @@ volumes:
 ```yaml
 # configs/apiserver.yaml
 tls:
-  cert: /etc/iam-contracts/ssl/iam.yangshujie.com.crt
-  key: /etc/iam-contracts/ssl/iam.yangshujie.com.key
+  cert: /etc/iam-contracts/ssl/yangshujie.com.crt
+  key: /etc/iam-contracts/ssl/yangshujie.com.key
 
 # configs/nginx/conf.d/iam.yangshujie.com.conf
-ssl_certificate     /etc/nginx/ssl/iam.yangshujie.com.crt;
-ssl_certificate_key /etc/nginx/ssl/iam.yangshujie.com.key;
+ssl_certificate     /etc/nginx/ssl/yangshujie.com.crt;
+ssl_certificate_key /etc/nginx/ssl/yangshujie.com.key;
 ```
 
 **缺少的步骤**:
