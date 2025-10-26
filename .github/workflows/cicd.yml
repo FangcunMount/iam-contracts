@@ -185,7 +185,7 @@ jobs:
           name: iam-apiserver
           path: ./artifacts
 
-      # === 变更点①：在 Runner 侧生成 .env，避免远端 heredoc + sudo ===
+      # === 在 Runner 侧生成 .env，避免远端 heredoc + sudo ===
       - name: Prepare deployment files
         env:
           MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
@@ -236,7 +236,7 @@ jobs:
           source: "deploy-package.tar.gz"
           target: "/tmp"
 
-      # === 变更点②：远端只用白名单命令（sudo rsync/mkdir/chown/chmod/docker），不再 sudo cp、也不再远端写 env ===
+      # === 远端只用白名单命令；TLS 改为固定挂载到 /app/configs/ssl 并同步修改 apiserver.yaml ===
       - name: Deploy to Production Server
         uses: appleboy/ssh-action@v1.0.0
         env:
@@ -275,9 +275,9 @@ jobs:
             echo "=========================================="
 
             # 目录准备
-            $SUDO mkdir -p /opt/iam/configs/env /var/log/iam-contracts /opt/iam/bin
+            $SUDO mkdir -p /opt/iam/configs/env /opt/iam/configs/ssl /var/log/iam-contracts /opt/iam/bin
 
-            # 备份（保持你的逻辑）
+            # 备份
             BACKUP_DIR="/opt/backups/iam/deployments"
             $SUDO mkdir -p "$BACKUP_DIR"
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -314,19 +314,23 @@ jobs:
               $SUDO docker network create iam-network
             fi
 
-            # TLS 路径（读取无需 sudo）
-            CERT_DEST_PATH=$(sed -n 's/^[[:space:]]*cert-file:[[:space:]]*"\?\(.*\)"\?/\1/p' /opt/iam/configs/apiserver.yaml | head -n1)
-            KEY_DEST_PATH=$(sed -n 's/^[[:space:]]*private-key-file:[[:space:]]*"\?\(.*\)"\?/\1/p' /opt/iam/configs/apiserver.yaml | head -n1)
-            CERT_DEST_PATH=${CERT_DEST_PATH:-/etc/iam-contracts/ssl/yangshujie.com.crt}
-            KEY_DEST_PATH=${KEY_DEST_PATH:-/etc/iam-contracts/ssl/yangshujie.com.key}
-            CERT_HOST_PATH="/data/ssl/certs/$(basename "$CERT_DEST_PATH")"
-            KEY_HOST_PATH="/data/ssl/private/$(basename "$KEY_DEST_PATH")"
-            TLS_MOUNTS=""
-            if [ -f "$CERT_HOST_PATH" ] && [ -f "$KEY_HOST_PATH" ]; then
-              TLS_MOUNTS="-v $CERT_HOST_PATH:$CERT_DEST_PATH:ro -v $KEY_HOST_PATH:$KEY_DEST_PATH:ro"
-            else
-              echo "⚠️ TLS certificate or key not found under /data/ssl, HTTPS may fail"
+            # ======== 固定使用 /app/configs/ssl 作为容器内证书目录 ========
+            CERT_HOST_PATH="/data/ssl/certs/yangshujie.com.crt"
+            KEY_HOST_PATH="/data/ssl/private/yangshujie.com.key"
+
+            if [ ! -r "$CERT_HOST_PATH" ] || [ ! -r "$KEY_HOST_PATH" ]; then
+              echo "❌ TLS files not readable: $CERT_HOST_PATH or $KEY_HOST_PATH"
+              ls -l "$CERT_HOST_PATH" "$KEY_HOST_PATH" 2>/dev/null || true
+              exit 1
             fi
+
+            # 修改 apiserver.yaml 证书路径为容器内 /app/configs/ssl/*
+            $SUDO sed -i -E 's#(^[[:space:]]*cert-file:).*#\1 "/app/configs/ssl/yangshujie.com.crt"#' /opt/iam/configs/apiserver.yaml
+            $SUDO sed -i -E 's#(^[[:space:]]*private-key-file:).*#\1 "/app/configs/ssl/yangshujie.com.key"#' /opt/iam/configs/apiserver.yaml
+
+            TLS_MOUNTS="-v $CERT_HOST_PATH:/app/configs/ssl/yangshujie.com.crt:ro \
+                        -v $KEY_HOST_PATH:/app/configs/ssl/yangshujie.com.key:ro"
+            # ===========================================================
 
             # GHCR 登录（如有 Token）
             if [ -n "${GHCR_TOKEN:-}" ]; then
@@ -348,7 +352,7 @@ jobs:
               $SUDO docker rm iam-apiserver || true
             fi
 
-            # 启动（以文件 env 挂载）
+            # 启动（挂载 /opt/iam/configs 到 /app/configs，并额外挂载证书文件到 /app/configs/ssl）
             DOCKER_OPTIONS="--name iam-apiserver \
               --restart unless-stopped \
               --network iam-network \
@@ -356,10 +360,8 @@ jobs:
               -p 9444:9444 \
               -v /opt/iam/configs:/app/configs \
               -v $LOG_DIR_HOST:/var/log/iam-contracts \
-              --env-file /opt/iam/configs/env/config.prod.env"
-            if [ -n "$TLS_MOUNTS" ]; then
-              DOCKER_OPTIONS="$DOCKER_OPTIONS $TLS_MOUNTS"
-            fi
+              --env-file /opt/iam/configs/env/config.prod.env \
+              $TLS_MOUNTS"
 
             echo "Starting IAM service with Docker..."
             $SUDO docker run -d $DOCKER_OPTIONS \
@@ -400,7 +402,6 @@ jobs:
             echo "✅ Deployment completed successfully"
             echo "=========================================="
 
-      # 保持你的部署后验证逻辑
       - name: Verify Deployment
         uses: appleboy/ssh-action@v1.0.0
         env:
