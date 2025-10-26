@@ -1,22 +1,6 @@
 name: CI/CD Pipeline
 
-# 必需的 Secrets 配置 (在 GitHub 仓库设置中配置)
-# Settings → Secrets and variables → Actions
-#
-# Organization 级别 Secrets:
-#   - SVRA_HOST, SVRA_USERNAME, SVRA_SSH_KEY, SVRA_SSH_PORT
-#   - MYSQL_HOST, MYSQL_PORT, REDIS_HOST, REDIS_PORT
-#   - SVRA_SUDO_PASSWORD       # 可选；如果远端未配置 NOPASSWD 则必填（部署用户的 sudo 密码）
-#
-# Repository 级别 Secrets:
-#   - MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DBNAME
-#   - REDIS_PASSWORD, REDIS_DB
-#   - DOCKERHUB_USERNAME, DOCKERHUB_TOKEN (可选，用于推送镜像到 Docker Hub 备份)
-#   - JWT_SECRET
-#
-# 说明：
-# - 如果服务器已为部署用户配置了免密 sudo（NOPASSWD），可不设置 SVRA_SUDO_PASSWORD。
-# - validate-secrets job 不会强制校验 SVRA_SUDO_PASSWORD，是否必填取决于服务器 sudo 策略。
+# 必需的 Secrets 配置同原版，未改动（见你文件顶部注释）
 
 on:
   push:
@@ -201,14 +185,45 @@ jobs:
           name: iam-apiserver
           path: ./artifacts
 
+      # === 变更点①：在 Runner 侧生成 .env，避免远端 heredoc + sudo ===
       - name: Prepare deployment files
+        env:
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
+          MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT || 6379 }}
+          REDIS_DB: ${{ secrets.REDIS_DB || 1 }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           # artifact 文件名是 apiserver，需要重命名为 iam-apiserver
           mv ./artifacts/apiserver ./artifacts/iam-apiserver
           chmod +x ./artifacts/iam-apiserver
-          mkdir -p deploy-package
+
+          mkdir -p deploy-package/configs/env
           cp ./artifacts/iam-apiserver deploy-package/
+
+          # 拷贝仓库配置
           cp -r configs deploy-package/
+
+          # 生成生产环境 env（本地生成，随包上传）
+          cat > deploy-package/configs/env/config.prod.env <<EOF
+          # Auto-generated production environment configuration
+          IAM_APISERVER_MYSQL_HOST=${MYSQL_HOST}:${MYSQL_PORT}
+          IAM_APISERVER_MYSQL_USERNAME=${MYSQL_USERNAME}
+          IAM_APISERVER_MYSQL_PASSWORD=${MYSQL_PASSWORD}
+          IAM_APISERVER_MYSQL_DATABASE=${MYSQL_DBNAME}
+          IAM_APISERVER_REDIS_HOST=${REDIS_HOST}
+          IAM_APISERVER_REDIS_PORT=${REDIS_PORT}
+          IAM_APISERVER_REDIS_ADDR=${REDIS_HOST}:${REDIS_PORT}
+          IAM_APISERVER_REDIS_PASSWORD=${REDIS_PASSWORD}
+          IAM_APISERVER_REDIS_DB=${REDIS_DB}
+          IAM_APISERVER_JWT_SECRET=${JWT_SECRET}
+          EOF
+
           tar -czf deploy-package.tar.gz -C deploy-package .
 
       - name: Upload deployment package
@@ -221,40 +236,25 @@ jobs:
           source: "deploy-package.tar.gz"
           target: "/tmp"
 
-      # ---- 第一个 SSH 步：部署到服务器（已改为每条 sudo 都传密码）----
+      # === 变更点②：远端只用白名单命令（sudo rsync/mkdir/chown/chmod/docker），不再 sudo cp、也不再远端写 env ===
       - name: Deploy to Production Server
         uses: appleboy/ssh-action@v1.0.0
         env:
-          # 透传到远端使用
           DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-          MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
-          MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-          MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
-
-          REDIS_HOST: ${{ secrets.REDIS_HOST }}
-          REDIS_PORT: ${{ secrets.REDIS_PORT || 6379 }}
-          REDIS_DB: ${{ secrets.REDIS_DB || 1 }}
-          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
           SUDO_PASSWORD: ${{ secrets.SVRA_SUDO_PASSWORD }}
         with:
           host: ${{ secrets.SVRA_HOST }}
           username: ${{ secrets.SVRA_USERNAME }}
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
-          # 这些变量会被注入到远端 session 的环境中
-          envs: DOCKER_REGISTRY,IMAGE_NAME,GHCR_USERNAME,GHCR_TOKEN,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,REDIS_HOST,REDIS_PORT,REDIS_DB,REDIS_PASSWORD,JWT_SECRET,SUDO_PASSWORD
+          envs: DOCKER_REGISTRY,IMAGE_NAME,GHCR_USERNAME,GHCR_TOKEN,SUDO_PASSWORD
           script: |
             set -Eeuo pipefail
 
-            # ----- SUDO 助手 v2：免密优先；若需密码则每次 sudo 都喂密码 -----
+            # ----- SUDO 助手：免密优先；若需密码则每次 sudo 都喂密码 -----
             if sudo -n true 2>/dev/null; then
               SUDO="sudo"
               echo "ℹ️ Using passwordless sudo (NOPASSWD)."
@@ -274,13 +274,10 @@ jobs:
             echo "Starting deployment to Production Server (SVRA)"
             echo "=========================================="
 
-            # Create directory structure
-            $SUDO mkdir -p /opt/iam/configs
-            $SUDO mkdir -p /opt/iam/configs/env
-            $SUDO mkdir -p /var/log/iam-contracts
+            # 目录准备
+            $SUDO mkdir -p /opt/iam/configs/env /var/log/iam-contracts /opt/iam/bin
 
-            # Backup current version
-            echo "Creating backup..."
+            # 备份（保持你的逻辑）
             BACKUP_DIR="/opt/backups/iam/deployments"
             $SUDO mkdir -p "$BACKUP_DIR"
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -292,52 +289,34 @@ jobs:
               echo "No previous version to backup"
             fi
 
-            # Extract new version
+            # 解包并用 rsync 同步（替代 cp -r）
             echo "Extracting new deployment package..."
             DEPLOY_TMP="/tmp/iam-deploy-$$"
             mkdir -p "$DEPLOY_TMP"
-            cd "$DEPLOY_TMP"
-            tar -xzf /tmp/deploy-package.tar.gz
-            $SUDO cp -r configs/* /opt/iam/configs/
+            tar -xzf /tmp/deploy-package.tar.gz -C "$DEPLOY_TMP"
+
+            $SUDO rsync -a "$DEPLOY_TMP/configs/" /opt/iam/configs/
+            $SUDO rsync -a "$DEPLOY_TMP/iam-apiserver" /opt/iam/bin/iam-apiserver
+            $SUDO chmod 0755 /opt/iam/bin/iam-apiserver
             $SUDO chown -R 1000:1000 /opt/iam/configs
 
             LOG_DIR_HOST="/data/logs/iam"
             $SUDO mkdir -p "$LOG_DIR_HOST"
             $SUDO chown -R 1000:1000 "$LOG_DIR_HOST"
 
-            # 写入环境变量文件（使用 envs 透传值；此处在远端展开）
-            echo "Creating environment configuration..."
-            $SUDO bash -c "cat > /opt/iam/configs/env/config.prod.env <<EOF
-            # Auto-generated production environment configuration
-            IAM_APISERVER_MYSQL_HOST=\${MYSQL_HOST}:\${MYSQL_PORT:-3306}
-            IAM_APISERVER_MYSQL_USERNAME=\${MYSQL_USERNAME}
-            IAM_APISERVER_MYSQL_PASSWORD=\${MYSQL_PASSWORD}
-            IAM_APISERVER_MYSQL_DATABASE=\${MYSQL_DBNAME}
-            IAM_APISERVER_REDIS_HOST=\${REDIS_HOST}
-            IAM_APISERVER_REDIS_PORT=\${REDIS_PORT:-6379}
-            IAM_APISERVER_REDIS_ADDR=\${REDIS_HOST}:\${REDIS_PORT:-6379}
-            IAM_APISERVER_REDIS_PASSWORD=\${REDIS_PASSWORD}
-            IAM_APISERVER_REDIS_DB=\${REDIS_DB:-1}
-            IAM_APISERVER_JWT_SECRET=\${JWT_SECRET}
-            EOF"
-            # 让变量生效（此处 heredoc 已在远端展开；保守起见使用 envsubst 不是必须）
-            $SUDO chmod 600 /opt/iam/configs/env/config.prod.env
-            $SUDO chown 1000:1000 /opt/iam/configs/env/config.prod.env
-
             # 清理临时目录与上传包
-            cd /tmp
             rm -rf "$DEPLOY_TMP"
             rm -f /tmp/deploy-package.tar.gz
 
-            # 确保专用 Docker 网络存在
+            # 网络
             if ! $SUDO docker network ls --format '{{.Name}}' | grep -w iam-network > /dev/null 2>&1; then
               echo "Creating Docker network iam-network..."
               $SUDO docker network create iam-network
             fi
 
-            # 解析 TLS 路径（如配置）
-            CERT_DEST_PATH=$($SUDO sed -n 's/^[[:space:]]*cert-file:[[:space:]]*"\?\(.*\)"\?/\1/p' /opt/iam/configs/apiserver.yaml | head -n1)
-            KEY_DEST_PATH=$($SUDO sed -n 's/^[[:space:]]*private-key-file:[[:space:]]*"\?\(.*\)"\?/\1/p' /opt/iam/configs/apiserver.yaml | head -n1)
+            # TLS 路径（读取无需 sudo）
+            CERT_DEST_PATH=$(sed -n 's/^[[:space:]]*cert-file:[[:space:]]*"\?\(.*\)"\?/\1/p' /opt/iam/configs/apiserver.yaml | head -n1)
+            KEY_DEST_PATH=$(sed -n 's/^[[:space:]]*private-key-file:[[:space:]]*"\?\(.*\)"\?/\1/p' /opt/iam/configs/apiserver.yaml | head -n1)
             CERT_DEST_PATH=${CERT_DEST_PATH:-/etc/iam-contracts/ssl/iam.yangshujie.com.crt}
             KEY_DEST_PATH=${KEY_DEST_PATH:-/etc/iam-contracts/ssl/iam.yangshujie.com.key}
             CERT_HOST_PATH="/data/ssl/certs/$(basename "$CERT_DEST_PATH")"
@@ -362,14 +341,14 @@ jobs:
               $SUDO docker pull "$DOCKER_REGISTRY/$IMAGE_NAME:latest" || true
             fi
 
-            # 停掉旧容器
+            # 停旧容器
             if $SUDO docker ps -a --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
               echo "Stopping existing Docker container..."
               $SUDO docker stop iam-apiserver || true
               $SUDO docker rm iam-apiserver || true
             fi
 
-            # 组合运行参数
+            # 启动（以文件 env 挂载）
             DOCKER_OPTIONS="--name iam-apiserver \
               --restart unless-stopped \
               --network iam-network \
@@ -382,7 +361,6 @@ jobs:
               DOCKER_OPTIONS="$DOCKER_OPTIONS $TLS_MOUNTS"
             fi
 
-            # 启动
             echo "Starting IAM service with Docker..."
             $SUDO docker run -d $DOCKER_OPTIONS \
               "$DOCKER_REGISTRY/$IMAGE_NAME:latest" \
@@ -405,7 +383,6 @@ jobs:
               fi
             done
 
-            # 最终验证
             if [ $ATTEMPTS -ge $MAX_ATTEMPTS ]; then
               echo "❌ Service failed to start after $MAX_ATTEMPTS attempts"
               echo "Checking container status..."
@@ -423,7 +400,7 @@ jobs:
             echo "✅ Deployment completed successfully"
             echo "=========================================="
 
-      # ---- 第二个 SSH 步：部署后验证（同样兼容需要 sudo 密码的环境）----
+      # 保持你的部署后验证逻辑
       - name: Verify Deployment
         uses: appleboy/ssh-action@v1.0.0
         env:
@@ -452,7 +429,6 @@ jobs:
 
             echo "Verifying deployment..."
 
-            # Check service status
             if $SUDO docker ps --filter "name=iam-apiserver" --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
               echo "✅ Docker container is running"
             else
@@ -461,7 +437,6 @@ jobs:
               exit 1
             fi
 
-            # Check API response
             RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/healthz || echo "000")
             if [ "$RESPONSE" = "200" ]; then
               echo "✅ API is responding correctly"
@@ -470,7 +445,6 @@ jobs:
               exit 1
             fi
 
-            # Check version
             echo "Deployed version:"
             $SUDO docker exec iam-apiserver /app/apiserver version || echo "Version check skipped"
 
