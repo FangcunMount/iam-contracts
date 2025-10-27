@@ -7,10 +7,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
-	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // ==================== Mock 实现 ====================

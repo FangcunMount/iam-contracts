@@ -4,8 +4,8 @@ package token
 import (
 	"context"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 
 	tokenService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/token"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"

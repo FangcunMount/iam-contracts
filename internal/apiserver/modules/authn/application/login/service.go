@@ -4,7 +4,7 @@ package login
 import (
 	"context"
 
-	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 	authService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/authenticator"

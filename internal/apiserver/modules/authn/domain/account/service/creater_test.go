@@ -3,9 +3,9 @@ package service
 import (
 	"testing"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
-	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

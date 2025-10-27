@@ -10,13 +10,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/FangcunMount/component-base/pkg/errors"
 	childdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child"
 	childport "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child/port"
 	guardport "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship/port"
 	userdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 	userport "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user/port"
 	identityv1 "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/grpc/pb/iam/identity/v1"
-	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // Service 聚合 identity 模块的 gRPC 服务

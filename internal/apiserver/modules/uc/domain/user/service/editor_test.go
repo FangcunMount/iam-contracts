@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
+	"github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user/service"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
-	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // ==================== UserProfileEditor 测试 ====================

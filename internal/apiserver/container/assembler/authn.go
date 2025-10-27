@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
+	"github.com/FangcunMount/component-base/pkg/errors"
 	accountApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/account"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/adapter"
 	jwksApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
@@ -26,7 +27,6 @@ import (
 	authhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/handler"
 	mysqluser "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
-	"github.com/FangcunMount/iam-contracts/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/pkg/log"
 
 	authService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/authenticator"

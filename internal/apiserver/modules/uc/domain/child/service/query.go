@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child"
 	port "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
-	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 	"gorm.io/gorm"
 )
 

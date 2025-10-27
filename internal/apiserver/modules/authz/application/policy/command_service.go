@@ -4,10 +4,10 @@ package policy
 import (
 	"context"
 
+	"github.com/FangcunMount/component-base/pkg/errors"
 	policyDriven "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy/port/driving"
 	policyService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy/service"
-	"github.com/FangcunMount/iam-contracts/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
