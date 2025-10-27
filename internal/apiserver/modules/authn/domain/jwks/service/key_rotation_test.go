@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/service"
-	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // Helper function to create string pointer
