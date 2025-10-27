@@ -80,7 +80,7 @@ jobs:
                   echo "⚠️ $SECRET_NAME is not set (needed only if sudo prompts for a password)"
                   ;;
                 WWW_UID|WWW_GID)
-                  echo "⚠️ $SECRET_NAME is not set (defaults to 1000)"
+                  echo "⚠️ $SECRET_NAME is not set (deploy job 默认 999/988)"
                   ;;
                 MYSQL_PORT)
                   echo "⚠️ $SECRET_NAME is not set (defaults to 3306)"
@@ -238,8 +238,8 @@ jobs:
       name: production
       url: https://iam.yangshujie.com
     env:
-      WWW_UID: ${{ secrets.WWW_UID || '1000' }}
-      WWW_GID: ${{ secrets.WWW_GID || '1000' }}
+      WWW_UID: ${{ secrets.WWW_UID || '999' }}
+      WWW_GID: ${{ secrets.WWW_GID || '988' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -301,7 +301,7 @@ jobs:
           source: "deploy-package.tar.gz"
           target: "/tmp"
 
-      # === 远端只用白名单命令；TLS 改为固定挂载到 /app/configs/ssl 并同步修改 apiserver.yaml ===
+      # === 远端只用白名单命令；TLS 固定挂载到 /etc/iam-contracts/ssl（与 apiserver.yaml 保持一致）
       - name: Deploy to Production Server
         uses: appleboy/ssh-action@v1.0.0
         env:
@@ -384,22 +384,26 @@ jobs:
               $SUDO docker network create iam-network
             fi
 
-            # ======== 固定使用 /app/configs/ssl 作为容器内证书目录 ========
+            # ======== 固定使用 /etc/iam-contracts/ssl 作为容器内证书目录 ========
             CERT_HOST_PATH="/data/ssl/certs/yangshujie.com.crt"
             KEY_HOST_PATH="/data/ssl/private/yangshujie.com.key"
 
-            if [ ! -r "$CERT_HOST_PATH" ] || [ ! -r "$KEY_HOST_PATH" ]; then
-              echo "❌ TLS files not readable: $CERT_HOST_PATH or $KEY_HOST_PATH"
-              ls -l "$CERT_HOST_PATH" "$KEY_HOST_PATH" 2>/dev/null || true
+            # 用 root 身份检查，避免 deploy 身份被权限挡住
+            if ! $SUDO test -r "$CERT_HOST_PATH"; then
+              echo "❌ CERT not readable by root: $CERT_HOST_PATH"
+              $SUDO ls -l "$CERT_HOST_PATH" || true
               exit 1
             fi
 
-            # 修改 apiserver.yaml 证书路径为容器内 /app/configs/ssl/*
-            $SUDO sed -i -E 's#(^[[:space:]]*cert-file:).*#\1 "/app/configs/ssl/yangshujie.com.crt"#' /opt/iam/configs/apiserver.yaml
-            $SUDO sed -i -E 's#(^[[:space:]]*private-key-file:).*#\1 "/app/configs/ssl/yangshujie.com.key"#' /opt/iam/configs/apiserver.yaml
+            if ! $SUDO test -r "$KEY_HOST_PATH"; then
+              echo "❌ KEY not readable by root: $KEY_HOST_PATH"
+              # 把每级目录权限也打印出来便于诊断
+              $SUDO namei -l "$KEY_HOST_PATH" || true
+              exit 1
+            fi
 
-            TLS_MOUNTS="-v $CERT_HOST_PATH:/app/configs/ssl/yangshujie.com.crt:ro \
-                        -v $KEY_HOST_PATH:/app/configs/ssl/yangshujie.com.key:ro"
+            TLS_MOUNTS="-v $CERT_HOST_PATH:/etc/iam-contracts/ssl/yangshujie.com.crt:ro \
+                        -v $KEY_HOST_PATH:/etc/iam-contracts/ssl/yangshujie.com.key:ro"
             # ===========================================================
 
             # GHCR 登录（如有 Token）
@@ -422,7 +426,7 @@ jobs:
               $SUDO docker rm iam-apiserver || true
             fi
 
-            # 启动（挂载 /opt/iam/configs 到 /app/configs，并额外挂载证书文件到 /app/configs/ssl）
+            # 启动（挂载 /opt/iam/configs 到 /app/configs，并额外挂载证书文件到 /etc/iam-contracts/ssl）
             DOCKER_OPTIONS="--name iam-apiserver \
               --restart unless-stopped \
               --network iam-network \
