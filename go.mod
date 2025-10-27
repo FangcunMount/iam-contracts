@@ -100,7 +100,7 @@ require (
 )
 
 require (
-	github.com/FangcunMount/component-base v0.0.0-20251027052156-53cb4e382881
+	github.com/FangcunMount/component-base v0.2.0
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/casbin/casbin/v2 v2.128.0
 	github.com/casbin/gorm-adapter/v3 v3.37.0
@@ -126,5 +126,5 @@ require (
 	golang.org/x/sync v0.15.0
 	golang.org/x/time v0.12.0
 	google.golang.org/grpc v1.73.0
-	gorm.io/driver/mysql v1.6.0
+	gorm.io/driver/mysql v1.6.0 // indirect
 )
