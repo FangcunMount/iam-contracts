@@ -19,15 +19,15 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	jwksDomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/service"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/crypto"
-	jwtGen "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	jwksDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/service"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/crypto"
+	jwtGen "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // InMemoryKeyRepository 内存密钥仓储（用于测试）

@@ -4,13 +4,13 @@ import (
 	"github.com/go-redis/redis/v7"
 	"github.com/spf13/viper"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/config"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/container"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/grpcserver"
-	genericapiserver "github.com/fangcun-mount/iam-contracts/internal/pkg/server"
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
-	"github.com/fangcun-mount/iam-contracts/pkg/shutdown"
-	"github.com/fangcun-mount/iam-contracts/pkg/shutdown/shutdownmanagers/posixsignal"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/config"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/grpcserver"
+	genericapiserver "github.com/FangcunMount/iam-contracts/internal/pkg/server"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/iam-contracts/pkg/shutdown"
+	"github.com/FangcunMount/iam-contracts/pkg/shutdown/shutdownmanagers/posixsignal"
 )
 
 // apiServer 定义了 API 服务器的基本结构（六边形架构版本）

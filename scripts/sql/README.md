@@ -67,14 +67,14 @@ import (
     "gorm.io/driver/mysql"
     "gorm.io/gorm"
     
-    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
-    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/child"
-    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/guardianship"
-    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
-    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/jwks"
-    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/resource"
-    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/role"
-    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/assignment"
+    "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
+    "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/child"
+    "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/guardianship"
+    "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
+    "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/jwks"
+    "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/resource"
+    "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/role"
+    "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/assignment"
 )
 
 func main() {

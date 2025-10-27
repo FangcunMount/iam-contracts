@@ -5,7 +5,7 @@
 package main
 
 import (
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 func main() {

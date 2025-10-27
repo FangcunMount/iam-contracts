@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
 )
 
 // Mapper Resource BO 和 PO 转换器

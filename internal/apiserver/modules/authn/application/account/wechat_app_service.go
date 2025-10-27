@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/uow"
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	domainService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/service"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/uow"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	domainService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/service"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 	"gorm.io/gorm"
 )
 

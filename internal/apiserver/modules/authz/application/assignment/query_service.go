@@ -4,11 +4,11 @@ package assignment
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
-	assignmentDriven "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/port/driving"
-	assignmentService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/service"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
+	assignmentDriven "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/port/driving"
+	assignmentService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/service"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // AssignmentQueryService 赋权查询服务（实现 AssignmentQueryer 接口）

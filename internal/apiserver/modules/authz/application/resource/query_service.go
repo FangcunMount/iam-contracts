@@ -4,10 +4,10 @@ package resource
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource/port/driving"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource/port/driving"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // ResourceQueryService 资源查询服务（读操作）

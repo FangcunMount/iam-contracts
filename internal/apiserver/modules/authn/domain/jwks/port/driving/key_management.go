@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
 )
 
 // KeyManagementService 密钥管理服务接口

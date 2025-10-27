@@ -4,7 +4,7 @@ package driven
 import (
 	"context"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
 )
 
 // ResourceRepo 资源目录仓储接口

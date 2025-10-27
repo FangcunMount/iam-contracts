@@ -4,11 +4,11 @@ package policy
 import (
 	"context"
 
-	policyDriven "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy/port/driving"
-	policyService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy/service"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
+	policyDriven "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy/port/driving"
+	policyService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy/service"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // PolicyCommandService 策略命令服务（实现 PolicyCommander 接口）

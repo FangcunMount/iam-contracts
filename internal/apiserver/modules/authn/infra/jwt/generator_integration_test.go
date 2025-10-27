@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
-	jwtGen "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
+	jwtGen "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
 	"github.com/golang-jwt/jwt/v4"
 )
 

@@ -4,7 +4,7 @@ package driven
 import (
 	"context"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
 )
 
 // AssignmentRepo 赋权仓储接口

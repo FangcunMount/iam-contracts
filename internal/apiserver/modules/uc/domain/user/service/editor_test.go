@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user/service"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user/service"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // ==================== UserProfileEditor 测试 ====================
@@ -34,7 +34,7 @@ func TestUserProfileEditor_Rename_Success(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
 	existingUser, _ := domain.NewUser("旧名字", meta.NewPhone("13800138000"))
 	existingUser.ID = userID
@@ -58,7 +58,7 @@ func TestUserProfileEditor_Rename_EmptyName_ShouldFail(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
 	emptyName := "   " // 空白字符串
 
@@ -79,7 +79,7 @@ func TestUserProfileEditor_Rename_UserNotFound(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(99999)
 	newName := "新名字"
 
@@ -100,11 +100,11 @@ func TestUserProfileEditor_UpdateContact_Success_BothPhoneAndEmail(t *testing.T)
 	mockRepo := new(MockUserRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
 	existingUser, _ := domain.NewUser("张三", meta.NewPhone("13800138000"))
 	existingUser.ID = userID
-	
+
 	newPhone := meta.NewPhone("13900139000")
 	newEmail := meta.NewEmail("zhangsan@example.com")
 
@@ -129,11 +129,11 @@ func TestUserProfileEditor_UpdateContact_OnlyPhone(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
 	existingUser, _ := domain.NewUser("李四", meta.NewPhone("13800138000"))
 	existingUser.ID = userID
-	
+
 	newPhone := meta.NewPhone("13900139000")
 	emptyEmail := meta.Email{} // 空邮箱
 
@@ -157,12 +157,12 @@ func TestUserProfileEditor_UpdateContact_OnlyEmail(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
 	oldPhone := meta.NewPhone("13800138000")
 	existingUser, _ := domain.NewUser("王五", oldPhone)
 	existingUser.ID = userID
-	
+
 	samePhone := oldPhone // 保持手机号不变
 	newEmail := meta.NewEmail("wangwu@example.com")
 
@@ -185,11 +185,11 @@ func TestUserProfileEditor_UpdateContact_PhoneAlreadyExists(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
 	existingUser, _ := domain.NewUser("赵六", meta.NewPhone("13800138000"))
 	existingUser.ID = userID
-	
+
 	newPhone := meta.NewPhone("13900139000")
 	newEmail := meta.NewEmail("zhaoliu@example.com")
 
@@ -216,11 +216,11 @@ func TestUserProfileEditor_UpdateIDCard_Success(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
 	existingUser, _ := domain.NewUser("孙七", meta.NewPhone("13800138000"))
 	existingUser.ID = userID
-	
+
 	newIDCard := meta.NewIDCard("孙七", "110101199001011234")
 
 	// Mock: 查找用户成功
@@ -241,7 +241,7 @@ func TestUserProfileEditor_UpdateIDCard_UserNotFound(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(99999)
 	newIDCard := meta.NewIDCard("周八", "320106198501010001")
 

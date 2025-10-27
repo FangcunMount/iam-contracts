@@ -16,14 +16,14 @@ DomainGuard 是一个轻量级的权限检查客户端（PEP - Policy Enforcemen
 ### 1. 安装
 
 ```bash
-go get github.com/fangcun-mount/iam-contracts/pkg/dominguard
+go get github.com/FangcunMount/iam-contracts/pkg/dominguard
 ```
 
 ### 2. 创建 DomainGuard 实例
 
 ```go
 import (
-    "github.com/fangcun-mount/iam-contracts/pkg/dominguard"
+    "github.com/FangcunMount/iam-contracts/pkg/dominguard"
     casbin "github.com/casbin/casbin/v2"
 )
 

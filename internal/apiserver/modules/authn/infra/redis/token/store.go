@@ -10,8 +10,8 @@ import (
 	"github.com/go-redis/redis/v7"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 )
 
 // RedisStore Redis 令牌存储实现

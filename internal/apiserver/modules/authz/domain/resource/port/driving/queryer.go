@@ -4,7 +4,7 @@ package driving
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
 )
 
 // ResourceQueryer 资源查询服务接口（读操作）

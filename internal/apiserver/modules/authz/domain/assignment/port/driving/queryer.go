@@ -4,7 +4,7 @@ package driving
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
 )
 
 // AssignmentQueryer 赋权查询接口（读操作）

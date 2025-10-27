@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
-	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
+	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"gorm.io/gorm"
 )
 

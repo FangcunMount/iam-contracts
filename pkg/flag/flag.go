@@ -4,7 +4,7 @@ import (
 	goflag "flag"
 	"strings"
 
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
 	"github.com/spf13/pflag"
 )
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver"
 )
 
 func main() {

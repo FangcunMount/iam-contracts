@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // ==================== 工厂方法测试 ====================

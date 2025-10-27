@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 )
 
 // TokenStore 令牌存储端口

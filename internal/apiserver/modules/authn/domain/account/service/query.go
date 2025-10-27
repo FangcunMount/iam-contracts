@@ -5,11 +5,11 @@ import (
 	"errors"
 	"strings"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
-	drivingPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driving"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
+	drivingPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driving"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 	"gorm.io/gorm"
 )
 

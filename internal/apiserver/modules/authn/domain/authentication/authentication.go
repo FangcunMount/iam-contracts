@@ -3,7 +3,7 @@ package authentication
 import (
 	"time"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 )
 
 // Authentication 认证结果实体，表示一次成功的认证

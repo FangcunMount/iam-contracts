@@ -6,11 +6,11 @@ import (
 
 	"github.com/google/uuid"
 
-	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
 // TokenIssuer 令牌颁发者

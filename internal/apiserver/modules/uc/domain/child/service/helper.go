@@ -1,6 +1,6 @@
 package service
 
-import domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child"
+import domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child"
 
 // toChildPointers 现在直接接受仓储返回的指针切片，做简单的 nil/空处理并返回同一切片
 func toChildPointers(children []*domain.Child) []*domain.Child {

@@ -1,7 +1,7 @@
 package code
 
 import (
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // Common: basic errors (1xxxxx).

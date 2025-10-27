@@ -3,7 +3,7 @@ package restful
 import (
 	"github.com/gin-gonic/gin"
 
-	authhandler "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/handler"
+	authhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/handler"
 )
 
 // Dependencies describes the external collaborators needed to expose authn endpoints.

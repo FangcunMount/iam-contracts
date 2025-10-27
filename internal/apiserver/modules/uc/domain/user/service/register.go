@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user/port"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user/port"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // UserRegister 用户注册应用服务

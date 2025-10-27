@@ -5,10 +5,10 @@ import (
 	"context"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 
-	tokenService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/token"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
+	tokenService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/token"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
 // TokenService 令牌应用服务

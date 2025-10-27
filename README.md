@@ -69,7 +69,7 @@
 #### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/fangcun-mount/iam-contracts.git
+git clone https://github.com/FangcunMount/iam-contracts.git
 cd iam-contracts
 ```
 
@@ -773,7 +773,7 @@ make test-coverage
 ## 📞 联系我们
 
 - **项目维护者**: [fangcun-mount](https://github.com/fangcun-mount)
-- **问题反馈**: [GitHub Issues](https://github.com/fangcun-mount/iam-contracts/issues)
+- **问题反馈**: [GitHub Issues](https://github.com/FangcunMount/iam-contracts/issues)
 
 ---
 Built with ❤️ using Go and Hexagonal Architecture

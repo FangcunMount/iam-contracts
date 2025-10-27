@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	base "github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
+	base "github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"gorm.io/gorm"
 )
 

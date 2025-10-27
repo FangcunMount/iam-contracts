@@ -49,7 +49,7 @@
 
 ```bash
 # 1. 克隆项目
-git clone https://github.com/fangcun-mount/iam-contracts.git
+git clone https://github.com/FangcunMount/iam-contracts.git
 cd iam-contracts
 
 # 2. 启动基础设施（MySQL + Redis）
@@ -124,8 +124,8 @@ docs/
 
 ## 📞 联系方式
 
-- **项目仓库**: <https://github.com/fangcun-mount/iam-contracts>
-- **问题反馈**: <https://github.com/fangcun-mount/iam-contracts/issues>
+- **项目仓库**: <https://github.com/FangcunMount/iam-contracts>
+- **问题反馈**: <https://github.com/FangcunMount/iam-contracts/issues>
 
 ## 📄 许可证
 

@@ -3,7 +3,7 @@ package code
 import (
 	"net/http"
 
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // Authorization errors (103xxx - changed from 102xxx to avoid conflict with JWKS).

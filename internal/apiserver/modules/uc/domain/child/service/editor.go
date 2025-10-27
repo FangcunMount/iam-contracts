@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child"
-	port "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child/port"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child"
+	port "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child/port"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // ChildProfileEditor 儿童档案资料编辑应用服务

@@ -4,12 +4,12 @@ package service
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
-	assignmentDriven "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role"
-	roleDriven "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
+	assignmentDriven "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role"
+	roleDriven "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // AssignmentManager 赋权管理器（领域服务）

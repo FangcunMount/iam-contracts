@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user/service"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user/service"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // ==================== UserQueryer 测试 ====================
@@ -34,7 +34,7 @@ func TestUserQueryer_FindByID_Success(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	querySvc := service.NewQueryService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
 	expectedUser, _ := domain.NewUser("张三", meta.NewPhone("13800138000"))
 	expectedUser.ID = userID
@@ -58,7 +58,7 @@ func TestUserQueryer_FindByID_NotFound(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	querySvc := service.NewQueryService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(99999)
 
 	// Mock: 用户不存在
@@ -81,7 +81,7 @@ func TestUserQueryer_FindByID_DatabaseError(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	querySvc := service.NewQueryService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
 	dbError := fmt.Errorf("database connection failed")
 
@@ -105,7 +105,7 @@ func TestUserQueryer_FindByPhone_Success(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	querySvc := service.NewQueryService(mockRepo)
 	ctx := context.Background()
-	
+
 	phone := meta.NewPhone("13800138000")
 	expectedUser, _ := domain.NewUser("李四", phone)
 	expectedUser.ID = domain.NewUserID(12345)
@@ -129,7 +129,7 @@ func TestUserQueryer_FindByPhone_NotFound(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	querySvc := service.NewQueryService(mockRepo)
 	ctx := context.Background()
-	
+
 	phone := meta.NewPhone("13900139000")
 
 	// Mock: 用户不存在
@@ -152,7 +152,7 @@ func TestUserQueryer_FindByPhone_DatabaseError(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	querySvc := service.NewQueryService(mockRepo)
 	ctx := context.Background()
-	
+
 	phone := meta.NewPhone("13800138000")
 	dbError := fmt.Errorf("database connection timeout")
 
@@ -178,7 +178,7 @@ func TestUserQueryer_MultipleQueryMethods(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	querySvc := service.NewQueryService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
 	phone := meta.NewPhone("13800138000")
 	user, _ := domain.NewUser("王五", phone)
@@ -190,7 +190,7 @@ func TestUserQueryer_MultipleQueryMethods(t *testing.T) {
 
 	// Act - 通过 ID 查询
 	userByID, err1 := querySvc.FindByID(ctx, userID)
-	
+
 	// Act - 通过 Phone 查询
 	userByPhone, err2 := querySvc.FindByPhone(ctx, phone)
 
@@ -199,11 +199,11 @@ func TestUserQueryer_MultipleQueryMethods(t *testing.T) {
 	require.NoError(t, err2)
 	require.NotNil(t, userByID)
 	require.NotNil(t, userByPhone)
-	
+
 	// 验证返回的是同一个用户
 	assert.Equal(t, userByID.ID, userByPhone.ID)
 	assert.Equal(t, userByID.Name, userByPhone.Name)
 	assert.Equal(t, userByID.Phone, userByPhone.Phone)
-	
+
 	mockRepo.AssertExpectations(t)
 }

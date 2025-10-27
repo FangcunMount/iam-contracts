@@ -7,12 +7,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	appAccount "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/account"
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	req "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/request"
-	resp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/response"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+	appAccount "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/account"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	req "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/request"
+	resp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/response"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // AccountHandler exposes RESTful endpoints for account management.

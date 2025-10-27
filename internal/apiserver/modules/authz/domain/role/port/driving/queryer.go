@@ -4,7 +4,7 @@ package driving
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role"
 )
 
 // RoleQueryer 角色查询服务接口（读操作）

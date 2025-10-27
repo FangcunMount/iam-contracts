@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user/service"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user/service"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // ==================== UserStatusChanger 测试 ====================
@@ -31,7 +31,7 @@ func TestUserStatusChanger_Activate_Success(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	statusSvc := service.NewStatusService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
 	existingUser, _ := domain.NewUser("张三", meta.NewPhone("13800138000"))
 	existingUser.ID = userID
@@ -55,7 +55,7 @@ func TestUserStatusChanger_Activate_UserNotFound(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	statusSvc := service.NewStatusService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(99999)
 
 	// Mock: 用户不存在
@@ -75,7 +75,7 @@ func TestUserStatusChanger_Deactivate_Success(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	statusSvc := service.NewStatusService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
 	existingUser, _ := domain.NewUser("李四", meta.NewPhone("13900139000"))
 	existingUser.ID = userID
@@ -99,7 +99,7 @@ func TestUserStatusChanger_Deactivate_UserNotFound(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	statusSvc := service.NewStatusService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(99999)
 
 	// Mock: 用户不存在
@@ -119,7 +119,7 @@ func TestUserStatusChanger_Block_Success(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	statusSvc := service.NewStatusService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
 	existingUser, _ := domain.NewUser("王五", meta.NewPhone("13700137000"))
 	existingUser.ID = userID
@@ -143,7 +143,7 @@ func TestUserStatusChanger_Block_UserNotFound(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	statusSvc := service.NewStatusService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(99999)
 
 	// Mock: 用户不存在
@@ -165,37 +165,37 @@ func TestUserStatusChanger_StateTransitions(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 	statusSvc := service.NewStatusService(mockRepo)
 	ctx := context.Background()
-	
+
 	userID := domain.NewUserID(12345)
-	
+
 	tests := []struct {
-		name          string
-		initialStatus domain.UserStatus
-		action        string
+		name           string
+		initialStatus  domain.UserStatus
+		action         string
 		expectedStatus domain.UserStatus
 	}{
 		{
-			name:          "从激活到停用",
-			initialStatus: domain.UserActive,
-			action:        "deactivate",
+			name:           "从激活到停用",
+			initialStatus:  domain.UserActive,
+			action:         "deactivate",
 			expectedStatus: domain.UserInactive,
 		},
 		{
-			name:          "从停用到激活",
-			initialStatus: domain.UserInactive,
-			action:        "activate",
+			name:           "从停用到激活",
+			initialStatus:  domain.UserInactive,
+			action:         "activate",
 			expectedStatus: domain.UserActive,
 		},
 		{
-			name:          "从激活到封禁",
-			initialStatus: domain.UserActive,
-			action:        "block",
+			name:           "从激活到封禁",
+			initialStatus:  domain.UserActive,
+			action:         "block",
 			expectedStatus: domain.UserBlocked,
 		},
 		{
-			name:          "从封禁到激活",
-			initialStatus: domain.UserBlocked,
-			action:        "activate",
+			name:           "从封禁到激活",
+			initialStatus:  domain.UserBlocked,
+			action:         "activate",
 			expectedStatus: domain.UserActive,
 		},
 	}
@@ -228,6 +228,6 @@ func TestUserStatusChanger_StateTransitions(t *testing.T) {
 			assert.Equal(t, tt.expectedStatus, updatedUser.Status)
 		})
 	}
-	
+
 	mockRepo.AssertExpectations(t)
 }

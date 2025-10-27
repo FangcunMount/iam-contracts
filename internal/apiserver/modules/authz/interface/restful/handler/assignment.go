@@ -4,11 +4,11 @@ package handler
 import (
 	"strconv"
 
-	domainAssignment "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/port/driving"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/interface/restful/dto"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	domainAssignment "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/port/driving"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/interface/restful/dto"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 	"github.com/gin-gonic/gin"
 )
 

@@ -3,11 +3,11 @@ package authenticator
 import (
 	"context"
 
-	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	drivingPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driving"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	drivingPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driving"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
 // Authenticator 认证服务（策略模式编排器）

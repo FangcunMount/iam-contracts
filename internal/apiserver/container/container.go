@@ -7,7 +7,7 @@ import (
 	"github.com/go-redis/redis/v7"
 	"gorm.io/gorm"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/container/assembler"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/container/assembler"
 )
 
 // Container 容器

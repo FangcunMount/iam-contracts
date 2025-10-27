@@ -4,7 +4,7 @@ package driven
 import (
 	"context"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy"
 )
 
 // PolicyVersionRepo 策略版本仓储接口
