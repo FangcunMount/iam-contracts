@@ -12,6 +12,7 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
     container_name: iam-apiserver
     image: iam-contracts:latest
+    user: "${WWW_UID:-1000}:${WWW_GID:-1000}"
     env_file:
       - ../../configs/env/config.env
     ports:
