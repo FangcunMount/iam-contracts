@@ -12,13 +12,10 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.11.1
-	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.39.0
 	google.golang.org/protobuf v1.36.6
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.30.0
-	k8s.io/klog v1.0.0
 )
 
 require google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
@@ -83,16 +80,18 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
-	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/arch v0.18.0 // indirect
 	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.26.0 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/postgres v1.5.9 // indirect
 	gorm.io/driver/sqlserver v1.5.3 // indirect
 	gorm.io/plugin/dbresolver v1.6.0 // indirect
+	k8s.io/klog v1.0.0 // indirect
 	modernc.org/libc v1.22.2 // indirect
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.5.0 // indirect
@@ -100,8 +99,8 @@ require (
 )
 
 require (
-	github.com/FangcunMount/component-base v0.2.4
-	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
+	github.com/FangcunMount/component-base v0.2.5
+	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/casbin/casbin/v2 v2.128.0
 	github.com/casbin/gorm-adapter/v3 v3.37.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -112,14 +111,12 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/gosuri/uitable v0.0.4
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/json-iterator/go v1.1.12
-	github.com/marmotedu/component-base v1.6.2
-	github.com/mattheath/base62 v0.0.0-20150408093626-b80cdc656a7a
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/redis/go-redis/v9 v9.14.0
 	github.com/satori/go.uuid v1.2.0
-	github.com/sirupsen/logrus v1.9.3
-	github.com/sony/sonyflake v1.3.0
-	github.com/speps/go-hashids v2.0.0+incompatible
+	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/sony/sonyflake v1.3.0 // indirect
+	github.com/speps/go-hashids v2.0.0+incompatible // indirect
 	github.com/spf13/pflag v1.0.10
 	github.com/tpkeeper/gin-dump v1.0.1
 	github.com/zsais/go-gin-prometheus v0.1.0
