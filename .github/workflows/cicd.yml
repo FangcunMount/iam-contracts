@@ -175,6 +175,9 @@ jobs:
     environment:
       name: production
       url: https://iam.yangshujie.com
+    env:
+      WWW_UID: ${{ secrets.WWW_UID || '1000' }}
+      WWW_GID: ${{ secrets.WWW_GID || '1000' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -245,14 +248,19 @@ jobs:
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SUDO_PASSWORD: ${{ secrets.SVRA_SUDO_PASSWORD }}
+          WWW_UID: ${{ env.WWW_UID }}
+          WWW_GID: ${{ env.WWW_GID }}
         with:
           host: ${{ secrets.SVRA_HOST }}
           username: ${{ secrets.SVRA_USERNAME }}
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
-          envs: DOCKER_REGISTRY,IMAGE_NAME,GHCR_USERNAME,GHCR_TOKEN,SUDO_PASSWORD
+          envs: DOCKER_REGISTRY,IMAGE_NAME,GHCR_USERNAME,GHCR_TOKEN,SUDO_PASSWORD,WWW_UID,WWW_GID
           script: |
             set -Eeuo pipefail
+
+            APP_UID="${WWW_UID:-1000}"
+            APP_GID="${WWW_GID:-1000}"
 
             # ----- SUDO 助手：免密优先；若需密码则每次 sudo 都喂密码 -----
             if sudo -n true 2>/dev/null; then
@@ -298,11 +306,11 @@ jobs:
             $SUDO rsync -a "$DEPLOY_TMP/configs/" /opt/iam/configs/
             $SUDO rsync -a "$DEPLOY_TMP/iam-apiserver" /opt/iam/bin/iam-apiserver
             $SUDO chmod 0755 /opt/iam/bin/iam-apiserver
-            $SUDO chown -R 1000:1000 /opt/iam/configs
+            $SUDO chown -R "$APP_UID:$APP_GID" /opt/iam/configs
 
             LOG_DIR_HOST="/data/logs/iam"
             $SUDO mkdir -p "$LOG_DIR_HOST"
-            $SUDO chown -R 1000:1000 "$LOG_DIR_HOST"
+            $SUDO chown -R "$APP_UID:$APP_GID" "$LOG_DIR_HOST"
 
             # 清理临时目录与上传包
             rm -rf "$DEPLOY_TMP"
@@ -356,6 +364,7 @@ jobs:
             DOCKER_OPTIONS="--name iam-apiserver \
               --restart unless-stopped \
               --network iam-network \
+              --user ${APP_UID}:${APP_GID} \
               -p 8080:9080 \
               -p 9444:9444 \
               -v /opt/iam/configs:/app/configs \
