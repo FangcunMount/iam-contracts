@@ -1,22 +1,22 @@
 package jwt_test
 
 import (
-"context"
-"crypto/rand"
-"crypto/rsa"
-"testing"
-"time"
+	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"testing"
+	"time"
 
-"github.com/stretchr/testify/assert"
-"github.com/stretchr/testify/mock"
-"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
-"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
-jwtGen "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
-"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
-"github.com/golang-jwt/jwt/v4"
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
+	jwtGen "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 // MockKeyManagementService mock 实现

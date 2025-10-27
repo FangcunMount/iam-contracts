@@ -9,11 +9,11 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driving"
-	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 )
 
 // Generator JWT 令牌生成器（使用 JWKS 的 RSA 密钥签名）

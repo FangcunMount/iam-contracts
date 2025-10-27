@@ -3,8 +3,8 @@ package guardianship
 import (
 	"time"
 
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	base "github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
-	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 	"gorm.io/gorm"
 )
 
@@ -26,18 +26,18 @@ func (GuardianshipPO) TableName() string {
 
 // BeforeCreate 在创建前设置信息
 func (p *GuardianshipPO) BeforeCreate(tx *gorm.DB) error {
-    p.ID = idutil.NewID(idutil.GetIntID())
-    now := time.Now()
-    p.CreatedAt = now
-    p.UpdatedAt = now
-    p.CreatedBy = idutil.NewID(0)
-    p.UpdatedBy = idutil.NewID(0)
-    p.DeletedBy = idutil.NewID(0)
-    p.Version = base.InitialVersion
+	p.ID = idutil.NewID(idutil.GetIntID())
+	now := time.Now()
+	p.CreatedAt = now
+	p.UpdatedAt = now
+	p.CreatedBy = idutil.NewID(0)
+	p.UpdatedBy = idutil.NewID(0)
+	p.DeletedBy = idutil.NewID(0)
+	p.Version = base.InitialVersion
 
-    if p.EstablishedAt.IsZero() {
-        p.EstablishedAt = now
-    }
+	if p.EstablishedAt.IsZero() {
+		p.EstablishedAt = now
+	}
 
 	return nil
 }

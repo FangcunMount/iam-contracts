@@ -3,7 +3,7 @@ package mysql
 import (
 	"time"
 
-	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
 )
 
 // InitialVersion 默认的乐观锁版本号起点。

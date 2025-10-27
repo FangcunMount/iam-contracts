@@ -3,10 +3,10 @@ package role
 import (
 	"context"
 
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role"
 	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driven"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
-	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 	"gorm.io/gorm"
 )
 

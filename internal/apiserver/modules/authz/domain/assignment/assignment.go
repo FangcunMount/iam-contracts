@@ -1,6 +1,6 @@
 package assignment
 
-import "github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
+import "github.com/FangcunMount/component-base/pkg/util/idutil"
 
 // Assignment 用户/组 ↔ 角色赋权（聚合根）
 type Assignment struct {

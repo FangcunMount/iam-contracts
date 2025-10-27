@@ -1,6 +1,6 @@
 package account
 
-import "github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
+import "github.com/FangcunMount/component-base/pkg/util/idutil"
 
 // Provider 认证提供者
 type Provider string
