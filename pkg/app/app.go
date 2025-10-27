@@ -10,8 +10,8 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/log"
 	cliflag "github.com/FangcunMount/iam-contracts/pkg/flag"
-	"github.com/FangcunMount/iam-contracts/pkg/log"
 	"github.com/FangcunMount/iam-contracts/pkg/term"
 	"github.com/FangcunMount/iam-contracts/pkg/version"
 	"github.com/FangcunMount/iam-contracts/pkg/version/verflag"
