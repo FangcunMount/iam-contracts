@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
-	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // TokenRefresher 令牌刷新者

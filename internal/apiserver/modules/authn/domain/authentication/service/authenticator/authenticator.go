@@ -3,7 +3,7 @@ package authenticator
 import (
 	"context"
 
-	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 	drivingPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driving"

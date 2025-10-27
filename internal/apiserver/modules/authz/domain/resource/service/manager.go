@@ -7,10 +7,10 @@ package service
 import (
 	"context"
 
+	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
-	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // ResourceManager 资源管理领域服务

@@ -3,7 +3,7 @@ package core
 import (
 	"net/http"
 
-	"github.com/FangcunMount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/pkg/log"
 	"github.com/gin-gonic/gin"
 )

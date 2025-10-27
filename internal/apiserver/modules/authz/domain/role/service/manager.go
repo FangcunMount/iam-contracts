@@ -7,10 +7,10 @@ package service
 import (
 	"context"
 
+	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
-	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // RoleManager 角色管理领域服务

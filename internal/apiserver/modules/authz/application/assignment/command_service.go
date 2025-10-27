@@ -4,13 +4,13 @@ package assignment
 import (
 	"context"
 
+	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
 	assignmentDriven "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/port/driving"
 	assignmentService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/service"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy"
 	policyDriven "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy/port/driven"
-	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // AssignmentCommandService 赋权命令服务（实现 AssignmentCommander 接口）

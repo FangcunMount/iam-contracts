@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/uow"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
-	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 	"gorm.io/gorm"
 )
 
