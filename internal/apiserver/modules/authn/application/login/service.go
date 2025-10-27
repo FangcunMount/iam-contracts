@@ -4,12 +4,12 @@ package login
 import (
 	"context"
 
-	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	authService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/authenticator"
-	tokenService "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/token"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	authService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/authenticator"
+	tokenService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service/token"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
 // LoginService 登录应用服务

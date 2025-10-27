@@ -4,7 +4,7 @@ package driven
 import (
 	"context"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role"
 )
 
 // RoleRepo 角色仓储接口

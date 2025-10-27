@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/uow"
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child"
-	domainservice "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child/service"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/uow"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child"
+	domainservice "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child/service"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // ============= 应用服务实现 =============

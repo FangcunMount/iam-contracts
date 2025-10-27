@@ -9,9 +9,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // PEMPrivateKeyResolver 从 PEM 文件读取私钥

@@ -3,8 +3,8 @@ package guardianship
 import (
 	"time"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 )
 
 type Relation string // 监护关系

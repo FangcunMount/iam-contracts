@@ -7,12 +7,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	jwksApp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/request"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/response"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+	jwksApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/request"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/response"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // JWKSHandler JWKS HTTP 处理器

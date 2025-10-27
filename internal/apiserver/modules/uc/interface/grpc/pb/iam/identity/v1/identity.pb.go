@@ -750,7 +750,7 @@ const file_iam_identity_v1_identity_proto_rawDesc = "" +
 	"\x11GuardianshipQuery\x12M\n" +
 	"\n" +
 	"IsGuardian\x12\x1e.iam.identity.v1.IsGuardianReq\x1a\x1f.iam.identity.v1.IsGuardianResp\x12S\n" +
-	"\fListChildren\x12 .iam.identity.v1.ListChildrenReq\x1a!.iam.identity.v1.ListChildrenRespBdZbgithub.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/grpc/pb/iam/identity/v1;identityv1b\x06proto3"
+	"\fListChildren\x12 .iam.identity.v1.ListChildrenReq\x1a!.iam.identity.v1.ListChildrenRespBdZbgithub.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/grpc/pb/iam/identity/v1;identityv1b\x06proto3"
 
 var (
 	file_iam_identity_v1_identity_proto_rawDescOnce sync.Once

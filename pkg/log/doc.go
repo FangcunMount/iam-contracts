@@ -2,4 +2,4 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package log // import "github.com/fangcun-mount/iam-contracts/pkg/log"
+package log // import "github.com/FangcunMount/iam-contracts/pkg/log"

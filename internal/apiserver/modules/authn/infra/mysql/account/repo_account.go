@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"gorm.io/gorm"
 )
 

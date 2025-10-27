@@ -4,7 +4,7 @@ package driving
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy"
 )
 
 // PolicyQueryer 策略查询接口（读操作）

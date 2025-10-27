@@ -4,10 +4,10 @@ import (
 	"context"
 	"sync"
 
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy"
+	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy/port/driven"
 	"github.com/casbin/casbin/v2"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy"
-	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy/port/driven"
 	"gorm.io/gorm"
 )
 

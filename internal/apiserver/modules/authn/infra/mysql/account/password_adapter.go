@@ -4,9 +4,9 @@ package account
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	accountDrivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	accountDrivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 )
 
 // PasswordAdapter 账号密码适配器

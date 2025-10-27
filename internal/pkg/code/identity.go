@@ -3,7 +3,7 @@ package code
 import (
 	"net/http"
 
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // Base user & identity module errors.

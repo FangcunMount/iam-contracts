@@ -11,7 +11,7 @@ import (
 
 	gormlogger "gorm.io/gorm/logger"
 
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // Define colors.

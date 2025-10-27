@@ -4,7 +4,7 @@ package driven
 import (
 	"context"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy"
 )
 
 // CasbinPort Casbin 策略操作接口（抽象适配器）

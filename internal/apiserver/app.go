@@ -1,10 +1,10 @@
 package apiserver
 
 import (
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/config"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/options"
-	"github.com/fangcun-mount/iam-contracts/pkg/app"
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/config"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/options"
+	"github.com/FangcunMount/iam-contracts/pkg/app"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // commandDesc 命令描述

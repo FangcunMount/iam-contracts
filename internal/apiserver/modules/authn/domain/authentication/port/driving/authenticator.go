@@ -4,7 +4,7 @@ package driving
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 )
 
 // Authenticator 认证器接口（策略模式）

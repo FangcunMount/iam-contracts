@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driven"
 	"gorm.io/gorm"
 )
 

@@ -541,7 +541,7 @@ policyService := policy.NewPolicyService(casbinAdapter, resourceRepo, policyVers
 
 ```go
 import (
-    "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/interface/sdk/go/pep"
+    "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/interface/sdk/go/pep"
 )
 
 type FormUseCase struct {

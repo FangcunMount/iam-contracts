@@ -5,10 +5,10 @@ import (
 
 	"gorm.io/gorm"
 
-	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
-	acctrepo "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/database/tx"
+	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
+	acctrepo "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/database/tx"
 )
 
 // TxRepositories 聚合事务中可使用的仓储集合。

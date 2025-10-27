@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // KeyRotationScheduler 密钥轮换调度器

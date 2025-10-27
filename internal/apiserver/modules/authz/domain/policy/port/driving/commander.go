@@ -4,8 +4,8 @@ package driving
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
 )
 
 // PolicyCommander 策略命令接口（写操作）

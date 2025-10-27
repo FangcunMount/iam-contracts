@@ -7,7 +7,7 @@ import (
 
 	flag "github.com/spf13/pflag"
 
-	"github.com/fangcun-mount/iam-contracts/pkg/version"
+	"github.com/FangcunMount/iam-contracts/pkg/version"
 )
 
 // versionValue 版本值

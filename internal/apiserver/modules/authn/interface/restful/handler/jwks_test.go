@@ -14,10 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	jwksApp "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driving"
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
+	jwksApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driving"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // MockKeyManagementService 模拟领域层密钥管理服务

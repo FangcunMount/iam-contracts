@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user/port"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
-	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user/port"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 	"gorm.io/gorm"
 )
 

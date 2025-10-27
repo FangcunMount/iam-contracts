@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child/service"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child/service"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // ==================== Mock ChildRepository ====================
@@ -94,7 +94,7 @@ func TestChildRegister_Register_Success(t *testing.T) {
 	mockRepo := new(MockChildRepository)
 	registerSvc := service.NewRegisterService(mockRepo)
 	ctx := context.Background()
-	
+
 	name := "小明"
 	gender := meta.GenderMale
 	birthday := meta.NewBirthday("2015-06-01")
@@ -116,7 +116,7 @@ func TestChildRegister_Register_EmptyName_ShouldFail(t *testing.T) {
 	mockRepo := new(MockChildRepository)
 	registerSvc := service.NewRegisterService(mockRepo)
 	ctx := context.Background()
-	
+
 	name := ""
 	gender := meta.GenderMale
 	birthday := meta.NewBirthday("2015-06-01")
@@ -136,7 +136,7 @@ func TestChildRegister_RegisterWithIDCard_Success(t *testing.T) {
 	mockRepo := new(MockChildRepository)
 	registerSvc := service.NewRegisterService(mockRepo)
 	ctx := context.Background()
-	
+
 	name := "小红"
 	gender := meta.GenderFemale
 	birthday := meta.NewBirthday("2016-03-15")
@@ -168,7 +168,7 @@ func TestChildQueryer_FindByID_Success(t *testing.T) {
 	mockRepo := new(MockChildRepository)
 	querySvc := service.NewQueryService(mockRepo)
 	ctx := context.Background()
-	
+
 	childID := domain.NewChildID(12345)
 	expectedChild, _ := domain.NewChild("小李")
 	expectedChild.ID = childID
@@ -191,7 +191,7 @@ func TestChildQueryer_FindByID_NotFound(t *testing.T) {
 	mockRepo := new(MockChildRepository)
 	querySvc := service.NewQueryService(mockRepo)
 	ctx := context.Background()
-	
+
 	childID := domain.NewChildID(99999)
 	mockRepo.On("FindByID", ctx, childID).Return(nil, gorm.ErrRecordNotFound)
 
@@ -210,7 +210,7 @@ func TestChildQueryer_FindByIDCard_Success(t *testing.T) {
 	mockRepo := new(MockChildRepository)
 	querySvc := service.NewQueryService(mockRepo)
 	ctx := context.Background()
-	
+
 	idCard := meta.NewIDCard("小王", "110101201701011234")
 	expectedChild, _ := domain.NewChild("小王", domain.WithIDCard(idCard))
 
@@ -232,7 +232,7 @@ func TestChildQueryer_FindListByName_Success(t *testing.T) {
 	mockRepo := new(MockChildRepository)
 	querySvc := service.NewQueryService(mockRepo)
 	ctx := context.Background()
-	
+
 	name := "小张"
 	child1, _ := domain.NewChild(name)
 	child1.ID = domain.NewChildID(1)
@@ -258,11 +258,11 @@ func TestChildQueryer_FindSimilar_Success(t *testing.T) {
 	mockRepo := new(MockChildRepository)
 	querySvc := service.NewQueryService(mockRepo)
 	ctx := context.Background()
-	
+
 	name := "小赵"
 	gender := meta.GenderMale
 	birthday := meta.NewBirthday("2018-01-01")
-	
+
 	child1, _ := domain.NewChild(name, domain.WithGender(gender), domain.WithBirthday(birthday))
 	child1.ID = domain.NewChildID(1)
 	expectedChildren := []*domain.Child{child1}
@@ -293,7 +293,7 @@ func TestChildProfileEditor_Rename_Success(t *testing.T) {
 	mockRepo := new(MockChildRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	childID := domain.NewChildID(12345)
 	oldChild, _ := domain.NewChild("旧名字")
 	oldChild.ID = childID
@@ -316,7 +316,7 @@ func TestChildProfileEditor_UpdateIDCard_Success(t *testing.T) {
 	mockRepo := new(MockChildRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	childID := domain.NewChildID(12345)
 	child, _ := domain.NewChild("小孙")
 	child.ID = childID
@@ -339,7 +339,7 @@ func TestChildProfileEditor_UpdateProfile_Success(t *testing.T) {
 	mockRepo := new(MockChildRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	childID := domain.NewChildID(12345)
 	child, _ := domain.NewChild("小周")
 	child.ID = childID
@@ -364,7 +364,7 @@ func TestChildProfileEditor_UpdateHeightWeight_Success(t *testing.T) {
 	mockRepo := new(MockChildRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	childID := domain.NewChildID(12345)
 	child, _ := domain.NewChild("小吴")
 	child.ID = childID
@@ -389,7 +389,7 @@ func TestChildProfileEditor_ChildNotFound(t *testing.T) {
 	mockRepo := new(MockChildRepository)
 	profileSvc := service.NewProfileService(mockRepo)
 	ctx := context.Background()
-	
+
 	childID := domain.NewChildID(99999)
 	mockRepo.On("FindByID", ctx, childID).Return(nil, gorm.ErrRecordNotFound)
 

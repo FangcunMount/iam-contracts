@@ -3,9 +3,9 @@ package options
 import (
 	"encoding/json"
 
-	genericoptions "github.com/fangcun-mount/iam-contracts/internal/pkg/options"
-	cliflag "github.com/fangcun-mount/iam-contracts/pkg/flag"
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
+	genericoptions "github.com/FangcunMount/iam-contracts/internal/pkg/options"
+	cliflag "github.com/FangcunMount/iam-contracts/pkg/flag"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // Options 包含所有配置项

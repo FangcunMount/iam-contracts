@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child"
-	guardianship "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child"
+	guardianship "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 )
 
 // GuardianshipRepository 监护关系存储接口

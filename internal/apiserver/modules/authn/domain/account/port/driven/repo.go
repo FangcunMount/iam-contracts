@@ -4,7 +4,7 @@ package driven
 import (
 	"context"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 )
 
 // 统一锚点

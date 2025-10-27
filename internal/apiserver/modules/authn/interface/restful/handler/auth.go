@@ -7,12 +7,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/login"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/token"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/request"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/interface/restful/response"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/login"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/token"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/request"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/response"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // AuthHandler 认证 HTTP 处理器

@@ -13,7 +13,7 @@ package account
 import (
 	"context"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 )
 
 // DTO定义 - 应用层的数据传输对象

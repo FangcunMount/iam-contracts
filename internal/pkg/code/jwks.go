@@ -3,7 +3,7 @@ package code
 import (
 	"net/http"
 
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // JWKS 密钥管理相关错误 (102xxx)

@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user/port"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user/port"
 )
 
 // UserStatusChanger 用户状态管理领域服务

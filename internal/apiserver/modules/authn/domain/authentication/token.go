@@ -3,7 +3,7 @@ package authentication
 import (
 	"time"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 )
 
 // TokenType 令牌类型

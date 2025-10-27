@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	drivenPort "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/policy/port/driven"
+	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy/port/driven"
 	"github.com/redis/go-redis/v9"
 )
 

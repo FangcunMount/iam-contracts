@@ -4,8 +4,8 @@ package handler
 import (
 	"net/http"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/interface/restful/dto"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/interface/restful/dto"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 	"github.com/gin-gonic/gin"
 )
 

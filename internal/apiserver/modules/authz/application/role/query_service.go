@@ -4,10 +4,10 @@ package role
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driving"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driving"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // RoleQueryService 角色查询服务（读操作）

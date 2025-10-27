@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/child"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 )
 
 // ==================== Guardianship 实体测试 ====================

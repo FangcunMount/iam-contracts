@@ -4,7 +4,7 @@ package driving
 import (
 	"context"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 )
 
 // AccountRegisterer —— 账号注册服务接口，统一创建 Account + 子实体

@@ -1,4 +1,4 @@
-module github.com/fangcun-mount/iam-contracts
+module github.com/FangcunMount/iam-contracts
 
 go 1.24
 

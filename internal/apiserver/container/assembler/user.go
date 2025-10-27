@@ -3,13 +3,13 @@ package assembler
 import (
 	"gorm.io/gorm"
 
-	appchild "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/child"
-	appguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/guardianship"
-	appuow "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/uow"
-	appuser "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/user"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/restful/handler"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
+	appchild "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/child"
+	appguard "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/guardianship"
+	appuow "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/uow"
+	appuser "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful/handler"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // UserModule 用户模块

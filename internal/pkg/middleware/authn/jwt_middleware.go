@@ -5,11 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/token"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	"github.com/fangcun-mount/iam-contracts/pkg/core"
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/token"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/pkg/core"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // JWTAuthMiddleware JWT 认证中间件

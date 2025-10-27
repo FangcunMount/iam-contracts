@@ -9,12 +9,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/fangcun-mount/iam-contracts/pkg/errors"
-	cliflag "github.com/fangcun-mount/iam-contracts/pkg/flag"
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
-	"github.com/fangcun-mount/iam-contracts/pkg/term"
-	"github.com/fangcun-mount/iam-contracts/pkg/version"
-	"github.com/fangcun-mount/iam-contracts/pkg/version/verflag"
+	"github.com/FangcunMount/iam-contracts/pkg/errors"
+	cliflag "github.com/FangcunMount/iam-contracts/pkg/flag"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/iam-contracts/pkg/term"
+	"github.com/FangcunMount/iam-contracts/pkg/version"
+	"github.com/FangcunMount/iam-contracts/pkg/version/verflag"
 )
 
 var (

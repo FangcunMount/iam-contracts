@@ -14,8 +14,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
-	"github.com/fangcun-mount/iam-contracts/pkg/util/homedir"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/iam-contracts/pkg/util/homedir"
 )
 
 const (

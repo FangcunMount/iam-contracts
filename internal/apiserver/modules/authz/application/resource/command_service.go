@@ -7,10 +7,10 @@ package resource
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource/port/driving"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/resource/service"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource/port/driving"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource/service"
 )
 
 // ResourceCommandService 资源命令服务（写操作）

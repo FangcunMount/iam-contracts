@@ -6,10 +6,10 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/config"
-	"github.com/fangcun-mount/iam-contracts/pkg/database"
-	"github.com/fangcun-mount/iam-contracts/pkg/database/databases"
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/config"
+	"github.com/FangcunMount/iam-contracts/pkg/database"
+	"github.com/FangcunMount/iam-contracts/pkg/database/databases"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // DatabaseManager 数据库管理器

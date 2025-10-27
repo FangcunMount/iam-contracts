@@ -19,7 +19,7 @@
 package main
 
 import (
-    "github.com/fangcun-mount/iam-contracts/pkg/log"
+    "github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 func main() {
@@ -96,7 +96,7 @@ log.Init(&log.Options{
 ### Zap
 
 ```go
-import "github.com/fangcun-mount/iam-contracts/pkg/log"
+import "github.com/FangcunMount/iam-contracts/pkg/log"
 
 log.Init(&log.Options{
     Level:      "info",
@@ -108,7 +108,7 @@ log.Init(&log.Options{
 ### Logrus
 
 ```go
-import "github.com/fangcun-mount/iam-contracts/pkg/log/logrus"
+import "github.com/FangcunMount/iam-contracts/pkg/log/logrus"
 
 logger := logrus.New()
 logger.SetFormatter(&logrus.JSONFormatter{})
@@ -118,7 +118,7 @@ logger.Info("Hello, World!")
 ### Klog
 
 ```go
-import "github.com/fangcun-mount/iam-contracts/pkg/log/klog"
+import "github.com/FangcunMount/iam-contracts/pkg/log/klog"
 
 klog.InitFlags(nil)
 klog.Info("Hello, World!")

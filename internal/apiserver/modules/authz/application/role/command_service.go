@@ -7,10 +7,10 @@ package role
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driven"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driving"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role/service"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role/port/driving"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role/service"
 )
 
 // RoleCommandService 角色命令服务（写操作）

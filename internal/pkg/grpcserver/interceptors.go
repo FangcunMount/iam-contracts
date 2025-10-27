@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
-	"github.com/fangcun-mount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // LoggingInterceptor 统一的 gRPC 日志拦截器

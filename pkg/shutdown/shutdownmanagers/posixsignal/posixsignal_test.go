@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fangcun-mount/iam-contracts/pkg/shutdown"
+	"github.com/FangcunMount/iam-contracts/pkg/shutdown"
 )
 
 type startShutdownFunc func(sm shutdown.ShutdownManager)

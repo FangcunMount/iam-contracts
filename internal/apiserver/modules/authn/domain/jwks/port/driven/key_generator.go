@@ -3,7 +3,7 @@ package driven
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
 )
 
 // KeyPair 密钥对（私钥 + 公钥）

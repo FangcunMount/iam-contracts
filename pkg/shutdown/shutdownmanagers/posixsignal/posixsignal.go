@@ -14,7 +14,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/fangcun-mount/iam-contracts/pkg/shutdown"
+	"github.com/FangcunMount/iam-contracts/pkg/shutdown"
 )
 
 // Name defines shutdown manager name.

@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	appguard "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/guardianship"
-	requestdto "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/restful/request"
-	responsedto "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/restful/response"
+	appguard "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/guardianship"
+	requestdto "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful/request"
+	responsedto "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful/response"
 )
 
 // GuardianshipHandler 监护关系 REST 处理器

@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 )
 
 // ============= 应用服务接口（Driving Ports）=============

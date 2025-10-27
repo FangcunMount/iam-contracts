@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/testutil"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/uow"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/user"
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/testutil"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/uow"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/user"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
 )
 
 // ==================== UserApplicationService 测试 ====================

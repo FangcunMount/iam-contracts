@@ -4,7 +4,7 @@ package driving
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment"
 )
 
 // AssignmentCommander 赋权命令接口（写操作）

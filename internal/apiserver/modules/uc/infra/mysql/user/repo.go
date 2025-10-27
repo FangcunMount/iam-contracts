@@ -3,10 +3,10 @@ package user
 import (
 	"context"
 
-	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user/port"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user/port"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 

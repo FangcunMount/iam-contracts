@@ -6,11 +6,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	appuser "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/application/user"
-	requestdto "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/restful/request"
-	responsedto "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/interface/restful/response"
-	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
-	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
+	appuser "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/user"
+	requestdto "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful/request"
+	responsedto "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful/response"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	perrors "github.com/FangcunMount/iam-contracts/pkg/errors"
 )
 
 // UserHandler 基础用户 REST 处理器

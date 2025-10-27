@@ -3,7 +3,7 @@ package adapter
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 )
 
 // UserAdapter 用户中心适配器

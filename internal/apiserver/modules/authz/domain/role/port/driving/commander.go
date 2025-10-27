@@ -10,7 +10,7 @@ package driving
 import (
 	"context"
 
-	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authz/domain/role"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role"
 )
 
 // RoleCommander 角色命令服务接口（写操作）
