@@ -6,9 +6,9 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/FangcunMount/component-base/pkg/database"
+	"github.com/FangcunMount/component-base/pkg/database/connecter"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/config"
-	"github.com/FangcunMount/iam-contracts/pkg/database"
-	"github.com/FangcunMount/iam-contracts/pkg/database/databases"
 	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
@@ -54,7 +54,7 @@ func (dm *DatabaseManager) Initialize() error {
 
 // initMySQL 初始化MySQL连接
 func (dm *DatabaseManager) initMySQL() error {
-	mysqlConfig := &databases.MySQLConfig{
+	mysqlConfig := &connecter.MySQLConfig{
 		Host:                  dm.config.MySQLOptions.Host,
 		Username:              dm.config.MySQLOptions.Username,
 		Password:              dm.config.MySQLOptions.Password,
@@ -70,13 +70,13 @@ func (dm *DatabaseManager) initMySQL() error {
 		return nil
 	}
 
-	mysqlConn := databases.NewMySQLConnection(mysqlConfig)
-	return dm.registry.Register(databases.MySQL, mysqlConfig, mysqlConn)
+	mysqlConn := connecter.NewMySQLConnection(mysqlConfig)
+	return dm.registry.Register(connecter.MySQL, mysqlConfig, mysqlConn)
 }
 
 // initRedis 初始化Redis连接
 func (dm *DatabaseManager) initRedis() error {
-	redisConfig := &databases.RedisConfig{
+	redisConfig := &connecter.RedisConfig{
 		Host:      dm.config.RedisOptions.Host,
 		Port:      dm.config.RedisOptions.Port,
 		Password:  dm.config.RedisOptions.Password,
@@ -91,13 +91,13 @@ func (dm *DatabaseManager) initRedis() error {
 		return nil
 	}
 
-	redisConn := databases.NewRedisConnection(redisConfig)
-	return dm.registry.Register(databases.Redis, redisConfig, redisConn)
+	redisConn := connecter.NewRedisConnection(redisConfig)
+	return dm.registry.Register(connecter.Redis, redisConfig, redisConn)
 }
 
 // GetMySQLDB 获取MySQL数据库连接
 func (dm *DatabaseManager) GetMySQLDB() (*gorm.DB, error) {
-	client, err := dm.registry.GetClient(databases.MySQL)
+	client, err := dm.registry.GetClient(connecter.MySQL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get MySQL client: %w", err)
 	}
@@ -112,7 +112,7 @@ func (dm *DatabaseManager) GetMySQLDB() (*gorm.DB, error) {
 
 // GetRedisClient 获取Redis客户端
 func (dm *DatabaseManager) GetRedisClient() (interface{}, error) {
-	return dm.registry.GetClient(databases.Redis)
+	return dm.registry.GetClient(connecter.Redis)
 }
 
 // Close 关闭所有数据库连接
