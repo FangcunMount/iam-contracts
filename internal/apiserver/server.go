@@ -5,12 +5,12 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/FangcunMount/component-base/pkg/log"
+	"github.com/FangcunMount/component-base/pkg/shutdown"
+	"github.com/FangcunMount/component-base/pkg/shutdown/shutdownmanagers/posixsignal"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/config"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/grpcserver"
 	genericapiserver "github.com/FangcunMount/iam-contracts/internal/pkg/server"
-	"github.com/FangcunMount/iam-contracts/pkg/shutdown"
-	"github.com/FangcunMount/iam-contracts/pkg/shutdown/shutdownmanagers/posixsignal"
 )
 
 // apiServer 定义了 API 服务器的基本结构（六边形架构版本）

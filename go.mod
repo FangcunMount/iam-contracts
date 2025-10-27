@@ -100,7 +100,7 @@ require (
 )
 
 require (
-	github.com/FangcunMount/component-base v0.2.2
+	github.com/FangcunMount/component-base v0.2.4
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/casbin/casbin/v2 v2.128.0
 	github.com/casbin/gorm-adapter/v3 v3.37.0
