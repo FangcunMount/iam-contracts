@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/FangcunMount/iam-contracts/pkg/util/homedir"
+	"github.com/FangcunMount/component-base/pkg/util/homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
