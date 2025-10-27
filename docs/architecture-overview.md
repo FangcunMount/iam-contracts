@@ -649,7 +649,7 @@ if name == "" {
 ### 10.2 日志记录
 
 ```go
-import "github.com/FangcunMount/iam-contracts/pkg/log"
+import "github.com/FangcunMount/component-base/pkg/log"
 
 log.Info("User registered successfully", 
     log.String("user_id", user.ID.String()),

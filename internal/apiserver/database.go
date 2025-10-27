@@ -8,8 +8,8 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/database"
 	"github.com/FangcunMount/component-base/pkg/database/connecter"
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/config"
-	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // DatabaseManager 数据库管理器

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
@@ -19,7 +20,6 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/service"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/crypto"
 	jwtGen "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
-	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // TestE2E_Production_JWKS_With_File_Storage 生产环境端到端测试

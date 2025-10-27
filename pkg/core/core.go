@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/gin-gonic/gin"
 )
 

@@ -6,12 +6,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
 	authnhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful"
 	authzhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/interface/restful"
 	userhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful"
 	authnMiddleware "github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
-	"github.com/FangcunMount/iam-contracts/pkg/log"
 )
 
 // Router 集中的路由管理器
