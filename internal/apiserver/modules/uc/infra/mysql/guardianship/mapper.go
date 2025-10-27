@@ -1,10 +1,10 @@
 package guardianship
 
 import (
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	child "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child"
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/user"
-	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 )
 
 // GuardianshipMapper 监护关系映射器

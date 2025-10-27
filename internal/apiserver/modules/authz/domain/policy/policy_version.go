@@ -1,6 +1,6 @@
 package policy
 
-import "github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
+import "github.com/FangcunMount/component-base/pkg/util/idutil"
 
 // PolicyVersion 策略版本（用于缓存失效通知）
 type PolicyVersion struct {

@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
@@ -27,7 +28,6 @@ import (
 	"github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/crypto"
 	jwtGen "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
 	"github.com/fangcun-mount/iam-contracts/pkg/log"
-	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 )
 
 // InMemoryKeyRepository 内存密钥仓储（用于测试）

@@ -4,10 +4,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	perrors "github.com/fangcun-mount/iam-contracts/pkg/errors"
-	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 )
 
 const (

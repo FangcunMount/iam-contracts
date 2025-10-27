@@ -1,6 +1,6 @@
 package role
 
-import "github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
+import "github.com/FangcunMount/component-base/pkg/util/idutil"
 
 // Role 角色领域对象（聚合根）
 type Role struct {

@@ -3,8 +3,8 @@ package child
 import (
 	"time"
 
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	base "github.com/fangcun-mount/iam-contracts/internal/pkg/database/mysql"
-	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 	"gorm.io/gorm"
 )
 
@@ -27,15 +27,15 @@ func (ChildPO) TableName() string {
 
 // BeforeCreate 在创建前设置信息
 func (p *ChildPO) BeforeCreate(tx *gorm.DB) error {
-    p.ID = idutil.NewID(idutil.GetIntID())
-    p.CreatedAt = time.Now()
-    p.UpdatedAt = time.Now()
-    p.CreatedBy = idutil.NewID(0)
-    p.UpdatedBy = idutil.NewID(0)
-    p.DeletedBy = idutil.NewID(0)
-    p.Version = base.InitialVersion
+	p.ID = idutil.NewID(idutil.GetIntID())
+	p.CreatedAt = time.Now()
+	p.UpdatedAt = time.Now()
+	p.CreatedBy = idutil.NewID(0)
+	p.UpdatedBy = idutil.NewID(0)
+	p.DeletedBy = idutil.NewID(0)
+	p.Version = base.InitialVersion
 
-    return nil
+	return nil
 }
 
 // BeforeUpdate 在更新前设置信息

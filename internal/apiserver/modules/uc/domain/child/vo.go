@@ -1,6 +1,6 @@
 package child
 
-import "github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
+import "github.com/FangcunMount/component-base/pkg/util/idutil"
 
 // ChildID 儿童唯一标识
 type ChildID = idutil.ID

@@ -1,6 +1,6 @@
 package resource
 
-import "github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
+import "github.com/FangcunMount/component-base/pkg/util/idutil"
 
 // Resource 域对象资源目录（聚合根）
 // V1：仅域对象类型，格式：<app>:<domain>:<type>:* 例如 scale:form:*

@@ -1,7 +1,7 @@
 package user
 
 import (
-	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
 )
 
 // UserID 用户唯一标识

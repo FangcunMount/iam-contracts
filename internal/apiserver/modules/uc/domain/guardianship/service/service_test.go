@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	childDomain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/child"
 	domain "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship"
 	guardport "github.com/fangcun-mount/iam-contracts/internal/apiserver/modules/uc/domain/guardianship/port"
@@ -19,7 +20,6 @@ import (
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/code"
 	"github.com/fangcun-mount/iam-contracts/internal/pkg/meta"
 	"github.com/fangcun-mount/iam-contracts/pkg/errors"
-	"github.com/fangcun-mount/iam-contracts/pkg/util/idutil"
 )
 
 // ==================== Mock Repositories ====================
@@ -243,10 +243,10 @@ func TestGuardianshipManager_AddGuardian_Success(t *testing.T) {
 
 	userID := userDomain.NewUserID(100)
 	childID := childDomain.NewChildID(200)
-	
+
 	user, _ := userDomain.NewUser("李四", meta.NewPhone("13900139000"))
 	user.ID = userID
-	
+
 	child, _ := childDomain.NewChild("小李")
 	child.ID = childID
 
@@ -279,10 +279,10 @@ func TestGuardianshipManager_AddGuardian_DuplicateGuardian(t *testing.T) {
 
 	userID := userDomain.NewUserID(100)
 	childID := childDomain.NewChildID(200)
-	
+
 	user, _ := userDomain.NewUser("王五", meta.NewPhone("13700137000"))
 	user.ID = userID
-	
+
 	child, _ := childDomain.NewChild("小王")
 	child.ID = childID
 
@@ -421,7 +421,7 @@ func TestGuardianshipQueryer_FindByUserIDAndChildName_Success(t *testing.T) {
 
 	userID := userDomain.NewUserID(100)
 	childName := "小赵"
-	
+
 	child1, _ := childDomain.NewChild(childName)
 	child1.ID = childDomain.NewChildID(201)
 	child2, _ := childDomain.NewChild(childName)
