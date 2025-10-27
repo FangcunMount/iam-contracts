@@ -632,7 +632,7 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 ### 10.1 错误处理
 
 ```go
-import "github.com/FangcunMount/iam-contracts/pkg/errors"
+import "github.com/FangcunMount/component-base/pkg/errors"
 import "github.com/FangcunMount/iam-contracts/internal/pkg/code"
 
 // 业务错误

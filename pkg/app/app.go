@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/FangcunMount/iam-contracts/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/errors"
 	cliflag "github.com/FangcunMount/iam-contracts/pkg/flag"
 	"github.com/FangcunMount/iam-contracts/pkg/log"
 	"github.com/FangcunMount/iam-contracts/pkg/term"
