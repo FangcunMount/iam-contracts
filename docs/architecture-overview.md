@@ -632,8 +632,8 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 ### 10.1 错误处理
 
 ```go
-import "github.com/fangcun-mount/iam-contracts/pkg/errors"
-import "github.com/fangcun-mount/iam-contracts/internal/pkg/code"
+import "github.com/FangcunMount/iam-contracts/pkg/errors"
+import "github.com/FangcunMount/iam-contracts/internal/pkg/code"
 
 // 业务错误
 if user == nil {
@@ -649,7 +649,7 @@ if name == "" {
 ### 10.2 日志记录
 
 ```go
-import "github.com/fangcun-mount/iam-contracts/pkg/log"
+import "github.com/FangcunMount/iam-contracts/pkg/log"
 
 log.Info("User registered successfully", 
     log.String("user_id", user.ID.String()),

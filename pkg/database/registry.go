@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/fangcun-mount/iam-contracts/pkg/database/databases"
+	"github.com/FangcunMount/iam-contracts/pkg/database/databases"
 )
 
 // Registry 数据库注册器
