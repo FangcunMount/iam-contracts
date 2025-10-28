@@ -1,7 +1,6 @@
 package wechatapp
 
 import (
-	"context"
 	"time"
 )
 
@@ -49,12 +48,4 @@ type AsymKey struct {
 	PriKMSRef     *string   // KMS/HSM 引用（推荐）
 	Version       int
 	LastRotatedAt *time.Time
-}
-
-// ===== SecretVault（端口）：统一加/解密 & 托管签名 =====
-// 基础设施适配层需提供实现（本地 AES-GCM 或云 KMS）
-type SecretVault interface {
-	Encrypt(ctx context.Context, plaintext []byte) (cipher []byte, err error)
-	Decrypt(ctx context.Context, cipher []byte) (plaintext []byte, err error)
-	Sign(ctx context.Context, keyRef string, data []byte) (sig []byte, err error) // 托管签名（KMS/HSM）
 }
