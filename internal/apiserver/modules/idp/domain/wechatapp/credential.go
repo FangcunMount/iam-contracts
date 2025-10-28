@@ -1,6 +1,8 @@
 package wechatapp
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"time"
 )
 
@@ -14,8 +16,21 @@ type Credentials struct {
 // 1) 登录/换 token
 type AuthSecret struct {
 	AppSecretCipher []byte // AppSecret 密文（AES-GCM/KMS 包装）
+	Fingerprint     string // 指纹（明文 SHA256）
 	Version         int
 	LastRotatedAt   *time.Time
+}
+
+// IsMatch 检查明文密钥是否匹配指纹
+func (a *AuthSecret) IsMatch(plainSecret string) bool {
+	return Fingerprint(plainSecret) == a.Fingerprint
+}
+
+// Fingerprint 计算明文密钥的指纹
+// 算法：SHA-256
+func Fingerprint(plainSecret string) string {
+	// 计算明文密钥的 SHA256 指纹（十六进制字符串）
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(plainSecret)))
 }
 
 // 2) 消息推送“安全模式”

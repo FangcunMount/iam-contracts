@@ -17,9 +17,9 @@ func (t AppType) String() string {
 type Status string
 
 const (
-	StatusEnabled  Status = "Enabled"
-	StatusDisabled Status = "Disabled"
-	StatusArchived Status = "Archived"
+	StatusEnabled  Status = "Enabled"  // 已启用
+	StatusDisabled Status = "Disabled" // 已禁用
+	StatusArchived Status = "Archived" // 已归档
 )
 
 // CryptoAlg 加密算法

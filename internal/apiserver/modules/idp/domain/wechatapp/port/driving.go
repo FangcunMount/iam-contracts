@@ -2,6 +2,7 @@ package port
 
 import (
 	"context"
+	"time"
 
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatapp"
 )
@@ -15,21 +16,26 @@ type WechatAppCreator interface {
 	Create(ctx context.Context, appID string, name string, appType domain.AppType) (*domain.WechatApp, error)
 }
 
-// CredentialManager 应用凭据管理器（分舱管理与轮换）
-type CredentialManager interface {
-	// 变更 AuthSecret
-	ChangeAuthSecret(ctx context.Context, app *domain.WechatApp, newSecret string) error
-	// 变更消息加解密密钥
-	ChangeMsgSecret(ctx context.Context, app *domain.WechatApp, newSecret string) error
-	// 变更 API 密钥（对称加密）
-	ChangeAPISymKey(ctx context.Context, app *domain.WechatApp, newKey string) error
-	// 变更 API 密钥（非对称加密）
-	ChangeAPIAsymKeyWithKMS(ctx context.Context, app *domain.WechatApp, newKey string) error
-	// 变更 API 密钥（明文）
-	ChangeAPIAsymKeyWithPlain(ctx context.Context, app *domain.WechatApp, newKey string) error
+// WechatAppFinder 微信应用查询器
+type WechatAppQuerier interface {
+	QueryByAppID(ctx context.Context, appID string) (*domain.WechatApp, error)
+	ExistsByAppID(ctx context.Context, appID string) (bool, error)
+}
+
+// CredentialRotater 凭据轮换器
+type CredentialRotater interface {
+	// 轮换凭据接口
+	RotateAuthSecret(ctx context.Context, app *domain.WechatApp, newPlain string) error
+	// 轮换消息加解密密钥
+	RotateMsgAESKey(ctx context.Context, app *domain.WechatApp, callbackToken, encodingAESKey43 string) error
+	// 轮换 API 密钥（对称加密）
+	RotateAPISymKey(ctx context.Context, app *domain.WechatApp, alg domain.CryptoAlg, base64Key string) error
+	// 轮换 API 密钥（非对称加密）
+	RotateAPIAsymKey(ctx context.Context, app *domain.WechatApp, alg domain.CryptoAlg, kmsRef string, pubPEM []byte) error
 }
 
 // 4) 访问令牌缓存器（单飞刷新 + 过期缓冲）
 type AccessTokenCacher interface {
-	EnsureToken(ctx context.Context, app *domain.WechatApp) (string, error) // 单飞刷新 + 过期缓冲
+	// 确保获取有效的访问令牌
+	EnsureToken(ctx context.Context, app *domain.WechatApp, skew time.Duration) (string, error) // 单飞刷新 + 过期缓冲
 }
