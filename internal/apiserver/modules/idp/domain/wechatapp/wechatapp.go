@@ -43,7 +43,7 @@ func WithWechatAppStatus(status Status) WechatAppOption {
 // 状态检查方法
 func (w *WechatApp) IsEnabled() bool  { return w.Status == StatusEnabled }
 func (w *WechatApp) IsDisabled() bool { return w.Status == StatusDisabled }
-func (w *WechatApp) IsActive() bool   { return w.Status == StatusArchived }
+func (w *WechatApp) IsArchived() bool { return w.Status == StatusArchived }
 
 // 状态变更方法
 func (w *WechatApp) Enable()  { w.Status = StatusEnabled }
