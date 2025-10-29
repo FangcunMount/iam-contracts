@@ -1,0 +1,92 @@
+# Air 配置文件 - IAM API Server 开发环境热重载
+# 文档：https://github.com/cosmtrek/air
+
+# 工作目录（适配所有路径，使用相对于根路径的路径）
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  # 要监视的命令
+  cmd = "go build -o ./tmp/apiserver ./cmd/apiserver/apiserver.go"
+  
+  # 编译后执行的二进制文件
+  bin = "./tmp/apiserver"
+  
+  # 传递给二进制文件的参数
+  # 使用开发环境配置文件
+  args_bin = ["-c", "configs/apiserver-dev.yaml"]
+  
+  # 自定义二进制文件（完整命令）
+  full_bin = "./tmp/apiserver -c configs/apiserver-dev.yaml"
+  
+  # 监视以下文件扩展名的文件
+  include_ext = ["go", "yaml", "yml", "toml", "json"]
+  
+  # 忽略以下文件扩展名的文件
+  exclude_dir = ["tmp", "vendor", "bin", "logs", "coverage", ".git", ".idea", ".vscode", "docs", "scripts", "build", "api"]
+  
+  # 监视以下指定目录的文件
+  include_dir = ["cmd", "internal", "pkg", "configs"]
+  
+  # 排除以下文件
+  exclude_file = []
+  
+  # 排除特定的正则表达式匹配的文件
+  exclude_regex = ["_test\\.go", "_gen\\.go"]
+  
+  # 排除未更改的文件
+  exclude_unchanged = true
+  
+  # 启用符号链接监视文件的符号链接
+  follow_symlink = true
+  
+  # 此日志文件放置在 tmp_dir 中
+  log = "air.log"
+  
+  # 轮询文件更改而不是使用 fsnotify（用于容器环境）
+  poll = false
+  
+  # 轮询间隔（默认 500ms）
+  poll_interval = 500
+  
+  # 延迟（ms），防止频繁重新构建
+  delay = 1000
+  
+  # 当构建失败时，停止运行旧的二进制文件
+  stop_on_error = true
+  
+  # 发送中断信号前的延迟（ms）
+  send_interrupt = false
+  
+  # 发送 SIGKILL 前的延迟（ms）
+  kill_delay = 500
+  
+  # 重启延迟（ms）
+  rerun = false
+  rerun_delay = 500
+
+[log]
+  # 显示日志时间
+  time = true
+  
+  # 仅显示主日志（静默模式）
+  main_only = false
+
+[color]
+  # 自定义每个部分的显示颜色
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"
+  app = "white"
+
+[misc]
+  # 启动时清空控制台
+  clean_on_exit = true
+
+[screen]
+  # 启动时清空屏幕
+  clear_on_rebuild = true
+  
+  # 保持滚动条在底部
+  keep_scroll = true
