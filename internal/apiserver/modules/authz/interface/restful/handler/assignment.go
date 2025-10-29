@@ -40,7 +40,7 @@ func convertToSubjectType(s string) (domainAssignment.SubjectType, error) {
 
 // GrantRole 授予角色
 // @Summary 授予角色
-// @Tags Assignment
+// @Tags Authorization-Assignments
 // @Accept json
 // @Produce json
 // @Param request body dto.GrantRequest true "授予角色请求"
@@ -81,7 +81,7 @@ func (h *AssignmentHandler) GrantRole(c *gin.Context) {
 
 // RevokeRole 撤销角色
 // @Summary 撤销角色
-// @Tags Assignment
+// @Tags Authorization-Assignments
 // @Accept json
 // @Produce json
 // @Param request body dto.RevokeRequest true "撤销角色请求"
@@ -120,7 +120,7 @@ func (h *AssignmentHandler) RevokeRole(c *gin.Context) {
 
 // RevokeRoleByID 根据分配ID撤销角色
 // @Summary 根据分配ID撤销角色
-// @Tags Assignment
+// @Tags Authorization-Assignments
 // @Param id path string true "分配ID"
 // @Success 200 {object} dto.Response
 // @Router /authz/assignments/{id} [delete]
@@ -149,7 +149,7 @@ func (h *AssignmentHandler) RevokeRoleByID(c *gin.Context) {
 
 // ListAssignmentsBySubject 列出主体的角色分配
 // @Summary 列出主体的角色分配
-// @Tags Assignment
+// @Tags Authorization-Assignments
 // @Produce json
 // @Param subject_type query string true "主体类型" Enums(user, group)
 // @Param subject_id query string true "主体ID"
@@ -194,7 +194,7 @@ func (h *AssignmentHandler) ListAssignmentsBySubject(c *gin.Context) {
 
 // ListAssignmentsByRole 列出角色的分配记录
 // @Summary 列出角色的分配记录
-// @Tags Assignment
+// @Tags Authorization-Assignments
 // @Produce json
 // @Param id path string true "角色ID"
 // @Success 200 {object} dto.Response{data=[]dto.AssignmentResponse}

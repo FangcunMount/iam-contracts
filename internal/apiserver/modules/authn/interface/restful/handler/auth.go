@@ -35,7 +35,7 @@ func NewAuthHandler(loginService *login.LoginService, tokenService *token.TokenS
 // Login 统一登录端点（符合 API 文档）
 // @Summary 登录
 // @Description 使用不同的认证方式进行登录（basic: 用户名密码, wx:minip: 微信小程序）
-// @Tags Authentication
+// @Tags Authentication-Auth
 // @Accept json
 // @Produce json
 // @Param request body request.LoginRequest true "登录请求"
@@ -131,7 +131,7 @@ func (h *AuthHandler) handleWeChatMiniLogin(c *gin.Context, credentials json.Raw
 // RefreshToken 刷新令牌（符合 API 文档：POST /v1/auth/token）
 // @Summary 刷新令牌
 // @Description 使用刷新令牌获取新的访问令牌
-// @Tags Tokens
+// @Tags Authentication-Tokens
 // @Accept json
 // @Produce json
 // @Param request body request.RefreshTokenRequest true "刷新令牌请求"
@@ -171,7 +171,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // Logout 登出（符合 API 文档）
 // @Summary 登出
 // @Description 撤销访问令牌和刷新令牌
-// @Tags Tokens
+// @Tags Authentication-Tokens
 // @Accept json
 // @Produce json
 // @Security BearerAuth
@@ -221,7 +221,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // VerifyToken 验证令牌（符合 API 文档：POST /v1/auth/verify）
 // @Summary 验证令牌
 // @Description 验证访问令牌的有效性（验签 + 载荷校验 + 黑名单检查）
-// @Tags 令牌
+// @Tags Authentication-Tokens
 // @Accept json
 // @Produce json
 // @Security BearerAuth
@@ -280,7 +280,7 @@ func (h *AuthHandler) VerifyToken(c *gin.Context) {
 // GetJWKS 获取 JWKS 公钥集（符合 API 文档：GET /.well-known/jwks.json）
 // @Summary 获取 JWKS
 // @Description 获取用于验证 JWT 签名的公钥集
-// @Tags JWKS
+// @Tags Authentication-JWKS
 // @Produce json
 // @Success 200 {object} response.JWKSet "公钥集"
 // @Router /.well-known/jwks.json [get]

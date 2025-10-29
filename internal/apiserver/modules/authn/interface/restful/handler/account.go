@@ -44,7 +44,7 @@ func NewAccountHandler(
 // CreateOperationAccount 创建运营账号
 // @Summary 创建运营账号
 // @Description 为用户创建基于用户名密码的运营账号
-// @Tags Accounts
+// @Tags Authentication-Accounts
 // @Accept json
 // @Produce json
 // @Param request body req.CreateOperationAccountReq true "创建运营账号请求"
@@ -103,7 +103,7 @@ func (h *AccountHandler) CreateOperationAccount(c *gin.Context) {
 // UpdateOperationCredential 更新运营账号凭据
 // @Summary 更新运营账号凭据
 // @Description 更新运营账号的密码、重置失败次数或解锁账号
-// @Tags Accounts
+// @Tags Authentication-Accounts
 // @Accept json
 // @Produce json
 // @Param username path string true "用户名"
@@ -173,7 +173,7 @@ func (h *AccountHandler) UpdateOperationCredential(c *gin.Context) {
 // ChangeOperationUsername 修改运营账号用户名
 // @Summary 修改运营账号用户名
 // @Description 修改运营账号的用户名
-// @Tags Accounts
+// @Tags Authentication-Accounts
 // @Accept json
 // @Produce json
 // @Param username path string true "原用户名"
@@ -218,7 +218,7 @@ func (h *AccountHandler) ChangeOperationUsername(c *gin.Context) {
 // BindWeChatAccount 绑定微信账号
 // @Summary 绑定微信账号
 // @Description 为用户创建并绑定微信账号
-// @Tags Accounts
+// @Tags Authentication-Accounts
 // @Accept json
 // @Produce json
 // @Param request body req.BindWeChatAccountReq true "绑定微信账号请求"
@@ -329,7 +329,7 @@ func (h *AccountHandler) BindWeChatAccount(c *gin.Context) {
 // UpsertWeChatProfile 更新微信账号资料
 // @Summary 更新微信账号资料
 // @Description 更新微信账号的昵称、头像等资料信息
-// @Tags Accounts
+// @Tags Authentication-Accounts
 // @Accept json
 // @Produce json
 // @Param accountId path string true "账号ID"
@@ -386,7 +386,7 @@ func (h *AccountHandler) UpsertWeChatProfile(c *gin.Context) {
 // SetWeChatUnionID 设置微信 UnionID
 // @Summary 设置微信 UnionID
 // @Description 为微信账号设置 UnionID（用于跨应用识别用户）
-// @Tags Accounts
+// @Tags Authentication-Accounts
 // @Accept json
 // @Produce json
 // @Param accountId path string true "账号ID"
@@ -425,7 +425,7 @@ func (h *AccountHandler) SetWeChatUnionID(c *gin.Context) {
 // GetAccount 获取账号详情
 // @Summary 获取账号详情
 // @Description 根据账号ID获取账号详细信息
-// @Tags Accounts
+// @Tags Authentication-Accounts
 // @Accept json
 // @Produce json
 // @Param accountId path string true "账号ID"
@@ -454,7 +454,7 @@ func (h *AccountHandler) GetAccount(c *gin.Context) {
 // EnableAccount 启用账号
 // @Summary 启用账号
 // @Description 启用被禁用的账号
-// @Tags Accounts
+// @Tags Authentication-Accounts
 // @Accept json
 // @Produce json
 // @Param accountId path string true "账号ID"
@@ -482,7 +482,7 @@ func (h *AccountHandler) EnableAccount(c *gin.Context) {
 // DisableAccount 禁用账号
 // @Summary 禁用账号
 // @Description 禁用账号，禁用后无法登录
-// @Tags Accounts
+// @Tags Authentication-Accounts
 // @Accept json
 // @Produce json
 // @Param accountId path string true "账号ID"
@@ -510,7 +510,7 @@ func (h *AccountHandler) DisableAccount(c *gin.Context) {
 // ListAccountsByUser 列出用户的所有账号
 // @Summary 列出用户的所有账号
 // @Description 获取指定用户的所有账号列表
-// @Tags Accounts
+// @Tags Authentication-Accounts
 // @Accept json
 // @Produce json
 // @Param userId path string true "用户ID"

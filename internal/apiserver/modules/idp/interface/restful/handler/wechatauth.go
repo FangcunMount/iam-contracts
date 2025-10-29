@@ -30,7 +30,7 @@ func NewWechatAuthHandler(
 // LoginWithCode 使用微信登录码进行登录
 // @Summary 微信小程序登录
 // @Description 使用微信小程序登录码（wx.login 获取）进行用户认证，返回用户身份信息和会话密钥
-// @Tags IDP-WechatAuth
+// @Tags IDP-Wechat
 // @Accept json
 // @Produce json
 // @Param request body request.LoginWithCodeRequest true "微信登录请求"
@@ -80,7 +80,7 @@ func (h *WechatAuthHandler) LoginWithCode(c *gin.Context) {
 // DecryptUserPhone 解密用户手机号
 // @Summary 解密微信用户手机号
 // @Description 使用 session_key 解密微信小程序获取的加密手机号信息
-// @Tags IDP-WechatAuth
+// @Tags IDP-Wechat
 // @Accept json
 // @Produce json
 // @Param request body request.DecryptPhoneRequest true "解密手机号请求"

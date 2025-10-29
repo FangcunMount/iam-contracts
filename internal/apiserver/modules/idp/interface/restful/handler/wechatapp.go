@@ -36,7 +36,7 @@ func NewWechatAppHandler(
 
 // CreateWechatApp 创建微信应用
 // @Summary 创建微信应用
-// @Tags IDP-WechatApp
+// @Tags IDP-Wechat
 // @Accept json
 // @Produce json
 // @Param request body request.CreateWechatAppRequest true "创建微信应用请求"
@@ -80,7 +80,7 @@ func (h *WechatAppHandler) CreateWechatApp(c *gin.Context) {
 
 // GetWechatApp 查询微信应用
 // @Summary 查询微信应用
-// @Tags IDP-WechatApp
+// @Tags IDP-Wechat
 // @Accept json
 // @Produce json
 // @Param app_id path string true "微信应用 ID"
@@ -116,7 +116,7 @@ func (h *WechatAppHandler) GetWechatApp(c *gin.Context) {
 
 // RotateAuthSecret 轮换认证密钥
 // @Summary 轮换认证密钥（AppSecret）
-// @Tags IDP-WechatApp
+// @Tags IDP-Wechat
 // @Accept json
 // @Produce json
 // @Param request body request.RotateAuthSecretRequest true "轮换认证密钥请求"
@@ -154,7 +154,7 @@ func (h *WechatAppHandler) RotateAuthSecret(c *gin.Context) {
 
 // RotateMsgSecret 轮换消息密钥
 // @Summary 轮换消息加解密密钥
-// @Tags IDP-WechatApp
+// @Tags IDP-Wechat
 // @Accept json
 // @Produce json
 // @Param request body request.RotateMsgSecretRequest true "轮换消息密钥请求"
@@ -193,7 +193,7 @@ func (h *WechatAppHandler) RotateMsgSecret(c *gin.Context) {
 
 // GetAccessToken 获取访问令牌
 // @Summary 获取访问令牌（带缓存和自动刷新）
-// @Tags IDP-WechatApp
+// @Tags IDP-Wechat
 // @Accept json
 // @Produce json
 // @Param app_id path string true "微信应用 ID"
@@ -226,7 +226,7 @@ func (h *WechatAppHandler) GetAccessToken(c *gin.Context) {
 
 // RefreshAccessToken 刷新访问令牌
 // @Summary 强制刷新访问令牌
-// @Tags IDP-WechatApp
+// @Tags IDP-Wechat
 // @Accept json
 // @Produce json
 // @Param request body request.RefreshAccessTokenRequest true "刷新访问令牌请求"

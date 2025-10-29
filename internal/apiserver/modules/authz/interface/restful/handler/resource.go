@@ -33,7 +33,7 @@ func NewResourceHandler(
 
 // CreateResource 创建资源
 // @Summary 创建资源
-// @Tags Resource
+// @Tags Authorization-Resources
 // @Accept json
 // @Produce json
 // @Param request body dto.CreateResourceRequest true "创建资源请求"
@@ -67,7 +67,7 @@ func (h *ResourceHandler) CreateResource(c *gin.Context) {
 
 // UpdateResource 更新资源
 // @Summary 更新资源
-// @Tags Resource
+// @Tags Authorization-Resources
 // @Accept json
 // @Produce json
 // @Param id path string true "资源ID"
@@ -105,7 +105,7 @@ func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 
 // DeleteResource 删除资源
 // @Summary 删除资源
-// @Tags Resource
+// @Tags Authorization-Resources
 // @Param id path string true "资源ID"
 // @Success 200 {object} dto.Response
 // @Router /authz/resources/{id} [delete]
@@ -127,7 +127,7 @@ func (h *ResourceHandler) DeleteResource(c *gin.Context) {
 
 // GetResource 获取资源详情
 // @Summary 获取资源详情
-// @Tags Resource
+// @Tags Authorization-Resources
 // @Produce json
 // @Param id path string true "资源ID"
 // @Success 200 {object} dto.Response{data=dto.ResourceResponse}
@@ -150,7 +150,7 @@ func (h *ResourceHandler) GetResource(c *gin.Context) {
 
 // GetResourceByKey 根据键获取资源
 // @Summary 根据键获取资源
-// @Tags Resource
+// @Tags Authorization-Resources
 // @Produce json
 // @Param key path string true "资源键"
 // @Success 200 {object} dto.Response{data=dto.ResourceResponse}
@@ -169,7 +169,7 @@ func (h *ResourceHandler) GetResourceByKey(c *gin.Context) {
 
 // ListResources 列出资源
 // @Summary 列出资源
-// @Tags Resource
+// @Tags Authorization-Resources
 // @Produce json
 // @Param app_name query string false "应用名称"
 // @Param domain query string false "域"
@@ -203,7 +203,7 @@ func (h *ResourceHandler) ListResources(c *gin.Context) {
 
 // ValidateAction 验证资源动作
 // @Summary 验证资源动作
-// @Tags Resource
+// @Tags Authorization-Resources
 // @Accept json
 // @Produce json
 // @Param request body dto.ValidateActionRequest true "验证动作请求"

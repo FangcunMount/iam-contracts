@@ -31,7 +31,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "JWKS"
+                    "Authentication-JWKS"
                 ],
                 "summary": "获取 JWKS",
                 "responses": {
@@ -80,7 +80,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Accounts"
+                    "Authentication-Accounts"
                 ],
                 "summary": "创建运营账号",
                 "parameters": [
@@ -137,7 +137,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Accounts"
+                    "Authentication-Accounts"
                 ],
                 "summary": "更新运营账号凭据",
                 "parameters": [
@@ -204,7 +204,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Accounts"
+                    "Authentication-Accounts"
                 ],
                 "summary": "修改运营账号用户名",
                 "parameters": [
@@ -277,7 +277,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Accounts"
+                    "Authentication-Accounts"
                 ],
                 "summary": "绑定微信账号",
                 "parameters": [
@@ -334,7 +334,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Accounts"
+                    "Authentication-Accounts"
                 ],
                 "summary": "获取账号详情",
                 "parameters": [
@@ -389,7 +389,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Accounts"
+                    "Authentication-Accounts"
                 ],
                 "summary": "更新微信账号资料",
                 "parameters": [
@@ -456,7 +456,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Accounts"
+                    "Authentication-Accounts"
                 ],
                 "summary": "设置微信 UnionID",
                 "parameters": [
@@ -523,7 +523,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Accounts"
+                    "Authentication-Accounts"
                 ],
                 "summary": "禁用账号",
                 "parameters": [
@@ -581,7 +581,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Accounts"
+                    "Authentication-Accounts"
                 ],
                 "summary": "启用账号",
                 "parameters": [
@@ -636,7 +636,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "JWKS Admin"
+                    "Authentication-JWKS"
                 ],
                 "summary": "列出密钥",
                 "parameters": [
@@ -708,7 +708,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "JWKS Admin"
+                    "Authentication-JWKS"
                 ],
                 "summary": "创建密钥",
                 "parameters": [
@@ -768,7 +768,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "JWKS Admin"
+                    "Authentication-JWKS"
                 ],
                 "summary": "清理过期密钥",
                 "responses": {
@@ -811,7 +811,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "JWKS Admin"
+                    "Authentication-JWKS"
                 ],
                 "summary": "获取可发布的密钥",
                 "responses": {
@@ -854,7 +854,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "JWKS Admin"
+                    "Authentication-JWKS"
                 ],
                 "summary": "获取密钥详情",
                 "parameters": [
@@ -918,7 +918,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "JWKS Admin"
+                    "Authentication-JWKS"
                 ],
                 "summary": "强制退役密钥",
                 "parameters": [
@@ -979,7 +979,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "JWKS Admin"
+                    "Authentication-JWKS"
                 ],
                 "summary": "进入宽限期",
                 "parameters": [
@@ -1040,7 +1040,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "JWKS Admin"
+                    "Authentication-JWKS"
                 ],
                 "summary": "退役密钥",
                 "parameters": [
@@ -1099,7 +1099,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Authentication"
+                    "Authentication-Auth"
                 ],
                 "summary": "登录",
                 "parameters": [
@@ -1150,7 +1150,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Tokens"
+                    "Authentication-Tokens"
                 ],
                 "summary": "登出",
                 "parameters": [
@@ -1197,7 +1197,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Tokens"
+                    "Authentication-Tokens"
                 ],
                 "summary": "刷新令牌",
                 "parameters": [
@@ -1248,7 +1248,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "令牌"
+                    "Authentication-Tokens"
                 ],
                 "summary": "验证令牌",
                 "parameters": [
@@ -1286,7 +1286,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Assignment"
+                    "Authorization-Assignments"
                 ],
                 "summary": "授予角色",
                 "parameters": [
@@ -1331,7 +1331,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Assignment"
+                    "Authorization-Assignments"
                 ],
                 "summary": "撤销角色",
                 "parameters": [
@@ -1361,7 +1361,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Assignment"
+                    "Authorization-Assignments"
                 ],
                 "summary": "列出主体的角色分配",
                 "parameters": [
@@ -1412,7 +1412,7 @@ const docTemplate = `{
         "/authz/assignments/{id}": {
             "delete": {
                 "tags": [
-                    "Assignment"
+                    "Authorization-Assignments"
                 ],
                 "summary": "根据分配ID撤销角色",
                 "parameters": [
@@ -1443,7 +1443,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Policy"
+                    "Authorization-Policies"
                 ],
                 "summary": "添加策略规则",
                 "parameters": [
@@ -1474,7 +1474,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Policy"
+                    "Authorization-Policies"
                 ],
                 "summary": "移除策略规则",
                 "parameters": [
@@ -1504,7 +1504,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Policy"
+                    "Authorization-Policies"
                 ],
                 "summary": "获取当前策略版本",
                 "responses": {
@@ -1535,7 +1535,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Resource"
+                    "Authorization-Resources"
                 ],
                 "summary": "列出资源",
                 "parameters": [
@@ -1604,7 +1604,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Resource"
+                    "Authorization-Resources"
                 ],
                 "summary": "创建资源",
                 "parameters": [
@@ -1646,7 +1646,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Resource"
+                    "Authorization-Resources"
                 ],
                 "summary": "根据键获取资源",
                 "parameters": [
@@ -1689,7 +1689,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Resource"
+                    "Authorization-Resources"
                 ],
                 "summary": "验证资源动作",
                 "parameters": [
@@ -1731,7 +1731,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Resource"
+                    "Authorization-Resources"
                 ],
                 "summary": "获取资源详情",
                 "parameters": [
@@ -1772,7 +1772,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Resource"
+                    "Authorization-Resources"
                 ],
                 "summary": "更新资源",
                 "parameters": [
@@ -1816,7 +1816,7 @@ const docTemplate = `{
             },
             "delete": {
                 "tags": [
-                    "Resource"
+                    "Authorization-Resources"
                 ],
                 "summary": "删除资源",
                 "parameters": [
@@ -1844,7 +1844,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Role"
+                    "Authorization-Roles"
                 ],
                 "summary": "列出角色",
                 "parameters": [
@@ -1895,7 +1895,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Role"
+                    "Authorization-Roles"
                 ],
                 "summary": "创建角色",
                 "parameters": [
@@ -1937,7 +1937,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Role"
+                    "Authorization-Roles"
                 ],
                 "summary": "获取角色详情",
                 "parameters": [
@@ -1978,7 +1978,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Role"
+                    "Authorization-Roles"
                 ],
                 "summary": "更新角色",
                 "parameters": [
@@ -2022,7 +2022,7 @@ const docTemplate = `{
             },
             "delete": {
                 "tags": [
-                    "Role"
+                    "Authorization-Roles"
                 ],
                 "summary": "删除角色",
                 "parameters": [
@@ -2050,7 +2050,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Assignment"
+                    "Authorization-Assignments"
                 ],
                 "summary": "列出角色的分配记录",
                 "parameters": [
@@ -2093,7 +2093,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Policy"
+                    "Authorization-Policies"
                 ],
                 "summary": "获取角色的策略列表",
                 "parameters": [
@@ -2145,7 +2145,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Identity-Child"
+                    "Identity-Children"
                 ],
                 "summary": "创建儿童档案",
                 "parameters": [
@@ -2208,7 +2208,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Identity-Child"
+                    "Identity-Children"
                 ],
                 "summary": "注册儿童档案并建立监护关系",
                 "parameters": [
@@ -2271,7 +2271,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Identity-Child"
+                    "Identity-Children"
                 ],
                 "summary": "搜索儿童",
                 "parameters": [
@@ -2345,7 +2345,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Identity-Child"
+                    "Identity-Children"
                 ],
                 "summary": "查询儿童档案",
                 "parameters": [
@@ -2398,7 +2398,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Identity-Child"
+                    "Identity-Children"
                 ],
                 "summary": "更新儿童档案",
                 "parameters": [
@@ -2662,7 +2662,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "IDP-WechatApp"
+                    "IDP-Wechat"
                 ],
                 "summary": "创建微信应用",
                 "parameters": [
@@ -2707,7 +2707,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "IDP-WechatApp"
+                    "IDP-Wechat"
                 ],
                 "summary": "强制刷新访问令牌",
                 "parameters": [
@@ -2758,7 +2758,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "IDP-WechatApp"
+                    "IDP-Wechat"
                 ],
                 "summary": "轮换认证密钥（AppSecret）",
                 "parameters": [
@@ -2809,7 +2809,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "IDP-WechatApp"
+                    "IDP-Wechat"
                 ],
                 "summary": "轮换消息加解密密钥",
                 "parameters": [
@@ -2860,7 +2860,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "IDP-WechatApp"
+                    "IDP-Wechat"
                 ],
                 "summary": "查询微信应用",
                 "parameters": [
@@ -2903,7 +2903,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "IDP-WechatApp"
+                    "IDP-Wechat"
                 ],
                 "summary": "获取访问令牌（带缓存和自动刷新）",
                 "parameters": [
@@ -2947,7 +2947,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "IDP-WechatAuth"
+                    "IDP-Wechat"
                 ],
                 "summary": "解密微信用户手机号",
                 "parameters": [
@@ -2999,7 +2999,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "IDP-WechatAuth"
+                    "IDP-Wechat"
                 ],
                 "summary": "微信小程序登录",
                 "parameters": [
@@ -3056,7 +3056,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Identity-Child"
+                    "Identity-Children"
                 ],
                 "summary": "获取当前用户的儿童档案列表",
                 "parameters": [
@@ -3112,7 +3112,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Identity-User"
+                    "Identity-Users"
                 ],
                 "summary": "创建用户",
                 "parameters": [
@@ -3163,7 +3163,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Identity-User"
+                    "Identity-Users"
                 ],
                 "summary": "获取当前用户资料",
                 "responses": {
@@ -3203,7 +3203,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Identity-User"
+                    "Identity-Users"
                 ],
                 "summary": "查询用户",
                 "parameters": [
@@ -3256,7 +3256,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Identity-User"
+                    "Identity-Users"
                 ],
                 "summary": "更新用户信息",
                 "parameters": [
@@ -3320,7 +3320,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Accounts"
+                    "Authentication-Accounts"
                 ],
                 "summary": "列出用户的所有账号",
                 "parameters": [
