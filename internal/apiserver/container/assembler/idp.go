@@ -30,15 +30,20 @@ import (
 // 架构说明：
 // - 直接在容器侧管理基础设施组件，无需中间聚合器
 // - 遵循六边形架构：Infrastructure -> Domain -> Application -> Interface
+//
+// 职责：
+// - 微信应用管理（HTTP 接口）
+// - 提供基础设施服务（供 authn 模块使用）
+// - 认证功能由 authn 模块统一提供
 type IDPModule struct {
 	// 应用服务（对外暴露）
 	ApplicationServices *application.ApplicationServices
 
 	// HTTP 处理器（对外暴露）
-	WechatAppHandler  *handler.WechatAppHandler
-	WechatAuthHandler *handler.WechatAuthHandler
+	WechatAppHandler *handler.WechatAppHandler
+	// WechatAuthHandler 已移除 - 认证由 authn 模块统一提供
 
-	// 基础设施组件（内部管理）
+	// 基础设施组件（内部管理，供其他模块使用）
 	wechatAppRepo       wechatappPort.WechatAppRepository
 	accessTokenCache    wechatappPort.AccessTokenCache
 	wechatSessionRepo   wechatsessionPort.WechatSessionRepository
@@ -217,16 +222,15 @@ func (m *IDPModule) initializeApplication(
 
 // initializeInterface 初始化接口层
 func (m *IDPModule) initializeInterface() error {
-	// 创建 HTTP 处理器
+	// 创建 HTTP 处理器（仅微信应用管理）
 	m.WechatAppHandler = handler.NewWechatAppHandler(
 		m.ApplicationServices.WechatApp,
 		m.ApplicationServices.WechatAppCredential,
 		m.ApplicationServices.WechatAppToken,
 	)
 
-	m.WechatAuthHandler = handler.NewWechatAuthHandler(
-		m.ApplicationServices.WechatAuth,
-	)
+	// WechatAuthHandler 已移除 - 认证功能由 authn 模块统一提供
+	// authn 模块通过容器依赖注入使用 IDP 模块的基础设施服务
 
 	return nil
 }

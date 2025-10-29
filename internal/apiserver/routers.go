@@ -10,6 +10,7 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
 	authnhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful"
 	authzhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/interface/restful"
+	idphttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/interface/restful"
 	userhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful"
 	authnMiddleware "github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
 )
@@ -86,6 +87,16 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 		authzhttp.Provide(authzhttp.Dependencies{})
 	}
 
+	// IDP 模块（身份提供者）
+	if r.container.IDPModule != nil {
+		idphttp.Provide(idphttp.Dependencies{
+			WechatAppHandler: r.container.IDPModule.WechatAppHandler,
+			// WechatAuthHandler 已移除 - 认证由 authn 模块统一提供
+		})
+	} else {
+		idphttp.Provide(idphttp.Dependencies{})
+	}
+
 	userhttp.Register(engine)
 	if r.container.AuthnModule != nil {
 		authnhttp.Register(engine)
@@ -97,10 +108,15 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 	} else {
 		log.Warn("Authz endpoints disabled because module failed to initialize")
 	}
+	if r.container.IDPModule != nil {
+		idphttp.Register(engine)
+	} else {
+		log.Warn("IDP endpoints disabled because module failed to initialize")
+	}
 
 	r.registerAdminRoutes(engine, authMiddleware)
 
-	fmt.Printf("🔗 Registered routes for: base, user, authn, authz\n")
+	fmt.Printf("🔗 Registered routes for: base, user, authn, authz, idp\n")
 }
 
 func (r *Router) registerBaseRoutes(engine *gin.Engine) {

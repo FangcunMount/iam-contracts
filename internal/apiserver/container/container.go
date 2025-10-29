@@ -52,36 +52,37 @@ func (c *Container) Initialize() error {
 		return fmt.Errorf("container already initialized")
 	}
 
-	// 初始化认证模块
-	if err := c.initAuthModule(); err != nil {
-		return fmt.Errorf("failed to initialize auth module: %w", err)
-	}
-
-	// 初始化用户模块
-	if err := c.initUserModule(); err != nil {
-		return fmt.Errorf("failed to initialize user module: %w", err)
-	}
-
-	// 初始化授权模块
-	if err := c.initAuthzModule(); err != nil {
-		return fmt.Errorf("failed to initialize authz module: %w", err)
-	}
-
-	// 初始化 IDP 模块
+	// 1. 初始化 IDP 模块（先初始化，因为 authn 模块依赖它）
 	if err := c.initIDPModule(); err != nil {
 		return fmt.Errorf("failed to initialize idp module: %w", err)
 	}
 
+	// 2. 初始化认证模块（依赖 IDP 模块）
+	if err := c.initAuthModule(); err != nil {
+		return fmt.Errorf("failed to initialize auth module: %w", err)
+	}
+
+	// 3. 初始化用户模块
+	if err := c.initUserModule(); err != nil {
+		return fmt.Errorf("failed to initialize user module: %w", err)
+	}
+
+	// 4. 初始化授权模块
+	if err := c.initAuthzModule(); err != nil {
+		return fmt.Errorf("failed to initialize authz module: %w", err)
+	}
+
 	c.initialized = true
-	fmt.Printf("🏗️  Container initialized with modules: user, auth, authz, idp\n")
+	fmt.Printf("🏗️  Container initialized with modules: idp, authn, user, authz\n")
 
 	return nil
 }
 
-// initAuthModule 初始化认证模块
+// initAuthModule 初始化认证模块（依赖 IDP 模块）
 func (c *Container) initAuthModule() error {
 	authModule := assembler.NewAuthnModule()
-	if err := authModule.Initialize(c.mysqlDB, c.redisClient); err != nil {
+	// 传递 IDP 模块的服务
+	if err := authModule.Initialize(c.mysqlDB, c.redisClient, c.IDPModule); err != nil {
 		return fmt.Errorf("failed to initialize auth module: %w", err)
 	}
 	c.AuthnModule = authModule
