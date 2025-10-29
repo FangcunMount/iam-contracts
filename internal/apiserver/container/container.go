@@ -21,16 +21,28 @@ type Container struct {
 	AuthnModule *assembler.AuthnModule
 	UserModule  *assembler.UserModule
 	AuthzModule *assembler.AuthzModule
+	IDPModule   *assembler.IDPModule
+
+	// IDP 模块加密密钥（32 字节 AES-256）
+	idpEncryptionKey []byte
 
 	// 容器状态
 	initialized bool
 }
 
 // NewContainer 创建容器
-func NewContainer(mysqlDB *gorm.DB, redisClient *redis.Client) *Container {
+// encryptionKey: IDP 模块使用的加密密钥（32 字节 AES-256），传 nil 则使用默认密钥
+func NewContainer(mysqlDB *gorm.DB, redisClient *redis.Client, encryptionKey []byte) *Container {
+	// 如果未提供加密密钥，使用默认密钥（仅用于开发环境）
+	if encryptionKey == nil {
+		// 默认密钥：32 字节（仅供开发使用，生产环境必须提供真实密钥）
+		encryptionKey = []byte("default-idp-encryption-key-32b!")
+	}
+
 	return &Container{
-		mysqlDB:     mysqlDB,
-		redisClient: redisClient,
+		mysqlDB:          mysqlDB,
+		redisClient:      redisClient,
+		idpEncryptionKey: encryptionKey,
 	}
 }
 
@@ -55,8 +67,13 @@ func (c *Container) Initialize() error {
 		return fmt.Errorf("failed to initialize authz module: %w", err)
 	}
 
+	// 初始化 IDP 模块
+	if err := c.initIDPModule(); err != nil {
+		return fmt.Errorf("failed to initialize idp module: %w", err)
+	}
+
 	c.initialized = true
-	fmt.Printf("🏗️  Container initialized with modules: user, auth, authz\n")
+	fmt.Printf("🏗️  Container initialized with modules: user, auth, authz, idp\n")
 
 	return nil
 }
@@ -88,6 +105,16 @@ func (c *Container) initAuthzModule() error {
 		return fmt.Errorf("failed to initialize authz module: %w", err)
 	}
 	c.AuthzModule = authzModule
+	return nil
+}
+
+// initIDPModule 初始化 IDP 模块（Identity Provider）
+func (c *Container) initIDPModule() error {
+	idpModule := assembler.NewIDPModule()
+	if err := idpModule.Initialize(c.mysqlDB, c.redisClient, c.idpEncryptionKey); err != nil {
+		return fmt.Errorf("failed to initialize idp module: %w", err)
+	}
+	c.IDPModule = idpModule
 	return nil
 }
 
@@ -157,6 +184,13 @@ func (c *Container) PrintStatus() {
 
 	fmt.Printf("   • Authz Module: ")
 	if c.AuthzModule != nil {
+		fmt.Printf("✅\n")
+	} else {
+		fmt.Printf("❌\n")
+	}
+
+	fmt.Printf("   • IDP Module: ")
+	if c.IDPModule != nil {
 		fmt.Printf("✅\n")
 	} else {
 		fmt.Printf("❌\n")
