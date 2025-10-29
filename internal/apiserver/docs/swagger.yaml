@@ -1095,258 +1095,780 @@ paths:
       summary: 获取 JWKS
       tags:
       - JWKS
-  /api/v1/idp/wechat-apps:
-    post:
+  /accounts/{accountId}:
+    get:
       consumes:
       - application/json
+      description: 根据账号ID获取账号详细信息
       parameters:
-      - description: 创建微信应用请求
+      - description: 账号ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 账号信息
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取账号详情
+      tags:
+      - Accounts
+  /accounts/{accountId}/wechat:profile:
+    patch:
+      consumes:
+      - application/json
+      description: 更新微信账号的昵称、头像等资料信息
+      parameters:
+      - description: 账号ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      - description: 更新资料请求
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.CreateWechatAppRequest'
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpsertWeChatProfileReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 更新微信账号资料
+      tags:
+      - Accounts
+  /accounts/{accountId}/wechat:unionid:
+    patch:
+      consumes:
+      - application/json
+      description: 为微信账号设置 UnionID（用于跨应用识别用户）
+      parameters:
+      - description: 账号ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      - description: 设置 UnionID 请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.SetWeChatUnionIDReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 设置成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 设置微信 UnionID
+      tags:
+      - Accounts
+  /accounts/{accountId}:disable:
+    post:
+      consumes:
+      - application/json
+      description: 禁用账号，禁用后无法登录
+      parameters:
+      - description: 账号ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 禁用成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 禁用账号
+      tags:
+      - Accounts
+  /accounts/{accountId}:enable:
+    post:
+      consumes:
+      - application/json
+      description: 启用被禁用的账号
+      parameters:
+      - description: 账号ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 启用成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 启用账号
+      tags:
+      - Accounts
+  /accounts/operation:
+    post:
+      consumes:
+      - application/json
+      description: 为用户创建基于用户名密码的运营账号
+      parameters:
+      - description: 创建运营账号请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateOperationAccountReq'
       produces:
       - application/json
       responses:
         "201":
           description: 创建成功
           schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse'
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account'
         "400":
-          description: 请求参数错误
+          description: 参数错误
           schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-        "500":
-          description: 服务器内部错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-      summary: 创建微信应用
-      tags:
-      - IDP-WechatApp
-  /api/v1/idp/wechat-apps/{app_id}:
-    get:
-      consumes:
-      - application/json
-      parameters:
-      - description: 微信应用 ID
-        in: path
-        name: app_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 查询成功
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse'
-        "404":
-          description: 应用不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-        "500":
-          description: 服务器内部错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-      summary: 查询微信应用
-      tags:
-      - IDP-WechatApp
-  /api/v1/idp/wechat-apps/{app_id}/access-token:
-    get:
-      consumes:
-      - application/json
-      parameters:
-      - description: 微信应用 ID
-        in: path
-        name: app_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 获取成功
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse'
-        "404":
-          description: 应用不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-        "500":
-          description: 服务器内部错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-      summary: 获取访问令牌（带缓存和自动刷新）
-      tags:
-      - IDP-WechatApp
-  /api/v1/idp/wechat-apps/refresh-access-token:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: 刷新访问令牌请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RefreshAccessTokenRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 刷新成功
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse'
-        "400":
-          description: 请求参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-        "404":
-          description: 应用不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-        "500":
-          description: 服务器内部错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-      summary: 强制刷新访问令牌
-      tags:
-      - IDP-WechatApp
-  /api/v1/idp/wechat-apps/rotate-auth-secret:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: 轮换认证密钥请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateAuthSecretRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 轮换成功
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse'
-        "400":
-          description: 请求参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-        "404":
-          description: 应用不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-        "500":
-          description: 服务器内部错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-      summary: 轮换认证密钥（AppSecret）
-      tags:
-      - IDP-WechatApp
-  /api/v1/idp/wechat-apps/rotate-msg-secret:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: 轮换消息密钥请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateMsgSecretRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 轮换成功
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse'
-        "400":
-          description: 请求参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-        "404":
-          description: 应用不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-        "500":
-          description: 服务器内部错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-      summary: 轮换消息加解密密钥
-      tags:
-      - IDP-WechatApp
-  /api/v1/idp/wechat/decrypt-phone:
-    post:
-      consumes:
-      - application/json
-      description: 使用 session_key 解密微信小程序获取的加密手机号信息
-      parameters:
-      - description: 解密手机号请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.DecryptPhoneRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 解密成功
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.DecryptPhoneResponse'
-        "400":
-          description: 请求参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
         "401":
-          description: 解密失败（session_key 无效）
+          description: 未授权
           schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-        "500":
-          description: 服务器内部错误
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "409":
+          description: 账号已存在
           schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-      summary: 解密微信用户手机号
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 创建运营账号
       tags:
-      - IDP-WechatAuth
-  /api/v1/idp/wechat/login:
-    post:
+      - Accounts
+  /accounts/operation/{username}:
+    patch:
       consumes:
       - application/json
-      description: 使用微信小程序登录码（wx.login 获取）进行用户认证，返回用户身份信息和会话密钥
+      description: 更新运营账号的密码、重置失败次数或解锁账号
       parameters:
-      - description: 微信登录请求
+      - description: 用户名
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: 更新凭据请求
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.LoginWithCodeRequest'
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpdateOperationCredentialReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 更新运营账号凭据
+      tags:
+      - Accounts
+  /accounts/operation/{username}:change:
+    post:
+      consumes:
+      - application/json
+      description: 修改运营账号的用户名
+      parameters:
+      - description: 原用户名
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: 修改用户名请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.ChangeOperationUsernameReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 修改成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "409":
+          description: 新用户名已存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 修改运营账号用户名
+      tags:
+      - Accounts
+  /accounts/wechat:bind:
+    post:
+      consumes:
+      - application/json
+      description: 为用户创建并绑定微信账号
+      parameters:
+      - description: 绑定微信账号请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.BindWeChatAccountReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 绑定成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "409":
+          description: 微信账号已绑定其他用户
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 绑定微信账号
+      tags:
+      - Accounts
+  /admin/jwks/keys:
+    get:
+      description: 分页列出所有密钥
+      parameters:
+      - description: 状态过滤 (active, grace, retired)
+        in: query
+        name: status
+        type: string
+      - default: 20
+        description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 密钥列表
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyListResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 列出密钥
+      tags:
+      - JWKS Admin
+    post:
+      consumes:
+      - application/json
+      description: 创建新的签名密钥
+      parameters:
+      - description: 创建密钥请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateKeyRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 创建密钥
+      tags:
+      - JWKS Admin
+  /admin/jwks/keys/{kid}:
+    get:
+      description: 根据 kid 获取密钥详细信息
+      parameters:
+      - description: 密钥 ID
+        in: path
+        name: kid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 密钥详情
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 密钥不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取密钥详情
+      tags:
+      - JWKS Admin
+  /admin/jwks/keys/{kid}/force-retire:
+    post:
+      description: 强制将任何状态的密钥转为 Retired（用于紧急情况）
+      parameters:
+      - description: 密钥 ID
+        in: path
+        name: kid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 强制退役成功
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 密钥不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 强制退役密钥
+      tags:
+      - JWKS Admin
+  /admin/jwks/keys/{kid}/grace:
+    post:
+      description: 将密钥状态从 Active 转为 Grace
+      parameters:
+      - description: 密钥 ID
+        in: path
+        name: kid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 进入宽限期成功
+        "400":
+          description: 参数错误或状态不允许
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 密钥不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 进入宽限期
+      tags:
+      - JWKS Admin
+  /admin/jwks/keys/{kid}/retire:
+    post:
+      description: 将密钥状态从 Grace 转为 Retired
+      parameters:
+      - description: 密钥 ID
+        in: path
+        name: kid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 退役成功
+        "400":
+          description: 参数错误或状态不允许
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 密钥不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 退役密钥
+      tags:
+      - JWKS Admin
+  /admin/jwks/keys/cleanup:
+    post:
+      description: 删除已过期的 Retired 密钥
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 清理结果
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.CleanupResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 清理过期密钥
+      tags:
+      - JWKS Admin
+  /admin/jwks/keys/publishable:
+    get:
+      description: 获取当前会被发布到 JWKS 的密钥列表（用于预览或调试）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 可发布的密钥列表
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.PublishableKeysResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取可发布的密钥
+      tags:
+      - JWKS Admin
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: '使用不同的认证方式进行登录（basic: 用户名密码, wx:minip: 微信小程序）'
+      parameters:
+      - description: 登录请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 登录成功
           schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.LoginResponse'
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair'
         "400":
-          description: 请求参数错误
+          description: 参数错误
           schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
         "401":
-          description: 登录失败（code 无效或已过期）
+          description: 认证失败
           schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-        "500":
-          description: 服务器内部错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
-      summary: 微信小程序登录
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      summary: 登录
       tags:
-      - IDP-WechatAuth
+      - Authentication
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: 撤销访问令牌和刷新令牌
+      parameters:
+      - description: Bearer {access_token}
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 登出请求
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登出成功
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 登出
+      tags:
+      - Tokens
+  /auth/token:
+    post:
+      consumes:
+      - application/json
+      description: 使用刷新令牌获取新的访问令牌
+      parameters:
+      - description: 刷新令牌请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 刷新成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 令牌无效
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      summary: 刷新令牌
+      tags:
+      - Tokens
+  /auth/verify:
+    post:
+      consumes:
+      - application/json
+      description: 验证访问令牌的有效性（验签 + 载荷校验 + 黑名单检查）
+      parameters:
+      - description: 验证令牌请求（可选）
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.VerifyTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 验证结果
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.VerifyResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 验证令牌
+      tags:
+      - 令牌
   /authz/assignments/{id}:
     delete:
       parameters:
@@ -1858,781 +2380,7 @@ paths:
       summary: 获取角色的策略列表
       tags:
       - Policy
-  /v1/accounts/{accountId}:
-    get:
-      consumes:
-      - application/json
-      description: 根据账号ID获取账号详细信息
-      parameters:
-      - description: 账号ID
-        in: path
-        name: accountId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 账号信息
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account'
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "404":
-          description: 账号不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 获取账号详情
-      tags:
-      - Accounts
-  /v1/accounts/{accountId}/wechat:profile:
-    patch:
-      consumes:
-      - application/json
-      description: 更新微信账号的昵称、头像等资料信息
-      parameters:
-      - description: 账号ID
-        in: path
-        name: accountId
-        required: true
-        type: string
-      - description: 更新资料请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpsertWeChatProfileReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 更新成功
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "404":
-          description: 账号不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 更新微信账号资料
-      tags:
-      - Accounts
-  /v1/accounts/{accountId}/wechat:unionid:
-    patch:
-      consumes:
-      - application/json
-      description: 为微信账号设置 UnionID（用于跨应用识别用户）
-      parameters:
-      - description: 账号ID
-        in: path
-        name: accountId
-        required: true
-        type: string
-      - description: 设置 UnionID 请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.SetWeChatUnionIDReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 设置成功
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "404":
-          description: 账号不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 设置微信 UnionID
-      tags:
-      - Accounts
-  /v1/accounts/{accountId}:disable:
-    post:
-      consumes:
-      - application/json
-      description: 禁用账号，禁用后无法登录
-      parameters:
-      - description: 账号ID
-        in: path
-        name: accountId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 禁用成功
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "404":
-          description: 账号不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 禁用账号
-      tags:
-      - Accounts
-  /v1/accounts/{accountId}:enable:
-    post:
-      consumes:
-      - application/json
-      description: 启用被禁用的账号
-      parameters:
-      - description: 账号ID
-        in: path
-        name: accountId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 启用成功
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "404":
-          description: 账号不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 启用账号
-      tags:
-      - Accounts
-  /v1/accounts/operation:
-    post:
-      consumes:
-      - application/json
-      description: 为用户创建基于用户名密码的运营账号
-      parameters:
-      - description: 创建运营账号请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateOperationAccountReq'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: 创建成功
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account'
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "409":
-          description: 账号已存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 创建运营账号
-      tags:
-      - Accounts
-  /v1/accounts/operation/{username}:
-    patch:
-      consumes:
-      - application/json
-      description: 更新运营账号的密码、重置失败次数或解锁账号
-      parameters:
-      - description: 用户名
-        in: path
-        name: username
-        required: true
-        type: string
-      - description: 更新凭据请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpdateOperationCredentialReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 更新成功
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "404":
-          description: 账号不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 更新运营账号凭据
-      tags:
-      - Accounts
-  /v1/accounts/operation/{username}:change:
-    post:
-      consumes:
-      - application/json
-      description: 修改运营账号的用户名
-      parameters:
-      - description: 原用户名
-        in: path
-        name: username
-        required: true
-        type: string
-      - description: 修改用户名请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.ChangeOperationUsernameReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 修改成功
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "404":
-          description: 账号不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "409":
-          description: 新用户名已存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 修改运营账号用户名
-      tags:
-      - Accounts
-  /v1/accounts/wechat:bind:
-    post:
-      consumes:
-      - application/json
-      description: 为用户创建并绑定微信账号
-      parameters:
-      - description: 绑定微信账号请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.BindWeChatAccountReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 绑定成功
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account'
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "409":
-          description: 微信账号已绑定其他用户
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 绑定微信账号
-      tags:
-      - Accounts
-  /v1/admin/jwks/keys:
-    get:
-      description: 分页列出所有密钥
-      parameters:
-      - description: 状态过滤 (active, grace, retired)
-        in: query
-        name: status
-        type: string
-      - default: 20
-        description: 每页数量
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: 偏移量
-        in: query
-        name: offset
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 密钥列表
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyListResponse'
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未认证
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "403":
-          description: 无权限
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "500":
-          description: 服务器错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 列出密钥
-      tags:
-      - JWKS Admin
-    post:
-      consumes:
-      - application/json
-      description: 创建新的签名密钥
-      parameters:
-      - description: 创建密钥请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateKeyRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: 创建成功
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse'
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未认证
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "403":
-          description: 无权限
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "500":
-          description: 服务器错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 创建密钥
-      tags:
-      - JWKS Admin
-  /v1/admin/jwks/keys/{kid}:
-    get:
-      description: 根据 kid 获取密钥详细信息
-      parameters:
-      - description: 密钥 ID
-        in: path
-        name: kid
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 密钥详情
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse'
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未认证
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "403":
-          description: 无权限
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "404":
-          description: 密钥不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "500":
-          description: 服务器错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 获取密钥详情
-      tags:
-      - JWKS Admin
-  /v1/admin/jwks/keys/{kid}/force-retire:
-    post:
-      description: 强制将任何状态的密钥转为 Retired（用于紧急情况）
-      parameters:
-      - description: 密钥 ID
-        in: path
-        name: kid
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 强制退役成功
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未认证
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "403":
-          description: 无权限
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "404":
-          description: 密钥不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "500":
-          description: 服务器错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 强制退役密钥
-      tags:
-      - JWKS Admin
-  /v1/admin/jwks/keys/{kid}/grace:
-    post:
-      description: 将密钥状态从 Active 转为 Grace
-      parameters:
-      - description: 密钥 ID
-        in: path
-        name: kid
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 进入宽限期成功
-        "400":
-          description: 参数错误或状态不允许
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未认证
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "403":
-          description: 无权限
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "404":
-          description: 密钥不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "500":
-          description: 服务器错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 进入宽限期
-      tags:
-      - JWKS Admin
-  /v1/admin/jwks/keys/{kid}/retire:
-    post:
-      description: 将密钥状态从 Grace 转为 Retired
-      parameters:
-      - description: 密钥 ID
-        in: path
-        name: kid
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 退役成功
-        "400":
-          description: 参数错误或状态不允许
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未认证
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "403":
-          description: 无权限
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "404":
-          description: 密钥不存在
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "500":
-          description: 服务器错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 退役密钥
-      tags:
-      - JWKS Admin
-  /v1/admin/jwks/keys/cleanup:
-    post:
-      description: 删除已过期的 Retired 密钥
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 清理结果
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.CleanupResponse'
-        "401":
-          description: 未认证
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "403":
-          description: 无权限
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "500":
-          description: 服务器错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 清理过期密钥
-      tags:
-      - JWKS Admin
-  /v1/admin/jwks/keys/publishable:
-    get:
-      description: 获取当前会被发布到 JWKS 的密钥列表（用于预览或调试）
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 可发布的密钥列表
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.PublishableKeysResponse'
-        "401":
-          description: 未认证
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "403":
-          description: 无权限
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "500":
-          description: 服务器错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 获取可发布的密钥
-      tags:
-      - JWKS Admin
-  /v1/auth/login:
-    post:
-      consumes:
-      - application/json
-      description: '使用不同的认证方式进行登录（basic: 用户名密码, wx:minip: 微信小程序）'
-      parameters:
-      - description: 登录请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 登录成功
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair'
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 认证失败
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      summary: 登录
-      tags:
-      - 认证
-  /v1/auth/logout:
-    post:
-      consumes:
-      - application/json
-      description: 撤销访问令牌和刷新令牌
-      parameters:
-      - description: Bearer {access_token}
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: 登出请求
-        in: body
-        name: request
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LogoutRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 登出成功
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 登出
-      tags:
-      - 令牌
-  /v1/auth/token:
-    post:
-      consumes:
-      - application/json
-      description: 使用刷新令牌获取新的访问令牌
-      parameters:
-      - description: 刷新令牌请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.RefreshTokenRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 刷新成功
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair'
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 令牌无效
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      summary: 刷新令牌
-      tags:
-      - 令牌
-  /v1/auth/verify:
-    post:
-      consumes:
-      - application/json
-      description: 验证访问令牌的有效性（验签 + 载荷校验 + 黑名单检查）
-      parameters:
-      - description: 验证令牌请求（可选）
-        in: body
-        name: request
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.VerifyTokenRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 验证结果
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.VerifyResponse'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 验证令牌
-      tags:
-      - 令牌
-  /v1/children:
+  /children:
     post:
       consumes:
       - application/json
@@ -2672,7 +2420,7 @@ paths:
       summary: 创建儿童档案
       tags:
       - Identity-Child
-  /v1/children/{id}:
+  /children/{id}:
     get:
       consumes:
       - application/json
@@ -2747,7 +2495,7 @@ paths:
       summary: 更新儿童档案
       tags:
       - Identity-Child
-  /v1/children/register:
+  /children/register:
     post:
       consumes:
       - application/json
@@ -2787,7 +2535,7 @@ paths:
       summary: 注册儿童档案并建立监护关系
       tags:
       - Identity-Child
-  /v1/children/search:
+  /children/search:
     get:
       consumes:
       - application/json
@@ -2835,7 +2583,7 @@ paths:
       summary: 搜索儿童
       tags:
       - Identity-Child
-  /v1/guardians:
+  /guardians:
     get:
       consumes:
       - application/json
@@ -2887,7 +2635,7 @@ paths:
       summary: 查询监护关系
       tags:
       - Identity-Guardianship
-  /v1/guardians/grant:
+  /guardians/grant:
     post:
       consumes:
       - application/json
@@ -2927,7 +2675,7 @@ paths:
       summary: 授予监护关系
       tags:
       - Identity-Guardianship
-  /v1/guardians/revoke:
+  /guardians/revoke:
     post:
       consumes:
       - application/json
@@ -2967,7 +2715,259 @@ paths:
       summary: 撤销监护关系
       tags:
       - Identity-Guardianship
-  /v1/me/children:
+  /idp/wechat-apps:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 创建微信应用请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.CreateWechatAppRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 创建微信应用
+      tags:
+      - IDP-WechatApp
+  /idp/wechat-apps/{app_id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 微信应用 ID
+        in: path
+        name: app_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse'
+        "404":
+          description: 应用不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 查询微信应用
+      tags:
+      - IDP-WechatApp
+  /idp/wechat-apps/{app_id}/access-token:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 微信应用 ID
+        in: path
+        name: app_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse'
+        "404":
+          description: 应用不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 获取访问令牌（带缓存和自动刷新）
+      tags:
+      - IDP-WechatApp
+  /idp/wechat-apps/refresh-access-token:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 刷新访问令牌请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RefreshAccessTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 刷新成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "404":
+          description: 应用不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 强制刷新访问令牌
+      tags:
+      - IDP-WechatApp
+  /idp/wechat-apps/rotate-auth-secret:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 轮换认证密钥请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateAuthSecretRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 轮换成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "404":
+          description: 应用不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 轮换认证密钥（AppSecret）
+      tags:
+      - IDP-WechatApp
+  /idp/wechat-apps/rotate-msg-secret:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 轮换消息密钥请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateMsgSecretRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 轮换成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "404":
+          description: 应用不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 轮换消息加解密密钥
+      tags:
+      - IDP-WechatApp
+  /idp/wechat/decrypt-phone:
+    post:
+      consumes:
+      - application/json
+      description: 使用 session_key 解密微信小程序获取的加密手机号信息
+      parameters:
+      - description: 解密手机号请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.DecryptPhoneRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 解密成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.DecryptPhoneResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "401":
+          description: 解密失败（session_key 无效）
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 解密微信用户手机号
+      tags:
+      - IDP-WechatAuth
+  /idp/wechat/login:
+    post:
+      consumes:
+      - application/json
+      description: 使用微信小程序登录码（wx.login 获取）进行用户认证，返回用户身份信息和会话密钥
+      parameters:
+      - description: 微信登录请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.LoginWithCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.LoginResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "401":
+          description: 登录失败（code 无效或已过期）
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 微信小程序登录
+      tags:
+      - IDP-WechatAuth
+  /me/children:
     get:
       consumes:
       - application/json
@@ -3003,7 +3003,7 @@ paths:
       summary: 获取当前用户的儿童档案列表
       tags:
       - Identity-Child
-  /v1/users:
+  /users:
     post:
       consumes:
       - application/json
@@ -3035,7 +3035,7 @@ paths:
       summary: 创建用户
       tags:
       - Identity-User
-  /v1/users/{userId}:
+  /users/{userId}:
     get:
       consumes:
       - application/json
@@ -3110,7 +3110,7 @@ paths:
       summary: 更新用户信息
       tags:
       - Identity-User
-  /v1/users/{userId}/accounts:
+  /users/{userId}/accounts:
     get:
       consumes:
       - application/json
@@ -3154,7 +3154,7 @@ paths:
       summary: 列出用户的所有账号
       tags:
       - Accounts
-  /v1/users/profile:
+  /users/profile:
     get:
       consumes:
       - application/json
