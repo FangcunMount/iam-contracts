@@ -17,9 +17,17 @@ if [ ! -f "configs/apiserver.yaml" ]; then
     exit 1
 fi
 
+# 检查 Air 配置文件
+if [ ! -f ".air-apiserver.toml" ]; then
+    echo "❌ Air 配置文件 .air-apiserver.toml 不存在"
+    exit 1
+fi
+
 # 创建临时目录
-mkdir -p tmp
+mkdir -p tmp/pids
+mkdir -p logs
 
 # 启动 Air
 echo "✅ 启动热更新服务..."
-air 
+air -c .air-apiserver.toml
+ 

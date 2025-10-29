@@ -53,4 +53,16 @@ Thumbs.db
 # Environment files with sensitive data
 *.env.local
 *.env.production
-.env.*.local 
+.env.*.local
+
+# SSL/TLS Certificates (except README)
+configs/cert/*.crt
+configs/cert/*.key
+configs/cert/*.pem
+configs/cert/*.p12
+configs/cert/*.pfx
+configs/cert/*.csr
+configs/cert/*.srl
+configs/cert/openssl.cnf
+!configs/cert/README.md
+ 
