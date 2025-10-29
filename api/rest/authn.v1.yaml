@@ -10,20 +10,20 @@ servers:
 security:
   - bearerAuth: []
 tags:
-  - name: Accounts
+  - name: Authentication-Accounts
     description: 账户管理（创建/编辑/状态/查询）
-  - name: Auth
+  - name: Authentication-Auth
     description: 认证（识别登录信息 → 找到 User）
-  - name: Tokens
+  - name: Authentication-Tokens
     description: 令牌（颁发/验证/刷新/销毁）
-  - name: JWKS
+  - name: Authentication-JWKS
     description: 公钥集（供资源服务验签）
 
 paths:
   # 账户管理
   /v1/accounts/operation:
     post:
-      tags: [Accounts]
+      tags: [Authentication-Accounts]
       summary: 创建运营账号（用户名/口令）
       operationId: CreateOperationAccount
       parameters:
@@ -46,7 +46,7 @@ paths:
 
   /v1/accounts/operation/{username}:
     patch:
-      tags: [Accounts]
+      tags: [Authentication-Accounts]
       summary: 更新运营口令/解锁/清零失败次数
       operationId: UpdateOperationCredential
       parameters:
@@ -65,7 +65,7 @@ paths:
 
   '/v1/accounts/operation/{username}:change':
     post:
-      tags: [Accounts]
+      tags: [Authentication-Accounts]
       summary: 修改运营用户名（迁移唯一键）
       operationId: ChangeUsername
       parameters:
@@ -88,7 +88,7 @@ paths:
 
   '/v1/accounts/wechat:bind':
     post:
-      tags: [Accounts]
+      tags: [Authentication-Accounts]
       summary: 绑定微信账号（小程序/可扩 OA）
       operationId: BindWeChatAccount
       parameters:
@@ -116,7 +116,7 @@ paths:
 
   /v1/accounts/{accountId}/wechat:profile:
     patch:
-      tags: [Accounts]
+      tags: [Authentication-Accounts]
       summary: Upsert 微信画像（昵称/头像/Meta）
       operationId: UpsertWeChatProfile
       parameters:
@@ -135,7 +135,7 @@ paths:
 
   /v1/accounts/{accountId}/wechat:unionid:
     patch:
-      tags: [Accounts]
+      tags: [Authentication-Accounts]
       summary: 设置/补齐 UnionID（仅微信）
       operationId: SetWeChatUnionID
       parameters:
@@ -157,7 +157,7 @@ paths:
 
   /v1/accounts/{accountId}:
     get:
-      tags: [Accounts]
+      tags: [Authentication-Accounts]
       summary: 查询账号
       operationId: GetAccount
       parameters:
@@ -174,7 +174,7 @@ paths:
 
   '/v1/accounts/{accountId}:enable':
     post:
-      tags: [Accounts]
+      tags: [Authentication-Accounts]
       summary: 启用账号
       operationId: EnableAccount
       parameters:
@@ -187,7 +187,7 @@ paths:
 
   '/v1/accounts/{accountId}:disable':
     post:
-      tags: [Accounts]
+      tags: [Authentication-Accounts]
       summary: 禁用账号
       operationId: DisableAccount
       parameters:
@@ -200,7 +200,7 @@ paths:
 
   /v1/users/{userId}/accounts:
     get:
-      tags: [Accounts]
+      tags: [Authentication-Accounts]
       summary: 按用户列出其绑定的账号
       operationId: ListAccountsByUser
       parameters:
@@ -218,7 +218,7 @@ paths:
 
   /v1/accounts:by-ref:
     get:
-      tags: [Accounts]
+      tags: [Authentication-Accounts]
       summary: 通过外部身份引用查询账号（运营/排障）
       operationId: FindAccountByRef
       parameters:
@@ -238,7 +238,7 @@ paths:
   # 认证（识别）
   /v1/auth/login:
     post:
-      tags: [Auth]
+      tags: [Authentication-Auth]
       summary: 登录（策略：basic | wx:minip）
       operationId: Login
       security: []  # 登录接口一般不需要 bearer
@@ -264,7 +264,7 @@ paths:
   # 令牌（Bearer / JWT + Redis Refresh）
   /v1/auth/refresh_token:
     post:
-      tags: [Tokens]
+      tags: [Authentication-Tokens]
       summary: 刷新 AccessToken（旋转 RefreshToken）
       operationId: RefreshToken
       requestBody:
@@ -292,7 +292,7 @@ paths:
 
   /v1/auth/logout:
     post:
-      tags: [Tokens]
+      tags: [Authentication-Tokens]
       summary: 注销（撤销 refresh 或对当前用户全量撤销）
       operationId: Logout
       requestBody:
@@ -313,7 +313,7 @@ paths:
 
   /v1/auth/verify:
     post:
-      tags: [Tokens]
+      tags: [Authentication-Tokens]
       summary: 验证 AccessToken（验签 + 载荷校验 + 黑名单检查）
       operationId: VerifyToken
       requestBody:
@@ -335,7 +335,7 @@ paths:
 
   '/.well-known/jwks.json':
     get:
-      tags: [JWKS]
+      tags: [Authentication-JWKS]
       summary: 获取 JWKS（公钥集）
       operationId: GetJWKS
       security: []

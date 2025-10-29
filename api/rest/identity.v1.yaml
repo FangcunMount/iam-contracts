@@ -10,14 +10,14 @@ servers:
 security:
   - bearerAuth: []
 tags:
-  - name: Users
-  - name: Children
-  - name: Guardianship
+  - name: Identity-Users
+  - name: Identity-Children
+  - name: Identity-Guardianship
 
 paths:
   /v1/users:
     post:
-      tags: [Users]
+      tags: [Identity-Users]
       summary: 创建用户（内部/管理）
       operationId: CreateUser
       requestBody:
@@ -32,7 +32,7 @@ paths:
 
   /v1/users/{userId}:
     get:
-      tags: [Users]
+      tags: [Identity-Users]
       summary: 查询用户
       operationId: GetUser
       parameters: [ { $ref: '#/components/parameters/UserId' } ]
@@ -42,7 +42,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
     patch:
-      tags: [Users]
+      tags: [Identity-Users]
       summary: 更新用户
       operationId: PatchUser
       parameters: [ { $ref: '#/components/parameters/UserId' } ]
@@ -59,7 +59,7 @@ paths:
 
   /v1/me/children:
     get:
-      tags: [Children]
+      tags: [Identity-Children]
       summary: 我的孩子
       operationId: ListMyChildren
       parameters: [ { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Offset' } ]
@@ -69,7 +69,7 @@ paths:
 
   /v1/children/register:
     post:
-      tags: [Children]
+      tags: [Identity-Children]
       summary: 注册孩子（建档+授当前用户为监护人）
       operationId: RegisterChild
       parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
@@ -87,7 +87,7 @@ paths:
 
   /v1/children:
     post:
-      tags: [Children]
+      tags: [Identity-Children]
       summary: 仅建档（不授监护）
       operationId: CreateChild
       parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
@@ -105,7 +105,7 @@ paths:
 
   /v1/children/{childId}:
     get:
-      tags: [Children]
+      tags: [Identity-Children]
       summary: 查询孩子
       operationId: GetChild
       parameters: [ { $ref: '#/components/parameters/ChildId' } ]
@@ -115,7 +115,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
     patch:
-      tags: [Children]
+      tags: [Identity-Children]
       summary: 更新孩子
       operationId: PatchChild
       parameters: [ { $ref: '#/components/parameters/ChildId' } ]
@@ -132,7 +132,7 @@ paths:
 
   /v1/children/search:
     get:
-      tags: [Children]
+      tags: [Identity-Children]
       summary: 搜索孩子（运营）
       operationId: SearchChildren
       parameters:
@@ -151,7 +151,7 @@ paths:
 
   /v1/guardians/grant:
     post:
-      tags: [Guardianship]
+      tags: [Identity-Guardianship]
       summary: 授予监护
       operationId: GrantGuardian
       requestBody:
@@ -167,7 +167,7 @@ paths:
 
   /v1/guardians/revoke:
     post:
-      tags: [Guardianship]
+      tags: [Identity-Guardianship]
       summary: 撤销监护
       operationId: RevokeGuardian
       requestBody:
@@ -191,7 +191,7 @@ paths:
 
   /v1/guardians:
     get:
-      tags: [Guardianship]
+      tags: [Identity-Guardianship]
       summary: 监护查询
       operationId: ListGuardians
       parameters:

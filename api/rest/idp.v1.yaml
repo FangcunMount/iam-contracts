@@ -40,7 +40,7 @@ servers:
 tags:
   - name: Health
     description: 健康检查
-  - name: Wechat Apps
+  - name: IDP-Wechat
     description: 微信应用管理
 
 paths:
@@ -64,7 +64,7 @@ paths:
   # ============ 微信应用管理 ============
   /wechat-apps:
     post:
-      tags: [Wechat Apps]
+      tags: [IDP-Wechat]
       summary: 创建微信应用
       description: |
         注册新的微信应用配置
@@ -94,7 +94,7 @@ paths:
 
   /wechat-apps/{app_id}:
     get:
-      tags: [Wechat Apps]
+      tags: [IDP-Wechat]
       summary: 查询微信应用
       description: 根据微信应用 ID 查询应用配置信息
       operationId: GetWechatApp
@@ -111,7 +111,7 @@ paths:
 
   /wechat-apps/{app_id}/access-token:
     get:
-      tags: [Wechat Apps]
+      tags: [IDP-Wechat]
       summary: 获取访问令牌
       description: |
         获取微信 Access Token
@@ -138,7 +138,7 @@ paths:
 
   /wechat-apps/rotate-auth-secret:
     post:
-      tags: [Wechat Apps]
+      tags: [IDP-Wechat]
       summary: 轮换认证密钥
       description: |
         轮换微信应用的 AppSecret
@@ -165,7 +165,7 @@ paths:
 
   /wechat-apps/rotate-msg-secret:
     post:
-      tags: [Wechat Apps]
+      tags: [IDP-Wechat]
       summary: 轮换消息密钥
       description: |
         轮换微信消息加解密配置
@@ -193,7 +193,7 @@ paths:
 
   /wechat-apps/refresh-access-token:
     post:
-      tags: [Wechat Apps]
+      tags: [IDP-Wechat]
       summary: 刷新访问令牌
       description: |
         强制刷新微信 Access Token

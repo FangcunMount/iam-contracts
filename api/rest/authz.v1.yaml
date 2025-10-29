@@ -33,13 +33,13 @@ servers:
 tags:
   - name: Health
     description: 健康检查
-  - name: Roles
+  - name: Authorization-Roles
     description: 角色管理
-  - name: Assignments
+  - name: Authorization-Assignments
     description: 角色分配管理
-  - name: Policies
+  - name: Authorization-Policies
     description: 策略规则管理
-  - name: Resources
+  - name: Authorization-Resources
     description: 资源管理
 
 paths:
@@ -63,7 +63,7 @@ paths:
   # ============ 角色管理 ============
   /roles:
     post:
-      tags: [Roles]
+      tags: [Authorization-Roles]
       summary: 创建角色
       operationId: CreateRole
       requestBody:
@@ -82,7 +82,7 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
 
     get:
-      tags: [Roles]
+      tags: [Authorization-Roles]
       summary: 列出角色
       operationId: ListRoles
       parameters:
@@ -100,7 +100,7 @@ paths:
 
   /roles/{id}:
     get:
-      tags: [Roles]
+      tags: [Authorization-Roles]
       summary: 获取角色详情
       operationId: GetRole
       parameters:
@@ -115,7 +115,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
 
     put:
-      tags: [Roles]
+      tags: [Authorization-Roles]
       summary: 更新角色
       operationId: UpdateRole
       parameters:
@@ -136,7 +136,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
 
     delete:
-      tags: [Roles]
+      tags: [Authorization-Roles]
       summary: 删除角色
       operationId: DeleteRole
       parameters:
@@ -154,7 +154,7 @@ paths:
 
   /roles/{id}/assignments:
     get:
-      tags: [Roles]
+      tags: [Authorization-Roles]
       summary: 列出角色的分配记录
       operationId: ListAssignmentsByRole
       parameters:
@@ -172,7 +172,7 @@ paths:
 
   /roles/{id}/policies:
     get:
-      tags: [Roles]
+      tags: [Authorization-Roles]
       summary: 获取角色的策略列表
       operationId: GetPoliciesByRole
       parameters:
@@ -191,7 +191,7 @@ paths:
   # ============ 角色分配 ============
   /assignments/grant:
     post:
-      tags: [Assignments]
+      tags: [Authorization-Assignments]
       summary: 授予角色
       description: 将角色授予用户或组
       operationId: GrantRole
@@ -221,7 +221,7 @@ paths:
 
   /assignments/revoke:
     post:
-      tags: [Assignments]
+      tags: [Authorization-Assignments]
       summary: 撤销角色
       description: 撤销用户或组的角色
       operationId: RevokeRole
@@ -243,7 +243,7 @@ paths:
 
   /assignments/{id}:
     delete:
-      tags: [Assignments]
+      tags: [Authorization-Assignments]
       summary: 根据 ID 撤销分配
       operationId: RevokeRoleByID
       parameters:
@@ -260,7 +260,7 @@ paths:
 
   /assignments/subject:
     get:
-      tags: [Assignments]
+      tags: [Authorization-Assignments]
       summary: 列出主体的分配
       description: 查询用户或组的所有角色分配
       operationId: ListAssignmentsBySubject
@@ -291,7 +291,7 @@ paths:
   # ============ 策略管理 ============
   /policies:
     post:
-      tags: [Policies]
+      tags: [Authorization-Policies]
       summary: 添加策略规则
       description: |
         为角色添加策略规则 (Role -> Resource + Action)
@@ -323,7 +323,7 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
 
     delete:
-      tags: [Policies]
+      tags: [Authorization-Policies]
       summary: 移除策略规则
       description: 从角色中移除策略规则
       operationId: RemovePolicyRule
@@ -345,7 +345,7 @@ paths:
 
   /policies/version:
     get:
-      tags: [Policies]
+      tags: [Authorization-Policies]
       summary: 获取当前策略版本
       description: 获取租户的当前策略版本信息（用于缓存失效）
       operationId: GetCurrentVersion
@@ -360,7 +360,7 @@ paths:
   # ============ 资源管理 ============
   /resources:
     post:
-      tags: [Resources]
+      tags: [Authorization-Resources]
       summary: 创建资源
       operationId: CreateResource
       requestBody:
@@ -383,7 +383,7 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
 
     get:
-      tags: [Resources]
+      tags: [Authorization-Resources]
       summary: 列出资源
       operationId: ListResources
       parameters:
@@ -401,7 +401,7 @@ paths:
 
   /resources/{id}:
     get:
-      tags: [Resources]
+      tags: [Authorization-Resources]
       summary: 获取资源详情
       operationId: GetResource
       parameters:
@@ -416,7 +416,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
 
     put:
-      tags: [Resources]
+      tags: [Authorization-Resources]
       summary: 更新资源
       operationId: UpdateResource
       parameters:
@@ -437,7 +437,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
 
     delete:
-      tags: [Resources]
+      tags: [Authorization-Resources]
       summary: 删除资源
       operationId: DeleteResource
       parameters:
@@ -455,7 +455,7 @@ paths:
 
   /resources/key/{key}:
     get:
-      tags: [Resources]
+      tags: [Authorization-Resources]
       summary: 根据键获取资源
       operationId: GetResourceByKey
       parameters:
@@ -476,7 +476,7 @@ paths:
 
   /resources/validate-action:
     post:
-      tags: [Resources]
+      tags: [Authorization-Resources]
       summary: 验证资源动作
       description: 验证给定的动作是否在资源的允许动作列表中
       operationId: ValidateAction
