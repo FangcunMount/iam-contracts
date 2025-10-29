@@ -44,8 +44,10 @@ COVERAGE_DIR := coverage
 
 # 服务配置
 APISERVER_BIN := $(BIN_DIR)/apiserver
-APISERVER_CONFIG := configs/apiserver-simple.yaml
+APISERVER_CONFIG := configs/apiserver.yaml
+APISERVER_DEV_CONFIG := configs/apiserver-dev.yaml
 APISERVER_PORT := 8080
+APISERVER_SSL_PORT := 8443
 
 # 颜色输出
 COLOR_RESET := \033[0m
@@ -63,8 +65,8 @@ COLOR_RED := \033[31m
 .PHONY: help version debug
 .PHONY: build build-apiserver clean
 .PHONY: run run-apiserver stop stop-apiserver restart restart-apiserver
-.PHONY: status status-apiserver logs logs-apiserver health
-.PHONY: dev dev-apiserver dev-stop dev-status
+.PHONY: status status-apiserver logs logs-apiserver health health-check
+.PHONY: dev dev-apiserver dev-stop dev-status dev-logs
 .PHONY: test test-unit test-coverage test-race test-bench
 .PHONY: lint fmt fmt-check
 .PHONY: deps deps-download deps-tidy deps-verify
@@ -73,6 +75,10 @@ COLOR_RED := \033[31m
 .PHONY: up down re st log
 .PHONY: db-init db-migrate db-seed db-reset db-connect db-status db-backup
 .PHONY: docker-mysql-up docker-mysql-down docker-mysql-clean docker-mysql-logs
+.PHONY: cert-gen cert-test cert-verify test-dev-config
+.PHONY: docker-dev-up docker-dev-down docker-dev-restart docker-dev-logs docker-dev-clean
+.PHONY: docker-compose-build docker-compose-up docker-compose-down docker-compose-restart docker-compose-logs
+.PHONY: deploy deploy-local deploy-prod deploy-nginx deploy-systemd
 
 # ============================================================================
 # 帮助信息
@@ -95,12 +101,18 @@ help: ## 显示帮助信息
 	@grep -E '^(run|start|stop|restart|status|logs|health).*:.*?## .*$$' $(MAKEFILE_LIST) | grep -v "dev" | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(COLOR_BOLD)🛠️  开发工具:$(COLOR_RESET)"
-	@grep -E '^(dev|test|lint|fmt).*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
+	@grep -E '^(dev|test|lint|fmt|cert).*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
 	@echo ""
-	@echo "$(COLOR_BOLD)�️  数据库管理:$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)🗄️  数据库管理:$(COLOR_RESET)"
 	@grep -E '^(db-|docker-mysql-).*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
 	@echo ""
-	@echo "$(COLOR_BOLD)�📚 其他命令:$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)🐳 Docker 开发环境:$(COLOR_RESET)"
+	@grep -E '^docker-dev-.*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(COLOR_BOLD)🐳 Docker 生产部署:$(COLOR_RESET)"
+	@grep -E '^docker-compose-.*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(COLOR_BOLD)📚 其他命令:$(COLOR_RESET)"
 	@grep -E '^(deps|proto|install|clean|version|debug|up|down|st).*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
 	@echo ""
 
@@ -202,7 +214,8 @@ logs-apiserver: ## 查看 API 服务器日志
 health-check: ## 检查所有服务健康状态
 	@echo "🔍 健康检查:"
 	@echo "============"
-	@echo -n "iam-contracts:        "; curl -s http://localhost:$(APISERVER_PORT)/healthz || echo "❌ 无响应"
+	@echo -n "HTTP  ($(APISERVER_PORT)):  "; curl -s http://localhost:$(APISERVER_PORT)/healthz || echo "❌ 无响应"
+	@echo -n "HTTPS ($(APISERVER_SSL_PORT)): "; curl -s -k https://localhost:$(APISERVER_SSL_PORT)/healthz || echo "❌ 无响应"
 
 # =============================================================================
 # 测试工具
@@ -264,6 +277,39 @@ dev-logs: ## 查看开发环境日志
 	@echo "📋 开发环境日志:"
 	@echo "=============="
 	@tail -f tmp/build-errors-*.log
+
+# =============================================================================
+# 证书管理（开发/测试环境）
+# =============================================================================
+
+cert-gen: ## 生成开发环境自签名证书
+	@echo "$(COLOR_CYAN)🔐 生成开发环境证书...$(COLOR_RESET)"
+	@chmod +x scripts/cert/generate-dev-cert.sh
+	@./scripts/cert/generate-dev-cert.sh
+
+cert-test: ## 测试证书配置
+	@echo "$(COLOR_CYAN)🧪 测试证书配置...$(COLOR_RESET)"
+	@chmod +x scripts/cert/test-cert.sh
+	@./scripts/cert/test-cert.sh
+
+cert-verify: ## 验证证书文件
+	@echo "$(COLOR_CYAN)🔍 验证证书文件...$(COLOR_RESET)"
+	@if [ -f configs/cert/web-apiserver.crt ]; then \
+		openssl x509 -in configs/cert/web-apiserver.crt -noout -text | grep -E "(Subject:|Issuer:|Not Before|Not After|DNS:)"; \
+		echo "$(COLOR_GREEN)✅ 证书文件有效$(COLOR_RESET)"; \
+	else \
+		echo "$(COLOR_RED)❌ 证书文件不存在，请运行: make cert-gen$(COLOR_RESET)"; \
+		exit 1; \
+	fi
+
+test-dev-config: ## 测试开发环境配置
+	@echo "$(COLOR_CYAN)🧪 测试开发环境配置...$(COLOR_RESET)"
+	@chmod +x scripts/test-dev-config.sh
+	@./scripts/test-dev-config.sh
+
+# =============================================================================
+# 测试
+# =============================================================================
 
 test: ## 运行测试
 	@echo "🧪 运行测试..."
@@ -616,6 +662,41 @@ docker-compose-restart: ## 重启 docker-compose 服务
 
 docker-compose-logs: ## 查看 docker-compose 日志
 	@docker-compose -f build/docker/docker-compose.yml logs -f
+
+# ============================================================================
+# Docker 开发环境管理
+# ============================================================================
+
+docker-dev-up: cert-gen ## 启动 Docker 开发环境
+	@echo "$(COLOR_BLUE)🐳 启动 Docker 开发环境...$(COLOR_RESET)"
+	@docker-compose -f build/docker/docker-compose-dev.yml up -d
+	@echo "$(COLOR_GREEN)✅ 开发环境已启动$(COLOR_RESET)"
+	@echo ""
+	@echo "$(COLOR_CYAN)📊 服务状态:$(COLOR_RESET)"
+	@docker-compose -f build/docker/docker-compose-dev.yml ps
+	@echo ""
+	@echo "$(COLOR_YELLOW)💡 提示:$(COLOR_RESET)"
+	@echo "  查看日志: make docker-dev-logs"
+	@echo "  停止服务: make docker-dev-down"
+	@echo "  重启服务: make docker-dev-restart"
+
+docker-dev-down: ## 停止 Docker 开发环境
+	@echo "$(COLOR_YELLOW)⏹️  停止 Docker 开发环境...$(COLOR_RESET)"
+	@docker-compose -f build/docker/docker-compose-dev.yml down
+	@echo "$(COLOR_GREEN)✅ 开发环境已停止$(COLOR_RESET)"
+
+docker-dev-restart: ## 重启 Docker 开发环境
+	@echo "$(COLOR_BLUE)🔄 重启 Docker 开发环境...$(COLOR_RESET)"
+	@docker-compose -f build/docker/docker-compose-dev.yml restart
+	@echo "$(COLOR_GREEN)✅ 开发环境已重启$(COLOR_RESET)"
+
+docker-dev-logs: ## 查看 Docker 开发环境日志
+	@docker-compose -f build/docker/docker-compose-dev.yml logs -f
+
+docker-dev-clean: ## 清理 Docker 开发环境（包括数据卷）
+	@echo "$(COLOR_RED)⚠️  清理 Docker 开发环境...$(COLOR_RESET)"
+	@docker-compose -f build/docker/docker-compose-dev.yml down -v
+	@echo "$(COLOR_GREEN)✅ 开发环境已清理$(COLOR_RESET)"
 
 # ============================================================================
 # 部署相关
