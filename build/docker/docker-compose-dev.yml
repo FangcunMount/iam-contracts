@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # IAM Contracts API Server (开发/测试环境)
+  iam-apiserver:
+    build:
+      context: ../..
+      dockerfile: build/docker/Dockerfile
+      args:
+        VERSION: ${VERSION:-dev}
+        BUILD_TIME: ${BUILD_TIME:-$(date -u '+%Y-%m-%d_%H:%M:%S')}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    container_name: iam-apiserver-dev
+    image: iam-contracts:dev
+    user: "${WWW_UID:-1000}:${WWW_GID:-1000}"
+    env_file:
+      - ../../configs/env/config.env
+    ports:
+      - "8080:8080"   # HTTP
+      - "8443:8443"   # HTTPS
+    volumes:
+      # 挂载配置文件（使用开发环境配置）
+      - ../../configs:/app/configs:ro
+      # 挂载日志目录
+      - ./logs:/var/log/iam-contracts
+      # 挂载开发证书（使用自签名证书）
+      - ../../configs/cert:/etc/iam-contracts/ssl:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - GO_ENV=development
+    networks:
+      - iam-network
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command: ["-c", "/app/configs/apiserver-dev.yaml"]
+
+  # MySQL 数据库（开发/测试环境）
+  mysql:
+    image: mysql:8.0
+    container_name: iam-mysql-dev
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-iam_contracts}
+      MYSQL_USER: ${MYSQL_USER:-iam}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-iam_contracts_pass123}
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ../../scripts/sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ../../scripts/sql/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    networks:
+      - iam-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis 缓存（开发/测试环境）
+  redis:
+    image: redis:7-alpine
+    container_name: iam-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - iam-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  iam-network:
+    driver: bridge
+    name: iam-network-dev
+
+volumes:
+  mysql-data:
+    name: iam-mysql-data-dev
+  redis-data:
+    name: iam-redis-data-dev

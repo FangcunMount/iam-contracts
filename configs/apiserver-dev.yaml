@@ -1,0 +1,81 @@
+app:
+  name: "iam"
+  version: "1.0.0"
+  mode: "development"  # development, production
+
+# 服务器配置
+server:
+  name: "iam"
+  address: "0.0.0.0"
+  port: 8080  # 标准端口
+  port-ssl: 8443  # HTTPS 端口
+  read-timeout: 60    # 秒
+  write-timeout: 60   # 秒
+  run-mode: "debug"   # Gin 开发模式: debug, release, test
+
+# MySQL 配置
+mysql:
+  host: "127.0.0.1:3306"
+  username: "iam"
+  password: "iam_contracts_pass123"
+  database: "iam_contracts"
+  max-idle-conns: 10
+  max-open-conns: 100
+  conn-max-lifetime: 3600  # 秒
+  log-level: 4  # GORM log level: 1:silent, 2:error, 3:warn, 4:info (开发环境使用 info)
+
+# Redis 配置
+redis:
+  host: "127.0.0.1"
+  port: 6379
+  addr: "127.0.0.1:6379"
+  password: ""
+  db: 1  # 使用专用的数据库索引
+  pool-size: 100
+  min-idle-conns: 10
+
+# 日志配置
+log:
+  disable-caller: false  # 开发环境显示调用者信息
+  disable-stacktrace: false  # 开发环境显示堆栈
+  level: debug  # 开发环境使用 debug 级别
+  format: console  # 控制台格式
+  output-paths: [stdout]  # 开发环境只输出到控制台
+
+# JWT 配置
+jwt:
+  secret: "dev-secret-key-change-in-production"  # 开发环境密钥
+  expire: 86400  # 24小时
+
+# CORS 配置（开发环境允许所有来源）
+cors:
+  allowed-origins:
+    - "*"
+  allowed-methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "OPTIONS"
+    - "PATCH"
+  allowed-headers:
+    - "Content-Type"
+    - "Authorization"
+    - "X-Requested-With"
+
+# HTTPS/TLS 配置（使用自签名证书）
+tls:
+  cert: configs/cert/web-apiserver.crt
+  key: configs/cert/web-apiserver.key
+  strict: false  # 开发环境不严格验证
+
+insecure:
+  bind-address: 0.0.0.0
+  bind-port: 8080
+
+secure:
+  bind-address: 0.0.0.0
+  bind-port: 8443
+  tls:
+    cert-file: configs/cert/web-apiserver.crt
+    private-key-file: configs/cert/web-apiserver.key

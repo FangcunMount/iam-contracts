@@ -230,7 +230,7 @@ test-submit: ## 测试答卷提交
 
 dev: ## 启动开发环境（热更新）
 	@echo "🚀 启动开发环境..."
-	@mkdir -p tmp
+	@mkdir -p tmp/pids
 	@echo "启动 iam-contracts..."
 	@air -c .air-apiserver.toml & echo $$! > tmp/pids/air-apiserver.pid
 	@sleep 2
@@ -240,7 +240,7 @@ dev: ## 启动开发环境（热更新）
 
 dev-apiserver: ## 独立启动 API 服务器（热更新）
 	@echo "🚀 启动 apiserver 开发环境..."
-	@mkdir -p tmp
+	@mkdir -p tmp/pids
 	@air -c .air-apiserver.toml
 
 dev-stop: ## 停止开发环境
