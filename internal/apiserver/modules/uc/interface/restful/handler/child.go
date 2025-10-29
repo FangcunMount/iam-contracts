@@ -13,6 +13,7 @@ import (
 	requestdto "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful/request"
 	responsedto "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful/response"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	_ "github.com/FangcunMount/iam-contracts/pkg/core" // imported for swagger
 )
 
 // ChildHandler 儿童档案 REST 处理器
@@ -44,6 +45,18 @@ func NewChildHandler(
 }
 
 // ListMyChildren 获取当前用户的儿童档案列表
+// @Summary 获取当前用户的儿童档案列表
+// @Description 获取当前登录用户作为监护人的所有儿童档案
+// @Tags Identity-Child
+// @Accept json
+// @Produce json
+// @Param offset query int false "偏移量" default(0)
+// @Param limit query int false "每页数量" default(20)
+// @Success 200 {object} responsedto.ChildPageResponse "查询成功"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 500 {object} core.ErrResponse "服务器内部错误"
+// @Router /v1/me/children [get]
+// @Security BearerAuth
 func (h *ChildHandler) ListMyChildren(c *gin.Context) {
 	var query requestdto.ChildListQuery
 	if err := h.BindQuery(c, &query); err != nil {
@@ -91,6 +104,19 @@ func (h *ChildHandler) ListMyChildren(c *gin.Context) {
 }
 
 // RegisterChild 注册儿童并授予当前用户监护权
+// @Summary 注册儿童档案并建立监护关系
+// @Description 创建儿童档案并自动将当前用户设置为监护人
+// @Tags Identity-Child
+// @Accept json
+// @Produce json
+// @Param request body requestdto.ChildRegisterRequest true "注册儿童请求"
+// @Success 201 {object} responsedto.ChildRegisterResponse "注册成功"
+// @Failure 400 {object} core.ErrResponse "请求参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 409 {object} core.ErrResponse "儿童已存在"
+// @Failure 500 {object} core.ErrResponse "服务器内部错误"
+// @Router /v1/children/register [post]
+// @Security BearerAuth
 func (h *ChildHandler) RegisterChild(c *gin.Context) {
 	var req requestdto.ChildRegisterRequest
 	if err := h.BindJSON(c, &req); err != nil {
@@ -148,6 +174,19 @@ func (h *ChildHandler) RegisterChild(c *gin.Context) {
 }
 
 // CreateChild 仅创建儿童档案（不建立监护关系）
+// @Summary 创建儿童档案
+// @Description 仅创建儿童档案，不建立监护关系
+// @Tags Identity-Child
+// @Accept json
+// @Produce json
+// @Param request body requestdto.ChildCreateRequest true "创建儿童请求"
+// @Success 201 {object} responsedto.ChildResponse "创建成功"
+// @Failure 400 {object} core.ErrResponse "请求参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 409 {object} core.ErrResponse "儿童已存在"
+// @Failure 500 {object} core.ErrResponse "服务器内部错误"
+// @Router /v1/children [post]
+// @Security BearerAuth
 func (h *ChildHandler) CreateChild(c *gin.Context) {
 	var req requestdto.ChildCreateRequest
 	if err := h.BindJSON(c, &req); err != nil {
@@ -178,6 +217,18 @@ func (h *ChildHandler) CreateChild(c *gin.Context) {
 }
 
 // GetChild 查询儿童档案
+// @Summary 查询儿童档案
+// @Description 根据儿童 ID 查询儿童详细档案
+// @Tags Identity-Child
+// @Accept json
+// @Produce json
+// @Param id path string true "儿童 ID"
+// @Success 200 {object} responsedto.ChildResponse "查询成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 404 {object} core.ErrResponse "儿童不存在"
+// @Failure 500 {object} core.ErrResponse "服务器内部错误"
+// @Router /v1/children/{id} [get]
+// @Security BearerAuth
 func (h *ChildHandler) GetChild(c *gin.Context) {
 	childID := c.Param("id")
 	if strings.TrimSpace(childID) == "" {
@@ -195,6 +246,19 @@ func (h *ChildHandler) GetChild(c *gin.Context) {
 }
 
 // PatchChild 更新儿童档案
+// @Summary 更新儿童档案
+// @Description 部分更新儿童档案信息
+// @Tags Identity-Child
+// @Accept json
+// @Produce json
+// @Param id path string true "儿童 ID"
+// @Param request body requestdto.ChildUpdateRequest true "更新儿童请求"
+// @Success 200 {object} responsedto.ChildResponse "更新成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 404 {object} core.ErrResponse "儿童不存在"
+// @Failure 500 {object} core.ErrResponse "服务器内部错误"
+// @Router /v1/children/{id} [patch]
+// @Security BearerAuth
 func (h *ChildHandler) PatchChild(c *gin.Context) {
 	childID := c.Param("id")
 	if strings.TrimSpace(childID) == "" {
@@ -270,6 +334,21 @@ func (h *ChildHandler) PatchChild(c *gin.Context) {
 }
 
 // SearchChildren 搜索相似儿童（根据姓名、性别、生日）
+// @Summary 搜索儿童
+// @Description 根据姓名、生日等信息搜索相似的儿童档案（用于运营查询）
+// @Tags Identity-Child
+// @Accept json
+// @Produce json
+// @Param name query string false "儿童姓名"
+// @Param dob query string false "出生日期 YYYY-MM-DD"
+// @Param offset query int false "偏移量" default(0)
+// @Param limit query int false "每页数量" default(20)
+// @Success 200 {object} responsedto.ChildPageResponse "查询成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 500 {object} core.ErrResponse "服务器内部错误"
+// @Router /v1/children/search [get]
+// @Security BearerAuth
 func (h *ChildHandler) SearchChildren(c *gin.Context) {
 	var query requestdto.ChildSearchQuery
 	if err := h.BindQuery(c, &query); err != nil {

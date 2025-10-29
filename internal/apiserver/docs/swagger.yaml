@@ -1,0 +1,3215 @@
+basePath: /api/v1
+definitions:
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_domain_jwks.PublicJWK:
+    properties:
+      alg:
+        description: '"RS256"/"ES256"/"EdDSA"'
+        type: string
+      crv:
+        type: string
+      e:
+        type: string
+      kid:
+        description: key id
+        type: string
+      kty:
+        description: '"RSA"/"EC"/"OKP"'
+        type: string
+      "n":
+        description: 'RSA: n/e; EC: crv/x/y; OKP: crv/x'
+        type: string
+      use:
+        description: '"sig"'
+        type: string
+      x:
+        type: string
+      "y":
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.BindWeChatAccountReq:
+    properties:
+      appId:
+        type: string
+      avatar:
+        type: string
+      meta:
+        additionalProperties: true
+        type: object
+      nickname:
+        type: string
+      openid:
+        type: string
+      unionid:
+        type: string
+      userId:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.ChangeOperationUsernameReq:
+    properties:
+      newUsername:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateKeyRequest:
+    properties:
+      algorithm:
+        description: 签名算法
+        enum:
+        - RS256
+        - RS384
+        - RS512
+        type: string
+      notAfter:
+        description: 过期时间（可选）
+        type: string
+      notBefore:
+        description: 生效时间（可选）
+        type: string
+    required:
+    - algorithm
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateOperationAccountReq:
+    properties:
+      algo:
+        type: string
+      hash:
+        type: string
+      mustReset:
+        type: boolean
+      params:
+        additionalProperties: true
+        type: object
+      password:
+        type: string
+      userId:
+        type: string
+      username:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LoginRequest:
+    properties:
+      audience:
+        description: web | mobile | admin
+        type: string
+      credentials:
+        description: 凭证（根据 method 不同而不同）
+        items:
+          type: integer
+        type: array
+      deviceId:
+        description: 设备 ID
+        type: string
+      method:
+        description: 认证方式：basic 或 wx:minip
+        enum:
+        - basic
+        - wx:minip
+        type: string
+    required:
+    - credentials
+    - method
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LogoutRequest:
+    properties:
+      all:
+        description: true 撤销当前用户所有 refresh（需鉴权）
+        type: boolean
+      refreshToken:
+        description: 若提供，仅撤销该票据
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.RefreshTokenRequest:
+    properties:
+      audience:
+        description: web | mobile | admin
+        type: string
+      refreshToken:
+        type: string
+    required:
+    - refreshToken
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.SetWeChatUnionIDReq:
+    properties:
+      unionId:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpdateOperationCredentialReq:
+    properties:
+      algo:
+        type: string
+      newHash:
+        type: string
+      newPassword:
+        type: string
+      params:
+        additionalProperties: true
+        type: object
+      resetFailures:
+        type: boolean
+      unlockNow:
+        type: boolean
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpsertWeChatProfileReq:
+    properties:
+      avatar:
+        type: string
+      meta:
+        additionalProperties: true
+        type: object
+      nickname:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.VerifyTokenRequest:
+    properties:
+      audience:
+        description: 受众
+        type: string
+      token:
+        description: '可省略并使用 Authorization: Bearer 的 token'
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account:
+    properties:
+      appId:
+        type: string
+      externalId:
+        type: string
+      id:
+        type: string
+      provider:
+        type: string
+      status:
+        type: string
+      userId:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.AccountPage:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.CleanupResponse:
+    properties:
+      deletedCount:
+        description: 删除的密钥数量
+        type: integer
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.JWK:
+    properties:
+      alg:
+        description: Algorithm
+        type: string
+      crv:
+        description: EC Curve
+        type: string
+      e:
+        description: RSA Exponent
+        type: string
+      kid:
+        description: Key ID
+        type: string
+      kty:
+        description: Key Type (RSA, EC, etc.)
+        type: string
+      "n":
+        description: RSA Modulus
+        type: string
+      use:
+        description: Public Key Use (sig, enc)
+        type: string
+      x:
+        description: EC X Coordinate
+        type: string
+      "y":
+        description: EC Y Coordinate
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.JWKSet:
+    properties:
+      keys:
+        items:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.JWK'
+        type: array
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyInfo:
+    properties:
+      algorithm:
+        description: 签名算法
+        type: string
+      createdAt:
+        description: 创建时间
+        type: string
+      kid:
+        description: 密钥 ID
+        type: string
+      notAfter:
+        description: 过期时间
+        type: string
+      notBefore:
+        description: 生效时间
+        type: string
+      publicJwk:
+        allOf:
+        - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_domain_jwks.PublicJWK'
+        description: 公钥 JWK
+      status:
+        description: 密钥状态
+        type: string
+      updatedAt:
+        description: 更新时间
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyListResponse:
+    properties:
+      keys:
+        description: 密钥列表
+        items:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyInfo'
+        type: array
+      limit:
+        description: 每页数量
+        type: integer
+      offset:
+        description: 偏移量
+        type: integer
+      total:
+        description: 总数
+        type: integer
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse:
+    properties:
+      algorithm:
+        description: 签名算法
+        type: string
+      createdAt:
+        description: 创建时间
+        type: string
+      kid:
+        description: 密钥 ID
+        type: string
+      notAfter:
+        description: 过期时间
+        type: string
+      notBefore:
+        description: 生效时间
+        type: string
+      publicJwk:
+        allOf:
+        - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_domain_jwks.PublicJWK'
+        description: 公钥 JWK
+      status:
+        description: 密钥状态 (active, grace, retired)
+        type: string
+      updatedAt:
+        description: 更新时间
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.PublishableKeyInfo:
+    properties:
+      algorithm:
+        description: 签名算法
+        type: string
+      kid:
+        description: 密钥 ID
+        type: string
+      notAfter:
+        description: 过期时间
+        type: string
+      notBefore:
+        description: 生效时间
+        type: string
+      publicJwk:
+        allOf:
+        - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_domain_jwks.PublicJWK'
+        description: 公钥 JWK
+      status:
+        description: 密钥状态
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.PublishableKeysResponse:
+    properties:
+      keys:
+        description: 可发布的密钥列表
+        items:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.PublishableKeyInfo'
+        type: array
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenClaims:
+    properties:
+      aid:
+        description: Account ID
+        type: string
+      aud:
+        description: Audience
+        type: string
+      exp:
+        description: Expiration
+        type: integer
+      iat:
+        description: Issued At
+        type: integer
+      iss:
+        description: Issuer
+        type: string
+      jti:
+        description: JWT ID
+        type: string
+      kid:
+        description: Key ID
+        type: string
+      sid:
+        description: Session ID
+        type: string
+      sub:
+        description: Subject (UserID)
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair:
+    properties:
+      accessToken:
+        description: 访问令牌
+        type: string
+      expiresIn:
+        description: 过期时间（秒）
+        type: integer
+      jti:
+        description: JWT ID（可选）
+        type: string
+      refreshToken:
+        description: 刷新令牌（可选）
+        type: string
+      tokenType:
+        description: 令牌类型（Bearer）
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.VerifyResponse:
+    properties:
+      blocked:
+        description: 是否被拉黑
+        type: boolean
+      claims:
+        allOf:
+        - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenClaims'
+        description: 令牌声明
+      header:
+        description: JWT Header
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.AddPolicyRequest:
+    properties:
+      action:
+        type: string
+      changed_by:
+        type: string
+      reason:
+        type: string
+      resource_id:
+        type: integer
+      role_id:
+        type: integer
+    required:
+    - action
+    - changed_by
+    - resource_id
+    - role_id
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.AssignmentResponse:
+    properties:
+      granted_by:
+        type: string
+      id:
+        type: integer
+      role_id:
+        type: integer
+      subject_id:
+        type: string
+      subject_type:
+        type: string
+      tenant_id:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.CreateResourceRequest:
+    properties:
+      actions:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      app_name:
+        type: string
+      description:
+        type: string
+      display_name:
+        type: string
+      domain:
+        type: string
+      key:
+        type: string
+      type:
+        type: string
+    required:
+    - actions
+    - app_name
+    - display_name
+    - domain
+    - key
+    - type
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.CreateRoleRequest:
+    properties:
+      description:
+        type: string
+      display_name:
+        type: string
+      name:
+        type: string
+    required:
+    - display_name
+    - name
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.GrantRequest:
+    properties:
+      granted_by:
+        type: string
+      role_id:
+        type: integer
+      subject_id:
+        type: string
+      subject_type:
+        enum:
+        - user
+        - group
+        type: string
+    required:
+    - granted_by
+    - role_id
+    - subject_id
+    - subject_type
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ListResponse:
+    properties:
+      code:
+        type: integer
+      data: {}
+      limit:
+        type: integer
+      message:
+        type: string
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.PolicyRuleResponse:
+    properties:
+      action:
+        type: string
+      domain:
+        type: string
+      object:
+        type: string
+      subject:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.PolicyVersionResponse:
+    properties:
+      changed_by:
+        type: string
+      reason:
+        type: string
+      tenant_id:
+        type: string
+      version:
+        type: integer
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RemovePolicyRequest:
+    properties:
+      action:
+        type: string
+      changed_by:
+        type: string
+      reason:
+        type: string
+      resource_id:
+        type: integer
+      role_id:
+        type: integer
+    required:
+    - action
+    - changed_by
+    - resource_id
+    - role_id
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ResourceResponse:
+    properties:
+      actions:
+        items:
+          type: string
+        type: array
+      app_name:
+        type: string
+      description:
+        type: string
+      display_name:
+        type: string
+      domain:
+        type: string
+      id:
+        type: integer
+      key:
+        type: string
+      type:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RevokeRequest:
+    properties:
+      role_id:
+        type: integer
+      subject_id:
+        type: string
+      subject_type:
+        enum:
+        - user
+        - group
+        type: string
+    required:
+    - role_id
+    - subject_id
+    - subject_type
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RoleResponse:
+    properties:
+      description:
+        type: string
+      display_name:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      tenant_id:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.UpdateResourceRequest:
+    properties:
+      actions:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      description:
+        type: string
+      display_name:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.UpdateRoleRequest:
+    properties:
+      description:
+        type: string
+      display_name:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ValidateActionRequest:
+    properties:
+      action:
+        type: string
+      resource_key:
+        type: string
+    required:
+    - action
+    - resource_key
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ValidateActionResponse:
+    properties:
+      valid:
+        type: boolean
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.CreateWechatAppRequest:
+    properties:
+      app_id:
+        description: 微信应用 ID（必填）
+        type: string
+      app_secret:
+        description: AppSecret（可选，创建时设置）
+        type: string
+      name:
+        description: 应用名称（必填）
+        type: string
+      type:
+        description: 应用类型（MiniProgram/OfficialAccount，必填）
+        type: string
+    required:
+    - app_id
+    - name
+    - type
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.DecryptPhoneRequest:
+    properties:
+      app_id:
+        description: 微信应用 ID
+        type: string
+      encrypted_data:
+        description: 加密数据
+        type: string
+      iv:
+        description: 加密算法的初始向量
+        type: string
+      open_id:
+        description: 用户 OpenID
+        type: string
+    required:
+    - app_id
+    - encrypted_data
+    - iv
+    - open_id
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.LoginWithCodeRequest:
+    properties:
+      app_id:
+        description: 微信应用 ID
+        type: string
+      js_code:
+        description: 微信登录码（小程序 wx.login 获取）
+        type: string
+    required:
+    - app_id
+    - js_code
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RefreshAccessTokenRequest:
+    properties:
+      app_id:
+        description: 微信应用 ID
+        type: string
+    required:
+    - app_id
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateAuthSecretRequest:
+    properties:
+      app_id:
+        description: 微信应用 ID
+        type: string
+      new_secret:
+        description: 新的 AppSecret
+        type: string
+    required:
+    - app_id
+    - new_secret
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateMsgSecretRequest:
+    properties:
+      app_id:
+        description: 微信应用 ID
+        type: string
+      callback_token:
+        description: 回调 Token
+        type: string
+      encoding_aes_key:
+        description: 加密 AES Key
+        type: string
+    required:
+    - app_id
+    - callback_token
+    - encoding_aes_key
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse:
+    properties:
+      access_token:
+        description: 访问令牌
+        type: string
+      expires_in:
+        description: 过期时间（秒）
+        type: integer
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.DecryptPhoneResponse:
+    properties:
+      phone:
+        description: 手机号
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse:
+    properties:
+      code:
+        description: 错误码
+        type: integer
+      message:
+        description: 错误消息
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.LoginResponse:
+    properties:
+      app_id:
+        description: 微信应用 ID
+        type: string
+      avatar_url:
+        description: 头像 URL（可选）
+        type: string
+      display_name:
+        description: 显示名称（可选）
+        type: string
+      email:
+        description: 邮箱（可选）
+        type: string
+      expires_in:
+        description: 过期时间（秒）
+        type: integer
+      open_id:
+        description: 用户 OpenID
+        type: string
+      phone:
+        description: 手机号（可选）
+        type: string
+      provider:
+        description: 外部身份声明
+        type: string
+      session_key:
+        description: 会话信息
+        type: string
+      union_id:
+        description: 用户 UnionID（可选）
+        type: string
+      version:
+        description: 会话版本
+        type: integer
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse:
+    properties:
+      message:
+        description: 消息
+        type: string
+      success:
+        description: 是否成功
+        type: boolean
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse:
+    properties:
+      app_id:
+        description: 微信应用 ID
+        type: string
+      id:
+        description: 内部 ID
+        type: string
+      name:
+        description: 应用名称
+        type: string
+      status:
+        description: 应用状态（Active/Inactive）
+        type: string
+      type:
+        description: 应用类型（MiniProgram/OfficialAccount）
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.ChildCreateRequest:
+    properties:
+      dob:
+        type: string
+      gender:
+        type: integer
+      heightCm:
+        type: integer
+      idNo:
+        type: string
+      idType:
+        type: string
+      legalName:
+        type: string
+      weightKg:
+        type: string
+    required:
+    - dob
+    - gender
+    - idNo
+    - idType
+    - legalName
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.ChildRegisterRequest:
+    properties:
+      dob:
+        type: string
+      gender:
+        type: integer
+      heightCm:
+        type: integer
+      idNo:
+        type: string
+      idType:
+        type: string
+      legalName:
+        type: string
+      relation:
+        enum:
+        - self
+        - parent
+        - guardian
+        type: string
+      weightKg:
+        type: string
+    required:
+    - dob
+    - gender
+    - idNo
+    - idType
+    - legalName
+    - relation
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.ChildUpdateRequest:
+    properties:
+      dob:
+        type: string
+      gender:
+        type: integer
+      heightCm:
+        type: integer
+      legalName:
+        type: string
+      weightKg:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.GuardianGrantRequest:
+    properties:
+      childId:
+        type: string
+      relation:
+        enum:
+        - self
+        - parent
+        - guardian
+        type: string
+      userId:
+        type: string
+    required:
+    - childId
+    - relation
+    - userId
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.GuardianRevokeRequest:
+    properties:
+      childId:
+        type: string
+      userId:
+        type: string
+    required:
+    - childId
+    - userId
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.UserContactUpsert:
+    properties:
+      type:
+        enum:
+        - email
+        - phone
+        type: string
+      value:
+        type: string
+    required:
+    - type
+    - value
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.UserCreateRequest:
+    properties:
+      avatar:
+        type: string
+      contacts:
+        items:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.UserContactUpsert'
+        type: array
+      nickname:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.UserUpdateRequest:
+    properties:
+      avatar:
+        type: string
+      contacts:
+        items:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.UserContactUpsert'
+        type: array
+      nickname:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildPageResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildResponse'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildRegisterResponse:
+    properties:
+      child:
+        $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildResponse'
+      guardianship:
+        $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipResponse'
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildResponse:
+    properties:
+      createdAt:
+        type: string
+      dob:
+        type: string
+      gender:
+        type: integer
+      heightCm:
+        type: integer
+      id:
+        type: string
+      idMasked:
+        type: string
+      idType:
+        type: string
+      legalName:
+        type: string
+      updatedAt:
+        type: string
+      weightKg:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipPageResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipResponse'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipResponse:
+    properties:
+      childId:
+        type: string
+      id:
+        type: integer
+      relation:
+        type: string
+      revokedAt:
+        type: string
+      since:
+        type: string
+      userId:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.UserResponse:
+    properties:
+      avatar:
+        type: string
+      contacts:
+        items:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.VerifiedContactResponse'
+        type: array
+      createdAt:
+        type: string
+      id:
+        type: string
+      nickname:
+        type: string
+      status:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.VerifiedContactResponse:
+    properties:
+      type:
+        type: string
+      value:
+        type: string
+      verifiedAt:
+        type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse:
+    properties:
+      code:
+        description: Code 定义了业务错误代码
+        type: integer
+      message:
+        description: |-
+          Message 包含此消息的详细信息
+          此消息适合暴露给外部
+        type: string
+      reference:
+        description: Reference 返回参考文档，可能有助于解决此错误
+        type: string
+    type: object
+host: iam.yangshujie.com
+info:
+  contact:
+    email: support@yangshujie.com
+    name: API Support
+    url: https://github.com/FangcunMount/iam-contracts
+  description: IAM 系统 REST API 文档，包含认证(Authentication)、授权(Authorization)、身份管理(Identity)和身份提供商(IDP)模块
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: https://iam.yangshujie.com/terms
+  title: IAM API Documentation
+  version: 1.0.0
+paths:
+  /.well-known/jwks.json:
+    get:
+      description: 获取 JSON Web Key Set，用于验证 JWT 签名
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWKS JSON
+          headers:
+            Cache-Control:
+              description: 缓存控制
+              type: string
+            ETag:
+              description: 实体标签
+              type: string
+            Last-Modified:
+              description: 最后修改时间
+              type: string
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      summary: 获取 JWKS
+      tags:
+      - JWKS
+  /api/v1/idp/wechat-apps:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 创建微信应用请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.CreateWechatAppRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 创建微信应用
+      tags:
+      - IDP-WechatApp
+  /api/v1/idp/wechat-apps/{app_id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 微信应用 ID
+        in: path
+        name: app_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse'
+        "404":
+          description: 应用不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 查询微信应用
+      tags:
+      - IDP-WechatApp
+  /api/v1/idp/wechat-apps/{app_id}/access-token:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 微信应用 ID
+        in: path
+        name: app_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse'
+        "404":
+          description: 应用不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 获取访问令牌（带缓存和自动刷新）
+      tags:
+      - IDP-WechatApp
+  /api/v1/idp/wechat-apps/refresh-access-token:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 刷新访问令牌请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RefreshAccessTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 刷新成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "404":
+          description: 应用不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 强制刷新访问令牌
+      tags:
+      - IDP-WechatApp
+  /api/v1/idp/wechat-apps/rotate-auth-secret:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 轮换认证密钥请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateAuthSecretRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 轮换成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "404":
+          description: 应用不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 轮换认证密钥（AppSecret）
+      tags:
+      - IDP-WechatApp
+  /api/v1/idp/wechat-apps/rotate-msg-secret:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 轮换消息密钥请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateMsgSecretRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 轮换成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "404":
+          description: 应用不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 轮换消息加解密密钥
+      tags:
+      - IDP-WechatApp
+  /api/v1/idp/wechat/decrypt-phone:
+    post:
+      consumes:
+      - application/json
+      description: 使用 session_key 解密微信小程序获取的加密手机号信息
+      parameters:
+      - description: 解密手机号请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.DecryptPhoneRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 解密成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.DecryptPhoneResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "401":
+          description: 解密失败（session_key 无效）
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 解密微信用户手机号
+      tags:
+      - IDP-WechatAuth
+  /api/v1/idp/wechat/login:
+    post:
+      consumes:
+      - application/json
+      description: 使用微信小程序登录码（wx.login 获取）进行用户认证，返回用户身份信息和会话密钥
+      parameters:
+      - description: 微信登录请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.LoginWithCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.LoginResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "401":
+          description: 登录失败（code 无效或已过期）
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
+      summary: 微信小程序登录
+      tags:
+      - IDP-WechatAuth
+  /authz/assignments/{id}:
+    delete:
+      parameters:
+      - description: 分配ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+      summary: 根据分配ID撤销角色
+      tags:
+      - Assignment
+  /authz/assignments/grant:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 授予角色请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.GrantRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.AssignmentResponse'
+              type: object
+      summary: 授予角色
+      tags:
+      - Assignment
+  /authz/assignments/revoke:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 撤销角色请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RevokeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+      summary: 撤销角色
+      tags:
+      - Assignment
+  /authz/assignments/subject:
+    get:
+      parameters:
+      - description: 主体类型
+        enum:
+        - user
+        - group
+        in: query
+        name: subject_type
+        required: true
+        type: string
+      - description: 主体ID
+        in: query
+        name: subject_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.AssignmentResponse'
+                  type: array
+              type: object
+      summary: 列出主体的角色分配
+      tags:
+      - Assignment
+  /authz/policies:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: 移除策略请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RemovePolicyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+      summary: 移除策略规则
+      tags:
+      - Policy
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 添加策略请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.AddPolicyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+      summary: 添加策略规则
+      tags:
+      - Policy
+  /authz/policies/version:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.PolicyVersionResponse'
+              type: object
+      summary: 获取当前策略版本
+      tags:
+      - Policy
+  /authz/resources:
+    get:
+      parameters:
+      - description: 应用名称
+        in: query
+        name: app_name
+        type: string
+      - description: 域
+        in: query
+        name: domain
+        type: string
+      - description: 类型
+        in: query
+        name: type
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ListResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ResourceResponse'
+                  type: array
+              type: object
+      summary: 列出资源
+      tags:
+      - Resource
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 创建资源请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.CreateResourceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ResourceResponse'
+              type: object
+      summary: 创建资源
+      tags:
+      - Resource
+  /authz/resources/{id}:
+    delete:
+      parameters:
+      - description: 资源ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+      summary: 删除资源
+      tags:
+      - Resource
+    get:
+      parameters:
+      - description: 资源ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ResourceResponse'
+              type: object
+      summary: 获取资源详情
+      tags:
+      - Resource
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 资源ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 更新资源请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.UpdateResourceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ResourceResponse'
+              type: object
+      summary: 更新资源
+      tags:
+      - Resource
+  /authz/resources/key/{key}:
+    get:
+      parameters:
+      - description: 资源键
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ResourceResponse'
+              type: object
+      summary: 根据键获取资源
+      tags:
+      - Resource
+  /authz/resources/validate-action:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 验证动作请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ValidateActionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ValidateActionResponse'
+              type: object
+      summary: 验证资源动作
+      tags:
+      - Resource
+  /authz/roles:
+    get:
+      parameters:
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ListResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RoleResponse'
+                  type: array
+              type: object
+      summary: 列出角色
+      tags:
+      - Role
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 创建角色请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RoleResponse'
+              type: object
+      summary: 创建角色
+      tags:
+      - Role
+  /authz/roles/{id}:
+    delete:
+      parameters:
+      - description: 角色ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+      summary: 删除角色
+      tags:
+      - Role
+    get:
+      parameters:
+      - description: 角色ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RoleResponse'
+              type: object
+      summary: 获取角色详情
+      tags:
+      - Role
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 角色ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 更新角色请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RoleResponse'
+              type: object
+      summary: 更新角色
+      tags:
+      - Role
+  /authz/roles/{id}/assignments:
+    get:
+      parameters:
+      - description: 角色ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.AssignmentResponse'
+                  type: array
+              type: object
+      summary: 列出角色的分配记录
+      tags:
+      - Assignment
+  /authz/roles/{id}/policies:
+    get:
+      parameters:
+      - description: 角色ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.PolicyRuleResponse'
+                  type: array
+              type: object
+      summary: 获取角色的策略列表
+      tags:
+      - Policy
+  /v1/accounts/{accountId}:
+    get:
+      consumes:
+      - application/json
+      description: 根据账号ID获取账号详细信息
+      parameters:
+      - description: 账号ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 账号信息
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取账号详情
+      tags:
+      - Accounts
+  /v1/accounts/{accountId}/wechat:profile:
+    patch:
+      consumes:
+      - application/json
+      description: 更新微信账号的昵称、头像等资料信息
+      parameters:
+      - description: 账号ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      - description: 更新资料请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpsertWeChatProfileReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 更新微信账号资料
+      tags:
+      - Accounts
+  /v1/accounts/{accountId}/wechat:unionid:
+    patch:
+      consumes:
+      - application/json
+      description: 为微信账号设置 UnionID（用于跨应用识别用户）
+      parameters:
+      - description: 账号ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      - description: 设置 UnionID 请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.SetWeChatUnionIDReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 设置成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 设置微信 UnionID
+      tags:
+      - Accounts
+  /v1/accounts/{accountId}:disable:
+    post:
+      consumes:
+      - application/json
+      description: 禁用账号，禁用后无法登录
+      parameters:
+      - description: 账号ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 禁用成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 禁用账号
+      tags:
+      - Accounts
+  /v1/accounts/{accountId}:enable:
+    post:
+      consumes:
+      - application/json
+      description: 启用被禁用的账号
+      parameters:
+      - description: 账号ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 启用成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 启用账号
+      tags:
+      - Accounts
+  /v1/accounts/operation:
+    post:
+      consumes:
+      - application/json
+      description: 为用户创建基于用户名密码的运营账号
+      parameters:
+      - description: 创建运营账号请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateOperationAccountReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "409":
+          description: 账号已存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 创建运营账号
+      tags:
+      - Accounts
+  /v1/accounts/operation/{username}:
+    patch:
+      consumes:
+      - application/json
+      description: 更新运营账号的密码、重置失败次数或解锁账号
+      parameters:
+      - description: 用户名
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: 更新凭据请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpdateOperationCredentialReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 更新运营账号凭据
+      tags:
+      - Accounts
+  /v1/accounts/operation/{username}:change:
+    post:
+      consumes:
+      - application/json
+      description: 修改运营账号的用户名
+      parameters:
+      - description: 原用户名
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: 修改用户名请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.ChangeOperationUsernameReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 修改成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 账号不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "409":
+          description: 新用户名已存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 修改运营账号用户名
+      tags:
+      - Accounts
+  /v1/accounts/wechat:bind:
+    post:
+      consumes:
+      - application/json
+      description: 为用户创建并绑定微信账号
+      parameters:
+      - description: 绑定微信账号请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.BindWeChatAccountReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 绑定成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "409":
+          description: 微信账号已绑定其他用户
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 绑定微信账号
+      tags:
+      - Accounts
+  /v1/admin/jwks/keys:
+    get:
+      description: 分页列出所有密钥
+      parameters:
+      - description: 状态过滤 (active, grace, retired)
+        in: query
+        name: status
+        type: string
+      - default: 20
+        description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 密钥列表
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyListResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 列出密钥
+      tags:
+      - JWKS Admin
+    post:
+      consumes:
+      - application/json
+      description: 创建新的签名密钥
+      parameters:
+      - description: 创建密钥请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateKeyRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 创建密钥
+      tags:
+      - JWKS Admin
+  /v1/admin/jwks/keys/{kid}:
+    get:
+      description: 根据 kid 获取密钥详细信息
+      parameters:
+      - description: 密钥 ID
+        in: path
+        name: kid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 密钥详情
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 密钥不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取密钥详情
+      tags:
+      - JWKS Admin
+  /v1/admin/jwks/keys/{kid}/force-retire:
+    post:
+      description: 强制将任何状态的密钥转为 Retired（用于紧急情况）
+      parameters:
+      - description: 密钥 ID
+        in: path
+        name: kid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 强制退役成功
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 密钥不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 强制退役密钥
+      tags:
+      - JWKS Admin
+  /v1/admin/jwks/keys/{kid}/grace:
+    post:
+      description: 将密钥状态从 Active 转为 Grace
+      parameters:
+      - description: 密钥 ID
+        in: path
+        name: kid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 进入宽限期成功
+        "400":
+          description: 参数错误或状态不允许
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 密钥不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 进入宽限期
+      tags:
+      - JWKS Admin
+  /v1/admin/jwks/keys/{kid}/retire:
+    post:
+      description: 将密钥状态从 Grace 转为 Retired
+      parameters:
+      - description: 密钥 ID
+        in: path
+        name: kid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 退役成功
+        "400":
+          description: 参数错误或状态不允许
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 密钥不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 退役密钥
+      tags:
+      - JWKS Admin
+  /v1/admin/jwks/keys/cleanup:
+    post:
+      description: 删除已过期的 Retired 密钥
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 清理结果
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.CleanupResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 清理过期密钥
+      tags:
+      - JWKS Admin
+  /v1/admin/jwks/keys/publishable:
+    get:
+      description: 获取当前会被发布到 JWKS 的密钥列表（用于预览或调试）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 可发布的密钥列表
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.PublishableKeysResponse'
+        "401":
+          description: 未认证
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取可发布的密钥
+      tags:
+      - JWKS Admin
+  /v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: '使用不同的认证方式进行登录（basic: 用户名密码, wx:minip: 微信小程序）'
+      parameters:
+      - description: 登录请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      summary: 登录
+      tags:
+      - 认证
+  /v1/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: 撤销访问令牌和刷新令牌
+      parameters:
+      - description: Bearer {access_token}
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 登出请求
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登出成功
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 登出
+      tags:
+      - 令牌
+  /v1/auth/token:
+    post:
+      consumes:
+      - application/json
+      description: 使用刷新令牌获取新的访问令牌
+      parameters:
+      - description: 刷新令牌请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 刷新成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 令牌无效
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      summary: 刷新令牌
+      tags:
+      - 令牌
+  /v1/auth/verify:
+    post:
+      consumes:
+      - application/json
+      description: 验证访问令牌的有效性（验签 + 载荷校验 + 黑名单检查）
+      parameters:
+      - description: 验证令牌请求（可选）
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.VerifyTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 验证结果
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.VerifyResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 验证令牌
+      tags:
+      - 令牌
+  /v1/children:
+    post:
+      consumes:
+      - application/json
+      description: 仅创建儿童档案，不建立监护关系
+      parameters:
+      - description: 创建儿童请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.ChildCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "409":
+          description: 儿童已存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 创建儿童档案
+      tags:
+      - Identity-Child
+  /v1/children/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据儿童 ID 查询儿童详细档案
+      parameters:
+      - description: 儿童 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 儿童不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 查询儿童档案
+      tags:
+      - Identity-Child
+    patch:
+      consumes:
+      - application/json
+      description: 部分更新儿童档案信息
+      parameters:
+      - description: 儿童 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 更新儿童请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.ChildUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 儿童不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 更新儿童档案
+      tags:
+      - Identity-Child
+  /v1/children/register:
+    post:
+      consumes:
+      - application/json
+      description: 创建儿童档案并自动将当前用户设置为监护人
+      parameters:
+      - description: 注册儿童请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.ChildRegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 注册成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildRegisterResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "409":
+          description: 儿童已存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 注册儿童档案并建立监护关系
+      tags:
+      - Identity-Child
+  /v1/children/search:
+    get:
+      consumes:
+      - application/json
+      description: 根据姓名、生日等信息搜索相似的儿童档案（用于运营查询）
+      parameters:
+      - description: 儿童姓名
+        in: query
+        name: name
+        type: string
+      - description: 出生日期 YYYY-MM-DD
+        in: query
+        name: dob
+        type: string
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildPageResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 搜索儿童
+      tags:
+      - Identity-Child
+  /v1/guardians:
+    get:
+      consumes:
+      - application/json
+      description: 查询用户或儿童的监护关系列表
+      parameters:
+      - description: 用户 ID
+        in: query
+        name: user_id
+        type: string
+      - description: 儿童 ID
+        in: query
+        name: child_id
+        type: string
+      - description: 是否仅查询活跃的监护关系
+        in: query
+        name: active
+        type: boolean
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipPageResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 查询监护关系
+      tags:
+      - Identity-Guardianship
+  /v1/guardians/grant:
+    post:
+      consumes:
+      - application/json
+      description: 将用户设置为儿童的监护人
+      parameters:
+      - description: 授予监护请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.GuardianGrantRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 授予成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "409":
+          description: 监护关系已存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 授予监护关系
+      tags:
+      - Identity-Guardianship
+  /v1/guardians/revoke:
+    post:
+      consumes:
+      - application/json
+      description: 撤销用户与儿童的监护关系
+      parameters:
+      - description: 撤销监护请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.GuardianRevokeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 撤销成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 监护关系不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 撤销监护关系
+      tags:
+      - Identity-Guardianship
+  /v1/me/children:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前登录用户作为监护人的所有儿童档案
+      parameters:
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildPageResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取当前用户的儿童档案列表
+      tags:
+      - Identity-Child
+  /v1/users:
+    post:
+      consumes:
+      - application/json
+      description: 创建新用户，至少需要提供昵称或联系方式
+      parameters:
+      - description: 创建用户请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.UserCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.UserResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 创建用户
+      tags:
+      - Identity-User
+  /v1/users/{userId}:
+    get:
+      consumes:
+      - application/json
+      description: 根据用户 ID 查询用户详细信息
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.UserResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 查询用户
+      tags:
+      - Identity-User
+    patch:
+      consumes:
+      - application/json
+      description: 部分更新用户信息，支持更新昵称和联系方式
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: 更新用户请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.UserUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.UserResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 更新用户信息
+      tags:
+      - Identity-User
+  /v1/users/{userId}/accounts:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定用户的所有账号列表
+      parameters:
+      - description: 用户ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - default: 20
+        description: 每页数量
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: 0
+        description: 偏移量
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 账号列表
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.AccountPage'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 列出用户的所有账号
+      tags:
+      - Accounts
+  /v1/users/profile:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前登录用户的资料信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.UserResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取当前用户资料
+      tags:
+      - Identity-User
+securityDefinitions:
+  BearerAuth:
+    description: 'JWT 认证令牌，格式: Bearer {access_token}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
+tags:
+- description: 认证相关接口 - 登录、登出、令牌管理
+  name: Authentication
+- description: 令牌管理 - 刷新、验证、撤销
+  name: Tokens
+- description: 账号管理 - 创建、查询、绑定第三方账号
+  name: Accounts
+- description: 公钥管理 - JWT 签名验证公钥集
+  name: JWKS
+- description: 用户管理 - 创建、查询、更新用户信息
+  name: Users
+- description: 儿童管理 - 注册、查询、更新儿童档案
+  name: Children
+- description: 监护关系 - 授予、撤销、查询监护权
+  name: Guardianship
+- description: 角色管理 - 创建、查询、更新、删除角色
+  name: Roles
+- description: 角色分配 - 授予、撤销用户或组的角色
+  name: Assignments
+- description: 策略管理 - 添加、移除 RBAC 策略规则
+  name: Policies
+- description: 资源管理 - 创建、查询、更新受保护资源
+  name: Resources
+- description: 微信应用管理 - 配置、密钥轮换、令牌获取
+  name: Wechat Apps
+- description: 健康检查 - 各模块健康状态
+  name: Health

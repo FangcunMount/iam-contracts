@@ -26,9 +26,9 @@ func NewAccessTokenCacher() *AccessTokenCacher {
 }
 
 // EnsureToken 单飞刷新 + 过期缓冲 获取访问令牌
-// @param ctx 上下文
-// @param app 微信应用实体
-// @param skew 过期缓冲时间窗口，<=0 则使用默认值
+// ctx: 上下文
+// app: 微信应用实体
+// skew: 过期缓冲时间窗口，<=0 则使用默认值
 func (s *AccessTokenCacher) EnsureToken(ctx context.Context, app *domain.WechatApp, skew time.Duration) (string, error) {
 	if app == nil {
 		return "", errors.New("nil app")

@@ -11,6 +11,7 @@ import (
 	requestdto "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful/request"
 	responsedto "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful/response"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	_ "github.com/FangcunMount/iam-contracts/pkg/core" // imported for swagger
 )
 
 // UserHandler 基础用户 REST 处理器
@@ -36,6 +37,17 @@ func NewUserHandler(
 }
 
 // CreateUser 创建用户
+// @Summary 创建用户
+// @Description 创建新用户，至少需要提供昵称或联系方式
+// @Tags Identity-User
+// @Accept json
+// @Produce json
+// @Param request body requestdto.UserCreateRequest true "创建用户请求"
+// @Success 201 {object} responsedto.UserResponse "创建成功"
+// @Failure 400 {object} core.ErrResponse "请求参数错误"
+// @Failure 500 {object} core.ErrResponse "服务器内部错误"
+// @Router /v1/users [post]
+// @Security BearerAuth
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req requestdto.UserCreateRequest
 	if err := h.BindJSON(c, &req); err != nil {
@@ -78,6 +90,18 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 }
 
 // GetUser 根据 ID 查询用户
+// @Summary 查询用户
+// @Description 根据用户 ID 查询用户详细信息
+// @Tags Identity-User
+// @Accept json
+// @Produce json
+// @Param userId path string true "用户 ID"
+// @Success 200 {object} responsedto.UserResponse "查询成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 404 {object} core.ErrResponse "用户不存在"
+// @Failure 500 {object} core.ErrResponse "服务器内部错误"
+// @Router /v1/users/{userId} [get]
+// @Security BearerAuth
 func (h *UserHandler) GetUser(c *gin.Context) {
 	userID, err := parseUserID(c.Param("userId"))
 	if err != nil {
@@ -95,6 +119,19 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 }
 
 // PatchUser 更新用户信息（昵称 / 联系方式）
+// @Summary 更新用户信息
+// @Description 部分更新用户信息，支持更新昵称和联系方式
+// @Tags Identity-User
+// @Accept json
+// @Produce json
+// @Param userId path string true "用户 ID"
+// @Param request body requestdto.UserUpdateRequest true "更新用户请求"
+// @Success 200 {object} responsedto.UserResponse "更新成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 404 {object} core.ErrResponse "用户不存在"
+// @Failure 500 {object} core.ErrResponse "服务器内部错误"
+// @Router /v1/users/{userId} [patch]
+// @Security BearerAuth
 func (h *UserHandler) PatchUser(c *gin.Context) {
 	userID, err := parseUserID(c.Param("userId"))
 	if err != nil {
@@ -142,6 +179,16 @@ func (h *UserHandler) PatchUser(c *gin.Context) {
 }
 
 // GetUserProfile 获取当前用户资料
+// @Summary 获取当前用户资料
+// @Description 获取当前登录用户的资料信息
+// @Tags Identity-User
+// @Accept json
+// @Produce json
+// @Success 200 {object} responsedto.UserResponse "查询成功"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 500 {object} core.ErrResponse "服务器内部错误"
+// @Router /v1/users/profile [get]
+// @Security BearerAuth
 func (h *UserHandler) GetUserProfile(c *gin.Context) {
 	rawUserID, exists := c.Get("user_id")
 	if !exists {

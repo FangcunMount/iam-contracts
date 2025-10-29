@@ -13,6 +13,7 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/request"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/response"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	_ "github.com/FangcunMount/iam-contracts/pkg/core" // imported for swagger
 )
 
 // JWKSHandler JWKS HTTP 处理器

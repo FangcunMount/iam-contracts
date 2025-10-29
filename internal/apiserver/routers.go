@@ -5,9 +5,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
+	_ "github.com/FangcunMount/iam-contracts/internal/apiserver/docs" // swagger docs
 	authnhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful"
 	authzhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/interface/restful"
 	idphttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/interface/restful"
@@ -123,6 +126,10 @@ func (r *Router) registerBaseRoutes(engine *gin.Engine) {
 	engine.GET("/health", r.healthCheck)
 	engine.GET("/ping", r.ping)
 
+	// Swagger UI 路由（默认在开发环境可用）
+	// 生产环境建议通过配置控制是否启用
+	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	publicAPI := engine.Group("/api/v1/public")
 	{
 		publicAPI.GET("/info", func(c *gin.Context) {
@@ -130,6 +137,7 @@ func (r *Router) registerBaseRoutes(engine *gin.Engine) {
 				"service":     "iam-apiserver",
 				"version":     "1.0.0",
 				"description": "IAM Contracts API Server",
+				"swagger":     "/swagger/index.html",
 			})
 		})
 	}
