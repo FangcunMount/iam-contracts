@@ -8,6 +8,7 @@ import (
 	appguard "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/guardianship"
 	requestdto "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful/request"
 	responsedto "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful/response"
+	_ "github.com/FangcunMount/iam-contracts/pkg/core" // imported for swagger
 )
 
 // GuardianshipHandler 监护关系 REST 处理器
@@ -30,6 +31,19 @@ func NewGuardianshipHandler(
 }
 
 // Grant 授予监护关系
+// @Summary 授予监护关系
+// @Description 将用户设置为儿童的监护人
+// @Tags Identity-Guardianship
+// @Accept json
+// @Produce json
+// @Param request body requestdto.GuardianGrantRequest true "授予监护请求"
+// @Success 200 {object} responsedto.GuardianshipResponse "授予成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 409 {object} core.ErrResponse "监护关系已存在"
+// @Failure 500 {object} core.ErrResponse "服务器内部错误"
+// @Router /v1/guardians/grant [post]
+// @Security BearerAuth
 func (h *GuardianshipHandler) Grant(c *gin.Context) {
 	var req requestdto.GuardianGrantRequest
 	if err := h.BindJSON(c, &req); err != nil {
@@ -59,6 +73,19 @@ func (h *GuardianshipHandler) Grant(c *gin.Context) {
 }
 
 // Revoke 撤销监护关系
+// @Summary 撤销监护关系
+// @Description 撤销用户与儿童的监护关系
+// @Tags Identity-Guardianship
+// @Accept json
+// @Produce json
+// @Param request body requestdto.GuardianRevokeRequest true "撤销监护请求"
+// @Success 200 {object} responsedto.GuardianshipResponse "撤销成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 404 {object} core.ErrResponse "监护关系不存在"
+// @Failure 500 {object} core.ErrResponse "服务器内部错误"
+// @Router /v1/guardians/revoke [post]
+// @Security BearerAuth
 func (h *GuardianshipHandler) Revoke(c *gin.Context) {
 	var req requestdto.GuardianRevokeRequest
 	if err := h.BindJSON(c, &req); err != nil {
@@ -88,6 +115,22 @@ func (h *GuardianshipHandler) Revoke(c *gin.Context) {
 }
 
 // List 查询监护关系
+// @Summary 查询监护关系
+// @Description 查询用户或儿童的监护关系列表
+// @Tags Identity-Guardianship
+// @Accept json
+// @Produce json
+// @Param user_id query string false "用户 ID"
+// @Param child_id query string false "儿童 ID"
+// @Param active query boolean false "是否仅查询活跃的监护关系"
+// @Param offset query int false "偏移量" default(0)
+// @Param limit query int false "每页数量" default(20)
+// @Success 200 {object} responsedto.GuardianshipPageResponse "查询成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 500 {object} core.ErrResponse "服务器内部错误"
+// @Router /v1/guardians [get]
+// @Security BearerAuth
 func (h *GuardianshipHandler) List(c *gin.Context) {
 	var req requestdto.GuardianshipListQuery
 	if err := h.BindQuery(c, &req); err != nil {

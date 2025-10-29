@@ -26,9 +26,9 @@ func NewCredentialRotater() *CredentialRotater {
 }
 
 // RotateAuthSecret 轮换认证密钥
-// @param ctx 上下文
-// @param app 微信应用实体
-// @param newPlain 新的明文密钥
+// ctx 上下文
+// app 微信应用实体
+// newPlain 新的明文密钥
 // @return 错误信息
 func (m *CredentialRotater) RotateAuthSecret(ctx context.Context, app *domain.WechatApp, newPlain string) error {
 	// 验证参数
@@ -70,10 +70,10 @@ func (m *CredentialRotater) RotateAuthSecret(ctx context.Context, app *domain.We
 }
 
 // ChangeMsgSecret 变更消息加解密密钥
-// @param ctx 上下文
-// @param app 微信应用实体
-// @param callbackToken 回调令牌
-// @param encodingAESKey43 消息加解密密钥（43 位 Base64 字符串）
+// ctx 上下文
+// app 微信应用实体
+// callbackToken 回调令牌
+// encodingAESKey43 消息加解密密钥（43 位 Base64 字符串）
 // @return 错误信息
 func (m *CredentialRotater) RotateMsgAESKey(ctx context.Context, app *domain.WechatApp, callbackToken, encodingAESKey43 string) error {
 	// 验证参数
@@ -110,21 +110,21 @@ func (m *CredentialRotater) RotateMsgAESKey(ctx context.Context, app *domain.Wec
 }
 
 // RotateAPISymKey 轮换 API 对称密钥
-// @param ctx 上下文
-// @param app 微信应用实体
-// @param alg 加密算法
-// @param base64Key Base64 编码的密钥
+// ctx 上下文
+// app 微信应用实体
+// alg 加密算法
+// base64Key Base64 编码的密钥
 // @return 错误信息
 func (m *CredentialRotater) RotateAPISymKey(ctx context.Context, app *domain.WechatApp, alg domain.CryptoAlg, base64Key string) error {
 	return nil
 }
 
 // RotateAPIAsymKey 轮换 API 非对称密钥
-// @param ctx 上下文
-// @param app 微信应用实体
-// @param alg 加密算法
-// @param kmsRef KMS 引用
-// @param pubPEM 公钥 PEM 编码
+// ctx 上下文
+// app 微信应用实体
+// alg 加密算法
+// kmsRef KMS 引用
+// pubPEM 公钥 PEM 编码
 // @return 错误信息
 func (m *CredentialRotater) RotateAPIAsymKey(ctx context.Context, app *domain.WechatApp, alg domain.CryptoAlg, kmsRef string, pubPEM []byte) error {
 	return nil

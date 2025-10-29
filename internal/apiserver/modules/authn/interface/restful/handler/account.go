@@ -13,6 +13,7 @@ import (
 	req "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/request"
 	resp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/response"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	_ "github.com/FangcunMount/iam-contracts/pkg/core" // imported for swagger
 )
 
 // AccountHandler exposes RESTful endpoints for account management.
@@ -40,7 +41,19 @@ func NewAccountHandler(
 	}
 }
 
-// CreateOperationAccount handles POST /v1/accounts/operation.
+// CreateOperationAccount 创建运营账号
+// @Summary 创建运营账号
+// @Description 为用户创建基于用户名密码的运营账号
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param request body req.CreateOperationAccountReq true "创建运营账号请求"
+// @Success 201 {object} resp.Account "创建成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 409 {object} core.ErrResponse "账号已存在"
+// @Router /v1/accounts/operation [post]
+// @Security BearerAuth
 func (h *AccountHandler) CreateOperationAccount(c *gin.Context) {
 	var reqBody req.CreateOperationAccountReq
 	if err := h.BindJSON(c, &reqBody); err != nil {
@@ -87,7 +100,20 @@ func (h *AccountHandler) CreateOperationAccount(c *gin.Context) {
 	h.Created(c, resp.NewAccount(result.Account))
 }
 
-// UpdateOperationCredential handles PATCH /v1/accounts/operation/{username}.
+// UpdateOperationCredential 更新运营账号凭据
+// @Summary 更新运营账号凭据
+// @Description 更新运营账号的密码、重置失败次数或解锁账号
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param username path string true "用户名"
+// @Param request body req.UpdateOperationCredentialReq true "更新凭据请求"
+// @Success 200 {object} map[string]string "更新成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 404 {object} core.ErrResponse "账号不存在"
+// @Router /v1/accounts/operation/{username} [patch]
+// @Security BearerAuth
 func (h *AccountHandler) UpdateOperationCredential(c *gin.Context) {
 	username := strings.TrimSpace(c.Param("username"))
 	if username == "" {
@@ -144,7 +170,21 @@ func (h *AccountHandler) UpdateOperationCredential(c *gin.Context) {
 	h.Success(c, gin.H{"status": "ok"})
 }
 
-// ChangeOperationUsername handles POST /v1/accounts/operation/{username}:change.
+// ChangeOperationUsername 修改运营账号用户名
+// @Summary 修改运营账号用户名
+// @Description 修改运营账号的用户名
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param username path string true "原用户名"
+// @Param request body req.ChangeOperationUsernameReq true "修改用户名请求"
+// @Success 200 {object} map[string]string "修改成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 404 {object} core.ErrResponse "账号不存在"
+// @Failure 409 {object} core.ErrResponse "新用户名已存在"
+// @Router /v1/accounts/operation/{username}:change [post]
+// @Security BearerAuth
 func (h *AccountHandler) ChangeOperationUsername(c *gin.Context) {
 	oldUsername := strings.TrimSpace(c.Param("username"))
 	if oldUsername == "" {
@@ -175,7 +215,19 @@ func (h *AccountHandler) ChangeOperationUsername(c *gin.Context) {
 	h.Success(c, gin.H{"status": "ok"})
 }
 
-// BindWeChatAccount handles POST /v1/accounts/wechat:bind.
+// BindWeChatAccount 绑定微信账号
+// @Summary 绑定微信账号
+// @Description 为用户创建并绑定微信账号
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param request body req.BindWeChatAccountReq true "绑定微信账号请求"
+// @Success 200 {object} resp.Account "绑定成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 409 {object} core.ErrResponse "微信账号已绑定其他用户"
+// @Router /v1/accounts/wechat:bind [post]
+// @Security BearerAuth
 func (h *AccountHandler) BindWeChatAccount(c *gin.Context) {
 	var reqBody req.BindWeChatAccountReq
 	if err := h.BindJSON(c, &reqBody); err != nil {
@@ -274,7 +326,20 @@ func (h *AccountHandler) BindWeChatAccount(c *gin.Context) {
 	c.JSON(status, resp.NewBindResult(accountID, created))
 }
 
-// UpsertWeChatProfile handles PATCH /v1/accounts/{accountId}/wechat:profile.
+// UpsertWeChatProfile 更新微信账号资料
+// @Summary 更新微信账号资料
+// @Description 更新微信账号的昵称、头像等资料信息
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param accountId path string true "账号ID"
+// @Param request body req.UpsertWeChatProfileReq true "更新资料请求"
+// @Success 200 {object} map[string]string "更新成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 404 {object} core.ErrResponse "账号不存在"
+// @Router /v1/accounts/{accountId}/wechat:profile [patch]
+// @Security BearerAuth
 func (h *AccountHandler) UpsertWeChatProfile(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
 	if err != nil {
@@ -318,7 +383,20 @@ func (h *AccountHandler) UpsertWeChatProfile(c *gin.Context) {
 	h.Success(c, gin.H{"status": "ok"})
 }
 
-// SetWeChatUnionID handles PATCH /v1/accounts/{accountId}/wechat:unionid.
+// SetWeChatUnionID 设置微信 UnionID
+// @Summary 设置微信 UnionID
+// @Description 为微信账号设置 UnionID（用于跨应用识别用户）
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param accountId path string true "账号ID"
+// @Param request body req.SetWeChatUnionIDReq true "设置 UnionID 请求"
+// @Success 200 {object} map[string]string "设置成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 404 {object} core.ErrResponse "账号不存在"
+// @Router /v1/accounts/{accountId}/wechat:unionid [patch]
+// @Security BearerAuth
 func (h *AccountHandler) SetWeChatUnionID(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
 	if err != nil {
@@ -344,7 +422,19 @@ func (h *AccountHandler) SetWeChatUnionID(c *gin.Context) {
 	h.Success(c, gin.H{"status": "ok"})
 }
 
-// GetAccount handles GET /v1/accounts/{accountId}.
+// GetAccount 获取账号详情
+// @Summary 获取账号详情
+// @Description 根据账号ID获取账号详细信息
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param accountId path string true "账号ID"
+// @Success 200 {object} resp.Account "账号信息"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 404 {object} core.ErrResponse "账号不存在"
+// @Router /v1/accounts/{accountId} [get]
+// @Security BearerAuth
 func (h *AccountHandler) GetAccount(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
 	if err != nil {
@@ -361,7 +451,19 @@ func (h *AccountHandler) GetAccount(c *gin.Context) {
 	h.Success(c, resp.NewAccount(result.Account))
 }
 
-// EnableAccount handles POST /v1/accounts/{accountId}:enable.
+// EnableAccount 启用账号
+// @Summary 启用账号
+// @Description 启用被禁用的账号
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param accountId path string true "账号ID"
+// @Success 200 {object} map[string]string "启用成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 404 {object} core.ErrResponse "账号不存在"
+// @Router /v1/accounts/{accountId}:enable [post]
+// @Security BearerAuth
 func (h *AccountHandler) EnableAccount(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
 	if err != nil {
@@ -377,7 +479,19 @@ func (h *AccountHandler) EnableAccount(c *gin.Context) {
 	h.Success(c, gin.H{"status": "enabled"})
 }
 
-// DisableAccount handles POST /v1/accounts/{accountId}:disable.
+// DisableAccount 禁用账号
+// @Summary 禁用账号
+// @Description 禁用账号，禁用后无法登录
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param accountId path string true "账号ID"
+// @Success 200 {object} map[string]string "禁用成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 404 {object} core.ErrResponse "账号不存在"
+// @Router /v1/accounts/{accountId}:disable [post]
+// @Security BearerAuth
 func (h *AccountHandler) DisableAccount(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
 	if err != nil {
@@ -393,7 +507,20 @@ func (h *AccountHandler) DisableAccount(c *gin.Context) {
 	h.Success(c, gin.H{"status": "disabled"})
 }
 
-// ListAccountsByUser handles GET /v1/users/{userId}/accounts.
+// ListAccountsByUser 列出用户的所有账号
+// @Summary 列出用户的所有账号
+// @Description 获取指定用户的所有账号列表
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param userId path string true "用户ID"
+// @Param limit query int false "每页数量" default(20) minimum(1) maximum(100)
+// @Param offset query int false "偏移量" default(0) minimum(0)
+// @Success 200 {object} resp.AccountPage "账号列表"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Router /v1/users/{userId}/accounts [get]
+// @Security BearerAuth
 func (h *AccountHandler) ListAccountsByUser(c *gin.Context) {
 	userID, err := parseUserID(c.Param("userId"))
 	if err != nil {
