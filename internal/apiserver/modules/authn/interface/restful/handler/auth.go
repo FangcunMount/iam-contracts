@@ -35,14 +35,14 @@ func NewAuthHandler(loginService *login.LoginService, tokenService *token.TokenS
 // Login 统一登录端点（符合 API 文档）
 // @Summary 登录
 // @Description 使用不同的认证方式进行登录（basic: 用户名密码, wx:minip: 微信小程序）
-// @Tags 认证
+// @Tags Authentication
 // @Accept json
 // @Produce json
 // @Param request body request.LoginRequest true "登录请求"
 // @Success 200 {object} response.TokenPair "登录成功"
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "认证失败"
-// @Router /v1/auth/login [post]
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req request.LoginRequest
 
@@ -131,14 +131,14 @@ func (h *AuthHandler) handleWeChatMiniLogin(c *gin.Context, credentials json.Raw
 // RefreshToken 刷新令牌（符合 API 文档：POST /v1/auth/token）
 // @Summary 刷新令牌
 // @Description 使用刷新令牌获取新的访问令牌
-// @Tags 令牌
+// @Tags Tokens
 // @Accept json
 // @Produce json
 // @Param request body request.RefreshTokenRequest true "刷新令牌请求"
 // @Success 200 {object} response.TokenPair "刷新成功"
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "令牌无效"
-// @Router /v1/auth/token [post]
+// @Router /auth/token [post]
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req request.RefreshTokenRequest
 
@@ -171,7 +171,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // Logout 登出（符合 API 文档）
 // @Summary 登出
 // @Description 撤销访问令牌和刷新令牌
-// @Tags 令牌
+// @Tags Tokens
 // @Accept json
 // @Produce json
 // @Security BearerAuth
@@ -179,7 +179,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // @Param request body request.LogoutRequest false "登出请求"
 // @Success 200 {object} map[string]interface{} "登出成功"
 // @Failure 401 {object} core.ErrResponse "未授权"
-// @Router /v1/auth/logout [post]
+// @Router /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	// 从 Header 中提取访问令牌
 	authHeader := c.GetHeader("Authorization")
@@ -228,7 +228,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // @Param request body request.VerifyTokenRequest false "验证令牌请求（可选）"
 // @Success 200 {object} response.VerifyResponse "验证结果"
 // @Failure 401 {object} core.ErrResponse "未授权"
-// @Router /v1/auth/verify [post]
+// @Router /auth/verify [post]
 func (h *AuthHandler) VerifyToken(c *gin.Context) {
 	var req request.VerifyTokenRequest
 

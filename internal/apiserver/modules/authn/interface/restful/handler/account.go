@@ -52,7 +52,7 @@ func NewAccountHandler(
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 409 {object} core.ErrResponse "账号已存在"
-// @Router /v1/accounts/operation [post]
+// @Router /accounts/operation [post]
 // @Security BearerAuth
 func (h *AccountHandler) CreateOperationAccount(c *gin.Context) {
 	var reqBody req.CreateOperationAccountReq
@@ -112,7 +112,7 @@ func (h *AccountHandler) CreateOperationAccount(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 404 {object} core.ErrResponse "账号不存在"
-// @Router /v1/accounts/operation/{username} [patch]
+// @Router /accounts/operation/{username} [patch]
 // @Security BearerAuth
 func (h *AccountHandler) UpdateOperationCredential(c *gin.Context) {
 	username := strings.TrimSpace(c.Param("username"))
@@ -183,7 +183,7 @@ func (h *AccountHandler) UpdateOperationCredential(c *gin.Context) {
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 404 {object} core.ErrResponse "账号不存在"
 // @Failure 409 {object} core.ErrResponse "新用户名已存在"
-// @Router /v1/accounts/operation/{username}:change [post]
+// @Router /accounts/operation/{username}:change [post]
 // @Security BearerAuth
 func (h *AccountHandler) ChangeOperationUsername(c *gin.Context) {
 	oldUsername := strings.TrimSpace(c.Param("username"))
@@ -226,7 +226,7 @@ func (h *AccountHandler) ChangeOperationUsername(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 409 {object} core.ErrResponse "微信账号已绑定其他用户"
-// @Router /v1/accounts/wechat:bind [post]
+// @Router /accounts/wechat:bind [post]
 // @Security BearerAuth
 func (h *AccountHandler) BindWeChatAccount(c *gin.Context) {
 	var reqBody req.BindWeChatAccountReq
@@ -338,7 +338,7 @@ func (h *AccountHandler) BindWeChatAccount(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 404 {object} core.ErrResponse "账号不存在"
-// @Router /v1/accounts/{accountId}/wechat:profile [patch]
+// @Router /accounts/{accountId}/wechat:profile [patch]
 // @Security BearerAuth
 func (h *AccountHandler) UpsertWeChatProfile(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
@@ -395,7 +395,7 @@ func (h *AccountHandler) UpsertWeChatProfile(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 404 {object} core.ErrResponse "账号不存在"
-// @Router /v1/accounts/{accountId}/wechat:unionid [patch]
+// @Router /accounts/{accountId}/wechat:unionid [patch]
 // @Security BearerAuth
 func (h *AccountHandler) SetWeChatUnionID(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
@@ -433,7 +433,7 @@ func (h *AccountHandler) SetWeChatUnionID(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 404 {object} core.ErrResponse "账号不存在"
-// @Router /v1/accounts/{accountId} [get]
+// @Router /accounts/{accountId} [get]
 // @Security BearerAuth
 func (h *AccountHandler) GetAccount(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
@@ -462,7 +462,7 @@ func (h *AccountHandler) GetAccount(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 404 {object} core.ErrResponse "账号不存在"
-// @Router /v1/accounts/{accountId}:enable [post]
+// @Router /accounts/{accountId}:enable [post]
 // @Security BearerAuth
 func (h *AccountHandler) EnableAccount(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
@@ -490,7 +490,7 @@ func (h *AccountHandler) EnableAccount(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 404 {object} core.ErrResponse "账号不存在"
-// @Router /v1/accounts/{accountId}:disable [post]
+// @Router /accounts/{accountId}:disable [post]
 // @Security BearerAuth
 func (h *AccountHandler) DisableAccount(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
@@ -519,7 +519,7 @@ func (h *AccountHandler) DisableAccount(c *gin.Context) {
 // @Success 200 {object} resp.AccountPage "账号列表"
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
-// @Router /v1/users/{userId}/accounts [get]
+// @Router /users/{userId}/accounts [get]
 // @Security BearerAuth
 func (h *AccountHandler) ListAccountsByUser(c *gin.Context) {
 	userID, err := parseUserID(c.Param("userId"))

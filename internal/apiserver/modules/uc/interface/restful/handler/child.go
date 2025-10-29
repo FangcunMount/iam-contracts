@@ -55,7 +55,7 @@ func NewChildHandler(
 // @Success 200 {object} responsedto.ChildPageResponse "查询成功"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /v1/me/children [get]
+// @Router /me/children [get]
 // @Security BearerAuth
 func (h *ChildHandler) ListMyChildren(c *gin.Context) {
 	var query requestdto.ChildListQuery
@@ -115,7 +115,7 @@ func (h *ChildHandler) ListMyChildren(c *gin.Context) {
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 409 {object} core.ErrResponse "儿童已存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /v1/children/register [post]
+// @Router /children/register [post]
 // @Security BearerAuth
 func (h *ChildHandler) RegisterChild(c *gin.Context) {
 	var req requestdto.ChildRegisterRequest
@@ -185,7 +185,7 @@ func (h *ChildHandler) RegisterChild(c *gin.Context) {
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 409 {object} core.ErrResponse "儿童已存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /v1/children [post]
+// @Router /children [post]
 // @Security BearerAuth
 func (h *ChildHandler) CreateChild(c *gin.Context) {
 	var req requestdto.ChildCreateRequest
@@ -227,7 +227,7 @@ func (h *ChildHandler) CreateChild(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 404 {object} core.ErrResponse "儿童不存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /v1/children/{id} [get]
+// @Router /children/{id} [get]
 // @Security BearerAuth
 func (h *ChildHandler) GetChild(c *gin.Context) {
 	childID := c.Param("id")
@@ -257,7 +257,7 @@ func (h *ChildHandler) GetChild(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 404 {object} core.ErrResponse "儿童不存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /v1/children/{id} [patch]
+// @Router /children/{id} [patch]
 // @Security BearerAuth
 func (h *ChildHandler) PatchChild(c *gin.Context) {
 	childID := c.Param("id")
@@ -347,7 +347,7 @@ func (h *ChildHandler) PatchChild(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /v1/children/search [get]
+// @Router /children/search [get]
 // @Security BearerAuth
 func (h *ChildHandler) SearchChildren(c *gin.Context) {
 	var query requestdto.ChildSearchQuery
