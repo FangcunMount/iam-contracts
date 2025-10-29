@@ -1,0 +1,401 @@
+openapi: 3.1.0
+info:
+  title: IAM Identity Provider (IDP) API
+  version: 1.0.0
+  description: |
+    IAM 身份提供商模块 REST API 规范
+    
+    ## 功能概述
+    
+    - **微信应用管理**: 创建、查询、凭据轮换、令牌管理
+    - **基础设施服务**: 为其他模块提供第三方身份认证基础设施
+    
+    ## 注意事项
+    
+    ### 认证功能由 authn 模块统一提供
+    
+    微信小程序登录请使用 authn 模块的登录接口：
+    
+    ```
+    POST /api/v1/auth/login
+    {
+      "method": "wx:minip",
+      "credentials": {
+        "app_id": "wx1234567890",
+        "js_code": "code_from_wx_login"
+      }
+    }
+    ```
+    
+    ## 基础路径
+    
+    所有 IDP API 的基础路径为 `/api/v1/idp`
+
+servers:
+  - url: https://iam.yangshujie.com/api/v1/idp
+    description: 生产环境
+  - url: http://localhost:8080/api/v1/idp
+    description: 本地开发
+
+tags:
+  - name: Health
+    description: 健康检查
+  - name: Wechat Apps
+    description: 微信应用管理
+
+paths:
+  # ============ 健康检查 ============
+  /health:
+    get:
+      tags: [Health]
+      summary: IDP 模块健康检查
+      operationId: GetIdpHealth
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  module: { type: string, example: idp }
+
+  # ============ 微信应用管理 ============
+  /wechat-apps:
+    post:
+      tags: [Wechat Apps]
+      summary: 创建微信应用
+      description: |
+        注册新的微信应用配置
+        
+        支持的应用类型：
+        - `MiniProgram`: 微信小程序
+        - `OfficialAccount`: 微信公众号
+      operationId: CreateWechatApp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateWechatAppRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WechatAppResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: Conflict - 应用 ID 已存在
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /wechat-apps/{app_id}:
+    get:
+      tags: [Wechat Apps]
+      summary: 查询微信应用
+      description: 根据微信应用 ID 查询应用配置信息
+      operationId: GetWechatApp
+      parameters:
+        - { $ref: '#/components/parameters/AppID' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WechatAppResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /wechat-apps/{app_id}/access-token:
+    get:
+      tags: [Wechat Apps]
+      summary: 获取访问令牌
+      description: |
+        获取微信 Access Token
+        
+        - 优先从缓存返回（7000秒有效期）
+        - 缓存过期时自动刷新
+        - 用于调用微信 API
+      operationId: GetAccessToken
+      parameters:
+        - { $ref: '#/components/parameters/AppID' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccessTokenResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500':
+          description: Internal Server Error - 从微信获取令牌失败
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /wechat-apps/rotate-auth-secret:
+    post:
+      tags: [Wechat Apps]
+      summary: 轮换认证密钥
+      description: |
+        轮换微信应用的 AppSecret
+        
+        安全建议：
+        - 定期轮换密钥（建议 90 天）
+        - 轮换后需要更新所有使用该密钥的配置
+        - 旧密钥立即失效
+      operationId: RotateAuthSecret
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RotateAuthSecretRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RotateSecretResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /wechat-apps/rotate-msg-secret:
+    post:
+      tags: [Wechat Apps]
+      summary: 轮换消息密钥
+      description: |
+        轮换微信消息加解密配置
+        
+        包含：
+        - 消息验证 Token
+        - 消息加密 AES Key
+        
+        用于微信服务器推送消息的验证和解密
+      operationId: RotateMsgSecret
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RotateMsgSecretRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RotateSecretResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /wechat-apps/refresh-access-token:
+    post:
+      tags: [Wechat Apps]
+      summary: 刷新访问令牌
+      description: |
+        强制刷新微信 Access Token
+        
+        使用场景：
+        - Access Token 被封禁或失效
+        - 需要立即获取新令牌
+        - 调试和测试
+      operationId: RefreshAccessToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshAccessTokenRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccessTokenResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500':
+          description: Internal Server Error - 从微信刷新令牌失败
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+# ============ Components ============
+components:
+  parameters:
+    AppID:
+      name: app_id
+      in: path
+      required: true
+      schema: { type: string }
+      description: 微信应用 ID
+      example: wx1234567890abcdef
+
+  schemas:
+    # ============ 微信应用管理 Schemas ============
+    CreateWechatAppRequest:
+      type: object
+      required: [app_id, name, type]
+      properties:
+        app_id:
+          type: string
+          description: 微信应用 ID（从微信开放平台获取）
+          example: wx1234567890abcdef
+        name:
+          type: string
+          description: 应用名称
+          example: 我的小程序
+        type:
+          type: string
+          enum: [MiniProgram, OfficialAccount]
+          description: |
+            应用类型
+            - `MiniProgram`: 微信小程序
+            - `OfficialAccount`: 微信公众号
+          example: MiniProgram
+        app_secret:
+          type: string
+          description: AppSecret（可选，创建时设置，建议使用独立接口轮换）
+          example: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+
+    WechatAppResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 内部 ID
+          example: "1"
+        app_id:
+          type: string
+          description: 微信应用 ID
+          example: wx1234567890abcdef
+        name:
+          type: string
+          description: 应用名称
+          example: 我的小程序
+        type:
+          type: string
+          enum: [MiniProgram, OfficialAccount]
+          description: 应用类型
+          example: MiniProgram
+        status:
+          type: string
+          enum: [Active, Inactive]
+          description: |
+            应用状态
+            - `Active`: 激活
+            - `Inactive`: 停用
+          example: Active
+
+    RotateAuthSecretRequest:
+      type: object
+      required: [app_id, new_secret]
+      properties:
+        app_id:
+          type: string
+          description: 微信应用 ID
+          example: wx1234567890abcdef
+        new_secret:
+          type: string
+          description: 新的 AppSecret（从微信开放平台重置后获取）
+          example: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+
+    RotateMsgSecretRequest:
+      type: object
+      required: [app_id, callback_token, encoding_aes_key]
+      properties:
+        app_id:
+          type: string
+          description: 微信应用 ID
+          example: wx1234567890abcdef
+        callback_token:
+          type: string
+          description: 消息验证 Token（用于验证消息来源）
+          example: myCallbackToken123
+        encoding_aes_key:
+          type: string
+          description: 消息加密 AES Key（43位字符，a-z,A-Z,0-9）
+          example: abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG
+
+    AccessTokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: 微信 Access Token
+          example: 55_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890
+        expires_in:
+          type: integer
+          description: 过期时间（秒，默认 7200）
+          example: 7200
+
+    RefreshAccessTokenRequest:
+      type: object
+      required: [app_id]
+      properties:
+        app_id:
+          type: string
+          description: 微信应用 ID
+          example: wx1234567890abcdef
+
+    RotateSecretResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: 是否成功
+          example: true
+        message:
+          type: string
+          description: 消息
+          example: 密钥轮换成功
+
+    # ============ 通用 Schemas ============
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 业务错误码
+          example: 400001
+        message:
+          type: string
+          description: 错误消息
+          example: 应用 ID 已存在
+
+  responses:
+    BadRequest:
+      description: Bad Request - 请求参数错误
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+    Unauthorized:
+      description: Unauthorized - 未授权
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+    Forbidden:
+      description: Forbidden - 无权限
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+    NotFound:
+      description: Not Found - 资源不存在
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []
