@@ -179,9 +179,9 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 	infra.passwordAdapter = mysqlacct.NewPasswordAdapter(infra.operationRepo)
 
 	// 微信适配器（使用 IDP 模块的应用服务）
-	if idpModule != nil && idpModule.ApplicationServices != nil {
+	if idpModule != nil && idpModule.WechatAuthService != nil {
 		infra.wechatAuthAdapter = wechat.NewAuthAdapter(
-			idpModule.ApplicationServices.WechatAuth,
+			idpModule.WechatAuthService,
 		)
 		log.Info("✅ WeChatAuthAdapter initialized with IDP application service")
 	} else {

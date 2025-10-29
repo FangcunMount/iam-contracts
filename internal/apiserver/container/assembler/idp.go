@@ -10,7 +10,8 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/application"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/application/wechatapp"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/application/wechatsession"
 	wechatappDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatapp"
 	wechatappPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatapp/port"
 	wechatappService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatapp/service"
@@ -37,7 +38,10 @@ import (
 // - 认证功能由 authn 模块统一提供
 type IDPModule struct {
 	// 应用服务（对外暴露）
-	ApplicationServices *application.ApplicationServices
+	WechatAppService           wechatapp.WechatAppApplicationService
+	WechatAppCredentialService wechatapp.WechatAppCredentialApplicationService
+	WechatAppTokenService      wechatapp.WechatAppTokenApplicationService
+	WechatAuthService          wechatsession.WechatAuthApplicationService
 
 	// HTTP 处理器（对外暴露）
 	WechatAppHandler *handler.WechatAppHandler
@@ -199,23 +203,30 @@ func (m *IDPModule) initializeApplication(
 	// 创建微信认证器
 	wechatAuthenticator := wechatsessionService.NewAuthenticator()
 
-	// 准备应用服务依赖
-	deps := application.ApplicationServicesDependencies{
-		// WechatApp 依赖
-		WechatAppRepo:     m.wechatAppRepo,
-		WechatAppCreator:  domainServices.wechatAppCreator,
-		WechatAppQuerier:  domainServices.wechatAppQuerier,
-		CredentialRotater: domainServices.credentialRotater,
-		AccessTokenCacher: domainServices.accessTokenCacher,
-		AppTokenProvider:  domainServices.appTokenProvider,
-		AccessTokenCache:  m.accessTokenCache,
+	// 直接创建各个应用服务
+	m.WechatAppService = wechatapp.NewWechatAppApplicationService(
+		m.wechatAppRepo,
+		domainServices.wechatAppCreator,
+		domainServices.wechatAppQuerier,
+		domainServices.credentialRotater,
+	)
 
-		// WechatSession 依赖
-		WechatAuthenticator: wechatAuthenticator,
-	}
+	m.WechatAppCredentialService = wechatapp.NewWechatAppCredentialApplicationService(
+		m.wechatAppRepo,
+		domainServices.wechatAppQuerier,
+		domainServices.credentialRotater,
+	)
 
-	// 创建应用服务
-	m.ApplicationServices = application.NewApplicationServices(deps)
+	m.WechatAppTokenService = wechatapp.NewWechatAppTokenApplicationService(
+		domainServices.wechatAppQuerier,
+		domainServices.accessTokenCacher,
+		domainServices.appTokenProvider,
+		m.accessTokenCache,
+	)
+
+	m.WechatAuthService = wechatsession.NewWechatAuthApplicationService(
+		wechatAuthenticator,
+	)
 
 	return nil
 }
@@ -224,9 +235,9 @@ func (m *IDPModule) initializeApplication(
 func (m *IDPModule) initializeInterface() error {
 	// 创建 HTTP 处理器（仅微信应用管理）
 	m.WechatAppHandler = handler.NewWechatAppHandler(
-		m.ApplicationServices.WechatApp,
-		m.ApplicationServices.WechatAppCredential,
-		m.ApplicationServices.WechatAppToken,
+		m.WechatAppService,
+		m.WechatAppCredentialService,
+		m.WechatAppTokenService,
 	)
 
 	// WechatAuthHandler 已移除 - 认证功能由 authn 模块统一提供
