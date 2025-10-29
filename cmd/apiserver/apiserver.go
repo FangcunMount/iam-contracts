@@ -18,33 +18,33 @@
 // @name Authorization
 // @description JWT 认证令牌，格式: Bearer {access_token}
 
-// @tag.name Authentication
-// @tag.description 认证相关接口 - 登录、登出、令牌管理
-// @tag.name Tokens
+// @tag.name Authentication-Auth
+// @tag.description 认证 - 用户登录
+// @tag.name Authentication-Tokens
 // @tag.description 令牌管理 - 刷新、验证、撤销
-// @tag.name Accounts
+// @tag.name Authentication-Accounts
 // @tag.description 账号管理 - 创建、查询、绑定第三方账号
-// @tag.name JWKS
-// @tag.description 公钥管理 - JWT 签名验证公钥集
+// @tag.name Authentication-JWKS
+// @tag.description 密钥管理 - JWT 签名验证公钥集
 
-// @tag.name Users
+// @tag.name Identity-Users
 // @tag.description 用户管理 - 创建、查询、更新用户信息
-// @tag.name Children
+// @tag.name Identity-Children
 // @tag.description 儿童管理 - 注册、查询、更新儿童档案
-// @tag.name Guardianship
+// @tag.name Identity-Guardianship
 // @tag.description 监护关系 - 授予、撤销、查询监护权
 
-// @tag.name Roles
+// @tag.name Authorization-Roles
 // @tag.description 角色管理 - 创建、查询、更新、删除角色
-// @tag.name Assignments
+// @tag.name Authorization-Assignments
 // @tag.description 角色分配 - 授予、撤销用户或组的角色
-// @tag.name Policies
+// @tag.name Authorization-Policies
 // @tag.description 策略管理 - 添加、移除 RBAC 策略规则
-// @tag.name Resources
+// @tag.name Authorization-Resources
 // @tag.description 资源管理 - 创建、查询、更新受保护资源
 
-// @tag.name Wechat Apps
-// @tag.description 微信应用管理 - 配置、密钥轮换、令牌获取
+// @tag.name IDP-Wechat
+// @tag.description 微信集成 - 登录、应用管理、密钥轮换、令牌获取
 // @tag.name Health
 // @tag.description 健康检查 - 各模块健康状态
 

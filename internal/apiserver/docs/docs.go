@@ -4920,52 +4920,52 @@ const docTemplate = `{
     },
     "tags": [
         {
-            "description": "认证相关接口 - 登录、登出、令牌管理",
-            "name": "Authentication"
+            "description": "认证 - 用户登录",
+            "name": "Authentication-Auth"
         },
         {
             "description": "令牌管理 - 刷新、验证、撤销",
-            "name": "Tokens"
+            "name": "Authentication-Tokens"
         },
         {
             "description": "账号管理 - 创建、查询、绑定第三方账号",
-            "name": "Accounts"
+            "name": "Authentication-Accounts"
         },
         {
-            "description": "公钥管理 - JWT 签名验证公钥集",
-            "name": "JWKS"
+            "description": "密钥管理 - JWT 签名验证公钥集",
+            "name": "Authentication-JWKS"
         },
         {
             "description": "用户管理 - 创建、查询、更新用户信息",
-            "name": "Users"
+            "name": "Identity-Users"
         },
         {
             "description": "儿童管理 - 注册、查询、更新儿童档案",
-            "name": "Children"
+            "name": "Identity-Children"
         },
         {
             "description": "监护关系 - 授予、撤销、查询监护权",
-            "name": "Guardianship"
+            "name": "Identity-Guardianship"
         },
         {
             "description": "角色管理 - 创建、查询、更新、删除角色",
-            "name": "Roles"
+            "name": "Authorization-Roles"
         },
         {
             "description": "角色分配 - 授予、撤销用户或组的角色",
-            "name": "Assignments"
+            "name": "Authorization-Assignments"
         },
         {
             "description": "策略管理 - 添加、移除 RBAC 策略规则",
-            "name": "Policies"
+            "name": "Authorization-Policies"
         },
         {
             "description": "资源管理 - 创建、查询、更新受保护资源",
-            "name": "Resources"
+            "name": "Authorization-Resources"
         },
         {
-            "description": "微信应用管理 - 配置、密钥轮换、令牌获取",
-            "name": "Wechat Apps"
+            "description": "微信集成 - 登录、应用管理、密钥轮换、令牌获取",
+            "name": "IDP-Wechat"
         },
         {
             "description": "健康检查 - 各模块健康状态",
