@@ -38,7 +38,7 @@ func NewWechatAuthHandler(
 // @Failure 400 {object} response.ErrorResponse "请求参数错误"
 // @Failure 401 {object} response.ErrorResponse "登录失败（code 无效或已过期）"
 // @Failure 500 {object} response.ErrorResponse "服务器内部错误"
-// @Router /api/v1/idp/wechat/login [post]
+// @Router /idp/wechat/login [post]
 func (h *WechatAuthHandler) LoginWithCode(c *gin.Context) {
 	var req request.LoginWithCodeRequest
 	if err := h.BindJSON(c, &req); err != nil {
@@ -88,7 +88,7 @@ func (h *WechatAuthHandler) LoginWithCode(c *gin.Context) {
 // @Failure 400 {object} response.ErrorResponse "请求参数错误"
 // @Failure 401 {object} response.ErrorResponse "解密失败（session_key 无效）"
 // @Failure 500 {object} response.ErrorResponse "服务器内部错误"
-// @Router /api/v1/idp/wechat/decrypt-phone [post]
+// @Router /idp/wechat/decrypt-phone [post]
 func (h *WechatAuthHandler) DecryptUserPhone(c *gin.Context) {
 	var req request.DecryptPhoneRequest
 	if err := h.BindJSON(c, &req); err != nil {

@@ -86,7 +86,7 @@ func (h *JWKSHandler) GetJWKS(c *gin.Context) {
 // @Failure 401 {object} core.ErrResponse "未认证"
 // @Failure 403 {object} core.ErrResponse "无权限"
 // @Failure 500 {object} core.ErrResponse "服务器错误"
-// @Router /v1/admin/jwks/keys [post]
+// @Router /admin/jwks/keys [post]
 func (h *JWKSHandler) CreateKey(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -137,7 +137,7 @@ func (h *JWKSHandler) CreateKey(c *gin.Context) {
 // @Failure 401 {object} core.ErrResponse "未认证"
 // @Failure 403 {object} core.ErrResponse "无权限"
 // @Failure 500 {object} core.ErrResponse "服务器错误"
-// @Router /v1/admin/jwks/keys [get]
+// @Router /admin/jwks/keys [get]
 func (h *JWKSHandler) ListKeys(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -221,7 +221,7 @@ func (h *JWKSHandler) ListKeys(c *gin.Context) {
 // @Failure 403 {object} core.ErrResponse "无权限"
 // @Failure 404 {object} core.ErrResponse "密钥不存在"
 // @Failure 500 {object} core.ErrResponse "服务器错误"
-// @Router /v1/admin/jwks/keys/{kid} [get]
+// @Router /admin/jwks/keys/{kid} [get]
 func (h *JWKSHandler) GetKey(c *gin.Context) {
 	ctx := c.Request.Context()
 	kid := c.Param("kid")
@@ -264,7 +264,7 @@ func (h *JWKSHandler) GetKey(c *gin.Context) {
 // @Failure 403 {object} core.ErrResponse "无权限"
 // @Failure 404 {object} core.ErrResponse "密钥不存在"
 // @Failure 500 {object} core.ErrResponse "服务器错误"
-// @Router /v1/admin/jwks/keys/{kid}/retire [post]
+// @Router /admin/jwks/keys/{kid}/retire [post]
 func (h *JWKSHandler) RetireKey(c *gin.Context) {
 	ctx := c.Request.Context()
 	kid := c.Param("kid")
@@ -295,7 +295,7 @@ func (h *JWKSHandler) RetireKey(c *gin.Context) {
 // @Failure 403 {object} core.ErrResponse "无权限"
 // @Failure 404 {object} core.ErrResponse "密钥不存在"
 // @Failure 500 {object} core.ErrResponse "服务器错误"
-// @Router /v1/admin/jwks/keys/{kid}/force-retire [post]
+// @Router /admin/jwks/keys/{kid}/force-retire [post]
 func (h *JWKSHandler) ForceRetireKey(c *gin.Context) {
 	ctx := c.Request.Context()
 	kid := c.Param("kid")
@@ -326,7 +326,7 @@ func (h *JWKSHandler) ForceRetireKey(c *gin.Context) {
 // @Failure 403 {object} core.ErrResponse "无权限"
 // @Failure 404 {object} core.ErrResponse "密钥不存在"
 // @Failure 500 {object} core.ErrResponse "服务器错误"
-// @Router /v1/admin/jwks/keys/{kid}/grace [post]
+// @Router /admin/jwks/keys/{kid}/grace [post]
 func (h *JWKSHandler) EnterGracePeriod(c *gin.Context) {
 	ctx := c.Request.Context()
 	kid := c.Param("kid")
@@ -354,7 +354,7 @@ func (h *JWKSHandler) EnterGracePeriod(c *gin.Context) {
 // @Failure 401 {object} core.ErrResponse "未认证"
 // @Failure 403 {object} core.ErrResponse "无权限"
 // @Failure 500 {object} core.ErrResponse "服务器错误"
-// @Router /v1/admin/jwks/keys/cleanup [post]
+// @Router /admin/jwks/keys/cleanup [post]
 func (h *JWKSHandler) CleanupExpiredKeys(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -381,7 +381,7 @@ func (h *JWKSHandler) CleanupExpiredKeys(c *gin.Context) {
 // @Failure 401 {object} core.ErrResponse "未认证"
 // @Failure 403 {object} core.ErrResponse "无权限"
 // @Failure 500 {object} core.ErrResponse "服务器错误"
-// @Router /v1/admin/jwks/keys/publishable [get]
+// @Router /admin/jwks/keys/publishable [get]
 func (h *JWKSHandler) GetPublishableKeys(c *gin.Context) {
 	ctx := c.Request.Context()
 

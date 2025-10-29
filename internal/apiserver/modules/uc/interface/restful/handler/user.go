@@ -46,7 +46,7 @@ func NewUserHandler(
 // @Success 201 {object} responsedto.UserResponse "创建成功"
 // @Failure 400 {object} core.ErrResponse "请求参数错误"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /v1/users [post]
+// @Router /users [post]
 // @Security BearerAuth
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req requestdto.UserCreateRequest
@@ -100,7 +100,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 404 {object} core.ErrResponse "用户不存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /v1/users/{userId} [get]
+// @Router /users/{userId} [get]
 // @Security BearerAuth
 func (h *UserHandler) GetUser(c *gin.Context) {
 	userID, err := parseUserID(c.Param("userId"))
@@ -130,7 +130,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 404 {object} core.ErrResponse "用户不存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /v1/users/{userId} [patch]
+// @Router /users/{userId} [patch]
 // @Security BearerAuth
 func (h *UserHandler) PatchUser(c *gin.Context) {
 	userID, err := parseUserID(c.Param("userId"))
@@ -187,7 +187,7 @@ func (h *UserHandler) PatchUser(c *gin.Context) {
 // @Success 200 {object} responsedto.UserResponse "查询成功"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /v1/users/profile [get]
+// @Router /users/profile [get]
 // @Security BearerAuth
 func (h *UserHandler) GetUserProfile(c *gin.Context) {
 	rawUserID, exists := c.Get("user_id")

@@ -42,7 +42,7 @@ func NewGuardianshipHandler(
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 409 {object} core.ErrResponse "监护关系已存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /v1/guardians/grant [post]
+// @Router /guardians/grant [post]
 // @Security BearerAuth
 func (h *GuardianshipHandler) Grant(c *gin.Context) {
 	var req requestdto.GuardianGrantRequest
@@ -84,7 +84,7 @@ func (h *GuardianshipHandler) Grant(c *gin.Context) {
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 404 {object} core.ErrResponse "监护关系不存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /v1/guardians/revoke [post]
+// @Router /guardians/revoke [post]
 // @Security BearerAuth
 func (h *GuardianshipHandler) Revoke(c *gin.Context) {
 	var req requestdto.GuardianRevokeRequest
@@ -129,7 +129,7 @@ func (h *GuardianshipHandler) Revoke(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /v1/guardians [get]
+// @Router /guardians [get]
 // @Security BearerAuth
 func (h *GuardianshipHandler) List(c *gin.Context) {
 	var req requestdto.GuardianshipListQuery
