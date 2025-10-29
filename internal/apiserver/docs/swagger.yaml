@@ -1094,7 +1094,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
       summary: 获取 JWKS
       tags:
-      - JWKS
+      - Authentication-JWKS
   /accounts/{accountId}:
     get:
       consumes:
@@ -1129,7 +1129,7 @@ paths:
       - BearerAuth: []
       summary: 获取账号详情
       tags:
-      - Accounts
+      - Authentication-Accounts
   /accounts/{accountId}/wechat:profile:
     patch:
       consumes:
@@ -1172,7 +1172,7 @@ paths:
       - BearerAuth: []
       summary: 更新微信账号资料
       tags:
-      - Accounts
+      - Authentication-Accounts
   /accounts/{accountId}/wechat:unionid:
     patch:
       consumes:
@@ -1215,7 +1215,7 @@ paths:
       - BearerAuth: []
       summary: 设置微信 UnionID
       tags:
-      - Accounts
+      - Authentication-Accounts
   /accounts/{accountId}:disable:
     post:
       consumes:
@@ -1252,7 +1252,7 @@ paths:
       - BearerAuth: []
       summary: 禁用账号
       tags:
-      - Accounts
+      - Authentication-Accounts
   /accounts/{accountId}:enable:
     post:
       consumes:
@@ -1289,7 +1289,7 @@ paths:
       - BearerAuth: []
       summary: 启用账号
       tags:
-      - Accounts
+      - Authentication-Accounts
   /accounts/operation:
     post:
       consumes:
@@ -1325,7 +1325,7 @@ paths:
       - BearerAuth: []
       summary: 创建运营账号
       tags:
-      - Accounts
+      - Authentication-Accounts
   /accounts/operation/{username}:
     patch:
       consumes:
@@ -1368,7 +1368,7 @@ paths:
       - BearerAuth: []
       summary: 更新运营账号凭据
       tags:
-      - Accounts
+      - Authentication-Accounts
   /accounts/operation/{username}:change:
     post:
       consumes:
@@ -1415,7 +1415,7 @@ paths:
       - BearerAuth: []
       summary: 修改运营账号用户名
       tags:
-      - Accounts
+      - Authentication-Accounts
   /accounts/wechat:bind:
     post:
       consumes:
@@ -1451,7 +1451,7 @@ paths:
       - BearerAuth: []
       summary: 绑定微信账号
       tags:
-      - Accounts
+      - Authentication-Accounts
   /admin/jwks/keys:
     get:
       description: 分页列出所有密钥
@@ -1497,7 +1497,7 @@ paths:
       - BearerAuth: []
       summary: 列出密钥
       tags:
-      - JWKS Admin
+      - Authentication-JWKS
     post:
       consumes:
       - application/json
@@ -1536,7 +1536,7 @@ paths:
       - BearerAuth: []
       summary: 创建密钥
       tags:
-      - JWKS Admin
+      - Authentication-JWKS
   /admin/jwks/keys/{kid}:
     get:
       description: 根据 kid 获取密钥详细信息
@@ -1577,7 +1577,7 @@ paths:
       - BearerAuth: []
       summary: 获取密钥详情
       tags:
-      - JWKS Admin
+      - Authentication-JWKS
   /admin/jwks/keys/{kid}/force-retire:
     post:
       description: 强制将任何状态的密钥转为 Retired（用于紧急情况）
@@ -1616,7 +1616,7 @@ paths:
       - BearerAuth: []
       summary: 强制退役密钥
       tags:
-      - JWKS Admin
+      - Authentication-JWKS
   /admin/jwks/keys/{kid}/grace:
     post:
       description: 将密钥状态从 Active 转为 Grace
@@ -1655,7 +1655,7 @@ paths:
       - BearerAuth: []
       summary: 进入宽限期
       tags:
-      - JWKS Admin
+      - Authentication-JWKS
   /admin/jwks/keys/{kid}/retire:
     post:
       description: 将密钥状态从 Grace 转为 Retired
@@ -1694,7 +1694,7 @@ paths:
       - BearerAuth: []
       summary: 退役密钥
       tags:
-      - JWKS Admin
+      - Authentication-JWKS
   /admin/jwks/keys/cleanup:
     post:
       description: 删除已过期的 Retired 密钥
@@ -1721,7 +1721,7 @@ paths:
       - BearerAuth: []
       summary: 清理过期密钥
       tags:
-      - JWKS Admin
+      - Authentication-JWKS
   /admin/jwks/keys/publishable:
     get:
       description: 获取当前会被发布到 JWKS 的密钥列表（用于预览或调试）
@@ -1748,7 +1748,7 @@ paths:
       - BearerAuth: []
       summary: 获取可发布的密钥
       tags:
-      - JWKS Admin
+      - Authentication-JWKS
   /auth/login:
     post:
       consumes:
@@ -1778,7 +1778,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
       summary: 登录
       tags:
-      - Authentication
+      - Authentication-Auth
   /auth/logout:
     post:
       consumes:
@@ -1811,7 +1811,7 @@ paths:
       - BearerAuth: []
       summary: 登出
       tags:
-      - Tokens
+      - Authentication-Tokens
   /auth/token:
     post:
       consumes:
@@ -1841,7 +1841,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
       summary: 刷新令牌
       tags:
-      - Tokens
+      - Authentication-Tokens
   /auth/verify:
     post:
       consumes:
@@ -1868,7 +1868,7 @@ paths:
       - BearerAuth: []
       summary: 验证令牌
       tags:
-      - 令牌
+      - Authentication-Tokens
   /authz/assignments/{id}:
     delete:
       parameters:
@@ -1884,7 +1884,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
       summary: 根据分配ID撤销角色
       tags:
-      - Assignment
+      - Authorization-Assignments
   /authz/assignments/grant:
     post:
       consumes:
@@ -1910,7 +1910,7 @@ paths:
               type: object
       summary: 授予角色
       tags:
-      - Assignment
+      - Authorization-Assignments
   /authz/assignments/revoke:
     post:
       consumes:
@@ -1931,7 +1931,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
       summary: 撤销角色
       tags:
-      - Assignment
+      - Authorization-Assignments
   /authz/assignments/subject:
     get:
       parameters:
@@ -1964,7 +1964,7 @@ paths:
               type: object
       summary: 列出主体的角色分配
       tags:
-      - Assignment
+      - Authorization-Assignments
   /authz/policies:
     delete:
       consumes:
@@ -1985,7 +1985,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
       summary: 移除策略规则
       tags:
-      - Policy
+      - Authorization-Policies
     post:
       consumes:
       - application/json
@@ -2005,7 +2005,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
       summary: 添加策略规则
       tags:
-      - Policy
+      - Authorization-Policies
   /authz/policies/version:
     get:
       produces:
@@ -2022,7 +2022,7 @@ paths:
               type: object
       summary: 获取当前策略版本
       tags:
-      - Policy
+      - Authorization-Policies
   /authz/resources:
     get:
       parameters:
@@ -2064,7 +2064,7 @@ paths:
               type: object
       summary: 列出资源
       tags:
-      - Resource
+      - Authorization-Resources
     post:
       consumes:
       - application/json
@@ -2089,7 +2089,7 @@ paths:
               type: object
       summary: 创建资源
       tags:
-      - Resource
+      - Authorization-Resources
   /authz/resources/{id}:
     delete:
       parameters:
@@ -2105,7 +2105,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
       summary: 删除资源
       tags:
-      - Resource
+      - Authorization-Resources
     get:
       parameters:
       - description: 资源ID
@@ -2127,7 +2127,7 @@ paths:
               type: object
       summary: 获取资源详情
       tags:
-      - Resource
+      - Authorization-Resources
     put:
       consumes:
       - application/json
@@ -2157,7 +2157,7 @@ paths:
               type: object
       summary: 更新资源
       tags:
-      - Resource
+      - Authorization-Resources
   /authz/resources/key/{key}:
     get:
       parameters:
@@ -2180,7 +2180,7 @@ paths:
               type: object
       summary: 根据键获取资源
       tags:
-      - Resource
+      - Authorization-Resources
   /authz/resources/validate-action:
     post:
       consumes:
@@ -2206,7 +2206,7 @@ paths:
               type: object
       summary: 验证资源动作
       tags:
-      - Resource
+      - Authorization-Resources
   /authz/roles:
     get:
       parameters:
@@ -2236,7 +2236,7 @@ paths:
               type: object
       summary: 列出角色
       tags:
-      - Role
+      - Authorization-Roles
     post:
       consumes:
       - application/json
@@ -2261,7 +2261,7 @@ paths:
               type: object
       summary: 创建角色
       tags:
-      - Role
+      - Authorization-Roles
   /authz/roles/{id}:
     delete:
       parameters:
@@ -2277,7 +2277,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response'
       summary: 删除角色
       tags:
-      - Role
+      - Authorization-Roles
     get:
       parameters:
       - description: 角色ID
@@ -2299,7 +2299,7 @@ paths:
               type: object
       summary: 获取角色详情
       tags:
-      - Role
+      - Authorization-Roles
     put:
       consumes:
       - application/json
@@ -2329,7 +2329,7 @@ paths:
               type: object
       summary: 更新角色
       tags:
-      - Role
+      - Authorization-Roles
   /authz/roles/{id}/assignments:
     get:
       parameters:
@@ -2354,7 +2354,7 @@ paths:
               type: object
       summary: 列出角色的分配记录
       tags:
-      - Assignment
+      - Authorization-Assignments
   /authz/roles/{id}/policies:
     get:
       parameters:
@@ -2379,7 +2379,7 @@ paths:
               type: object
       summary: 获取角色的策略列表
       tags:
-      - Policy
+      - Authorization-Policies
   /children:
     post:
       consumes:
@@ -2419,7 +2419,7 @@ paths:
       - BearerAuth: []
       summary: 创建儿童档案
       tags:
-      - Identity-Child
+      - Identity-Children
   /children/{id}:
     get:
       consumes:
@@ -2454,7 +2454,7 @@ paths:
       - BearerAuth: []
       summary: 查询儿童档案
       tags:
-      - Identity-Child
+      - Identity-Children
     patch:
       consumes:
       - application/json
@@ -2494,7 +2494,7 @@ paths:
       - BearerAuth: []
       summary: 更新儿童档案
       tags:
-      - Identity-Child
+      - Identity-Children
   /children/register:
     post:
       consumes:
@@ -2534,7 +2534,7 @@ paths:
       - BearerAuth: []
       summary: 注册儿童档案并建立监护关系
       tags:
-      - Identity-Child
+      - Identity-Children
   /children/search:
     get:
       consumes:
@@ -2582,7 +2582,7 @@ paths:
       - BearerAuth: []
       summary: 搜索儿童
       tags:
-      - Identity-Child
+      - Identity-Children
   /guardians:
     get:
       consumes:
@@ -2743,7 +2743,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
       summary: 创建微信应用
       tags:
-      - IDP-WechatApp
+      - IDP-Wechat
   /idp/wechat-apps/{app_id}:
     get:
       consumes:
@@ -2771,7 +2771,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
       summary: 查询微信应用
       tags:
-      - IDP-WechatApp
+      - IDP-Wechat
   /idp/wechat-apps/{app_id}/access-token:
     get:
       consumes:
@@ -2799,7 +2799,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
       summary: 获取访问令牌（带缓存和自动刷新）
       tags:
-      - IDP-WechatApp
+      - IDP-Wechat
   /idp/wechat-apps/refresh-access-token:
     post:
       consumes:
@@ -2832,7 +2832,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
       summary: 强制刷新访问令牌
       tags:
-      - IDP-WechatApp
+      - IDP-Wechat
   /idp/wechat-apps/rotate-auth-secret:
     post:
       consumes:
@@ -2865,7 +2865,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
       summary: 轮换认证密钥（AppSecret）
       tags:
-      - IDP-WechatApp
+      - IDP-Wechat
   /idp/wechat-apps/rotate-msg-secret:
     post:
       consumes:
@@ -2898,7 +2898,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
       summary: 轮换消息加解密密钥
       tags:
-      - IDP-WechatApp
+      - IDP-Wechat
   /idp/wechat/decrypt-phone:
     post:
       consumes:
@@ -2932,7 +2932,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
       summary: 解密微信用户手机号
       tags:
-      - IDP-WechatAuth
+      - IDP-Wechat
   /idp/wechat/login:
     post:
       consumes:
@@ -2966,7 +2966,7 @@ paths:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse'
       summary: 微信小程序登录
       tags:
-      - IDP-WechatAuth
+      - IDP-Wechat
   /me/children:
     get:
       consumes:
@@ -3002,7 +3002,7 @@ paths:
       - BearerAuth: []
       summary: 获取当前用户的儿童档案列表
       tags:
-      - Identity-Child
+      - Identity-Children
   /users:
     post:
       consumes:
@@ -3034,7 +3034,7 @@ paths:
       - BearerAuth: []
       summary: 创建用户
       tags:
-      - Identity-User
+      - Identity-Users
   /users/{userId}:
     get:
       consumes:
@@ -3069,7 +3069,7 @@ paths:
       - BearerAuth: []
       summary: 查询用户
       tags:
-      - Identity-User
+      - Identity-Users
     patch:
       consumes:
       - application/json
@@ -3109,7 +3109,7 @@ paths:
       - BearerAuth: []
       summary: 更新用户信息
       tags:
-      - Identity-User
+      - Identity-Users
   /users/{userId}/accounts:
     get:
       consumes:
@@ -3153,7 +3153,7 @@ paths:
       - BearerAuth: []
       summary: 列出用户的所有账号
       tags:
-      - Accounts
+      - Authentication-Accounts
   /users/profile:
     get:
       consumes:
@@ -3178,7 +3178,7 @@ paths:
       - BearerAuth: []
       summary: 获取当前用户资料
       tags:
-      - Identity-User
+      - Identity-Users
 securityDefinitions:
   BearerAuth:
     description: 'JWT 认证令牌，格式: Bearer {access_token}'

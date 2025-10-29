@@ -47,7 +47,7 @@ func NewChildHandler(
 // ListMyChildren 获取当前用户的儿童档案列表
 // @Summary 获取当前用户的儿童档案列表
 // @Description 获取当前登录用户作为监护人的所有儿童档案
-// @Tags Identity-Child
+// @Tags Identity-Children
 // @Accept json
 // @Produce json
 // @Param offset query int false "偏移量" default(0)
@@ -106,7 +106,7 @@ func (h *ChildHandler) ListMyChildren(c *gin.Context) {
 // RegisterChild 注册儿童并授予当前用户监护权
 // @Summary 注册儿童档案并建立监护关系
 // @Description 创建儿童档案并自动将当前用户设置为监护人
-// @Tags Identity-Child
+// @Tags Identity-Children
 // @Accept json
 // @Produce json
 // @Param request body requestdto.ChildRegisterRequest true "注册儿童请求"
@@ -176,7 +176,7 @@ func (h *ChildHandler) RegisterChild(c *gin.Context) {
 // CreateChild 仅创建儿童档案（不建立监护关系）
 // @Summary 创建儿童档案
 // @Description 仅创建儿童档案，不建立监护关系
-// @Tags Identity-Child
+// @Tags Identity-Children
 // @Accept json
 // @Produce json
 // @Param request body requestdto.ChildCreateRequest true "创建儿童请求"
@@ -219,7 +219,7 @@ func (h *ChildHandler) CreateChild(c *gin.Context) {
 // GetChild 查询儿童档案
 // @Summary 查询儿童档案
 // @Description 根据儿童 ID 查询儿童详细档案
-// @Tags Identity-Child
+// @Tags Identity-Children
 // @Accept json
 // @Produce json
 // @Param id path string true "儿童 ID"
@@ -248,7 +248,7 @@ func (h *ChildHandler) GetChild(c *gin.Context) {
 // PatchChild 更新儿童档案
 // @Summary 更新儿童档案
 // @Description 部分更新儿童档案信息
-// @Tags Identity-Child
+// @Tags Identity-Children
 // @Accept json
 // @Produce json
 // @Param id path string true "儿童 ID"
@@ -336,7 +336,7 @@ func (h *ChildHandler) PatchChild(c *gin.Context) {
 // SearchChildren 搜索相似儿童（根据姓名、性别、生日）
 // @Summary 搜索儿童
 // @Description 根据姓名、生日等信息搜索相似的儿童档案（用于运营查询）
-// @Tags Identity-Child
+// @Tags Identity-Children
 // @Accept json
 // @Produce json
 // @Param name query string false "儿童姓名"

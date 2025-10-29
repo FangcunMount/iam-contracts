@@ -33,7 +33,7 @@ func NewRoleHandler(
 
 // CreateRole 创建角色
 // @Summary 创建角色
-// @Tags Role
+// @Tags Authorization-Roles
 // @Accept json
 // @Produce json
 // @Param request body dto.CreateRoleRequest true "创建角色请求"
@@ -66,7 +66,7 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 
 // UpdateRole 更新角色
 // @Summary 更新角色
-// @Tags Role
+// @Tags Authorization-Roles
 // @Accept json
 // @Produce json
 // @Param id path string true "角色ID"
@@ -103,7 +103,7 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 
 // DeleteRole 删除角色
 // @Summary 删除角色
-// @Tags Role
+// @Tags Authorization-Roles
 // @Param id path string true "角色ID"
 // @Success 200 {object} dto.Response
 // @Router /authz/roles/{id} [delete]
@@ -125,7 +125,7 @@ func (h *RoleHandler) DeleteRole(c *gin.Context) {
 
 // GetRole 获取角色详情
 // @Summary 获取角色详情
-// @Tags Role
+// @Tags Authorization-Roles
 // @Produce json
 // @Param id path string true "角色ID"
 // @Success 200 {object} dto.Response{data=dto.RoleResponse}
@@ -148,7 +148,7 @@ func (h *RoleHandler) GetRole(c *gin.Context) {
 
 // ListRoles 列出角色
 // @Summary 列出角色
-// @Tags Role
+// @Tags Authorization-Roles
 // @Produce json
 // @Param offset query int false "偏移量" default(0)
 // @Param limit query int false "每页数量" default(10)

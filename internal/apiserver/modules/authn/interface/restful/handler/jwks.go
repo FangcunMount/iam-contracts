@@ -38,7 +38,7 @@ func NewJWKSHandler(
 // GetJWKS 获取 JWKS（公开端点）
 // @Summary 获取 JWKS
 // @Description 获取 JSON Web Key Set，用于验证 JWT 签名
-// @Tags JWKS
+// @Tags Authentication-JWKS
 // @Produce json
 // @Success 200 {object} map[string]interface{} "JWKS JSON"
 // @Header 200 {string} ETag "实体标签"
@@ -76,7 +76,7 @@ func (h *JWKSHandler) GetJWKS(c *gin.Context) {
 // CreateKey 创建密钥（管理员接口）
 // @Summary 创建密钥
 // @Description 创建新的签名密钥
-// @Tags JWKS Admin
+// @Tags Authentication-JWKS
 // @Accept json
 // @Produce json
 // @Security BearerAuth
@@ -126,7 +126,7 @@ func (h *JWKSHandler) CreateKey(c *gin.Context) {
 // ListKeys 列出密钥（管理员接口）
 // @Summary 列出密钥
 // @Description 分页列出所有密钥
-// @Tags JWKS Admin
+// @Tags Authentication-JWKS
 // @Produce json
 // @Security BearerAuth
 // @Param status query string false "状态过滤 (active, grace, retired)"
@@ -211,7 +211,7 @@ func (h *JWKSHandler) ListKeys(c *gin.Context) {
 // GetKey 获取密钥详情（管理员接口）
 // @Summary 获取密钥详情
 // @Description 根据 kid 获取密钥详细信息
-// @Tags JWKS Admin
+// @Tags Authentication-JWKS
 // @Produce json
 // @Security BearerAuth
 // @Param kid path string true "密钥 ID"
@@ -254,7 +254,7 @@ func (h *JWKSHandler) GetKey(c *gin.Context) {
 // RetireKey 退役密钥（管理员接口）
 // @Summary 退役密钥
 // @Description 将密钥状态从 Grace 转为 Retired
-// @Tags JWKS Admin
+// @Tags Authentication-JWKS
 // @Produce json
 // @Security BearerAuth
 // @Param kid path string true "密钥 ID"
@@ -285,7 +285,7 @@ func (h *JWKSHandler) RetireKey(c *gin.Context) {
 // ForceRetireKey 强制退役密钥（管理员接口）
 // @Summary 强制退役密钥
 // @Description 强制将任何状态的密钥转为 Retired（用于紧急情况）
-// @Tags JWKS Admin
+// @Tags Authentication-JWKS
 // @Produce json
 // @Security BearerAuth
 // @Param kid path string true "密钥 ID"
@@ -316,7 +316,7 @@ func (h *JWKSHandler) ForceRetireKey(c *gin.Context) {
 // EnterGracePeriod 进入宽限期（管理员接口）
 // @Summary 进入宽限期
 // @Description 将密钥状态从 Active 转为 Grace
-// @Tags JWKS Admin
+// @Tags Authentication-JWKS
 // @Produce json
 // @Security BearerAuth
 // @Param kid path string true "密钥 ID"
@@ -347,7 +347,7 @@ func (h *JWKSHandler) EnterGracePeriod(c *gin.Context) {
 // CleanupExpiredKeys 清理过期密钥（管理员接口）
 // @Summary 清理过期密钥
 // @Description 删除已过期的 Retired 密钥
-// @Tags JWKS Admin
+// @Tags Authentication-JWKS
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} response.CleanupResponse "清理结果"
@@ -374,7 +374,7 @@ func (h *JWKSHandler) CleanupExpiredKeys(c *gin.Context) {
 // GetPublishableKeys 获取可发布的密钥（管理员接口）
 // @Summary 获取可发布的密钥
 // @Description 获取当前会被发布到 JWKS 的密钥列表（用于预览或调试）
-// @Tags JWKS Admin
+// @Tags Authentication-JWKS
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} response.PublishableKeysResponse "可发布的密钥列表"

@@ -39,7 +39,7 @@ func NewUserHandler(
 // CreateUser 创建用户
 // @Summary 创建用户
 // @Description 创建新用户，至少需要提供昵称或联系方式
-// @Tags Identity-User
+// @Tags Identity-Users
 // @Accept json
 // @Produce json
 // @Param request body requestdto.UserCreateRequest true "创建用户请求"
@@ -92,7 +92,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 // GetUser 根据 ID 查询用户
 // @Summary 查询用户
 // @Description 根据用户 ID 查询用户详细信息
-// @Tags Identity-User
+// @Tags Identity-Users
 // @Accept json
 // @Produce json
 // @Param userId path string true "用户 ID"
@@ -121,7 +121,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 // PatchUser 更新用户信息（昵称 / 联系方式）
 // @Summary 更新用户信息
 // @Description 部分更新用户信息，支持更新昵称和联系方式
-// @Tags Identity-User
+// @Tags Identity-Users
 // @Accept json
 // @Produce json
 // @Param userId path string true "用户 ID"
@@ -181,7 +181,7 @@ func (h *UserHandler) PatchUser(c *gin.Context) {
 // GetUserProfile 获取当前用户资料
 // @Summary 获取当前用户资料
 // @Description 获取当前登录用户的资料信息
-// @Tags Identity-User
+// @Tags Identity-Users
 // @Accept json
 // @Produce json
 // @Success 200 {object} responsedto.UserResponse "查询成功"

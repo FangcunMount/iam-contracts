@@ -28,7 +28,7 @@ func NewPolicyHandler(commander driving.PolicyCommander, queryer driving.PolicyQ
 
 // AddPolicyRule 添加策略规则
 // @Summary 添加策略规则
-// @Tags Policy
+// @Tags Authorization-Policies
 // @Accept json
 // @Produce json
 // @Param request body dto.AddPolicyRequest true "添加策略请求"
@@ -64,7 +64,7 @@ func (h *PolicyHandler) AddPolicyRule(c *gin.Context) {
 
 // RemovePolicyRule 移除策略规则
 // @Summary 移除策略规则
-// @Tags Policy
+// @Tags Authorization-Policies
 // @Accept json
 // @Produce json
 // @Param request body dto.RemovePolicyRequest true "移除策略请求"
@@ -100,7 +100,7 @@ func (h *PolicyHandler) RemovePolicyRule(c *gin.Context) {
 
 // GetPoliciesByRole 获取角色的策略列表
 // @Summary 获取角色的策略列表
-// @Tags Policy
+// @Tags Authorization-Policies
 // @Produce json
 // @Param id path string true "角色ID"
 // @Success 200 {object} dto.Response{data=[]dto.PolicyRuleResponse}
@@ -140,7 +140,7 @@ func (h *PolicyHandler) GetPoliciesByRole(c *gin.Context) {
 
 // GetCurrentVersion 获取当前策略版本
 // @Summary 获取当前策略版本
-// @Tags Policy
+// @Tags Authorization-Policies
 // @Produce json
 // @Success 200 {object} dto.Response{data=dto.PolicyVersionResponse}
 // @Router /authz/policies/version [get]
