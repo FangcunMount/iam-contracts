@@ -65,8 +65,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/idp/wechat-apps": {
+        "/accounts/operation": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "为用户创建基于用户名密码的运营账号",
                 "consumes": [
                     "application/json"
                 ],
@@ -74,17 +80,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "IDP-WechatApp"
+                    "Accounts"
                 ],
-                "summary": "创建微信应用",
+                "summary": "创建运营账号",
                 "parameters": [
                     {
-                        "description": "创建微信应用请求",
+                        "description": "创建运营账号请求",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.CreateWechatAppRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateOperationAccountReq"
                         }
                     }
                 ],
@@ -92,318 +98,38 @@ const docTemplate = `{
                     "201": {
                         "description": "创建成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account"
                         }
                     },
                     "400": {
-                        "description": "请求参数错误",
+                        "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/idp/wechat-apps/refresh-access-token": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-WechatApp"
-                ],
-                "summary": "强制刷新访问令牌",
-                "parameters": [
-                    {
-                        "description": "刷新访问令牌请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RefreshAccessTokenRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "刷新成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "应用不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/idp/wechat-apps/rotate-auth-secret": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-WechatApp"
-                ],
-                "summary": "轮换认证密钥（AppSecret）",
-                "parameters": [
-                    {
-                        "description": "轮换认证密钥请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateAuthSecretRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "轮换成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "应用不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/idp/wechat-apps/rotate-msg-secret": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-WechatApp"
-                ],
-                "summary": "轮换消息加解密密钥",
-                "parameters": [
-                    {
-                        "description": "轮换消息密钥请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateMsgSecretRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "轮换成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "应用不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/idp/wechat-apps/{app_id}": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-WechatApp"
-                ],
-                "summary": "查询微信应用",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "微信应用 ID",
-                        "name": "app_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "查询成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "应用不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/idp/wechat-apps/{app_id}/access-token": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-WechatApp"
-                ],
-                "summary": "获取访问令牌（带缓存和自动刷新）",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "微信应用 ID",
-                        "name": "app_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "获取成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "应用不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/idp/wechat/decrypt-phone": {
-            "post": {
-                "description": "使用 session_key 解密微信小程序获取的加密手机号信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-WechatAuth"
-                ],
-                "summary": "解密微信用户手机号",
-                "parameters": [
-                    {
-                        "description": "解密手机号请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.DecryptPhoneRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "解密成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.DecryptPhoneResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
                         }
                     },
                     "401": {
-                        "description": "解密失败（session_key 无效）",
+                        "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
                         }
                     },
-                    "500": {
-                        "description": "服务器内部错误",
+                    "409": {
+                        "description": "账号已存在",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
                         }
                     }
                 }
             }
         },
-        "/api/v1/idp/wechat/login": {
-            "post": {
-                "description": "使用微信小程序登录码（wx.login 获取）进行用户认证，返回用户身份信息和会话密钥",
+        "/accounts/operation/{username}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "更新运营账号的密码、重置失败次数或解锁账号",
                 "consumes": [
                     "application/json"
                 ],
@@ -411,17 +137,979 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "IDP-WechatAuth"
+                    "Accounts"
                 ],
-                "summary": "微信小程序登录",
+                "summary": "更新运营账号凭据",
                 "parameters": [
                     {
-                        "description": "微信登录请求",
+                        "type": "string",
+                        "description": "用户名",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新凭据请求",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.LoginWithCodeRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpdateOperationCredentialReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "账号不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/operation/{username}:change": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "修改运营账号的用户名",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "修改运营账号用户名",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "原用户名",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "修改用户名请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.ChangeOperationUsernameReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "修改成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "账号不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "新用户名已存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/wechat:bind": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "为用户创建并绑定微信账号",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "绑定微信账号",
+                "parameters": [
+                    {
+                        "description": "绑定微信账号请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.BindWeChatAccountReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "绑定成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "微信账号已绑定其他用户",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/{accountId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "根据账号ID获取账号详细信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "获取账号详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "账号ID",
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "账号信息",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "账号不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/{accountId}/wechat:profile": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "更新微信账号的昵称、头像等资料信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "更新微信账号资料",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "账号ID",
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新资料请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpsertWeChatProfileReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "账号不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/{accountId}/wechat:unionid": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "为微信账号设置 UnionID（用于跨应用识别用户）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "设置微信 UnionID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "账号ID",
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "设置 UnionID 请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.SetWeChatUnionIDReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "设置成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "账号不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/{accountId}:disable": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "禁用账号，禁用后无法登录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "禁用账号",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "账号ID",
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "禁用成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "账号不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/{accountId}:enable": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "启用被禁用的账号",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "启用账号",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "账号ID",
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "启用成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "账号不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/jwks/keys": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "分页列出所有密钥",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "JWKS Admin"
+                ],
+                "summary": "列出密钥",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "状态过滤 (active, grace, retired)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "每页数量",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "偏移量",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "密钥列表",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未认证",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "创建新的签名密钥",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "JWKS Admin"
+                ],
+                "summary": "创建密钥",
+                "parameters": [
+                    {
+                        "description": "创建密钥请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateKeyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "创建成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未认证",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/jwks/keys/cleanup": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "删除已过期的 Retired 密钥",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "JWKS Admin"
+                ],
+                "summary": "清理过期密钥",
+                "responses": {
+                    "200": {
+                        "description": "清理结果",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.CleanupResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未认证",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/jwks/keys/publishable": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取当前会被发布到 JWKS 的密钥列表（用于预览或调试）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "JWKS Admin"
+                ],
+                "summary": "获取可发布的密钥",
+                "responses": {
+                    "200": {
+                        "description": "可发布的密钥列表",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.PublishableKeysResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未认证",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/jwks/keys/{kid}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "根据 kid 获取密钥详细信息",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "JWKS Admin"
+                ],
+                "summary": "获取密钥详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "密钥 ID",
+                        "name": "kid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "密钥详情",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未认证",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "密钥不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/jwks/keys/{kid}/force-retire": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "强制将任何状态的密钥转为 Retired（用于紧急情况）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "JWKS Admin"
+                ],
+                "summary": "强制退役密钥",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "密钥 ID",
+                        "name": "kid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "强制退役成功"
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未认证",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "密钥不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/jwks/keys/{kid}/grace": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "将密钥状态从 Active 转为 Grace",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "JWKS Admin"
+                ],
+                "summary": "进入宽限期",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "密钥 ID",
+                        "name": "kid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "进入宽限期成功"
+                    },
+                    "400": {
+                        "description": "参数错误或状态不允许",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未认证",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "密钥不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/jwks/keys/{kid}/retire": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "将密钥状态从 Grace 转为 Retired",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "JWKS Admin"
+                ],
+                "summary": "退役密钥",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "密钥 ID",
+                        "name": "kid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "退役成功"
+                    },
+                    "400": {
+                        "description": "参数错误或状态不允许",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未认证",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "密钥不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "使用不同的认证方式进行登录（basic: 用户名密码, wx:minip: 微信小程序）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "登录",
+                "parameters": [
+                    {
+                        "description": "登录请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LoginRequest"
                         }
                     }
                 ],
@@ -429,25 +1117,161 @@ const docTemplate = `{
                     "200": {
                         "description": "登录成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.LoginResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair"
                         }
                     },
                     "400": {
-                        "description": "请求参数错误",
+                        "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
                         }
                     },
                     "401": {
-                        "description": "登录失败（code 无效或已过期）",
+                        "description": "认证失败",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "撤销访问令牌和刷新令牌",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tokens"
+                ],
+                "summary": "登出",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer {access_token}",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "登出请求",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LogoutRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "登出成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
-                    "500": {
-                        "description": "服务器内部错误",
+                    "401": {
+                        "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/token": {
+            "post": {
+                "description": "使用刷新令牌获取新的访问令牌",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tokens"
+                ],
+                "summary": "刷新令牌",
+                "parameters": [
+                    {
+                        "description": "刷新令牌请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "刷新成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "令牌无效",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/verify": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "验证访问令牌的有效性（验签 + 载荷校验 + 黑名单检查）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "令牌"
+                ],
+                "summary": "验证令牌",
+                "parameters": [
+                    {
+                        "description": "验证令牌请求（可选）",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.VerifyTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "验证结果",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.VerifyResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
                         }
                     }
                 }
@@ -1306,1219 +2130,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/accounts/operation": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "为用户创建基于用户名密码的运营账号",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Accounts"
-                ],
-                "summary": "创建运营账号",
-                "parameters": [
-                    {
-                        "description": "创建运营账号请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateOperationAccountReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "创建成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "账号已存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/accounts/operation/{username}": {
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "更新运营账号的密码、重置失败次数或解锁账号",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Accounts"
-                ],
-                "summary": "更新运营账号凭据",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "用户名",
-                        "name": "username",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "更新凭据请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpdateOperationCredentialReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "更新成功",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "账号不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/accounts/operation/{username}:change": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "修改运营账号的用户名",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Accounts"
-                ],
-                "summary": "修改运营账号用户名",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "原用户名",
-                        "name": "username",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "修改用户名请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.ChangeOperationUsernameReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "修改成功",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "账号不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "新用户名已存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/accounts/wechat:bind": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "为用户创建并绑定微信账号",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Accounts"
-                ],
-                "summary": "绑定微信账号",
-                "parameters": [
-                    {
-                        "description": "绑定微信账号请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.BindWeChatAccountReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "绑定成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "微信账号已绑定其他用户",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/accounts/{accountId}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "根据账号ID获取账号详细信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Accounts"
-                ],
-                "summary": "获取账号详情",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "账号ID",
-                        "name": "accountId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "账号信息",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "账号不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/accounts/{accountId}/wechat:profile": {
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "更新微信账号的昵称、头像等资料信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Accounts"
-                ],
-                "summary": "更新微信账号资料",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "账号ID",
-                        "name": "accountId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "更新资料请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpsertWeChatProfileReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "更新成功",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "账号不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/accounts/{accountId}/wechat:unionid": {
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "为微信账号设置 UnionID（用于跨应用识别用户）",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Accounts"
-                ],
-                "summary": "设置微信 UnionID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "账号ID",
-                        "name": "accountId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "设置 UnionID 请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.SetWeChatUnionIDReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "设置成功",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "账号不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/accounts/{accountId}:disable": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "禁用账号，禁用后无法登录",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Accounts"
-                ],
-                "summary": "禁用账号",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "账号ID",
-                        "name": "accountId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "禁用成功",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "账号不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/accounts/{accountId}:enable": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "启用被禁用的账号",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Accounts"
-                ],
-                "summary": "启用账号",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "账号ID",
-                        "name": "accountId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "启用成功",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "账号不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/admin/jwks/keys": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "分页列出所有密钥",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "JWKS Admin"
-                ],
-                "summary": "列出密钥",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "状态过滤 (active, grace, retired)",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 20,
-                        "description": "每页数量",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "偏移量",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "密钥列表",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyListResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未认证",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "无权限",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "创建新的签名密钥",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "JWKS Admin"
-                ],
-                "summary": "创建密钥",
-                "parameters": [
-                    {
-                        "description": "创建密钥请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateKeyRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "创建成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未认证",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "无权限",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/admin/jwks/keys/cleanup": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "删除已过期的 Retired 密钥",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "JWKS Admin"
-                ],
-                "summary": "清理过期密钥",
-                "responses": {
-                    "200": {
-                        "description": "清理结果",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.CleanupResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未认证",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "无权限",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/admin/jwks/keys/publishable": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "获取当前会被发布到 JWKS 的密钥列表（用于预览或调试）",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "JWKS Admin"
-                ],
-                "summary": "获取可发布的密钥",
-                "responses": {
-                    "200": {
-                        "description": "可发布的密钥列表",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.PublishableKeysResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未认证",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "无权限",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/admin/jwks/keys/{kid}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "根据 kid 获取密钥详细信息",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "JWKS Admin"
-                ],
-                "summary": "获取密钥详情",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "密钥 ID",
-                        "name": "kid",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "密钥详情",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未认证",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "无权限",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "密钥不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/admin/jwks/keys/{kid}/force-retire": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "强制将任何状态的密钥转为 Retired（用于紧急情况）",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "JWKS Admin"
-                ],
-                "summary": "强制退役密钥",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "密钥 ID",
-                        "name": "kid",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "强制退役成功"
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未认证",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "无权限",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "密钥不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/admin/jwks/keys/{kid}/grace": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "将密钥状态从 Active 转为 Grace",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "JWKS Admin"
-                ],
-                "summary": "进入宽限期",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "密钥 ID",
-                        "name": "kid",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "进入宽限期成功"
-                    },
-                    "400": {
-                        "description": "参数错误或状态不允许",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未认证",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "无权限",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "密钥不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/admin/jwks/keys/{kid}/retire": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "将密钥状态从 Grace 转为 Retired",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "JWKS Admin"
-                ],
-                "summary": "退役密钥",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "密钥 ID",
-                        "name": "kid",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "退役成功"
-                    },
-                    "400": {
-                        "description": "参数错误或状态不允许",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未认证",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "无权限",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "密钥不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/auth/login": {
-            "post": {
-                "description": "使用不同的认证方式进行登录（basic: 用户名密码, wx:minip: 微信小程序）",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "认证"
-                ],
-                "summary": "登录",
-                "parameters": [
-                    {
-                        "description": "登录请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LoginRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "登录成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "认证失败",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/auth/logout": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "撤销访问令牌和刷新令牌",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "令牌"
-                ],
-                "summary": "登出",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer {access_token}",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "description": "登出请求",
-                        "name": "request",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LogoutRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "登出成功",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/auth/token": {
-            "post": {
-                "description": "使用刷新令牌获取新的访问令牌",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "令牌"
-                ],
-                "summary": "刷新令牌",
-                "parameters": [
-                    {
-                        "description": "刷新令牌请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.RefreshTokenRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "刷新成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "令牌无效",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/auth/verify": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "验证访问令牌的有效性（验签 + 载荷校验 + 黑名单检查）",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "令牌"
-                ],
-                "summary": "验证令牌",
-                "parameters": [
-                    {
-                        "description": "验证令牌请求（可选）",
-                        "name": "request",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.VerifyTokenRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "验证结果",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.VerifyResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/children": {
+        "/children": {
             "post": {
                 "security": [
                     {
@@ -2581,7 +2193,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/children/register": {
+        "/children/register": {
             "post": {
                 "security": [
                     {
@@ -2644,7 +2256,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/children/search": {
+        "/children/search": {
             "get": {
                 "security": [
                     {
@@ -2718,7 +2330,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/children/{id}": {
+        "/children/{id}": {
             "get": {
                 "security": [
                     {
@@ -2835,7 +2447,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/guardians": {
+        "/guardians": {
             "get": {
                 "security": [
                     {
@@ -2915,7 +2527,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/guardians/grant": {
+        "/guardians/grant": {
             "post": {
                 "security": [
                     {
@@ -2978,7 +2590,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/guardians/revoke": {
+        "/guardians/revoke": {
             "post": {
                 "security": [
                     {
@@ -3041,7 +2653,395 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/me/children": {
+        "/idp/wechat-apps": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-WechatApp"
+                ],
+                "summary": "创建微信应用",
+                "parameters": [
+                    {
+                        "description": "创建微信应用请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.CreateWechatAppRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "创建成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/idp/wechat-apps/refresh-access-token": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-WechatApp"
+                ],
+                "summary": "强制刷新访问令牌",
+                "parameters": [
+                    {
+                        "description": "刷新访问令牌请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RefreshAccessTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "刷新成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "应用不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/idp/wechat-apps/rotate-auth-secret": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-WechatApp"
+                ],
+                "summary": "轮换认证密钥（AppSecret）",
+                "parameters": [
+                    {
+                        "description": "轮换认证密钥请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateAuthSecretRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "轮换成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "应用不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/idp/wechat-apps/rotate-msg-secret": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-WechatApp"
+                ],
+                "summary": "轮换消息加解密密钥",
+                "parameters": [
+                    {
+                        "description": "轮换消息密钥请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateMsgSecretRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "轮换成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "应用不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/idp/wechat-apps/{app_id}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-WechatApp"
+                ],
+                "summary": "查询微信应用",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "微信应用 ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "应用不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/idp/wechat-apps/{app_id}/access-token": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-WechatApp"
+                ],
+                "summary": "获取访问令牌（带缓存和自动刷新）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "微信应用 ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "应用不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/idp/wechat/decrypt-phone": {
+            "post": {
+                "description": "使用 session_key 解密微信小程序获取的加密手机号信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-WechatAuth"
+                ],
+                "summary": "解密微信用户手机号",
+                "parameters": [
+                    {
+                        "description": "解密手机号请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.DecryptPhoneRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "解密成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.DecryptPhoneResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "解密失败（session_key 无效）",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/idp/wechat/login": {
+            "post": {
+                "description": "使用微信小程序登录码（wx.login 获取）进行用户认证，返回用户身份信息和会话密钥",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-WechatAuth"
+                ],
+                "summary": "微信小程序登录",
+                "parameters": [
+                    {
+                        "description": "微信登录请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.LoginWithCodeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "登录成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "登录失败（code 无效或已过期）",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/me/children": {
             "get": {
                 "security": [
                     {
@@ -3097,7 +3097,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/users": {
+        "/users": {
             "post": {
                 "security": [
                     {
@@ -3148,7 +3148,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/users/profile": {
+        "/users/profile": {
             "get": {
                 "security": [
                     {
@@ -3188,7 +3188,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/users/{userId}": {
+        "/users/{userId}": {
             "get": {
                 "security": [
                     {
@@ -3305,7 +3305,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/users/{userId}/accounts": {
+        "/users/{userId}/accounts": {
             "get": {
                 "security": [
                     {
