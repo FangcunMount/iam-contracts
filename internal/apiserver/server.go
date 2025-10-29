@@ -111,8 +111,12 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 	// 初始化 Redis 客户端
 	redisClient := s.initRedisClient()
 
-	// 创建六边形架构容器（传入 MySQL 和 Redis）
-	s.container = container.NewContainer(mysqlDB, redisClient)
+	// 获取 IDP 模块加密密钥（从配置中读取，这里使用默认值）
+	// TODO: 从配置文件读取加密密钥
+	var idpEncryptionKey []byte = nil // 传 nil 使用默认密钥
+
+	// 创建六边形架构容器（传入 MySQL、Redis 和 IDP 加密密钥）
+	s.container = container.NewContainer(mysqlDB, redisClient, idpEncryptionKey)
 
 	// 初始化容器中的所有组件
 	if err := s.container.Initialize(); err != nil {
