@@ -10,7 +10,6 @@ import (
 )
 
 type AccessTokenCacher struct {
-	repo     port.WechatAppRepository
 	cache    port.AccessTokenCache
 	provider port.AppTokenProvider
 	// 策略
