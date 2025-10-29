@@ -11,8 +11,8 @@ import (
 
 // Dependencies IDP 模块的依赖
 type Dependencies struct {
-	WechatAppHandler  *handler.WechatAppHandler
-	WechatAuthHandler *handler.WechatAuthHandler
+	WechatAppHandler *handler.WechatAppHandler
+	// WechatAuthHandler 已移除 - 认证功能由 authn 模块统一提供
 }
 
 var deps Dependencies
@@ -23,6 +23,13 @@ func Provide(d Dependencies) {
 }
 
 // Register 注册 IDP 模块的所有路由
+//
+// IDP 模块职责：
+// - 微信应用管理（创建、查询、凭据轮换、令牌管理）
+// - 提供基础设施服务供其他模块使用（通过容器依赖注入）
+//
+// 认证功能由 authn 模块统一提供：
+// - POST /api/v1/auth/login (method: "wx:minip") - 微信小程序登录
 func Register(engine *gin.Engine) {
 	if engine == nil {
 		return
@@ -39,7 +46,7 @@ func Register(engine *gin.Engine) {
 		})
 
 		// 如果依赖未初始化，只注册健康检查
-		if deps.WechatAppHandler == nil || deps.WechatAuthHandler == nil {
+		if deps.WechatAppHandler == nil {
 			return
 		}
 
@@ -66,13 +73,15 @@ func Register(engine *gin.Engine) {
 		}
 
 		// ============ 微信认证 ============
-		wechatAuth := idpGroup.Group("/wechat")
-		{
-			// 微信登录
-			wechatAuth.POST("/login", deps.WechatAuthHandler.LoginWithCode)
-
-			// 解密手机号
-			wechatAuth.POST("/decrypt-phone", deps.WechatAuthHandler.DecryptUserPhone)
-		}
+		// 已移除 - 认证功能由 authn 模块统一提供
+		// 使用方式：
+		//   POST /api/v1/auth/login
+		//   {
+		//     "method": "wx:minip",
+		//     "credentials": {
+		//       "app_id": "wx1234567890",
+		//       "js_code": "code_from_wx_login"
+		//     }
+		//   }
 	}
 }

@@ -74,15 +74,16 @@ func NewAuthnModule() *AuthnModule {
 // Initialize 初始化模块
 // params[0]: *gorm.DB - 数据库连接
 // params[1]: *redis.Client - Redis 客户端
+// params[2]: *IDPModule - IDP 模块（可选，用于微信认证）
 func (m *AuthnModule) Initialize(params ...interface{}) error {
 	// 验证参数
-	db, redisClient, err := m.validateParameters(params)
+	db, redisClient, idpModule, err := m.validateParameters(params)
 	if err != nil {
 		return err
 	}
 
 	// 初始化基础设施层
-	infra, err := m.initializeInfrastructure(db, redisClient)
+	infra, err := m.initializeInfrastructure(db, redisClient, idpModule)
 	if err != nil {
 		return err
 	}
@@ -110,22 +111,28 @@ func (m *AuthnModule) Initialize(params ...interface{}) error {
 }
 
 // validateParameters 验证初始化参数
-func (m *AuthnModule) validateParameters(params []interface{}) (*gorm.DB, *redis.Client, error) {
+func (m *AuthnModule) validateParameters(params []interface{}) (*gorm.DB, *redis.Client, *IDPModule, error) {
 	if len(params) < 2 {
-		return nil, nil, errors.WithCode(code.ErrModuleInitializationFailed, "missing required parameters: db and redis client")
+		return nil, nil, nil, errors.WithCode(code.ErrModuleInitializationFailed, "missing required parameters: db and redis client")
 	}
 
 	db := params[0].(*gorm.DB)
 	if db == nil {
-		return nil, nil, errors.WithCode(code.ErrModuleInitializationFailed, "database connection is nil")
+		return nil, nil, nil, errors.WithCode(code.ErrModuleInitializationFailed, "database connection is nil")
 	}
 
 	redisClient := params[1].(*redis.Client)
 	if redisClient == nil {
-		return nil, nil, errors.WithCode(code.ErrModuleInitializationFailed, "redis client is nil")
+		return nil, nil, nil, errors.WithCode(code.ErrModuleInitializationFailed, "redis client is nil")
 	}
 
-	return db, redisClient, nil
+	// IDP 模块是可选的
+	var idpModule *IDPModule
+	if len(params) >= 3 && params[2] != nil {
+		idpModule = params[2].(*IDPModule)
+	}
+
+	return db, redisClient, idpModule, nil
 }
 
 // infrastructureComponents 基础设施层组件
@@ -155,7 +162,7 @@ type infrastructureComponents struct {
 }
 
 // initializeInfrastructure 初始化基础设施层
-func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.Client) (*infrastructureComponents, error) {
+func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.Client, idpModule *IDPModule) (*infrastructureComponents, error) {
 	infra := &infrastructureComponents{}
 
 	// MySQL 仓储
@@ -171,10 +178,15 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 	// 密码适配器
 	infra.passwordAdapter = mysqlacct.NewPasswordAdapter(infra.operationRepo)
 
-	// 微信适配器
-	infra.wechatAuthAdapter = wechat.NewAuthAdapter()
-	// TODO: 从配置加载微信应用配置
-	// infra.wechatAuthAdapter.WithAppConfig("wx1234567890", "your-app-secret")
+	// 微信适配器（使用 IDP 模块的应用服务）
+	if idpModule != nil && idpModule.ApplicationServices != nil {
+		infra.wechatAuthAdapter = wechat.NewAuthAdapter(
+			idpModule.ApplicationServices.WechatAuth,
+		)
+		log.Info("✅ WeChatAuthAdapter initialized with IDP application service")
+	} else {
+		log.Warn("⚠️  IDP module not provided, WeChat authentication will not be available")
+	}
 
 	// Redis Token Store
 	infra.tokenStore = redistoken.NewRedisStore(redisClient)
