@@ -67,7 +67,7 @@ paths:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChildPage' }}}}
         '401': { $ref: '#/components/responses/Unauthorized' }
 
-  /v1/children:register:
+  /v1/children/register:
     post:
       tags: [Children]
       summary: 注册孩子（建档+授当前用户为监护人）
@@ -130,7 +130,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  /v1/children:search:
+  /v1/children/search:
     get:
       tags: [Children]
       summary: 搜索孩子（运营）
@@ -149,7 +149,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
-  /v1/guardians:grant:
+  /v1/guardians/grant:
     post:
       tags: [Guardianship]
       summary: 授予监护
@@ -165,7 +165,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
 
-  /v1/guardians:revoke:
+  /v1/guardians/revoke:
     post:
       tags: [Guardianship]
       summary: 撤销监护
