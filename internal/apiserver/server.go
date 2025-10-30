@@ -1,6 +1,11 @@
 package apiserver
 
 import (
+	"encoding/base64"
+	"encoding/hex"
+	"fmt"
+	"strings"
+
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/component-base/pkg/shutdown"
 	"github.com/FangcunMount/component-base/pkg/shutdown/shutdownmanagers/posixsignal"
@@ -91,8 +96,11 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 		storeClient = nil // 允许在没有 Store Redis 的情况下运行
 	}
 
-	// 获取 IDP 模块加密密钥（从配置中读取，这里使用默认值）
-	var idpEncryptionKey []byte = []byte(viper.GetString("idp.encryption-key"))
+	// 获取 IDP 模块加密密钥（从配置或环境变量读取）
+	idpEncryptionKey, err := loadIDPEncryptionKey()
+	if err != nil {
+		log.Warnf("Failed to parse IDP encryption key: %v", err)
+	}
 
 	// 创建六边形架构容器（传入 MySQL、双 Redis 和 IDP 加密密钥）
 	s.container = container.NewContainer(mysqlDB, cacheClient, storeClient, idpEncryptionKey)
@@ -148,6 +156,43 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 	}))
 
 	return preparedAPIServer{s}
+}
+
+// loadIDPEncryptionKey 解析 IDP 加密密钥，支持 base64、base64url、hex 或纯 32 字节字符串
+func loadIDPEncryptionKey() ([]byte, error) {
+	secret := strings.TrimSpace(viper.GetString("idp.encryption-key"))
+	if secret == "" {
+		return nil, nil
+	}
+
+	type decoder struct {
+		name   string
+		decode func(string) ([]byte, error)
+	}
+
+	decoders := []decoder{
+		{name: "base64", decode: base64.StdEncoding.DecodeString},
+		{name: "base64_raw", decode: base64.RawStdEncoding.DecodeString},
+		{name: "base64_url", decode: base64.URLEncoding.DecodeString},
+		{name: "base64_url_raw", decode: base64.RawURLEncoding.DecodeString},
+		{name: "hex", decode: hex.DecodeString},
+	}
+
+	for _, d := range decoders {
+		if decoded, err := d.decode(secret); err == nil {
+			if len(decoded) == 32 {
+				return decoded, nil
+			}
+			log.Warnf("IDP encryption key decoded via %s but length was %d bytes, expected 32", d.name, len(decoded))
+		}
+	}
+
+	// 最后尝试直接使用原始字符串字节序列
+	if len(secret) == 32 {
+		return []byte(secret), nil
+	}
+
+	return nil, fmt.Errorf("invalid encryption key: unable to decode to 32 bytes")
 }
 
 // Run 运行 API 服务器
