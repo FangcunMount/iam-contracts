@@ -74,8 +74,10 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 			AccountHandler: r.container.AuthnModule.AccountHandler,
 			JWKSHandler:    r.container.AuthnModule.JWKSHandler,
 		})
+		authnhttp.Register(engine)
+		log.Info("✅ Authn module routes registered")
 	} else {
-		authnhttp.Provide(authnhttp.Dependencies{})
+		log.Warn("⚠️  Authn module not initialized, routes not registered")
 	}
 
 	// Authz 模块（授权管理）
@@ -86,8 +88,10 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 			PolicyHandler:     r.container.AuthzModule.PolicyHandler,
 			ResourceHandler:   r.container.AuthzModule.ResourceHandler,
 		})
+		authzhttp.Register(engine)
+		log.Info("✅ Authz module routes registered")
 	} else {
-		authzhttp.Provide(authzhttp.Dependencies{})
+		log.Warn("⚠️  Authz module not initialized, routes not registered")
 	}
 
 	// IDP 模块（身份提供者）
@@ -96,30 +100,19 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 			WechatAppHandler: r.container.IDPModule.WechatAppHandler,
 			// WechatAuthHandler 已移除 - 认证由 authn 模块统一提供
 		})
+		idphttp.Register(engine)
+		log.Info("✅ IDP module routes registered")
 	} else {
-		idphttp.Provide(idphttp.Dependencies{})
+		log.Warn("⚠️  IDP module not initialized, routes not registered")
 	}
 
+	// User 模块路由始终注册
 	userhttp.Register(engine)
-	if r.container.AuthnModule != nil {
-		authnhttp.Register(engine)
-	} else {
-		log.Warn("Authn endpoints disabled because module failed to initialize")
-	}
-	if r.container.AuthzModule != nil {
-		authzhttp.Register(engine)
-	} else {
-		log.Warn("Authz endpoints disabled because module failed to initialize")
-	}
-	if r.container.IDPModule != nil {
-		idphttp.Register(engine)
-	} else {
-		log.Warn("IDP endpoints disabled because module failed to initialize")
-	}
+	log.Info("✅ User module routes registered")
 
 	r.registerAdminRoutes(engine, authMiddleware)
 
-	fmt.Printf("🔗 Registered routes for: base, user, authn, authz, idp\n")
+	log.Info("🔗 All routes registration completed")
 }
 
 func (r *Router) registerBaseRoutes(engine *gin.Engine) {

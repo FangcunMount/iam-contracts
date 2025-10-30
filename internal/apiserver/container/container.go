@@ -7,6 +7,7 @@ import (
 	"github.com/go-redis/redis/v7"
 	"gorm.io/gorm"
 
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container/assembler"
 )
 
@@ -56,28 +57,61 @@ func (c *Container) Initialize() error {
 		return fmt.Errorf("container already initialized")
 	}
 
+	var errors []error
+
 	// 1. 初始化 IDP 模块（先初始化，因为 authn 模块依赖它）
 	if err := c.initIDPModule(); err != nil {
-		return fmt.Errorf("failed to initialize idp module: %w", err)
+		log.Warnf("Failed to initialize IDP module: %v", err)
+		errors = append(errors, fmt.Errorf("idp module: %w", err))
 	}
 
 	// 2. 初始化认证模块（依赖 IDP 模块）
 	if err := c.initAuthModule(); err != nil {
-		return fmt.Errorf("failed to initialize auth module: %w", err)
+		log.Warnf("Failed to initialize Authn module: %v", err)
+		errors = append(errors, fmt.Errorf("authn module: %w", err))
 	}
 
 	// 3. 初始化用户模块
 	if err := c.initUserModule(); err != nil {
-		return fmt.Errorf("failed to initialize user module: %w", err)
+		log.Warnf("Failed to initialize User module: %v", err)
+		errors = append(errors, fmt.Errorf("user module: %w", err))
 	}
 
 	// 4. 初始化授权模块
 	if err := c.initAuthzModule(); err != nil {
-		return fmt.Errorf("failed to initialize authz module: %w", err)
+		log.Warnf("Failed to initialize Authz module: %v", err)
+		errors = append(errors, fmt.Errorf("authz module: %w", err))
 	}
 
 	c.initialized = true
-	fmt.Printf("🏗️  Container initialized with modules: idp, authn, user, authz\n")
+
+	// 打印初始化状态
+	log.Infof("🏗️  Container initialization completed:")
+	if c.IDPModule != nil {
+		log.Info("   ✅ IDP module")
+	} else {
+		log.Warn("   ❌ IDP module failed")
+	}
+	if c.AuthnModule != nil {
+		log.Info("   ✅ Authn module")
+	} else {
+		log.Warn("   ❌ Authn module failed")
+	}
+	if c.UserModule != nil {
+		log.Info("   ✅ User module")
+	} else {
+		log.Warn("   ❌ User module failed")
+	}
+	if c.AuthzModule != nil {
+		log.Info("   ✅ Authz module")
+	} else {
+		log.Warn("   ❌ Authz module failed")
+	}
+
+	// 如果有错误,返回组合错误(但容器仍然标记为已初始化)
+	if len(errors) > 0 {
+		return fmt.Errorf("some modules failed to initialize (%d errors)", len(errors))
+	}
 
 	return nil
 }
