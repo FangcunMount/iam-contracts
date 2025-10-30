@@ -11,14 +11,14 @@ import (
 	miniConfig "github.com/silenceper/wechat/v2/miniprogram/config"
 )
 
-// AuthService 微信认证服务（使用 silenceper SDK）
-type AuthService struct {
+// AuthProvider 微信认证服务（使用 silenceper SDK）
+type AuthProvider struct {
 	cache cache.Cache // SDK 使用的缓存
 }
 
-// NewAuthService 创建微信认证服务实例
-func NewAuthService(cache cache.Cache) *AuthService {
-	return &AuthService{
+// NewAuthProvider 创建微信认证服务实例
+func NewAuthProvider(cache cache.Cache) *AuthProvider {
+	return &AuthProvider{
 		cache: cache,
 	}
 }
@@ -31,7 +31,7 @@ type Code2SessionResult struct {
 }
 
 // Code2Session 使用登录码进行登录
-func (s *AuthService) Code2Session(ctx context.Context, appID, appSecret, jsCode string) (*Code2SessionResult, error) {
+func (p *AuthProvider) Code2Session(ctx context.Context, appID, appSecret, jsCode string) (*Code2SessionResult, error) {
 	if appID == "" || appSecret == "" {
 		return nil, errors.New("appID and appSecret cannot be empty")
 	}
@@ -44,7 +44,7 @@ func (s *AuthService) Code2Session(ctx context.Context, appID, appSecret, jsCode
 	cfg := &miniConfig.Config{
 		AppID:     appID,
 		AppSecret: appSecret,
-		Cache:     s.cache,
+		Cache:     p.cache,
 	}
 
 	miniProgram := wc.GetMiniProgram(cfg)
@@ -76,7 +76,7 @@ type DecryptPhoneResult struct {
 }
 
 // DecryptPhone 解密用户手机号
-func (s *AuthService) DecryptPhone(ctx context.Context, appID, appSecret, sessionKey, encryptedData, iv string) (*DecryptPhoneResult, error) {
+func (p *AuthProvider) DecryptPhone(ctx context.Context, appID, appSecret, sessionKey, encryptedData, iv string) (*DecryptPhoneResult, error) {
 	if appID == "" || appSecret == "" {
 		return nil, errors.New("appID and appSecret cannot be empty")
 	}
@@ -89,7 +89,7 @@ func (s *AuthService) DecryptPhone(ctx context.Context, appID, appSecret, sessio
 	cfg := &miniConfig.Config{
 		AppID:     appID,
 		AppSecret: appSecret,
-		Cache:     s.cache,
+		Cache:     p.cache,
 	}
 
 	miniProgram := wc.GetMiniProgram(cfg)
