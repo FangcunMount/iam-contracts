@@ -40,7 +40,7 @@ func NewContainer(mysqlDB *gorm.DB, cacheRedisClient, storeRedisClient *redis.Cl
 	// 如果未提供加密密钥，使用默认密钥（仅用于开发环境）
 	if encryptionKey == nil {
 		// 默认密钥：32 字节（仅供开发使用，生产环境必须提供真实密钥）
-		encryptionKey = []byte("default-idp-encryption-key-32b!")
+		encryptionKey = []byte("0123456789abcdef0123456789abcdef")
 	}
 
 	return &Container{
