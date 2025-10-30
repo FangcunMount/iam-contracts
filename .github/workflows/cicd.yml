@@ -99,7 +99,7 @@ jobs:
                   echo "⚠️ $SECRET_NAME is not set (Redis cache auth disabled)"
                   ;;
                 REDIS_STORE_PORT)
-                  echo "⚠️ $SECRET_NAME is not set (defaults to 6379)"
+                  echo "⚠️ $SECRET_NAME is not set (defaults to 6380)"
                   ;;
                 REDIS_STORE_DB)
                   echo "⚠️ $SECRET_NAME is not set (defaults to DB 1)"
@@ -276,7 +276,7 @@ jobs:
           REDIS_CATCH_DB: ${{ secrets.REDIS_CATCH_DB || 0 }}
           REDIS_CATCH_PASSWORD: ${{ secrets.REDIS_CATCH_PASSWORD }}
           REDIS_STORE_HOST: ${{ secrets.REDIS_STORE_HOST }}
-          REDIS_STORE_PORT: ${{ secrets.REDIS_STORE_PORT || 6379 }}
+          REDIS_STORE_PORT: ${{ secrets.REDIS_STORE_PORT || 6380 }}
           REDIS_STORE_DB: ${{ secrets.REDIS_STORE_DB || 1 }}
           REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
@@ -291,7 +291,7 @@ jobs:
           # 拷贝仓库配置
           cp -r configs deploy-package/
 
-          # 生成生产环境 env（本地生成，随包上传）
+          # 生成生产环境 env(本地生成,随包上传)
           cat > deploy-package/configs/env/config.prod.env <<EOF
           # Auto-generated production environment configuration
           IAM_APISERVER_MYSQL_HOST=${MYSQL_HOST}:${MYSQL_PORT}
@@ -299,13 +299,13 @@ jobs:
           IAM_APISERVER_MYSQL_PASSWORD=${MYSQL_PASSWORD}
           IAM_APISERVER_MYSQL_DATABASE=${MYSQL_DBNAME}
           
-          # Redis Cache (缓存实例)
+          # Redis Cache (缓存实例 - ServerA 本地 Redis)
           IAM_APISERVER_REDIS_CACHE_HOST=${REDIS_CATCH_HOST}
           IAM_APISERVER_REDIS_CACHE_PORT=${REDIS_CATCH_PORT}
           IAM_APISERVER_REDIS_CACHE_PASSWORD=${REDIS_CATCH_PASSWORD}
           IAM_APISERVER_REDIS_CACHE_DATABASE=${REDIS_CATCH_DB}
           
-          # Redis Store (持久化存储实例)
+          # Redis Store (持久化存储实例 - 阿里云 RDS Redis)
           IAM_APISERVER_REDIS_STORE_HOST=${REDIS_STORE_HOST}
           IAM_APISERVER_REDIS_STORE_PORT=${REDIS_STORE_PORT}
           IAM_APISERVER_REDIS_STORE_PASSWORD=${REDIS_STORE_PASSWORD}
@@ -313,6 +313,12 @@ jobs:
           
           IAM_APISERVER_JWT_SECRET=${JWT_SECRET}
           EOF
+
+          echo "=========================================="
+          echo "📋 Generated config.prod.env content:"
+          echo "=========================================="
+          cat deploy-package/configs/env/config.prod.env | sed 's/PASSWORD=.*/PASSWORD=***REDACTED***/g'
+          echo "=========================================="
 
           tar -czf deploy-package.tar.gz -C deploy-package .
 
