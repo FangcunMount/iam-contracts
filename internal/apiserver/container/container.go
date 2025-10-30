@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-redis/redis/v7"
+	redis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/FangcunMount/component-base/pkg/log"
@@ -173,14 +173,14 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 
 	// 检查 Cache Redis 连接
 	if c.cacheRedisClient != nil {
-		if err := c.cacheRedisClient.Ping().Err(); err != nil {
+		if err := c.cacheRedisClient.Ping(ctx).Err(); err != nil {
 			return fmt.Errorf("cache redis health check failed: %w", err)
 		}
 	}
 
 	// 检查 Store Redis 连接
 	if c.storeRedisClient != nil {
-		if err := c.storeRedisClient.Ping().Err(); err != nil {
+		if err := c.storeRedisClient.Ping(ctx).Err(); err != nil {
 			return fmt.Errorf("store redis health check failed: %w", err)
 		}
 	}

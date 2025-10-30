@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	casbin2 "github.com/casbin/casbin/v2"
-	redis2 "github.com/go-redis/redis/v7"
+	goredis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	assignmentApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/application/assignment"
@@ -42,7 +42,7 @@ func NewAuthzModule() *AuthzModule {
 }
 
 // Initialize 初始化授权模块
-func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *redis2.Client) error {
+func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *goredis.Client) error {
 	if db == nil {
 		return fmt.Errorf("mysql db is required")
 	}
@@ -65,11 +65,7 @@ func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *redis2.Client) error 
 	policyVersionRepository := policyInfra.NewPolicyVersionRepository(db)
 
 	// 3. 初始化版本通知器
-	versionNotifier := redis.NewVersionNotifier(
-		// TODO: 需要转换 redis v7 到 v9，或者暂时使用 nil
-		nil,
-		"authz:policy_changed",
-	)
+	versionNotifier := redis.NewVersionNotifier(redisClient, "authz:policy_changed")
 
 	// 4. 初始化领域服务
 	// Resource 模块

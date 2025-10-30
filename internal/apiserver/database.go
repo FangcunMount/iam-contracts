@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-redis/redis/v7"
+	redis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/FangcunMount/component-base/pkg/database"
@@ -126,7 +126,7 @@ func (dm *DatabaseManager) initSingleRedis(instanceName string, opts *options.Si
 	})
 
 	// 测试连接
-	if err := client.Ping().Err(); err != nil {
+	if err := client.Ping(context.Background()).Err(); err != nil {
 		return nil, fmt.Errorf("failed to connect to Redis %s (%s): %w", instanceName, addr, err)
 	}
 
@@ -145,12 +145,6 @@ func (dm *DatabaseManager) GetMySQLDB() (*gorm.DB, error) {
 	}
 
 	return mysqlClient, nil
-}
-
-// GetRedisClient 获取Redis客户端（已废弃，使用 GetCacheRedisClient 或 GetStoreRedisClient）
-// Deprecated: Use GetCacheRedisClient or GetStoreRedisClient instead
-func (dm *DatabaseManager) GetRedisClient() (interface{}, error) {
-	return dm.registry.GetClient(connecter.Redis)
 }
 
 // GetCacheRedisClient 获取缓存 Redis 客户端

@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-redis/redis/v7"
-	goredisv9 "github.com/redis/go-redis/v9"
+	redis "github.com/redis/go-redis/v9"
 	"github.com/silenceper/wechat/v2/cache"
 	"gorm.io/gorm"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/application/wechatapp"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/application/wechatsession"
 	wechatappDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatapp"
@@ -63,7 +63,7 @@ func NewIDPModule() *IDPModule {
 
 // Initialize 初始化模块
 // params[0]: *gorm.DB - 数据库连接
-// params[1]: *redis.Client - Redis 客户端（v7）
+// params[1]: *redis.Client - Redis 客户端
 // params[2]: []byte - 加密密钥（32 字节 AES-256）
 func (m *IDPModule) Initialize(params ...interface{}) error {
 	// 验证参数
@@ -99,24 +99,28 @@ func (m *IDPModule) Initialize(params ...interface{}) error {
 // validateParameters 验证初始化参数
 func (m *IDPModule) validateParameters(params []interface{}) (*gorm.DB, *redis.Client, []byte, error) {
 	if len(params) < 3 {
+		log.Warnf("IDP module initialization requires 3 parameters, got %d", len(params))
 		return nil, nil, nil, errors.WithCode(code.ErrModuleInitializationFailed,
 			"missing required parameters: db, redis client, and encryption key")
 	}
 
 	db, ok := params[0].(*gorm.DB)
 	if !ok || db == nil {
+		log.Warnf("IDP module initialization requires a valid database connection")
 		return nil, nil, nil, errors.WithCode(code.ErrModuleInitializationFailed,
 			"database connection is nil or invalid")
 	}
 
 	redisClient, ok := params[1].(*redis.Client)
 	if !ok || redisClient == nil {
+		log.Warnf("IDP module initialization requires a valid Redis client")
 		return nil, nil, nil, errors.WithCode(code.ErrModuleInitializationFailed,
 			"redis client is nil or invalid")
 	}
 
 	encryptionKey, ok := params[2].([]byte)
 	if !ok || len(encryptionKey) != 32 {
+		log.Warnf("IDP module initialization requires a 32-byte encryption key")
 		return nil, nil, nil, errors.WithCode(code.ErrModuleInitializationFailed,
 			"encryption key must be 32 bytes for AES-256")
 	}
@@ -131,15 +135,12 @@ func (m *IDPModule) initializeInfrastructure(
 	redisClient *redis.Client,
 	encryptionKey []byte,
 ) error {
-	// 转换 Redis 客户端版本（v7 -> v9）
-	redisV9Client := convertRedisClient(redisClient)
-
 	// 创建 MySQL 仓储
 	m.wechatAppRepo = infraMysql.NewWechatAppRepository(db)
 
 	// 创建 Redis 缓存
-	m.accessTokenCache = infraRedis.NewAccessTokenCache(redisV9Client)
-	m.wechatSessionRepo = infraRedis.NewWechatSessionRepository(redisV9Client)
+	m.accessTokenCache = infraRedis.NewAccessTokenCache(redisClient)
+	m.wechatSessionRepo = infraRedis.NewWechatSessionRepository(redisClient)
 
 	// 创建加密服务
 	secretVault, err := crypto.NewSecretVault(encryptionKey)
@@ -275,29 +276,4 @@ func (a *appTokenProviderAdapter) Fetch(
 	//
 	// 这里暂时返回错误，表示需要调整架构
 	return nil, fmt.Errorf("not implemented: AppTokenProvider should be called from application layer with decrypted credentials")
-}
-
-// ==================== 工具函数 ====================
-
-// convertRedisClient 转换 Redis 客户端版本
-// 将 go-redis/v7 转换为 go-redis/v9 兼容的客户端
-func convertRedisClient(v7Client *redis.Client) *goredisv9.Client {
-	// 获取 v7 客户端的配置
-	opts := v7Client.Options()
-
-	// 创建 v9 客户端（使用相同的配置）
-	v9Client := goredisv9.NewClient(&goredisv9.Options{
-		Addr:         opts.Addr,
-		Password:     opts.Password,
-		DB:           opts.DB,
-		MaxRetries:   opts.MaxRetries,
-		DialTimeout:  opts.DialTimeout,
-		ReadTimeout:  opts.ReadTimeout,
-		WriteTimeout: opts.WriteTimeout,
-		PoolSize:     opts.PoolSize,
-		MinIdleConns: opts.MinIdleConns,
-		PoolTimeout:  opts.PoolTimeout,
-	})
-
-	return v9Client
 }
