@@ -40,6 +40,7 @@ jobs:
           REDIS_STORE_DB: ${{ secrets.REDIS_STORE_DB }}
           REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          IPD_ENCRYPTION_KEY: ${{ secrets.IPD_ENCRYPTION_KEY }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           WWW_UID: ${{ secrets.WWW_UID }}
@@ -57,6 +58,8 @@ jobs:
 
           REQUIRED_SECRETS=(SVRA_HOST SVRA_USERNAME SVRA_SSH_KEY MYSQL_HOST MYSQL_USERNAME MYSQL_PASSWORD MYSQL_DBNAME REDIS_CATCH_HOST REDIS_STORE_HOST JWT_SECRET DOCKERHUB_USERNAME DOCKERHUB_TOKEN)
           OPTIONAL_SECRETS=(SVRA_SSH_PORT SVRA_SUDO_PASSWORD MYSQL_PORT REDIS_CATCH_PORT REDIS_CATCH_DB REDIS_CATCH_PASSWORD REDIS_STORE_PORT REDIS_STORE_DB REDIS_STORE_PASSWORD WWW_UID WWW_GID)
+
+          REQUIRED_SECRETS+=(IPD_ENCRYPTION_KEY)
 
           for SECRET_NAME in "${REQUIRED_SECRETS[@]}"; do
             VALUE=${!SECRET_NAME}
@@ -280,6 +283,7 @@ jobs:
           REDIS_STORE_DB: ${{ secrets.REDIS_STORE_DB || 1 }}
           REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          IPD_ENCRYPTION_KEY: ${{ secrets.IPD_ENCRYPTION_KEY }}
         run: |
           # artifact 文件名是 apiserver，需要重命名为 iam-apiserver
           mv ./artifacts/apiserver ./artifacts/iam-apiserver
@@ -312,12 +316,13 @@ jobs:
           IAM_APISERVER_REDIS_STORE_DATABASE=${REDIS_STORE_DB}
           
           IAM_APISERVER_JWT_SECRET=${JWT_SECRET}
+          IAM_APISERVER_IDP_ENCRYPTION_KEY=${IPD_ENCRYPTION_KEY}
           EOF
 
           echo "=========================================="
           echo "📋 Generated config.prod.env content:"
           echo "=========================================="
-          cat deploy-package/configs/env/config.prod.env | sed 's/PASSWORD=.*/PASSWORD=***REDACTED***/g'
+          cat deploy-package/configs/env/config.prod.env | sed 's/PASSWORD=.*/PASSWORD=***REDACTED***/g' | sed 's/ENCRYPTION_KEY=.*/ENCRYPTION_KEY=***REDACTED***/g'
           echo "=========================================="
 
           tar -czf deploy-package.tar.gz -C deploy-package .

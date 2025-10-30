@@ -8,6 +8,7 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/grpcserver"
 	genericapiserver "github.com/FangcunMount/iam-contracts/internal/pkg/server"
+	"github.com/spf13/viper"
 )
 
 // apiServer 定义了 API 服务器的基本结构（六边形架构版本）
@@ -91,8 +92,7 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 	}
 
 	// 获取 IDP 模块加密密钥（从配置中读取，这里使用默认值）
-	// TODO: 从配置文件读取加密密钥
-	var idpEncryptionKey []byte = nil // 传 nil 使用默认密钥
+	var idpEncryptionKey []byte = []byte(viper.GetString("idp.encryption-key"))
 
 	// 创建六边形架构容器（传入 MySQL、双 Redis 和 IDP 加密密钥）
 	s.container = container.NewContainer(mysqlDB, cacheClient, storeClient, idpEncryptionKey)
