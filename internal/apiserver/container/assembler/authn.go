@@ -3,7 +3,7 @@ package assembler
 import (
 	"context"
 
-	"github.com/go-redis/redis/v7"
+	redis "github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-redis/redis/v7"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
@@ -60,7 +60,7 @@ func (s *RedisStore) SaveRefreshToken(ctx context.Context, token *authentication
 		return fmt.Errorf("token already expired")
 	}
 
-	if err := s.client.Set(key, jsonData, ttl).Err(); err != nil {
+	if err := s.client.Set(ctx, key, jsonData, ttl).Err(); err != nil {
 		return fmt.Errorf("failed to save refresh token to redis: %w", err)
 	}
 
@@ -72,7 +72,7 @@ func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*a
 	key := fmt.Sprintf("refresh_token:%s", tokenValue)
 
 	// 从 Redis 获取
-	jsonData, err := s.client.Get(key).Result()
+	jsonData, err := s.client.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
 			return nil, nil // 令牌不存在
@@ -103,7 +103,7 @@ func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*a
 func (s *RedisStore) DeleteRefreshToken(ctx context.Context, tokenValue string) error {
 	key := fmt.Sprintf("refresh_token:%s", tokenValue)
 
-	if err := s.client.Del(key).Err(); err != nil {
+	if err := s.client.Del(ctx, key).Err(); err != nil {
 		return fmt.Errorf("failed to delete refresh token from redis: %w", err)
 	}
 
@@ -115,7 +115,7 @@ func (s *RedisStore) AddToBlacklist(ctx context.Context, tokenID string, expiry 
 	key := fmt.Sprintf("token_blacklist:%s", tokenID)
 
 	// 设置黑名单标记，TTL 为令牌剩余有效期
-	if err := s.client.Set(key, "1", expiry).Err(); err != nil {
+	if err := s.client.Set(ctx, key, "1", expiry).Err(); err != nil {
 		return fmt.Errorf("failed to add token to blacklist: %w", err)
 	}
 
@@ -127,7 +127,7 @@ func (s *RedisStore) IsBlacklisted(ctx context.Context, tokenID string) (bool, e
 	key := fmt.Sprintf("token_blacklist:%s", tokenID)
 
 	// 检查 key 是否存在
-	exists, err := s.client.Exists(key).Result()
+	exists, err := s.client.Exists(ctx, key).Result()
 	if err != nil {
 		return false, fmt.Errorf("failed to check token blacklist: %w", err)
 	}
