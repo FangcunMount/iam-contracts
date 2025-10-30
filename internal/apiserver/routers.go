@@ -21,6 +21,7 @@ import (
 // Router 集中的路由管理器
 type Router struct {
 	container *container.Container
+	engine    *gin.Engine // 保存 engine 引用用于调试
 }
 
 // NewRouter 创建路由管理器
@@ -35,6 +36,8 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 	if engine == nil {
 		return
 	}
+
+	r.engine = engine // 保存引用用于调试
 
 	r.registerBaseRoutes(engine)
 
@@ -118,6 +121,8 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 func (r *Router) registerBaseRoutes(engine *gin.Engine) {
 	engine.GET("/health", r.healthCheck)
 	engine.GET("/ping", r.ping)
+	engine.GET("/debug/routes", r.debugRoutes) // 调试端点：列出所有注册的路由
+	engine.GET("/debug/modules", r.debugModules) // 调试端点：查看模块状态
 
 	// Swagger UI 路由（默认在开发环境可用）
 	// 生产环境建议通过配置控制是否启用
@@ -198,4 +203,46 @@ func (r *Router) ping(c *gin.Context) {
 		"router":  "centralized",
 		"auth":    "enabled",
 	})
+}
+
+// debugRoutes 调试端点：列出所有注册的路由
+func (r *Router) debugRoutes(c *gin.Context) {
+	if r.engine == nil {
+		c.JSON(500, gin.H{"error": "engine not initialized"})
+		return
+	}
+	
+	routes := r.engine.Routes()
+	routeList := make([]gin.H, 0, len(routes))
+	for _, route := range routes {
+		routeList = append(routeList, gin.H{
+			"method": route.Method,
+			"path":   route.Path,
+		})
+	}
+	c.JSON(200, gin.H{
+		"total":  len(routes),
+		"routes": routeList,
+	})
+}
+
+// debugModules 调试端点：查看模块初始化状态
+func (r *Router) debugModules(c *gin.Context) {
+	response := gin.H{
+		"container_initialized": r.container != nil,
+	}
+	
+	if r.container != nil {
+		response["modules"] = gin.H{
+			"authn": r.container.AuthnModule != nil,
+			"authz": r.container.AuthzModule != nil,
+			"user":  r.container.UserModule != nil,
+			"idp":   r.container.IDPModule != nil,
+		}
+		response["container_status"] = "initialized"
+	} else {
+		response["container_status"] = "not_initialized"
+	}
+	
+	c.JSON(200, response)
 }
