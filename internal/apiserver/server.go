@@ -1,9 +1,6 @@
 package apiserver
 
 import (
-	"github.com/go-redis/redis/v7"
-	"github.com/spf13/viper"
-
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/component-base/pkg/shutdown"
 	"github.com/FangcunMount/component-base/pkg/shutdown/shutdownmanagers/posixsignal"
@@ -66,37 +63,9 @@ func createAPIServer(cfg *config.Config) (*apiServer, error) {
 	return server, nil
 }
 
-// initRedisClient 初始化 Redis 客户端
-func (s *apiServer) initRedisClient() *redis.Client {
-	addr := viper.GetString("redis.addr")
-	password := viper.GetString("redis.password")
-	db := viper.GetInt("redis.db")
-
-	if addr == "" {
-		log.Warn("Redis address not configured, using default: localhost:6379")
-		addr = "localhost:6379"
-	}
-
-	client := redis.NewClient(&redis.Options{
-		Addr:     addr,
-		Password: password,
-		DB:       db,
-	})
-
-	// 测试连接
-	if err := client.Ping().Err(); err != nil {
-		log.Warnf("Failed to connect to Redis: %v", err)
-		log.Warn("Authentication module will run without Redis (token features disabled)")
-		return nil
-	}
-
-	log.Infof("✅ Redis connected successfully: %s (db: %d)", addr, db)
-	return client
-}
-
 // PrepareRun 准备运行 API 服务器（六边形架构版本）
 func (s *apiServer) PrepareRun() preparedAPIServer {
-	// 初始化数据库连接
+	// 初始化数据库连接（包括双 Redis 客户端）
 	if err := s.dbManager.Initialize(); err != nil {
 		log.Warnf("Failed to initialize database: %v", err)
 	}
@@ -108,15 +77,25 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 		mysqlDB = nil // 设置为nil，允许应用在没有MySQL的情况下运行
 	}
 
-	// 初始化 Redis 客户端
-	redisClient := s.initRedisClient()
+	// 从 DatabaseManager 获取双 Redis 客户端
+	cacheClient, err := s.dbManager.GetCacheRedisClient()
+	if err != nil {
+		log.Warnf("Failed to get Cache Redis client: %v", err)
+		cacheClient = nil // 允许在没有 Cache Redis 的情况下运行
+	}
+
+	storeClient, err := s.dbManager.GetStoreRedisClient()
+	if err != nil {
+		log.Warnf("Failed to get Store Redis client: %v", err)
+		storeClient = nil // 允许在没有 Store Redis 的情况下运行
+	}
 
 	// 获取 IDP 模块加密密钥（从配置中读取，这里使用默认值）
 	// TODO: 从配置文件读取加密密钥
 	var idpEncryptionKey []byte = nil // 传 nil 使用默认密钥
 
-	// 创建六边形架构容器（传入 MySQL、Redis 和 IDP 加密密钥）
-	s.container = container.NewContainer(mysqlDB, redisClient, idpEncryptionKey)
+	// 创建六边形架构容器（传入 MySQL、双 Redis 和 IDP 加密密钥）
+	s.container = container.NewContainer(mysqlDB, cacheClient, storeClient, idpEncryptionKey)
 
 	// 初始化容器中的所有组件
 	if err := s.container.Initialize(); err != nil {

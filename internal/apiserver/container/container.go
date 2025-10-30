@@ -14,8 +14,9 @@ import (
 // 负责管理所有模块的依赖注入和生命周期
 type Container struct {
 	// 数据库连接
-	mysqlDB     *gorm.DB
-	redisClient *redis.Client
+	mysqlDB          *gorm.DB
+	cacheRedisClient *redis.Client // 缓存 Redis（临时数据、会话等）
+	storeRedisClient *redis.Client // 存储 Redis（持久化数据、Token等）
 
 	// 业务模块
 	AuthnModule *assembler.AuthnModule
@@ -31,8 +32,10 @@ type Container struct {
 }
 
 // NewContainer 创建容器
+// cacheRedisClient: 缓存 Redis 客户端（用于缓存、会话、限流等临时数据）
+// storeRedisClient: 存储 Redis 客户端（用于持久化存储、队列、发布订阅等）
 // encryptionKey: IDP 模块使用的加密密钥（32 字节 AES-256），传 nil 则使用默认密钥
-func NewContainer(mysqlDB *gorm.DB, redisClient *redis.Client, encryptionKey []byte) *Container {
+func NewContainer(mysqlDB *gorm.DB, cacheRedisClient, storeRedisClient *redis.Client, encryptionKey []byte) *Container {
 	// 如果未提供加密密钥，使用默认密钥（仅用于开发环境）
 	if encryptionKey == nil {
 		// 默认密钥：32 字节（仅供开发使用，生产环境必须提供真实密钥）
@@ -41,7 +44,8 @@ func NewContainer(mysqlDB *gorm.DB, redisClient *redis.Client, encryptionKey []b
 
 	return &Container{
 		mysqlDB:          mysqlDB,
-		redisClient:      redisClient,
+		cacheRedisClient: cacheRedisClient,
+		storeRedisClient: storeRedisClient,
 		idpEncryptionKey: encryptionKey,
 	}
 }
@@ -79,10 +83,11 @@ func (c *Container) Initialize() error {
 }
 
 // initAuthModule 初始化认证模块（依赖 IDP 模块）
+// 认证模块使用 Store Redis 进行 Token 持久化存储
 func (c *Container) initAuthModule() error {
 	authModule := assembler.NewAuthnModule()
-	// 传递 IDP 模块的服务
-	if err := authModule.Initialize(c.mysqlDB, c.redisClient, c.IDPModule); err != nil {
+	// 传递 Store Redis（用于 Token 持久化）和 IDP 模块的服务
+	if err := authModule.Initialize(c.mysqlDB, c.storeRedisClient, c.IDPModule); err != nil {
 		return fmt.Errorf("failed to initialize auth module: %w", err)
 	}
 	c.AuthnModule = authModule
@@ -100,9 +105,11 @@ func (c *Container) initUserModule() error {
 }
 
 // initAuthzModule 初始化授权模块
+// 授权模块可能使用 Cache Redis 缓存权限策略
 func (c *Container) initAuthzModule() error {
 	authzModule := assembler.NewAuthzModule()
-	if err := authzModule.Initialize(c.mysqlDB, c.redisClient); err != nil {
+	// 传递 Cache Redis（用于权限策略缓存）
+	if err := authzModule.Initialize(c.mysqlDB, c.cacheRedisClient); err != nil {
 		return fmt.Errorf("failed to initialize authz module: %w", err)
 	}
 	c.AuthzModule = authzModule
@@ -110,9 +117,11 @@ func (c *Container) initAuthzModule() error {
 }
 
 // initIDPModule 初始化 IDP 模块（Identity Provider）
+// IDP 模块使用 Cache Redis 缓存 Access Token
 func (c *Container) initIDPModule() error {
 	idpModule := assembler.NewIDPModule()
-	if err := idpModule.Initialize(c.mysqlDB, c.redisClient, c.idpEncryptionKey); err != nil {
+	// 传递 Cache Redis（用于 Access Token 缓存）
+	if err := idpModule.Initialize(c.mysqlDB, c.cacheRedisClient, c.idpEncryptionKey); err != nil {
 		return fmt.Errorf("failed to initialize idp module: %w", err)
 	}
 	c.IDPModule = idpModule
@@ -128,10 +137,17 @@ func (c *Container) HealthCheck(ctx context.Context) error {
 		}
 	}
 
-	// 检查Redis连接
-	if c.redisClient != nil {
-		if err := c.redisClient.Ping().Err(); err != nil {
-			return fmt.Errorf("redis health check failed: %w", err)
+	// 检查 Cache Redis 连接
+	if c.cacheRedisClient != nil {
+		if err := c.cacheRedisClient.Ping().Err(); err != nil {
+			return fmt.Errorf("cache redis health check failed: %w", err)
+		}
+	}
+
+	// 检查 Store Redis 连接
+	if c.storeRedisClient != nil {
+		if err := c.storeRedisClient.Ping().Err(); err != nil {
+			return fmt.Errorf("store redis health check failed: %w", err)
 		}
 	}
 
@@ -161,8 +177,15 @@ func (c *Container) PrintStatus() {
 		fmt.Printf("❌\n")
 	}
 
-	fmt.Printf("   • Redis: ")
-	if c.redisClient != nil {
+	fmt.Printf("   • Cache Redis: ")
+	if c.cacheRedisClient != nil {
+		fmt.Printf("✅\n")
+	} else {
+		fmt.Printf("❌\n")
+	}
+
+	fmt.Printf("   • Store Redis: ")
+	if c.storeRedisClient != nil {
 		fmt.Printf("✅\n")
 	} else {
 		fmt.Printf("❌\n")
