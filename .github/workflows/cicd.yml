@@ -31,10 +31,14 @@ jobs:
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
           MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
-          REDIS_HOST: ${{ secrets.REDIS_HOST }}
-          REDIS_PORT: ${{ secrets.REDIS_PORT }}
-          REDIS_DB: ${{ secrets.REDIS_DB }}
-          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          REDIS_CATCH_HOST: ${{ secrets.REDIS_CATCH_HOST }}
+          REDIS_CATCH_PORT: ${{ secrets.REDIS_CATCH_PORT }}
+          REDIS_CATCH_DB: ${{ secrets.REDIS_CATCH_DB }}
+          REDIS_CATCH_PASSWORD: ${{ secrets.REDIS_CATCH_PASSWORD }}
+          REDIS_STORE_HOST: ${{ secrets.REDIS_STORE_HOST }}
+          REDIS_STORE_PORT: ${{ secrets.REDIS_STORE_PORT }}
+          REDIS_STORE_DB: ${{ secrets.REDIS_STORE_DB }}
+          REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -51,8 +55,8 @@ jobs:
             echo "ℹ️ Not on main branch – required secrets reported for awareness only."
           fi
 
-          REQUIRED_SECRETS=(SVRA_HOST SVRA_USERNAME SVRA_SSH_KEY MYSQL_HOST MYSQL_USERNAME MYSQL_PASSWORD MYSQL_DBNAME REDIS_HOST JWT_SECRET DOCKERHUB_USERNAME DOCKERHUB_TOKEN)
-          OPTIONAL_SECRETS=(SVRA_SSH_PORT SVRA_SUDO_PASSWORD MYSQL_PORT REDIS_PORT REDIS_DB REDIS_PASSWORD WWW_UID WWW_GID)
+          REQUIRED_SECRETS=(SVRA_HOST SVRA_USERNAME SVRA_SSH_KEY MYSQL_HOST MYSQL_USERNAME MYSQL_PASSWORD MYSQL_DBNAME REDIS_CATCH_HOST REDIS_STORE_HOST JWT_SECRET DOCKERHUB_USERNAME DOCKERHUB_TOKEN)
+          OPTIONAL_SECRETS=(SVRA_SSH_PORT SVRA_SUDO_PASSWORD MYSQL_PORT REDIS_CATCH_PORT REDIS_CATCH_DB REDIS_CATCH_PASSWORD REDIS_STORE_PORT REDIS_STORE_DB REDIS_STORE_PASSWORD WWW_UID WWW_GID)
 
           for SECRET_NAME in "${REQUIRED_SECRETS[@]}"; do
             VALUE=${!SECRET_NAME}
@@ -85,14 +89,23 @@ jobs:
                 MYSQL_PORT)
                   echo "⚠️ $SECRET_NAME is not set (defaults to 3306)"
                   ;;
-                REDIS_PORT)
+                REDIS_CATCH_PORT)
                   echo "⚠️ $SECRET_NAME is not set (defaults to 6379)"
                   ;;
-                REDIS_DB)
+                REDIS_CATCH_DB)
+                  echo "⚠️ $SECRET_NAME is not set (defaults to DB 0)"
+                  ;;
+                REDIS_CATCH_PASSWORD)
+                  echo "⚠️ $SECRET_NAME is not set (Redis cache auth disabled)"
+                  ;;
+                REDIS_STORE_PORT)
+                  echo "⚠️ $SECRET_NAME is not set (defaults to 6379)"
+                  ;;
+                REDIS_STORE_DB)
                   echo "⚠️ $SECRET_NAME is not set (defaults to DB 1)"
                   ;;
-                REDIS_PASSWORD)
-                  echo "⚠️ $SECRET_NAME is not set (Redis auth disabled)"
+                REDIS_STORE_PASSWORD)
+                  echo "⚠️ $SECRET_NAME is not set (Redis store auth disabled)"
                   ;;
                 SVRA_SSH_PORT)
                   echo "⚠️ $SECRET_NAME is not set (defaults to 22)"
@@ -258,10 +271,14 @@ jobs:
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
-          REDIS_HOST: ${{ secrets.REDIS_HOST }}
-          REDIS_PORT: ${{ secrets.REDIS_PORT || 6379 }}
-          REDIS_DB: ${{ secrets.REDIS_DB || 1 }}
-          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          REDIS_CATCH_HOST: ${{ secrets.REDIS_CATCH_HOST }}
+          REDIS_CATCH_PORT: ${{ secrets.REDIS_CATCH_PORT || 6379 }}
+          REDIS_CATCH_DB: ${{ secrets.REDIS_CATCH_DB || 0 }}
+          REDIS_CATCH_PASSWORD: ${{ secrets.REDIS_CATCH_PASSWORD }}
+          REDIS_STORE_HOST: ${{ secrets.REDIS_STORE_HOST }}
+          REDIS_STORE_PORT: ${{ secrets.REDIS_STORE_PORT || 6379 }}
+          REDIS_STORE_DB: ${{ secrets.REDIS_STORE_DB || 1 }}
+          REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           # artifact 文件名是 apiserver，需要重命名为 iam-apiserver
@@ -281,11 +298,21 @@ jobs:
           IAM_APISERVER_MYSQL_USERNAME=${MYSQL_USERNAME}
           IAM_APISERVER_MYSQL_PASSWORD=${MYSQL_PASSWORD}
           IAM_APISERVER_MYSQL_DATABASE=${MYSQL_DBNAME}
-          IAM_APISERVER_REDIS_HOST=${REDIS_HOST}
-          IAM_APISERVER_REDIS_PORT=${REDIS_PORT}
-          IAM_APISERVER_REDIS_ADDR=${REDIS_HOST}:${REDIS_PORT}
-          IAM_APISERVER_REDIS_PASSWORD=${REDIS_PASSWORD}
-          IAM_APISERVER_REDIS_DB=${REDIS_DB}
+          
+          # Redis Cache (缓存实例)
+          IAM_APISERVER_REDIS_CATCH_HOST=${REDIS_CATCH_HOST}
+          IAM_APISERVER_REDIS_CATCH_PORT=${REDIS_CATCH_PORT}
+          IAM_APISERVER_REDIS_CATCH_ADDR=${REDIS_CATCH_HOST}:${REDIS_CATCH_PORT}
+          IAM_APISERVER_REDIS_CATCH_PASSWORD=${REDIS_CATCH_PASSWORD}
+          IAM_APISERVER_REDIS_CATCH_DB=${REDIS_CATCH_DB}
+          
+          # Redis Store (持久化存储实例)
+          IAM_APISERVER_REDIS_STORE_HOST=${REDIS_STORE_HOST}
+          IAM_APISERVER_REDIS_STORE_PORT=${REDIS_STORE_PORT}
+          IAM_APISERVER_REDIS_STORE_ADDR=${REDIS_STORE_HOST}:${REDIS_STORE_PORT}
+          IAM_APISERVER_REDIS_STORE_PASSWORD=${REDIS_STORE_PASSWORD}
+          IAM_APISERVER_REDIS_STORE_DB=${REDIS_STORE_DB}
+          
           IAM_APISERVER_JWT_SECRET=${JWT_SECRET}
           EOF
 
