@@ -7,6 +7,7 @@
 **这些脚本主要用于开发和测试环境。**
 
 **生产环境部署请使用数据库迁移工具**，参见：
+
 - 📖 [数据库迁移指南](../../docs/DATABASE_MIGRATION_GUIDE.md) - **强烈推荐阅读**
 - 🔧 推荐工具：[golang-migrate](https://github.com/golang-migrate/migrate)
 - 🐳 容器化部署时，迁移文件会被嵌入到二进制文件中，自动执行

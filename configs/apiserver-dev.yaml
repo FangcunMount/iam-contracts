@@ -16,13 +16,19 @@ server:
 # MySQL 配置
 mysql:
   host: "127.0.0.1:3306"
-  username: "iam"
-  password: "iam_contracts_pass123"
+  username: "root"
+  password: "root"
   database: "iam_contracts"
   max-idle-conns: 10
   max-open-conns: 100
   conn-max-lifetime: 3600  # 秒
-  log-level: 4  # GORM log level: 1:silent, 2:error, 3:warn, 4:info (开发环境使用 info)
+  log-level: 4 # GORM log level, 1: silent, 2:error, 3:warn, 4:info (开发环境使用 info)
+
+# 数据库迁移配置
+migration:
+  enabled: true  # 开发环境启用自动迁移
+  autoseed: true  # 开发环境自动加载种子数据
+  database: "iam_contracts"
 
 # Redis 配置
 redis:
