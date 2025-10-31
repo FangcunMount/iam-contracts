@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatsession/port"
 	"github.com/silenceper/wechat/v2"
 	"github.com/silenceper/wechat/v2/cache"
 	miniConfig "github.com/silenceper/wechat/v2/miniprogram/config"
@@ -23,65 +24,48 @@ func NewAuthProvider(cache cache.Cache) *AuthProvider {
 	}
 }
 
-// Code2SessionResult code2Session 返回结果
-type Code2SessionResult struct {
-	OpenID     string
-	UnionID    string
-	SessionKey string
-}
-
 // Code2Session 使用登录码进行登录
-func (p *AuthProvider) Code2Session(ctx context.Context, appID, appSecret, jsCode string) (*Code2SessionResult, error) {
+func (p *AuthProvider) Code2Session(ctx context.Context, appID, appSecret, jsCode string) (port.Code2SessionResult, error) {
+	session := port.Code2SessionResult{}
 	if appID == "" || appSecret == "" {
-		return nil, errors.New("appID and appSecret cannot be empty")
+		return session, errors.New("appID and appSecret cannot be empty")
 	}
 	if jsCode == "" {
-		return nil, errors.New("jsCode cannot be empty")
+		return session, errors.New("jsCode cannot be empty")
 	}
 
-	// 创建小程序实例
-	wc := wechat.NewWechat()
+	// 调用 code2Session
 	cfg := &miniConfig.Config{
 		AppID:     appID,
 		AppSecret: appSecret,
 		Cache:     p.cache,
 	}
-
-	miniProgram := wc.GetMiniProgram(cfg)
-	authAPI := miniProgram.GetAuth()
-
-	// 调用 code2Session
-	result, err := authAPI.Code2Session(jsCode)
+	result, err := wechat.NewWechat().GetMiniProgram(cfg).GetAuth().Code2Session(jsCode)
 	if err != nil {
-		return nil, fmt.Errorf("failed to call code2session: %w", err)
+		return session, fmt.Errorf("failed to call code2session: %w", err)
 	}
 
 	// 检查返回值
 	if result.OpenID == "" || result.SessionKey == "" {
-		return nil, errors.New("empty openid or session_key returned")
+		return session, errors.New("empty openid or session_key returned")
 	}
 
-	return &Code2SessionResult{
-		OpenID:     result.OpenID,
-		UnionID:    result.UnionID,
-		SessionKey: result.SessionKey,
-	}, nil
-}
+	// 填充结果
+	session.OpenID = result.OpenID
+	session.UnionID = result.UnionID
+	session.SessionKey = result.SessionKey
 
-// DecryptPhoneResult 解密手机号返回结果
-type DecryptPhoneResult struct {
-	PhoneNumber     string
-	PurePhoneNumber string
-	CountryCode     string
+	return session, nil
 }
 
 // DecryptPhone 解密用户手机号
-func (p *AuthProvider) DecryptPhone(ctx context.Context, appID, appSecret, sessionKey, encryptedData, iv string) (*DecryptPhoneResult, error) {
+func (p *AuthProvider) DecryptPhone(ctx context.Context, appID, appSecret, sessionKey, encryptedData, iv string) (port.DecryptPhoneResult, error) {
+	result := port.DecryptPhoneResult{}
 	if appID == "" || appSecret == "" {
-		return nil, errors.New("appID and appSecret cannot be empty")
+		return result, errors.New("appID and appSecret cannot be empty")
 	}
 	if sessionKey == "" || encryptedData == "" || iv == "" {
-		return nil, errors.New("sessionKey, encryptedData and iv cannot be empty")
+		return result, errors.New("sessionKey, encryptedData and iv cannot be empty")
 	}
 
 	// 创建小程序实例
@@ -98,7 +82,7 @@ func (p *AuthProvider) DecryptPhone(ctx context.Context, appID, appSecret, sessi
 	// 解密数据
 	plainData, err := encryptor.Decrypt(sessionKey, encryptedData, iv)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt data: %w", err)
+		return result, fmt.Errorf("failed to decrypt data: %w", err)
 	}
 
 	// 解析手机号
@@ -111,14 +95,13 @@ func (p *AuthProvider) DecryptPhone(ctx context.Context, appID, appSecret, sessi
 	var phoneInfo PhoneInfo
 	if err := json.Unmarshal([]byte(plainData.PhoneNumber), &phoneInfo); err != nil {
 		// 如果解析失败，尝试直接使用 PhoneNumber 字段
-		return &DecryptPhoneResult{
-			PhoneNumber: plainData.PhoneNumber,
-		}, nil
+		result.PhoneNumber = plainData.PhoneNumber
+		return result, nil
 	}
 
-	return &DecryptPhoneResult{
-		PhoneNumber:     phoneInfo.PhoneNumber,
-		PurePhoneNumber: phoneInfo.PurePhoneNumber,
-		CountryCode:     phoneInfo.CountryCode,
-	}, nil
+	result.PhoneNumber = phoneInfo.PhoneNumber
+	result.PurePhoneNumber = phoneInfo.PurePhoneNumber
+	result.CountryCode = phoneInfo.CountryCode
+
+	return result, nil
 }

@@ -52,7 +52,7 @@ type IDPModule struct {
 	accessTokenCache    wechatappPort.AccessTokenCache
 	wechatSessionRepo   wechatsessionPort.WechatSessionRepository
 	secretVault         wechatappPort.SecretVault
-	wechatAuthService   *wechatapi.AuthService
+	wechatAuthProvider  *wechatapi.AuthProvider
 	wechatTokenProvider *wechatapi.TokenProvider
 }
 
@@ -151,7 +151,7 @@ func (m *IDPModule) initializeInfrastructure(
 
 	// 创建微信 API 服务（传 nil 使用内存缓存）
 	var wechatSDKCache cache.Cache = nil
-	m.wechatAuthService = wechatapi.NewAuthService(wechatSDKCache)
+	m.wechatAuthProvider = wechatapi.NewAuthProvider(wechatSDKCache)
 	m.wechatTokenProvider = wechatapi.NewTokenProvider(wechatSDKCache)
 
 	return nil
@@ -202,7 +202,10 @@ func (m *IDPModule) initializeApplication(
 	domainServices *domainServices,
 ) error {
 	// 创建微信认证器
-	wechatAuthenticator := wechatsessionService.NewAuthenticator()
+	wechatAuthenticator := wechatsessionService.NewAuthenticator(
+		m.wechatAuthProvider,
+		domainServices.wechatAppQuerier,
+	)
 
 	// 直接创建各个应用服务
 	m.WechatAppService = wechatapp.NewWechatAppApplicationService(
