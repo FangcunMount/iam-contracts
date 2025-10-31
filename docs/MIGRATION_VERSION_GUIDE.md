@@ -327,11 +327,15 @@ v1.2.0_add_user_profile.sql  # 次版本（新功能）
 
 4. **回滚脚本必须测试**
 
-   ```bash
-   # 开发环境测试回滚
-   migrator.Rollback()  # 版本 2 -> 1
-   migrator.Run()       # 版本 1 -> 2
-   ```
+```go
+// 开发环境测试回滚
+if err := migrator.Rollback(); err != nil {
+    panic(err) // 版本 2 -> 1
+}
+if _, _, err := migrator.Run(); err != nil {
+    panic(err) // 版本 1 -> 2
+}
+```
 
 ### ⚠️ 特殊情况
 
