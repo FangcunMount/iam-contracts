@@ -14,6 +14,7 @@ type RolePO struct {
 	Name        string `gorm:"column:name;type:varchar(64);not null;uniqueIndex:uk_tenant_name,priority:2"`
 	DisplayName string `gorm:"column:display_name;type:varchar(128)"`
 	TenantID    string `gorm:"column:tenant_id;type:varchar(64);not null;uniqueIndex:uk_tenant_name,priority:1;index"`
+	IsSystem    uint8  `gorm:"column:is_system;type:tinyint;not null;default:0;comment:系统内置角色标识"`
 	Description string `gorm:"column:description;type:varchar(512)"`
 }
 
