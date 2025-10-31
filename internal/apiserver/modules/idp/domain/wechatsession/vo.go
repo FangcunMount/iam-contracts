@@ -10,5 +10,5 @@ type ExternalClaim struct {
 	AvatarURL    *string
 	Phone        *string
 	Email        *string
-	ExpiresInSec int
+	ExpiresInSec int // 过期时间（秒）
 }
