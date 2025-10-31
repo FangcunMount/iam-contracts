@@ -9,12 +9,12 @@
 
 # ==================== 1. 租户配置 ====================
 tenants:
-  # 演示租户
-  - code: "demo"
-    name: "演示租户"
+  # 默认租户
+  - code: "default"
+    name: "默认租户"
     contact_name: "张三"
     contact_phone: "13800138000"
-    contact_email: "demo@example.com"
+    contact_email: "zhangsan@example.com"
     status: "active"
     max_users: 1000
     max_roles: 100
