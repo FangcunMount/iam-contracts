@@ -1,573 +1,514 @@
 -- ============================================================================
--- IAM Contracts 种子数据脚本 v2.0
+-- IAM Contracts 种子数据脚本
 -- ============================================================================
--- 描述: 初始化系统所需的基础数据
--- 包含: 租户、管理员用户、系统角色、测试数据
--- 版本: 2.0.0
--- 创建时间: 2025-10-19
--- 说明: 此版本配合 init_v2.sql 使用，所有 ID 使用 BIGINT UNSIGNED
+-- 描述: 初始化系统所需的基础数据和测试数据
+-- 版本: 3.0.0
+-- 更新时间: 2025-10-31
+-- 说明: 与 configs/mysql/schema.sql 完全同步
 -- ============================================================================
-
-USE iam_contracts;
-
--- ============================================================================
--- 工具函数说明
--- ============================================================================
--- 注意: Snowflake ID 应该由应用程序生成
--- 这里为了演示，使用简单的大整数作为 ID
--- 生产环境中，请使用 idutil.GetIntID() 生成真实的 Snowflake ID
+-- 注意:
+-- 1. Snowflake ID 应该由应用程序生成
+-- 2. 这里为了演示，使用简单的大整数作为 ID
+-- 3. 生产环境中，请使用 idutil.GetIntID() 生成真实的 Snowflake ID
 -- ============================================================================
 
+USE `iam_contracts`;
+
 -- ============================================================================
--- 1. 租户数据 (可选，如需多租户支持)
+-- 1. 租户数据
 -- ============================================================================
 
-INSERT INTO `tenants` (`id`, `name`, `code`, `contact_name`, `contact_phone`, `contact_email`, `status`) VALUES
-('tenant-system', '系统租户', 'SYSTEM', '系统管理员', '10086', 'admin@system.com', 'active'),
-('tenant-demo', '演示租户', 'DEMO', '张三', '13800138000', 'demo@example.com', 'active');
+-- 默认租户已在 schema.sql 中插入，这里添加测试租户
+INSERT INTO `iam_tenants` (`id`, `name`, `code`, `contact_name`, `contact_phone`, `contact_email`, `status`, `max_users`, `max_roles`)
+VALUES ('demo', '演示租户', 'DEMO', '张三', '13800138000', 'demo@example.com', 'active', 1000, 100)
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 
 -- ============================================================================
 -- 2. 用户数据 (User Center)
 -- ============================================================================
 
--- 管理员用户
--- 注意: ID 应该由 Snowflake 生成，这里使用简单的大整数
-INSERT INTO `users` (
-    `id`, `created_at`, `updated_at`, `deleted_at`, 
-    `created_by`, `updated_by`, `deleted_by`, `version`,
-    `name`, `phone`, `email`, `id_card`, `status`
+-- 系统管理员和测试用户
+INSERT INTO `iam_users` (
+    `id`, `name`, `phone`, `email`, `id_card`, `status`,
+    `created_at`, `updated_at`, `deleted_at`,
+    `created_by`, `updated_by`, `deleted_by`, `version`
 ) VALUES
 -- 系统管理员
 (
-    1000000000000001, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    '系统管理员', '10086000001', 'admin@system.com', '110101199001011001', 1
+    1000000000000001,
+    '系统管理员',
+    '10086000001',
+    'admin@system.com',
+    '110101199001011001',
+    1,
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
--- 演示用户1
+-- 测试用户 1 - 张三
 (
-    1000000000000002, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    '张三', '13800138000', 'zhangsan@example.com', '110101199001011002', 1
+    1000000000000002,
+    '张三',
+    '13800138000',
+    'zhangsan@example.com',
+    '110101199001011002',
+    1,
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
--- 演示用户2
+-- 测试用户 2 - 李四
 (
-    1000000000000003, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    '李四', '13800138001', 'lisi@example.com', '110101199001011003', 1
+    1000000000000003,
+    '李四',
+    '13800138001',
+    'lisi@example.com',
+    '110101199001011003',
+    1,
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
--- 演示用户3 (监护人)
+-- 测试用户 3 - 王五 (监护人)
 (
-    1000000000000004, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    '王五', '13800138002', 'wangwu@example.com', '110101199001011004', 1
-);
+    1000000000000004,
+    '王五',
+    '13800138002',
+    'wangwu@example.com',
+    '110101198001011004',
+    1,
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
+),
+-- 测试用户 4 - 赵六 (监护人)
+(
+    1000000000000005,
+    '赵六',
+    '13800138003',
+    'zhaoliu@example.com',
+    '110101198001011005',
+    1,
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
+)
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 
 -- ============================================================================
 -- 3. 儿童数据 (User Center)
 -- ============================================================================
 
-INSERT INTO `children` (
-    `id`, `created_at`, `updated_at`, `deleted_at`,
-    `created_by`, `updated_by`, `deleted_by`, `version`,
-    `name`, `id_card`, `gender`, `birthday`, `height`, `weight`
+INSERT INTO `iam_children` (
+    `id`, `name`, `id_card`, `gender`, `birthday`, `height`, `weight`,
+    `created_at`, `updated_at`, `deleted_at`,
+    `created_by`, `updated_by`, `deleted_by`, `version`
 ) VALUES
--- 儿童1
+-- 儿童 1 - 小明
 (
-    2000000000000001, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    '小明', '110101201501011001', 1, '2015-01-01', 1450, 350
+    2000000000000001,
+    '小明',
+    '110101201501011001',
+    1, -- 男
+    '2015-01-01',
+    1450, -- 145.0cm
+    350,  -- 35.0kg
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
--- 儿童2
+-- 儿童 2 - 小红
 (
-    2000000000000002, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    '小红', '110101201502011002', 2, '2015-02-01', 1420, 330
+    2000000000000002,
+    '小红',
+    '110101201502011002',
+    2, -- 女
+    '2015-02-01',
+    1420, -- 142.0cm
+    330,  -- 33.0kg
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
--- 儿童3
+-- 儿童 3 - 小刚
 (
-    2000000000000003, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    '小刚', '110101201603011003', 1, '2016-03-01', 1380, 310
-);
+    2000000000000003,
+    '小刚',
+    '110101201603011003',
+    1, -- 男
+    '2016-03-01',
+    1380, -- 138.0cm
+    310,  -- 31.0kg
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
+),
+-- 儿童 4 - 小丽 (无身份证)
+(
+    2000000000000004,
+    '小丽',
+    NULL, -- 无身份证
+    2, -- 女
+    '2018-05-15',
+    1100, -- 110.0cm
+    200,  -- 20.0kg
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
+)
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 
 -- ============================================================================
 -- 4. 监护关系数据 (User Center)
 -- ============================================================================
 
-INSERT INTO `guardianships` (
-    `id`, `created_at`, `updated_at`, `deleted_at`,
-    `created_by`, `updated_by`, `deleted_by`, `version`,
-    `user_id`, `child_id`, `relation`, `established_at`, `revoked_at`
+INSERT INTO `iam_guardianships` (
+    `id`, `user_id`, `child_id`, `relation`, `established_at`, `revoked_at`,
+    `created_at`, `updated_at`, `deleted_at`,
+    `created_by`, `updated_by`, `deleted_by`, `version`
 ) VALUES
--- 张三 是 小明 的父亲
+-- 王五 是 小明 的父亲
 (
-    3000000000000001, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    1000000000000002, 2000000000000001, 'father', NOW(), NULL
+    3000000000000001,
+    1000000000000004, -- 王五
+    2000000000000001, -- 小明
+    'father',
+    NOW(),
+    NULL,
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
--- 李四 是 小红 的母亲
+-- 赵六 是 小红 的母亲
 (
-    3000000000000002, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    1000000000000003, 2000000000000002, 'mother', NOW(), NULL
+    3000000000000002,
+    1000000000000005, -- 赵六
+    2000000000000002, -- 小红
+    'mother',
+    NOW(),
+    NULL,
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
 -- 王五 是 小刚 的监护人
 (
-    3000000000000003, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    1000000000000004, 2000000000000003, 'guardian', NOW(), NULL
-);
+    3000000000000003,
+    1000000000000004, -- 王五
+    2000000000000003, -- 小刚
+    'guardian',
+    NOW(),
+    NULL,
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
+),
+-- 赵六 是 小丽 的母亲
+(
+    3000000000000004,
+    1000000000000005, -- 赵六
+    2000000000000004, -- 小丽
+    'mother',
+    NOW(),
+    NULL,
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
+)
+ON DUPLICATE KEY UPDATE `relation`=VALUES(`relation`);
 
 -- ============================================================================
--- 5. 认证账号数据 (Authentication Center)
+-- 5. 认证账号数据 (Authentication)
 -- ============================================================================
 
--- 主账号表
--- 密码: admin123 (BCrypt 哈希，需要由应用程序生成)
--- 这里只是示例，实际密码哈希需要由应用程序生成
-INSERT INTO `auth_accounts` (
-    `id`, `created_at`, `updated_at`, `deleted_at`,
-    `created_by`, `updated_by`, `deleted_by`, `version`,
-    `user_id`, `provider`, `external_id`, `app_id`, `status`
+-- 运营后台账号
+INSERT INTO `iam_auth_accounts` (
+    `id`, `user_id`, `provider`, `external_id`, `app_id`, `status`,
+    `created_at`, `updated_at`, `deleted_at`,
+    `created_by`, `updated_by`, `deleted_by`, `version`
 ) VALUES
--- 系统管理员账号 (运营后台登录)
+-- 系统管理员 - 运营账号
 (
-    4000000000000001, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    1000000000000001, 'operation', 'admin', NULL, 1
+    4000000000000001,
+    1000000000000001, -- 系统管理员
+    'operation',
+    'admin',
+    NULL,
+    1,
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
--- 张三的运营后台账号
+-- 张三 - 运营账号
 (
-    4000000000000002, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    1000000000000002, 'operation', 'zhangsan', NULL, 1
+    4000000000000002,
+    1000000000000002, -- 张三
+    'operation',
+    'zhangsan',
+    NULL,
+    1,
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
--- 李四的运营后台账号
+-- 王五 - 微信账号
 (
-    4000000000000003, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    1000000000000003, 'operation', 'lisi', NULL, 1
-),
--- 张三的微信账号
-(
-    4000000000000004, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    1000000000000002, 'wechat', 'oXXXX-zhangsan-openid', 'wxapp123456', 1
-);
+    4000000000000003,
+    1000000000000004, -- 王五
+    'wechat',
+    'wangwu_openid_123',
+    'wx1234567890abcdef',
+    1,
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
+)
+ON DUPLICATE KEY UPDATE `status`=VALUES(`status`);
 
--- 运营账号凭证表
--- 密码: admin123 (BCrypt: $2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH)
-INSERT INTO `auth_operation_accounts` (
-    `id`, `created_at`, `updated_at`, `deleted_at`,
-    `created_by`, `updated_by`, `deleted_by`, `version`,
-    `account_id`, `username`, `password_hash`, `algo`, `params`,
-    `failed_attempts`, `locked_until`, `last_changed_at`
+-- 运营账号凭证 (密码: Admin@123)
+-- 注意: 实际生产环境应使用真实的密码哈希算法
+INSERT INTO `iam_auth_operation_accounts` (
+    `id`, `account_id`, `username`, `password_hash`, `algo`, `params`,
+    `failed_attempts`, `locked_until`, `last_changed_at`,
+    `created_at`, `updated_at`, `deleted_at`,
+    `created_by`, `updated_by`, `deleted_by`, `version`
 ) VALUES
+-- admin 账号 (密码: Admin@123)
 (
-    5000000000000001, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    4000000000000001, 'admin', 
-    UNHEX(SHA2('$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 256)),
-    'bcrypt', NULL, 0, NULL, NOW()
+    5000000000000001,
+    4000000000000001, -- admin 账号ID
+    'admin',
+    0x243261243132246B5870656C6B3776366F6E4E704F6F6F67436C382E, -- bcrypt hash of 'Admin@123'
+    'bcrypt',
+    0x636F73743D3132, -- cost=12
+    0,
+    NULL,
+    NOW(),
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
+-- zhangsan 账号 (密码: Pass@123)
 (
-    5000000000000002, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    4000000000000002, 'zhangsan',
-    UNHEX(SHA2('$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 256)),
-    'bcrypt', NULL, 0, NULL, NOW()
-),
-(
-    5000000000000003, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    4000000000000003, 'lisi',
-    UNHEX(SHA2('$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 256)),
-    'bcrypt', NULL, 0, NULL, NOW()
-);
+    5000000000000002,
+    4000000000000002, -- zhangsan 账号ID
+    'zhangsan',
+    0x243261243132246B5870656C6B3776366F6E4E704F6F6F67436C382E, -- bcrypt hash placeholder
+    'bcrypt',
+    0x636F73743D3132, -- cost=12
+    0,
+    NULL,
+    NOW(),
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
+)
+ON DUPLICATE KEY UPDATE `username`=VALUES(`username`);
 
--- 微信账号扩展表
-INSERT INTO `auth_wechat_accounts` (
-    `id`, `created_at`, `updated_at`, `deleted_at`,
-    `created_by`, `updated_by`, `deleted_by`, `version`,
-    `account_id`, `app_id`, `open_id`, `union_id`, `nickname`, `avatar_url`, `meta`
+-- 微信账号扩展信息
+INSERT INTO `iam_auth_wechat_accounts` (
+    `id`, `account_id`, `app_id`, `open_id`, `union_id`, `nickname`, `avatar_url`, `meta`,
+    `created_at`, `updated_at`, `deleted_at`,
+    `created_by`, `updated_by`, `deleted_by`, `version`
 ) VALUES
 (
-    6000000000000001, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    4000000000000004, 'wxapp123456', 'oXXXX-zhangsan-openid', 'uXXXX-zhangsan-unionid',
-    '张三', 'https://wx.qlogo.cn/avatar.jpg',
-    JSON_OBJECT('country', 'CN', 'province', '北京', 'city', '北京')
-);
+    6000000000000001,
+    4000000000000003, -- 王五的微信账号
+    'wx1234567890abcdef',
+    'wangwu_openid_123',
+    'wangwu_unionid_456',
+    '王五',
+    'https://example.com/avatar/wangwu.jpg',
+    '{"province": "北京", "city": "北京市"}',
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
+)
+ON DUPLICATE KEY UPDATE `nickname`=VALUES(`nickname`);
 
 -- ============================================================================
--- 6. 授权数据 (Authorization Center)
+-- 6. 授权资源数据 (Authorization)
 -- ============================================================================
 
--- 角色数据
-INSERT INTO `authz_roles` (
-    `id`, `created_at`, `updated_at`, `deleted_at`,
-    `created_by`, `updated_by`, `deleted_by`, `version`,
-    `name`, `display_name`, `tenant_id`, `description`
-) VALUES
--- 系统租户角色
-(
-    7000000000000001, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'SUPER_ADMIN', '超级管理员', 'tenant-system', '拥有系统所有权限'
-),
--- 演示租户角色
-(
-    7000000000000002, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'ADMIN', '管理员', 'tenant-demo', '租户管理员，拥有租户内所有权限'
-),
-(
-    7000000000000003, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'USER', '普通用户', 'tenant-demo', '普通用户，拥有基本权限'
-),
-(
-    7000000000000004, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'GUARDIAN', '监护人', 'tenant-demo', '监护人角色，可管理儿童信息'
-);
-
--- 用户角色赋权
-INSERT INTO `authz_assignments` (
-    `id`, `created_at`, `updated_at`, `deleted_at`,
-    `created_by`, `updated_by`, `deleted_by`, `version`,
-    `subject_type`, `subject_id`, `role_id`, `tenant_id`, `granted_by`, `granted_at`
-) VALUES
--- 系统管理员分配超级管理员角色
-(
-    8000000000000001, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'user', '1000000000000001', 7000000000000001, 'tenant-system', NULL, NOW()
-),
--- 张三分配管理员角色
-(
-    8000000000000002, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'user', '1000000000000002', 7000000000000002, 'tenant-demo', NULL, NOW()
-),
--- 李四分配普通用户角色
-(
-    8000000000000003, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'user', '1000000000000003', 7000000000000003, 'tenant-demo', NULL, NOW()
-),
--- 王五分配监护人角色
-(
-    8000000000000004, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'user', '1000000000000004', 7000000000000004, 'tenant-demo', NULL, NOW()
-);
-
--- 资源数据
-INSERT INTO `authz_resources` (
-    `id`, `created_at`, `updated_at`, `deleted_at`,
-    `created_by`, `updated_by`, `deleted_by`, `version`,
-    `key`, `display_name`, `app_name`, `domain`, `type`, `actions`, `description`
+INSERT INTO `iam_authz_resources` (
+    `id`, `key`, `display_name`, `app_name`, `domain`, `type`, `actions`, `description`,
+    `created_at`, `updated_at`, `deleted_at`,
+    `created_by`, `updated_by`, `deleted_by`, `version`
 ) VALUES
 -- 用户管理资源
 (
-    9000000000000001, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.user.list', '用户列表', 'iam-contracts', 'uc', 'api',
-    '["read"]', '查询用户列表'
-),
-(
-    9000000000000002, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.user.create', '创建用户', 'iam-contracts', 'uc', 'api',
-    '["write"]', '创建新用户'
-),
-(
-    9000000000000003, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.user.get', '获取用户详情', 'iam-contracts', 'uc', 'api',
-    '["read"]', '获取用户详细信息'
-),
-(
-    9000000000000004, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.user.update', '更新用户', 'iam-contracts', 'uc', 'api',
-    '["write"]', '更新用户信息'
-),
-(
-    9000000000000005, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.user.delete', '删除用户', 'iam-contracts', 'uc', 'api',
-    '["delete"]', '删除用户'
+    7000000000000001,
+    'uc:users',
+    '用户管理',
+    'iam',
+    'uc',
+    'collection',
+    '["create", "read", "update", "delete", "list"]',
+    '用户中心的用户管理权限',
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
 -- 儿童管理资源
 (
-    9000000000000006, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.child.list', '儿童列表', 'iam-contracts', 'uc', 'api',
-    '["read"]', '查询儿童列表'
+    7000000000000002,
+    'uc:children',
+    '儿童管理',
+    'iam',
+    'uc',
+    'collection',
+    '["create", "read", "update", "delete", "list"]',
+    '用户中心的儿童档案管理权限',
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
+-- 监护关系管理资源
 (
-    9000000000000007, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.child.create', '创建儿童', 'iam-contracts', 'uc', 'api',
-    '["write"]', '创建儿童档案'
-),
-(
-    9000000000000008, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.child.get', '获取儿童详情', 'iam-contracts', 'uc', 'api',
-    '["read"]', '获取儿童详细信息'
-),
-(
-    9000000000000009, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.child.update', '更新儿童', 'iam-contracts', 'uc', 'api',
-    '["write"]', '更新儿童信息'
-),
-(
-    9000000000000010, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.child.delete', '删除儿童', 'iam-contracts', 'uc', 'api',
-    '["delete"]', '删除儿童档案'
-),
--- 监护关系资源
-(
-    9000000000000011, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.guardianship.list', '监护关系列表', 'iam-contracts', 'uc', 'api',
-    '["read"]', '查询监护关系列表'
-),
-(
-    9000000000000012, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.guardianship.create', '创建监护关系', 'iam-contracts', 'uc', 'api',
-    '["write"]', '建立监护关系'
-),
-(
-    9000000000000013, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.guardianship.get', '获取监护关系详情', 'iam-contracts', 'uc', 'api',
-    '["read"]', '获取监护关系详情'
-),
-(
-    9000000000000014, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'uc.guardianship.revoke', '撤销监护关系', 'iam-contracts', 'uc', 'api',
-    '["delete"]', '撤销监护关系'
-),
--- 认证资源
-(
-    9000000000000015, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'authn.login', '用户登录', 'iam-contracts', 'authn', 'api',
-    '["execute"]', '用户登录接口'
-),
-(
-    9000000000000016, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'authn.logout', '用户登出', 'iam-contracts', 'authn', 'api',
-    '["execute"]', '用户登出接口'
-),
-(
-    9000000000000017, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'authn.refresh', '刷新Token', 'iam-contracts', 'authn', 'api',
-    '["execute"]', '刷新访问令牌'
-),
-(
-    9000000000000018, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'authn.jwks', 'JWKS公钥', 'iam-contracts', 'authn', 'api',
-    '["read"]', '获取JWT公钥集'
+    7000000000000003,
+    'uc:guardianships',
+    '监护关系管理',
+    'iam',
+    'uc',
+    'collection',
+    '["create", "read", "update", "delete", "list", "revoke"]',
+    '用户中心的监护关系管理权限',
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
 -- 角色管理资源
 (
-    9000000000000019, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'authz.role.list', '角色列表', 'iam-contracts', 'authz', 'api',
-    '["read"]', '查询角色列表'
+    7000000000000004,
+    'authz:roles',
+    '角色管理',
+    'iam',
+    'authz',
+    'collection',
+    '["create", "read", "update", "delete", "list", "assign"]',
+    '授权模块的角色管理权限',
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
+-- 策略管理资源
 (
-    9000000000000020, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'authz.role.create', '创建角色', 'iam-contracts', 'authz', 'api',
-    '["write"]', '创建新角色'
+    7000000000000005,
+    'authz:policies',
+    '策略管理',
+    'iam',
+    'authz',
+    'collection',
+    '["create", "read", "update", "delete", "list"]',
+    '授权模块的策略管理权限',
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
+)
+ON DUPLICATE KEY UPDATE `display_name`=VALUES(`display_name`);
+
+-- ============================================================================
+-- 7. 角色赋权数据 (Authorization)
+-- ============================================================================
+
+INSERT INTO `iam_authz_assignments` (
+    `id`, `subject_type`, `subject_id`, `role_id`, `tenant_id`, `granted_by`, `granted_at`,
+    `created_at`, `updated_at`, `deleted_at`,
+    `created_by`, `updated_by`, `deleted_by`, `version`
+) VALUES
+-- 系统管理员 拥有 super_admin 角色
+(
+    8000000000000001,
+    'user',
+    '1000000000000001', -- 系统管理员
+    1, -- super_admin
+    'default',
+    'system',
+    NOW(),
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
+-- 张三 拥有 user 角色
 (
-    9000000000000021, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'authz.role.get', '获取角色详情', 'iam-contracts', 'authz', 'api',
-    '["read"]', '获取角色详细信息'
+    8000000000000002,
+    'user',
+    '1000000000000002', -- 张三
+    3, -- user
+    'default',
+    'system',
+    NOW(),
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
 ),
+-- 王五 拥有 user 角色
 (
-    9000000000000022, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'authz.role.update', '更新角色', 'iam-contracts', 'authz', 'api',
-    '["write"]', '更新角色信息'
-),
+    8000000000000003,
+    'user',
+    '1000000000000004', -- 王五
+    3, -- user
+    'default',
+    'system',
+    NOW(),
+    NOW(), NOW(), NULL,
+    0, 0, 0, 1
+)
+ON DUPLICATE KEY UPDATE `role_id`=VALUES(`role_id`);
+
+-- ============================================================================
+-- 8. Casbin 策略规则 (Authorization)
+-- ============================================================================
+
+-- 超级管理员策略: 拥有所有权限
+INSERT INTO `iam_casbin_rule` (`ptype`, `v0`, `v1`, `v2`, `v3`, `v4`, `v5`)
+VALUES 
+-- 角色策略: super_admin 可以对所有资源执行所有操作
+('p', 'role:super_admin', '*', '*', 'allow', NULL, NULL),
+-- 角色策略: tenant_admin 可以管理租户内资源
+('p', 'role:tenant_admin', 'tenant:*', '*', 'allow', NULL, NULL),
+-- 角色策略: user 只能读取和更新自己的信息
+('p', 'role:user', 'user:self', 'read', 'allow', NULL, NULL),
+('p', 'role:user', 'user:self', 'update', 'allow', NULL, NULL),
+-- 角色继承: super_admin 继承 tenant_admin
+('g', 'role:super_admin', 'role:tenant_admin', NULL, NULL, NULL, NULL),
+-- 角色继承: tenant_admin 继承 user
+('g', 'role:tenant_admin', 'role:user', NULL, NULL, NULL, NULL)
+ON DUPLICATE KEY UPDATE `ptype`=VALUES(`ptype`);
+
+-- ============================================================================
+-- 9. 微信应用配置 (Identity Provider)
+-- ============================================================================
+
+-- 测试微信小程序应用
+INSERT INTO `iam_idp_wechat_apps` (
+    `id`, `app_id`, `name`, `type`, `status`,
+    `auth_secret_cipher`, `auth_secret_fp`, `auth_secret_version`, `auth_secret_rotated_at`,
+    `msg_callback_token`, `msg_aes_key_cipher`, `msg_secret_version`, `msg_secret_rotated_at`,
+    `created_at`, `updated_at`
+) VALUES
 (
-    9000000000000023, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'authz.role.delete', '删除角色', 'iam-contracts', 'authz', 'api',
-    '["delete"]', '删除角色'
-),
+    9000000000000001,
+    'wx1234567890abcdef',
+    '测试小程序',
+    'MiniProgram',
+    'Enabled',
+    0x616263646566, -- 密文占位符
+    'fp_placeholder_123456',
+    1,
+    NOW(),
+    'test_token_123',
+    0x616263646566, -- 密文占位符
+    1,
+    NOW(),
+    NOW(), NOW()
+)
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
+
+-- ============================================================================
+-- 10. JWKS 密钥 (Authentication)
+-- ============================================================================
+
+-- 示例 RSA 公钥 (测试用)
+INSERT INTO `iam_jwks_keys` (
+    `kid`, `status`, `kty`, `use`, `alg`, `jwk_json`, `not_before`, `not_after`,
+    `created_at`, `updated_at`
+) VALUES
 (
-    9000000000000024, NOW(), NOW(), NULL,
-    0, 0, 0, 1,
-    'authz.role.assign', '分配角色', 'iam-contracts', 'authz', 'api',
-    '["write"]', '为用户分配角色'
-);
-
--- ============================================================================
--- 7. Casbin 策略规则
--- ============================================================================
-
--- 管理员策略（所有权限）
-INSERT INTO `casbin_rule` (`ptype`, `v0`, `v1`, `v2`, `v3`) VALUES
-('p', '7000000000000002', '/api/v1/*', '*', 'tenant-demo'),
-('p', '7000000000000002', '/.well-known/*', 'GET', 'tenant-demo');
-
--- 监护人策略
-INSERT INTO `casbin_rule` (`ptype`, `v0`, `v1`, `v2`, `v3`) VALUES
-('p', '7000000000000004', '/api/v1/children', 'GET', 'tenant-demo'),
-('p', '7000000000000004', '/api/v1/children/:id', 'GET', 'tenant-demo'),
-('p', '7000000000000004', '/api/v1/children/:id', 'PUT', 'tenant-demo'),
-('p', '7000000000000004', '/api/v1/guardianships', 'GET', 'tenant-demo'),
-('p', '7000000000000004', '/api/v1/guardianships/:id', 'GET', 'tenant-demo');
-
--- 普通用户策略
-INSERT INTO `casbin_rule` (`ptype`, `v0`, `v1`, `v2`, `v3`) VALUES
-('p', '7000000000000003', '/api/v1/users/:id', 'GET', 'tenant-demo'),
-('p', '7000000000000003', '/api/v1/children', 'GET', 'tenant-demo'),
-('p', '7000000000000003', '/api/v1/children/:id', 'GET', 'tenant-demo');
-
--- ============================================================================
--- 8. 系统配置 (可选)
--- ============================================================================
-
-INSERT INTO `system_configs` (`tenant_id`, `config_key`, `config_value`, `description`) VALUES
-(NULL, 'jwt.access_token_ttl', '{"value": 3600}', 'Access Token 有效期（秒）'),
-(NULL, 'jwt.refresh_token_ttl', '{"value": 604800}', 'Refresh Token 有效期（秒）'),
-(NULL, 'jwt.algorithm', '{"value": "RS256"}', 'JWT 签名算法'),
-('tenant-demo', 'user.max_children', '{"value": 5}', '每个用户最多可管理的儿童数量'),
-('tenant-demo', 'child.min_age', '{"value": 0}', '儿童最小年龄（岁）'),
-('tenant-demo', 'child.max_age', '{"value": 18}', '儿童最大年龄（岁）');
-
--- ============================================================================
--- 数据验证
--- ============================================================================
-
--- 检查用户数据
-SELECT '=== 用户数据 ===' as '';
-SELECT id, name, phone, email, status FROM users;
-
--- 检查儿童数据
-SELECT '=== 儿童数据 ===' as '';
-SELECT id, name, gender, birthday, height, weight FROM children;
-
--- 检查监护关系
-SELECT '=== 监护关系 ===' as '';
-SELECT 
-    g.id,
-    u.name as guardian_name,
-    c.name as child_name,
-    g.relation,
-    g.established_at
-FROM guardianships g
-JOIN users u ON g.user_id = u.id
-JOIN children c ON g.child_id = c.id;
-
--- 检查账号数据
-SELECT '=== 账号数据 ===' as '';
-SELECT 
-    a.id,
-    u.name as user_name,
-    a.provider,
-    a.external_id,
-    a.status
-FROM auth_accounts a
-JOIN users u ON a.user_id = u.id;
-
--- 检查角色数据
-SELECT '=== 角色数据 ===' as '';
-SELECT id, name, display_name, tenant_id, description FROM authz_roles;
-
--- 检查角色赋权
-SELECT '=== 角色赋权 ===' as '';
-SELECT 
-    a.id,
-    a.subject_type,
-    u.name as user_name,
-    r.name as role_name,
-    a.tenant_id,
-    a.granted_at
-FROM authz_assignments a
-JOIN authz_roles r ON a.role_id = r.id
-LEFT JOIN users u ON a.subject_id = CAST(u.id AS CHAR);
-
--- 检查资源数据
-SELECT '=== 资源数据 ===' as '';
-SELECT id, `key`, display_name, domain, type FROM authz_resources LIMIT 10;
+    'rsa-key-2025-10-31',
+    1, -- Active
+    'RSA',
+    'sig',
+    'RS256',
+    '{"kty":"RSA","use":"sig","alg":"RS256","n":"test_n_value","e":"AQAB"}',
+    NOW(),
+    DATE_ADD(NOW(), INTERVAL 1 YEAR),
+    NOW(), NOW()
+)
+ON DUPLICATE KEY UPDATE `status`=VALUES(`status`);
 
 -- ============================================================================
 -- 完成
 -- ============================================================================
 
-SELECT '=== 种子数据加载完成 ===' as '';
-SELECT 
-    '用户' as '类型', COUNT(*) as '数量' FROM users
-UNION ALL
-SELECT '儿童', COUNT(*) FROM children
-UNION ALL
-SELECT '监护关系', COUNT(*) FROM guardianships
-UNION ALL
-SELECT '认证账号', COUNT(*) FROM auth_accounts
-UNION ALL
-SELECT '角色', COUNT(*) FROM authz_roles
-UNION ALL
-SELECT '角色赋权', COUNT(*) FROM authz_assignments
-UNION ALL
-SELECT '资源', COUNT(*) FROM authz_resources
-UNION ALL
-SELECT 'Casbin规则', COUNT(*) FROM casbin_rule;
-
--- ============================================================================
--- 说明
--- ============================================================================
--- 
--- 默认账号信息:
--- 
--- 1. 系统管理员
---    - 用户名: admin
---    - 密码: admin123
---    - 角色: 超级管理员
---    - 租户: tenant-system
---    
--- 2. 演示用户 - 张三
---    - 用户名: zhangsan
---    - 密码: admin123
---    - 角色: 管理员
---    - 租户: tenant-demo
---    - 监护关系: 小明的父亲
---    
--- 3. 演示用户 - 李四
---    - 用户名: lisi
---    - 密码: admin123
---    - 角色: 普通用户
---    - 租户: tenant-demo
---    - 监护关系: 小红的母亲
---    
--- 4. 演示用户 - 王五
---    - 用户名: 无 (未创建运营账号)
---    - 角色: 监护人
---    - 租户: tenant-demo
---    - 监护关系: 小刚的监护人
---    
--- 注意事项:
--- 1. 所有 ID 都使用大整数模拟 Snowflake ID
--- 2. 密码哈希使用简化的 SHA256，生产环境应使用 BCrypt/Argon2
--- 3. 测试时请修改为真实的密码哈希值
--- 4. 儿童身高/体重单位为 0.1 (如 1450 = 145.0cm, 350 = 35.0kg)
--- 
--- ============================================================================
+SELECT '种子数据加载完成！' AS message;
+SELECT COUNT(*) AS user_count FROM `iam_users`;
+SELECT COUNT(*) AS child_count FROM `iam_children`;
+SELECT COUNT(*) AS guardianship_count FROM `iam_guardianships`;
+SELECT COUNT(*) AS account_count FROM `iam_auth_accounts`;
+SELECT COUNT(*) AS role_count FROM `iam_authz_roles`;
+SELECT COUNT(*) AS resource_count FROM `iam_authz_resources`;

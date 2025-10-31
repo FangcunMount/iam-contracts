@@ -1,471 +1,544 @@
 -- ============================================================================
--- IAM Contracts 数据库初始化脚本 v2.0
+-- IAM Contracts - Database Schema
+-- Notes:
+--   * All tables use `iam_` prefix
+--   * utf8mb4 / InnoDB
+--   * Soft delete fields kept where applicable
+--   * Added missing columns to match seed data (e.g., is_system in roles)
+--   * Cleaned malformed/merged blocks; removed duplicates
+--   * Escaped reserved identifiers (e.g., `use`)
 -- ============================================================================
--- 数据库: aim
--- 版本: 2.0.0
--- 创建时间: 2025-10-19
--- 说明: 此版本完全对齐代码中的 PO 定义，修正了 v1.0 中的所有不一致问题
--- ============================================================================
--- 主要改进:
--- 1. ID 类型统一为 BIGINT UNSIGNED (Snowflake ID)
--- 2. 添加完整的审计字段 (created_by, updated_by, deleted_by)
--- 3. 修正字段类型 (status, gender, height, weight)
--- 4. 添加正确的唯一索引
--- 5. 表名统一添加模块前缀 (auth_, authz_)
--- 6. 认证表拆分为三表 (accounts, wechat_accounts, operation_accounts)
--- 7. 移除 tenant_id (代码中暂无此字段)
--- ============================================================================
--- ============================================================================
--- 创建数据库和用户
--- ============================================================================
--- 创建数据库
-CREATE DATABASE IF NOT EXISTS aim DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci;
 
-USE aim;
+-- Create database
+CREATE DATABASE IF NOT EXISTS `iam_contracts`
+    DEFAULT CHARACTER SET utf8mb4
+    DEFAULT COLLATE utf8mb4_unicode_ci;
 
--- 创建用户并授权（如果不存在）
-CREATE USER IF NOT EXISTS 'fcm_admin' @'%' IDENTIFIED BY 'RfDtf6SGkGFeB9qZQtX';
-
-GRANT ALL PRIVILEGES ON aim.* TO 'fcm_admin' @'%';
-
-FLUSH PRIVILEGES;
-
-USE aim;
+USE `iam_contracts`;
 
 -- ============================================================================
--- 用户中心 (User Center) 表结构
+-- Module 1: User Center (UC) 用户中心
 -- ============================================================================
--- 用户表
-CREATE TABLE IF NOT EXISTS
-  `users` (
-    `id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID (Snowflake)',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted_at` TIMESTAMP NULL DEFAULT NULL COMMENT '删除时间（软删除）',
+
+-- 1.1 用户表
+CREATE TABLE IF NOT EXISTS `iam_users`
+(
+    `id`         BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '用户ID',
+    `name`       VARCHAR(64)     NOT NULL COMMENT '用户名称',
+    `phone`      VARCHAR(20)     NOT NULL COMMENT '手机号',
+    `email`      VARCHAR(100)    NOT NULL COMMENT '邮箱',
+    `id_card`    VARCHAR(20)     NOT NULL COMMENT '身份证号',
+    `status`     INT             NOT NULL DEFAULT 1 COMMENT '用户状态: 1-正常, 2-禁用',
+    `created_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted_at` DATETIME                 DEFAULT NULL COMMENT '删除时间',
     `created_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
     `updated_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
     `deleted_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
-    `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '版本号（乐观锁）',
-    `name` VARCHAR(64) NOT NULL COMMENT '用户名称',
-    `phone` VARCHAR(20) NOT NULL COMMENT '手机号',
-    `email` VARCHAR(100) NOT NULL COMMENT '邮箱',
-    `id_card` VARCHAR(20) NOT NULL COMMENT '身份证号',
-    `status` TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '用户状态 (1=正常 2=禁用 3=删除)',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_phone` (`phone`),
-    UNIQUE KEY `uk_email` (`email`),
+    `version`    INT UNSIGNED    NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
     UNIQUE KEY `uk_id_card` (`id_card`),
-    KEY `idx_status` (`status`),
+    KEY `idx_phone` (`phone`),
     KEY `idx_deleted_at` (`deleted_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户表';
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='用户表';
 
--- 儿童表
-CREATE TABLE IF NOT EXISTS
-  `children` (
-    `id` BIGINT UNSIGNED NOT NULL COMMENT '儿童ID (Snowflake)',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted_at` TIMESTAMP NULL DEFAULT NULL COMMENT '删除时间（软删除）',
+-- 1.2 儿童档案表
+CREATE TABLE IF NOT EXISTS `iam_children`
+(
+    `id`         BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '儿童ID',
+    `name`       VARCHAR(64)     NOT NULL COMMENT '儿童姓名',
+    `id_card`    VARCHAR(20)              DEFAULT NULL COMMENT '身份证号码',
+    `gender`     TINYINT         NOT NULL DEFAULT 0 COMMENT '性别: 0-未知, 1-男, 2-女',
+    `birthday`   VARCHAR(10)              DEFAULT NULL COMMENT '出生日期 (YYYY-MM-DD)',
+    `height`     BIGINT                   DEFAULT NULL COMMENT '身高 (以0.1cm为单位)',
+    `weight`     BIGINT                   DEFAULT NULL COMMENT '体重 (以0.1kg为单位)',
+    `created_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted_at` DATETIME                 DEFAULT NULL COMMENT '删除时间',
     `created_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
     `updated_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
     `deleted_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
-    `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '版本号（乐观锁）',
-    `name` VARCHAR(64) NOT NULL COMMENT '儿童姓名',
-    `id_card` VARCHAR(20) NOT NULL COMMENT '身份证号码',
-    `gender` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '性别 (0=未知 1=男 2=女)',
-    `birthday` VARCHAR(10) DEFAULT NULL COMMENT '出生日期 (YYYY-MM-DD)',
-    `height` BIGINT DEFAULT NULL COMMENT '身高（以0.1cm为单位，如1650表示165.0cm）',
-    `weight` BIGINT DEFAULT NULL COMMENT '体重（以0.1kg为单位，如450表示45.0kg）',
-    PRIMARY KEY (`id`),
+    `version`    INT UNSIGNED    NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
     UNIQUE KEY `uk_id_card` (`id_card`),
-    KEY `idx_name` (`name`),
-    KEY `idx_deleted_at` (`deleted_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '儿童表';
+    KEY `idx_deleted_at` (`deleted_at`),
+    KEY `idx_name_gender_birthday` (`name`, `gender`, `birthday`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='儿童档案表';
 
--- 监护关系表
-CREATE TABLE IF NOT EXISTS
-  `guardianships` (
-    `id` BIGINT UNSIGNED NOT NULL COMMENT '监护关系ID (Snowflake)',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted_at` TIMESTAMP NULL DEFAULT NULL COMMENT '删除时间（软删除）',
-    `created_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
-    `updated_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
-    `deleted_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
-    `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '版本号（乐观锁）',
-    `user_id` BIGINT UNSIGNED NOT NULL COMMENT '监护人ID',
-    `child_id` BIGINT UNSIGNED NOT NULL COMMENT '儿童ID',
-    `relation` VARCHAR(16) NOT NULL COMMENT '监护关系 (father/mother/grandfather/grandmother/guardian)',
-    `established_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '建立时间',
-    `revoked_at` TIMESTAMP NULL DEFAULT NULL COMMENT '撤销时间',
-    PRIMARY KEY (`id`),
-    KEY `idx_user_id` (`user_id`),
-    KEY `idx_child_id` (`child_id`),
-    KEY `idx_user_child` (`user_id`, `child_id`),
+-- 1.3 监护关系表
+CREATE TABLE IF NOT EXISTS `iam_guardianships`
+(
+    `id`             BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '监护关系ID',
+    `user_id`        BIGINT UNSIGNED NOT NULL COMMENT '监护人ID (用户ID)',
+    `child_id`       BIGINT UNSIGNED NOT NULL COMMENT '儿童ID',
+    `relation`       VARCHAR(16)     NOT NULL COMMENT '监护关系: parent-父母, guardian-监护人',
+    `established_at` DATETIME        NOT NULL COMMENT '建立时间',
+    `revoked_at`     DATETIME                 DEFAULT NULL COMMENT '撤销时间',
+    `created_at`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted_at`     DATETIME                 DEFAULT NULL COMMENT '删除时间',
+    `created_by`     BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
+    `updated_by`     BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
+    `deleted_by`     BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
+    `version`        INT UNSIGNED    NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
+    KEY `idx_user_child_ref` (`user_id`, `child_id`),
     KEY `idx_deleted_at` (`deleted_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '监护关系表';
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='监护关系表';
 
 -- ============================================================================
--- 认证中心 (Authentication Center) 表结构
+-- Module 2: Authentication (Authn)
 -- ============================================================================
--- 认证账号表 (主表)
-CREATE TABLE IF NOT EXISTS
-  `auth_accounts` (
-    `id` BIGINT UNSIGNED NOT NULL COMMENT '账号ID (Snowflake)',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted_at` TIMESTAMP NULL DEFAULT NULL COMMENT '删除时间（软删除）',
-    `created_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
-    `updated_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
-    `deleted_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
-    `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '版本号（乐观锁）',
-    `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
-    `provider` VARCHAR(32) NOT NULL COMMENT '认证提供商 (wechat/wework/operation)',
-    `external_id` VARCHAR(128) NOT NULL COMMENT '外部ID (如openid/unionid/username)',
-    `app_id` VARCHAR(64) DEFAULT NULL COMMENT '应用ID (微信AppID等)',
-    `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态 (1=正常 2=禁用)',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_provider_app_external` (`provider`, `app_id`, `external_id`),
+
+-- 2.1 认证账号表
+CREATE TABLE IF NOT EXISTS `iam_auth_accounts`
+(
+    `id`          BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '账号ID',
+    `user_id`     BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
+    `provider`    VARCHAR(32)     NOT NULL COMMENT '认证提供者: wechat/operation/...',
+    `external_id` VARCHAR(128)    NOT NULL COMMENT '外部ID (如微信OpenID)',
+    `app_id`      VARCHAR(64)              DEFAULT NULL COMMENT '应用ID (如微信AppID)',
+    `status`      TINYINT         NOT NULL DEFAULT 1 COMMENT '账号状态: 1-正常, 2-禁用',
+    `created_at`  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted_at`  DATETIME                 DEFAULT NULL COMMENT '删除时间',
+    `created_by`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
+    `updated_by`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
+    `deleted_by`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
+    `version`     INT UNSIGNED    NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
     KEY `idx_user_provider` (`user_id`, `provider`),
-    KEY `idx_deleted_at` (`deleted_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '认证账号表';
+    UNIQUE KEY `uk_iam_auth_accounts_provider_app_external` (`provider`, `app_id`, `external_id`),
+    KEY `idx_iam_auth_accounts_deleted_at` (`deleted_at`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='认证账号表';
 
--- 微信账号表 (扩展表)
-CREATE TABLE IF NOT EXISTS
-  `auth_wechat_accounts` (
-    `id` BIGINT UNSIGNED NOT NULL COMMENT 'ID (Snowflake)',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted_at` TIMESTAMP NULL DEFAULT NULL COMMENT '删除时间（软删除）',
+-- 2.2 微信账号扩展信息表
+CREATE TABLE IF NOT EXISTS `iam_auth_wechat_accounts`
+(
+    `id`         BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '记录ID',
+    `account_id` BIGINT UNSIGNED NOT NULL COMMENT '账号ID (关联 iam_auth_accounts.id)',
+    `app_id`     VARCHAR(64)     NOT NULL COMMENT '微信应用ID',
+    `open_id`    VARCHAR(128)    NOT NULL COMMENT '微信OpenID',
+    `union_id`   VARCHAR(128)             DEFAULT NULL COMMENT '微信UnionID',
+    `nickname`   VARCHAR(128)             DEFAULT NULL COMMENT '微信昵称',
+    `avatar_url` VARCHAR(256)             DEFAULT NULL COMMENT '头像URL',
+    `meta`       JSON                     DEFAULT NULL COMMENT '扩展元数据 (JSON格式)',
+    `created_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted_at` DATETIME                 DEFAULT NULL COMMENT '删除时间',
     `created_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
     `updated_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
     `deleted_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
-    `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '版本号（乐观锁）',
-    `account_id` BIGINT UNSIGNED NOT NULL COMMENT '账号ID (关联 auth_accounts.id)',
-    `app_id` VARCHAR(64) NOT NULL COMMENT '微信AppID',
-    `open_id` VARCHAR(128) NOT NULL COMMENT '微信OpenID',
-    `union_id` VARCHAR(128) DEFAULT NULL COMMENT '微信UnionID',
-    `nickname` VARCHAR(128) DEFAULT NULL COMMENT '微信昵称',
-    `avatar_url` VARCHAR(256) DEFAULT NULL COMMENT '微信头像URL',
-    `meta` JSON DEFAULT NULL COMMENT '扩展元数据',
-    PRIMARY KEY (`id`),
+    `version`    INT UNSIGNED    NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
     UNIQUE KEY `uk_account_id` (`account_id`),
     KEY `idx_app_open` (`app_id`, `open_id`),
     KEY `idx_deleted_at` (`deleted_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '微信账号表';
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='微信账号扩展信息表';
 
--- 运营账号凭证表 (扩展表)
-CREATE TABLE IF NOT EXISTS
-  `auth_operation_accounts` (
-    `id` BIGINT UNSIGNED NOT NULL COMMENT 'ID (Snowflake)',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted_at` TIMESTAMP NULL DEFAULT NULL COMMENT '删除时间（软删除）',
-    `created_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
-    `updated_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
-    `deleted_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
-    `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '版本号（乐观锁）',
-    `account_id` BIGINT UNSIGNED NOT NULL COMMENT '账号ID (关联 auth_accounts.id)',
-    `username` VARCHAR(64) NOT NULL COMMENT '用户名',
-    `password_hash` VARBINARY(255) NOT NULL COMMENT '密码哈希',
-    `algo` VARCHAR(32) NOT NULL COMMENT '加密算法 (argon2id/bcrypt)',
-    `params` VARBINARY(512) DEFAULT NULL COMMENT '算法参数',
-    `failed_attempts` INT NOT NULL DEFAULT 0 COMMENT '失败尝试次数',
-    `locked_until` TIMESTAMP NULL DEFAULT NULL COMMENT '锁定截止时间',
-    `last_changed_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '密码最后修改时间',
-    PRIMARY KEY (`id`),
+-- 2.3 运营后台账号凭证表
+CREATE TABLE IF NOT EXISTS `iam_auth_operation_accounts`
+(
+    `id`              BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '记录ID',
+    `account_id`      BIGINT UNSIGNED NOT NULL COMMENT '账号ID (关联 iam_auth_accounts.id)',
+    `username`        VARCHAR(64)     NOT NULL COMMENT '用户名',
+    `password_hash`   VARBINARY(255)  NOT NULL COMMENT '密码哈希值',
+    `algo`            VARCHAR(32)     NOT NULL COMMENT '密码哈希算法',
+    `params`          VARBINARY(512)           DEFAULT NULL COMMENT '哈希算法参数',
+    `failed_attempts` INT             NOT NULL DEFAULT 0 COMMENT '失败登录尝试次数',
+    `locked_until`    DATETIME                 DEFAULT NULL COMMENT '锁定截止时间',
+    `last_changed_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '最后修改密码时间',
+    `created_at`      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted_at`      DATETIME                 DEFAULT NULL COMMENT '删除时间',
+    `created_by`      BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
+    `updated_by`      BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
+    `deleted_by`      BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
+    `version`         INT UNSIGNED    NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
     UNIQUE KEY `uk_account_id` (`account_id`),
     UNIQUE KEY `uk_username` (`username`),
     KEY `idx_deleted_at` (`deleted_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '运营账号凭证表';
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='运营后台账号凭证表';
 
--- JWKS 密钥表
-CREATE TABLE IF NOT EXISTS
-  `jwks_keys` (
-    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-    `kid` VARCHAR(64) NOT NULL COMMENT '密钥ID (Key ID)',
-    `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态 (1=Active 2=Grace 3=Retired)',
-    `kty` VARCHAR(32) NOT NULL COMMENT '密钥类型 (RSA/EC)',
-    `use` VARCHAR(16) NOT NULL COMMENT '用途 (sig=签名 enc=加密)',
-    `alg` VARCHAR(32) NOT NULL COMMENT '算法 (RS256/RS384/RS512)',
-    `jwk_json` JSON NOT NULL COMMENT '公钥JWK JSON',
-    `not_before` TIMESTAMP NULL DEFAULT NULL COMMENT '生效时间',
-    `not_after` TIMESTAMP NULL DEFAULT NULL COMMENT '过期时间',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (`id`),
+-- 2.4 JWKS 密钥表
+CREATE TABLE IF NOT EXISTS `iam_jwks_keys`
+(
+    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT '密钥ID',
+    `kid`        VARCHAR(64)     NOT NULL COMMENT 'Key ID',
+    `status`     TINYINT         NOT NULL DEFAULT 1 COMMENT '1-Active, 2-Grace, 3-Retired',
+    `kty`        VARCHAR(32)     NOT NULL COMMENT 'Key Type: RSA/EC',
+    `use`        VARCHAR(16)     NOT NULL COMMENT '密钥用途: sig/enc',
+    `alg`        VARCHAR(32)     NOT NULL COMMENT '算法: RS256/RS384/RS512 等',
+    `jwk_json`   JSON            NOT NULL COMMENT '公钥JWK JSON',
+    `not_before` DATETIME                 DEFAULT NULL COMMENT '生效时间',
+    `not_after`  DATETIME                 DEFAULT NULL COMMENT '过期时间',
+    `created_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY `uk_kid` (`kid`),
     KEY `idx_status` (`status`),
     KEY `idx_alg` (`alg`),
     KEY `idx_not_after` (`not_after`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'JWKS密钥表';
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='JWKS 密钥表';
 
--- 会话表 (可选，用于 Refresh Token 管理)
-CREATE TABLE IF NOT EXISTS
-  `auth_sessions` (
-    `id` BIGINT UNSIGNED NOT NULL COMMENT '会话ID (Snowflake)',
-    `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
-    `refresh_token` VARCHAR(255) NOT NULL COMMENT 'Refresh Token',
-    `access_token_id` VARCHAR(64) DEFAULT NULL COMMENT '当前 Access Token ID',
-    `device_id` VARCHAR(100) DEFAULT NULL COMMENT '设备ID',
-    `ip_address` VARCHAR(45) DEFAULT NULL COMMENT 'IP地址',
-    `user_agent` VARCHAR(500) DEFAULT NULL COMMENT '浏览器UA',
-    `expires_at` TIMESTAMP NOT NULL COMMENT '过期时间',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (`id`),
+-- 2.5 会话表
+CREATE TABLE IF NOT EXISTS `iam_auth_sessions`
+(
+    `id`              BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '会话ID (Snowflake)',
+    `user_id`         BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
+    `refresh_token`   VARCHAR(255)    NOT NULL COMMENT 'Refresh Token',
+    `access_token_id` VARCHAR(64)              DEFAULT NULL COMMENT '当前 Access Token ID (jti)',
+    `device_id`       VARCHAR(100)             DEFAULT NULL COMMENT '设备ID',
+    `device_type`     VARCHAR(32)              DEFAULT NULL COMMENT '设备类型 (ios/android/web/desktop)',
+    `ip_address`      VARCHAR(45)              DEFAULT NULL COMMENT 'IP地址',
+    `user_agent`      VARCHAR(500)             DEFAULT NULL COMMENT '浏览器UA',
+    `expires_at`      TIMESTAMP       NOT NULL COMMENT '过期时间',
+    `last_active_at`  TIMESTAMP       NULL     DEFAULT NULL COMMENT '最后活跃时间',
+    `created_at`      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY `uk_refresh_token` (`refresh_token`),
     KEY `idx_user_id` (`user_id`),
-    KEY `idx_expires_at` (`expires_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '会话表';
+    KEY `idx_expires_at` (`expires_at`),
+    KEY `idx_device_id` (`device_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='会话表';
 
--- Token 黑名单表 (可选，用于 Token 撤销)
-CREATE TABLE IF NOT EXISTS
-  `auth_token_blacklist` (
-    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
-    `token_id` VARCHAR(64) NOT NULL COMMENT 'Token ID (jti)',
-    `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
-    `reason` VARCHAR(100) DEFAULT NULL COMMENT '加入黑名单原因',
-    `expires_at` TIMESTAMP NOT NULL COMMENT 'Token原过期时间',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+-- 2.6 Token 黑名单表
+CREATE TABLE IF NOT EXISTS `iam_auth_token_blacklist`
+(
+    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
+    `token_id`   VARCHAR(64)     NOT NULL COMMENT 'Token ID (jti)',
+    `user_id`    BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
+    `token_type` VARCHAR(20)     NOT NULL DEFAULT 'access' COMMENT 'Token类型 (access/refresh)',
+    `reason`     VARCHAR(100)             DEFAULT NULL COMMENT '原因 (logout/password_change/admin_revoke)',
+    `expires_at` TIMESTAMP       NOT NULL COMMENT '原过期时间',
+    `created_at` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_token_id` (`token_id`),
-    KEY `idx_user_id` (`user_id`),
-    KEY `idx_expires_at` (`expires_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Token黑名单表';
+    KEY `idx_user_id` (`user_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='Token 黑名单表';
 
 -- ============================================================================
--- 授权中心 (Authorization Center) 表结构
+-- Module 3: Authorization (Authz)
 -- ============================================================================
--- 资源目录表
-CREATE TABLE IF NOT EXISTS
-  `authz_resources` (
-    `id` BIGINT UNSIGNED NOT NULL COMMENT '资源ID (Snowflake)',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted_at` TIMESTAMP NULL DEFAULT NULL COMMENT '删除时间（软删除）',
-    `created_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
-    `updated_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
-    `deleted_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
-    `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '版本号（乐观锁）',
-    `key` VARCHAR(128) NOT NULL COMMENT '资源键（唯一标识）',
-    `display_name` VARCHAR(128) DEFAULT NULL COMMENT '显示名称',
-    `app_name` VARCHAR(32) DEFAULT NULL COMMENT '应用名称',
-    `domain` VARCHAR(32) DEFAULT NULL COMMENT '域',
-    `type` VARCHAR(32) DEFAULT NULL COMMENT '资源类型 (api/menu/button/data)',
-    `actions` TEXT DEFAULT NULL COMMENT '操作列表 (JSON数组字符串)',
-    `description` VARCHAR(512) DEFAULT NULL COMMENT '描述',
-    PRIMARY KEY (`id`),
+
+-- 3.1 资源表
+CREATE TABLE IF NOT EXISTS `iam_authz_resources`
+(
+    `id`           BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '资源ID',
+    `key`          VARCHAR(128)    NOT NULL COMMENT '资源唯一标识键',
+    `display_name` VARCHAR(128)             DEFAULT NULL COMMENT '资源显示名称',
+    `app_name`     VARCHAR(32)              DEFAULT NULL COMMENT '所属应用名称',
+    `domain`       VARCHAR(32)              DEFAULT NULL COMMENT '资源域',
+    `type`         VARCHAR(32)              DEFAULT NULL COMMENT '资源类型',
+    `actions`      TEXT                     DEFAULT NULL COMMENT '资源可用操作 (JSON数组格式)',
+    `description`  VARCHAR(512)             DEFAULT NULL COMMENT '资源描述',
+    `created_at`   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted_at`   DATETIME                 DEFAULT NULL COMMENT '删除时间',
+    `created_by`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
+    `updated_by`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
+    `deleted_by`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
+    `version`      INT UNSIGNED    NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
     UNIQUE KEY `uk_key` (`key`),
     KEY `idx_app_name` (`app_name`),
     KEY `idx_domain` (`domain`),
     KEY `idx_type` (`type`),
     KEY `idx_deleted_at` (`deleted_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '资源目录表';
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='资源表';
 
--- 角色表
-CREATE TABLE IF NOT EXISTS
-  `authz_roles` (
-    `id` BIGINT UNSIGNED NOT NULL COMMENT '角色ID (Snowflake)',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted_at` TIMESTAMP NULL DEFAULT NULL COMMENT '删除时间（软删除）',
-    `created_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
-    `updated_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
-    `deleted_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
-    `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '版本号（乐观锁）',
-    `name` VARCHAR(64) NOT NULL COMMENT '角色名称',
-    `display_name` VARCHAR(128) DEFAULT NULL COMMENT '显示名称',
-    `tenant_id` VARCHAR(64) NOT NULL COMMENT '租户ID',
-    `description` VARCHAR(512) DEFAULT NULL COMMENT '描述',
-    PRIMARY KEY (`id`),
+-- 3.2 角色表
+CREATE TABLE IF NOT EXISTS `iam_authz_roles`
+(
+    `id`           BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '角色ID',
+    `name`         VARCHAR(64)     NOT NULL COMMENT '角色名称 (标识符)',
+    `display_name` VARCHAR(128)             DEFAULT NULL COMMENT '角色显示名称',
+    `tenant_id`    VARCHAR(64)     NOT NULL COMMENT '租户ID',
+    `is_system`    TINYINT         NOT NULL DEFAULT 0 COMMENT '系统内置角色标识',
+    `description`  VARCHAR(512)             DEFAULT NULL COMMENT '角色描述',
+    `created_at`   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted_at`   DATETIME                 DEFAULT NULL COMMENT '删除时间',
+    `created_by`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
+    `updated_by`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
+    `deleted_by`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
+    `version`      INT UNSIGNED    NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
     UNIQUE KEY `uk_tenant_name` (`tenant_id`, `name`),
     KEY `idx_tenant_id` (`tenant_id`),
     KEY `idx_deleted_at` (`deleted_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '角色表';
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='角色表';
 
--- 角色赋权表 (用户-角色关联)
-CREATE TABLE IF NOT EXISTS
-  `authz_assignments` (
-    `id` BIGINT UNSIGNED NOT NULL COMMENT '赋权ID (Snowflake)',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted_at` TIMESTAMP NULL DEFAULT NULL COMMENT '删除时间（软删除）',
-    `created_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
-    `updated_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
-    `deleted_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
-    `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '版本号（乐观锁）',
-    `subject_type` VARCHAR(16) NOT NULL COMMENT '主体类型 (user/group/service)',
-    `subject_id` VARCHAR(64) NOT NULL COMMENT '主体ID',
-    `role_id` BIGINT UNSIGNED NOT NULL COMMENT '角色ID',
-    `tenant_id` VARCHAR(64) NOT NULL COMMENT '租户ID',
-    `granted_by` VARCHAR(64) DEFAULT NULL COMMENT '授予人',
-    `granted_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '授予时间',
-    PRIMARY KEY (`id`),
+-- 3.3 赋权表 (角色分配)
+CREATE TABLE IF NOT EXISTS `iam_authz_assignments`
+(
+    `id`           BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '赋权记录ID',
+    `subject_type` VARCHAR(16)     NOT NULL COMMENT '主体类型: user/group',
+    `subject_id`   VARCHAR(64)     NOT NULL COMMENT '主体ID',
+    `role_id`      BIGINT UNSIGNED NOT NULL COMMENT '角色ID',
+    `tenant_id`    VARCHAR(64)     NOT NULL COMMENT '租户ID',
+    `granted_by`   VARCHAR(64)              DEFAULT NULL COMMENT '授权操作人',
+    `granted_at`   DATETIME        NOT NULL COMMENT '授权时间',
+    `created_at`   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted_at`   DATETIME                 DEFAULT NULL COMMENT '删除时间',
+    `created_by`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
+    `updated_by`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
+    `deleted_by`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
+    `version`      INT UNSIGNED    NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
     KEY `idx_subject` (`subject_type`, `subject_id`),
     KEY `idx_role_id` (`role_id`),
     KEY `idx_tenant_id` (`tenant_id`),
     KEY `idx_deleted_at` (`deleted_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '角色赋权表';
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='角色赋权表';
 
--- 策略版本表 (可选，用于策略管理)
-CREATE TABLE IF NOT EXISTS
-  `authz_policy_versions` (
-    `id` BIGINT UNSIGNED NOT NULL COMMENT '策略版本ID (Snowflake)',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted_at` TIMESTAMP NULL DEFAULT NULL COMMENT '删除时间（软删除）',
-    `created_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
-    `updated_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
-    `deleted_by` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
-    `version` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '版本号（乐观锁）',
-    `role_id` BIGINT UNSIGNED NOT NULL COMMENT '角色ID',
-    `policy_version` INT UNSIGNED NOT NULL COMMENT '策略版本号',
-    `policy_document` JSON NOT NULL COMMENT '策略文档 (JSON格式)',
-    `is_active` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否为活跃版本',
-    PRIMARY KEY (`id`),
-    KEY `idx_role_id` (`role_id`),
-    KEY `idx_is_active` (`is_active`),
+-- 3.4 策略版本表
+CREATE TABLE IF NOT EXISTS `iam_authz_policy_versions`
+(
+    `id`             BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '版本记录ID',
+    `tenant_id`      VARCHAR(64)     NOT NULL COMMENT '租户ID',
+    `policy_version` BIGINT          NOT NULL COMMENT '策略版本号',
+    `changed_by`     VARCHAR(64)              DEFAULT NULL COMMENT '变更操作人',
+    `reason`         VARCHAR(512)             DEFAULT NULL COMMENT '变更原因',
+    `created_at`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted_at`     DATETIME                 DEFAULT NULL COMMENT '删除时间',
+    `created_by`     BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
+    `updated_by`     BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
+    `deleted_by`     BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
+    `version`        INT UNSIGNED    NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
+    UNIQUE KEY `uk_tenant_version` (`tenant_id`, `policy_version`),
     KEY `idx_deleted_at` (`deleted_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '策略版本表';
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='策略版本表';
 
--- Casbin 策略表 (用于 Casbin 授权引擎)
-CREATE TABLE IF NOT EXISTS
-  `casbin_rule` (
-    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
-    `ptype` VARCHAR(100) NOT NULL COMMENT '策略类型',
-    `v0` VARCHAR(100) DEFAULT NULL COMMENT '值0',
-    `v1` VARCHAR(100) DEFAULT NULL COMMENT '值1',
-    `v2` VARCHAR(100) DEFAULT NULL COMMENT '值2',
-    `v3` VARCHAR(100) DEFAULT NULL COMMENT '值3',
-    `v4` VARCHAR(100) DEFAULT NULL COMMENT '值4',
-    `v5` VARCHAR(100) DEFAULT NULL COMMENT '值5',
+-- 3.5 Casbin 策略规则表
+CREATE TABLE IF NOT EXISTS `iam_casbin_rule`
+(
+    `id`    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
+    `ptype` VARCHAR(100)    NOT NULL COMMENT '策略类型 (p/g)',
+    `v0`    VARCHAR(100) DEFAULT NULL COMMENT '值0 (subject)',
+    `v1`    VARCHAR(100) DEFAULT NULL COMMENT '值1 (object)',
+    `v2`    VARCHAR(100) DEFAULT NULL COMMENT '值2 (action)',
+    `v3`    VARCHAR(100) DEFAULT NULL COMMENT '值3 (effect)',
+    `v4`    VARCHAR(100) DEFAULT NULL COMMENT '值4 (扩展)',
+    `v5`    VARCHAR(100) DEFAULT NULL COMMENT '值5 (扩展)',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_casbin_rule` (`ptype`, `v0`, `v1`, `v2`, `v3`, `v4`, `v5`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Casbin策略规则表';
+    UNIQUE KEY `uk_iam_casbin_rule` (`ptype`, `v0`, `v1`, `v2`, `v3`, `v4`, `v5`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='Casbin 策略规则表 - 存储 RBAC 策略规则';
 
 -- ============================================================================
--- 系统表 (可选)
+-- Module 4: Identity Provider (IDP)
 -- ============================================================================
--- 租户表 (如果需要多租户支持)
-CREATE TABLE IF NOT EXISTS
-  `tenants` (
-    `id` VARCHAR(64) NOT NULL COMMENT '租户ID',
-    `name` VARCHAR(100) NOT NULL COMMENT '租户名称',
-    `code` VARCHAR(50) NOT NULL COMMENT '租户编码',
-    `contact_name` VARCHAR(100) DEFAULT NULL COMMENT '联系人姓名',
-    `contact_phone` VARCHAR(20) DEFAULT NULL COMMENT '联系人电话',
-    `contact_email` VARCHAR(100) DEFAULT NULL COMMENT '联系人邮箱',
-    `status` VARCHAR(20) NOT NULL DEFAULT 'active' COMMENT '状态: active, inactive, suspended',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted_at` TIMESTAMP NULL DEFAULT NULL COMMENT '删除时间',
+
+-- 4.1 微信应用表
+CREATE TABLE IF NOT EXISTS `iam_idp_wechat_apps`
+(
+    `id`                     BIGINT UNSIGNED NOT NULL COMMENT '主键 ID (Snowflake)',
+    `app_id`                 VARCHAR(64)     NOT NULL COMMENT '微信应用 ID (AppID)',
+    `name`                   VARCHAR(255)    NOT NULL COMMENT '应用名称',
+    `type`                   VARCHAR(32)     NOT NULL COMMENT '应用类型 (MiniProgram/MP/OpenPlatform)',
+    `status`                 VARCHAR(32)     NOT NULL DEFAULT 'Enabled' COMMENT '应用状态 (Enabled/Disabled/Archived)',
+    `auth_secret_cipher`     BLOB                     DEFAULT NULL COMMENT 'AppSecret 密文 (AES-GCM 加密)',
+    `auth_secret_fp`         VARCHAR(128)             DEFAULT NULL COMMENT 'AppSecret 指纹 (SHA256)',
+    `auth_secret_version`    INT             NOT NULL DEFAULT 0 COMMENT 'AppSecret 版本号',
+    `auth_secret_rotated_at` DATETIME                 DEFAULT NULL COMMENT 'AppSecret 最后轮换时间',
+    `msg_callback_token`     VARCHAR(128)             DEFAULT NULL COMMENT '消息推送回调 Token',
+    `msg_aes_key_cipher`     BLOB                     DEFAULT NULL COMMENT '消息加密密钥密文 (EncodingAESKey)',
+    `msg_secret_version`     INT             NOT NULL DEFAULT 0 COMMENT '消息密钥版本号',
+    `msg_secret_rotated_at`  DATETIME                 DEFAULT NULL COMMENT '消息密钥最后轮换时间',
+    `created_at`             DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`             DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_app_id` (`app_id`),
+    KEY `idx_type` (`type`),
+    KEY `idx_status` (`status`),
+    KEY `idx_created_at` (`created_at`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='微信应用表 - 管理微信小程序/公众号应用配置';
+
+
+-- ============================================================================
+-- Module 5: Platform / System
+-- ============================================================================
+
+-- 5.1 租户表
+CREATE TABLE IF NOT EXISTS `iam_tenants`
+(
+    `id`            VARCHAR(64)  NOT NULL COMMENT '租户ID',
+    `name`          VARCHAR(100) NOT NULL COMMENT '租户名称',
+    `code`          VARCHAR(50)  NOT NULL COMMENT '租户编码',
+    `contact_name`  VARCHAR(100)          DEFAULT NULL COMMENT '联系人姓名',
+    `contact_phone` VARCHAR(20)           DEFAULT NULL COMMENT '联系人电话',
+    `contact_email` VARCHAR(100)          DEFAULT NULL COMMENT '联系人邮箱',
+    `status`        VARCHAR(20)  NOT NULL DEFAULT 'active' COMMENT '状态 (active/inactive/suspended)',
+    `max_users`     INT                   DEFAULT NULL COMMENT '最大用户数限制',
+    `max_roles`     INT                   DEFAULT NULL COMMENT '最大角色数限制',
+    `created_at`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted_at`    TIMESTAMP    NULL     DEFAULT NULL COMMENT '删除时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_code` (`code`),
     KEY `idx_status` (`status`),
     KEY `idx_deleted_at` (`deleted_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '租户表';
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='租户表 - 管理多租户信息';
 
--- 系统配置表 (可选)
-CREATE TABLE IF NOT EXISTS
-  `system_configs` (
-    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
-    `tenant_id` VARCHAR(64) DEFAULT NULL COMMENT '租户ID（NULL表示全局配置）',
-    `config_key` VARCHAR(100) NOT NULL COMMENT '配置键',
-    `config_value` TEXT NOT NULL COMMENT '配置值（JSON格式）',
-    `description` VARCHAR(500) DEFAULT NULL COMMENT '描述',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_tenant_key` (`tenant_id`, `config_key`),
-    KEY `idx_config_key` (`config_key`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '系统配置表';
 
--- 操作日志表 (可选，用于审计)
-CREATE TABLE IF NOT EXISTS
-  `operation_logs` (
-    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
-    `user_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '操作用户ID',
-    `operation_type` VARCHAR(50) NOT NULL COMMENT '操作类型: CREATE, UPDATE, DELETE',
-    `resource_type` VARCHAR(50) NOT NULL COMMENT '资源类型: user, role, resource',
-    `resource_id` VARCHAR(64) DEFAULT NULL COMMENT '资源ID',
-    `operation_desc` VARCHAR(500) DEFAULT NULL COMMENT '操作描述',
-    `ip_address` VARCHAR(45) DEFAULT NULL COMMENT 'IP地址',
-    `user_agent` VARCHAR(500) DEFAULT NULL COMMENT '浏览器UA',
-    `request_data` TEXT DEFAULT NULL COMMENT '请求数据',
-    `response_data` TEXT DEFAULT NULL COMMENT '响应数据',
-    `status` VARCHAR(20) NOT NULL COMMENT '状态: success, failure',
-    `error_message` VARCHAR(500) DEFAULT NULL COMMENT '错误信息',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+-- 5.3 操作日志表
+CREATE TABLE IF NOT EXISTS `iam_operation_logs`
+(
+    `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
+    `user_id`        BIGINT UNSIGNED          DEFAULT NULL COMMENT '操作用户ID',
+    `tenant_id`      VARCHAR(64)              DEFAULT NULL COMMENT '租户ID',
+    `operation_type` VARCHAR(50)     NOT NULL COMMENT '操作类型 (CREATE/UPDATE/DELETE/LOGIN/LOGOUT)',
+    `resource_type`  VARCHAR(50)     NOT NULL COMMENT '资源类型 (user/role/resource/policy)',
+    `resource_id`    VARCHAR(64)              DEFAULT NULL COMMENT '资源ID',
+    `operation_desc` VARCHAR(500)             DEFAULT NULL COMMENT '操作描述',
+    `ip_address`     VARCHAR(45)              DEFAULT NULL COMMENT 'IP地址',
+    `user_agent`     VARCHAR(500)             DEFAULT NULL COMMENT '浏览器UA',
+    `request_data`   TEXT                     DEFAULT NULL COMMENT '请求数据 (JSON)',
+    `response_data`  TEXT                     DEFAULT NULL COMMENT '响应数据 (JSON)',
+    `status`         VARCHAR(20)     NOT NULL COMMENT '状态 (success/failure)',
+    `error_message`  VARCHAR(500)             DEFAULT NULL COMMENT '错误信息',
+    `duration_ms`    INT                      DEFAULT NULL COMMENT '操作耗时 (毫秒)',
+    `created_at`     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
+    KEY `idx_iam_operation_logs_user_id` (`user_id`),
+    KEY `idx_iam_operation_logs_tenant_id` (`tenant_id`),
+    KEY `idx_iam_operation_logs_operation_type` (`operation_type`),
+    KEY `idx_iam_operation_logs_resource_type` (`resource_type`),
+    KEY `idx_iam_operation_logs_created_at` (`created_at`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='操作日志表 - 记录所有重要操作';
+
+-- 5.4 审计日志表
+CREATE TABLE IF NOT EXISTS `iam_audit_logs`
+(
+    `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
+    `event_id`       VARCHAR(64)     NOT NULL COMMENT '事件ID (UUID)',
+    `event_type`     VARCHAR(50)     NOT NULL COMMENT '事件类型 (authentication/authorization/data_access)',
+    `event_category` VARCHAR(50)     NOT NULL COMMENT '事件分类 (security/compliance/system)',
+    `severity`       VARCHAR(20)     NOT NULL COMMENT '严重级别 (info/warning/error/critical)',
+    `user_id`        BIGINT UNSIGNED          DEFAULT NULL COMMENT '用户ID',
+    `subject`        VARCHAR(128)             DEFAULT NULL COMMENT '主体 (用户名/服务名)',
+    `action`         VARCHAR(100)    NOT NULL COMMENT '动作',
+    `object`         VARCHAR(256)             DEFAULT NULL COMMENT '对象 (资源标识)',
+    `result`         VARCHAR(20)     NOT NULL COMMENT '结果 (success/failure/denied)',
+    `ip_address`     VARCHAR(45)              DEFAULT NULL COMMENT 'IP地址',
+    `details`        JSON                     DEFAULT NULL COMMENT '详细信息 (JSON)',
+    `created_at`     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_event_id` (`event_id`),
+    KEY `idx_event_type` (`event_type`),
+    KEY `idx_severity` (`severity`),
     KEY `idx_user_id` (`user_id`),
-    KEY `idx_operation_type` (`operation_type`),
-    KEY `idx_resource_type` (`resource_type`),
     KEY `idx_created_at` (`created_at`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '操作日志表';
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='审计日志表 - 用于安全合规审计';
+
+-- 5.5 数据字典表
+CREATE TABLE IF NOT EXISTS `iam_data_dictionary`
+(
+    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
+    `dict_type`  VARCHAR(50)     NOT NULL COMMENT '字典类型 (user_status/gender/relation_type)',
+    `dict_code`  VARCHAR(50)     NOT NULL COMMENT '字典编码',
+    `dict_value` VARCHAR(200)    NOT NULL COMMENT '字典值',
+    `dict_label` VARCHAR(200)    NOT NULL COMMENT '字典标签',
+    `sort_order` INT             NOT NULL DEFAULT 0 COMMENT '排序',
+    `is_default` TINYINT         NOT NULL DEFAULT 0 COMMENT '是否默认 (0=否 1=是)',
+    `status`     TINYINT         NOT NULL DEFAULT 1 COMMENT '状态 (1=启用 0=禁用)',
+    `remark`     VARCHAR(500)             DEFAULT NULL COMMENT '备注',
+    `created_at` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_type_code` (`dict_type`, `dict_code`),
+    KEY `idx_type` (`dict_type`),
+    KEY `idx_status` (`status`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='数据字典表 - 管理系统枚举值';
 
 -- ============================================================================
--- 初始化完成
+-- Schema 版本管理
 -- ============================================================================
--- 显示所有表
-SHOW TABLES;
-
--- 显示表统计信息
-SELECT
-  TABLE_NAME as '表名',
-  TABLE_COMMENT as '说明',
-  TABLE_ROWS as '行数',
-  ROUND(DATA_LENGTH / 1024 / 1024, 2) as '数据大小(MB)'
-FROM
-  information_schema.TABLES
-WHERE
-  TABLE_SCHEMA = 'aim'
-ORDER BY
-  TABLE_NAME;
+CREATE TABLE IF NOT EXISTS `iam_schema_version`
+(
+    `id`          INT         NOT NULL AUTO_INCREMENT COMMENT 'ID',
+    `version`     VARCHAR(20) NOT NULL COMMENT 'Schema版本号',
+    `description` VARCHAR(500)         DEFAULT NULL COMMENT '版本说明',
+    `applied_at`  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '应用时间',
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='Schema 版本管理表';
 
 -- ============================================================================
--- 说明
+-- Seed Data
 -- ============================================================================
--- 
--- 主要改进内容:
--- 
--- 1. ID 类型统一
---    - 所有主键和外键使用 BIGINT UNSIGNED (支持 Snowflake ID)
---    - jwks_keys 表使用 AUTO_INCREMENT (特殊需求)
---    
--- 2. 审计字段完整
---    - AuditFields: id, created_at, updated_at, deleted_at
---    - created_by, updated_by, deleted_by (审计人)
---    - version (乐观锁)
---    
--- 3. 字段类型修正
---    - status: VARCHAR -> TINYINT
---    - gender: VARCHAR -> TINYINT UNSIGNED
---    - height/weight: DECIMAL -> BIGINT (存储整数，单位为0.1)
---    
--- 4. 唯一索引添加
---    - phone, email, id_card: 普通索引 -> 唯一索引
---    
--- 5. 表名统一
---    - 认证模块: auth_ 前缀
---    - 授权模块: authz_ 前缀
---    
--- 6. 认证表拆分
---    - auth_accounts: 主表
---    - auth_wechat_accounts: 微信账号扩展
---    - auth_operation_accounts: 运营账号凭证
---    
--- 7. 软删除支持
---    - deleted_at 字段
---    - 不使用外键约束 (避免级联删除)
---    
--- 8. 移除 tenant_id (暂时)
---    - 代码中 PO 暂无此字段
---    - 如需多租户，需先更新代码
---    
--- 使用方式:
--- 1. 开发环境: 直接执行此脚本
--- 2. 生产环境: 使用增量迁移脚本
--- 3. 推荐使用 GORM AutoMigrate 自动同步
--- 
--- ============================================================================
+
+-- 默认租户
+INSERT INTO `iam_tenants` (`id`, `name`, `code`, `status`)
+VALUES ('default', '默认租户', 'DEFAULT', 'active')
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`),
+                        `status`=VALUES(`status`);
+
+-- 系统默认角色
+INSERT INTO `iam_authz_roles` (`id`, `name`, `display_name`, `tenant_id`, `is_system`, `description`, `created_at`,
+                               `updated_at`, `created_by`, `updated_by`, `deleted_by`, `version`)
+VALUES (1, 'super_admin', '超级管理员', 'default', 1, '拥有所有权限', NOW(), NOW(), 0, 0, 0, 1),
+       (2, 'tenant_admin', '租户管理员', 'default', 1, '管理本租户内的所有资源', NOW(), NOW(), 0, 0, 0, 1),
+       (3, 'user', '普通用户', 'default', 1, '普通用户权限', NOW(), NOW(), 0, 0, 0, 1)
+ON DUPLICATE KEY UPDATE `display_name`=VALUES(`display_name`),
+                        `description`=VALUES(`description`);
+
+-- 数据字典 - 性别
+INSERT INTO `iam_data_dictionary` (`dict_type`, `dict_code`, `dict_value`, `dict_label`, `sort_order`, `is_default`)
+VALUES ('gender', '0', '0', '未知', 1, 1),
+       ('gender', '1', '1', '男', 2, 0),
+       ('gender', '2', '2', '女', 3, 0)
+ON DUPLICATE KEY UPDATE `dict_label`=VALUES(`dict_label`);
+
+-- 数据字典 - 用户状态
+INSERT INTO `iam_data_dictionary` (`dict_type`, `dict_code`, `dict_value`, `dict_label`, `sort_order`, `is_default`)
+VALUES ('user_status', '1', '1', '正常', 1, 1),
+       ('user_status', '2', '2', '禁用', 2, 0),
+       ('user_status', '3', '3', '删除', 3, 0)
+ON DUPLICATE KEY UPDATE `dict_label`=VALUES(`dict_label`);
+
+-- 数据字典 - 监护关系
+INSERT INTO `iam_data_dictionary` (`dict_type`, `dict_code`, `dict_value`, `dict_label`, `sort_order`)
+VALUES ('relation_type', 'father', 'father', '父亲', 1),
+       ('relation_type', 'mother', 'mother', '母亲', 2),
+       ('relation_type', 'grandfather', 'grandfather', '祖父/外祖父', 3),
+       ('relation_type', 'grandmother', 'grandmother', '祖母/外祖母', 4),
+       ('relation_type', 'guardian', 'guardian', '法定监护人', 5)
+ON DUPLICATE KEY UPDATE `dict_label`=VALUES(`dict_label`);
+
+-- 记录 Schema 版本
+INSERT INTO `iam_schema_version` (`version`, `description`)
+VALUES ('2.0', '2025-10-31 - 完整的模块化 Schema 定义 (修订版)')
+ON DUPLICATE KEY UPDATE `description`=VALUES(`description`);
