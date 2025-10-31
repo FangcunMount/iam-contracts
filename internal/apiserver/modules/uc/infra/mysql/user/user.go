@@ -21,7 +21,7 @@ type UserPO struct {
 
 // TableName 指定表名
 func (UserPO) TableName() string {
-	return "users"
+	return "iam_users"
 }
 
 // BeforeCreate 在创建前设置信息

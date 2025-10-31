@@ -22,7 +22,7 @@ type ResourcePO struct {
 
 // TableName 指定表名
 func (ResourcePO) TableName() string {
-	return "authz_resources"
+	return "iam_authz_resources"
 }
 
 // BeforeCreate 在创建前设置信息

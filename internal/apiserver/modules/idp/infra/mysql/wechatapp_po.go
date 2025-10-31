@@ -30,7 +30,7 @@ type WechatAppPO struct {
 
 // TableName 指定表名
 func (WechatAppPO) TableName() string {
-	return "idp_wechat_apps"
+	return "iam_idp_wechat_apps"
 }
 
 // ToDomain 转换为领域对象

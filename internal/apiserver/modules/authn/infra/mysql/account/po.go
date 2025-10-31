@@ -45,17 +45,17 @@ type OperationAccountPO struct {
 
 // TableName 指定账号表名。
 func (AccountPO) TableName() string {
-	return "auth_accounts"
+	return "iam_auth_accounts"
 }
 
 // TableName 指定微信账号表名。
 func (WeChatAccountPO) TableName() string {
-	return "auth_wechat_accounts"
+	return "iam_auth_wechat_accounts"
 }
 
 // TableName 指定运营账号凭证表名。
 func (OperationAccountPO) TableName() string {
-	return "auth_operation_accounts"
+	return "iam_auth_operation_accounts"
 }
 
 // BeforeCreate 在创建前设置信息。
