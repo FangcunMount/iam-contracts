@@ -3,6 +3,7 @@ package assembler
 import (
 	"context"
 	"fmt"
+	"time"
 
 	redis "github.com/redis/go-redis/v9"
 	"github.com/silenceper/wechat/v2/cache"
@@ -178,7 +179,10 @@ func (m *IDPModule) initializeDomain() (*domainServices, error) {
 		wechatAppQuerier,
 	)
 
-	credentialRotater := wechatappService.NewCredentialRotater()
+	credentialRotater := wechatappService.NewCredentialRotater(
+		m.secretVault,
+		time.Now,
+	)
 
 	accessTokenCacher := wechatappService.NewAccessTokenCacher()
 
