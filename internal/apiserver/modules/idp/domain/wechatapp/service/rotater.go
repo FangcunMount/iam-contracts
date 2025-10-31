@@ -12,6 +12,7 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatapp/port"
 )
 
+// CredentialRotater 凭据轮换器
 type CredentialRotater struct {
 	vault port.SecretVault
 	now   func() time.Time
@@ -21,8 +22,15 @@ type CredentialRotater struct {
 var _ port.CredentialRotater = (*CredentialRotater)(nil)
 
 // NewCredentialRotater 创建凭据轮换器实例
-func NewCredentialRotater() *CredentialRotater {
-	return &CredentialRotater{}
+func NewCredentialRotater(vault port.SecretVault, now func() time.Time) *CredentialRotater {
+	if now == nil {
+		now = time.Now
+	}
+
+	return &CredentialRotater{
+		vault: vault,
+		now:   now,
+	}
 }
 
 // RotateAuthSecret 轮换认证密钥
@@ -48,6 +56,11 @@ func (m *CredentialRotater) RotateAuthSecret(ctx context.Context, app *domain.We
 	// 幂等：指纹相同则不变更，直接返回
 	if app.Cred.Auth != nil && app.Cred.Auth.IsMatch(newPlain) {
 		return nil
+	}
+
+	// 加密存储新的 AppSecret
+	if m.vault == nil {
+		return errors.New("missing secret vault for credential rotater")
 	}
 
 	// 加密存储新的 AppSecret
@@ -88,6 +101,10 @@ func (m *CredentialRotater) RotateMsgAESKey(ctx context.Context, app *domain.Wec
 	// 验证 app 状态
 	if app.IsArchived() {
 		return errors.New("cannot change credentials for archived app")
+	}
+
+	if m.vault == nil {
+		return errors.New("missing secret vault for credential rotater")
 	}
 
 	// 加密存储新的 MsgSecret
