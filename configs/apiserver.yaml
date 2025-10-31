@@ -24,6 +24,12 @@ mysql:
   conn-max-lifetime: 3600  # 秒
   log-level: 1 # GORM log level, 1: silent, 2:error, 3:warn, 4:info (生产环境使用 silent)
 
+# 数据库迁移配置
+migration:
+  enabled: true  # 是否启用自动迁移（生产环境建议启用）
+  autoseed: false  # 是否自动加载种子数据（仅开发/测试环境）
+  database: "iam_contracts"  # 数据库名称
+
 # Redis 配置（双实例架构）
 redis:
   # Cache Redis - 用于缓存、会话、限流等临时数据
