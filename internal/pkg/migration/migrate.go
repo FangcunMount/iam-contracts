@@ -55,7 +55,9 @@ func (m *Migrator) Run() error {
 	if err != nil {
 		return fmt.Errorf("failed to create migrate instance: %w", err)
 	}
-	defer instance.Close()
+	defer func() {
+		_, _ = instance.Close()
+	}()
 
 	// 获取当前版本
 	currentVersion, dirty, err := instance.Version()
@@ -89,7 +91,9 @@ func (m *Migrator) Rollback() error {
 	if err != nil {
 		return err
 	}
-	defer instance.Close()
+	defer func() {
+		_, _ = instance.Close()
+	}()
 
 	if err := instance.Steps(-1); err != nil {
 		return fmt.Errorf("rollback failed: %w", err)
@@ -104,7 +108,9 @@ func (m *Migrator) Version() (uint, bool, error) {
 	if err != nil {
 		return 0, false, err
 	}
-	defer instance.Close()
+	defer func() {
+		_, _ = instance.Close()
+	}()
 
 	version, dirty, err := instance.Version()
 	if err != nil {
