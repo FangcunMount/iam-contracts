@@ -13,8 +13,8 @@ import (
 type UserPO struct {
 	base.AuditFields
 	Name   string `gorm:"column:name;type:varchar(64);not null;comment:用户名称"`
-	Phone  string `gorm:"column:phone;type:varchar(20);uniqueIndex;not null;comment:手机号"`
-	Email  string `gorm:"column:email;type:varchar(100);uniqueIndex;not null;comment:邮箱"`
+	Phone  string `gorm:"column:phone;type:varchar(20);index;not null;comment:手机号"`
+	Email  string `gorm:"column:email;type:varchar(100);not null;comment:邮箱"`
 	IDCard string `gorm:"column:id_card;type:varchar(20);uniqueIndex;not null;comment:身份证号"`
 	Status uint8  `gorm:"column:status;type:int;not null;default:1;comment:用户状态"`
 }
