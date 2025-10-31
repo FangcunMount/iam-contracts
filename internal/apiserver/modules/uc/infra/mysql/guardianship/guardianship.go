@@ -21,7 +21,7 @@ type GuardianshipPO struct {
 
 // TableName 指定表名
 func (GuardianshipPO) TableName() string {
-	return "guardianships"
+	return "iam_guardianships"
 }
 
 // BeforeCreate 在创建前设置信息

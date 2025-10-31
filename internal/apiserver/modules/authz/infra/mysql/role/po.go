@@ -19,7 +19,7 @@ type RolePO struct {
 
 // TableName 指定表名
 func (RolePO) TableName() string {
-	return "authz_roles"
+	return "iam_authz_roles"
 }
 
 // BeforeCreate 在创建前设置信息
