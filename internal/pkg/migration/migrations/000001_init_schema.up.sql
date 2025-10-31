@@ -1,20 +1,16 @@
 -- ============================================================================
 -- IAM Contracts - Database Schema
+-- Version: 1
+-- Description: Initial schema for all modules
+-- Date: 2025-10-31
+-- ============================================================================
 -- Notes:
 --   * All tables use `iam_` prefix
 --   * utf8mb4 / InnoDB
 --   * Soft delete fields kept where applicable
---   * Added missing columns to match seed data (e.g., is_system in roles)
---   * Cleaned malformed/merged blocks; removed duplicates
---   * Escaped reserved identifiers (e.g., `use`)
+--   * Database should be created before running migrations
+--   * Migration only contains table DDL, no database creation
 -- ============================================================================
-
--- Create database
-CREATE DATABASE IF NOT EXISTS `iam_contracts`
-    DEFAULT CHARACTER SET utf8mb4
-    DEFAULT COLLATE utf8mb4_unicode_ci;
-
-USE `iam_contracts`;
 
 -- ============================================================================
 -- Module 1: User Center (UC) 用户中心

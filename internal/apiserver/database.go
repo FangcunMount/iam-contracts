@@ -83,6 +83,11 @@ func (dm *DatabaseManager) runMigrations() error {
 		return nil // 如果没有 MySQL，跳过迁移
 	}
 
+	// 确保数据库存在（在执行迁移前）
+	if err := dm.ensureDatabase(gormDB); err != nil {
+		return fmt.Errorf("failed to ensure database exists: %w", err)
+	}
+
 	// 获取底层 *sql.DB
 	sqlDB, err := gormDB.DB()
 	if err != nil {
@@ -111,6 +116,35 @@ func (dm *DatabaseManager) runMigrations() error {
 		} else {
 			log.Infof("✅ Database migration completed successfully (version: %d)", version)
 		}
+	}
+
+	return nil
+}
+
+// ensureDatabase 确保数据库存在
+func (dm *DatabaseManager) ensureDatabase(gormDB *gorm.DB) error {
+	dbName := dm.config.MigrationOptions.Database
+
+	// 检查数据库是否存在
+	var exists int64
+	err := gormDB.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", dbName).Scan(&exists).Error
+	if err != nil {
+		return fmt.Errorf("failed to check database existence: %w", err)
+	}
+
+	// 如果数据库不存在，创建它
+	if exists == 0 {
+		log.Infof("Database '%s' does not exist, creating...", dbName)
+		createSQL := fmt.Sprintf(
+			"CREATE DATABASE `%s` DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci",
+			dbName,
+		)
+		if err := gormDB.Exec(createSQL).Error; err != nil {
+			return fmt.Errorf("failed to create database: %w", err)
+		}
+		log.Infof("✅ Database '%s' created successfully", dbName)
+	} else {
+		log.Debugf("Database '%s' already exists", dbName)
 	}
 
 	return nil
