@@ -11,6 +11,7 @@ import (
 	"github.com/FangcunMount/component-base/pkg/database/connecter"
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/config"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/migration"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/options"
 )
 
@@ -55,7 +56,63 @@ func (dm *DatabaseManager) Initialize() error {
 		// 不返回错误，允许应用在没有数据库的情况下运行
 	}
 
+	// 执行数据库迁移
+	if err := dm.runMigrations(); err != nil {
+		log.Errorf("Failed to run database migrations: %v", err)
+		return err // 迁移失败应该终止启动
+	}
+
 	log.Info("Database connections initialization completed")
+	return nil
+}
+
+// runMigrations 执行数据库迁移
+func (dm *DatabaseManager) runMigrations() error {
+	// 检查是否启用迁移
+	if !dm.config.MigrationOptions.Enabled {
+		log.Info("📦 Database migration is disabled")
+		return nil
+	}
+
+	log.Info("🔄 Starting database migration...")
+
+	// 获取 MySQL 连接
+	gormDB, err := dm.GetMySQLDB()
+	if err != nil {
+		log.Warnf("Cannot run migration: MySQL not available: %v", err)
+		return nil // 如果没有 MySQL，跳过迁移
+	}
+
+	// 获取底层 *sql.DB
+	sqlDB, err := gormDB.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get sql.DB from gorm: %w", err)
+	}
+
+	// 创建迁移器
+	migrator := migration.NewMigrator(sqlDB, &migration.Config{
+		Enabled:  dm.config.MigrationOptions.Enabled,
+		AutoSeed: dm.config.MigrationOptions.AutoSeed,
+		Database: dm.config.MigrationOptions.Database,
+	})
+
+	// 执行迁移
+	if err := migrator.Run(); err != nil {
+		return fmt.Errorf("migration failed: %w", err)
+	}
+
+	// 获取当前版本
+	version, dirty, err := migrator.Version()
+	if err != nil {
+		log.Warnf("Failed to get migration version: %v", err)
+	} else {
+		if dirty {
+			log.Warnf("⚠️  Migration version %d is in dirty state", version)
+		} else {
+			log.Infof("✅ Database migration completed successfully (version: %d)", version)
+		}
+	}
+
 	return nil
 }
 

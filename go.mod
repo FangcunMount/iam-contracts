@@ -59,7 +59,7 @@ require (
 	github.com/go-playground/validator/v10 v10.28.0 // indirect
 	github.com/go-redis/redis/v7 v7.4.1 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
-	github.com/go-sql-driver/mysql v1.8.1 // indirect
+	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.18.0 // indirect
