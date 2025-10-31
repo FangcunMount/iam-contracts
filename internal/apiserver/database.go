@@ -2,6 +2,7 @@ package apiserver
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	redis "github.com/redis/go-redis/v9"
@@ -88,10 +89,29 @@ func (dm *DatabaseManager) runMigrations() error {
 		return fmt.Errorf("failed to ensure database exists: %w", err)
 	}
 
-	// 获取底层 *sql.DB
-	sqlDB, err := gormDB.DB()
+	// 创建独立的 *sql.DB 供迁移使用（防止关闭迁移连接影响业务连接）
+	dsn := fmt.Sprintf(`%s:%s@tcp(%s)/%s?charset=utf8&parseTime=%t&loc=%s&multiStatements=true`,
+		dm.config.MySQLOptions.Username,
+		dm.config.MySQLOptions.Password,
+		dm.config.MySQLOptions.Host,
+		dm.config.MySQLOptions.Database,
+		true,
+		"Local",
+	)
+	sqlDB, err := sql.Open("mysql", dsn)
 	if err != nil {
-		return fmt.Errorf("failed to get sql.DB from gorm: %w", err)
+		return fmt.Errorf("failed to open migration database connection: %w", err)
+	}
+	defer func() {
+		if cerr := sqlDB.Close(); cerr != nil {
+			log.Debugf("Failed to close migration database connection: %v", cerr)
+		}
+	}()
+	sqlDB.SetMaxOpenConns(dm.config.MySQLOptions.MaxOpenConnections)
+	sqlDB.SetConnMaxLifetime(dm.config.MySQLOptions.MaxConnectionLifeTime)
+	sqlDB.SetMaxIdleConns(dm.config.MySQLOptions.MaxIdleConnections)
+	if err := sqlDB.Ping(); err != nil {
+		return fmt.Errorf("failed to ping migration database: %w", err)
 	}
 
 	// 创建迁移器
@@ -102,20 +122,18 @@ func (dm *DatabaseManager) runMigrations() error {
 	})
 
 	// 执行迁移
-	if err := migrator.Run(); err != nil {
+	version, applied, err := migrator.Run()
+	if err != nil {
 		return fmt.Errorf("migration failed: %w", err)
 	}
 
-	// 获取当前版本
-	version, dirty, err := migrator.Version()
-	if err != nil {
-		log.Warnf("Failed to get migration version: %v", err)
-	} else {
-		if dirty {
-			log.Warnf("⚠️  Migration version %d is in dirty state", version)
-		} else {
-			log.Infof("✅ Database migration completed successfully (version: %d)", version)
-		}
+	switch {
+	case applied:
+		log.Infof("✅ Database migration completed successfully (version: %d)", version)
+	case version == 0:
+		log.Infof("✅ No database migrations applied (version: %d)", version)
+	default:
+		log.Infof("✅ Database already up to date (version: %d)", version)
 	}
 
 	return nil

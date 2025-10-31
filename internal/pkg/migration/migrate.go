@@ -37,23 +37,23 @@ func NewMigrator(db *sql.DB, config *Config) *Migrator {
 	}
 }
 
-// Run 执行数据库迁移
+// Run 执行数据库迁移并返回最新版本以及是否执行了迁移
 //
 // 工作流程:
 // 1. 检查是否启用迁移
 // 2. 创建 migrate 实例
 // 3. 获取当前版本
 // 4. 执行迁移到最新版本
-// 5. 记录迁移结果
-func (m *Migrator) Run() error {
+// 5. 返回最新版本及是否执行了迁移
+func (m *Migrator) Run() (uint, bool, error) {
 	if !m.config.Enabled {
-		return nil
+		return 0, false, nil
 	}
 
 	// 创建 migrate 实例
 	instance, err := m.createMigrate()
 	if err != nil {
-		return fmt.Errorf("failed to create migrate instance: %w", err)
+		return 0, false, fmt.Errorf("failed to create migrate instance: %w", err)
 	}
 	defer func() {
 		_, _ = instance.Close()
@@ -62,27 +62,36 @@ func (m *Migrator) Run() error {
 	// 获取当前版本
 	currentVersion, dirty, err := instance.Version()
 	if err != nil && err != migrate.ErrNilVersion {
-		return fmt.Errorf("failed to get current version: %w", err)
+		return 0, false, fmt.Errorf("failed to get current version: %w", err)
+	}
+
+	var versionBefore uint
+	if err == migrate.ErrNilVersion {
+		versionBefore = 0
+	} else {
+		versionBefore = currentVersion
 	}
 
 	if dirty {
-		return fmt.Errorf("database is in dirty state at version %d, please fix manually", currentVersion)
+		return versionBefore, false, fmt.Errorf("database is in dirty state at version %d, please fix manually", versionBefore)
 	}
 
 	// 执行迁移
 	if err := instance.Up(); err != nil {
 		if err == migrate.ErrNoChange {
 			// 数据库已是最新版本
-			return nil
+			return versionBefore, false, nil
 		}
-		return fmt.Errorf("migration failed: %w", err)
+		return versionBefore, false, fmt.Errorf("migration failed: %w", err)
 	}
 
 	// 获取新版本
-	newVersion, _, _ := instance.Version()
-	_ = newVersion // 可以记录日志
+	newVersion, _, verr := instance.Version()
+	if verr != nil {
+		return versionBefore, true, fmt.Errorf("failed to get new version: %w", verr)
+	}
 
-	return nil
+	return newVersion, true, nil
 }
 
 // Rollback 回滚最近的一次迁移
