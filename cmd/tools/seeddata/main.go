@@ -134,7 +134,9 @@ func main() {
 	var redisClient *redis.Client
 	if redisAddr != "" {
 		redisClient = common.MustOpenRedis(redisAddr)
-		defer redisClient.Close()
+		defer func() {
+			_ = redisClient.Close()
+		}()
 	}
 
 	// 创建依赖对象
