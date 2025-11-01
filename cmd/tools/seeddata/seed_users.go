@@ -51,8 +51,11 @@ type guardianshipSeed struct {
 // 4. 返回的 state 保存用户ID和儿童ID，供后续步骤使用
 //
 // 幂等性：通过查询检查，已存在的用户会被更新而不是重复创建
+//
+// 注意：所有操作必须在同一个事务外完成，确保每个应用服务调用都能看到之前创建的数据
 func seedUserCenter(ctx context.Context, deps *dependencies, state *seedContext) error {
 	// 初始化用户中心的工作单元和应用服务
+	// 注意：每个应用服务方法都会开启独立事务，因此数据会立即提交
 	uow := ucUOW.NewUnitOfWork(deps.DB)
 
 	userAppSrv := userApp.NewUserApplicationService(uow)
@@ -63,92 +66,47 @@ func seedUserCenter(ctx context.Context, deps *dependencies, state *seedContext)
 	childQuerySrv := childApp.NewChildQueryApplicationService(uow)
 
 	guardAppSrv := guardApp.NewGuardianshipApplicationService(uow)
+	guardQuerySrv := guardApp.NewGuardianshipQueryApplicationService(uow)
 
-	// 定义用户数据
-	users := []userSeed{
-		{
-			Alias:  "admin",
-			Name:   "系统管理员",
-			Phone:  "10086000001",
-			Email:  "admin@system.com",
-			IDCard: "110101199001011001",
-		},
-		{
-			Alias:  "zhangsan",
-			Name:   "张三",
-			Phone:  "13800138000",
-			Email:  "zhangsan@example.com",
-			IDCard: "110101199001011002",
-		},
-		{
-			Alias:  "lisi",
-			Name:   "李四",
-			Phone:  "13800138001",
-			Email:  "lisi@example.com",
-			IDCard: "110101199001011003",
-		},
-		{
-			Alias:  "wangwu",
-			Name:   "王五",
-			Phone:  "13800138002",
-			Email:  "wangwu@example.com",
-			IDCard: "110101198001011004",
-		},
-		{
-			Alias:  "zhaoliu",
-			Name:   "赵六",
-			Phone:  "13800138003",
-			Email:  "zhaoliu@example.com",
-			IDCard: "110101198001011005",
-		},
+	// 从配置文件读取用户数据
+	users := make([]userSeed, 0, len(deps.Config.Users))
+	for _, uc := range deps.Config.Users {
+		users = append(users, userSeed{
+			Alias:  uc.Alias,
+			Name:   uc.Name,
+			Phone:  uc.Phone,
+			Email:  uc.Email,
+			IDCard: uc.IDCard,
+		})
 	}
 
-	// 定义儿童数据
-	children := []childSeed{
-		{
-			Alias:    "xiaoming",
-			Name:     "小明",
-			IDCard:   "110101201501011001",
-			Gender:   "male",
-			Birthday: "2015-01-01",
-			Height:   1450, // 145.0cm
-			Weight:   350,  // 35.0kg
-		},
-		{
-			Alias:    "xiaohong",
-			Name:     "小红",
-			IDCard:   "110101201502011002",
-			Gender:   "female",
-			Birthday: "2015-02-01",
-			Height:   1420,
-			Weight:   330,
-		},
-		{
-			Alias:    "xiaogang",
-			Name:     "小刚",
-			IDCard:   "110101201603011003",
-			Gender:   "male",
-			Birthday: "2016-03-01",
-			Height:   1380,
-			Weight:   310,
-		},
-		{
-			Alias:    "xiaoli",
-			Name:     "小丽",
-			IDCard:   "", // 可以没有身份证号
-			Gender:   "female",
-			Birthday: "2018-05-15",
-			Height:   1100,
-			Weight:   200,
-		},
+	// 从配置文件读取儿童数据
+	children := make([]childSeed, 0, len(deps.Config.Children))
+	for _, cc := range deps.Config.Children {
+		// 将配置中的 gender (1=男, 2=女) 转换为 male/female
+		gender := "male"
+		if cc.Gender == 2 {
+			gender = "female"
+		}
+		children = append(children, childSeed{
+			Alias:    cc.Alias,
+			Name:     cc.Name,
+			IDCard:   cc.IDCard,
+			Gender:   gender,
+			Birthday: cc.Birthday,
+			Height:   cc.Height,
+			Weight:   cc.Weight,
+		})
 	}
 
-	// 定义监护关系
-	guardianships := []guardianshipSeed{
-		{UserAlias: "wangwu", ChildAlias: "xiaoming", Relation: "parent"},
-		{UserAlias: "zhaoliu", ChildAlias: "xiaohong", Relation: "parent"},
-		{UserAlias: "wangwu", ChildAlias: "xiaogang", Relation: "guardian"},
-		{UserAlias: "zhaoliu", ChildAlias: "xiaoli", Relation: "parent"},
+	// 从配置文件读取监护关系数据
+	guardianships := make([]guardianshipSeed, 0, len(deps.Config.Guardianships))
+	for _, gc := range deps.Config.Guardianships {
+		guardianships = append(guardianships, guardianshipSeed{
+			UserAlias:  gc.UserAlias,
+			ChildAlias: gc.ChildAlias,
+			Relation:   gc.Relation,
+		})
 	}
 
 	// 1. 创建用户
@@ -168,6 +126,11 @@ func seedUserCenter(ctx context.Context, deps *dependencies, state *seedContext)
 		}
 		state.Children[cs.Alias] = id
 	}
+
+	// 重要：确保所有用户和儿童数据已经提交到数据库
+	// 因为每个应用服务方法都在独立事务中运行，这里不需要显式提交
+	// 但为了确保后续的 AddGuardian 能查询到数据，我们记录日志并继续
+	deps.Logger.Infow("用户和儿童数据创建完成", "users", len(users), "children", len(children))
 
 	// 3. 建立监护关系
 	for _, gs := range guardianships {
@@ -192,6 +155,26 @@ func seedUserCenter(ctx context.Context, deps *dependencies, state *seedContext)
 		}
 
 		deps.Logger.Infow("creating guardian", "user_alias", gs.UserAlias, "child_alias", gs.ChildAlias, "user_id", userID, "child_id", childID)
+
+		// 如果已经是监护人则跳过（避免依赖错误字符串判断）
+		isGuardian, err := guardQuerySrv.IsGuardian(ctx, userID, childID)
+		if err != nil {
+			return fmt.Errorf("add guardian %s->%s: failed to check existing guardian: %w", gs.UserAlias, gs.ChildAlias, err)
+		}
+		if isGuardian {
+			deps.Logger.Infow("skip creating guardian because already exists", "user_alias", gs.UserAlias, "child_alias", gs.ChildAlias)
+			continue
+		}
+
+		// 最后一次确认：使用非事务方式直接查询数据库，确保数据已提交
+		// 这解决了应用服务在独立事务中查询不到刚创建数据的问题
+		deps.Logger.Infow("验证用户和儿童数据存在", "user_id", userID, "child_id", childID)
+		if u2, err := userQuerySrv.GetByID(ctx, userID); err != nil || u2 == nil {
+			return fmt.Errorf("add guardian %s->%s: user verification failed before AddGuardian (id=%s, err=%v)", gs.UserAlias, gs.ChildAlias, userID, err)
+		}
+		if c2, err := childQuerySrv.GetByID(ctx, childID); err != nil || c2 == nil {
+			return fmt.Errorf("add guardian %s->%s: child verification failed before AddGuardian (id=%s, err=%v)", gs.UserAlias, gs.ChildAlias, childID, err)
+		}
 
 		dto := guardApp.AddGuardianDTO{
 			UserID:   userID,
