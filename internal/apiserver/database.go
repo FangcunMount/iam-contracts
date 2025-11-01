@@ -12,6 +12,7 @@ import (
 	"github.com/FangcunMount/component-base/pkg/database/connecter"
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/config"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/migration"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/options"
 )
@@ -170,6 +171,9 @@ func (dm *DatabaseManager) ensureDatabase(gormDB *gorm.DB) error {
 
 // initMySQL 初始化MySQL连接
 func (dm *DatabaseManager) initMySQL() error {
+	// 创建 GORM logger 实例
+	gormLogger := logger.New(dm.config.MySQLOptions.LogLevel)
+
 	mysqlConfig := &connecter.MySQLConfig{
 		Host:                  dm.config.MySQLOptions.Host,
 		Username:              dm.config.MySQLOptions.Username,
@@ -179,6 +183,7 @@ func (dm *DatabaseManager) initMySQL() error {
 		MaxOpenConnections:    dm.config.MySQLOptions.MaxOpenConnections,
 		MaxConnectionLifeTime: dm.config.MySQLOptions.MaxConnectionLifeTime,
 		LogLevel:              dm.config.MySQLOptions.LogLevel,
+		Logger:                gormLogger,
 	}
 
 	if mysqlConfig.Host == "" {
