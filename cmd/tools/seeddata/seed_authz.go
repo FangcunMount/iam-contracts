@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	assignmentApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/application/assignment"
 	resourceApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/application/resource"
@@ -18,9 +19,96 @@ import (
 	assignmentMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/assignment"
 	resourceMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/resource"
 	roleMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/role"
+	"gorm.io/gorm/clause"
 )
 
 // ==================== 授权相关类型定义 ====================
+
+// rolePO 角色持久化对象 (用于直接插入)
+type rolePO struct {
+	ID          uint64    `gorm:"primaryKey;column:id"`
+	Name        string    `gorm:"column:name"`
+	DisplayName string    `gorm:"column:display_name"`
+	TenantID    string    `gorm:"column:tenant_id"`
+	IsSystem    bool      `gorm:"column:is_system"`
+	Description string    `gorm:"column:description"`
+	CreatedAt   time.Time `gorm:"column:created_at"`
+	UpdatedAt   time.Time `gorm:"column:updated_at"`
+	CreatedBy   uint64    `gorm:"column:created_by"`
+	UpdatedBy   uint64    `gorm:"column:updated_by"`
+	DeletedBy   uint64    `gorm:"column:deleted_by"`
+	Version     int       `gorm:"column:version"`
+}
+
+// TableName 指定表名
+func (rolePO) TableName() string {
+	return "iam_authz_roles"
+}
+
+// ==================== 角色 Seed 函数 ====================
+
+// seedAuthzRoles 创建基础角色数据
+//
+// 业务说明：
+// - 创建系统基础角色（super_admin, tenant_admin, user）
+// - 使用直接数据库插入方式，确保角色 ID 固定
+// - 这些角色用于后续的角色分配
+//
+// 幂等性：使用 UPSERT 策略，可以安全地重复执行
+func seedAuthzRoles(ctx context.Context, deps *dependencies) error {
+	deps.Logger.Infow("📋 开始创建基础角色数据...")
+
+	roles := []rolePO{
+		{
+			ID:          1,
+			Name:        "super_admin",
+			DisplayName: "超级管理员",
+			TenantID:    "default",
+			IsSystem:    true,
+			Description: "拥有所有权限",
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Version:     1,
+		},
+		{
+			ID:          2,
+			Name:        "tenant_admin",
+			DisplayName: "租户管理员",
+			TenantID:    "default",
+			IsSystem:    true,
+			Description: "管理本租户内的所有资源",
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Version:     1,
+		},
+		{
+			ID:          3,
+			Name:        "user",
+			DisplayName: "普通用户",
+			TenantID:    "default",
+			IsSystem:    true,
+			Description: "普通用户权限",
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Version:     1,
+		},
+	}
+
+	for _, role := range roles {
+		// 使用 UPSERT 策略：如果存在则更新，不存在则插入
+		if err := deps.DB.WithContext(ctx).
+			Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "id"}},
+				UpdateAll: true,
+			}).
+			Create(&role).Error; err != nil {
+			return fmt.Errorf("upsert role %s: %w", role.Name, err)
+		}
+	}
+
+	deps.Logger.Infow("✅ 基础角色数据已创建", "count", len(roles))
+	return nil
+}
 
 // ==================== 授权资源 Seed 函数 ====================
 

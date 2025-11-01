@@ -63,7 +63,7 @@ COLOR_RED := \033[31m
 # ============================================================================
 
 .PHONY: help version debug
-.PHONY: build build-apiserver clean
+.PHONY: build build-apiserver build-tools clean
 .PHONY: run run-apiserver stop stop-apiserver restart restart-apiserver
 .PHONY: status status-apiserver logs logs-apiserver health health-check
 .PHONY: dev dev-apiserver dev-stop dev-status dev-logs
@@ -73,7 +73,7 @@ COLOR_RED := \033[31m
 .PHONY: proto proto-gen
 .PHONY: install install-tools create-dirs
 .PHONY: up down re st log
-.PHONY: db-init db-migrate db-seed db-reset db-connect db-status db-backup
+.PHONY: db-seed db-connect db-status db-backup
 .PHONY: docker-mysql-up docker-mysql-down docker-mysql-clean docker-mysql-logs
 .PHONY: cert-gen cert-test cert-verify test-dev-config
 .PHONY: docker-dev-up docker-dev-down docker-dev-restart docker-dev-logs docker-dev-clean
@@ -135,6 +135,12 @@ build-apiserver: ## 构建 API 服务器
 	@$(MAKE) create-dirs
 	@$(GO_BUILD) $(GO_LDFLAGS) -o $(APISERVER_BIN) ./cmd/apiserver/
 	@echo "$(COLOR_GREEN)✅ API 服务器构建完成: $(APISERVER_BIN)$(COLOR_RESET)"
+
+build-tools: ## 构建工具（seeddata等）
+	@echo "$(COLOR_BOLD)$(COLOR_BLUE)🔧 构建工具...$(COLOR_RESET)"
+	@$(MAKE) create-dirs
+	@$(GO_BUILD) -o tmp/seeddata ./cmd/tools/seeddata
+	@echo "$(COLOR_GREEN)✅ 工具构建完成: tmp/seeddata$(COLOR_RESET)"
 
 # =============================================================================
 # 服务运行管理
@@ -481,33 +487,19 @@ DB_USER ?= root
 DB_PASSWORD ?=
 DB_NAME ?= iam_contracts
 
-db-init: ## 初始化数据库（创建表结构 + 加载种子数据）
-	@echo "$(COLOR_BOLD)$(COLOR_BLUE)🗄️  初始化数据库...$(COLOR_RESET)"
-	@chmod +x scripts/sql/init-db.sh
-	@DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_NAME=$(DB_NAME) \
-		scripts/sql/init-db.sh --skip-confirm
-	@echo "$(COLOR_GREEN)✅ 数据库初始化完成$(COLOR_RESET)"
+# 注意: db-init, db-migrate, db-seed, db-reset 已弃用
+# 请使用以下新命令:
+# - 数据库迁移: 应用程序启动时自动执行 (internal/pkg/migration)
+# - 种子数据: make seed-data 或 ./tmp/seeddata
 
-db-migrate: ## 仅创建数据库表结构（不加载种子数据）
-	@echo "$(COLOR_BOLD)$(COLOR_BLUE)🗄️  创建数据库表结构...$(COLOR_RESET)"
-	@chmod +x scripts/sql/init-db.sh
-	@DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_NAME=$(DB_NAME) \
-		scripts/sql/init-db.sh --schema-only --skip-confirm
-	@echo "$(COLOR_GREEN)✅ 表结构创建完成$(COLOR_RESET)"
-
-db-seed: ## 仅加载种子数据（需要表已存在）
+db-seed: ## 加载种子数据（使用新的 seeddata 工具）
 	@echo "$(COLOR_BOLD)$(COLOR_BLUE)🌱 加载种子数据...$(COLOR_RESET)"
-	@chmod +x scripts/sql/init-db.sh
-	@DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_NAME=$(DB_NAME) \
-		scripts/sql/init-db.sh --seed-only --skip-confirm
+	@if [ ! -f tmp/seeddata ]; then \
+		echo "$(COLOR_YELLOW)⚠️  seeddata 工具未找到，正在编译...$(COLOR_RESET)"; \
+		$(MAKE) build-tools; \
+	fi
+	@./tmp/seeddata --dsn "$(DB_USER):$(DB_PASSWORD)@tcp($(DB_HOST):$(DB_PORT))/$(DB_NAME)?parseTime=true&loc=Local"
 	@echo "$(COLOR_GREEN)✅ 种子数据加载完成$(COLOR_RESET)"
-
-db-reset: ## 重置数据库（删除并重新创建，危险操作！）
-	@echo "$(COLOR_BOLD)$(COLOR_RED)⚠️  重置数据库...$(COLOR_RESET)"
-	@chmod +x scripts/sql/reset-db.sh
-	@DB_HOST=$(DB_HOST) DB_PORT=$(DB_PORT) DB_USER=$(DB_USER) DB_PASSWORD=$(DB_PASSWORD) DB_NAME=$(DB_NAME) \
-		scripts/sql/reset-db.sh
-	@echo "$(COLOR_GREEN)✅ 数据库重置完成$(COLOR_RESET)"
 
 db-connect: ## 连接到数据库
 	@echo "$(COLOR_CYAN)🔌 连接到数据库 $(DB_NAME)...$(COLOR_RESET)"
