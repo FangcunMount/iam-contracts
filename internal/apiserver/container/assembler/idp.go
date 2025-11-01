@@ -209,6 +209,7 @@ func (m *IDPModule) initializeApplication(
 	wechatAuthenticator := wechatsessionService.NewAuthenticator(
 		m.wechatAuthProvider,
 		domainServices.wechatAppQuerier,
+		m.secretVault, // 添加 secretVault 参数
 	)
 
 	// 直接创建各个应用服务
