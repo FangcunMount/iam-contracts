@@ -19,6 +19,7 @@ type SeedConfig struct {
 	Assignments   []AssignmentConfig   `yaml:"assignments"`
 	Policies      []PolicyConfig       `yaml:"policies"`
 	JWKS          JWKSConfig           `yaml:"jwks"`
+	WechatApps    []WechatAppConfig    `yaml:"wechat_apps"`
 }
 
 // TenantConfig 租户配置
@@ -102,6 +103,16 @@ type JWKSConfig struct {
 	Algorithm  string `yaml:"algorithm"`
 	KeySize    int    `yaml:"key_size"`
 	ValidYears int    `yaml:"valid_years"`
+}
+
+// WechatAppConfig 微信应用配置
+type WechatAppConfig struct {
+	Alias     string `yaml:"alias"`      // 用于引用的别名
+	AppID     string `yaml:"app_id"`     // 微信应用 ID
+	Name      string `yaml:"name"`       // 应用名称
+	Type      string `yaml:"type"`       // 应用类型：MiniProgram/MP
+	Status    string `yaml:"status"`     // 应用状态：Enabled/Disabled/Archived
+	AppSecret string `yaml:"app_secret"` // AppSecret（可选，创建时设置）
 }
 
 // LoadSeedConfig 从 YAML 文件加载种子数据配置
