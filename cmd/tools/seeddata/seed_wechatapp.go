@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
@@ -41,8 +42,27 @@ func seedWechatApps(ctx context.Context, deps *dependencies) error {
 
 	deps.Logger.Infow("📋 开始创建微信应用数据...", "count", len(config.WechatApps))
 
-	// 初始化容器和 IDP 模块
-	c := container.NewContainer(deps.DB, deps.Redis, deps.Redis, nil)
+	// 🔑 读取并解码加密密钥
+	var encryptionKey []byte
+	if config.EncryptionKey != "" {
+		// 尝试 Base64 解码
+		decoded, err := base64.StdEncoding.DecodeString(config.EncryptionKey)
+		if err == nil && len(decoded) == 32 {
+			encryptionKey = decoded
+			deps.Logger.Debugw("🔐 使用配置文件中的加密密钥（Base64解码）", "key_length", len(encryptionKey))
+		} else if len(config.EncryptionKey) == 32 {
+			// 如果不是 Base64，尝试直接使用（假设是32字节字符串）
+			encryptionKey = []byte(config.EncryptionKey)
+			deps.Logger.Debugw("🔐 使用配置文件中的加密密钥（原始字符串）", "key_length", len(encryptionKey))
+		} else {
+			return fmt.Errorf("invalid encryption key: must be 32 bytes or base64-encoded 32 bytes")
+		}
+	} else {
+		deps.Logger.Warnw("⚠️  未配置加密密钥，将使用默认密钥（仅用于开发环境）")
+	}
+
+	// 初始化容器和 IDP 模块（传递加密密钥）
+	c := container.NewContainer(deps.DB, deps.Redis, deps.Redis, encryptionKey)
 	if err := c.Initialize(); err != nil {
 		return fmt.Errorf("failed to initialize container: %w", err)
 	}
