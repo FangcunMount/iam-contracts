@@ -69,7 +69,7 @@ COLOR_RED := \033[31m
 .PHONY: dev dev-apiserver dev-stop dev-status dev-logs
 .PHONY: test test-unit test-coverage test-race test-bench
 .PHONY: lint fmt fmt-check
-.PHONY: deps deps-download deps-tidy deps-verify
+.PHONY: deps deps-download deps-tidy deps-verify deps-update deps-update-all deps-check
 .PHONY: proto proto-gen
 .PHONY: install install-tools create-dirs
 .PHONY: up down re st log
@@ -404,6 +404,26 @@ deps-verify: ## 验证依赖
 	@echo "$(COLOR_CYAN)🔍 验证依赖...$(COLOR_RESET)"
 	@$(GO) mod verify
 	@echo "$(COLOR_GREEN)✅ 依赖验证通过$(COLOR_RESET)"
+
+deps-update: ## 更新 component-base 到最新版本
+	@echo "$(COLOR_CYAN)🔄 更新 component-base...$(COLOR_RESET)"
+	@$(GO) get -u github.com/FangcunMount/component-base@latest
+	@$(GO) mod tidy
+	@echo "$(COLOR_GREEN)✅ component-base 已更新$(COLOR_RESET)"
+	@$(GO) list -m github.com/FangcunMount/component-base
+
+deps-update-all: ## 更新所有依赖到最新版本
+	@echo "$(COLOR_CYAN)🔄 更新所有依赖...$(COLOR_RESET)"
+	@$(GO) get -u ./...
+	@$(GO) mod tidy
+	@$(GO) mod verify
+	@echo "$(COLOR_GREEN)✅ 所有依赖已更新$(COLOR_RESET)"
+
+deps-check: ## 检查可更新的依赖
+	@echo "$(COLOR_CYAN)🔍 检查依赖状态...$(COLOR_RESET)"
+	@$(GO) list -u -m all | grep -v indirect || true
+	@echo ""
+	@echo "$(COLOR_YELLOW)说明: 后面有方括号 [...] 的表示有更新可用$(COLOR_RESET)"
 
 # ============================================================================
 # Protocol Buffers
