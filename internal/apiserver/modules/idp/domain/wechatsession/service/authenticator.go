@@ -20,10 +20,11 @@ type Authenticator struct {
 var _ sessionPort.Authenticator = (*Authenticator)(nil)
 
 // NewAuthenticator 创建认证器实例
-func NewAuthenticator(authProvider sessionPort.AuthProvider, wechatAppQuerier appPort.WechatAppQuerier) *Authenticator {
+func NewAuthenticator(authProvider sessionPort.AuthProvider, wechatAppQuerier appPort.WechatAppQuerier, secretVault appPort.SecretVault) *Authenticator {
 	return &Authenticator{
 		authProvider:     authProvider,
 		wechatAppQuerier: wechatAppQuerier,
+		secretVault:      secretVault,
 	}
 }
 
