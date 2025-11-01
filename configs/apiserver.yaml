@@ -56,13 +56,43 @@ redis:
     enable-cluster: false
     use-ssl: false
 
-# 日志配置
+# 日志配置（生产环境 - 使用 component-base v0.2.7 最新功能）
 log:
-  disable-caller: true
-  disable-stacktrace: true
-  level: debug
-  format: console
-  output-paths: [/var/log/iam-contracts/app.log, stdout]
+  # 基础配置
+  disable-caller: true          # 生产环境禁用调用者信息（性能优化）
+  disable-stacktrace: true      # 仅在 panic 时记录堆栈
+  level: debug                   # 生产环境使用 debug 级别
+  format: json                  # JSON 格式便于日志收集和分析
+  enable-color: false           # 文件输出禁用颜色
+  development: false            # 生产模式
+  name: "iam-apiserver"         # 日志名称
+  
+  # 输出路径
+  output-paths: 
+    - /var/log/iam-contracts/app.log
+  error-output-paths: 
+    - /var/log/iam-contracts/error.log
+  
+  # 📊 日志轮转配置
+  max-size: 100                 # 单个日志文件最大 100MB
+  max-age: 7                   # 保留 7 天
+  max-backups: 7               # 保留 7 个备份文件
+  compress: true                # 压缩旧文件节省空间
+  
+  # ⏰ 按时间轮转（推荐生产环境使用）
+  enable-time-rotation: true    # 启用按时间轮转
+  time-rotation-format: "2006-01-02"  # 按天轮转
+  
+  # 🎯 分级输出（生产环境配置）
+  enable-level-output: true     # 启用分级输出
+  level-output-mode: "above"    # 输出该级别及以上
+  level-output-paths:
+    info: 
+      - /var/log/iam-contracts/app.log  # INFO 及以上记录到主日志
+    warn:
+      - /var/log/iam-contracts/warn.log # WARN 及以上单独记录
+    error:
+      - /var/log/iam-contracts/error.log # ERROR 单独记录
 
 # jwt 配置
 jwt:
