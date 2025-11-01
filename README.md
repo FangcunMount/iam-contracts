@@ -95,25 +95,26 @@ make docker-mysql-up
 
 #### 4. 初始化数据库
 
+数据库迁移在应用程序启动时自动执行。如需手动加载种子数据:
+
 ```bash
-# 创建数据库、表结构和加载种子数据
-make db-init
+# 构建 seeddata 工具
+make build-tools
 
-# 使用自定义数据库连接
-make db-init DB_HOST=localhost DB_USER=root DB_PASSWORD=mypassword
+# 加载种子数据（需要先启动数据库）
+make db-seed DB_USER=root DB_PASSWORD=yourpassword
 
-# 或使用环境变量
-export DB_HOST=localhost
-export DB_USER=root
-export DB_PASSWORD=mypassword
-make db-init
+# 或直接使用 seeddata 工具
+./tmp/seeddata --dsn "root:yourpassword@tcp(127.0.0.1:3306)/iam_contracts?parseTime=true&loc=Local"
 ```
 
-**默认账户**:
+**数据库迁移文件位置**: `internal/pkg/migration/migrations/`  
+**种子数据配置文件**: `configs/seeddata.yaml`
 
-- 系统管理员: `admin` / `admin123`
-- 演示租户管理员: `zhangsan` / `admin123`
-- 演示租户监护人: `lisi` / `admin123`
+**默认种子数据账户**:
+
+- 系统管理员: `admin` / `Admin@123`
+- 测试用户: `zhangsan` / `Pass@123`
 
 ⚠️ **安全提示**: 生产环境部署后请立即修改默认密码！
 
