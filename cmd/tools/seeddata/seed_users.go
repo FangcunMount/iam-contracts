@@ -174,8 +174,25 @@ func seedUserCenter(ctx context.Context, deps *dependencies, state *seedContext)
 		userID := state.Users[gs.UserAlias]
 		childID := state.Children[gs.ChildAlias]
 		if userID == "" || childID == "" {
+			deps.Logger.Warnw("skip guardian creation due to missing id", "user_alias", gs.UserAlias, "child_alias", gs.ChildAlias, "user_id", userID, "child_id", childID)
 			continue
 		}
+
+		// 诊断：在调用应用服务前先确认用户和儿童在 DB 中可被查询到
+		if u, err := userQuerySrv.GetByID(ctx, userID); err != nil {
+			return fmt.Errorf("add guardian %s->%s: failed to query user %s: %w", gs.UserAlias, gs.ChildAlias, userID, err)
+		} else if u == nil {
+			return fmt.Errorf("add guardian %s->%s: user not found (id=%s)", gs.UserAlias, gs.ChildAlias, userID)
+		}
+
+		if c, err := childQuerySrv.GetByID(ctx, childID); err != nil {
+			return fmt.Errorf("add guardian %s->%s: failed to query child %s: %w", gs.UserAlias, gs.ChildAlias, childID, err)
+		} else if c == nil {
+			return fmt.Errorf("add guardian %s->%s: child not found (id=%s)", gs.UserAlias, gs.ChildAlias, childID)
+		}
+
+		deps.Logger.Infow("creating guardian", "user_alias", gs.UserAlias, "child_alias", gs.ChildAlias, "user_id", userID, "child_id", childID)
+
 		dto := guardApp.AddGuardianDTO{
 			UserID:   userID,
 			ChildID:  childID,
