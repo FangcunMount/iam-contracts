@@ -10,19 +10,6 @@ import (
 
 // ==================== 租户相关类型定义 ====================
 
-// tenantRecord 租户种子数据
-type tenantRecord struct {
-	ID           string
-	Name         string
-	Code         string
-	ContactName  string
-	ContactPhone string
-	ContactEmail string
-	Status       string
-	MaxUsers     int
-	MaxRoles     int
-}
-
 // tenantPO 租户持久化对象
 type tenantPO struct {
 	ID           string `gorm:"primaryKey;column:id"`
@@ -63,32 +50,17 @@ func seedTenants(ctx context.Context, deps *dependencies) error {
 	deps.Logger.Infow("📋 开始创建租户数据...", "count", len(config.Tenants))
 
 	// 从配置读取租户
-	var tenants []tenantRecord
 	for _, tc := range config.Tenants {
-		tenants = append(tenants, tenantRecord{
+		po := tenantPO{
 			ID:           tc.Code, // 使用 code 作为 ID
 			Name:         tc.Name,
 			Code:         tc.Code,
-			Status:       "active",
-			MaxUsers:     100000,
-			MaxRoles:     1000,
-			ContactName:  "系统管理员",
-			ContactPhone: "10086000000",
-			ContactEmail: "support@example.com",
-		})
-	}
-
-	for _, t := range tenants {
-		po := tenantPO{
-			ID:           t.ID,
-			Name:         t.Name,
-			Code:         t.Code,
-			ContactName:  t.ContactName,
-			ContactPhone: t.ContactPhone,
-			ContactEmail: t.ContactEmail,
-			Status:       t.Status,
-			MaxUsers:     t.MaxUsers,
-			MaxRoles:     t.MaxRoles,
+			ContactName:  tc.ContactName,
+			ContactPhone: tc.ContactPhone,
+			ContactEmail: tc.ContactEmail,
+			Status:       tc.Status,
+			MaxUsers:     tc.MaxUsers,
+			MaxRoles:     tc.MaxRoles,
 			CreatedAt:    time.Now(),
 			UpdatedAt:    time.Now(),
 		}
@@ -100,10 +72,10 @@ func seedTenants(ctx context.Context, deps *dependencies) error {
 				UpdateAll: true,
 			}).
 			Create(&po).Error; err != nil {
-			return fmt.Errorf("upsert tenant %s: %w", t.ID, err)
+			return fmt.Errorf("upsert tenant %s: %w", tc.Code, err)
 		}
 	}
 
-	deps.Logger.Infow("✅ 租户数据已创建", "count", len(tenants))
+	deps.Logger.Infow("✅ 租户数据已创建", "count", len(config.Tenants))
 	return nil
 }

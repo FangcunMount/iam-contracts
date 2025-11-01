@@ -22,24 +22,6 @@ import (
 
 // ==================== 授权相关类型定义 ====================
 
-// resourceSeed 资源种子数据
-type resourceSeed struct {
-	Key         string
-	DisplayName string
-	AppName     string
-	Domain      string
-	Type        string
-	Actions     []string
-	Description string
-}
-
-// assignmentSeed 角色分配种子数据
-type assignmentSeed struct {
-	SubjectAlias string
-	RoleID       uint64
-	TenantID     string
-}
-
 // ==================== 授权资源 Seed 函数 ====================
 
 // seedAuthzResources 创建授权资源数据
@@ -51,81 +33,41 @@ type assignmentSeed struct {
 //
 // 幂等性：通过资源键查询，已存在的资源会跳过创建
 func seedAuthzResources(ctx context.Context, deps *dependencies, state *seedContext) error {
+	config := deps.Config
+	if config == nil || len(config.Resources) == 0 {
+		deps.Logger.Warnw("⚠️  配置文件中没有资源数据，跳过")
+		return nil
+	}
+
 	resourceRepo := resourceMysql.NewResourceRepository(deps.DB)
 	resourceManager := resourceService.NewResourceManager(resourceRepo)
 	resourceCommander := resourceApp.NewResourceCommandService(resourceManager, resourceRepo)
 	resourceQueryer := resourceApp.NewResourceQueryService(resourceRepo)
 
-	resources := []resourceSeed{
-		{
-			Key:         "uc:users",
-			DisplayName: "用户管理",
-			AppName:     "iam",
-			Domain:      "uc",
-			Type:        "collection",
-			Actions:     []string{"create", "read", "update", "delete", "list"},
-			Description: "用户中心的用户管理权限",
-		},
-		{
-			Key:         "uc:children",
-			DisplayName: "儿童管理",
-			AppName:     "iam",
-			Domain:      "uc",
-			Type:        "collection",
-			Actions:     []string{"create", "read", "update", "delete", "list"},
-			Description: "用户中心的儿童档案管理权限",
-		},
-		{
-			Key:         "uc:guardianships",
-			DisplayName: "监护关系管理",
-			AppName:     "iam",
-			Domain:      "uc",
-			Type:        "collection",
-			Actions:     []string{"create", "read", "update", "delete", "list", "revoke"},
-			Description: "用户中心的监护关系管理权限",
-		},
-		{
-			Key:         "authz:roles",
-			DisplayName: "角色管理",
-			AppName:     "iam",
-			Domain:      "authz",
-			Type:        "collection",
-			Actions:     []string{"create", "read", "update", "delete", "list", "assign"},
-			Description: "授权模块的角色管理权限",
-		},
-		{
-			Key:         "authz:policies",
-			DisplayName: "策略管理",
-			AppName:     "iam",
-			Domain:      "authz",
-			Type:        "collection",
-			Actions:     []string{"create", "read", "update", "delete", "list"},
-			Description: "授权模块的策略管理权限",
-		},
-	}
-
-	for _, seed := range resources {
-		if res, err := resourceQueryer.GetResourceByKey(ctx, seed.Key); err == nil && res != nil {
-			state.Resources[seed.Key] = res.ID.Uint64()
+	for _, rc := range config.Resources {
+		// 检查资源是否已存在
+		if res, err := resourceQueryer.GetResourceByKey(ctx, rc.Key); err == nil && res != nil {
+			state.Resources[rc.Alias] = res.ID.Uint64()
 			continue
 		}
 
+		// 创建新资源
 		created, err := resourceCommander.CreateResource(ctx, resourceDriving.CreateResourceCommand{
-			Key:         seed.Key,
-			DisplayName: seed.DisplayName,
-			AppName:     seed.AppName,
-			Domain:      seed.Domain,
-			Type:        seed.Type,
-			Actions:     seed.Actions,
-			Description: seed.Description,
+			Key:         rc.Key,
+			DisplayName: rc.DisplayName,
+			AppName:     rc.AppName,
+			Domain:      rc.Domain,
+			Type:        rc.Type,
+			Actions:     rc.Actions,
+			Description: rc.Description,
 		})
 		if err != nil {
-			return fmt.Errorf("create resource %s: %w", seed.Key, err)
+			return fmt.Errorf("create resource %s: %w", rc.Key, err)
 		}
-		state.Resources[seed.Key] = created.ID.Uint64()
+		state.Resources[rc.Alias] = created.ID.Uint64()
 	}
 
-	deps.Logger.Infow("✅ 授权资源数据已创建", "count", len(resources))
+	deps.Logger.Infow("✅ 授权资源数据已创建", "count", len(config.Resources))
 	return nil
 }
 
@@ -141,6 +83,12 @@ func seedAuthzResources(ctx context.Context, deps *dependencies, state *seedCont
 // 前置条件：必须先创建用户和资源
 // 幂等性：重复的角色分配会被忽略
 func seedRoleAssignments(ctx context.Context, deps *dependencies, state *seedContext) error {
+	config := deps.Config
+	if config == nil || len(config.Assignments) == 0 {
+		deps.Logger.Warnw("⚠️  配置文件中没有角色分配数据，跳过")
+		return nil
+	}
+
 	modelPath := deps.CasbinModel
 	if _, err := os.Stat(modelPath); err != nil {
 		return fmt.Errorf("casbin model file not found: %w", err)
@@ -156,34 +104,31 @@ func seedRoleAssignments(ctx context.Context, deps *dependencies, state *seedCon
 	assignmentManager := assignmentService.NewAssignmentManager(assignmentRepo, roleRepo)
 	assignmentCommander := assignmentApp.NewAssignmentCommandService(assignmentManager, assignmentRepo, casbinPort)
 
-	assignments := []assignmentSeed{
-		{SubjectAlias: "admin", RoleID: 1, TenantID: "default"},
-		{SubjectAlias: "zhangsan", RoleID: 3, TenantID: "default"},
-		{SubjectAlias: "wangwu", RoleID: 3, TenantID: "default"},
-	}
-
-	for _, seed := range assignments {
-		userID := state.Users[seed.SubjectAlias]
-		if userID == "" {
-			return fmt.Errorf("user alias %s not found for assignment", seed.SubjectAlias)
+	for _, ac := range config.Assignments {
+		// 解析 subject_id: 如果以数字开头,直接使用;否则从 state.Users 查找别名
+		subjectID := ac.SubjectID
+		if _, ok := state.Users[ac.SubjectID]; ok {
+			// 是用户别名,从 state 获取实际ID
+			subjectID = state.Users[ac.SubjectID]
 		}
+		// 否则直接使用配置中的 ID (兼容直接配置ID的情况)
 
 		cmd := assignmentDriving.GrantCommand{
 			SubjectType: assignmentDomain.SubjectTypeUser,
-			SubjectID:   userID,
-			RoleID:      seed.RoleID,
-			TenantID:    seed.TenantID,
-			GrantedBy:   "system",
+			SubjectID:   subjectID,
+			RoleID:      ac.RoleID,
+			TenantID:    ac.TenantID,
+			GrantedBy:   ac.GrantedBy,
 		}
 
 		if _, err := assignmentCommander.Grant(ctx, cmd); err != nil {
 			if !isDuplicateAssignment(err) {
-				return fmt.Errorf("grant role %d to %s: %w", seed.RoleID, seed.SubjectAlias, err)
+				return fmt.Errorf("grant role %d to subject %s: %w", ac.RoleID, subjectID, err)
 			}
 		}
 	}
 
-	deps.Logger.Infow("✅ 角色分配数据已创建", "count", len(assignments))
+	deps.Logger.Infow("✅ 角色分配数据已创建", "count", len(config.Assignments))
 	return nil
 }
 

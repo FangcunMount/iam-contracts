@@ -15,15 +15,6 @@ import (
 
 // ==================== 认证相关类型定义 ====================
 
-// operationAccountSeed 运营账号种子数据
-type operationAccountSeed struct {
-	Alias     string // 别名，对应用户别名
-	UserAlias string // 关联的用户别名
-	Username  string // 登录用户名
-	Password  string // 明文密码
-	HashAlgo  string // 密码哈希算法
-}
-
 // ==================== 认证 Seed 函数 ====================
 
 // seedAuthn 创建认证账号数据
@@ -41,6 +32,12 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 		return errors.New("user context is empty; run user step first")
 	}
 
+	config := deps.Config
+	if config == nil || len(config.Accounts) == 0 {
+		deps.Logger.Warnw("⚠️  配置文件中没有账号数据，跳过")
+		return nil
+	}
+
 	// 初始化仓储和适配器
 	userRepo := userMysql.NewRepository(deps.DB)
 	userAdapter := adapter.NewUserAdapter(userRepo)
@@ -50,29 +47,17 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 	accountService := accountApp.NewAccountApplicationService(unitOfWork, userAdapter)
 	operationService := accountApp.NewOperationAccountApplicationService(unitOfWork)
 
-	// 定义运营账号数据
-	passwordSeeds := []operationAccountSeed{
-		{
-			Alias:     "admin",
-			UserAlias: "admin",
-			Username:  "admin",
-			Password:  "Admin@123",
-			HashAlgo:  string(authentication.AlgorithmBcrypt),
-		},
-		{
-			Alias:     "zhangsan",
-			UserAlias: "zhangsan",
-			Username:  "zhangsan",
-			Password:  "Pass@123",
-			HashAlgo:  string(authentication.AlgorithmBcrypt),
-		},
-	}
+	// 从配置文件读取账号数据,只处理 operation provider 的账号
+	for _, ac := range config.Accounts {
+		// 只处理运营账号
+		if ac.Provider != "operation" {
+			continue
+		}
 
-	for _, seed := range passwordSeeds {
 		// 1. 获取用户ID
-		userIDStr := state.Users[seed.UserAlias]
+		userIDStr := state.Users[ac.UserAlias]
 		if userIDStr == "" {
-			return fmt.Errorf("user alias %s not found", seed.UserAlias)
+			return fmt.Errorf("user alias %s not found for account %s", ac.UserAlias, ac.Alias)
 		}
 
 		userID, err := accountDomain.ParseUserID(userIDStr)
@@ -86,7 +71,7 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 		if err == nil {
 			for _, acc := range existing {
 				if acc.Provider == accountDomain.ProviderPassword {
-					state.Accounts[seed.Alias] = acc.ID
+					state.Accounts[ac.Alias] = acc.ID
 					accountExists = true
 					break
 				}
@@ -97,30 +82,30 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 		if !accountExists {
 			accountResult, err := accountService.CreateOperationAccount(ctx, accountApp.CreateOperationAccountDTO{
 				UserID:   userID,
-				Username: seed.Username,
-				HashAlgo: seed.HashAlgo,
+				Username: ac.Username,
+				HashAlgo: string(authentication.AlgorithmBcrypt),
 			})
 			if err != nil {
-				return fmt.Errorf("create operation account %s: %w", seed.Username, err)
+				return fmt.Errorf("create operation account %s: %w", ac.Username, err)
 			}
-			state.Accounts[seed.Alias] = accountResult.Account.ID
+			state.Accounts[ac.Alias] = accountResult.Account.ID
 		}
 
 		// 4. 更新账号凭证（密码）
-		hash, err := authentication.HashPassword(seed.Password, authentication.AlgorithmBcrypt)
+		hash, err := authentication.HashPassword(ac.Password, authentication.AlgorithmBcrypt)
 		if err != nil {
-			return fmt.Errorf("hash password for %s: %w", seed.Username, err)
+			return fmt.Errorf("hash password for %s: %w", ac.Username, err)
 		}
 
 		if err := operationService.UpdateCredential(ctx, accountApp.UpdateOperationCredentialDTO{
-			Username: seed.Username,
+			Username: ac.Username,
 			Password: hash.Hash,
-			HashAlgo: seed.HashAlgo,
+			HashAlgo: string(authentication.AlgorithmBcrypt),
 		}); err != nil {
-			return fmt.Errorf("update credential for %s: %w", seed.Username, err)
+			return fmt.Errorf("update credential for %s: %w", ac.Username, err)
 		}
 	}
 
-	deps.Logger.Infow("✅ 认证账号数据已创建", "accounts", len(passwordSeeds))
+	deps.Logger.Infow("✅ 认证账号数据已创建")
 	return nil
 }
