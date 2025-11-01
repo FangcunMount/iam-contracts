@@ -20,6 +20,7 @@ type SeedConfig struct {
 	Policies      []PolicyConfig       `yaml:"policies"`
 	JWKS          JWKSConfig           `yaml:"jwks"`
 	WechatApps    []WechatAppConfig    `yaml:"wechat_apps"`
+	EncryptionKey string               `yaml:"encryption_key"` // IDP 模块加密密钥（32字节）
 }
 
 // TenantConfig 租户配置
