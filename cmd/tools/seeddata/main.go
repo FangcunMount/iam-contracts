@@ -105,6 +105,7 @@ func main() {
 	// 解析命令行参数
 	dsnFlag := flag.String("dsn", "", "MySQL DSN, e.g. user:pass@tcp(host:3306)/iam_contracts?parseTime=true&loc=Local")
 	redisFlag := flag.String("redis", "", "Redis address host:port (optional, used for authz policy version notifications)")
+	redisPasswordFlag := flag.String("redis-password", "", "Redis password (optional)")
 	keysDirFlag := flag.String("keys-dir", "./tmp/keys", "Directory to store generated JWKS private keys")
 	casbinModelFlag := flag.String("casbin-model", "configs/casbin_model.conf", "Path to casbin model configuration file")
 	configFileFlag := flag.String("config", "configs/seeddata.yaml", "Path to seed data configuration file")
@@ -137,7 +138,7 @@ func main() {
 	redisAddr := common.ResolveRedisAddr(*redisFlag)
 	var redisClient *redis.Client
 	if redisAddr != "" {
-		redisClient = common.MustOpenRedis(redisAddr)
+		redisClient = common.MustOpenRedis(redisAddr, *redisPasswordFlag)
 		defer func() {
 			_ = redisClient.Close()
 		}()
