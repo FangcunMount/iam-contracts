@@ -6,7 +6,6 @@ import (
 	"time"
 
 	redis "github.com/redis/go-redis/v9"
-	"github.com/silenceper/wechat/v2/cache"
 	"gorm.io/gorm"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
@@ -150,8 +149,8 @@ func (m *IDPModule) initializeInfrastructure(
 	}
 	m.secretVault = secretVault
 
-	// 创建微信 API 服务（传 nil 使用内存缓存）
-	var wechatSDKCache cache.Cache = nil
+	// 创建微信 SDK 使用的缓存适配器（使用 Redis 作为后端）
+	wechatSDKCache := infraRedis.NewWechatSDKCache(redisClient)
 	m.wechatAuthProvider = wechatapi.NewAuthProvider(wechatSDKCache)
 	m.wechatTokenProvider = wechatapi.NewTokenProvider(wechatSDKCache)
 
