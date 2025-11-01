@@ -90,13 +90,19 @@ func CloseGORM(db *gorm.DB) {
 }
 
 // MustOpenRedis creates a Redis client if address is provided.
-func MustOpenRedis(addr string) *redis.Client {
+func MustOpenRedis(addr string, password ...string) *redis.Client {
 	if addr == "" {
 		return nil
 	}
 
+	pwd := ""
+	if len(password) > 0 {
+		pwd = password[0]
+	}
+
 	client := redis.NewClient(&redis.Options{
 		Addr:         addr,
+		Password:     pwd,
 		PoolTimeout:  30 * time.Second,
 		MinIdleConns: 10,
 	})
