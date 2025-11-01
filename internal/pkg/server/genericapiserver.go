@@ -81,8 +81,8 @@ func (s *GenericAPIServer) InstallMiddlewares() {
 	// 上下文中间件
 	s.Use(middleware.Context())
 
-	// 使用增强日志中间件（包含请求/响应详情、脱敏处理）
-	s.Use(middleware.EnhancedLogger())
+	// 使用 API 日志中间件（开发环境友好的格式化输出）
+	s.Use(middleware.APILogger())
 
 	// 安装自定义中间件
 	for _, m := range s.middlewares {
