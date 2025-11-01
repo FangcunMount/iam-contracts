@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	appPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatapp/port"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatsession"
@@ -37,6 +38,11 @@ func (a *Authenticator) LoginWithCode(ctx context.Context, appID string, jsCode 
 	wechatApp, err := a.wechatAppQuerier.QueryByAppID(ctx, appID)
 	if err != nil || wechatApp == nil {
 		return nil, nil, err
+	}
+
+	// 检查凭据是否存在
+	if wechatApp.Cred == nil || wechatApp.Cred.Auth == nil || len(wechatApp.Cred.Auth.AppSecretCipher) == 0 {
+		return nil, nil, fmt.Errorf("wechat app %s has no auth credentials configured", appID)
 	}
 
 	// 调用外部服务进行登录
