@@ -17,7 +17,7 @@ server:
 mysql:
   host: "127.0.0.1:3306"
   username: "root"
-  password: "root"
+  password: "REDACTED_DEV_ROOT"  # 对应 infra MYSQL_ROOT_PASSWORD
   database: "iam_contracts"
   max-idle-conns: 10
   max-open-conns: 100
@@ -30,15 +30,31 @@ migration:
   autoseed: true  # 开发环境自动加载种子数据
   database: "iam_contracts"
 
-# Redis 配置
+# Redis 配置（双实例架构）
 redis:
-  host: "127.0.0.1"
-  port: 6379
-  addr: "127.0.0.1:6379"
-  password: ""
-  db: 1  # 使用专用的数据库索引
-  pool-size: 100
-  min-idle-conns: 10
+  # Cache Redis - 用于缓存、会话、限流等临时数据（端口 6379）
+  cache:
+    host: "127.0.0.1"
+    port: 6379
+    password: "REDACTED_REDIS_CACHE"  # 与 infra REDIS_CACHE_PASSWORD 一致
+    database: 0  # Cache 使用 DB 0
+    max-idle: 50
+    max-active: 100
+    timeout: 5
+    enable-cluster: false
+    use-ssl: false
+  
+  # Store Redis (Auth) - 用于持久化存储、队列、发布订阅等（端口 6380）
+  store:
+    host: "127.0.0.1"
+    port: 6380
+    password: "REDACTED_REDIS_AUTH"  # 与 infra REDIS_AUTH_PASSWORD 一致
+    database: 0  # Auth 实例使用 DB 0（单独实例不需要不同 DB）
+    max-idle: 50
+    max-active: 100
+    timeout: 5
+    enable-cluster: false
+    use-ssl: false
 
 # 日志配置
 log:
