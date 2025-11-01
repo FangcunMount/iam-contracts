@@ -65,7 +65,8 @@ func (r *ResourceRepository) FindByID(ctx context.Context, id resource.ResourceI
 func (r *ResourceRepository) FindByKey(ctx context.Context, key string) (*resource.Resource, error) {
 	var po ResourcePO
 
-	err := r.db.WithContext(ctx).Where("key = ?", key).First(&po).Error
+	// `key` is a reserved word in MySQL; quote the column name to avoid syntax errors
+	err := r.db.WithContext(ctx).Where("`key` = ?", key).First(&po).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -90,7 +91,7 @@ func (r *ResourceRepository) ListByApp(ctx context.Context, appName string, offs
 	// 查询列表
 	err := r.db.WithContext(ctx).
 		Where("app_name = ?", appName).
-		Order("key ASC").
+		Order("`key` ASC").
 		Offset(offset).
 		Limit(limit).
 		Find(&pos).Error
@@ -117,7 +118,7 @@ func (r *ResourceRepository) ListByDomain(ctx context.Context, domain string, of
 	// 查询列表
 	err := r.db.WithContext(ctx).
 		Where("domain = ?", domain).
-		Order("key ASC").
+		Order("`key` ASC").
 		Offset(offset).
 		Limit(limit).
 		Find(&pos).Error
@@ -143,7 +144,7 @@ func (r *ResourceRepository) List(ctx context.Context, offset, limit int) ([]*re
 
 	// 查询列表
 	err := r.db.WithContext(ctx).
-		Order("key ASC").
+		Order("`key` ASC").
 		Offset(offset).
 		Limit(limit).
 		Find(&pos).Error
