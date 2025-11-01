@@ -53,6 +53,7 @@ const (
 	stepAssignments seedStep = "assignments" // 创建角色分配
 	stepCasbin      seedStep = "casbin"      // 创建Casbin策略规则
 	stepJWKS        seedStep = "jwks"        // 生成JWKS密钥
+	stepWechatApp   seedStep = "wechatapp"   // 创建微信应用
 )
 
 // defaultSteps defines the default execution order of all seed steps.
@@ -64,6 +65,7 @@ var defaultSteps = []seedStep{
 	stepAssignments,
 	stepCasbin,
 	stepJWKS,
+	stepWechatApp,
 }
 
 // dependencies holds all external dependencies required by seed functions.
@@ -186,6 +188,10 @@ func main() {
 		case stepJWKS:
 			if err := seedJWKS(ctx, deps); err != nil {
 				logger.Fatalw("❌ JWKS密钥生成失败", "error", err)
+			}
+		case stepWechatApp:
+			if err := seedWechatApps(ctx, deps); err != nil {
+				logger.Fatalw("❌ 微信应用数据创建失败", "error", err)
 			}
 		default:
 			logger.Warnw("⚠️  未知的 seed 步骤，跳过", "step", step)

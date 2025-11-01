@@ -23,7 +23,6 @@ tenants:
 users:
   # 系统管理员
   - alias: "admin"
-    id: 1000000000000001
     name: "系统管理员"
     phone: "10086000001"
     email: "admin@system.com"
@@ -32,7 +31,6 @@ users:
   
   # 张三
   - alias: "zhangsan"
-    id: 1000000000000002
     name: "张三"
     phone: "13800138000"
     email: "zhangsan@example.com"
@@ -41,7 +39,6 @@ users:
   
   # 李四
   - alias: "lisi"
-    id: 1000000000000003
     name: "李四"
     phone: "13800138001"
     email: "lisi@example.com"
@@ -50,7 +47,6 @@ users:
   
   # 王五 (监护人)
   - alias: "wangwu"
-    id: 1000000000000004
     name: "王五"
     phone: "13800138002"
     email: "wangwu@example.com"
@@ -59,7 +55,6 @@ users:
   
   # 赵六 (监护人)
   - alias: "zhaoliu"
-    id: 1000000000000005
     name: "赵六"
     phone: "13800138003"
     email: "zhaoliu@example.com"
@@ -70,7 +65,6 @@ users:
 children:
   # 小明
   - alias: "xiaoming"
-    id: 2000000000000001
     name: "小明"
     id_card: "110101201501011001"
     gender: 1  # 男
@@ -80,7 +74,6 @@ children:
   
   # 小红
   - alias: "xiaohong"
-    id: 2000000000000002
     name: "小红"
     id_card: "110101201502011002"
     gender: 2  # 女
@@ -90,7 +83,6 @@ children:
   
   # 小刚
   - alias: "xiaogang"
-    id: 2000000000000003
     name: "小刚"
     id_card: "110101201603011003"
     gender: 1  # 男
@@ -100,7 +92,6 @@ children:
   
   # 小丽 (无身份证)
   - alias: "xiaoli"
-    id: 2000000000000004
     name: "小丽"
     id_card: ""  # 无身份证
     gender: 2  # 女
@@ -111,26 +102,22 @@ children:
 # ==================== 4. 监护关系配置 (User Center) ====================
 guardianships:
   # 王五是小明的父亲
-  - id: 3000000000000001
-    user_alias: "wangwu"
+  - user_alias: "wangwu"
     child_alias: "xiaoming"
     relation: "father"
   
   # 赵六是小红的母亲
-  - id: 3000000000000002
-    user_alias: "zhaoliu"
+  - user_alias: "zhaoliu"
     child_alias: "xiaohong"
     relation: "mother"
   
   # 王五是小刚的监护人
-  - id: 3000000000000003
-    user_alias: "wangwu"
+  - user_alias: "wangwu"
     child_alias: "xiaogang"
     relation: "guardian"
   
   # 赵六是小丽的母亲
-  - id: 3000000000000004
-    user_alias: "zhaoliu"
+  - user_alias: "zhaoliu"
     child_alias: "xiaoli"
     relation: "mother"
 
@@ -138,7 +125,6 @@ guardianships:
 accounts:
   # 系统管理员 - 运营账号
   - alias: "admin_account"
-    id: 4000000000000001
     user_alias: "admin"
     provider: "operation"
     external_id: "admin"
@@ -149,7 +135,6 @@ accounts:
   
   # 张三 - 运营账号
   - alias: "zhangsan_account"
-    id: 4000000000000002
     user_alias: "zhangsan"
     provider: "operation"
     external_id: "zhangsan"
@@ -160,7 +145,6 @@ accounts:
   
   # 王五 - 微信账号
   - alias: "wangwu_wechat"
-    id: 4000000000000003
     user_alias: "wangwu"
     provider: "wechat"
     external_id: "wangwu_openid_123"
@@ -178,7 +162,6 @@ accounts:
 resources:
   # 用户管理资源
   - alias: "res_uc_users"
-    id: 7000000000000001
     key: "uc:users"
     display_name: "用户管理"
     app_name: "iam"
@@ -189,7 +172,6 @@ resources:
   
   # 儿童管理资源
   - alias: "res_uc_children"
-    id: 7000000000000002
     key: "uc:children"
     display_name: "儿童管理"
     app_name: "iam"
@@ -200,7 +182,6 @@ resources:
   
   # 监护关系管理资源
   - alias: "res_uc_guardianships"
-    id: 7000000000000003
     key: "uc:guardianships"
     display_name: "监护关系管理"
     app_name: "iam"
@@ -211,7 +192,6 @@ resources:
   
   # 角色管理资源
   - alias: "res_authz_roles"
-    id: 7000000000000004
     key: "authz:roles"
     display_name: "角色管理"
     app_name: "iam"
@@ -222,7 +202,6 @@ resources:
   
   # 策略管理资源
   - alias: "res_authz_policies"
-    id: 7000000000000005
     key: "authz:policies"
     display_name: "策略管理"
     app_name: "iam"
@@ -234,25 +213,22 @@ resources:
 # ==================== 7. 角色分配配置 (Authorization) ====================
 assignments:
   # 系统管理员拥有 super_admin 角色
-  - id: 8000000000000001
-    subject_type: "user"
-    subject_id: "1000000000000001"  # 系统管理员
+  - subject_type: "user"
+    subject_id: "1000000000000001"  # 系统管理员 (注意: 这个ID将通过别名引用替换)
     role_id: 1  # super_admin
     tenant_id: "default"
     granted_by: "system"
   
   # 张三拥有 user 角色
-  - id: 8000000000000002
-    subject_type: "user"
-    subject_id: "1000000000000002"  # 张三
+  - subject_type: "user"
+    subject_id: "1000000000000002"  # 张三 (注意: 这个ID将通过别名引用替换)
     role_id: 3  # user
     tenant_id: "default"
     granted_by: "system"
   
   # 王五拥有 user 角色
-  - id: 8000000000000003
-    subject_type: "user"
-    subject_id: "1000000000000004"  # 王五
+  - subject_type: "user"
+    subject_id: "1000000000000004"  # 王五 (注意: 这个ID将通过别名引用替换)
     role_id: 3  # user
     tenant_id: "default"
     granted_by: "system"
@@ -294,3 +270,14 @@ jwks:
   algorithm: "RS256"
   key_size: 2048
   valid_years: 1
+
+# ==================== 10. 微信应用配置 (IDP - WeChat) ====================
+wechat_apps:
+  # 问卷笔记本小程序
+  - alias: "questionnaire_notebook"
+    app_id: "wx72ade250b619a649"
+    name: "问卷笔记本小程序"
+    type: "MiniProgram"
+    status: "Enabled"
+    app_secret: "d3a4a12cbffb569423a786317cca6cae"  # 生产环境中应通过环境变量或密钥管理系统设置
+  
