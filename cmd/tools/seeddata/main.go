@@ -49,6 +49,7 @@ const (
 	stepTenants     seedStep = "tenants"     // 创建租户数据
 	stepUserCenter  seedStep = "user"        // 创建用户、儿童、监护关系
 	stepAuthn       seedStep = "authn"       // 创建认证账号和凭证
+	stepRoles       seedStep = "roles"       // 创建基础角色
 	stepResources   seedStep = "resources"   // 创建授权资源
 	stepAssignments seedStep = "assignments" // 创建角色分配
 	stepCasbin      seedStep = "casbin"      // 创建Casbin策略规则
@@ -61,6 +62,7 @@ var defaultSteps = []seedStep{
 	stepTenants,
 	stepUserCenter,
 	stepAuthn,
+	stepRoles,
 	stepResources,
 	stepAssignments,
 	stepCasbin,
@@ -172,6 +174,10 @@ func main() {
 		case stepAuthn:
 			if err := seedAuthn(ctx, deps, state); err != nil {
 				logger.Fatalw("❌ 认证账号数据创建失败", "error", err)
+			}
+		case stepRoles:
+			if err := seedAuthzRoles(ctx, deps); err != nil {
+				logger.Fatalw("❌ 基础角色数据创建失败", "error", err)
 			}
 		case stepResources:
 			if err := seedAuthzResources(ctx, deps, state); err != nil {

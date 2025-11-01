@@ -60,8 +60,8 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ../../scripts/sql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-      - ../../scripts/sql/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      # 注意: 数据库初始化现在通过应用程序的迁移功能完成
+      # 参见: internal/pkg/migration/migrations/
       - ../../configs/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     command:
       - --character-set-server=utf8mb4
