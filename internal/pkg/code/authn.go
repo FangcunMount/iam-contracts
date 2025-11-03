@@ -28,6 +28,9 @@ const (
 
 	// ErrPasswordIncorrect - 401: Password was incorrect.
 	ErrPasswordIncorrect = 100206
+
+	// ErrUserNotRegistered - 401: User not registered.
+	ErrUserNotRegistered = 100207
 )
 
 // nolint: gochecknoinits
@@ -43,6 +46,7 @@ func registerAuthn() {
 	errors.MustRegister(&authnCoder{code: ErrInvalidAuthHeader, status: http.StatusUnauthorized, msg: "Invalid authorization header"})
 	errors.MustRegister(&authnCoder{code: ErrMissingHeader, status: http.StatusUnauthorized, msg: "The `Authorization` header was empty"})
 	errors.MustRegister(&authnCoder{code: ErrPasswordIncorrect, status: http.StatusUnauthorized, msg: "Password was incorrect"})
+	errors.MustRegister(&authnCoder{code: ErrUserNotRegistered, status: http.StatusUnauthorized, msg: "User not registered"})
 }
 
 // authnCoder 实现 errors.Coder 接口

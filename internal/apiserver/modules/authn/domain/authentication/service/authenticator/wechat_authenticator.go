@@ -4,7 +4,7 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	accountDrivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
@@ -56,16 +56,19 @@ func (a *WeChatAuthenticator) Authenticate(ctx context.Context, credential authe
 		return nil, perrors.WrapC(err, code.ErrUnauthenticated, "failed to exchange openID from wechat")
 	}
 
+	// 🔍 临时日志：打印获取到的 openID (生产环境应删除)
+	log.Infow("🔑 WeChat Login - AppID: %s, OpenID: %s", wxCred.AppID, openID)
+
 	// 根据 openID 查找微信账号
 	wxAccount, err := a.wechatRepo.FindByAppOpenID(ctx, wxCred.AppID, openID)
 	if err != nil {
-		return nil, perrors.WrapC(err, code.ErrUnauthenticated, "wechat account not found")
+		return nil, perrors.WrapC(err, code.ErrUserNotRegistered, "wechat account not found")
 	}
 
 	// 获取对应的 Account
 	acc, err := a.accountRepo.FindByID(ctx, wxAccount.AccountID)
 	if err != nil {
-		return nil, perrors.WrapC(err, code.ErrUnauthenticated, "account not found")
+		return nil, perrors.WrapC(err, code.ErrUserNotRegistered, "account not found")
 	}
 
 	// 检查账号状态
