@@ -26,25 +26,46 @@ func Register(engine *gin.Engine) {
 	}
 
 	api := engine.Group("/api/v1")
+
+	// 公开端点（无需认证）
+	registerPublicUserRoutes(api, deps.Module)
+
+	// 受保护的端点（需要认证）
 	if deps.AuthMiddleware != nil {
 		api.Use(deps.AuthMiddleware)
 	}
 
-	registerUserRoutes(api, deps.Module)
+	registerProtectedUserRoutes(api, deps.Module)
 	registerChildRoutes(api, deps.Module)
 	registerGuardianshipRoutes(api, deps.Module)
 }
 
-func registerUserRoutes(api *gin.RouterGroup, module *assembler.UserModule) {
+// registerPublicUserRoutes 注册公开的用户端点（无需认证）
+func registerPublicUserRoutes(api *gin.RouterGroup, module *assembler.UserModule) {
 	if module.UserHandler == nil {
 		return
 	}
 
 	users := api.Group("/users")
 	{
+		// 用户注册是公开端点，任何人都可以访问
 		users.POST("", module.UserHandler.CreateUser)
+	}
+}
+
+// registerProtectedUserRoutes 注册受保护的用户端点（需要认证）
+func registerProtectedUserRoutes(api *gin.RouterGroup, module *assembler.UserModule) {
+	if module.UserHandler == nil {
+		return
+	}
+
+	users := api.Group("/users")
+	{
+		// 获取当前用户资料（需要认证）
 		users.GET("/profile", module.UserHandler.GetUserProfile)
+		// 获取指定用户信息（需要认证）
 		users.GET("/:userId", module.UserHandler.GetUser)
+		// 更新用户信息（需要认证）
 		users.PATCH("/:userId", module.UserHandler.PatchUser)
 	}
 }
