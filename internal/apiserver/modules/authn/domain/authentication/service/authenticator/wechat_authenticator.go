@@ -62,13 +62,13 @@ func (a *WeChatAuthenticator) Authenticate(ctx context.Context, credential authe
 	// 根据 openID 查找微信账号
 	wxAccount, err := a.wechatRepo.FindByAppOpenID(ctx, wxCred.AppID, openID)
 	if err != nil {
-		return nil, perrors.WrapC(err, code.ErrUserNotRegistered, "wechat account not found")
+		return nil, perrors.WrapC(err, code.ErrInvalidCredentials, "wechat account not found")
 	}
 
 	// 获取对应的 Account
 	acc, err := a.accountRepo.FindByID(ctx, wxAccount.AccountID)
 	if err != nil {
-		return nil, perrors.WrapC(err, code.ErrUserNotRegistered, "account not found")
+		return nil, perrors.WrapC(err, code.ErrInvalidCredentials, "account not found")
 	}
 
 	// 检查账号状态

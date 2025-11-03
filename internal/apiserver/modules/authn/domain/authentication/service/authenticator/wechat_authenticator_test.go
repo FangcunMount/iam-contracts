@@ -232,7 +232,7 @@ func TestWeChatAuthenticator_Authenticate_WeChatAccountNotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, auth)
-	assert.True(t, perrors.IsCode(err, code.ErrUnauthenticated))
+	assert.True(t, perrors.IsCode(err, code.ErrInvalidCredentials))
 }
 
 // TestWeChatAuthenticator_Authenticate_AccountNotFound 测试账号不存在
@@ -263,7 +263,7 @@ func TestWeChatAuthenticator_Authenticate_AccountNotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, auth)
-	assert.True(t, perrors.IsCode(err, code.ErrUnauthenticated))
+	assert.True(t, perrors.IsCode(err, code.ErrInvalidCredentials))
 }
 
 // TestWeChatAuthenticator_Authenticate_AccountNotActive 测试账号未激活
