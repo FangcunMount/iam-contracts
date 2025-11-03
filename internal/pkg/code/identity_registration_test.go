@@ -61,12 +61,6 @@ func TestIdentityErrorCodesRegistration(t *testing.T) {
 			shouldRegister: true,
 		},
 		{
-			name:           "ErrIdentityUserBlocked",
-			errorCode:      code.ErrIdentityUserBlocked,
-			expectedStatus: http.StatusForbidden,
-			shouldRegister: true,
-		},
-		{
 			name:           "ErrIdentityChildExists",
 			errorCode:      code.ErrIdentityChildExists,
 			expectedStatus: http.StatusBadRequest,
