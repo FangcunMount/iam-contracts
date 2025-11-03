@@ -36,74 +36,25 @@ func NewUserHandler(
 	}
 }
 
-// CreateUser 创建用户
-// @Summary 创建用户
-// @Description 创建新用户，至少需要提供昵称或联系方式
+// GetUserProfile 获取当前用户资料
+// @Summary 获取当前用户资料
+// @Description 获取当前登录用户的资料信息
 // @Tags Identity-Users
 // @Accept json
 // @Produce json
-// @Param request body requestdto.UserCreateRequest true "创建用户请求"
-// @Success 201 {object} responsedto.UserResponse "创建成功"
-// @Failure 400 {object} core.ErrResponse "请求参数错误"
-// @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /users [post]
-// @Security BearerAuth
-func (h *UserHandler) CreateUser(c *gin.Context) {
-	var req requestdto.UserCreateRequest
-	if err := h.BindJSON(c, &req); err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	name := strings.TrimSpace(req.Nickname)
-	phoneValue, emailValue := extractContactValues(req.Contacts)
-
-	if name == "" {
-		if phoneValue != "" {
-			name = phoneValue
-		} else if emailValue != "" {
-			name = emailValue
-		}
-	}
-	if name == "" {
-		h.ErrorWithCode(c, code.ErrUserBasicInfoInvalid, "nickname or contact must be provided")
-		return
-	}
-	if phoneValue == "" {
-		h.ErrorWithCode(c, code.ErrUserBasicInfoInvalid, "phone contact is required")
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	result, err := h.userApp.Register(ctx, appuser.RegisterUserDTO{
-		Name:  name,
-		Phone: phoneValue,
-		Email: emailValue,
-	})
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	h.Created(c, newUserResponse(result))
-}
-
-// GetUser 根据 ID 查询用户
-// @Summary 查询用户
-// @Description 根据用户 ID 查询用户详细信息
-// @Tags Identity-Users
-// @Accept json
-// @Produce json
-// @Param userId path string true "用户 ID"
 // @Success 200 {object} responsedto.UserResponse "查询成功"
-// @Failure 400 {object} core.ErrResponse "参数错误"
-// @Failure 404 {object} core.ErrResponse "用户不存在"
+// @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /users/{userId} [get]
+// @Router /users/profile [get]
 // @Security BearerAuth
-func (h *UserHandler) GetUser(c *gin.Context) {
-	userID, err := parseUserID(c.Param("userId"))
+func (h *UserHandler) GetUserProfile(c *gin.Context) {
+	rawUserID, exists := c.Get("user_id")
+	if !exists {
+		h.ErrorWithCode(c, code.ErrTokenInvalid, "user id not found in context")
+		return
+	}
+
+	userID, err := toUserID(rawUserID)
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -133,7 +84,13 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 // @Router /users/{userId} [patch]
 // @Security BearerAuth
 func (h *UserHandler) PatchUser(c *gin.Context) {
-	userID, err := parseUserID(c.Param("userId"))
+	rawUserID, exists := c.Get("user_id")
+	if !exists {
+		h.ErrorWithCode(c, code.ErrTokenInvalid, "user id not found in context")
+		return
+	}
+
+	userID, err := toUserID(rawUserID)
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -170,39 +127,6 @@ func (h *UserHandler) PatchUser(c *gin.Context) {
 	}
 
 	u, err := h.userQuery.GetByID(ctx, userID)
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	h.Success(c, newUserResponse(u))
-}
-
-// GetUserProfile 获取当前用户资料
-// @Summary 获取当前用户资料
-// @Description 获取当前登录用户的资料信息
-// @Tags Identity-Users
-// @Accept json
-// @Produce json
-// @Success 200 {object} responsedto.UserResponse "查询成功"
-// @Failure 401 {object} core.ErrResponse "未授权"
-// @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /users/profile [get]
-// @Security BearerAuth
-func (h *UserHandler) GetUserProfile(c *gin.Context) {
-	rawUserID, exists := c.Get("user_id")
-	if !exists {
-		h.ErrorWithCode(c, code.ErrTokenInvalid, "user id not found in context")
-		return
-	}
-
-	userID, err := toUserID(rawUserID)
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	u, err := h.userQuery.GetByID(c.Request.Context(), userID)
 	if err != nil {
 		h.Error(c, err)
 		return
