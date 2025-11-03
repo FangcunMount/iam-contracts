@@ -6,31 +6,48 @@ import (
 	"github.com/FangcunMount/component-base/pkg/errors"
 )
 
-// Authorization errors (103xxx - changed from 102xxx to avoid conflict with JWKS).
-const (
-	// ErrPermissionDenied - 403: Permission denied.
-	ErrPermissionDenied = 100207
+// Authz: 授权相关所有错误码 (103000～103999).
 
+// Authz: 基础权限错误 (103000～103099).
+const (
+	// ErrUnauthorized - 403: Authorization failed.
+	ErrUnauthorized = 103000
+
+	// ErrPermissionDenied - 403: Permission denied.
+	ErrPermissionDenied = 103001
+)
+
+// Authz: 角色相关错误 (103100～103199).
+const (
 	// ErrRoleNotFound - 404: Role not found.
-	ErrRoleNotFound = 103001
+	ErrRoleNotFound = 103100
 
 	// ErrRoleAlreadyExists - 409: Role already exists.
-	ErrRoleAlreadyExists = 103002
+	ErrRoleAlreadyExists = 103101
+)
 
+// Authz: 资源相关错误 (103200～103299).
+const (
 	// ErrResourceNotFound - 404: Resource not found.
-	ErrResourceNotFound = 103003
+	ErrResourceNotFound = 103200
 
 	// ErrResourceAlreadyExists - 409: Resource already exists.
-	ErrResourceAlreadyExists = 103004
-
-	// ErrAssignmentNotFound - 404: Assignment not found.
-	ErrAssignmentNotFound = 103005
+	ErrResourceAlreadyExists = 103201
 
 	// ErrInvalidAction - 400: Invalid action for resource.
-	ErrInvalidAction = 103006
+	ErrInvalidAction = 103202
+)
 
+// Authz: 赋权相关错误 (103300～103399).
+const (
+	// ErrAssignmentNotFound - 404: Assignment not found.
+	ErrAssignmentNotFound = 103300
+)
+
+// Authz: 策略相关错误 (103400～103499).
+const (
 	// ErrPolicyVersionNotFound - 404: Policy version not found.
-	ErrPolicyVersionNotFound = 103007
+	ErrPolicyVersionNotFound = 103400
 )
 
 // nolint: gochecknoinits
@@ -39,13 +56,23 @@ func init() {
 }
 
 func registerAuthz() {
+	// 基础权限错误
+	registerAuthzCode(ErrUnauthorized, http.StatusForbidden, "Authorization failed")
 	registerAuthzCode(ErrPermissionDenied, http.StatusForbidden, "Permission denied")
+
+	// 角色相关错误
 	registerAuthzCode(ErrRoleNotFound, http.StatusNotFound, "Role not found")
 	registerAuthzCode(ErrRoleAlreadyExists, http.StatusConflict, "Role already exists")
+
+	// 资源相关错误
 	registerAuthzCode(ErrResourceNotFound, http.StatusNotFound, "Resource not found")
 	registerAuthzCode(ErrResourceAlreadyExists, http.StatusConflict, "Resource already exists")
-	registerAuthzCode(ErrAssignmentNotFound, http.StatusNotFound, "Assignment not found")
 	registerAuthzCode(ErrInvalidAction, http.StatusBadRequest, "Invalid action for resource")
+
+	// 赋权相关错误
+	registerAuthzCode(ErrAssignmentNotFound, http.StatusNotFound, "Assignment not found")
+
+	// 策略相关错误
 	registerAuthzCode(ErrPolicyVersionNotFound, http.StatusNotFound, "Policy version not found")
 }
 

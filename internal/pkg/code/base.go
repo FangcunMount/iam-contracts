@@ -4,7 +4,7 @@ import (
 	"github.com/FangcunMount/component-base/pkg/errors"
 )
 
-// Common: basic errors (1xxxxx).
+// Base: 平台级非业务错误码 (100001～100999).
 const (
 	// ErrSuccess - 200: OK.
 	ErrSuccess = 100001
@@ -18,74 +18,59 @@ const (
 	// ErrValidation - 400: Validation failed.
 	ErrValidation = 100004
 
+	// ErrInvalidArgument - 400: Invalid argument.
+	ErrInvalidArgument = 100005
+
 	// ErrPageNotFound - 404: Page not found.
 	ErrPageNotFound = 100006
 
-	// ErrInvalidArgument - 400: Invalid argument.
-	ErrInvalidArgument = 100007
-
 	// ErrInvalidMessage - 400: Invalid message.
-	ErrInvalidMessage = 100008
+	ErrInvalidMessage = 100007
+
+	// ErrInternalServerError - 500: Internal server error.
+	ErrInternalServerError = 100008
 )
 
-// common: database errors.
+// Base: 数据库错误 (100101～100199).
 const (
 	// ErrDatabase - 500: Database error.
-	ErrDatabase int = iota + 100101
+	ErrDatabase = 100101
 )
 
-// common: encode/decode errors.
+// Base: 编码/解码错误 (100201～100299).
 const (
 	// ErrEncodingFailed - 500: Encoding failed due to an error with the data.
-	ErrEncodingFailed int = iota + 100301
+	ErrEncodingFailed = 100201
 
 	// ErrDecodingFailed - 500: Decoding failed due to an error with the data.
-	ErrDecodingFailed
+	ErrDecodingFailed = 100202
 
 	// ErrInvalidJSON - 500: Data is not valid JSON.
-	ErrInvalidJSON
+	ErrInvalidJSON = 100203
 
 	// ErrEncodingJSON - 500: JSON data could not be encoded.
-	ErrEncodingJSON
+	ErrEncodingJSON = 100204
 
 	// ErrDecodingJSON - 500: JSON data could not be decoded.
-	ErrDecodingJSON
+	ErrDecodingJSON = 100205
 
 	// ErrInvalidYaml - 500: Data is not valid Yaml.
-	ErrInvalidYaml
+	ErrInvalidYaml = 100206
 
 	// ErrEncodingYaml - 500: Yaml data could not be encoded.
-	ErrEncodingYaml
+	ErrEncodingYaml = 100207
 
 	// ErrDecodingYaml - 500: Yaml data could not be decoded.
-	ErrDecodingYaml
+	ErrDecodingYaml = 100208
 )
 
-// common: module errors.
+// Base: 模块错误 (100301～100399).
 const (
 	// ErrModuleInitializationFailed - 500: Module initialization failed.
-	ErrModuleInitializationFailed int = iota + 100401
+	ErrModuleInitializationFailed = 100301
 
 	// ErrModuleNotFound - 404: Module not found.
-	ErrModuleNotFound
-)
-
-// Common: internal server failure.
-const (
-	// ErrInternalServerError - 500: Internal server error.
-	ErrInternalServerError = 100209
-)
-
-// Common: authentication and authorization errors.
-const (
-	// ErrUnauthenticated - 401: Authentication failed.
-	ErrUnauthenticated int = iota + 100501
-
-	// ErrUnauthorized - 403: Authorization failed.
-	ErrUnauthorized
-
-	// ErrInvalidCredentials - 401: Invalid credentials.
-	ErrInvalidCredentials
+	ErrModuleNotFound = 100302
 )
 
 func init() {
@@ -93,9 +78,10 @@ func init() {
 	registerBase(ErrUnknown, 500, "Internal server error")
 	registerBase(ErrBind, 400, "Error occurred while binding the request body to the struct")
 	registerBase(ErrValidation, 400, "Validation failed")
-	registerBase(ErrPageNotFound, 404, "Page not found")
 	registerBase(ErrInvalidArgument, 400, "Invalid argument")
+	registerBase(ErrPageNotFound, 404, "Page not found")
 	registerBase(ErrInvalidMessage, 400, "Invalid message")
+	registerBase(ErrInternalServerError, 500, "Internal server error")
 	registerBase(ErrDatabase, 500, "Database error")
 	registerBase(ErrEncodingFailed, 500, "Encoding failed due to an error with the data")
 	registerBase(ErrDecodingFailed, 500, "Decoding failed due to an error with the data")
@@ -107,10 +93,6 @@ func init() {
 	registerBase(ErrDecodingYaml, 500, "Yaml data could not be decoded")
 	registerBase(ErrModuleInitializationFailed, 500, "Module initialization failed")
 	registerBase(ErrModuleNotFound, 404, "Module not found")
-	registerBase(ErrInternalServerError, 500, "Internal server error")
-	registerBase(ErrUnauthenticated, 401, "Authentication failed")
-	registerBase(ErrUnauthorized, 403, "Authorization failed")
-	registerBase(ErrInvalidCredentials, 401, "Invalid credentials")
 }
 
 func registerBase(code int, httpStatus int, message string) {
