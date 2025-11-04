@@ -1,10 +1,12 @@
 package account
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Mapper 负责领域模型与持久化对象之间的转换。
@@ -15,134 +17,161 @@ func NewMapper() *Mapper {
 	return &Mapper{}
 }
 
-// ToAccountPO 将领域模型转换为账号持久化对象。
-func (m *Mapper) ToAccountPO(account *domain.Account) *AccountPO {
-	if account == nil {
+// ==================== Account 映射 ====================
+
+// ToAccountPO 将账号领域模型转换为持久化对象。
+func (m *Mapper) ToAccountPO(acc *domain.Account) *AccountPO {
+	if acc == nil {
 		return nil
 	}
 
 	po := &AccountPO{
-		UserID:     idutil.NewID(account.UserID.Uint64()), // authn.UserID 映射到数据库 UserID 字段
-		Provider:   string(account.Provider),
-		ExternalID: account.ExternalID,
-		AppID:      account.AppID,
-		Status:     int8(account.Status),
+		UserID:     idutil.NewID(acc.UserID.ToUint64()),
+		Type:       string(acc.Type),
+		ExternalID: string(acc.ExternalID),
+		Profile:    mapToJSON(acc.Profile),
+		Meta:       mapToJSON(acc.Meta),
+		Status:     int8(acc.Status),
 	}
 
-	if id := idutil.ID(account.ID); !id.IsZero() {
-		po.ID = id
+	// 设置 ID（如果已存在）
+	if acc.ID.ToUint64() != 0 {
+		po.ID = idutil.NewID(acc.ID.ToUint64())
+	}
+
+	// 设置 AppID
+	if acc.AppID != "" {
+		appIDStr := string(acc.AppID)
+		po.AppID = &appIDStr
+	}
+
+	// 设置 UniqueID
+	if acc.UniqueID != "" {
+		uniqueIDStr := string(acc.UniqueID)
+		po.UniqueID = &uniqueIDStr
 	}
 
 	return po
 }
 
-// ToAccountBO 将账号持久化对象转换为领域模型。
-func (m *Mapper) ToAccountBO(po *AccountPO) *domain.Account {
+// ToAccountDO 将持久化对象转换为账号领域模型。
+func (m *Mapper) ToAccountDO(po *AccountPO) *domain.Account {
 	if po == nil {
 		return nil
 	}
 
-	opts := []domain.AccountOption{
-		domain.WithID(domain.AccountID(po.ID)),
-		domain.WithExternalID(po.ExternalID),
-		domain.WithStatus(domain.AccountStatus(po.Status)),
+	acc := &domain.Account{
+		ID:         meta.NewID(po.ID.Uint64()),
+		UserID:     meta.NewID(po.UserID.Uint64()),
+		Type:       domain.AccountType(po.Type),
+		ExternalID: domain.ExternalID(po.ExternalID),
+		Profile:    jsonToMap(po.Profile),
+		Meta:       jsonToMap(po.Meta),
+		Status:     domain.AccountStatus(po.Status),
 	}
 
+	// 设置 AppID
 	if po.AppID != nil {
-		opts = append(opts, domain.WithAppID(*po.AppID))
+		acc.AppID = domain.AppId(*po.AppID)
 	}
 
-	// 数据库 UserID 字段转换为 authn.UserID
-	userID := domain.NewUserID(po.UserID.Uint64())
-	account := domain.NewAccount(userID, domain.Provider(po.Provider), opts...)
-	return &account
+	// 设置 UniqueID
+	if po.UniqueID != nil {
+		acc.UniqueID = domain.UnionID(*po.UniqueID)
+	}
+
+	return acc
 }
 
-// ToWeChatPO 将领域模型转换为微信账号持久化对象。
-func (m *Mapper) ToWeChatPO(wx *domain.WeChatAccount) *WeChatAccountPO {
-	if wx == nil {
+// ==================== Credential 映射 ====================
+
+// ToCredentialPO 将凭据领域模型转换为持久化对象。
+func (m *Mapper) ToCredentialPO(cred *domain.Credential) *CredentialPO {
+	if cred == nil {
 		return nil
 	}
 
-	return &WeChatAccountPO{
-		AccountID: idutil.ID(wx.AccountID),
-		AppID:     wx.AppID,
-		OpenID:    wx.OpenID,
-		UnionID:   wx.UnionID,
-		Nickname:  wx.Nickname,
-		AvatarURL: wx.AvatarURL,
-		Meta:      cloneBytes(wx.Meta),
+	// 根据凭据字段推断类型
+	credType := inferCredentialType(cred)
+
+	po := &CredentialPO{
+		AccountID:      cred.AccountID,
+		Type:           string(credType),
+		IDP:            copyStringPtr(cred.IDP),
+		IDPIdentifier:  cred.IDPIdentifier,
+		AppID:          copyStringPtr(cred.AppID),
+		Material:       cloneBytes(cred.Material),
+		Algo:           copyStringPtr(cred.Algo),
+		Params:         cloneBytes(cred.ParamsJSON),
+		Status:         int8(cred.Status),
+		FailedAttempts: cred.FailedAttempts,
+		LockedUntil:    copyTimePtr(cred.LockedUntil),
+		LastSuccessAt:  copyTimePtr(cred.LastSuccessAt),
+		LastFailureAt:  copyTimePtr(cred.LastFailureAt),
+		Rev:            cred.Rev,
 	}
+
+	// 设置 ID（如果已存在）
+	if cred.ID != 0 {
+		po.ID = idutil.NewID(uint64(cred.ID))
+	}
+
+	return po
 }
 
-// ToWeChatBO 将微信账号持久化对象转换为领域模型。
-func (m *Mapper) ToWeChatBO(po *WeChatAccountPO) *domain.WeChatAccount {
+// inferCredentialType 根据 Credential 字段推断类型
+func inferCredentialType(cred *domain.Credential) domain.CredentialType {
+	// 密码类型：有 Material、Algo，没有 IDP
+	if cred.IDP == nil && len(cred.Material) > 0 && cred.Algo != nil {
+		return domain.CredPassword
+	}
+
+	// 手机 OTP：IDP 为 "phone"
+	if cred.IDP != nil && *cred.IDP == "phone" {
+		return domain.CredPhoneOTP
+	}
+
+	// WeChat OAuth：IDP 为 "wechat"
+	if cred.IDP != nil && *cred.IDP == "wechat" {
+		return domain.CredOAuthWxMinip
+	}
+
+	// WeCom OAuth：IDP 为 "wecom"
+	if cred.IDP != nil && *cred.IDP == "wecom" {
+		return domain.CredOAuthWecom
+	}
+
+	// 默认返回密码类型
+	return domain.CredPassword
+}
+
+// ToCredentialDO 将持久化对象转换为凭据领域模型。
+func (m *Mapper) ToCredentialDO(po *CredentialPO) *domain.Credential {
 	if po == nil {
 		return nil
 	}
 
-	opts := []domain.WeChatAccountOption{
-		domain.WithWeChatAccountID(domain.AccountID(po.AccountID)),
-		domain.WithWeChatMeta(cloneBytes(po.Meta)),
-	}
-	if po.UnionID != nil {
-		opts = append(opts, domain.WithWeChatUnionID(*po.UnionID))
-	}
-	if po.Nickname != nil {
-		opts = append(opts, domain.WithWeChatNickname(*po.Nickname))
-	}
-	if po.AvatarURL != nil {
-		opts = append(opts, domain.WithWeChatAvatarURL(*po.AvatarURL))
-	}
-
-	wx := domain.NewWeChatAccount(domain.AccountID(po.AccountID), po.AppID, po.OpenID, opts...)
-	return &wx
-}
-
-// ToOperationPO 将领域模型转换为运营账号持久化对象。
-func (m *Mapper) ToOperationPO(oa *domain.OperationAccount) *OperationAccountPO {
-	if oa == nil {
-		return nil
-	}
-
-	return &OperationAccountPO{
-		AccountID:      idutil.ID(oa.AccountID),
-		Username:       oa.Username,
-		PasswordHash:   cloneBytes(oa.PasswordHash),
-		Algo:           oa.Algo,
-		Params:         cloneBytes(oa.Params),
-		FailedAttempts: oa.FailedAttempts,
-		LockedUntil:    copyTimePtr(oa.LockedUntil),
-		LastChangedAt:  oa.LastChangedAt,
+	return &domain.Credential{
+		ID:             int64(po.ID.Uint64()),
+		AccountID:      po.AccountID,
+		IDP:            po.IDP,
+		IDPIdentifier:  po.IDPIdentifier,
+		AppID:          po.AppID,
+		Material:       cloneBytes(po.Material),
+		Algo:           po.Algo,
+		ParamsJSON:     cloneBytes(po.Params),
+		Status:         domain.CredentialStatus(po.Status),
+		FailedAttempts: po.FailedAttempts,
+		LockedUntil:    copyTimePtr(po.LockedUntil),
+		LastSuccessAt:  copyTimePtr(po.LastSuccessAt),
+		LastFailureAt:  copyTimePtr(po.LastFailureAt),
+		Rev:            po.Rev,
 	}
 }
 
-// ToOperationBO 将持久化对象转换为运营账号领域模型。
-func (m *Mapper) ToOperationBO(po *OperationAccountPO) *domain.OperationAccount {
-	if po == nil {
-		return nil
-	}
+// ==================== 辅助方法 ====================
 
-	opts := []domain.OperationAccountOption{
-		domain.WithPasswordHash(cloneBytes(po.PasswordHash)),
-		domain.WithParams(cloneBytes(po.Params)),
-		domain.WithFailedAttempts(po.FailedAttempts),
-		domain.WithLastChangedAt(po.LastChangedAt),
-	}
-
-	if po.LockedUntil != nil {
-		opts = append(opts, domain.WithLockedUntil(copyTimePtr(po.LockedUntil)))
-	}
-
-	oa := domain.NewOperationAccount(
-		domain.AccountID(po.AccountID),
-		po.Username,
-		po.Algo,
-		opts...,
-	)
-	return &oa
-}
-
+// cloneBytes 复制字节切片。
 func cloneBytes(src []byte) []byte {
 	if len(src) == 0 {
 		return nil
@@ -152,10 +181,42 @@ func cloneBytes(src []byte) []byte {
 	return dst
 }
 
+// copyStringPtr 复制字符串指针。
+func copyStringPtr(src *string) *string {
+	if src == nil {
+		return nil
+	}
+	s := *src
+	return &s
+}
+
+// copyTimePtr 复制时间指针。
 func copyTimePtr(src *time.Time) *time.Time {
 	if src == nil {
 		return nil
 	}
 	t := *src
 	return &t
+}
+
+// mapToJSON 将 map 转换为 JSON 字节数组。
+func mapToJSON(m map[string]string) []byte {
+	if len(m) == 0 {
+		return nil
+	}
+	data, _ := json.Marshal(m)
+	return data
+}
+
+// jsonToMap 将 JSON 字节数组转换为 map。
+func jsonToMap(data []byte) map[string]string {
+	if len(data) == 0 {
+		return make(map[string]string)
+	}
+	var m map[string]string
+	_ = json.Unmarshal(data, &m)
+	if m == nil {
+		return make(map[string]string)
+	}
+	return m
 }
