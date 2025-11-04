@@ -1,224 +1,168 @@
 package service
 
 import (
-	"context"
-	"errors"
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/gorm"
+	"github.com/stretchr/testify/require"
 )
 
-// MockAccountRepo 模拟账号仓储
-type MockAccountRepo struct {
-	CreateFunc            func(ctx context.Context, a *domain.Account) error
-	FindByIDFunc          func(ctx context.Context, id domain.AccountID) (*domain.Account, error)
-	FindByRefFunc         func(ctx context.Context, provider domain.Provider, externalID string, appID *string) (*domain.Account, error)
-	UpdateStatusFunc      func(ctx context.Context, id domain.AccountID, status domain.AccountStatus) error
-	UpdateUserIDFunc      func(ctx context.Context, id domain.AccountID, userID domain.UserID) error
-	UpdateExternalRefFunc func(ctx context.Context, id domain.AccountID, externalID string, appID *string) error
+func TestNewAccountStateMachine(t *testing.T) {
+	validStatuses := []domain.AccountStatus{
+		domain.StatusActive,
+		domain.StatusDisabled,
+		domain.StatusArchived,
+		domain.StatusDeleted,
+	}
+
+	for _, status := range validStatuses {
+		status := status
+		t.Run(status.String(), func(t *testing.T) {
+			account := domain.NewAccount(
+				meta.NewID(1),
+				domain.TypeWcMinip,
+				"test-external-id",
+				domain.WithStatus(status),
+			)
+			m, err := NewAccountStateMachine(account)
+			require.NoError(t, err)
+			assert.Equal(t, status, m.Status())
+		})
+	}
+
+	// 测试 nil account
+	_, err := NewAccountStateMachine(nil)
+	require.Error(t, err)
+	assert.True(t, perrors.IsCode(err, code.ErrInvalidStateTransition))
 }
 
-func (m *MockAccountRepo) Create(ctx context.Context, a *domain.Account) error {
-	if m.CreateFunc != nil {
-		return m.CreateFunc(ctx, a)
+func TestAccountStateMachine_Activate(t *testing.T) {
+	tests := []struct {
+		name          string
+		initialStatus domain.AccountStatus
+		wantStatus    domain.AccountStatus
+		wantErr       bool
+	}{
+		{"from-disabled", domain.StatusDisabled, domain.StatusActive, false},
+		{"from-archived", domain.StatusArchived, domain.StatusActive, false},
+		{"already-active", domain.StatusActive, domain.StatusActive, false},
+		{"from-deleted", domain.StatusDeleted, domain.StatusDeleted, true},
 	}
-	return nil
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			m := newMachine(t, tt.initialStatus)
+			err := m.Activate()
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.True(t, perrors.IsCode(err, code.ErrInvalidStateTransition))
+				assert.Equal(t, tt.initialStatus, m.Status())
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantStatus, m.Status())
+		})
+	}
 }
 
-func (m *MockAccountRepo) FindByID(ctx context.Context, id domain.AccountID) (*domain.Account, error) {
-	if m.FindByIDFunc != nil {
-		return m.FindByIDFunc(ctx, id)
+func TestAccountStateMachine_Disable(t *testing.T) {
+	tests := []struct {
+		name          string
+		initialStatus domain.AccountStatus
+		wantStatus    domain.AccountStatus
+		wantErr       bool
+	}{
+		{"from-active", domain.StatusActive, domain.StatusDisabled, false},
+		{"idempotent-disabled", domain.StatusDisabled, domain.StatusDisabled, false},
+		{"from-archived", domain.StatusArchived, domain.StatusArchived, true},
+		{"from-deleted", domain.StatusDeleted, domain.StatusDeleted, true},
 	}
-	return nil, gorm.ErrRecordNotFound
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			m := newMachine(t, tt.initialStatus)
+			err := m.Disable()
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.True(t, perrors.IsCode(err, code.ErrInvalidStateTransition))
+				assert.Equal(t, tt.initialStatus, m.Status())
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantStatus, m.Status())
+		})
+	}
 }
 
-func (m *MockAccountRepo) UpdateStatus(ctx context.Context, id domain.AccountID, status domain.AccountStatus) error {
-	if m.UpdateStatusFunc != nil {
-		return m.UpdateStatusFunc(ctx, id, status)
+func TestAccountStateMachine_Archive(t *testing.T) {
+	tests := []struct {
+		name          string
+		initialStatus domain.AccountStatus
+		wantStatus    domain.AccountStatus
+		wantErr       bool
+	}{
+		{"from-active", domain.StatusActive, domain.StatusArchived, false},
+		{"from-disabled", domain.StatusDisabled, domain.StatusArchived, false},
+		{"idempotent-archived", domain.StatusArchived, domain.StatusArchived, false},
+		{"from-deleted", domain.StatusDeleted, domain.StatusDeleted, true},
 	}
-	return nil
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			m := newMachine(t, tt.initialStatus)
+			err := m.Archive()
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.True(t, perrors.IsCode(err, code.ErrInvalidStateTransition))
+				assert.Equal(t, tt.initialStatus, m.Status())
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantStatus, m.Status())
+		})
+	}
 }
 
-func (m *MockAccountRepo) FindByRef(ctx context.Context, provider domain.Provider, externalID string, appID *string) (*domain.Account, error) {
-	if m.FindByRefFunc != nil {
-		return m.FindByRefFunc(ctx, provider, externalID, appID)
+func TestAccountStateMachine_Delete(t *testing.T) {
+	tests := []struct {
+		name          string
+		initialStatus domain.AccountStatus
+		wantStatus    domain.AccountStatus
+	}{
+		{"from-active", domain.StatusActive, domain.StatusDeleted},
+		{"from-disabled", domain.StatusDisabled, domain.StatusDeleted},
+		{"from-archived", domain.StatusArchived, domain.StatusDeleted},
+		{"idempotent-deleted", domain.StatusDeleted, domain.StatusDeleted},
 	}
-	return nil, gorm.ErrRecordNotFound
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			m := newMachine(t, tt.initialStatus)
+			err := m.Delete()
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantStatus, m.Status())
+		})
+	}
 }
 
-func (m *MockAccountRepo) UpdateUserID(ctx context.Context, id domain.AccountID, userID domain.UserID) error {
-	if m.UpdateUserIDFunc != nil {
-		return m.UpdateUserIDFunc(ctx, id, userID)
-	}
-	return nil
-}
+func newMachine(t *testing.T, status domain.AccountStatus) *AccountStateMachine {
+	t.Helper()
 
-func (m *MockAccountRepo) UpdateExternalRef(ctx context.Context, id domain.AccountID, externalID string, appID *string) error {
-	if m.UpdateExternalRefFunc != nil {
-		return m.UpdateExternalRefFunc(ctx, id, externalID, appID)
-	}
-	return nil
-}
-
-// TestStatusService_DisableAccount_Success 测试成功禁用账号
-func TestStatusService_DisableAccount_Success(t *testing.T) {
-	// Arrange
-	accountID := domain.NewAccountID(123)
-	existingAccount := &domain.Account{
-		ID:     accountID,
-		UserID: domain.UserID(456),
-		Status: domain.StatusActive,
-	}
-
-	mockRepo := &MockAccountRepo{
-		FindByIDFunc: func(ctx context.Context, id domain.AccountID) (*domain.Account, error) {
-			assert.Equal(t, accountID, id)
-			return existingAccount, nil
-		},
-		UpdateStatusFunc: func(ctx context.Context, id domain.AccountID, status domain.AccountStatus) error {
-			assert.Equal(t, accountID, id)
-			assert.Equal(t, domain.StatusDisabled, status)
-			return nil
-		},
-	}
-
-	service := NewStatusService(mockRepo)
-	ctx := context.Background()
-
-	// Act
-	err := service.DisableAccount(ctx, accountID)
-
-	// Assert
-	assert.NoError(t, err)
-}
-
-// TestStatusService_DisableAccount_NotFound 测试禁用不存在的账号
-func TestStatusService_DisableAccount_NotFound(t *testing.T) {
-	// Arrange
-	accountID := domain.NewAccountID(999)
-
-	mockRepo := &MockAccountRepo{
-		FindByIDFunc: func(ctx context.Context, id domain.AccountID) (*domain.Account, error) {
-			return nil, gorm.ErrRecordNotFound
-		},
-	}
-
-	service := NewStatusService(mockRepo)
-	ctx := context.Background()
-
-	// Act
-	err := service.DisableAccount(ctx, accountID)
-
-	// Assert
-	assert.Error(t, err)
-	assert.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
-}
-
-// TestStatusService_DisableAccount_DatabaseError 测试数据库错误
-func TestStatusService_DisableAccount_DatabaseError(t *testing.T) {
-	// Arrange
-	accountID := domain.NewAccountID(123)
-
-	mockRepo := &MockAccountRepo{
-		FindByIDFunc: func(ctx context.Context, id domain.AccountID) (*domain.Account, error) {
-			return nil, errors.New("database connection failed")
-		},
-	}
-
-	service := NewStatusService(mockRepo)
-	ctx := context.Background()
-
-	// Act
-	err := service.DisableAccount(ctx, accountID)
-
-	// Assert
-	assert.Error(t, err)
-	assert.True(t, perrors.IsCode(err, code.ErrDatabase))
-}
-
-// TestStatusService_DisableAccount_UpdateFailed 测试更新状态失败
-func TestStatusService_DisableAccount_UpdateFailed(t *testing.T) {
-	// Arrange
-	accountID := domain.NewAccountID(123)
-	existingAccount := &domain.Account{
-		ID:     accountID,
-		Status: domain.StatusActive,
-	}
-
-	mockRepo := &MockAccountRepo{
-		FindByIDFunc: func(ctx context.Context, id domain.AccountID) (*domain.Account, error) {
-			return existingAccount, nil
-		},
-		UpdateStatusFunc: func(ctx context.Context, id domain.AccountID, status domain.AccountStatus) error {
-			return errors.New("update failed")
-		},
-	}
-
-	service := NewStatusService(mockRepo)
-	ctx := context.Background()
-
-	// Act
-	err := service.DisableAccount(ctx, accountID)
-
-	// Assert
-	assert.Error(t, err)
-	assert.True(t, perrors.IsCode(err, code.ErrDatabase))
-}
-
-// TestStatusService_EnableAccount_Success 测试成功启用账号
-func TestStatusService_EnableAccount_Success(t *testing.T) {
-	// Arrange
-	accountID := domain.NewAccountID(789)
-	existingAccount := &domain.Account{
-		ID:     accountID,
-		UserID: domain.UserID(456),
-		Status: domain.StatusDisabled,
-	}
-
-	mockRepo := &MockAccountRepo{
-		FindByIDFunc: func(ctx context.Context, id domain.AccountID) (*domain.Account, error) {
-			assert.Equal(t, accountID, id)
-			return existingAccount, nil
-		},
-		UpdateStatusFunc: func(ctx context.Context, id domain.AccountID, status domain.AccountStatus) error {
-			assert.Equal(t, accountID, id)
-			assert.Equal(t, domain.StatusActive, status)
-			return nil
-		},
-	}
-
-	service := NewStatusService(mockRepo)
-	ctx := context.Background()
-
-	// Act
-	err := service.EnableAccount(ctx, accountID)
-
-	// Assert
-	assert.NoError(t, err)
-}
-
-// TestStatusService_EnableAccount_NotFound 测试启用不存在的账号
-func TestStatusService_EnableAccount_NotFound(t *testing.T) {
-	// Arrange
-	accountID := domain.NewAccountID(999)
-
-	mockRepo := &MockAccountRepo{
-		FindByIDFunc: func(ctx context.Context, id domain.AccountID) (*domain.Account, error) {
-			return nil, gorm.ErrRecordNotFound
-		},
-	}
-
-	service := NewStatusService(mockRepo)
-	ctx := context.Background()
-
-	// Act
-	err := service.EnableAccount(ctx, accountID)
-
-	// Assert
-	assert.Error(t, err)
-	assert.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
+	account := domain.NewAccount(
+		meta.NewID(1),
+		domain.TypeWcMinip,
+		"test-external-id",
+		domain.WithStatus(status),
+	)
+	m, err := NewAccountStateMachine(account)
+	require.NoError(t, err)
+	return m
 }

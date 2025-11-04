@@ -1,110 +1,62 @@
 package service
 
 import (
-	"strings"
-	"time"
+	"context"
 
-	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
-const (
-	defaultOperationAccountAlgo   = "plain"
-	defaultOperationPasswordAddon = "123456"
-)
-
-// CreateAccount 构造基础账号实体，负责清洗输入并补齐默认状态。
-func CreateAccount(
-	userID domain.UserID,
-	provider domain.Provider,
-	externalID string,
-	appID *string,
-	opts ...domain.AccountOption,
-) (*domain.Account, error) {
-	if userID.IsZero() {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "user id cannot be empty")
-	}
-
-	providerValue := strings.TrimSpace(string(provider))
-	if providerValue == "" {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "provider cannot be empty")
-	}
-
-	externalID = strings.TrimSpace(externalID)
-	if externalID == "" {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "external id cannot be empty")
-	}
-
-	accountOpts := []domain.AccountOption{
-		domain.WithExternalID(externalID),
-		domain.WithStatus(domain.StatusActive),
-	}
-
-	if appID != nil {
-		value := strings.TrimSpace(*appID)
-		if value == "" {
-			return nil, perrors.WithCode(code.ErrInvalidArgument, "app id cannot be empty")
-		}
-		accountOpts = append(accountOpts, domain.WithAppID(value))
-	}
-
-	if len(opts) > 0 {
-		accountOpts = append(accountOpts, opts...)
-	}
-
-	acc := domain.NewAccount(userID, domain.Provider(providerValue), accountOpts...)
-	return &acc, nil
+// AccountCreater 账号创建器
+type AccountCreater struct {
+	repo port.AccountRepo
 }
 
-// CreateOperationAccount 构造运营后台账号凭证实体。
-func CreateOperationAccount(
-	accountID domain.AccountID,
-	username string,
-	algo string,
-	opts ...domain.OperationAccountOption,
-) (*domain.OperationAccount, error) {
-	username = strings.TrimSpace(username)
-	if username == "" {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "username cannot be empty")
-	}
+// Ensure AccountCreater implements the port.AccountCreater interface
+var _ port.AccountCreater = (*AccountCreater)(nil)
 
-	algo = strings.TrimSpace(algo)
-	if algo == "" {
-		algo = defaultOperationAccountAlgo
+// NewAccountCreater creates a new AccountCreater instance
+func NewAccountCreater(repo port.AccountRepo) *AccountCreater {
+	return &AccountCreater{
+		repo: repo,
 	}
-
-	opOpts := []domain.OperationAccountOption{
-		domain.WithPasswordHash([]byte(username + defaultOperationPasswordAddon)),
-		domain.WithLastChangedAt(time.Now()),
-	}
-	if len(opts) > 0 {
-		opOpts = append(opOpts, opts...)
-	}
-
-	cred := domain.NewOperationAccount(accountID, username, algo, opOpts...)
-	return &cred, nil
 }
 
-// CreateWeChatAccount 构造微信账号凭证实体。
-func CreateWeChatAccount(
-	accountID domain.AccountID,
-	appID string,
-	openID string,
-	opts ...domain.WeChatAccountOption,
-) (*domain.WeChatAccount, error) {
-	appID = strings.TrimSpace(appID)
-	openID = strings.TrimSpace(openID)
-	if appID == "" || openID == "" {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "wechat app_id and open_id cannot be empty")
+// Create 创建账户
+func (ac *AccountCreater) Create(ctx context.Context, dto port.CreateAccountDTO) (*domain.Account, error) {
+	// 参数校验，验证输入数据的合法性
+	if !idutil.ValidateIntID(dto.UserID.ToUint64()) {
+		return nil, errors.WithCode(code.ErrInvalidArgument, "invalid user ID")
+	}
+	if !dto.AccountType.Validate() {
+		return nil, errors.WithCode(code.ErrInvalidArgument, "invalid account type")
+	}
+	if dto.AppID.Len() == 0 {
+		return nil, errors.WithCode(code.ErrInvalidArgument, "app ID cannot be empty")
+	}
+	if dto.ExternalID.Len() == 0 {
+		return nil, errors.WithCode(code.ErrInvalidArgument, "external ID cannot be empty")
 	}
 
-	wxOpts := opts
-	wx := domain.NewWeChatAccount(accountID, appID, openID, wxOpts...)
-	return &wx, nil
-}
+	// 幂等性检查，确保同一用户、同一应用、同一外部ID的账号不会重复创建
+	if existingAccount, err := ac.repo.GetByExternalIDAppId(ctx, dto.ExternalID, dto.AppID); err != nil {
+		return nil, err
+	} else if existingAccount != nil && existingAccount.UserID == dto.UserID {
+		return nil, errors.WithCode(code.ErrExternalExists, "create account failed, external ID belongs to the other user")
+	} else if existingAccount != nil {
+		return nil, errors.WithCode(code.ErrAccountExists, "create account failed, external ID already exists")
+	}
 
-func accountIDString(id domain.AccountID) string {
-	return idutil.ID(id).String()
+	// 创建新的账号实体
+	account := domain.NewAccount(
+		dto.UserID,
+		dto.AccountType,
+		dto.ExternalID,
+		domain.WithAppID(dto.AppID),
+	)
+
+	return account, nil
 }
