@@ -6,6 +6,7 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -19,6 +20,9 @@ type AccountStateMachine struct {
 	account *domain.Account
 	state   IAccountState
 }
+
+// AccountStateMachine 实现了 port.AccountStateMachine 接口
+var _ port.AccountStateMachine = (*AccountStateMachine)(nil)
 
 // NewAccountStateMachine 创建账号状态机
 func NewAccountStateMachine(account *domain.Account) (*AccountStateMachine, error) {

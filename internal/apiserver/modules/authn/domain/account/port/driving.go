@@ -28,6 +28,22 @@ type AccountEditor interface {
 	UpdateMeta(ctx context.Context, accountID meta.ID, meta map[string]string) (*domain.Account, error)
 }
 
+// AccountStateMachine 账号状态机
+type AccountStateMachine interface {
+	// Activate 激活账号
+	Activate() error
+	// Disable 禁用账号
+	Disable() error
+	// Archive 归档账号
+	Archive() error
+	// Delete 删除账号
+	Delete() error
+	// Status 获取当前状态
+	Status() domain.AccountStatus
+	// Account 获取当前账号对象
+	Account() *domain.Account
+}
+
 // CreateAccountDTO 创建账号数据传输对象
 type CreateAccountDTO struct {
 	UserID      meta.ID
