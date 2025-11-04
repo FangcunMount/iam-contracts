@@ -44,13 +44,8 @@ func (cr *CredentialRotator) Rotate(c *domain.Credential, newMaterial []byte, ne
 		oldAlgo = *c.Algo
 	}
 
-	// 更新材料
-	c.Material = newMaterial
-
-	// 更新算法（如果提供了新算法）
-	if newAlgo != nil && *newAlgo != "" {
-		c.Algo = newAlgo
-	}
+	// 委托给领域对象进行轮换
+	c.RotateMaterial(newMaterial, newAlgo)
 
 	newAlgoStr := ""
 	if c.Algo != nil {
@@ -73,7 +68,7 @@ func (cr *CredentialRotator) ValidateRotation(c *domain.Credential, newMaterial 
 	}
 
 	// 只有已启用的凭据可以轮换
-	if c.Status != domain.CredStatusEnabled {
+	if !c.IsEnabled() {
 		return errors.WithCode(code.ErrCredentialDisabled, "only enabled credentials can be rotated")
 	}
 

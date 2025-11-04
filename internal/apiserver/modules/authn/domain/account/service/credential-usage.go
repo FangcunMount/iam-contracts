@@ -29,22 +29,25 @@ func (cu *CredentialUsage) EnsureUsable(c *domain.Credential, now time.Time) err
 		return errors.WithCode(code.ErrInvalidCredential, "credential cannot be nil")
 	}
 
-	// 检查状态是否为启用
-	if c.Status != domain.CredStatusEnabled {
-		log.Warnw("Credential is not enabled",
-			"credentialID", c.ID,
-			"status", c.Status.String(),
-		)
-		return errors.WithCode(code.ErrCredentialDisabled, "credential is disabled")
-	}
+	// 使用领域对象的方法检查可用性
+	if !c.IsUsable(now) {
+		if c.IsDisabled() {
+			log.Warnw("Credential is disabled",
+				"credentialID", c.ID,
+				"status", c.Status.String(),
+			)
+			return errors.WithCode(code.ErrCredentialDisabled, "credential is disabled")
+		}
 
-	// 检查是否被时间锁定
-	if c.LockedUntil != nil && now.Before(*c.LockedUntil) {
-		log.Warnw("Credential is temporarily locked",
-			"credentialID", c.ID,
-			"lockedUntil", c.LockedUntil,
-		)
-		return errors.WithCode(code.ErrCredentialLocked, "credential is locked until %s", c.LockedUntil.Format(time.RFC3339))
+		if c.IsLockedByTime(now) {
+			log.Warnw("Credential is temporarily locked",
+				"credentialID", c.ID,
+				"lockedUntil", c.LockedUntil,
+			)
+			return errors.WithCode(code.ErrCredentialLocked, "credential is locked until %s", c.LockedUntil.Format(time.RFC3339))
+		}
+
+		return errors.WithCode(code.ErrCredentialNotUsable, "credential is not usable")
 	}
 
 	return nil
@@ -58,8 +61,7 @@ func (cu *CredentialUsage) RecordSuccess(c *domain.Credential, now time.Time) {
 		return
 	}
 
-	c.LastSuccessAt = &now
-	c.FailedAttempts = 0 // 归零失败计数
+	c.RecordSuccess(now)
 
 	log.Infow("Credential authentication succeeded",
 		"credentialID", c.ID,
@@ -77,30 +79,24 @@ func (cu *CredentialUsage) RecordFailure(c *domain.Credential, now time.Time, p 
 		return false
 	}
 
-	c.LastFailureAt = &now
-	c.FailedAttempts++
+	failedAttempts := c.RecordFailure(now)
 
 	log.Infow("Credential authentication failed",
 		"credentialID", c.ID,
 		"accountID", c.AccountID,
-		"failedAttempts", c.FailedAttempts,
+		"failedAttempts", failedAttempts,
 		"lastFailureAt", now,
 	)
 
-	// 检查是否需要锁定
-	if p.Enabled && c.FailedAttempts >= p.Threshold {
-		lockUntil := now.Add(p.LockDuration)
-		c.LockedUntil = &lockUntil
-		// 注意：状态仍然是 Enabled，但通过 LockedUntil 时间来控制锁定
-
+	// 应用锁定策略
+	if c.ApplyLockPolicy(now, p) {
 		log.Warnw("Credential locked due to too many failed attempts",
 			"credentialID", c.ID,
 			"accountID", c.AccountID,
-			"failedAttempts", c.FailedAttempts,
+			"failedAttempts", failedAttempts,
 			"threshold", p.Threshold,
-			"lockedUntil", lockUntil,
+			"lockedUntil", c.LockedUntil,
 		)
-
 		return true
 	}
 

@@ -28,7 +28,7 @@ func (cl *CredentialLocker) LockUntil(c *domain.Credential, until time.Time) {
 		return
 	}
 
-	c.LockedUntil = &until
+	c.LockUntil(until)
 
 	log.Infow("Credential locked administratively",
 		"credentialID", c.ID,
@@ -45,8 +45,7 @@ func (cl *CredentialLocker) Unlock(c *domain.Credential) {
 		return
 	}
 
-	c.LockedUntil = nil
-	c.FailedAttempts = 0 // 解锁时重置失败计数
+	c.Unlock()
 
 	log.Infow("Credential unlocked",
 		"credentialID", c.ID,

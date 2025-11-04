@@ -26,13 +26,7 @@ func (cl *CredentialLifecycle) Enable(c *domain.Credential) {
 	}
 
 	oldStatus := c.Status
-	c.Status = domain.CredStatusEnabled
-
-	// 启用时清除锁定状态
-	if c.LockedUntil != nil {
-		c.LockedUntil = nil
-		c.FailedAttempts = 0
-	}
+	c.Enable()
 
 	log.Infow("Credential enabled",
 		"credentialID", c.ID,
@@ -50,7 +44,7 @@ func (cl *CredentialLifecycle) Disable(c *domain.Credential) {
 	}
 
 	oldStatus := c.Status
-	c.Status = domain.CredStatusDisabled
+	c.Disable()
 
 	log.Infow("Credential disabled",
 		"credentialID", c.ID,
