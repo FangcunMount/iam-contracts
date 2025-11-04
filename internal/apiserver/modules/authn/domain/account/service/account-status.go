@@ -103,8 +103,26 @@ func (m *AccountStateMachine) transitionTo(newStatus domain.AccountStatus) error
 		return nil
 	}
 
-	// 更新账号状态
-	m.account.Status = newStatus
+	// 使用领域对象的 CanTransitionTo 验证状态转换
+	if !m.account.CanTransitionTo(newStatus) {
+		return m.invalidTransition(newStatus)
+	}
+
+	// 更新账号状态（委托给领域对象）
+	switch newStatus {
+	case domain.StatusActive:
+		m.account.Activate()
+	case domain.StatusDisabled:
+		m.account.Disable()
+	case domain.StatusArchived:
+		m.account.Archive()
+	case domain.StatusDeleted:
+		m.account.Delete()
+	default:
+		return perrors.WithCode(code.ErrInvalidStateTransition, "unknown target status: %d", newStatus)
+	}
+
+	// 更新状态机内部状态
 	if err := m.setState(newStatus); err != nil {
 		// 回滚状态
 		m.account.Status = oldStatus

@@ -42,13 +42,10 @@ func (es *AccountEditor) SetUniqueID(ctx context.Context, accountID meta.ID, uni
 		return nil, errors.WithCode(code.ErrNotFoundAccount, "account not found")
 	}
 
-	// 检查 account 是否已经设置了 uniqueID
-	if account.UniqueID != "" {
-		return nil, errors.WithCode(code.ErrAccountExists, "uniqueID already set")
+	// 使用领域对象的方法设置 uniqueID
+	if !account.SetUniqueID(uniqueID) {
+		return nil, errors.WithCode(code.ErrUniqueIDExists, "uniqueID already set")
 	}
-
-	// 设置唯一标识
-	account.UniqueID = uniqueID
 
 	return account, nil
 }
@@ -64,10 +61,13 @@ func (es *AccountEditor) UpdateProfile(ctx context.Context, accountID meta.ID, p
 		return nil, errors.WithCode(code.ErrNotFoundAccount, "account not found")
 	}
 
-	// 更新用户资料
-	for k, v := range profile {
-		account.Profile[k] = v
+	// 检查是否可以更新
+	if !account.CanUpdateProfile() {
+		return nil, errors.WithCode(code.ErrInvalidArgument, "cannot update profile for deleted account")
 	}
+
+	// 使用领域对象的方法更新资料
+	account.UpdateProfile(profile)
 
 	return account, nil
 }
@@ -83,10 +83,13 @@ func (es *AccountEditor) UpdateMeta(ctx context.Context, accountID meta.ID, meta
 		return nil, errors.WithCode(code.ErrNotFoundAccount, "account not found")
 	}
 
-	// 更新用户元数据
-	for k, v := range meta {
-		account.Meta[k] = v
+	// 检查是否可以更新
+	if !account.CanUpdateMeta() {
+		return nil, errors.WithCode(code.ErrInvalidArgument, "cannot update meta for deleted account")
 	}
+
+	// 使用领域对象的方法更新元数据
+	account.UpdateMeta(meta)
 
 	return account, nil
 }
