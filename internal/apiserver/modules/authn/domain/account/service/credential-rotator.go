@@ -1,0 +1,91 @@
+package service
+
+import (
+	"github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/log"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+)
+
+// CredentialRotator 凭据轮换器
+// 职责：管理凭据材料的轮换（主要用于 password 类型的条件再哈希）
+type CredentialRotator struct{}
+
+// Ensure CredentialRotator implements the port.CredentialRotator interface
+var _ port.CredentialRotator = (*CredentialRotator)(nil)
+
+// NewCredentialRotator creates a new CredentialRotator instance
+func NewCredentialRotator() *CredentialRotator {
+	return &CredentialRotator{}
+}
+
+// Rotate 轮换凭据材料
+// 主要用于 password 类型的密码更新或条件再哈希
+// 参数：
+//   - c: 凭据实体
+//   - newMaterial: 新的密钥材料（如新的密码哈希）
+//   - newAlgo: 新的算法（可选，如果为 nil 则保持原算法）
+func (cr *CredentialRotator) Rotate(c *domain.Credential, newMaterial []byte, newAlgo *string) {
+	if c == nil {
+		log.Warn("Cannot rotate credential: credential is nil")
+		return
+	}
+
+	if len(newMaterial) == 0 {
+		log.Warnw("Cannot rotate credential: new material is empty",
+			"credentialID", c.ID,
+		)
+		return
+	}
+
+	oldAlgo := ""
+	if c.Algo != nil {
+		oldAlgo = *c.Algo
+	}
+
+	// 更新材料
+	c.Material = newMaterial
+
+	// 更新算法（如果提供了新算法）
+	if newAlgo != nil && *newAlgo != "" {
+		c.Algo = newAlgo
+	}
+
+	newAlgoStr := ""
+	if c.Algo != nil {
+		newAlgoStr = *c.Algo
+	}
+
+	log.Infow("Credential material rotated",
+		"credentialID", c.ID,
+		"accountID", c.AccountID,
+		"oldAlgo", oldAlgo,
+		"newAlgo", newAlgoStr,
+	)
+}
+
+// ValidateRotation 验证轮换操作的合法性
+// 仅 password 类型的凭据可以进行材料轮换
+func (cr *CredentialRotator) ValidateRotation(c *domain.Credential, newMaterial []byte, newAlgo *string) error {
+	if c == nil {
+		return errors.WithCode(code.ErrInvalidCredential, "credential cannot be nil")
+	}
+
+	// 只有已启用的凭据可以轮换
+	if c.Status != domain.CredStatusEnabled {
+		return errors.WithCode(code.ErrCredentialDisabled, "only enabled credentials can be rotated")
+	}
+
+	// 验证新材料不为空
+	if len(newMaterial) == 0 {
+		return errors.WithCode(code.ErrInvalidCredential, "new material cannot be empty")
+	}
+
+	// 如果提供了新算法，验证其不为空
+	if newAlgo != nil && *newAlgo == "" {
+		return errors.WithCode(code.ErrInvalidCredential, "new algo cannot be empty string")
+	}
+
+	return nil
+}

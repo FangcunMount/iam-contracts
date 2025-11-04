@@ -1,5 +1,7 @@
 package account
 
+import "time"
+
 // Provider 认证提供者
 type Provider string
 
@@ -94,4 +96,35 @@ type AccessClaims struct {
 	Jti string `json:"jti"`
 	Kid string `json:"kid"`
 	Sid string `json:"sid,omitempty"`
+}
+
+// CredentialStatus 凭据状态
+type CredentialStatus int8
+
+const (
+	CredStatusDisabled CredentialStatus = 0 // 禁用
+	CredStatusEnabled  CredentialStatus = 1 // 启用
+)
+
+func (s CredentialStatus) String() string {
+	switch s {
+	case CredStatusDisabled:
+		return "disabled"
+	case CredStatusEnabled:
+		return "enabled"
+	default:
+		return "unknown"
+	}
+}
+
+// Validate 校验凭据状态是否合法
+func (s CredentialStatus) Validate() bool {
+	return s >= CredStatusDisabled && s <= CredStatusEnabled
+}
+
+// LockoutPolicy 锁定策略
+type LockoutPolicy struct {
+	Enabled      bool
+	Threshold    int
+	LockDuration time.Duration
 }
