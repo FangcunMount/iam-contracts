@@ -2,7 +2,7 @@
 
 ## 📋 目录结构
 
-```
+```text
 authentication/
 ├── port/
 │   └── driven.go              # Driven 端口定义（领域需求）
@@ -24,7 +24,7 @@ authentication/
 
 ### 1. 六边形架构（Ports & Adapters）
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                      应用层 (Application)                    │
 │                    Authenticator Service                     │
@@ -71,6 +71,7 @@ type AuthStrategy interface {
 ```
 
 **4种策略实现：**
+
 - ✅ `PasswordAuthStrategy` - 用户名+密码
 - ✅ `PhoneOTPAuthStrategy` - 手机验证码
 - ✅ `OAuthWechatMinipAuthStrategy` - 微信小程序
@@ -79,6 +80,7 @@ type AuthStrategy interface {
 ### 3. Driven 端口设计（核心改进）
 
 **改进前（❌）：**
+
 ```go
 type PasswordDeps interface {
     FindAccountByUsername(...)
@@ -91,6 +93,7 @@ type PasswordDeps interface {
 ```
 
 **改进后（✅）：**
+
 ```go
 // 按职责分离，而非按认证方式分离
 type CredentialRepository interface {
@@ -274,6 +277,7 @@ type AuthDecision struct {
 ```
 
 **错误码映射：**
+
 ```go
 const (
     ErrInvalidCredential  = "invalid_credential"   // 凭据无效
@@ -328,6 +332,7 @@ func TestPasswordAuthStrategy(t *testing.T) {
 假设要添加"GitHub OAuth"认证：
 
 ### 1. 在 types.go 添加场景
+
 ```go
 const (
     AuthGitHub Scenario = "oauth_github"
@@ -339,6 +344,7 @@ const (
 ```
 
 ### 2. 在 IdentityProvider 添加方法
+
 ```go
 type IdentityProvider interface {
     // ...existing methods...
@@ -347,6 +353,7 @@ type IdentityProvider interface {
 ```
 
 ### 3. 实现策略
+
 ```go
 // service/github.go
 type OAuthGitHubAuthStrategy struct {
@@ -374,6 +381,7 @@ func (g *OAuthGitHubAuthStrategy) Authenticate(ctx context.Context, in domain.Au
 ```
 
 ### 4. 注册到工厂
+
 ```go
 func (f *StrategyFactory) CreateStrategy(scenario domain.Scenario) domain.AuthStrategy {
     switch scenario {

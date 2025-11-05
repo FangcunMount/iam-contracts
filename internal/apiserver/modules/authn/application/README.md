@@ -4,7 +4,7 @@
 
 应用服务层是六边形架构中的"应用层"，负责协调领域服务完成业务用例。本模块提供以下应用服务：
 
-```
+```text
 application/
 ├── register/        # 注册服务
 ├── login/          # 登录服务  
@@ -20,21 +20,25 @@ application/
 **职责**：处理用户注册流程
 
 **核心方法**：
+
 - `Register(ctx, RegisterRequest)` - 统一注册接口
 
 **注册流程**：
+
 1. 创建或获取 User（通过手机号查找，避免重复）
 2. 创建或获取 Account（通过 ExternalID+AppID 幂等检查）
 3. 创建并绑定 Credential（根据 CredentialType）
 4. 返回完整用户信息（包含 IsNewUser、IsNewAccount 标识）
 
 **支持的注册方式**：
+
 - `password` - 密码注册
 - `phone` - 手机号注册
 - `wechat` - 微信小程序
 - `wecom` - 企业微信
 
 **使用示例**：
+
 ```go
 result, err := registerService.Register(ctx, RegisterRequest{
     Name:  "张三",
@@ -51,21 +55,25 @@ result, err := registerService.Register(ctx, RegisterRequest{
 **职责**：处理用户登录和登出，完成认证并签发/撤销 Token
 
 **核心方法**：
+
 - `Login(ctx, LoginRequest)` - 统一登录接口
 - `Logout(ctx, LogoutRequest)` - 统一登出接口
 
 **登录流程**：
+
 1. 根据 AuthType 选择认证策略
 2. 执行认证（调用领域层 StrategyFactory）
 3. 认证成功后签发 Token（AccessToken + RefreshToken）
 4. 返回 Principal 和 TokenPair
 
 **登出流程**：
+
 1. 验证请求参数（至少提供 AccessToken 或 RefreshToken 之一）
 2. 优先撤销 RefreshToken（更彻底，会使所有相关 AccessToken 失效）
 3. 或撤销 AccessToken（仅撤销单个访问令牌）
 
 **支持的认证方式**：
+
 - `password` - 用户名密码
 - `phone_otp` - 手机号验证码
 - `wechat` - 微信小程序
@@ -73,6 +81,7 @@ result, err := registerService.Register(ctx, RegisterRequest{
 - `jwt_token` - JWT Token 认证（用于第三方集成）
 
 **使用示例**：
+
 ```go
 result, err := loginService.Login(ctx, LoginRequest{
     AuthType: login.AuthTypePassword,
@@ -90,6 +99,7 @@ result, err := loginService.Login(ctx, LoginRequest{
 **职责**：Token 的验证、刷新、撤销
 
 **核心方法**：
+
 - `VerifyToken(ctx, accessToken)` - 验证 Access Token
 - `RefreshToken(ctx, refreshToken)` - 刷新 Access Token
 - `RevokeToken(ctx, accessToken)` - 撤销 Access Token
@@ -98,6 +108,7 @@ result, err := loginService.Login(ctx, LoginRequest{
 **典型使用场景**：
 
 #### 场景1：API 认证中间件
+
 ```go
 // 在 HTTP 中间件中验证 Token
 func AuthMiddleware(tokenService token.TokenApplicationService) gin.HandlerFunc {
@@ -119,12 +130,14 @@ func AuthMiddleware(tokenService token.TokenApplicationService) gin.HandlerFunc 
 ```
 
 #### 场景2：Token 刷新
+
 ```go
 // 客户端用 RefreshToken 获取新的 AccessToken
 newTokens, err := tokenService.RefreshToken(ctx, oldRefreshToken)
 ```
 
 #### 场景3：用户登出
+
 ```go
 // 撤销 AccessToken
 err := tokenService.RevokeToken(ctx, accessToken)
@@ -140,6 +153,7 @@ err := tokenService.RevokeRefreshToken(ctx, refreshToken)
 **职责**：账号和凭证的后续管理
 
 **核心方法**：
+
 - `GetAccountByID(ctx, accountID)` - 获取账号信息
 - `UpdateAccountStatus(ctx, accountID, status)` - 更新账号状态
 - `UpdateAccountProfile(ctx, accountID, profile)` - 更新账号资料
@@ -148,6 +162,7 @@ err := tokenService.RevokeRefreshToken(ctx, refreshToken)
 - `UnbindCredential(ctx, req)` - 解绑凭证
 
 **使用示例**：
+
 ```go
 // 修改密码
 err := accountService.RotatePassword(ctx, RotatePasswordRequest{
@@ -170,6 +185,7 @@ err := accountService.BindCredential(ctx, BindCredentialRequest{
 ## 完整的认证流程示例
 
 ### 用户注册流程
+
 ```go
 // 1. 用户注册
 registerResult, err := registerService.Register(ctx, RegisterRequest{
@@ -188,6 +204,7 @@ registerResult, err := registerService.Register(ctx, RegisterRequest{
 ```
 
 ### 用户登录流程
+
 ```go
 // 2. 用户登录
 loginResult, err := loginService.Login(ctx, LoginRequest{
@@ -203,6 +220,7 @@ loginResult, err := loginService.Login(ctx, LoginRequest{
 ```
 
 ### API 访问流程
+
 ```go
 // 3. 访问受保护的 API
 // 客户端在请求头中携带 AccessToken
@@ -220,6 +238,7 @@ accountID := result.Claims.AccountID
 ```
 
 ### Token 刷新流程
+
 ```go
 // 4. AccessToken 过期后，使用 RefreshToken 刷新
 newTokens, err := tokenService.RefreshToken(ctx, refreshToken)
@@ -247,25 +266,30 @@ err := loginService.Logout(ctx, LogoutRequest{
 ## 设计原则
 
 ### 1. 单一职责
+
 - 每个应用服务只负责一类业务用例
 - 避免服务之间职责重叠
 
 ### 2. 统一接口
+
 - 同一类操作提供统一接口（如 Register、Login）
 - 通过枚举类型（CredentialType、AuthType）区分不同场景
 - 避免接口膨胀（不要为每种类型创建单独方法）
 
 ### 3. 事务边界
+
 - 使用 UnitOfWork 管理事务边界
 - 一个应用服务方法 = 一个事务
 - 跨服务调用不在事务内
 
 ### 4. DTO 转换
+
 - 应用层使用自己的 DTO（Request/Result）
 - 不直接暴露领域对象给外层
 - 在应用层完成类型转换
 
 ### 5. 错误处理
+
 - 将领域错误转换为应用层错误码
 - 提供清晰的错误信息
 
@@ -339,6 +363,7 @@ func LoginHandler(loginService login.LoginApplicationService) gin.HandlerFunc {
 3. 再加一个 Auth 会造成职责重叠和混淆
 
 **正确的使用方式**：
+
 - 注册 → `RegisterApplicationService`
 - 登录 → `LoginApplicationService.Login`
 - 登出 → `LoginApplicationService.Logout`
