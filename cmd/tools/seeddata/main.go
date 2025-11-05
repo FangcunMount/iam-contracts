@@ -36,7 +36,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/FangcunMount/iam-contracts/cmd/tools/internal/common"
-	accountDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 )
 
 // ==================== 核心类型定义 ====================
@@ -83,10 +82,10 @@ type dependencies struct {
 // seedContext holds the state and references created during seeding.
 // This allows later steps to reference entities created by earlier steps.
 type seedContext struct {
-	Users     map[string]string                  // 用户别名 → 用户ID
-	Children  map[string]string                  // 儿童别名 → 儿童ID
-	Accounts  map[string]accountDomain.AccountID // 账号别名 → 账号ID
-	Resources map[string]uint64                  // 资源键 → 资源ID
+	Users     map[string]string // 用户别名 → 用户ID
+	Children  map[string]string // 儿童别名 → 儿童ID
+	Accounts  map[string]uint64 // 账号别名 → 账号ID
+	Resources map[string]uint64 // 资源键 → 资源ID
 }
 
 // newSeedContext creates a new seed context with initialized maps.
@@ -94,7 +93,7 @@ func newSeedContext() *seedContext {
 	return &seedContext{
 		Users:     map[string]string{},
 		Children:  map[string]string{},
-		Accounts:  map[string]accountDomain.AccountID{},
+		Accounts:  map[string]uint64{},
 		Resources: map[string]uint64{},
 	}
 }
