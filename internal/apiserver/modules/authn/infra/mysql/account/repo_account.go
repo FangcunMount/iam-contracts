@@ -156,3 +156,47 @@ func (r *AccountRepository) GetByExternalIDAppId(ctx context.Context, externalID
 	}
 	return r.mapper.ToAccountDO(&po), nil
 }
+
+// ==================== 认证端口实现 ====================
+
+// FindAccountByUsername 根据用户名查找账户（用于密码认证）
+// 实现 port.AccountRepository 接口
+func (r *AccountRepository) FindAccountByUsername(ctx context.Context, tenantID *int64, username string) (accountID, userID int64, err error) {
+	// 在当前设计中，username 对应 external_id，租户ID对应 user_id
+	// 这里需要根据实际业务逻辑调整查询条件
+	var po AccountPO
+
+	query := r.db.WithContext(ctx).Where("external_id = ?", username)
+
+	// 如果有租户隔离，可以通过 user_id 或其他字段实现
+	// 这里假设暂不支持租户隔离，或者租户信息在其他表中
+
+	if err := query.First(&po).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return 0, 0, nil // 账户不存在，返回空值
+		}
+		return 0, 0, fmt.Errorf("failed to find account by username: %w", err)
+	}
+
+	return int64(po.ID.Uint64()), int64(po.UserID.Uint64()), nil
+}
+
+// GetAccountStatus 获取账户状态（用于检查账户是否锁定/禁用）
+// 实现 port.AccountRepository 接口
+func (r *AccountRepository) GetAccountStatus(ctx context.Context, accountID int64) (enabled, locked bool, err error) {
+	var po AccountPO
+
+	if err := r.db.WithContext(ctx).
+		Select("status").
+		Where("id = ?", accountID).
+		First(&po).Error; err != nil {
+		return false, false, fmt.Errorf("failed to get account status: %w", err)
+	}
+
+	// status: 1=正常, 0=禁用, -1=锁定等
+	// 根据实际的 AccountStatus 定义调整
+	enabled = po.Status == 1
+	locked = po.Status < 0
+
+	return enabled, locked, nil
+}

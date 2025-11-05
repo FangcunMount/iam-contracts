@@ -1,9 +1,9 @@
-package authentication
+package token
 
 import (
 	"time"
 
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // TokenType 令牌类型
@@ -18,17 +18,17 @@ const (
 
 // Token 令牌值对象
 type Token struct {
-	ID        string         // 令牌唯一标识（用于撤销）
-	Type      TokenType      // 令牌类型
-	Value     string         // 令牌值（JWT 字符串或 UUID）
-	UserID    account.UserID // 关联的用户 ID
-	AccountID account.AccountID
+	ID        string    // 令牌唯一标识（用于撤销）
+	Type      TokenType // 令牌类型
+	Value     string    // 令牌值（JWT 字符串或 UUID）
+	UserID    meta.ID   // 关联的用户 ID
+	AccountID meta.ID
 	IssuedAt  time.Time // 颁发时间
 	ExpiresAt time.Time // 过期时间
 }
 
 // NewAccessToken 创建访问令牌
-func NewAccessToken(id, value string, userID account.UserID, accountID account.AccountID, expiresIn time.Duration) *Token {
+func NewAccessToken(id, value string, userID meta.ID, accountID meta.ID, expiresIn time.Duration) *Token {
 	now := time.Now()
 	return &Token{
 		ID:        id,
@@ -42,7 +42,7 @@ func NewAccessToken(id, value string, userID account.UserID, accountID account.A
 }
 
 // NewRefreshToken 创建刷新令牌
-func NewRefreshToken(id, value string, userID account.UserID, accountID account.AccountID, expiresIn time.Duration) *Token {
+func NewRefreshToken(id, value string, userID meta.ID, accountID meta.ID, expiresIn time.Duration) *Token {
 	now := time.Now()
 	return &Token{
 		ID:        id,
@@ -84,15 +84,15 @@ func NewTokenPair(accessToken, refreshToken *Token) *TokenPair {
 
 // TokenClaims 令牌声明（从 JWT 解析出来的信息）
 type TokenClaims struct {
-	TokenID   string         // 令牌 ID
-	UserID    account.UserID // 用户 ID
-	AccountID account.AccountID
+	TokenID   string  // 令牌 ID
+	UserID    meta.ID // 用户 ID
+	AccountID meta.ID
 	IssuedAt  time.Time // 颁发时间
 	ExpiresAt time.Time // 过期时间
 }
 
 // NewTokenClaims 创建令牌声明
-func NewTokenClaims(tokenID string, userID account.UserID, accountID account.AccountID, issuedAt, expiresAt time.Time) *TokenClaims {
+func NewTokenClaims(tokenID string, userID meta.ID, accountID meta.ID, issuedAt, expiresAt time.Time) *TokenClaims {
 	return &TokenClaims{
 		TokenID:   tokenID,
 		UserID:    userID,

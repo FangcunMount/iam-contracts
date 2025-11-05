@@ -101,6 +101,26 @@ const (
 	ErrKeyAlreadyExists = 102118
 )
 
+// Authn: 账号相关错误码 (102200～102299).
+const (
+	ErrAccountExists   = 102200
+	ErrExternalExists  = 102201
+	ErrNotFoundAccount = 102202
+	ErrUniqueIDExists  = 102203
+	ErrInvalidUniqueID = 102204
+)
+
+// Authn: 凭据相关错误码 (102300～102399).
+const (
+	ErrCredentialExists    = 102300
+	ErrCredentialNotFound  = 102301
+	ErrCredentialLocked    = 102302
+	ErrCredentialExpired   = 102303
+	ErrCredentialDisabled  = 102304
+	ErrInvalidCredential   = 102305
+	ErrCredentialNotUsable = 102306
+)
+
 // nolint: gochecknoinits
 func init() {
 	registerAuthn()
@@ -139,6 +159,22 @@ func registerAuthn() {
 	errors.MustRegister(&authnCoder{code: ErrKeyNotFound, status: http.StatusNotFound, msg: "Key not found"})
 	errors.MustRegister(&authnCoder{code: ErrNoActiveKey, status: http.StatusNotFound, msg: "No active key available"})
 	errors.MustRegister(&authnCoder{code: ErrKeyAlreadyExists, status: http.StatusConflict, msg: "Key with this kid already exists"})
+
+	// Account-related errors
+	errors.MustRegister(&authnCoder{code: ErrAccountExists, status: http.StatusConflict, msg: "Account already exists"})
+	errors.MustRegister(&authnCoder{code: ErrExternalExists, status: http.StatusConflict, msg: "External ID already exists"})
+	errors.MustRegister(&authnCoder{code: ErrNotFoundAccount, status: http.StatusNotFound, msg: "Account not found"})
+	errors.MustRegister(&authnCoder{code: ErrUniqueIDExists, status: http.StatusConflict, msg: "UniqueID already exists"})
+	errors.MustRegister(&authnCoder{code: ErrInvalidUniqueID, status: http.StatusBadRequest, msg: "Invalid UniqueID"})
+
+	// Credential-related errors
+	errors.MustRegister(&authnCoder{code: ErrCredentialExists, status: http.StatusConflict, msg: "Credential already exists"})
+	errors.MustRegister(&authnCoder{code: ErrCredentialNotFound, status: http.StatusNotFound, msg: "Credential not found"})
+	errors.MustRegister(&authnCoder{code: ErrCredentialLocked, status: http.StatusLocked, msg: "Credential is locked"})
+	errors.MustRegister(&authnCoder{code: ErrCredentialExpired, status: http.StatusUnauthorized, msg: "Credential has expired"})
+	errors.MustRegister(&authnCoder{code: ErrCredentialDisabled, status: http.StatusForbidden, msg: "Credential is disabled"})
+	errors.MustRegister(&authnCoder{code: ErrInvalidCredential, status: http.StatusBadRequest, msg: "Invalid credential"})
+	errors.MustRegister(&authnCoder{code: ErrCredentialNotUsable, status: http.StatusForbidden, msg: "Credential is not usable"})
 }
 
 // authnCoder 实现 errors.Coder 接口

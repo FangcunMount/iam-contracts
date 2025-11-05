@@ -91,10 +91,17 @@ func registerAccountEndpoints(v1 *gin.RouterGroup, h *authhandler.AccountHandler
 	}
 
 	accounts := v1.Group("/accounts")
+	// 微信注册（公开端点，无需认证）
+	accounts.POST("/wechat:register", h.RegisterWeChatAccount)
+
+	// 其他账号管理端点（需要认证）
 	accounts.POST("/operation", h.CreateOperationAccount)
 	accounts.PATCH("/operation/:username", h.UpdateOperationCredential)
 	accounts.POST("/operation/:username/change", h.ChangeOperationUsername)
+
+	// Deprecated: 使用 /accounts/wechat:register 代替
 	accounts.POST("/wechat/bind", h.BindWeChatAccount)
+
 	accounts.PATCH("/:accountId/wechat/profile", h.UpsertWeChatProfile)
 	accounts.PATCH("/:accountId/wechat/unionid", h.SetWeChatUnionID)
 	accounts.GET("/:accountId", h.GetAccount)

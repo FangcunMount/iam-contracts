@@ -1,13 +1,13 @@
 package account
 
 import (
-"context"
-"fmt"
-"time"
+	"context"
+	"fmt"
+	"time"
 
-domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
-"gorm.io/gorm"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"gorm.io/gorm"
 )
 
 // CredentialRepository 凭据仓储实现
@@ -46,9 +46,9 @@ func (r *CredentialRepository) UpdateMaterial(ctx context.Context, id meta.ID, m
 		Model(&CredentialPO{}).
 		Where("id = ?", id.ToUint64()).
 		Updates(map[string]interface{}{
-"material": material,
-"algo":     algo,
-})
+			"material": material,
+			"algo":     algo,
+		})
 
 	if result.Error != nil {
 		return fmt.Errorf("failed to update credential material: %w", result.Error)
@@ -220,4 +220,93 @@ func (r *CredentialRepository) Delete(ctx context.Context, id meta.ID) error {
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+// ==================== 认证端口实现 ====================
+
+// FindPasswordCredential 根据账户ID查找密码凭据
+// 实现 port.CredentialRepository 接口
+func (r *CredentialRepository) FindPasswordCredential(ctx context.Context, accountID int64) (credentialID int64, passwordHash string, err error) {
+	var po CredentialPO
+
+	if err := r.db.WithContext(ctx).
+		Select("id", "material").
+		Where("account_id = ? AND type = ?", accountID, "password").
+		First(&po).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return 0, "", nil // 凭据不存在，返回空值
+		}
+		return 0, "", fmt.Errorf("failed to find password credential: %w", err)
+	}
+
+	// material 存储的是 PHC 格式的密码哈希
+	return int64(po.ID.Uint64()), string(po.Material), nil
+}
+
+// FindPhoneOTPCredential 根据手机号查找OTP凭据绑定
+// 实现 port.CredentialRepository 接口
+func (r *CredentialRepository) FindPhoneOTPCredential(ctx context.Context, phoneE164 string) (accountID, userID, credentialID int64, err error) {
+	var result struct {
+		CredentialID int64 `gorm:"column:credential_id"`
+		AccountID    int64 `gorm:"column:account_id"`
+		UserID       int64 `gorm:"column:user_id"`
+	}
+
+	// 联表查询获取 account_id 和 user_id
+	query := `
+		SELECT c.id as credential_id, c.account_id, a.user_id
+		FROM iam_auth_credentials c
+		JOIN iam_auth_accounts a ON c.account_id = a.id
+		WHERE c.type = ? AND c.idp_identifier = ? AND c.deleted_at IS NULL AND a.deleted_at IS NULL
+		LIMIT 1
+	`
+
+	if err := r.db.WithContext(ctx).Raw(query, "phone_otp", phoneE164).Scan(&result).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return 0, 0, 0, nil
+		}
+		return 0, 0, 0, fmt.Errorf("failed to find phone OTP credential: %w", err)
+	}
+
+	if result.CredentialID == 0 {
+		return 0, 0, 0, nil
+	}
+
+	return result.AccountID, result.UserID, result.CredentialID, nil
+}
+
+// FindOAuthCredential 根据身份提供商标识查找OAuth凭据绑定
+// 实现 port.CredentialRepository 接口
+// idpType: "wx_minip" | "wecom" | ...
+// appID: 应用ID (微信AppID/企业微信CorpID等)
+// idpIdentifier: OpenID/UnionID/UserID等
+func (r *CredentialRepository) FindOAuthCredential(ctx context.Context, idpType, appID, idpIdentifier string) (accountID, userID, credentialID int64, err error) {
+	var result struct {
+		CredentialID int64 `gorm:"column:credential_id"`
+		AccountID    int64 `gorm:"column:account_id"`
+		UserID       int64 `gorm:"column:user_id"`
+	}
+
+	// 联表查询
+	query := `
+		SELECT c.id as credential_id, c.account_id, a.user_id
+		FROM iam_auth_credentials c
+		JOIN iam_auth_accounts a ON c.account_id = a.id
+		WHERE c.type = ? AND c.app_id = ? AND c.idp_identifier = ? 
+		  AND c.deleted_at IS NULL AND a.deleted_at IS NULL
+		LIMIT 1
+	`
+
+	if err := r.db.WithContext(ctx).Raw(query, idpType, appID, idpIdentifier).Scan(&result).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return 0, 0, 0, nil
+		}
+		return 0, 0, 0, fmt.Errorf("failed to find OAuth credential: %w", err)
+	}
+
+	if result.CredentialID == 0 {
+		return 0, 0, 0, nil
+	}
+
+	return result.AccountID, result.UserID, result.CredentialID, nil
 }

@@ -86,6 +86,7 @@ func (r *ChangeOperationUsernameReq) Validate() error {
 }
 
 // BindWeChatAccountReq payload.
+// Deprecated: 使用 RegisterWeChatAccountReq 代替，该接口假设 Account 已存在
 type BindWeChatAccountReq struct {
 	UserID   string                 `json:"userId"`
 	AppID    string                 `json:"appId"`
@@ -101,6 +102,50 @@ func (r *BindWeChatAccountReq) Validate() error {
 		return perrors.WithCode(code.ErrInvalidArgument, "userId, appId and openid are required")
 	}
 	return nil
+}
+
+// RegisterWeChatAccountReq 微信注册用户请求
+// 该接口会原子性地创建 User + Account + WeChatAccount
+type RegisterWeChatAccountReq struct {
+	Name     string                 `json:"name"`               // 用户名
+	Phone    string                 `json:"phone"`              // 手机号（必填）
+	Email    string                 `json:"email,omitempty"`    // 邮箱（可选）
+	AppID    string                 `json:"appId"`              // 微信应用ID
+	OpenID   string                 `json:"openId"`             // 微信OpenID
+	UnionID  *string                `json:"unionId,omitempty"`  // 微信UnionID（可选）
+	Nickname *string                `json:"nickname,omitempty"` // 微信昵称（可选）
+	Avatar   *string                `json:"avatar,omitempty"`   // 微信头像（可选）
+	Meta     map[string]interface{} `json:"meta,omitempty"`     // 微信元数据（可选）
+}
+
+func (r *RegisterWeChatAccountReq) Validate() error {
+	if strings.TrimSpace(r.Name) == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "name is required")
+	}
+	if strings.TrimSpace(r.Phone) == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "phone is required")
+	}
+	if strings.TrimSpace(r.AppID) == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "appId is required")
+	}
+	if strings.TrimSpace(r.OpenID) == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "openId is required")
+	}
+	return nil
+}
+
+// MetaJSON encodes RegisterWeChatAccount meta.
+func (r *RegisterWeChatAccountReq) MetaJSON() (map[string]string, error) {
+	if r.Meta == nil {
+		return nil, nil
+	}
+	result := make(map[string]string, len(r.Meta))
+	for k, v := range r.Meta {
+		if str, ok := v.(string); ok {
+			result[k] = str
+		}
+	}
+	return result, nil
 }
 
 // UpsertWeChatProfileReq payload.

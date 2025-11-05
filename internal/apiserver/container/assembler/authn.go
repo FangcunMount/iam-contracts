@@ -13,6 +13,7 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/adapter"
 	jwksApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/login"
+	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/register"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/token"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/uow"
 	acctDriven "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
@@ -42,6 +43,9 @@ type AuthnModule struct {
 	OperationAccountService accountApp.OperationAccountApplicationService
 	WeChatAccountService    accountApp.WeChatAccountApplicationService
 	LookupService           accountApp.AccountLookupApplicationService
+
+	// 注册服务
+	RegisterService *registerApp.RegisterService
 
 	// 认证服务
 	LoginService *login.LoginService
@@ -159,11 +163,17 @@ type infrastructureComponents struct {
 	keyGenerator      jwksDriven.KeyGenerator
 	privKeyResolver   jwksDriven.PrivateKeyResolver
 	jwtGenerator      *jwt.Generator
+
+	// 数据库连接（用于跨模块事务）
+	db *gorm.DB
 }
 
 // initializeInfrastructure 初始化基础设施层
 func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.Client, idpModule *IDPModule) (*infrastructureComponents, error) {
 	infra := &infrastructureComponents{}
+
+	// 保存数据库连接（用于跨模块事务）
+	infra.db = db
 
 	// MySQL 仓储
 	infra.accountRepo = mysqlacct.NewAccountRepository(db)
@@ -299,8 +309,11 @@ func (m *AuthnModule) initializeApplication(infra *infrastructureComponents, dom
 	// 账户应用服务
 	m.AccountService = accountApp.NewAccountApplicationService(infra.unitOfWork, infra.userAdapter)
 	m.OperationAccountService = accountApp.NewOperationAccountApplicationService(infra.unitOfWork)
-	m.WeChatAccountService = accountApp.NewWeChatAccountApplicationService(infra.unitOfWork)
 	m.LookupService = accountApp.NewAccountLookupApplicationService(infra.unitOfWork)
+
+	// 注册服务（策略模式）
+	wechatRegisterer := registerApp.NewWeChatRegisterer(infra.db)
+	m.RegisterService = registerApp.NewRegisterService(wechatRegisterer)
 
 	// 认证服务
 	m.LoginService = login.NewLoginService(domain.authenticator, domain.tokenIssuer)
@@ -322,6 +335,7 @@ func (m *AuthnModule) initializeInterface() error {
 		m.AccountService,
 		m.OperationAccountService,
 		m.WeChatAccountService,
+		m.RegisterService, // 注册服务
 		m.LookupService,
 	)
 

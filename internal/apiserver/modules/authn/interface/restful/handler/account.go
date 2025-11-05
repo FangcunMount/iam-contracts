@@ -9,6 +9,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	appAccount "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/account"
+	appRegister "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/register"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	req "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/request"
 	resp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/response"
@@ -22,6 +23,7 @@ type AccountHandler struct {
 	accountService          appAccount.AccountApplicationService
 	operationAccountService appAccount.OperationAccountApplicationService
 	wechatAccountService    appAccount.WeChatAccountApplicationService
+	registerService         *appRegister.RegisterService // 新增：注册服务
 	lookupService           appAccount.AccountLookupApplicationService
 }
 
@@ -30,6 +32,7 @@ func NewAccountHandler(
 	accountService appAccount.AccountApplicationService,
 	operationAccountService appAccount.OperationAccountApplicationService,
 	wechatAccountService appAccount.WeChatAccountApplicationService,
+	registerService *appRegister.RegisterService, // 新增参数：注册服务
 	lookupService appAccount.AccountLookupApplicationService,
 ) *AccountHandler {
 	return &AccountHandler{
@@ -37,6 +40,7 @@ func NewAccountHandler(
 		accountService:          accountService,
 		operationAccountService: operationAccountService,
 		wechatAccountService:    wechatAccountService,
+		registerService:         registerService, // 新增字段
 		lookupService:           lookupService,
 	}
 }
@@ -215,9 +219,69 @@ func (h *AccountHandler) ChangeOperationUsername(c *gin.Context) {
 	h.Success(c, gin.H{"status": "ok"})
 }
 
+// RegisterWeChatAccount 微信用户注册
+// @Summary 微信用户注册
+// @Description 使用微信信息注册新用户，原子性地创建 User + Account + WeChatAccount
+// @Tags Authentication-Accounts
+// @Accept json
+// @Produce json
+// @Param request body req.RegisterWeChatAccountReq true "微信注册请求"
+// @Success 201 {object} resp.Account "注册成功"
+// @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 409 {object} core.ErrResponse "手机号或微信账号已存在"
+// @Router /accounts/wechat:register [post]
+func (h *AccountHandler) RegisterWeChatAccount(c *gin.Context) {
+	var reqBody req.RegisterWeChatAccountReq
+	if err := h.BindJSON(c, &reqBody); err != nil {
+		h.Error(c, err)
+		return
+	}
+	if err := reqBody.Validate(); err != nil {
+		h.Error(c, err)
+		return
+	}
+
+	// 标准化字段
+	metaMap, err := reqBody.MetaJSON()
+	if err != nil {
+		h.Error(c, err)
+		return
+	}
+
+	// 构建 DTO
+	dto := &appRegister.RegisterWithWeChatRequest{
+		Name:     strings.TrimSpace(reqBody.Name),
+		Phone:    strings.TrimSpace(reqBody.Phone),
+		Email:    strings.TrimSpace(reqBody.Email),
+		AppID:    strings.TrimSpace(reqBody.AppID),
+		OpenID:   strings.TrimSpace(reqBody.OpenID),
+		UnionID:  reqBody.UnionID,
+		Nickname: reqBody.Nickname,
+		Avatar:   reqBody.Avatar,
+		Meta:     metaMap,
+	}
+
+	// 调用注册服务
+	result, err := h.registerService.RegisterWithWeChat(c.Request.Context(), dto)
+	if err != nil {
+		h.Error(c, err)
+		return
+	}
+
+	// 查询账号详情以返回完整信息
+	accountResult, err := h.accountService.GetAccountByID(c.Request.Context(), domain.NewAccountID(result.AccountID))
+	if err != nil {
+		h.Error(c, err)
+		return
+	}
+
+	h.Created(c, resp.NewAccount(accountResult.Account))
+}
+
 // BindWeChatAccount 绑定微信账号
 // @Summary 绑定微信账号
 // @Description 为用户创建并绑定微信账号
+// @Deprecated 请使用 RegisterWeChatAccount 接口
 // @Tags Authentication-Accounts
 // @Accept json
 // @Produce json
