@@ -10,545 +10,836 @@ servers:
 security:
   - bearerAuth: []
 tags:
-  - name: Authentication-Accounts
-    description: 账户管理（创建/编辑/状态/查询）
   - name: Authentication-Auth
-    description: 认证（识别登录信息 → 找到 User）
+    description: 用户认证（识别身份并颁发令牌）
   - name: Authentication-Tokens
-    description: 令牌（颁发/验证/刷新/销毁）
+    description: 访问令牌与刷新令牌的生命周期管理
+  - name: Authentication-Accounts
+    description: 认证相关账户的查询与管理
   - name: Authentication-JWKS
-    description: 公钥集（供资源服务验签）
+    description: JSON Web Key Set 管理与分发
 
 paths:
-  # 账户管理
-  /v1/accounts/operation:
-    post:
-      tags: [Authentication-Accounts]
-      summary: 创建运营账号（用户名/口令）
-      operationId: CreateOperationAccount
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/CreateOperationAccountReq' }
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Account' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '409': { $ref: '#/components/responses/Conflict' }
-
-  /v1/accounts/operation/{username}:
-    patch:
-      tags: [Authentication-Accounts]
-      summary: 更新运营口令/解锁/清零失败次数
-      operationId: UpdateOperationCredential
-      parameters:
-        - $ref: '#/components/parameters/Username'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/UpdateOperationCredentialReq' }
-      responses:
-        '200': { description: OK }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-
-  '/v1/accounts/operation/{username}:change':
-    post:
-      tags: [Authentication-Accounts]
-      summary: 修改运营用户名（迁移唯一键）
-      operationId: ChangeUsername
-      parameters:
-        - $ref: '#/components/parameters/Username'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties: { newUsername: { type: string } }
-              required: [newUsername]
-      responses:
-        '200': { description: OK }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
-
-  '/v1/accounts/wechat:bind':
-    post:
-      tags: [Authentication-Accounts]
-      summary: 绑定微信账号（小程序/可扩 OA）
-      operationId: BindWeChatAccount
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/BindWeChatAccountReq' }
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/BindResult' }
-        '200':
-          description: Already exists
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/BindResult' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '409': { $ref: '#/components/responses/Conflict' }
-
-  /v1/accounts/{accountId}/wechat:profile:
-    patch:
-      tags: [Authentication-Accounts]
-      summary: Upsert 微信画像（昵称/头像/Meta）
-      operationId: UpsertWeChatProfile
-      parameters:
-        - $ref: '#/components/parameters/AccountId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/UpsertWeChatProfileReq' }
-      responses:
-        '200': { description: OK }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-
-  /v1/accounts/{accountId}/wechat:unionid:
-    patch:
-      tags: [Authentication-Accounts]
-      summary: 设置/补齐 UnionID（仅微信）
-      operationId: SetWeChatUnionID
-      parameters:
-        - $ref: '#/components/parameters/AccountId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties: { unionId: { type: string } }
-              required: [unionId]
-      responses:
-        '200': { description: OK }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-
-  /v1/accounts/{accountId}:
-    get:
-      tags: [Authentication-Accounts]
-      summary: 查询账号
-      operationId: GetAccount
-      parameters:
-        - $ref: '#/components/parameters/AccountId'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Account' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-
-  '/v1/accounts/{accountId}:enable':
-    post:
-      tags: [Authentication-Accounts]
-      summary: 启用账号
-      operationId: EnableAccount
-      parameters:
-        - $ref: '#/components/parameters/AccountId'
-      responses:
-        '200': { description: OK }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-
-  '/v1/accounts/{accountId}:disable':
-    post:
-      tags: [Authentication-Accounts]
-      summary: 禁用账号
-      operationId: DisableAccount
-      parameters:
-        - $ref: '#/components/parameters/AccountId'
-      responses:
-        '200': { description: OK }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-
-  /v1/users/{userId}/accounts:
-    get:
-      tags: [Authentication-Accounts]
-      summary: 按用户列出其绑定的账号
-      operationId: ListAccountsByUser
-      parameters:
-        - $ref: '#/components/parameters/UserId'
-        - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/Offset'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/AccountPage' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /v1/accounts:by-ref:
-    get:
-      tags: [Authentication-Accounts]
-      summary: 通过外部身份引用查询账号（运营/排障）
-      operationId: FindAccountByRef
-      parameters:
-        - $ref: '#/components/parameters/Provider'
-        - $ref: '#/components/parameters/AppID'
-        - $ref: '#/components/parameters/ExternalID'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Account' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-
-  # 认证（识别）
   /v1/auth/login:
     post:
       tags: [Authentication-Auth]
-      summary: 登录（策略：basic | wx:minip）
+      summary: 统一登录
+      description: 支持密码、手机号验证码、微信小程序和企业微信等多种登录方式。
       operationId: Login
-      security: []  # 登录接口一般不需要 bearer
+      security: []  # 登录无需 Bearer
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/LoginReq' }
+            schema: { $ref: '#/components/schemas/LoginRequest' }
       responses:
         '200':
-          description: OK
+          description: 登录成功，返回新的访问令牌与刷新令牌
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TokenPair' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '429':
-          description: 频率限制
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
 
-  # 令牌（Bearer / JWT + Redis Refresh）
   /v1/auth/refresh_token:
     post:
       tags: [Authentication-Tokens]
-      summary: 刷新 AccessToken（旋转 RefreshToken）
+      summary: 刷新访问令牌
       operationId: RefreshToken
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              properties:
-                refreshToken: { type: string }
-                audience: { type: string, description: 'web | mobile | admin' }
-              required: [refreshToken]
+            schema: { $ref: '#/components/schemas/RefreshTokenRequest' }
       responses:
         '200':
-          description: OK
+          description: 返回新的访问令牌与刷新令牌
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TokenPair' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '429':
-          description: 频率限制
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
 
   /v1/auth/logout:
     post:
       tags: [Authentication-Tokens]
-      summary: 注销（撤销 refresh 或对当前用户全量撤销）
+      summary: 登出并撤销令牌
       operationId: Logout
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              properties:
-                refreshToken: { type: string, description: '若提供，仅撤销该票据' }
-                all: { type: boolean, description: 'true 撤销当前用户所有 refresh（需鉴权）' }
-              oneOf:
-                - required: [refreshToken]
-                - required: [all]
+            schema: { $ref: '#/components/schemas/LogoutRequest' }
       responses:
-        '200': { description: OK }
+        '200':
+          description: 撤销成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessageResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
   /v1/auth/verify:
     post:
       tags: [Authentication-Tokens]
-      summary: 验证 AccessToken（验签 + 载荷校验 + 黑名单检查）
+      summary: 验证访问令牌
       operationId: VerifyToken
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
-            schema:
-              type: object
-              properties:
-                token: { type: string, description: '可省略并使用 Authorization: Bearer 的 token' }
-                audience: { type: string }
+            schema: { $ref: '#/components/schemas/VerifyTokenRequest' }
       responses:
         '200':
-          description: OK
+          description: 返回令牌有效性与声明
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/VerifyResp' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+              schema: { $ref: '#/components/schemas/TokenVerifyResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
 
-  '/.well-known/jwks.json':
+  /.well-known/jwks.json:
     get:
       tags: [Authentication-JWKS]
-      summary: 获取 JWKS（公钥集）
+      summary: 获取公开 JWKS
       operationId: GetJWKS
       security: []
       responses:
         '200':
-          description: OK
+          description: 当前可用的公钥集
+          headers:
+            ETag: { description: 实体标签, schema: { type: string } }
+            Last-Modified: { description: 最后修改时间, schema: { type: string } }
+            Cache-Control: { description: 缓存控制, schema: { type: string } }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/JWKSet' }
 
+  /v1/admin/jwks/keys:
+    post:
+      tags: [Authentication-JWKS]
+      summary: 创建新的签名密钥
+      operationId: CreateJWKSKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateKeyRequest' }
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KeyResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/ServerError' }
+    get:
+      tags: [Authentication-JWKS]
+      summary: 列出签名密钥
+      operationId: ListJWKSKeys
+      parameters:
+        - in: query
+          name: status
+          description: 状态过滤（active / grace / retired）
+          schema:
+            type: string
+            enum: [active, grace, retired]
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: 密钥列表
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KeyListResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/admin/jwks/keys/{kid}:
+    get:
+      tags: [Authentication-JWKS]
+      summary: 获取密钥详情
+      operationId: GetJWKSKey
+      parameters:
+        - $ref: '#/components/parameters/Kid'
+      responses:
+        '200':
+          description: 密钥详情
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KeyResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/admin/jwks/keys/{kid}/retire:
+    post:
+      tags: [Authentication-JWKS]
+      summary: 将密钥退役
+      operationId: RetireJWKSKey
+      parameters:
+        - $ref: '#/components/parameters/Kid'
+      responses:
+        '204': { description: 已退役 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/admin/jwks/keys/{kid}/force-retire:
+    post:
+      tags: [Authentication-JWKS]
+      summary: 强制退役密钥
+      operationId: ForceRetireJWKSKey
+      parameters:
+        - $ref: '#/components/parameters/Kid'
+      responses:
+        '204': { description: 已强制退役 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/admin/jwks/keys/{kid}/grace:
+    post:
+      tags: [Authentication-JWKS]
+      summary: 将密钥置为宽限期
+      operationId: EnterJWKSKeyGrace
+      parameters:
+        - $ref: '#/components/parameters/Kid'
+      responses:
+        '204': { description: 已进入宽限期 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/admin/jwks/keys/cleanup:
+    post:
+      tags: [Authentication-JWKS]
+      summary: 清理过期密钥
+      operationId: CleanupJWKSKeys
+      responses:
+        '200':
+          description: 清理结果
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CleanupResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/admin/jwks/keys/publishable:
+    get:
+      tags: [Authentication-JWKS]
+      summary: 查看可发布的密钥
+      operationId: GetPublishableJWKSKeys
+      responses:
+        '200':
+          description: 当前可发布的密钥
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublishableKeysResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/accounts/wechat/register:
+    post:
+      tags: [Authentication-Accounts]
+      summary: 微信注册用户
+      operationId: RegisterWeChatAccount
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterWeChatAccountRequest' }
+      responses:
+        '201':
+          description: 注册成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RegisterResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/accounts/{accountId}:
+    get:
+      tags: [Authentication-Accounts]
+      summary: 根据账户 ID 获取信息
+      operationId: GetAccountByID
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: 账户信息
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Account' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/accounts/{accountId}/profile:
+    put:
+      tags: [Authentication-Accounts]
+      summary: 更新账户画像
+      operationId: UpdateAccountProfile
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpsertWeChatProfileRequest' }
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessageResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/accounts/{accountId}/unionid:
+    put:
+      tags: [Authentication-Accounts]
+      summary: 设置或更新微信 UnionID
+      operationId: SetUnionID
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SetWeChatUnionIDRequest' }
+      responses:
+        '200':
+          description: 设置成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessageResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/accounts/{accountId}/enable:
+    post:
+      tags: [Authentication-Accounts]
+      summary: 启用账户
+      operationId: EnableAccount
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: 启用成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessageResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/accounts/{accountId}/disable:
+    post:
+      tags: [Authentication-Accounts]
+      summary: 禁用账户
+      operationId: DisableAccount
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: 禁用成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessageResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/accounts/{accountId}/credentials:
+    get:
+      tags: [Authentication-Accounts]
+      summary: 查看账户下的所有凭据
+      operationId: ListAccountCredentials
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: 凭据列表
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CredentialList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
 components:
   securitySchemes:
-    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 
   parameters:
-    AccountId: { in: path, name: accountId, required: true, schema: { type: string } }
-    UserId:    { in: path, name: userId,    required: true, schema: { type: string } }
-    Username:  { in: path, name: username,  required: true, schema: { type: string } }
-    Provider:  { in: query, name: provider, required: true, schema: { type: string, enum: ['op:password','wx:minip'] } }
-    AppID:     { in: query, name: appId, schema: { type: string, nullable: true }, description: 'op:password 留空；wx:minip 填 appid' }
-    ExternalID:{ in: query, name: externalId, required: true, schema: { type: string } }
-    Limit:     { in: query, name: limit,    schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
-    Offset:    { in: query, name: offset,   schema: { type: integer, minimum: 0, default: 0 } }
+    AccountId:
+      in: path
+      name: accountId
+      required: true
+      schema: { type: string }
+    Kid:
+      in: path
+      name: kid
+      required: true
+      schema: { type: string }
+    Limit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Offset:
+      in: query
+      name: offset
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
     IdempotencyKey:
       in: header
       name: X-Idempotency-Key
+      required: false
       schema: { type: string }
 
   responses:
     Unauthorized:
       description: 未认证
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
     Forbidden:
       description: 无权限
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
     NotFound:
-      description: 不存在
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}
+      description: 资源不存在
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
     Conflict:
       description: 冲突
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
     BadRequest:
       description: 参数错误
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ServerError:
+      description: 服务器内部错误
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
 
   schemas:
-    # 只读实体
-    Account:
+    LoginRequest:
       type: object
       properties:
-        id:        { type: string }
-        userId:    { type: string }
-        provider:  { type: string, enum: ['op:password','wx:minip'] }
-        externalId:{ type: string }
-        appId:     { type: string, nullable: true }
-        status:    { type: string, enum: ['active','disabled','archived','deleted'] }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-      required: [id, userId, provider, externalId, status]
-
-    WeChatAccount:
-      type: object
-      properties:
-        accountId: { type: string }
-        appId:     { type: string }
-        openid:    { type: string }
-        unionid:   { type: string, nullable: true }
-        nickname:  { type: string, nullable: true }
-        avatarUrl: { type: string, format: uri, nullable: true }
-        meta:      { type: object, additionalProperties: true }
-
-    OperationCredentialView:
-      type: object
-      description: 运营凭证的只读视图（不返回 Hash）
-      properties:
-        accountId:      { type: string }
-        username:       { type: string }
-        lockedUntil:    { type: string, format: date-time, nullable: true }
-        failedAttempts: { type: integer }
-        lastChangedAt:  { type: string, format: date-time }
-
-    AccountPage:
-      type: object
-      properties:
-        total:  { type: integer }
-        limit:  { type: integer }
-        offset: { type: integer }
-        items:
-          type: array
-          items: { $ref: '#/components/schemas/Account' }
-
-    # 命令/请求
-    CreateOperationAccountReq:
-      type: object
-      properties:
-        userId:   { type: string }
-        username: { type: string }
-        password: { type: string, nullable: true, description: '明文；服务端哈希' }
-        hash:     { type: string, format: byte, nullable: true }
-        algo:     { type: string, nullable: true, description: '当给定 hash 时必填，如 argon2id/bcrypt' }
-        params:   { type: object, additionalProperties: true, nullable: true }
-        mustReset:{ type: boolean, default: false }
-      oneOf:
-        - required: [userId, username, password]
-        - required: [userId, username, hash, algo]
-
-    UpdateOperationCredentialReq:
-      type: object
-      properties:
-        newPassword:  { type: string, nullable: true }
-        newHash:      { type: string, format: byte, nullable: true }
-        algo:         { type: string, nullable: true }
-        params:       { type: object, additionalProperties: true, nullable: true }
-        resetFailures:{ type: boolean, default: false }
-        unlockNow:    { type: boolean, default: false }
-      description: newPassword 与 newHash 二选一；提供 newHash 时需同时提供 algo。
-
-    BindWeChatAccountReq:
-      type: object
-      properties:
-        userId:   { type: string }
-        appId:    { type: string }
-        openid:   { type: string }
-        unionid:  { type: string, nullable: true }
-        nickname: { type: string, nullable: true }
-        avatar:   { type: string, format: uri, nullable: true }
-        meta:     { type: object, additionalProperties: true, nullable: true }
-      required: [userId, appId, openid]
-
-    UpsertWeChatProfileReq:
-      type: object
-      properties:
-        nickname: { type: string, nullable: true }
-        avatar:   { type: string, format: uri, nullable: true }
-        meta:     { type: object, additionalProperties: true, nullable: true }
-
-    BindResult:
-      type: object
-      properties:
-        accountId: { type: string }
-        created:   { type: boolean }
-
-    LoginReq:
-      type: object
-      properties:
-        method:   { type: string, enum: ['basic','wx:minip'] }
-        audience: { type: string, description: 'web | mobile | admin' }
-        deviceId: { type: string, nullable: true }
+        method:
+          type: string
+          enum: [password, phone_otp, wechat, wecom]
+        device_id:
+          type: string
+          description: 客户端设备 ID
         credentials:
           oneOf:
-            - type: object
-              title: BasicCredentials
-              properties:
-                username: { type: string }
-                password: { type: string }
-              required: [username, password]
-            - type: object
-              title: WeChatMiniCredentials
-              properties:
-                appId:  { type: string }
-                jsCode: { type: string }
-              required: [appId, jsCode]
-      required: [method]
+            - $ref: '#/components/schemas/PasswordCredentials'
+            - $ref: '#/components/schemas/PhoneOTPCredentials'
+            - $ref: '#/components/schemas/WeChatCredentials'
+            - $ref: '#/components/schemas/WeComCredentials'
+      required: [method, credentials]
+
+    PasswordCredentials:
+      type: object
+      properties:
+        username: { type: string }
+        password: { type: string }
+        tenant_id:
+          type: integer
+          format: int64
+          nullable: true
+      required: [username, password]
+
+    PhoneOTPCredentials:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: 手机号（E.164）
+        otp_code:
+          type: string
+          description: 短信验证码
+      required: [phone, otp_code]
+
+    WeChatCredentials:
+      type: object
+      properties:
+        app_id: { type: string }
+        code: { type: string }
+      required: [app_id, code]
+
+    WeComCredentials:
+      type: object
+      properties:
+        corp_id: { type: string }
+        auth_code: { type: string }
+      required: [corp_id, auth_code]
+
+    RefreshTokenRequest:
+      type: object
+      properties:
+        refresh_token: { type: string }
+      required: [refresh_token]
+
+    LogoutRequest:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+      anyOf:
+        - required: [access_token]
+        - required: [refresh_token]
+
+    VerifyTokenRequest:
+      type: object
+      properties:
+        access_token: { type: string }
+      required: [access_token]
 
     TokenPair:
       type: object
       properties:
-        accessToken:  { type: string }
-        tokenType:    { type: string, example: 'Bearer' }
-        expiresIn:    { type: integer }
-        refreshToken: { type: string }
-        jti:          { type: string }
-      required: [accessToken, tokenType, expiresIn]
+        access_token: { type: string }
+        token_type:
+          type: string
+          example: Bearer
+        expires_in:
+          type: integer
+          format: int64
+          description: 剩余有效期（秒）
+        refresh_token:
+          type: string
+          nullable: true
+      required: [access_token, token_type, expires_in]
 
-    VerifyResp:
+    TokenVerifyResponse:
       type: object
       properties:
+        valid: { type: boolean }
         claims:
+          $ref: '#/components/schemas/TokenClaims'
+
+    TokenClaims:
+      type: object
+      properties:
+        user_id: { type: string }
+        account_id: { type: string }
+        tenant_id:
+          type: integer
+          format: int64
+          nullable: true
+        issuer: { type: string }
+        issued_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        jti:
+          type: string
+          nullable: true
+        kid:
+          type: string
+          nullable: true
+
+    MessageResponse:
+      type: object
+      properties:
+        message: { type: string }
+      required: [message]
+
+    RegisterWeChatAccountRequest:
+      type: object
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        email:
+          type: string
+          format: email
+          nullable: true
+        appId: { type: string }
+        openId: { type: string }
+        unionId:
+          type: string
+          nullable: true
+        nickname:
+          type: string
+          nullable: true
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+        meta:
           type: object
-          properties:
-            sub: { type: string }
-            aid: { type: string }
-            aud: { type: string }
-            iss: { type: string }
-            iat: { type: integer }
-            exp: { type: integer }
-            jti: { type: string }
-            kid: { type: string }
-            sid: { type: string, nullable: true }
-        header: { type: object, additionalProperties: true }
-        blocked: { type: boolean }
+          additionalProperties: true
+          nullable: true
+      required: [name, phone, appId, openId]
+
+    RegisterResult:
+      type: object
+      properties:
+        userId: { type: string }
+        userName: { type: string }
+        phone: { type: string }
+        email:
+          type: string
+          format: email
+          nullable: true
+        accountId: { type: string }
+        accountType: { type: string }
+        externalId: { type: string }
+        credentialID: { type: integer }
+        isNewUser: { type: boolean }
+        isNewAccount: { type: boolean }
+      required:
+        [userId, userName, phone, accountId, accountType, externalId, credentialID, isNewUser, isNewAccount]
+
+    Account:
+      type: object
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        provider:
+          type: string
+          enum: [wc-minip, wc-offi, wc-com, opera]
+        externalId: { type: string }
+        appId:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, disabled, archived, deleted, unknown]
+      required: [id, userId, provider, externalId, status]
+
+    UpsertWeChatProfileRequest:
+      type: object
+      properties:
+        nickname:
+          type: string
+          nullable: true
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+        meta:
+          type: object
+          additionalProperties: true
+          nullable: true
+      anyOf:
+        - required: [nickname]
+        - required: [avatar]
+        - required: [meta]
+
+    SetWeChatUnionIDRequest:
+      type: object
+      properties:
+        unionId: { type: string }
+      required: [unionId]
+
+    Credential:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        accountId: { type: integer, format: int64 }
+        type:
+          type: string
+          enum: [password, phone_otp, oauth_wx_minip, oauth_wecom]
+        idp:
+          type: string
+          nullable: true
+        idpIdentifier: { type: string }
+        appId:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [enabled, disabled, unknown]
+      required: [id, accountId, type, idpIdentifier, status]
+
+    CredentialList:
+      type: object
+      properties:
+        total: { type: integer }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Credential' }
+      required: [total, items]
+
+    CreateKeyRequest:
+      type: object
+      properties:
+        algorithm:
+          type: string
+          enum: [RS256, RS384, RS512]
+        notBefore:
+          type: string
+          format: date-time
+          nullable: true
+        notAfter:
+          type: string
+          format: date-time
+          nullable: true
+      required: [algorithm]
+
+    KeyResponse:
+      type: object
+      properties:
+        kid: { type: string }
+        status:
+          type: string
+          enum: [active, grace, retired]
+        algorithm: { type: string }
+        notBefore:
+          type: string
+          format: date-time
+          nullable: true
+        notAfter:
+          type: string
+          format: date-time
+          nullable: true
+        publicJwk:
+          $ref: '#/components/schemas/PublicJWK'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [kid, status, algorithm, publicJwk, createdAt]
+
+    KeyInfo:
+      allOf:
+        - $ref: '#/components/schemas/KeyResponse'
+
+    KeyListResponse:
+      type: object
+      properties:
+        keys:
+          type: array
+          items: { $ref: '#/components/schemas/KeyInfo' }
+        total: { type: integer, format: int64 }
+        limit: { type: integer }
+        offset: { type: integer }
+      required: [keys, total, limit, offset]
+
+    CleanupResponse:
+      type: object
+      properties:
+        deletedCount: { type: integer }
+      required: [deletedCount]
+
+    PublishableKeyInfo:
+      type: object
+      properties:
+        kid: { type: string }
+        status:
+          type: string
+          enum: [active, grace, retired]
+        algorithm: { type: string }
+        notBefore:
+          type: string
+          format: date-time
+          nullable: true
+        notAfter:
+          type: string
+          format: date-time
+          nullable: true
+        publicJwk:
+          $ref: '#/components/schemas/PublicJWK'
+      required: [kid, status, algorithm, publicJwk]
+
+    PublishableKeysResponse:
+      type: object
+      properties:
+        keys:
+          type: array
+          items: { $ref: '#/components/schemas/PublishableKeyInfo' }
+      required: [keys]
+
+    PublicJWK:
+      type: object
+      properties:
+        kty: { type: string }
+        use: { type: string }
+        alg: { type: string }
+        kid: { type: string }
+        n:
+          type: string
+          nullable: true
+        e:
+          type: string
+          nullable: true
+        crv:
+          type: string
+          nullable: true
+        x:
+          type: string
+          nullable: true
+        y:
+          type: string
+          nullable: true
+      required: [kty, use, alg, kid]
 
     JWKSet:
       type: object
       properties:
         keys:
           type: array
-          items:
-            type: object
-            properties:
-              kty: { type: string }
-              kid: { type: string }
-              use: { type: string }
-              alg: { type: string }
-              n:   { type: string, nullable: true }
-              e:   { type: string, nullable: true }
-              crv: { type: string, nullable: true }
-              x:   { type: string, nullable: true }
-              y:   { type: string, nullable: true }
+          items: { $ref: '#/components/schemas/PublicJWK' }
+      required: [keys]
 
     Error:
       type: object
       properties:
         code: { type: string }
         message: { type: string }
-        requestId: { type: string }
+        requestId:
+          type: string
+          nullable: true
+      required: [code, message]
