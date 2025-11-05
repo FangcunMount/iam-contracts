@@ -52,6 +52,7 @@ package main
 
 import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver"
+	_ "github.com/FangcunMount/iam-contracts/internal/apiserver/docs"
 )
 
 func main() {
