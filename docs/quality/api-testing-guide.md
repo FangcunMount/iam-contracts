@@ -67,6 +67,7 @@ curl http://localhost:8080/version | jq '.'
 ### 5. Swagger API 文档
 
 在浏览器中打开：
+
 ```
 http://localhost:8080/swagger/index.html
 ```
@@ -476,6 +477,7 @@ echo -e "\n=== 测试完成 ==="
 ```
 
 运行脚本：
+
 ```bash
 chmod +x test-api.sh
 ./test-api.sh
@@ -492,6 +494,7 @@ chmod +x test-api.sh
    - `access_token`: 登录后获取的 token
 
 3. 在请求的 Headers 中添加：
+
    ```
    Authorization: Bearer {{access_token}}
    ```
@@ -576,6 +579,7 @@ go run ./cmd/tools/seeddata \
 ```
 
 种子数据包含：
+
 - 系统角色（管理员、普通用户等）
 - 测试用户账号
 - 权限资源定义
@@ -693,10 +697,10 @@ curl "http://localhost:8080/api/v1/authz/assignments/subject?subject_id=$USER_ID
 
 ## 📚 相关资源
 
-- **Swagger UI**: http://localhost:8080/swagger/index.html
-- **调试路由**: http://localhost:8080/debug/routes
-- **模块状态**: http://localhost:8080/debug/modules
-- **JWKS 公钥**: http://localhost:8080/.well-known/jwks.json
+- **Swagger UI**: <http://localhost:8080/swagger/index.html>
+- **调试路由**: <http://localhost:8080/debug/routes>
+- **模块状态**: <http://localhost:8080/debug/modules>
+- **JWKS 公钥**: <http://localhost:8080/.well-known/jwks.json>
 
 ---
 
