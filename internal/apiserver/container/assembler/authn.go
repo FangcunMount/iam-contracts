@@ -31,6 +31,7 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/scheduler"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/wechat"
 	authhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/handler"
+	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatapp/port"
 	userPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user/port"
 	mysqluser "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
 )
@@ -70,7 +71,9 @@ func NewAuthnModule() *AuthnModule {
 // Initialize 初始化模块
 // params[0]: *gorm.DB
 // params[1]: *redis.Client
-// params[2]: authPort.PasswordHasher (可选)
+// 可选参数：
+//   - authPort.PasswordHasher 自定义密码哈希器
+//   - *IDPModule              注入 IDP 模块提供的基础设施能力
 func (m *AuthnModule) Initialize(params ...interface{}) error {
 	if len(params) < 2 {
 		log.Errorf("AuthnModule.Initialize requires at least 2 parameters: db, redisClient")
@@ -89,11 +92,17 @@ func (m *AuthnModule) Initialize(params ...interface{}) error {
 		return fmt.Errorf("invalid redis parameter type")
 	}
 
-	// 获取可选的密码哈希器
-	var hasher authPort.PasswordHasher
-	if len(params) >= 3 {
-		if h, ok := params[2].(authPort.PasswordHasher); ok {
-			hasher = h
+	// 获取可选依赖
+	var (
+		hasher  authPort.PasswordHasher
+		idpDeps *IDPModule
+	)
+	for _, opt := range params[2:] {
+		switch v := opt.(type) {
+		case authPort.PasswordHasher:
+			hasher = v
+		case *IDPModule:
+			idpDeps = v
 		}
 	}
 	if hasher == nil {
@@ -101,7 +110,7 @@ func (m *AuthnModule) Initialize(params ...interface{}) error {
 	}
 
 	// 初始化基础设施层
-	infra := m.initializeInfrastructure(db, redisClient)
+	infra := m.initializeInfrastructure(db, redisClient, idpDeps)
 
 	// 初始化领域层
 	domain := m.initializeDomain(infra)
@@ -142,10 +151,14 @@ type infrastructureComponents struct {
 
 	// User 仓储
 	userRepo userPort.UserRepository
+
+	// IDP 基础设施
+	wechatAppQuerier idpPort.WechatAppQuerier
+	secretVault      idpPort.SecretVault
 }
 
 // initializeInfrastructure 初始化基础设施层
-func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.Client) *infrastructureComponents {
+func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.Client, idpDeps *IDPModule) *infrastructureComponents {
 	infra := &infrastructureComponents{
 		db:    db,
 		redis: redisClient,
@@ -160,8 +173,17 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 	infra.otpVerifier = redisOTP.NewOTPVerifier(redisClient)
 
 	// 身份提供商 (微信)
-	// 配置在使用时动态传递，支持多个小程序/企业微信
-	infra.idp = wechat.NewIdentityProvider(nil)
+	// 优先使用 IDP 模块提供的基础设施能力
+	if idpDeps != nil {
+		infra.wechatAppQuerier = idpDeps.WechatAppQuerier()
+		infra.secretVault = idpDeps.SecretVault()
+		if provider := idpDeps.WechatAuthProvider(); provider != nil {
+			infra.idp = wechat.NewIdentityProvider(provider, nil)
+		}
+	}
+	if infra.idp == nil {
+		infra.idp = wechat.NewIdentityProvider(nil, nil)
+	}
 
 	// JWKS 仓储
 	infra.keyRepo = jwksMysql.NewKeyRepository(db)
@@ -265,8 +287,8 @@ func (m *AuthnModule) initializeApplication(
 			infra.idp,
 			infra.tokenVerifier,
 		),
-		nil, // TODO: 注入 wechatAppQuerier（需要初始化 idp 模块）
-		nil, // TODO: 注入 secretVault（需要初始化 idp 模块）
+		infra.wechatAppQuerier,
+		infra.secretVault,
 	)
 
 	// Token 服务

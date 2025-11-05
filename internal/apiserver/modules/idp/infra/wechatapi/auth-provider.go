@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatsession/port"
+	port "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/infra/wechatapi/port"
 	"github.com/silenceper/wechat/v2"
 	"github.com/silenceper/wechat/v2/cache"
 	miniConfig "github.com/silenceper/wechat/v2/miniprogram/config"

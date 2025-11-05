@@ -10,7 +10,6 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
-	_ "github.com/FangcunMount/iam-contracts/internal/apiserver/docs" // swagger docs
 	authnhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful"
 	authzhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/interface/restful"
 	idphttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/interface/restful"
@@ -121,12 +120,15 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 func (r *Router) registerBaseRoutes(engine *gin.Engine) {
 	engine.GET("/health", r.healthCheck)
 	engine.GET("/ping", r.ping)
-	engine.GET("/debug/routes", r.debugRoutes) // 调试端点：列出所有注册的路由
+	engine.GET("/debug/routes", r.debugRoutes)   // 调试端点：列出所有注册的路由
 	engine.GET("/debug/modules", r.debugModules) // 调试端点：查看模块状态
 
 	// Swagger UI 路由（默认在开发环境可用）
 	// 生产环境建议通过配置控制是否启用
-	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	engine.GET("/swagger/*any", ginSwagger.WrapHandler(
+		swaggerFiles.Handler,
+		ginSwagger.URL("/swagger/doc.json"),
+	))
 
 	publicAPI := engine.Group("/api/v1/public")
 	{
@@ -211,7 +213,7 @@ func (r *Router) debugRoutes(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "engine not initialized"})
 		return
 	}
-	
+
 	routes := r.engine.Routes()
 	routeList := make([]gin.H, 0, len(routes))
 	for _, route := range routes {
@@ -231,7 +233,7 @@ func (r *Router) debugModules(c *gin.Context) {
 	response := gin.H{
 		"container_initialized": r.container != nil,
 	}
-	
+
 	if r.container != nil {
 		response["modules"] = gin.H{
 			"authn": r.container.AuthnModule != nil,
@@ -243,6 +245,6 @@ func (r *Router) debugModules(c *gin.Context) {
 	} else {
 		response["container_status"] = "not_initialized"
 	}
-	
+
 	c.JSON(200, response)
 }
