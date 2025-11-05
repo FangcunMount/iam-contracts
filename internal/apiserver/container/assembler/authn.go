@@ -15,17 +15,21 @@ import (
 	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/register"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/token"
 	authnUow "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/uow"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 	authPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port"
-	authService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
 	jwksPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driven"
 	jwksService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/service"
 	tokenService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token/service"
+	authnInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/crypto"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
+	acctrepo "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
 	jwksMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/jwks"
+	redisOTP "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/redis"
 	redistoken "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/redis/token"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/scheduler"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/wechat"
 	authhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/handler"
 	userPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user/port"
 	mysqluser "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
@@ -120,6 +124,12 @@ type infrastructureComponents struct {
 	redis      *redis.Client
 	unitOfWork authnUow.UnitOfWork
 
+	accountRepo    authPort.AccountRepository
+	credentialRepo authPort.CredentialRepository
+	otpVerifier    authPort.OTPVerifier
+	idp            authPort.IdentityProvider
+	tokenVerifier  authPort.TokenVerifier
+
 	// JWKS 相关
 	keyRepo           jwksPort.KeyRepository
 	privateKeyStorage jwksPort.PrivateKeyStorage
@@ -143,6 +153,15 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 
 	// UnitOfWork
 	infra.unitOfWork = authnUow.NewUnitOfWork(db)
+	infra.accountRepo = acctrepo.NewAccountRepository(db)
+	infra.credentialRepo = acctrepo.NewCredentialRepository(db)
+
+	// OTP 验证器
+	infra.otpVerifier = redisOTP.NewOTPVerifier(redisClient)
+
+	// 身份提供商 (微信)
+	// 配置在使用时动态传递，支持多个小程序/企业微信
+	infra.idp = wechat.NewIdentityProvider(nil)
 
 	// JWKS 仓储
 	infra.keyRepo = jwksMysql.NewKeyRepository(db)
@@ -164,9 +183,6 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 
 // domainComponents 领域层组件
 type domainComponents struct {
-	// 认证策略工厂
-	strategyFactory *authService.StrategyFactory
-
 	// Token 服务
 	tokenIssuer    *tokenService.TokenIssuer
 	tokenRefresher *tokenService.TokenRefresher
@@ -216,15 +232,8 @@ func (m *AuthnModule) initializeDomain(infra *infrastructureComponents) *domainC
 	domain.tokenRefresher = tokenService.NewTokenRefresher(infra.jwtGenerator, infra.tokenStore, accessTTL, refreshTTL)
 	domain.tokenVerifyer = tokenService.NewTokenVerifyer(infra.jwtGenerator, infra.tokenStore)
 
-	// 认证策略工厂（暂时传 nil，待完善）
-	domain.strategyFactory = authService.NewStrategyFactory(
-		nil, // credRepo
-		nil, // accountRepo
-		nil, // hasher
-		nil, // otpVerifier
-		nil, // idp
-		nil, // tokenVerifier - 暂时为 nil
-	)
+	// 创建 TokenVerifier 适配器供 authentication 模块使用
+	infra.tokenVerifier = authnInfra.NewTokenVerifierAdapter(domain.tokenVerifyer)
 
 	return domain
 }
@@ -245,13 +254,22 @@ func (m *AuthnModule) initializeApplication(
 		infra.userRepo,
 	)
 
-	// 认证服务
 	m.LoginService = login.NewLoginApplicationService(
-		domain.strategyFactory,
 		domain.tokenIssuer,
 		domain.tokenRefresher,
+		authentication.NewAuthenticater(
+			infra.credentialRepo,
+			infra.accountRepo,
+			hasher,
+			infra.otpVerifier,
+			infra.idp,
+			infra.tokenVerifier,
+		),
+		nil, // TODO: 注入 wechatAppQuerier（需要初始化 idp 模块）
+		nil, // TODO: 注入 secretVault（需要初始化 idp 模块）
 	)
 
+	// Token 服务
 	m.TokenService = token.NewTokenApplicationService(
 		domain.tokenIssuer,
 		domain.tokenRefresher,

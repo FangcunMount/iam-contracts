@@ -5,43 +5,44 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	authService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service"
 	tokenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token/port"
+	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatapp/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
 type loginApplicationService struct {
-	strategyFactory *authService.StrategyFactory
-	tokenIssuer     tokenPort.TokenIssuer
-	tokenRefresher  tokenPort.TokenRefresher
+	tokenIssuer      tokenPort.TokenIssuer
+	tokenRefresher   tokenPort.TokenRefresher
+	authenticater    *authentication.Authenticater
+	wechatAppQuerier idpPort.WechatAppQuerier
+	secretVault      idpPort.SecretVault
 }
 
 var _ LoginApplicationService = (*loginApplicationService)(nil)
 
 func NewLoginApplicationService(
-	strategyFactory *authService.StrategyFactory,
 	tokenIssuer tokenPort.TokenIssuer,
 	tokenRefresher tokenPort.TokenRefresher,
+	authenticater *authentication.Authenticater,
+	wechatAppQuerier idpPort.WechatAppQuerier,
+	secretVault idpPort.SecretVault,
 ) LoginApplicationService {
 	return &loginApplicationService{
-		strategyFactory: strategyFactory,
-		tokenIssuer:     tokenIssuer,
-		tokenRefresher:  tokenRefresher,
+		tokenIssuer:      tokenIssuer,
+		tokenRefresher:   tokenRefresher,
+		authenticater:    authenticater,
+		wechatAppQuerier: wechatAppQuerier,
+		secretVault:      secretVault,
 	}
 }
 
 func (s *loginApplicationService) Login(ctx context.Context, req LoginRequest) (*LoginResult, error) {
-	scenario, authInput, err := s.prepareAuthentication(req)
+	scenario, authInput, err := s.prepareAuthentication(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	strategy := s.strategyFactory.CreateStrategy(scenario)
-	if strategy == nil {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "authentication strategy not available for type: %s", req.AuthType)
-	}
-
-	decision, err := strategy.Authenticate(ctx, authInput)
+	decision, err := s.authenticater.Authenticate(ctx, scenario, authInput)
 	if err != nil {
 		return nil, err
 	}
@@ -91,115 +92,6 @@ func (s *loginApplicationService) Logout(ctx context.Context, req LogoutRequest)
 	return nil
 }
 
-func (s *loginApplicationService) prepareAuthentication(req LoginRequest) (authentication.Scenario, authentication.AuthInput, error) {
-	var scenario authentication.Scenario
-	var authInput authentication.AuthInput
-
-	switch req.AuthType {
-	case AuthTypePassword:
-		scenario = authentication.AuthPassword
-		if err := s.validatePasswordFields(req); err != nil {
-			return "", authInput, err
-		}
-		authInput = authentication.AuthInput{
-			TenantID: req.TenantID,
-			Username: *req.Username,
-			Password: *req.Password,
-		}
-
-	case AuthTypePhoneOTP:
-		scenario = authentication.AuthPhoneOTP
-		if err := s.validatePhoneOTPFields(req); err != nil {
-			return "", authInput, err
-		}
-		authInput = authentication.AuthInput{
-			PhoneE164: *req.PhoneE164,
-			OTP:       *req.OTPCode,
-		}
-
-	case AuthTypeWechat:
-		scenario = authentication.AuthWxMinip
-		if err := s.validateWechatFields(req); err != nil {
-			return "", authInput, err
-		}
-		authInput = authentication.AuthInput{
-			WxAppID:  *req.WechatAppID,
-			WxJsCode: *req.WechatJSCode,
-		}
-
-	case AuthTypeWecom:
-		scenario = authentication.AuthWecom
-		if err := s.validateWecomFields(req); err != nil {
-			return "", authInput, err
-		}
-		authInput = authentication.AuthInput{
-			WecomCorpID: *req.WecomCorpID,
-			WecomCode:   *req.WecomCode,
-		}
-
-	case AuthTypeJWTToken:
-		scenario = authentication.AuthJWTToken
-		if err := s.validateJWTTokenFields(req); err != nil {
-			return "", authInput, err
-		}
-		authInput = authentication.AuthInput{
-			AccessToken: *req.JWTToken,
-		}
-
-	default:
-		return "", authInput, perrors.WithCode(code.ErrInvalidArgument, "unsupported auth type: %s", req.AuthType)
-	}
-
-	return scenario, authInput, nil
-}
-
-func (s *loginApplicationService) validatePasswordFields(req LoginRequest) error {
-	if req.Username == nil || *req.Username == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "username is required for password authentication")
-	}
-	if req.Password == nil || *req.Password == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "password is required for password authentication")
-	}
-	return nil
-}
-
-func (s *loginApplicationService) validatePhoneOTPFields(req LoginRequest) error {
-	if req.PhoneE164 == nil || *req.PhoneE164 == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "phone number is required for phone OTP authentication")
-	}
-	if req.OTPCode == nil || *req.OTPCode == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "OTP code is required for phone OTP authentication")
-	}
-	return nil
-}
-
-func (s *loginApplicationService) validateWechatFields(req LoginRequest) error {
-	if req.WechatAppID == nil || *req.WechatAppID == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "wechat appid is required for wechat authentication")
-	}
-	if req.WechatJSCode == nil || *req.WechatJSCode == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "wechat jscode is required for wechat authentication")
-	}
-	return nil
-}
-
-func (s *loginApplicationService) validateWecomFields(req LoginRequest) error {
-	if req.WecomCorpID == nil || *req.WecomCorpID == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "wecom corpid is required for wecom authentication")
-	}
-	if req.WecomCode == nil || *req.WecomCode == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "wecom code is required for wecom authentication")
-	}
-	return nil
-}
-
-func (s *loginApplicationService) validateJWTTokenFields(req LoginRequest) error {
-	if req.JWTToken == nil || *req.JWTToken == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "jwt token is required for jwt token authentication")
-	}
-	return nil
-}
-
 func (s *loginApplicationService) convertAuthError(errCode authentication.ErrCode) error {
 	switch errCode {
 	case authentication.ErrInvalidCredential:
@@ -219,4 +111,81 @@ func (s *loginApplicationService) convertAuthError(errCode authentication.ErrCod
 	default:
 		return perrors.WithCode(code.ErrAuthenticationFailed, "authentication failed")
 	}
+}
+
+func (s *loginApplicationService) prepareAuthentication(ctx context.Context, req LoginRequest) (authentication.Scenario, authentication.AuthInput, error) {
+	// 构建统一的 AuthInput，根据请求中有哪些字段就填充哪些字段
+	input := authentication.AuthInput{
+		TenantID: req.TenantID,
+	}
+
+	// 根据存在的字段来推断认证场景
+	var scenario authentication.Scenario
+
+	// 密码认证
+	if req.Username != nil && req.Password != nil {
+		scenario = authentication.AuthPassword
+		input.Username = *req.Username
+		input.Password = *req.Password
+	}
+
+	// 手机号OTP认证
+	if req.PhoneE164 != nil && req.OTPCode != nil {
+		scenario = authentication.AuthPhoneOTP
+		input.PhoneE164 = *req.PhoneE164
+		input.OTP = *req.OTPCode
+	}
+
+	// 微信小程序认证
+	if req.WechatAppID != nil && req.WechatJSCode != nil {
+		scenario = authentication.AuthWxMinip
+		input.WxAppID = *req.WechatAppID
+		input.WxJsCode = *req.WechatJSCode
+
+		// 查询微信应用配置获取 AppSecret
+		if s.wechatAppQuerier != nil && s.secretVault != nil {
+			wechatApp, err := s.wechatAppQuerier.QueryByAppID(ctx, *req.WechatAppID)
+			if err != nil {
+				return "", authentication.AuthInput{}, perrors.WithCode(code.ErrInvalidArgument, "failed to query wechat app: %v", err)
+			}
+			if wechatApp == nil {
+				return "", authentication.AuthInput{}, perrors.WithCode(code.ErrInvalidArgument, "wechat app not found: %s", *req.WechatAppID)
+			}
+			if !wechatApp.IsEnabled() {
+				return "", authentication.AuthInput{}, perrors.WithCode(code.ErrInvalidArgument, "wechat app is disabled: %s", *req.WechatAppID)
+			}
+			if wechatApp.Cred == nil || wechatApp.Cred.Auth == nil {
+				return "", authentication.AuthInput{}, perrors.WithCode(code.ErrInvalidArgument, "wechat app credentials not found")
+			}
+
+			appSecretPlain, err := s.secretVault.Decrypt(ctx, wechatApp.Cred.Auth.AppSecretCipher)
+			if err != nil {
+				return "", authentication.AuthInput{}, perrors.WithCode(code.ErrInvalidArgument, "failed to decrypt app secret: %v", err)
+			}
+			input.WxAppSecret = string(appSecretPlain)
+		} else {
+			return "", authentication.AuthInput{}, perrors.WithCode(code.ErrInvalidArgument, "wechat app configuration service not available")
+		}
+	}
+
+	// 企业微信认证
+	if req.WecomCorpID != nil && req.WecomCode != nil {
+		scenario = authentication.AuthWecom
+		input.WecomCorpID = *req.WecomCorpID
+		input.WecomCode = *req.WecomCode
+		// TODO: 查询企业微信应用配置获取 AgentID 和 CorpSecret
+	}
+
+	// JWT令牌认证
+	if req.JWTToken != nil {
+		scenario = authentication.AuthJWTToken
+		input.AccessToken = *req.JWTToken
+	}
+
+	// 检查是否确定了认证场景
+	if scenario == "" {
+		return "", authentication.AuthInput{}, perrors.WithCode(code.ErrInvalidArgument, "no valid authentication credentials provided")
+	}
+
+	return scenario, input, nil
 }

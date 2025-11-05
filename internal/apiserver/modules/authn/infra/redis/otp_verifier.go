@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port"
 )

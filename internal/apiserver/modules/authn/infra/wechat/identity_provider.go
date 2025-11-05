@@ -15,43 +15,21 @@ import (
 // IdentityProviderImpl 微信身份提供商的实现（使用 silenceper SDK）
 type IdentityProviderImpl struct {
 	cache cache.Cache // SDK 使用的缓存
-	// 微信小程序配置：appID -> appSecret
-	minipSecrets map[string]string
-	// 企业微信配置：corpID -> WecomConfig
-	wecomSecrets map[string]WecomConfig
-}
-
-// WecomConfig 企业微信配置
-type WecomConfig struct {
-	AgentID string
-	Secret  string
 }
 
 // 确保实现了接口
 var _ port.IdentityProvider = (*IdentityProviderImpl)(nil)
 
 // NewIdentityProvider 创建微信身份提供商
-func NewIdentityProvider(
-	cache cache.Cache,
-	minipSecrets map[string]string,
-	wecomSecrets map[string]WecomConfig,
-) port.IdentityProvider {
+func NewIdentityProvider(cache cache.Cache) port.IdentityProvider {
 	return &IdentityProviderImpl{
-		cache:        cache,
-		minipSecrets: minipSecrets,
-		wecomSecrets: wecomSecrets,
+		cache: cache,
 	}
 }
 
 // ExchangeWxMinipCode 微信小程序 jsCode 换取 session
 // 文档: https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/code2Session.html
-func (p *IdentityProviderImpl) ExchangeWxMinipCode(ctx context.Context, appID, jsCode string) (openID, unionID string, err error) {
-	// 获取 appSecret
-	appSecret, ok := p.minipSecrets[appID]
-	if !ok {
-		return "", "", fmt.Errorf("wx minip app secret not found for appID: %s", appID)
-	}
-
+func (p *IdentityProviderImpl) ExchangeWxMinipCode(ctx context.Context, appID, appSecret, jsCode string) (openID, unionID string, err error) {
 	// 创建小程序实例
 	cfg := &miniConfig.Config{
 		AppID:     appID,
@@ -76,18 +54,12 @@ func (p *IdentityProviderImpl) ExchangeWxMinipCode(ctx context.Context, appID, j
 
 // ExchangeWecomCode 企业微信 code 换取用户信息
 // 文档: https://developer.work.weixin.qq.com/document/path/91023
-func (p *IdentityProviderImpl) ExchangeWecomCode(ctx context.Context, corpID, code string) (openUserID, userID string, err error) {
-	// 获取企业微信配置
-	config, ok := p.wecomSecrets[corpID]
-	if !ok {
-		return "", "", fmt.Errorf("wecom config not found for corpID: %s", corpID)
-	}
-
+func (p *IdentityProviderImpl) ExchangeWecomCode(ctx context.Context, corpID, agentID, corpSecret, code string) (openUserID, userID string, err error) {
 	// 创建企业微信实例
 	cfg := &workConfig.Config{
 		CorpID:     corpID,
-		CorpSecret: config.Secret,
-		AgentID:    config.AgentID,
+		CorpSecret: corpSecret,
+		AgentID:    agentID,
 		Cache:      p.cache,
 	}
 	workApp := wechat.NewWechat().GetWork(cfg)
