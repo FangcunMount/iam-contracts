@@ -18,11 +18,9 @@
 // @name Authorization
 // @description JWT 认证令牌，格式: Bearer {access_token}
 
-// @tag.name Authentication-Auth
+// @tag.name 认证
 // @tag.description 认证 - 用户登录
-// @tag.name Authentication-Tokens
-// @tag.description 令牌管理 - 刷新、验证、撤销
-// @tag.name Authentication-Accounts
+// @tag.name 账户管理
 // @tag.description 账号管理 - 创建、查询、绑定第三方账号
 // @tag.name Authentication-JWKS
 // @tag.description 密钥管理 - JWT 签名验证公钥集

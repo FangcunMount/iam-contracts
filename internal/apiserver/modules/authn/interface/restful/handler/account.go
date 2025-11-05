@@ -49,7 +49,7 @@ func NewAccountHandler(
 // @Success 200 {object} resp.Account "账户信息"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 404 {object} map[string]interface{} "账户不存在"
-// @Router /api/v1/accounts/{accountId} [get]
+// @Router /accounts/{accountId} [get]
 func (h *AccountHandler) GetAccountByID(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
 	if err != nil {
@@ -76,7 +76,7 @@ func (h *AccountHandler) GetAccountByID(c *gin.Context) {
 // @Success 201 {object} resp.RegisterResult "注册成功"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 409 {object} map[string]interface{} "用户已存在"
-// @Router /api/v1/accounts/wechat/register [post]
+// @Router /accounts/wechat/register [post]
 func (h *AccountHandler) RegisterWithWeChat(c *gin.Context) {
 	var reqBody req.RegisterWeChatAccountReq
 	if err := h.BindJSON(c, &reqBody); err != nil {
@@ -185,7 +185,7 @@ func toAccountResponse(result *appAccount.AccountResult) resp.Account {
 // @Success 200 {object} resp.MessageResponse "更新成功"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 404 {object} map[string]interface{} "账户不存在"
-// @Router /api/v1/accounts/{accountId}/profile [put]
+// @Router /accounts/{accountId}/profile [put]
 func (h *AccountHandler) UpdateProfile(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
 	if err != nil {
@@ -240,7 +240,7 @@ func (h *AccountHandler) UpdateProfile(c *gin.Context) {
 // @Success 200 {object} resp.MessageResponse "设置成功"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 404 {object} map[string]interface{} "账户不存在"
-// @Router /api/v1/accounts/{accountId}/unionid [put]
+// @Router /accounts/{accountId}/unionid [put]
 func (h *AccountHandler) SetUnionID(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
 	if err != nil {
@@ -276,7 +276,7 @@ func (h *AccountHandler) SetUnionID(c *gin.Context) {
 // @Success 200 {object} resp.MessageResponse "禁用成功"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 404 {object} map[string]interface{} "账户不存在"
-// @Router /api/v1/accounts/{accountId}/disable [post]
+// @Router /accounts/{accountId}/disable [post]
 func (h *AccountHandler) DisableAccount(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
 	if err != nil {
@@ -300,7 +300,7 @@ func (h *AccountHandler) DisableAccount(c *gin.Context) {
 // @Success 200 {object} resp.MessageResponse "启用成功"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 404 {object} map[string]interface{} "账户不存在"
-// @Router /api/v1/accounts/{accountId}/enable [post]
+// @Router /accounts/{accountId}/enable [post]
 func (h *AccountHandler) EnableAccount(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
 	if err != nil {
@@ -326,7 +326,7 @@ func (h *AccountHandler) EnableAccount(c *gin.Context) {
 // @Success 200 {object} resp.CredentialList "凭证列表"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 404 {object} map[string]interface{} "账户不存在"
-// @Router /api/v1/accounts/{accountId}/credentials [get]
+// @Router /accounts/{accountId}/credentials [get]
 func (h *AccountHandler) GetCredentials(c *gin.Context) {
 	accountID, err := parseAccountID(c.Param("accountId"))
 	if err != nil {

@@ -530,7 +530,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/accounts/wechat/register": {
+        "/accounts/wechat/register": {
             "post": {
                 "description": "使用微信账户信息注册新用户",
                 "consumes": [
@@ -578,7 +578,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/accounts/{accountId}": {
+        "/accounts/{accountId}": {
             "get": {
                 "description": "根据账户ID获取账户详细信息",
                 "consumes": [
@@ -624,7 +624,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/accounts/{accountId}/credentials": {
+        "/accounts/{accountId}/credentials": {
             "get": {
                 "description": "获取账户下所有的认证凭证信息",
                 "consumes": [
@@ -670,7 +670,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/accounts/{accountId}/disable": {
+        "/accounts/{accountId}/disable": {
             "post": {
                 "description": "将账户标记为禁用，阻止继续认证",
                 "tags": [
@@ -710,7 +710,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/accounts/{accountId}/enable": {
+        "/accounts/{accountId}/enable": {
             "post": {
                 "description": "恢复已禁用的账户",
                 "tags": [
@@ -750,7 +750,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/accounts/{accountId}/profile": {
+        "/accounts/{accountId}/profile": {
             "put": {
                 "description": "更新微信账户的昵称、头像等资料信息",
                 "consumes": [
@@ -805,7 +805,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/accounts/{accountId}/unionid": {
+        "/accounts/{accountId}/unionid": {
             "put": {
                 "description": "将微信账户的 UnionID 与内部账户关联",
                 "consumes": [
@@ -860,7 +860,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/login": {
+        "/auth/login": {
             "post": {
                 "description": "支持多种登录方式：密码登录、手机验证码登录、微信小程序登录、企业微信登录",
                 "consumes": [
@@ -908,7 +908,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/logout": {
+        "/auth/logout": {
             "post": {
                 "description": "撤销访问令牌和刷新令牌",
                 "consumes": [
@@ -949,7 +949,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/refresh_token": {
+        "/auth/refresh_token": {
             "post": {
                 "description": "使用刷新令牌获取新的访问令牌",
                 "consumes": [
@@ -997,7 +997,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/verify": {
+        "/auth/verify": {
             "post": {
                 "description": "验证访问令牌的有效性并返回声明信息",
                 "consumes": [
@@ -4238,7 +4238,7 @@ const docTemplate = `{
     "tags": [
         {
             "description": "认证 - 用户登录",
-            "name": "Authentication-Auth"
+            "name": "认证"
         },
         {
             "description": "令牌管理 - 刷新、验证、撤销",
@@ -4246,7 +4246,7 @@ const docTemplate = `{
         },
         {
             "description": "账号管理 - 创建、查询、绑定第三方账号",
-            "name": "Authentication-Accounts"
+            "name": "账户管理"
         },
         {
             "description": "密钥管理 - JWT 签名验证公钥集",

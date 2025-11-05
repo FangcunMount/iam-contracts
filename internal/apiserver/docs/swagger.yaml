@@ -1266,7 +1266,7 @@ paths:
       summary: 获取可发布的密钥
       tags:
       - Authentication-JWKS
-  /api/v1/accounts/{accountId}:
+  /accounts/{accountId}:
     get:
       consumes:
       - application/json
@@ -1297,7 +1297,7 @@ paths:
       summary: 获取账户信息
       tags:
       - 账户管理
-  /api/v1/accounts/{accountId}/credentials:
+  /accounts/{accountId}/credentials:
     get:
       consumes:
       - application/json
@@ -1328,7 +1328,7 @@ paths:
       summary: 获取账户凭证列表
       tags:
       - 账户管理
-  /api/v1/accounts/{accountId}/disable:
+  /accounts/{accountId}/disable:
     post:
       description: 将账户标记为禁用，阻止继续认证
       parameters:
@@ -1355,7 +1355,7 @@ paths:
       summary: 禁用账户
       tags:
       - 账户管理
-  /api/v1/accounts/{accountId}/enable:
+  /accounts/{accountId}/enable:
     post:
       description: 恢复已禁用的账户
       parameters:
@@ -1382,7 +1382,7 @@ paths:
       summary: 启用账户
       tags:
       - 账户管理
-  /api/v1/accounts/{accountId}/profile:
+  /accounts/{accountId}/profile:
     put:
       consumes:
       - application/json
@@ -1419,7 +1419,7 @@ paths:
       summary: 更新账户资料
       tags:
       - 账户管理
-  /api/v1/accounts/{accountId}/unionid:
+  /accounts/{accountId}/unionid:
     put:
       consumes:
       - application/json
@@ -1456,7 +1456,7 @@ paths:
       summary: 设置账户 UnionID
       tags:
       - 账户管理
-  /api/v1/accounts/wechat/register:
+  /accounts/wechat/register:
     post:
       consumes:
       - application/json
@@ -1488,7 +1488,7 @@ paths:
       summary: 微信用户注册
       tags:
       - 账户管理
-  /api/v1/auth/login:
+  /auth/login:
     post:
       consumes:
       - application/json
@@ -1520,7 +1520,7 @@ paths:
       summary: 用户登录
       tags:
       - 认证
-  /api/v1/auth/logout:
+  /auth/logout:
     post:
       consumes:
       - application/json
@@ -1547,7 +1547,7 @@ paths:
       summary: 用户登出
       tags:
       - 认证
-  /api/v1/auth/refresh_token:
+  /auth/refresh_token:
     post:
       consumes:
       - application/json
@@ -1579,7 +1579,7 @@ paths:
       summary: 刷新访问令牌
       tags:
       - 认证
-  /api/v1/auth/verify:
+  /auth/verify:
     post:
       consumes:
       - application/json
@@ -2752,11 +2752,11 @@ securityDefinitions:
 swagger: "2.0"
 tags:
 - description: 认证 - 用户登录
-  name: Authentication-Auth
+  name: 认证
 - description: 令牌管理 - 刷新、验证、撤销
   name: Authentication-Tokens
 - description: 账号管理 - 创建、查询、绑定第三方账号
-  name: Authentication-Accounts
+  name: 账户管理
 - description: 密钥管理 - JWT 签名验证公钥集
   name: Authentication-JWKS
 - description: 用户管理 - 创建、查询、更新用户信息
