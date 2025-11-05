@@ -1,35 +1,39 @@
 package response
 
-// TokenPair 令牌对（符合 API 文档）
+import "time"
+
+// TokenPair 令牌对
 type TokenPair struct {
-	AccessToken  string `json:"accessToken"`            // 访问令牌
-	TokenType    string `json:"tokenType"`              // 令牌类型（Bearer）
-	ExpiresIn    int64  `json:"expiresIn"`              // 过期时间（秒）
-	RefreshToken string `json:"refreshToken,omitempty"` // 刷新令牌（可选）
-	JTI          string `json:"jti,omitempty"`          // JWT ID（可选）
+	AccessToken  string `json:"access_token"`            // 访问令牌
+	TokenType    string `json:"token_type"`              // 令牌类型（Bearer）
+	ExpiresIn    int64  `json:"expires_in"`              // 过期时间（秒）
+	RefreshToken string `json:"refresh_token,omitempty"` // 刷新令牌（可选）
 }
 
-// VerifyResponse 验证令牌响应（符合 API 文档）
-type VerifyResponse struct {
-	Claims  TokenClaims `json:"claims"`  // 令牌声明
-	Header  interface{} `json:"header"`  // JWT Header
-	Blocked bool        `json:"blocked"` // 是否被拉黑
+// TokenVerifyResponse 验证令牌响应
+type TokenVerifyResponse struct {
+	Valid  bool         `json:"valid"`            // 令牌是否有效
+	Claims *TokenClaims `json:"claims,omitempty"` // 令牌声明（如果有效）
 }
 
 // TokenClaims JWT 声明
 type TokenClaims struct {
-	Sub string `json:"sub"`           // Subject (UserID)
-	AID string `json:"aid"`           // Account ID
-	Aud string `json:"aud,omitempty"` // Audience
-	Iss string `json:"iss"`           // Issuer
-	IAT int64  `json:"iat"`           // Issued At
-	Exp int64  `json:"exp"`           // Expiration
-	JTI string `json:"jti"`           // JWT ID
-	KID string `json:"kid,omitempty"` // Key ID
-	SID string `json:"sid,omitempty"` // Session ID
+	UserID    string    `json:"user_id"`             // 用户 ID
+	AccountID string    `json:"account_id"`          // 账户 ID
+	TenantID  *int64    `json:"tenant_id,omitempty"` // 租户 ID（可选）
+	Issuer    string    `json:"issuer"`              // 签发者
+	IssuedAt  time.Time `json:"issued_at"`           // 签发时间
+	ExpiresAt time.Time `json:"expires_at"`          // 过期时间
+	JTI       string    `json:"jti,omitempty"`       // JWT ID（可选）
+	KID       string    `json:"kid,omitempty"`       // Key ID（可选）
 }
 
-// JWKSet JWKS 公钥集（符合 API 文档）
+// MessageResponse 通用消息响应
+type MessageResponse struct {
+	Message string `json:"message"`
+}
+
+// JWKSet JWKS 公钥集
 type JWKSet struct {
 	Keys []JWK `json:"keys"`
 }

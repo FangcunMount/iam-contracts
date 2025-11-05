@@ -3,7 +3,6 @@ package response
 import (
 	"time"
 
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 )
 
@@ -38,6 +37,37 @@ type BindResult struct {
 	Created   bool   `json:"created"`
 }
 
+// RegisterResult 注册结果响应
+type RegisterResult struct {
+	UserID       string `json:"userId"`
+	UserName     string `json:"userName"`
+	Phone        string `json:"phone"`
+	Email        string `json:"email,omitempty"`
+	AccountID    string `json:"accountId"`
+	AccountType  string `json:"accountType"`
+	ExternalID   string `json:"externalId"`
+	CredentialID int64  `json:"credentialID"`
+	IsNewUser    bool   `json:"isNewUser"`
+	IsNewAccount bool   `json:"isNewAccount"`
+}
+
+// CredentialList 凭据列表响应
+type CredentialList struct {
+	Total int          `json:"total"`
+	Items []Credential `json:"items"`
+}
+
+// Credential 凭据响应
+type Credential struct {
+	ID            int64  `json:"id"`
+	AccountID     int64  `json:"accountId"`
+	Type          string `json:"type"`
+	IDP           string `json:"idp,omitempty"`
+	IDPIdentifier string `json:"idpIdentifier"`
+	AppID         string `json:"appId,omitempty"`
+	Status        string `json:"status"`
+}
+
 // AccountPage paginated listing.
 type AccountPage struct {
 	Total  int       `json:"total"`
@@ -52,47 +82,23 @@ func NewAccount(acc *domain.Account) Account {
 		return Account{}
 	}
 	resp := Account{
-		ID:         idutil.ID(acc.ID).String(),
-		UserID:     idutil.NewID(acc.UserID.Uint64()).String(),
-		Provider:   string(acc.Provider),
-		ExternalID: acc.ExternalID,
+		ID:         acc.ID.String(),
+		UserID:     acc.UserID.String(),
+		Provider:   acc.Type.String(),
+		ExternalID: string(acc.ExternalID),
 		Status:     statusToString(acc.Status),
 	}
-	if acc.AppID != nil {
-		resp.AppID = acc.AppID
+	if acc.AppID.Len() > 0 {
+		appID := string(acc.AppID)
+		resp.AppID = &appID
 	}
 	return resp
-}
-
-// NewOperationCredential from domain model.
-func NewOperationCredential(cred *domain.OperationAccount) OperationCredential {
-	if cred == nil {
-		return OperationCredential{}
-	}
-	resp := OperationCredential{
-		AccountID:      idutil.ID(cred.AccountID).String(),
-		Username:       cred.Username,
-		FailedAttempts: cred.FailedAttempts,
-		LastChangedAt:  cred.LastChangedAt,
-	}
-	if cred.LockedUntil != nil {
-		resp.LockedUntil = cred.LockedUntil
-	}
-	return resp
-}
-
-// NewOperationCredentialView builds combined response.
-func NewOperationCredentialView(acc *domain.Account, cred *domain.OperationAccount) OperationCredentialView {
-	return OperationCredentialView{
-		Account:    NewAccount(acc),
-		Credential: NewOperationCredential(cred),
-	}
 }
 
 // NewBindResult builds bind result.
-func NewBindResult(accountID domain.AccountID, created bool) BindResult {
+func NewBindResult(accountID string, created bool) BindResult {
 	return BindResult{
-		AccountID: idutil.ID(accountID).String(),
+		AccountID: accountID,
 		Created:   created,
 	}
 }

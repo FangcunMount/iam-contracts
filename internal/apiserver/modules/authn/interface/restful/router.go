@@ -91,26 +91,25 @@ func registerAccountEndpoints(v1 *gin.RouterGroup, h *authhandler.AccountHandler
 	}
 
 	accounts := v1.Group("/accounts")
+
 	// 微信注册（公开端点，无需认证）
-	accounts.POST("/wechat:register", h.RegisterWeChatAccount)
+	accounts.POST("/wechat/register", h.RegisterWithWeChat)
 
-	// 其他账号管理端点（需要认证）
-	accounts.POST("/operation", h.CreateOperationAccount)
-	accounts.PATCH("/operation/:username", h.UpdateOperationCredential)
-	accounts.POST("/operation/:username/change", h.ChangeOperationUsername)
-
-	// Deprecated: 使用 /accounts/wechat:register 代替
-	accounts.POST("/wechat/bind", h.BindWeChatAccount)
-
-	accounts.PATCH("/:accountId/wechat/profile", h.UpsertWeChatProfile)
-	accounts.PATCH("/:accountId/wechat/unionid", h.SetWeChatUnionID)
-	accounts.GET("/:accountId", h.GetAccount)
+	// 账户查询和管理（需要认证）
+	accounts.GET("/:accountId", h.GetAccountByID)
+	accounts.PUT("/:accountId/profile", h.UpdateProfile)
+	accounts.PUT("/:accountId/unionid", h.SetUnionID)
 	accounts.POST("/:accountId/enable", h.EnableAccount)
 	accounts.POST("/:accountId/disable", h.DisableAccount)
-	accounts.GET("/operation/:username", h.GetOperationAccountByUsername)
+	accounts.GET("/:accountId/credentials", h.GetCredentials)
 
-	v1.GET("/accounts/by-ref", h.FindAccountByRef)
-
-	users := v1.Group("/users")
-	users.GET("/:userId/accounts", h.ListAccountsByUser)
+	// TODO: 以下端点待实现
+	// accounts.POST("/operation", h.CreateOperationAccount)
+	// accounts.PATCH("/operation/:username", h.UpdateOperationCredential)
+	// accounts.POST("/operation/:username/change", h.ChangeOperationUsername)
+	// accounts.POST("/wechat/bind", h.BindWeChatAccount)
+	// accounts.GET("/operation/:username", h.GetOperationAccountByUsername)
+	// v1.GET("/accounts/by-ref", h.FindAccountByRef)
+	// users := v1.Group("/users")
+	// users.GET("/:userId/accounts", h.ListAccountsByUser)
 }

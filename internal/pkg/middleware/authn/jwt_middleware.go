@@ -15,11 +15,11 @@ import (
 // JWTAuthMiddleware JWT 认证中间件
 // 使用新的认证模块来验证令牌
 type JWTAuthMiddleware struct {
-	tokenService *token.TokenService
+	tokenService token.TokenApplicationService
 }
 
 // NewJWTAuthMiddleware 创建 JWT 认证中间件
-func NewJWTAuthMiddleware(tokenService *token.TokenService) *JWTAuthMiddleware {
+func NewJWTAuthMiddleware(tokenService token.TokenApplicationService) *JWTAuthMiddleware {
 	return &JWTAuthMiddleware{
 		tokenService: tokenService,
 	}
@@ -37,9 +37,7 @@ func (m *JWTAuthMiddleware) AuthRequired() gin.HandlerFunc {
 		}
 
 		// 验证令牌
-		resp, err := m.tokenService.VerifyToken(c.Request.Context(), &token.VerifyTokenRequest{
-			AccessToken: tokenValue,
-		})
+		resp, err := m.tokenService.VerifyToken(c.Request.Context(), tokenValue)
 		if err != nil {
 			log.Warnf("Token verification failed: %v", err)
 			core.WriteResponse(c, errors.WithCode(code.ErrTokenInvalid, "Token verification failed"), nil)
@@ -53,10 +51,12 @@ func (m *JWTAuthMiddleware) AuthRequired() gin.HandlerFunc {
 			return
 		}
 
-		// 将用户信息存入上下文
-		c.Set("user_id", resp.UserID)
-		c.Set("account_id", resp.AccountID)
-		c.Set("token_id", resp.TokenID)
+		// 将用户信息存入上下文（从 Claims 中读取）
+		if resp.Claims != nil {
+			c.Set("user_id", resp.Claims.UserID.String())
+			c.Set("account_id", resp.Claims.AccountID.String())
+			c.Set("token_id", resp.Claims.TokenID)
+		}
 
 		c.Next()
 	}
@@ -74,9 +74,7 @@ func (m *JWTAuthMiddleware) AuthOptional() gin.HandlerFunc {
 		}
 
 		// 验证令牌
-		resp, err := m.tokenService.VerifyToken(c.Request.Context(), &token.VerifyTokenRequest{
-			AccessToken: tokenValue,
-		})
+		resp, err := m.tokenService.VerifyToken(c.Request.Context(), tokenValue)
 		if err != nil {
 			log.Warnf("Token verification failed (optional): %v", err)
 			// 令牌无效,但允许通过(不设置用户信息)
@@ -90,10 +88,12 @@ func (m *JWTAuthMiddleware) AuthOptional() gin.HandlerFunc {
 			return
 		}
 
-		// 将用户信息存入上下文
-		c.Set("user_id", resp.UserID)
-		c.Set("account_id", resp.AccountID)
-		c.Set("token_id", resp.TokenID)
+		// 将用户信息存入上下文（从 Claims 中读取）
+		if resp.Claims != nil {
+			c.Set("user_id", resp.Claims.UserID.String())
+			c.Set("account_id", resp.Claims.AccountID.String())
+			c.Set("token_id", resp.Claims.TokenID)
+		}
 
 		c.Next()
 	}
@@ -205,11 +205,11 @@ func GetCurrentSessionID(c *gin.Context) (string, bool) {
 }
 
 // RequireAuth 便捷函数：创建认证必需中间件
-func RequireAuth(tokenService *token.TokenService) gin.HandlerFunc {
+func RequireAuth(tokenService token.TokenApplicationService) gin.HandlerFunc {
 	return NewJWTAuthMiddleware(tokenService).AuthRequired()
 }
 
 // OptionalAuth 便捷函数：创建可选认证中间件
-func OptionalAuth(tokenService *token.TokenService) gin.HandlerFunc {
+func OptionalAuth(tokenService token.TokenApplicationService) gin.HandlerFunc {
 	return NewJWTAuthMiddleware(tokenService).AuthOptional()
 }
