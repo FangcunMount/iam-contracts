@@ -22,4 +22,7 @@ type AuthInput struct {
 	WecomCorpID string
 	WecomCode   string
 	WecomState  string
+
+	// jwt_token
+	AccessToken string // JWT 访问令牌
 }

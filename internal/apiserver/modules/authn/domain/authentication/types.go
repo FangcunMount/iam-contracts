@@ -8,6 +8,7 @@ const (
 	AuthPhoneOTP Scenario = "phone_otp"
 	AuthWxMinip  Scenario = "oauth_wx_minip"
 	AuthWecom    Scenario = "oauth_wecom"
+	AuthJWTToken Scenario = "jwt_token" // JWT Token 认证
 )
 
 // AMR（认证方法引用），用于审计与 Step-Up
@@ -18,6 +19,7 @@ const (
 	AMROTP      AMR = "otp"
 	AMRWx       AMR = "wechat"
 	AMRWecom    AMR = "wecom"
+	AMRJWTToken AMR = "jwt" // JWT Token 认证方法
 )
 
 // 认证主体（输出，用于签 Token/授权）

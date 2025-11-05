@@ -10,8 +10,10 @@ import (
 	// 领域层
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/service"
+	tokenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token/port"
 
 	// 基础设施层适配器
+	authInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/crypto"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
 	redisAdapter "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/redis"
@@ -35,6 +37,7 @@ func NewAuthenticationService(
 	pepper string,
 	wxMinipSecrets map[string]string,
 	wecomSecrets map[string]wechat.WecomConfig,
+	tokenVerifier tokenPort.TokenVerifier, // JWT令牌验证器（来自token模块）
 ) *AuthenticationService {
 	// 创建所有基础设施适配器（Driven Adapters）
 	// 使用现有的仓储实现
@@ -44,6 +47,9 @@ func NewAuthenticationService(
 	otpVerifier := redisAdapter.NewOTPVerifier(redisClient)
 	idp := wechat.NewIdentityProvider(wechatSDKCache, wxMinipSecrets, wecomSecrets)
 
+	// 创建 TokenVerifier 适配器（将 token 模块的接口适配为 authentication 模块需要的接口）
+	authTokenVerifier := authInfra.NewTokenVerifierAdapter(tokenVerifier)
+
 	// 创建策略工厂（注入所有端口实现）
 	factory := service.NewStrategyFactory(
 		credRepo,
@@ -51,6 +57,7 @@ func NewAuthenticationService(
 		hasher,
 		otpVerifier,
 		idp,
+		authTokenVerifier, // 注入 TokenVerifier
 	)
 
 	return &AuthenticationService{

@@ -8,11 +8,12 @@ import (
 // StrategyFactory 认证策略工厂（依赖注入容器）
 // 职责：根据场景创建对应的认证策略实例
 type StrategyFactory struct {
-	credRepo    port.CredentialRepository
-	accountRepo port.AccountRepository
-	hasher      port.PasswordHasher
-	otpVerifier port.OTPVerifier
-	idp         port.IdentityProvider
+	credRepo      port.CredentialRepository
+	accountRepo   port.AccountRepository
+	hasher        port.PasswordHasher
+	otpVerifier   port.OTPVerifier
+	idp           port.IdentityProvider
+	tokenVerifier port.TokenVerifier
 }
 
 // NewStrategyFactory 创建策略工厂（注入所有依赖端口）
@@ -22,13 +23,15 @@ func NewStrategyFactory(
 	hasher port.PasswordHasher,
 	otpVerifier port.OTPVerifier,
 	idp port.IdentityProvider,
+	tokenVerifier port.TokenVerifier,
 ) *StrategyFactory {
 	return &StrategyFactory{
-		credRepo:    credRepo,
-		accountRepo: accountRepo,
-		hasher:      hasher,
-		otpVerifier: otpVerifier,
-		idp:         idp,
+		credRepo:      credRepo,
+		accountRepo:   accountRepo,
+		hasher:        hasher,
+		otpVerifier:   otpVerifier,
+		idp:           idp,
+		tokenVerifier: tokenVerifier,
 	}
 }
 
@@ -43,6 +46,8 @@ func (f *StrategyFactory) CreateStrategy(scenario domain.Scenario) domain.AuthSt
 		return NewOAuthWechatMinipAuthStrategy(f.credRepo, f.accountRepo, f.idp)
 	case domain.AuthWecom:
 		return NewOAuthWeChatComAuthStrategy(f.credRepo, f.accountRepo, f.idp)
+	case domain.AuthJWTToken:
+		return NewJWTTokenAuthStrategy(f.tokenVerifier, f.accountRepo)
 	default:
 		return nil
 	}
