@@ -17,7 +17,7 @@
 
 假设你有 3 个服务实例同时运行：
 
-```
+```text
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
 │  Service A  │    │  Service B  │    │  Service C  │
 │             │    │             │    │             │
@@ -34,6 +34,7 @@
 ```
 
 **问题**：
+
 1. 管理员在 Service A 上修改了策略（添加/删除角色、修改权限）
 2. Service A 的 Casbin 缓存被刷新 ✓
 3. **Service B 和 C 的缓存仍然是旧的** ❌
@@ -75,7 +76,7 @@
 
 ### 组件角色
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │                    PAP (策略管理)                    │
 │  - REST API: POST /authz/roles, /authz/policies   │
@@ -144,6 +145,7 @@ func (s *PolicyService) AddPolicy(ctx context.Context,
 ```
 
 **关键点**：
+
 - ✅ 先更新策略，再发布通知
 - ✅ 发布失败不影响主流程（其他实例会通过轮询或下次请求时发现版本变化）
 
@@ -306,11 +308,13 @@ func (h *BusinessHandler) GetScaleForm(c *gin.Context) {
 **答案：强烈建议订阅，但不是强制的。**
 
 **不订阅的后果**：
+
 - ❌ 策略变更后，需要等待很长时间（或重启服务）才能生效
 - ❌ 用户体验差（刚授权的用户仍然显示无权限）
 - ❌ 安全风险（刚撤销的权限仍然有效）
 
 **替代方案**（不推荐）：
+
 1. **定时轮询版本号**：每隔 30 秒检查一次版本号，发现变化则刷新缓存
 2. **不使用缓存**：每次都从数据库加载策略（性能极差）
 3. **手动重启服务**：运维成本高
@@ -319,7 +323,7 @@ func (h *BusinessHandler) GetScaleForm(c *gin.Context) {
 
 ### Q2: 订阅处理函数应该做什么？
 
-**推荐做法：只刷新缓存**
+***推荐做法：只刷新缓存***
 
 ```go
 func handleVersionChange(tenantID string, version int64) {
@@ -338,6 +342,7 @@ func handleVersionChange(tenantID string, version int64) {
 ```
 
 **为什么只清空缓存？**
+
 - Casbin 的 `CachedEnforcer` 会在下次 `Enforce()` 调用时自动从数据库加载策略
 - 避免在收到通知时同步加载策略（可能造成阻塞）
 
@@ -346,6 +351,7 @@ func handleVersionChange(tenantID string, version int64) {
 ### Q3: 如果 Redis 挂了怎么办？
 
 **影响**：
+
 - ❌ 版本变更通知无法发送
 - ✅ 策略修改仍然成功（保存到 MySQL）
 - ⚠️ 其他服务实例的缓存不会立即刷新
@@ -416,7 +422,7 @@ func checkAndRefreshCache(ctx context.Context) {
 
 **问题**：每个租户的策略是独立的，如何避免一个租户的变更导致所有租户缓存失效？
 
-**方案 1: 租户级别的缓存刷新（推荐）**
+***方案 1: 租户级别的缓存刷新（推荐）***
 
 ```go
 func handleVersionChange(tenantID string, version int64) {
@@ -437,7 +443,7 @@ func (a *CasbinAdapter) InvalidateCacheForTenant(ctx context.Context, tenantID s
 }
 ```
 
-**方案 2: 全局缓存刷新（简单但性能差）**
+***方案 2: 全局缓存刷新（简单但性能差）***
 
 ```go
 func handleVersionChange(tenantID string, version int64) {
@@ -447,6 +453,7 @@ func handleVersionChange(tenantID string, version int64) {
 ```
 
 **权衡**：
+
 - 方案 1: 性能好，但实现复杂
 - 方案 2: 实现简单，但大租户变更会影响所有小租户
 
@@ -553,6 +560,7 @@ func handlePolicyVersionChange(tenantID string, version int64) {
 - ⚠️ **LoadPolicy()**: 从数据库加载所有策略，10-100ms
 
 **建议**：
+
 - 使用 `InvalidateCache()` 而非 `LoadPolicy()`
 - 让 Casbin 在下次 `Enforce()` 时懒加载策略
 
