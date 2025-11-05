@@ -1,130 +1,104 @@
-// Package account 账号应用服务层
-//
-// 应用服务层职责：
-// 1. 编排业务用例流程
-// 2. 协调领域服务和领域对象
-// 3. 处理事务边界
-// 4. 转换API请求到领域对象
-// 5. 处理跨聚合的业务逻辑
-//
-// 应用服务不包含业务规则，仅负责流程编排
 package account
 
 import (
 	"context"
 
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
-// DTO定义 - 应用层的数据传输对象
+// ============= 应用服务接口（Driving Ports）=============
 
-// CreateOperationAccountDTO 创建运营账号DTO
-type CreateOperationAccountDTO struct {
-	UserID   domain.UserID
-	Username string
-	Password string
-	HashAlgo string
-}
-
-// UpdateOperationCredentialDTO 更新运营账号凭据DTO
-type UpdateOperationCredentialDTO struct {
-	Username string
-	Password string
-	HashAlgo string
-}
-
-// ChangeUsernameDTO 修改用户名DTO
-type ChangeUsernameDTO struct {
-	OldUsername string
-	NewUsername string
-}
-
-// BindWeChatAccountDTO 绑定微信账号DTO
-type BindWeChatAccountDTO struct {
-	AccountID  domain.AccountID
-	ExternalID string
-	AppID      string
-	Nickname   *string
-	Avatar     *string
-	Meta       []byte
-}
-
-// UpdateWeChatProfileDTO 更新微信资料DTO
-type UpdateWeChatProfileDTO struct {
-	AccountID domain.AccountID
-	Nickname  *string
-	Avatar    *string
-	Meta      []byte
-}
-
-// AccountResult 账号查询结果
-type AccountResult struct {
-	Account       *domain.Account
-	OperationData *domain.OperationAccount
-	WeChatData    *domain.WeChatAccount
-}
-
-// 应用服务接口定义
-
-// AccountApplicationService 账号应用服务 - 负责账号管理相关的用例编排
+// AccountApplicationService 账户应用服务 - 已存在账户的管理
 type AccountApplicationService interface {
-	// CreateOperationAccount 创建运营账号用例
-	// 流程：1.创建账号聚合根 2.创建运营账号子实体 3.设置密码
-	CreateOperationAccount(ctx context.Context, dto CreateOperationAccountDTO) (*AccountResult, error)
+	// GetAccountByID 根据ID获取账户
+	GetAccountByID(ctx context.Context, accountID meta.ID) (*AccountResult, error)
 
-	// GetAccountByID 根据ID获取账号用例
-	GetAccountByID(ctx context.Context, accountID domain.AccountID) (*AccountResult, error)
+	// FindByExternalRef 根据外部引用查找账户
+	// 用于幂等性检查和已有账户查询
+	FindByExternalRef(ctx context.Context, accountType domain.AccountType, appID domain.AppId, externalID domain.ExternalID) (*AccountResult, error)
 
-	// ListAccountsByUserID 列出用户的所有账号用例
-	ListAccountsByUserID(ctx context.Context, userID domain.UserID) ([]*domain.Account, error)
+	// FindByUniqueID 根据全局唯一标识查找账户
+	FindByUniqueID(ctx context.Context, uniqueID domain.UnionID) (*AccountResult, error)
 
-	// EnableAccount 启用账号用例
-	EnableAccount(ctx context.Context, accountID domain.AccountID) error
+	// SetUniqueID 设置全局唯一标识（如 UnionID）
+	SetUniqueID(ctx context.Context, accountID meta.ID, uniqueID domain.UnionID) error
 
-	// DisableAccount 禁用账号用例
-	DisableAccount(ctx context.Context, accountID domain.AccountID) error
+	// UpdateProfile 更新账户资料
+	UpdateProfile(ctx context.Context, accountID meta.ID, profile map[string]string) error
+
+	// UpdateMeta 更新账户元数据
+	UpdateMeta(ctx context.Context, accountID meta.ID, meta map[string]string) error
+
+	// EnableAccount 启用账户
+	EnableAccount(ctx context.Context, accountID meta.ID) error
+
+	// DisableAccount 禁用账户
+	DisableAccount(ctx context.Context, accountID meta.ID) error
+
+	// ArchiveAccount 归档账户
+	ArchiveAccount(ctx context.Context, accountID meta.ID) error
+
+	// DeleteAccount 删除账户（软删除）
+	DeleteAccount(ctx context.Context, accountID meta.ID) error
 }
 
-// OperationAccountApplicationService 运营账号应用服务 - 负责运营账号管理用例
-type OperationAccountApplicationService interface {
-	// UpdateCredential 更新运营账号凭据用例
-	// 流程：1.查找账号 2.验证权限 3.更新密码 4.重置失败次数
-	UpdateCredential(ctx context.Context, dto UpdateOperationCredentialDTO) error
+// CredentialApplicationService 凭据应用服务 - 凭据管理
+type CredentialApplicationService interface {
+	// BindCredential 绑定凭据到账户
+	// 支持：password, phone_otp, oauth_wx_minip, oauth_wecom
+	BindCredential(ctx context.Context, dto BindCredentialDTO) error
 
-	// ChangeUsername 修改运营账号用户名用例
-	// 流程：1.验证新用户名唯一性 2.更新用户名 3.解锁账号
-	ChangeUsername(ctx context.Context, dto ChangeUsernameDTO) error
+	// UnbindCredential 解绑凭据
+	UnbindCredential(ctx context.Context, credentialID int64) error
 
-	// GetByUsername 根据用户名获取运营账号用例
-	GetByUsername(ctx context.Context, username string) (*AccountResult, error)
+	// RotatePassword 轮换密码（密码类型凭据）
+	RotatePassword(ctx context.Context, accountID meta.ID, oldPassword, newPassword string) error
 
-	// ResetFailures 重置失败次数用例
-	ResetFailures(ctx context.Context, username string) error
+	// GetCredentialsByAccountID 获取账户的所有凭据
+	GetCredentialsByAccountID(ctx context.Context, accountID meta.ID) ([]*CredentialResult, error)
 
-	// UnlockAccount 解锁运营账号用例
-	UnlockAccount(ctx context.Context, username string) error
+	// DisableCredential 禁用凭据
+	DisableCredential(ctx context.Context, credentialID int64) error
+
+	// EnableCredential 启用凭据
+	EnableCredential(ctx context.Context, credentialID int64) error
 }
 
-// WeChatAccountApplicationService 微信账号应用服务 - 负责微信账号管理用例
-type WeChatAccountApplicationService interface {
-	// BindWeChatAccount 绑定微信账号用例
-	// 流程：1.验证账号存在 2.创建微信子实体 3.更新资料
-	BindWeChatAccount(ctx context.Context, dto BindWeChatAccountDTO) error
+// ============= DTOs =============
 
-	// UpdateProfile 更新微信资料用例
-	// 流程：1.查找微信账号 2.更新资料字段
-	UpdateProfile(ctx context.Context, dto UpdateWeChatProfileDTO) error
-
-	// SetUnionID 设置微信UnionID用例
-	// 流程：1.查找微信账号 2.设置UnionID
-	SetUnionID(ctx context.Context, accountID domain.AccountID, unionID string) error
-
-	// GetByWeChatRef 根据微信引用查找账号用例
-	GetByWeChatRef(ctx context.Context, externalID, appID string) (*AccountResult, error)
+// BindCredentialDTO 绑定凭据DTO
+type BindCredentialDTO struct {
+	AccountID     meta.ID               // 账户ID（必须）
+	Type          domain.CredentialType // 凭据类型
+	IDP           *string               // IDP类型："wechat" | "wecom" | "phone"
+	IDPIdentifier string                // IDP标识符：unionid | openid@appid | userid | +E164
+	AppID         *string               // 应用ID
+	Material      []byte                // 凭据材料（仅 password）
+	Algo          *string               // 算法（仅 password）
+	ParamsJSON    []byte                // 参数JSON
 }
 
-// AccountLookupApplicationService 账号查找应用服务 - 负责账号查询用例
-type AccountLookupApplicationService interface {
-	// FindByProvider 根据提供商查找账号用例
-	FindByProvider(ctx context.Context, provider domain.Provider, externalID string, appID *string) (*domain.Account, error)
+// AccountResult 账户结果DTO
+type AccountResult struct {
+	AccountID  meta.ID              // 账户ID
+	UserID     meta.ID              // 用户ID
+	Type       domain.AccountType   // 账户类型
+	AppID      domain.AppId         // 应用ID
+	ExternalID domain.ExternalID    // 外部标识
+	UniqueID   domain.UnionID       // 全局唯一标识
+	Profile    map[string]string    // 用户资料
+	Meta       map[string]string    // 元数据
+	Status     domain.AccountStatus // 账户状态
+}
+
+// CredentialResult 凭据结果DTO
+type CredentialResult struct {
+	ID            int64                   // 凭据ID
+	AccountID     int64                   // 账户ID
+	Type          domain.CredentialType   // 凭据类型
+	IDP           *string                 // IDP类型
+	IDPIdentifier string                  // IDP标识符
+	AppID         *string                 // 应用ID
+	Status        domain.CredentialStatus // 凭据状态
 }

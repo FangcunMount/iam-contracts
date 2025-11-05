@@ -5,7 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
-	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/port/driven"
+	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/port"
 	acctrepo "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/tx"
@@ -13,9 +13,8 @@ import (
 
 // TxRepositories 聚合事务中可使用的仓储集合。
 type TxRepositories struct {
-	Accounts  drivenPort.AccountRepo
-	Operation drivenPort.OperationRepo
-	WeChats   drivenPort.WeChatRepo
+	Accounts    drivenPort.AccountRepo
+	Credentials drivenPort.CredentialRepo
 }
 
 // UnitOfWork 提供业务事务边界。
@@ -43,9 +42,8 @@ func (u *gormUnitOfWork) WithinTx(ctx context.Context, fn func(tx TxRepositories
 
 	return u.base.WithinTransaction(ctx, func(tx *gorm.DB) error {
 		repos := TxRepositories{
-			Accounts:  acctrepo.NewAccountRepository(tx),
-			Operation: acctrepo.NewOperationRepository(tx),
-			WeChats:   acctrepo.NewWeChatRepository(tx),
+			Accounts:    acctrepo.NewAccountRepository(tx),
+			Credentials: acctrepo.NewCredentialRepository(tx),
 		}
 		return fn(repos)
 	})
