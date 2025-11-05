@@ -121,6 +121,15 @@ const (
 	ErrCredentialNotUsable = 102306
 )
 
+// Authn: 认证流程相关错误码 (102400～102499).
+const (
+	ErrAuthenticationFailed = 102400
+	ErrOTPInvalid           = 102401
+	ErrStateMismatch        = 102402
+	ErrIDPExchangeFailed    = 102403
+	ErrNoBinding            = 102404
+)
+
 // nolint: gochecknoinits
 func init() {
 	registerAuthn()
@@ -175,6 +184,13 @@ func registerAuthn() {
 	errors.MustRegister(&authnCoder{code: ErrCredentialDisabled, status: http.StatusForbidden, msg: "Credential is disabled"})
 	errors.MustRegister(&authnCoder{code: ErrInvalidCredential, status: http.StatusBadRequest, msg: "Invalid credential"})
 	errors.MustRegister(&authnCoder{code: ErrCredentialNotUsable, status: http.StatusForbidden, msg: "Credential is not usable"})
+
+	// Authentication flow errors
+	errors.MustRegister(&authnCoder{code: ErrAuthenticationFailed, status: http.StatusUnauthorized, msg: "Authentication failed"})
+	errors.MustRegister(&authnCoder{code: ErrOTPInvalid, status: http.StatusUnauthorized, msg: "OTP is invalid or expired"})
+	errors.MustRegister(&authnCoder{code: ErrStateMismatch, status: http.StatusUnauthorized, msg: "OAuth state mismatch"})
+	errors.MustRegister(&authnCoder{code: ErrIDPExchangeFailed, status: http.StatusBadGateway, msg: "Failed to exchange code with identity provider"})
+	errors.MustRegister(&authnCoder{code: ErrNoBinding, status: http.StatusUnauthorized, msg: "No account binding found"})
 }
 
 // authnCoder 实现 errors.Coder 接口
