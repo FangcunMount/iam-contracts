@@ -6,7 +6,8 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driven"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token"
+	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -34,7 +35,7 @@ func NewTokenRefresher(
 }
 
 // RefreshToken 刷新令牌
-func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue string) (*authentication.TokenPair, error) {
+func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue string) (*domain.TokenPair, error) {
 	// 从 Redis 获取刷新令牌
 	refreshToken, err := s.tokenStore.GetRefreshToken(ctx, refreshTokenValue)
 	if err != nil {
@@ -52,16 +53,15 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 		return nil, perrors.WithCode(code.ErrExpired, "refresh token has expired")
 	}
 
-	// 创建新的认证结果（从刷新令牌中恢复）
-	auth := authentication.NewAuthentication(
-		refreshToken.UserID,
-		refreshToken.AccountID,
-		"",  // provider 可以从 account 查询，这里暂时留空
-		nil, // metadata 刷新时不需要
-	)
+	// 创建新的认证主体（从刷新令牌中恢复）
+	principal := &authentication.Principal{
+		UserID:    int64(refreshToken.UserID.ToUint64()),
+		AccountID: int64(refreshToken.AccountID.ToUint64()),
+		// provider 和其他信息在刷新时不需要
+	}
 
 	// 颁发新的令牌对
-	newTokenPair, err := NewTokenIssuer(s.tokenGenerator, s.tokenStore, s.accessTTL, s.refreshTTL).IssueToken(ctx, auth)
+	newTokenPair, err := NewTokenIssuer(s.tokenGenerator, s.tokenStore, s.accessTTL, s.refreshTTL).IssueToken(ctx, principal)
 	if err != nil {
 		return nil, err
 	}

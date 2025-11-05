@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token"
 )
 
@@ -36,27 +37,29 @@ type TokenStore interface {
 	IsBlacklisted(ctx context.Context, tokenID string) (bool, error)
 }
 
+// ------------------- TokenGenerator 令牌生成器端口 ----------------------
+
 // TokenGenerator 令牌生成器端口
 //
 // 用于生成和解析 JWT 访问令牌
-// type TokenGenerator interface {
-// 	// GenerateAccessToken 生成访问令牌（JWT）
-// 	//
-// 	// 参数:
-// 	//   - authentication: 认证结果
-// 	//   - expiresIn: 有效期
-// 	//
-// 	// 返回:
-// 	//   - token: 令牌对象（包含 JWT 字符串）
-// 	GenerateAccessToken(authentication *domain.Authentication, expiresIn time.Duration) (*domain.Token, error)
+type TokenGenerator interface {
+	// GenerateAccessToken 生成访问令牌（JWT）
+	//
+	// 参数:
+	//   - principal: 认证主体（包含用户ID、账户ID等）
+	//   - expiresIn: 有效期
+	//
+	// 返回:
+	//   - token: 令牌对象（包含 JWT 字符串）
+	GenerateAccessToken(principal *authentication.Principal, expiresIn time.Duration) (*domain.Token, error)
 
-// 	// ParseAccessToken 解析访问令牌
-// 	//
-// 	// 参数:
-// 	//   - tokenValue: JWT 字符串
-// 	//
-// 	// 返回:
-// 	//   - claims: 令牌声明
-// 	//   - err: 解析错误（如签名无效、过期等）
-// 	ParseAccessToken(tokenValue string) (*domain.TokenClaims, error)
-// }
+	// ParseAccessToken 解析访问令牌
+	//
+	// 参数:
+	//   - tokenValue: JWT 字符串
+	//
+	// 返回:
+	//   - claims: 令牌声明
+	//   - err: 解析错误（如签名无效、过期等）
+	ParseAccessToken(tokenValue string) (*domain.TokenClaims, error)
+}

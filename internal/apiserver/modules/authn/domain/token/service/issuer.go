@@ -9,8 +9,10 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driven"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token"
+	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // TokenIssuer 令牌颁发者
@@ -37,24 +39,24 @@ func NewTokenIssuer(
 }
 
 // IssueToken 颁发令牌对
-func (s *TokenIssuer) IssueToken(ctx context.Context, auth *authentication.Authentication) (*authentication.TokenPair, error) {
-	if auth == nil {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "authentication is required")
+func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.Principal) (*domain.TokenPair, error) {
+	if principal == nil {
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "principal is required")
 	}
 
 	// 生成访问令牌（JWT）
-	accessToken, err := s.tokenGenerator.GenerateAccessToken(auth, s.accessTTL)
+	accessToken, err := s.tokenGenerator.GenerateAccessToken(principal, s.accessTTL)
 	if err != nil {
 		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to generate access token")
 	}
 
 	// 生成刷新令牌（UUID）
 	refreshTokenValue := uuid.New().String()
-	refreshToken := authentication.NewRefreshToken(
-		uuid.New().String(), // token ID
-		refreshTokenValue,
-		auth.UserID,
-		auth.AccountID,
+	refreshToken := domain.NewRefreshToken(
+		uuid.New().String(),                     // token ID
+		refreshTokenValue,                       // token value
+		meta.NewID(uint64(principal.UserID)),    // user ID
+		meta.NewID(uint64(principal.AccountID)), // account ID
 		s.refreshTTL,
 	)
 
@@ -63,7 +65,7 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, auth *authentication.Authe
 		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to save refresh token")
 	}
 
-	return authentication.NewTokenPair(accessToken, refreshToken), nil
+	return domain.NewTokenPair(accessToken, refreshToken), nil
 }
 
 // RevokeToken 撤销令牌

@@ -1,5 +1,12 @@
 package port
 
+import (
+	"context"
+
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token"
+)
+
 // ==================== Driving Ports (驱动端口) ====================
 // 这些接口由领域层（领域服务）实现，供应用层调用
 // 按照功能职责拆分，遵循接口隔离原则
@@ -9,17 +16,15 @@ type TokenIssuer interface {
 	// IssueToken 签发访问令牌和刷新令牌
 	//
 	// 参数:
-	//   - userID: 用户唯一标识
-	//   - expiresIn: 访问令牌有效期
+	//   - auth: 认证结果（包含 Principal 信息）
 	//
 	// 返回:
-	//   - accessToken: 访问令牌字符串
-	//   - refreshToken: 刷新令牌字符串
+	//   - TokenPair: 访问令牌和刷新令牌对
 	//   - err: 错误信息
-	IssueToken(userID string, expiresIn int64) (accessToken string, refreshToken string, err error)
-	IssueToken(ctx context.Context, auth *authentication.Authentication) (*authentication.TokenPair, error)
+	IssueToken(ctx context.Context, principal *authentication.Principal) (*domain.TokenPair, error)
 
-	RevokeToken(userID string) error
+	// RevokeToken 撤销令牌
+	RevokeToken(ctx context.Context, tokenValue string) error
 }
 
 type TokenRefresher interface {
@@ -29,20 +34,22 @@ type TokenRefresher interface {
 	//   - refreshToken: 刷新令牌字符串
 	//
 	// 返回:
-	//   - newAccessToken: 新的访问令牌
-	//   - newRefreshToken: 新的刷新令牌
+	//   - TokenPair: 新的访问令牌和刷新令牌对
 	//   - err: 错误信息
-	RefreshToken(refreshToken string) (newAccessToken string, newRefreshToken string, err error)
+	RefreshToken(ctx context.Context, refreshTokenValue string) (*domain.TokenPair, error)
+
+	// RevokeRefreshToken 撤销刷新令牌
+	RevokeRefreshToken(ctx context.Context, refreshTokenValue string) error
 }
 
 type TokenVerifier interface {
-	// VerifyToken 验证访问令牌
+	// VerifyAccessToken 验证访问令牌
 	//
 	// 参数:
 	//   - accessToken: 访问令牌字符串
 	//
 	// 返回:
-	//   - valid: 是否有效
+	//   - TokenClaims: 令牌声明信息
 	//   - err: 错误信息
-	VerifyToken(accessToken string) (valid bool, err error)
+	VerifyAccessToken(ctx context.Context, tokenValue string) (*domain.TokenClaims, error)
 }

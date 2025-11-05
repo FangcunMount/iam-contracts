@@ -10,10 +10,11 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driving"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Generator JWT 令牌生成器（使用 JWKS 的 RSA 密钥签名）
@@ -45,7 +46,7 @@ type CustomClaims struct {
 
 // GenerateAccessToken 生成访问令牌（JWT）
 // 使用 JWKS 中的活跃 RSA 密钥进行签名
-func (g *Generator) GenerateAccessToken(auth *authentication.Authentication, expiresIn time.Duration) (*authentication.Token, error) {
+func (g *Generator) GenerateAccessToken(principal *authentication.Principal, expiresIn time.Duration) (*domain.Token, error) {
 	ctx := context.Background() // TODO: 从参数传递 context
 	now := time.Now()
 	tokenID := idutil.NewID(0).String() // 生成唯一 Token ID
@@ -69,8 +70,8 @@ func (g *Generator) GenerateAccessToken(auth *authentication.Authentication, exp
 	}
 
 	claims := CustomClaims{
-		UserID:    auth.UserID.Uint64(),
-		AccountID: idutil.ID(auth.AccountID).Uint64(),
+		UserID:    uint64(principal.UserID),
+		AccountID: uint64(principal.AccountID),
 		StandardClaims: jwt.StandardClaims{
 			Id:        tokenID,
 			Issuer:    g.issuer,
@@ -92,18 +93,18 @@ func (g *Generator) GenerateAccessToken(auth *authentication.Authentication, exp
 		return nil, fmt.Errorf("failed to sign token: %w", err)
 	}
 
-	return authentication.NewAccessToken(
+	return domain.NewAccessToken(
 		tokenID,
 		tokenString,
-		auth.UserID,
-		auth.AccountID,
+		meta.NewID(uint64(principal.UserID)),
+		meta.NewID(uint64(principal.AccountID)),
 		expiresIn,
 	), nil
 }
 
 // ParseAccessToken 解析访问令牌
 // 使用 JWKS 公钥验证 RSA 签名
-func (g *Generator) ParseAccessToken(tokenValue string) (*authentication.TokenClaims, error) {
+func (g *Generator) ParseAccessToken(tokenValue string) (*domain.TokenClaims, error) {
 	ctx := context.Background() // TODO: 从参数传递 context
 
 	// 解析 token（不验证签名，先提取 kid）
@@ -147,10 +148,10 @@ func (g *Generator) ParseAccessToken(tokenValue string) (*authentication.TokenCl
 	}
 
 	// 转换为领域模型
-	return authentication.NewTokenClaims(
+	return domain.NewTokenClaims(
 		claims.Id,
-		account.NewUserID(claims.UserID),
-		account.AccountID(idutil.NewID(claims.AccountID)),
+		meta.NewID(claims.UserID),
+		meta.NewID(claims.AccountID),
 		time.Unix(claims.IssuedAt, 0),
 		time.Unix(claims.ExpiresAt, 0),
 	), nil

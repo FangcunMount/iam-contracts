@@ -4,8 +4,8 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port/driven"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token"
+	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -27,7 +27,7 @@ func NewTokenVerifyer(
 }
 
 // VerifyAccessToken 验证访问令牌
-func (s *TokenVerifyer) VerifyAccessToken(ctx context.Context, tokenValue string) (*authentication.TokenClaims, error) {
+func (s *TokenVerifyer) VerifyAccessToken(ctx context.Context, tokenValue string) (*domain.TokenClaims, error) {
 	// 解析 JWT
 	claims, err := s.tokenGenerator.ParseAccessToken(tokenValue)
 	if err != nil {

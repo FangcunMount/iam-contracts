@@ -9,9 +9,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // RedisStore Redis 令牌存储实现
@@ -35,15 +34,15 @@ type refreshTokenData struct {
 }
 
 // SaveRefreshToken 保存刷新令牌
-func (s *RedisStore) SaveRefreshToken(ctx context.Context, token *authentication.Token) error {
+func (s *RedisStore) SaveRefreshToken(ctx context.Context, token *domain.Token) error {
 	if token == nil {
 		return fmt.Errorf("token is nil")
 	}
 
 	data := refreshTokenData{
 		TokenID:   token.ID,
-		UserID:    token.UserID.Uint64(),
-		AccountID: idutil.ID(token.AccountID).Uint64(),
+		UserID:    token.UserID.ToUint64(),
+		AccountID: token.AccountID.ToUint64(),
 		ExpiresAt: token.ExpiresAt,
 	}
 
@@ -68,7 +67,7 @@ func (s *RedisStore) SaveRefreshToken(ctx context.Context, token *authentication
 }
 
 // GetRefreshToken 获取刷新令牌
-func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*authentication.Token, error) {
+func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*domain.Token, error) {
 	key := fmt.Sprintf("refresh_token:%s", tokenValue)
 
 	// 从 Redis 获取
@@ -88,11 +87,11 @@ func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*a
 
 	// 构造 Token 对象
 	ttl := time.Until(data.ExpiresAt)
-	token := authentication.NewRefreshToken(
+	token := domain.NewRefreshToken(
 		data.TokenID,
 		tokenValue,
-		account.NewUserID(data.UserID),
-		account.AccountID(idutil.NewID(data.AccountID)),
+		meta.NewID(data.UserID),
+		meta.NewID(data.AccountID),
 		ttl,
 	)
 
