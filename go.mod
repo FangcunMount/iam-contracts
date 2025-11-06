@@ -5,6 +5,7 @@ go 1.24.0
 require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/uuid v1.6.0
+	github.com/lib/pq v1.10.9
 	github.com/mattn/go-isatty v0.0.20
 	github.com/moby/term v0.5.2
 	github.com/robfig/cron/v3 v3.0.1

@@ -20,8 +20,6 @@ github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c/go.mod h1:xomTg6
 github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0/go.mod h1:kgDmCTgBzIEPFElEF+FK0SdjAor06dRq2Go927dnQ6o=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.1.0 h1:HCc0+LpPfpCKs6LGGLAhwBARt9632unrVcI6i8s/8os=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.1.0/go.mod h1:wP83P5OoQ5p6ip3ScPr0BAq0BvuPAvacpEuSzyouqAI=
-github.com/FangcunMount/component-base v0.2.7 h1:No7d9i+IB4kIbzMV8sPvne6rglV2OFgAUlWQFSYO9UA=
-github.com/FangcunMount/component-base v0.2.7/go.mod h1:HgwGQ4Op2IKeKOljTbWP7wIWJ/u3n8uepq2T2GLtu0k=
 github.com/FangcunMount/component-base v0.2.8 h1:BgbjUjJ8t2hJ5Y8s4PBLRaoaHZb12zwgJfT6/GsrTTk=
 github.com/FangcunMount/component-base v0.2.8/go.mod h1:HgwGQ4Op2IKeKOljTbWP7wIWJ/u3n8uepq2T2GLtu0k=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
