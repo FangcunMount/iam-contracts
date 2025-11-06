@@ -83,7 +83,6 @@ func registerAuthz() {
 	registerAuthzCode(ErrPolicyVersionAlreadyExists, http.StatusConflict, "Policy version already exists")
 
 	// 策略相关错误
-	registerAuthzCode(ErrPolicyVersionNotFound, http.StatusNotFound, "Policy version not found")
 }
 
 func registerAuthzCode(code int, httpStatus int, message string) {
