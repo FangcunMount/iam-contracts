@@ -5,33 +5,42 @@ import (
 	"fmt"
 	"time"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/credential"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 
-// Repository 凭据仓储实现。
+// Repository 凭据仓储实现（基于 BaseRepository）。
 type Repository struct {
+	mysql.BaseRepository[*PO]
 	db     *gorm.DB
 	mapper *Mapper
 }
 
 // NewRepository 创建凭据仓储实例。
 func NewRepository(db *gorm.DB) *Repository {
+	base := mysql.NewBaseRepository[*PO](db)
+	// 当出现唯一约束冲突时，把 DB 错误翻译为业务错误码 ErrCredentialExists
+	base.SetErrorTranslator(mysql.NewDuplicateToTranslator(func(e error) error {
+		return perrors.WithCode(code.ErrCredentialExists, "credential already exists")
+	}))
+
 	return &Repository{
-		db:     db,
-		mapper: NewMapper(),
+		BaseRepository: base,
+		db:             db,
+		mapper:         NewMapper(),
 	}
 }
 
 // Create 创建凭据。
 func (r *Repository) Create(ctx context.Context, cred *domain.Credential) error {
 	po := r.mapper.ToPO(cred)
-	if err := r.db.WithContext(ctx).Create(po).Error; err != nil {
-		return fmt.Errorf("failed to create credential: %w", err)
-	}
-	cred.ID = po.ID
-	return nil
+	return r.CreateAndSync(ctx, po, func(updated *PO) {
+		cred.ID = updated.ID
+	})
 }
 
 // UpdateMaterial 更新凭据材料（用于密码重置、轮换等）。
