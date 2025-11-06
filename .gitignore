@@ -68,3 +68,7 @@ configs/cert/*.srl
 configs/cert/openssl.cnf
 !configs/cert/README.md
  
+# Artifacts from CI or local runs (build outputs should not be committed)
+artifacts-
+artifacts-*/
+artifacts-*/**
