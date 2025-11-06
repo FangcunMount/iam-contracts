@@ -6,7 +6,7 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
-	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/port"
+	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -14,7 +14,7 @@ type loginApplicationService struct {
 	tokenIssuer      tokenDomain.Issuer
 	tokenRefresher   tokenDomain.Refresher
 	authenticater    *authentication.Authenticater
-	wechatAppQuerier idpPort.WechatAppQuerier
+	wechatAppQuerier idpPort.Repository
 	secretVault      idpPort.SecretVault
 }
 
@@ -24,7 +24,7 @@ func NewLoginApplicationService(
 	tokenIssuer tokenDomain.Issuer,
 	tokenRefresher tokenDomain.Refresher,
 	authenticater *authentication.Authenticater,
-	wechatAppQuerier idpPort.WechatAppQuerier,
+	wechatAppQuerier idpPort.Repository,
 	secretVault idpPort.SecretVault,
 ) LoginApplicationService {
 	return &loginApplicationService{
@@ -144,7 +144,7 @@ func (s *loginApplicationService) prepareAuthentication(ctx context.Context, req
 
 		// 查询微信应用配置获取 AppSecret
 		if s.wechatAppQuerier != nil && s.secretVault != nil {
-			wechatApp, err := s.wechatAppQuerier.QueryByAppID(ctx, *req.WechatAppID)
+			wechatApp, err := s.wechatAppQuerier.GetByAppID(ctx, *req.WechatAppID)
 			if err != nil {
 				return "", authentication.AuthInput{}, perrors.WithCode(code.ErrInvalidArgument, "failed to query wechat app: %v", err)
 			}

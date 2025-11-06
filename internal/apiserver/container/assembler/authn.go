@@ -18,7 +18,7 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
 	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
-	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/port"
+	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	authenticationInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/crypto"
@@ -150,7 +150,7 @@ type infrastructureComponents struct {
 	userRepo userDomain.Repository
 
 	// IDP 基础设施
-	wechatAppQuerier idpPort.WechatAppQuerier
+	wechatAppQuerier idpPort.Repository
 	secretVault      idpPort.SecretVault
 }
 
@@ -172,7 +172,7 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 	// 身份提供商 (微信)
 	// 优先使用 IDP 模块提供的基础设施能力
 	if idpDeps != nil {
-		infra.wechatAppQuerier = idpDeps.WechatAppQuerier()
+		infra.wechatAppQuerier = idpDeps.Repository()
 		infra.secretVault = idpDeps.SecretVault()
 		if provider := idpDeps.WechatAuthProvider(); provider != nil {
 			infra.idp = wechatInfra.NewIdentityProvider(provider, nil)

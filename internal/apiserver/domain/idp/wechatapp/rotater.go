@@ -1,4 +1,4 @@
-package service
+package wechatapp
 
 import (
 	"context"
@@ -7,38 +7,31 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/port"
 )
 
-// CredentialRotater 凭据轮换器
-type CredentialRotater struct {
-	vault port.SecretVault
+// credentialRotater 凭据轮换器
+type credentialRotater struct {
+	vault SecretVault
 	now   func() time.Time
 }
 
-// 确保 CredentialRotater 实现了相应的接口
-var _ port.CredentialRotater = (*CredentialRotater)(nil)
+// 确保 credentialRotater 实现了相应的接口
+var _ CredentialRotater = (*credentialRotater)(nil)
 
 // NewCredentialRotater 创建凭据轮换器实例
-func NewCredentialRotater(vault port.SecretVault, now func() time.Time) *CredentialRotater {
+func NewCredentialRotater(vault SecretVault, now func() time.Time) CredentialRotater {
 	if now == nil {
 		now = time.Now
 	}
 
-	return &CredentialRotater{
+	return &credentialRotater{
 		vault: vault,
 		now:   now,
 	}
 }
 
 // RotateAuthSecret 轮换认证密钥
-// ctx 上下文
-// app 微信应用实体
-// newPlain 新的明文密钥
-// @return 错误信息
-func (m *CredentialRotater) RotateAuthSecret(ctx context.Context, app *domain.WechatApp, newPlain string) error {
+func (m *credentialRotater) RotateAuthSecret(ctx context.Context, app *WechatApp, newPlain string) error {
 	// 验证参数
 	if app == nil {
 		return errors.New("app cannot be nil")
@@ -70,7 +63,7 @@ func (m *CredentialRotater) RotateAuthSecret(ctx context.Context, app *domain.We
 	}
 
 	if app.Cred.Auth == nil {
-		app.Cred.Auth = &domain.AuthSecret{}
+		app.Cred.Auth = &AuthSecret{}
 	}
 
 	app.Cred.Auth.AppSecretCipher = cipher
@@ -88,7 +81,7 @@ func (m *CredentialRotater) RotateAuthSecret(ctx context.Context, app *domain.We
 // callbackToken 回调令牌
 // encodingAESKey43 消息加解密密钥（43 位 Base64 字符串）
 // @return 错误信息
-func (m *CredentialRotater) RotateMsgAESKey(ctx context.Context, app *domain.WechatApp, callbackToken, encodingAESKey43 string) error {
+func (m *credentialRotater) RotateMsgAESKey(ctx context.Context, app *WechatApp, callbackToken, encodingAESKey43 string) error {
 	// 验证参数
 	if app == nil {
 		return errors.New("app cannot be nil")
@@ -114,7 +107,7 @@ func (m *CredentialRotater) RotateMsgAESKey(ctx context.Context, app *domain.Wec
 	}
 
 	if app.Cred.Msg == nil {
-		app.Cred.Msg = &domain.MsgSecret{}
+		app.Cred.Msg = &MsgSecret{}
 	}
 
 	app.Cred.Msg.CallbackToken = callbackToken
@@ -132,7 +125,7 @@ func (m *CredentialRotater) RotateMsgAESKey(ctx context.Context, app *domain.Wec
 // alg 加密算法
 // base64Key Base64 编码的密钥
 // @return 错误信息
-func (m *CredentialRotater) RotateAPISymKey(ctx context.Context, app *domain.WechatApp, alg domain.CryptoAlg, base64Key string) error {
+func (m *credentialRotater) RotateAPISymKey(ctx context.Context, app *WechatApp, alg CryptoAlg, base64Key string) error {
 	return nil
 }
 
@@ -143,6 +136,6 @@ func (m *CredentialRotater) RotateAPISymKey(ctx context.Context, app *domain.Wec
 // kmsRef KMS 引用
 // pubPEM 公钥 PEM 编码
 // @return 错误信息
-func (m *CredentialRotater) RotateAPIAsymKey(ctx context.Context, app *domain.WechatApp, alg domain.CryptoAlg, kmsRef string, pubPEM []byte) error {
+func (m *credentialRotater) RotateAPIAsymKey(ctx context.Context, app *WechatApp, alg CryptoAlg, kmsRef string, pubPEM []byte) error {
 	return nil
 }

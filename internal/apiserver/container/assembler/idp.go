@@ -12,8 +12,6 @@ import (
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/idp/wechatapp"
 	wechatappDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
-	wechatappPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/port"
-	wechatappService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/service"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/crypto"
 	infraMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/wechatapp"
 	infraRedis "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/redis"
@@ -45,10 +43,9 @@ type IDPModule struct {
 	// WechatAuthHandler 已移除 - 认证由 authn 模块统一提供
 
 	// 基础设施组件（内部管理，供其他模块使用）
-	wechatAppRepo       wechatappPort.WechatAppRepository
-	wechatAppQuerier    wechatappPort.WechatAppQuerier
-	accessTokenCache    wechatappPort.AccessTokenCache
-	secretVault         wechatappPort.SecretVault
+	wechatAppRepo       wechatappDomain.Repository
+	accessTokenCache    wechatappDomain.AccessTokenCache
+	secretVault         wechatappDomain.SecretVault
 	wechatAuthProvider  wechatapiPort.AuthProvider
 	wechatTokenProvider *wechatapi.TokenProvider
 }
@@ -156,31 +153,23 @@ func (m *IDPModule) initializeInfrastructure(
 // domainServices 领域层服务（内部结构）
 type domainServices struct {
 	// 微信应用领域服务
-	wechatAppCreator  wechatappPort.WechatAppCreator
-	wechatAppQuerier  wechatappPort.WechatAppQuerier
-	credentialRotater wechatappPort.CredentialRotater
-	accessTokenCacher wechatappPort.AccessTokenCacher
-	appTokenProvider  wechatappPort.AppTokenProvider
+	wechatAppCreator  wechatappDomain.Creator
+	credentialRotater wechatappDomain.CredentialRotater
+	accessTokenCacher wechatappDomain.AccessTokenCacher
+	appTokenProvider  wechatappDomain.AppTokenProvider
 }
 
 // initializeDomain 初始化领域层
 func (m *IDPModule) initializeDomain() (*domainServices, error) {
 	// 创建微信应用领域服务
-	wechatAppQuerier := wechatappService.NewWechatAppQuerier(
+	wechatAppCreator := wechatappDomain.NewCreator(
 		m.wechatAppRepo,
 	)
-	m.wechatAppQuerier = wechatAppQuerier
 
-	wechatAppCreator := wechatappService.NewWechatAppCreator(
-		wechatAppQuerier,
-	)
-
-	credentialRotater := wechatappService.NewCredentialRotater(
+	credentialRotater := wechatappDomain.NewCredentialRotater(
 		m.secretVault,
 		time.Now,
 	)
-
-	accessTokenCacher := wechatappService.NewAccessTokenCacher()
 
 	// 创建应用令牌提供器适配器（连接基础设施层和领域层）
 	appTokenProvider := &appTokenProviderAdapter{
@@ -188,9 +177,13 @@ func (m *IDPModule) initializeDomain() (*domainServices, error) {
 		wechatAppRepo: m.wechatAppRepo,
 	}
 
+	accessTokenCacher := wechatappDomain.NewAccessTokenCacher(
+		m.accessTokenCache,
+		appTokenProvider,
+	)
+
 	return &domainServices{
 		wechatAppCreator:  wechatAppCreator,
-		wechatAppQuerier:  wechatAppQuerier,
 		credentialRotater: credentialRotater,
 		accessTokenCacher: accessTokenCacher,
 		appTokenProvider:  appTokenProvider,
@@ -205,18 +198,16 @@ func (m *IDPModule) initializeApplication(
 	m.WechatAppService = wechatapp.NewWechatAppApplicationService(
 		m.wechatAppRepo,
 		domainServices.wechatAppCreator,
-		domainServices.wechatAppQuerier,
 		domainServices.credentialRotater,
 	)
 
 	m.WechatAppCredentialService = wechatapp.NewWechatAppCredentialApplicationService(
 		m.wechatAppRepo,
-		domainServices.wechatAppQuerier,
 		domainServices.credentialRotater,
 	)
 
 	m.WechatAppTokenService = wechatapp.NewWechatAppTokenApplicationService(
-		domainServices.wechatAppQuerier,
+		m.wechatAppRepo,
 		domainServices.accessTokenCacher,
 		domainServices.appTokenProvider,
 		m.accessTokenCache,
@@ -242,13 +233,13 @@ func (m *IDPModule) initializeInterface() error {
 
 // ============ 暴露给其他模块的基础设施能力 ============
 
-// WechatAppQuerier 返回微信应用查询能力（供 authn 模块读取配置）
-func (m *IDPModule) WechatAppQuerier() wechatappPort.WechatAppQuerier {
-	return m.wechatAppQuerier
+// Repository 返回微信应用查询能力（供 authn 模块读取配置）
+func (m *IDPModule) Repository() wechatappDomain.Repository {
+	return m.wechatAppRepo
 }
 
 // SecretVault 返回密钥托管能力（供 authn 模块解密 AppSecret）
-func (m *IDPModule) SecretVault() wechatappPort.SecretVault {
+func (m *IDPModule) SecretVault() wechatappDomain.SecretVault {
 	return m.secretVault
 }
 
@@ -263,7 +254,7 @@ func (m *IDPModule) WechatAuthProvider() wechatapiPort.AuthProvider {
 // 将基础设施层的 TokenProvider 适配为领域层的 AppTokenProvider 接口
 type appTokenProviderAdapter struct {
 	tokenProvider *wechatapi.TokenProvider
-	wechatAppRepo wechatappPort.WechatAppRepository
+	wechatAppRepo wechatappDomain.Repository
 }
 
 // Fetch 实现 AppTokenProvider 接口

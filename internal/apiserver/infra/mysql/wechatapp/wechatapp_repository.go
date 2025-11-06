@@ -9,7 +9,7 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/port"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 )
 
 // wechatAppRepository 微信应用仓储实现
@@ -18,10 +18,10 @@ type wechatAppRepository struct {
 }
 
 // 确保实现了接口
-var _ port.WechatAppRepository = (*wechatAppRepository)(nil)
+var _ wechatapp.Repository = (*wechatAppRepository)(nil)
 
 // NewWechatAppRepository 创建微信应用仓储实例
-func NewWechatAppRepository(db *gorm.DB) port.WechatAppRepository {
+func NewWechatAppRepository(db *gorm.DB) wechatapp.Repository {
 	return &wechatAppRepository{db: db}
 }
 

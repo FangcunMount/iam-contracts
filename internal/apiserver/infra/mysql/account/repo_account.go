@@ -160,7 +160,7 @@ func (r *AccountRepository) GetByExternalIDAppId(ctx context.Context, externalID
 // ==================== 认证端口实现 ====================
 
 // FindAccountByUsername 根据用户名查找账户（用于密码认证）
-// 实现 port.AccountRepository 接口
+// 实现 wechatapp.AccountRepository 接口
 func (r *AccountRepository) FindAccountByUsername(ctx context.Context, tenantID *int64, username string) (accountID, userID int64, err error) {
 	// 在当前设计中，username 对应 external_id，租户ID对应 user_id
 	// 这里需要根据实际业务逻辑调整查询条件
@@ -182,7 +182,7 @@ func (r *AccountRepository) FindAccountByUsername(ctx context.Context, tenantID 
 }
 
 // GetAccountStatus 获取账户状态（用于检查账户是否锁定/禁用）
-// 实现 port.AccountRepository 接口
+// 实现 wechatapp.AccountRepository 接口
 func (r *AccountRepository) GetAccountStatus(ctx context.Context, accountID int64) (enabled, locked bool, err error) {
 	var po AccountPO
 

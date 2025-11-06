@@ -1,35 +1,34 @@
-package service
+package wechatapp
 
 import (
 	"context"
 	"errors"
 	"time"
-
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/port"
 )
 
-type AccessTokenCacher struct {
-	cache    port.AccessTokenCache
-	provider port.AppTokenProvider
+type accessTokenCacher struct {
+	cache    AccessTokenCache
+	provider AppTokenProvider
 	// 策略
 	refreshSkew time.Duration // 提前刷新窗口，e.g., 120s
 	cacheTTLMin time.Duration // 最小缓存TTL保护，避免抖动
 }
 
-// 确保 AccessTokenCacher 实现了相应的接口
-var _ port.AccessTokenCacher = (*AccessTokenCacher)(nil)
+// 确保 accessTokenCacher 实现了相应的接口
+var _ AccessTokenCacher = (*accessTokenCacher)(nil)
 
 // NewAccessTokenCacher 创建访问令牌缓存器实例
-func NewAccessTokenCacher() *AccessTokenCacher {
-	return &AccessTokenCacher{}
+func NewAccessTokenCacher(cache AccessTokenCache, provider AppTokenProvider) AccessTokenCacher {
+	return &accessTokenCacher{
+		cache:       cache,
+		provider:    provider,
+		refreshSkew: 120 * time.Second,
+		cacheTTLMin: 60 * time.Second,
+	}
 }
 
 // EnsureToken 单飞刷新 + 过期缓冲 获取访问令牌
-// ctx: 上下文
-// app: 微信应用实体
-// skew: 过期缓冲时间窗口，<=0 则使用默认值
-func (s *AccessTokenCacher) EnsureToken(ctx context.Context, app *domain.WechatApp, skew time.Duration) (string, error) {
+func (s *accessTokenCacher) EnsureToken(ctx context.Context, app *WechatApp, skew time.Duration) (string, error) {
 	if app == nil {
 		return "", errors.New("nil app")
 	}

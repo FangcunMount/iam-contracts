@@ -9,8 +9,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/port"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 )
 
 // accessTokenCache 访问令牌缓存实现
@@ -20,10 +19,10 @@ type accessTokenCache struct {
 }
 
 // 确保实现了接口
-var _ port.AccessTokenCache = (*accessTokenCache)(nil)
+var _ wechatapp.AccessTokenCache = (*accessTokenCache)(nil)
 
 // NewAccessTokenCache 创建访问令牌缓存实例
-func NewAccessTokenCache(client *redis.Client) port.AccessTokenCache {
+func NewAccessTokenCache(client *redis.Client) wechatapp.AccessTokenCache {
 	return &accessTokenCache{
 		client: client,
 		prefix: "idp:wechat:token:",
@@ -31,7 +30,7 @@ func NewAccessTokenCache(client *redis.Client) port.AccessTokenCache {
 }
 
 // Get 获取访问令牌
-func (c *accessTokenCache) Get(ctx context.Context, appID string) (*domain.AppAccessToken, error) {
+func (c *accessTokenCache) Get(ctx context.Context, appID string) (*wechatapp.AppAccessToken, error) {
 	if appID == "" {
 		return nil, errors.New("appID cannot be empty")
 	}
@@ -45,7 +44,7 @@ func (c *accessTokenCache) Get(ctx context.Context, appID string) (*domain.AppAc
 		return nil, fmt.Errorf("failed to get access token from cache: %w", err)
 	}
 
-	var aat domain.AppAccessToken
+	var aat wechatapp.AppAccessToken
 	if err := json.Unmarshal(data, &aat); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal access token: %w", err)
 	}
@@ -54,7 +53,7 @@ func (c *accessTokenCache) Get(ctx context.Context, appID string) (*domain.AppAc
 }
 
 // Set 设置访问令牌
-func (c *accessTokenCache) Set(ctx context.Context, appID string, aat *domain.AppAccessToken, ttl time.Duration) error {
+func (c *accessTokenCache) Set(ctx context.Context, appID string, aat *wechatapp.AppAccessToken, ttl time.Duration) error {
 	if appID == "" {
 		return errors.New("appID cannot be empty")
 	}

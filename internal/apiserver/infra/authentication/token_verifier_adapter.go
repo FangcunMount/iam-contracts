@@ -14,7 +14,7 @@ type TokenVerifierAdapter struct {
 	tokenVerifier tokenPort.Verifier
 }
 
-// 实现 authentication.port.TokenVerifier 接口
+// 实现 authentication.wechatapp.TokenVerifier 接口
 var _ authPort.TokenVerifier = (*TokenVerifierAdapter)(nil)
 
 // NewTokenVerifierAdapter 创建令牌验证适配器

@@ -7,7 +7,6 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/port"
 )
 
 // ============= 应用服务实现 =============
@@ -17,23 +16,20 @@ import (
 // ================================================
 
 type wechatAppApplicationService struct {
-	repo    port.WechatAppRepository
-	creator port.WechatAppCreator
-	querier port.WechatAppQuerier
-	rotater port.CredentialRotater
+	repo    domain.Repository
+	creator domain.Creator
+	rotater domain.CredentialRotater
 }
 
 // NewWechatAppApplicationService 创建微信应用管理应用服务
 func NewWechatAppApplicationService(
-	repo port.WechatAppRepository,
-	creator port.WechatAppCreator,
-	querier port.WechatAppQuerier,
-	rotater port.CredentialRotater,
+	repo domain.Repository,
+	creator domain.Creator,
+	rotater domain.CredentialRotater,
 ) WechatAppApplicationService {
 	return &wechatAppApplicationService{
 		repo:    repo,
 		creator: creator,
-		querier: querier,
 		rotater: rotater,
 	}
 }
@@ -70,7 +66,7 @@ func (s *wechatAppApplicationService) CreateApp(ctx context.Context, dto CreateW
 
 // GetApp 查询微信应用
 func (s *wechatAppApplicationService) GetApp(ctx context.Context, appID string) (*WechatAppResult, error) {
-	app, err := s.querier.QueryByAppID(ctx, appID)
+	app, err := s.repo.GetByAppID(ctx, appID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query wechat app: %w", err)
 	}
@@ -87,20 +83,17 @@ func (s *wechatAppApplicationService) GetApp(ctx context.Context, appID string) 
 // =========================================================
 
 type wechatAppCredentialApplicationService struct {
-	repo    port.WechatAppRepository
-	querier port.WechatAppQuerier
-	rotater port.CredentialRotater
+	repo    domain.Repository
+	rotater domain.CredentialRotater
 }
 
 // NewWechatAppCredentialApplicationService 创建微信应用凭据应用服务
 func NewWechatAppCredentialApplicationService(
-	repo port.WechatAppRepository,
-	querier port.WechatAppQuerier,
-	rotater port.CredentialRotater,
+	repo domain.Repository,
+	rotater domain.CredentialRotater,
 ) WechatAppCredentialApplicationService {
 	return &wechatAppCredentialApplicationService{
 		repo:    repo,
-		querier: querier,
 		rotater: rotater,
 	}
 }
@@ -108,7 +101,7 @@ func NewWechatAppCredentialApplicationService(
 // RotateAuthSecret 轮换认证密钥（AppSecret）
 func (s *wechatAppCredentialApplicationService) RotateAuthSecret(ctx context.Context, appID string, newSecret string) error {
 	// 查询应用
-	app, err := s.querier.QueryByAppID(ctx, appID)
+	app, err := s.repo.GetByAppID(ctx, appID)
 	if err != nil {
 		return fmt.Errorf("failed to query wechat app: %w", err)
 	}
@@ -137,7 +130,7 @@ func (s *wechatAppCredentialApplicationService) RotateAuthSecret(ctx context.Con
 // RotateMsgSecret 轮换消息加解密密钥
 func (s *wechatAppCredentialApplicationService) RotateMsgSecret(ctx context.Context, appID string, callbackToken string, encodingAESKey string) error {
 	// 查询应用
-	app, err := s.querier.QueryByAppID(ctx, appID)
+	app, err := s.repo.GetByAppID(ctx, appID)
 	if err != nil {
 		return fmt.Errorf("failed to query wechat app: %w", err)
 	}
@@ -168,21 +161,21 @@ func (s *wechatAppCredentialApplicationService) RotateMsgSecret(ctx context.Cont
 // ======================================================
 
 type wechatAppTokenApplicationService struct {
-	querier       port.WechatAppQuerier
-	tokenCacher   port.AccessTokenCacher
-	tokenProvider port.AppTokenProvider
-	cache         port.AccessTokenCache
+	repo          domain.Repository
+	tokenCacher   domain.AccessTokenCacher
+	tokenProvider domain.AppTokenProvider
+	cache         domain.AccessTokenCache
 }
 
 // NewWechatAppTokenApplicationService 创建微信应用访问令牌应用服务
 func NewWechatAppTokenApplicationService(
-	querier port.WechatAppQuerier,
-	tokenCacher port.AccessTokenCacher,
-	tokenProvider port.AppTokenProvider,
-	cache port.AccessTokenCache,
+	repo domain.Repository,
+	tokenCacher domain.AccessTokenCacher,
+	tokenProvider domain.AppTokenProvider,
+	cache domain.AccessTokenCache,
 ) WechatAppTokenApplicationService {
 	return &wechatAppTokenApplicationService{
-		querier:       querier,
+		repo:          repo,
 		tokenCacher:   tokenCacher,
 		tokenProvider: tokenProvider,
 		cache:         cache,
@@ -192,7 +185,7 @@ func NewWechatAppTokenApplicationService(
 // GetAccessToken 获取访问令牌（带缓存和自动刷新）
 func (s *wechatAppTokenApplicationService) GetAccessToken(ctx context.Context, appID string) (string, error) {
 	// 查询应用
-	app, err := s.querier.QueryByAppID(ctx, appID)
+	app, err := s.repo.GetByAppID(ctx, appID)
 	if err != nil {
 		return "", fmt.Errorf("failed to query wechat app: %w", err)
 	}
@@ -212,7 +205,7 @@ func (s *wechatAppTokenApplicationService) GetAccessToken(ctx context.Context, a
 // RefreshAccessToken 强制刷新访问令牌
 func (s *wechatAppTokenApplicationService) RefreshAccessToken(ctx context.Context, appID string) (string, error) {
 	// 查询应用
-	app, err := s.querier.QueryByAppID(ctx, appID)
+	app, err := s.repo.GetByAppID(ctx, appID)
 	if err != nil {
 		return "", fmt.Errorf("failed to query wechat app: %w", err)
 	}

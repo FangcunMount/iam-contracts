@@ -6,10 +6,11 @@ import (
 	"errors"
 	"fmt"
 
-	port "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/wechatapi/port"
 	"github.com/silenceper/wechat/v2"
 	"github.com/silenceper/wechat/v2/cache"
 	miniConfig "github.com/silenceper/wechat/v2/miniprogram/config"
+
+wechatapp "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/wechatapi/port"
 )
 
 // AuthProvider 微信认证服务（使用 silenceper SDK）
@@ -25,8 +26,8 @@ func NewAuthProvider(cache cache.Cache) *AuthProvider {
 }
 
 // Code2Session 使用登录码进行登录
-func (p *AuthProvider) Code2Session(ctx context.Context, appID, appSecret, jsCode string) (port.Code2SessionResult, error) {
-	session := port.Code2SessionResult{}
+func (p *AuthProvider) Code2Session(ctx context.Context, appID, appSecret, jsCode string) (wechatapp.Code2SessionResult, error) {
+	session := wechatapp.Code2SessionResult{}
 	if appID == "" || appSecret == "" {
 		return session, errors.New("appID and appSecret cannot be empty")
 	}
@@ -59,8 +60,8 @@ func (p *AuthProvider) Code2Session(ctx context.Context, appID, appSecret, jsCod
 }
 
 // DecryptPhone 解密用户手机号
-func (p *AuthProvider) DecryptPhone(ctx context.Context, appID, appSecret, sessionKey, encryptedData, iv string) (port.DecryptPhoneResult, error) {
-	result := port.DecryptPhoneResult{}
+func (p *AuthProvider) DecryptPhone(ctx context.Context, appID, appSecret, sessionKey, encryptedData, iv string) (wechatapp.DecryptPhoneResult, error) {
+	result := wechatapp.DecryptPhoneResult{}
 	if appID == "" || appSecret == "" {
 		return result, errors.New("appID and appSecret cannot be empty")
 	}

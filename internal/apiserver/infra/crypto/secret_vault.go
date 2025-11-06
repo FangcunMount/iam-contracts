@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/port"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 )
 
 // secretVault 密钥加密服务实现（AES-GCM）
@@ -19,10 +19,10 @@ type secretVault struct {
 }
 
 // 确保实现了接口
-var _ port.SecretVault = (*secretVault)(nil)
+var _ wechatapp.SecretVault = (*secretVault)(nil)
 
 // NewSecretVault 创建密钥加密服务实例
-func NewSecretVault(masterKey []byte) (port.SecretVault, error) {
+func NewSecretVault(masterKey []byte) (wechatapp.SecretVault, error) {
 	if len(masterKey) != 32 {
 		return nil, errors.New("master key must be 32 bytes for AES-256")
 	}
