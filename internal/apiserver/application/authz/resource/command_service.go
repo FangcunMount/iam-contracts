@@ -8,7 +8,7 @@ import (
 
 type ResourceCommandService struct {
 	resourceValidator resourceDomain.Validator
-	resourceRepo    resourceDomain.Repository
+	resourceRepo      resourceDomain.Repository
 }
 
 func NewResourceCommandService(
@@ -17,7 +17,7 @@ func NewResourceCommandService(
 ) *ResourceCommandService {
 	return &ResourceCommandService{
 		resourceValidator: resourceValidator,
-		resourceRepo:    resourceRepo,
+		resourceRepo:      resourceRepo,
 	}
 }
 

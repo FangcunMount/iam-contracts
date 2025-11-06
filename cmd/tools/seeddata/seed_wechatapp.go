@@ -5,8 +5,8 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/idp/wechatapp"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 )
 

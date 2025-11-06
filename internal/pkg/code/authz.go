@@ -42,6 +42,9 @@ const (
 const (
 	// ErrAssignmentNotFound - 404: Assignment not found.
 	ErrAssignmentNotFound = 103300
+
+	// ErrAssignmentAlreadyExists - 409: Assignment already exists.
+	ErrAssignmentAlreadyExists = 103301
 )
 
 // Authz: 策略相关错误 (103400～103499).
@@ -71,6 +74,7 @@ func registerAuthz() {
 
 	// 赋权相关错误
 	registerAuthzCode(ErrAssignmentNotFound, http.StatusNotFound, "Assignment not found")
+	registerAuthzCode(ErrAssignmentAlreadyExists, http.StatusConflict, "Assignment already exists")
 
 	// 策略相关错误
 	registerAuthzCode(ErrPolicyVersionNotFound, http.StatusNotFound, "Policy version not found")

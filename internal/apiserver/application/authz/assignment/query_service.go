@@ -12,7 +12,7 @@ import (
 // 负责赋权的读操作，遵循 CQRS 原则
 type AssignmentQueryService struct {
 	assignmentValidator assignmentDomain.Validator
-	assignmentRepo    assignmentDomain.Repository
+	assignmentRepo      assignmentDomain.Repository
 }
 
 // NewAssignmentQueryService 创建赋权查询服务
@@ -22,7 +22,7 @@ func NewAssignmentQueryService(
 ) *AssignmentQueryService {
 	return &AssignmentQueryService{
 		assignmentValidator: assignmentValidator,
-		assignmentRepo:    assignmentRepo,
+		assignmentRepo:      assignmentRepo,
 	}
 }
 

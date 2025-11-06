@@ -9,13 +9,13 @@ import (
 )
 
 type stubUserRepository struct {
-	usersByID    map[uint64]*User
-	usersByPhone map[string]*User
-	findErr      error
-	phoneErr     error
-	updateArgs   []*User
-	createArgs   []*User
-	findIDCalls  int
+	usersByID      map[uint64]*User
+	usersByPhone   map[string]*User
+	findErr        error
+	phoneErr       error
+	updateArgs     []*User
+	createArgs     []*User
+	findIDCalls    int
 	findPhoneCalls int
 }
 

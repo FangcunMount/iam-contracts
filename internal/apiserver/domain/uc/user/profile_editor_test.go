@@ -12,12 +12,12 @@ import (
 )
 
 type stubUserValidator struct {
-	renameErr         error
-	updateContactErr  error
-	checkPhoneErr     error
-	renameCalls       int
+	renameErr          error
+	updateContactErr   error
+	checkPhoneErr      error
+	renameCalls        int
 	updateContactCalls int
-	checkCalls        int
+	checkCalls         int
 }
 
 func (s *stubUserValidator) ValidateRegister(context.Context, string, meta.Phone) error {

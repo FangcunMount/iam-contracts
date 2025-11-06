@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"gorm.io/gorm"
 )
@@ -20,8 +22,13 @@ var _ domain.Repository = (*AssignmentRepository)(nil)
 
 // NewAssignmentRepository 创建 Assignment 仓储
 func NewAssignmentRepository(db *gorm.DB) domain.Repository {
+	base := mysql.NewBaseRepository[*AssignmentPO](db)
+	base.SetErrorTranslator(mysql.NewDuplicateToTranslator(func(e error) error {
+		return perrors.WithCode(code.ErrAssignmentAlreadyExists, "assignment already exists")
+	}))
+
 	return &AssignmentRepository{
-		BaseRepository: mysql.NewBaseRepository[*AssignmentPO](db),
+		BaseRepository: base,
 		mapper:         NewMapper(),
 		db:             db,
 	}
