@@ -109,8 +109,8 @@ AuthZ 模块基于 RBAC 模型实现域对象级权限控制，采用 Casbin 作
 ## 目录结构
 
 ```text
-internal/apiserver/modules/authz/
-├── domain/                                # 领域层
+internal/apiserver/
+├── domain/authz/                          # 领域层
 │   ├── role/                              # 角色聚合
 │   │   ├── role.go                        # 角色实体
 │   │   └── port/
@@ -138,7 +138,7 @@ internal/apiserver/modules/authz/
 │               ├── repo.go                # 版本仓储接口
 │               └── casbin.go              # Casbin 操作接口
 │
-├── application/                           # 应用层（用例编排）
+├── application/authz/                     # 应用层（用例编排）
 │   ├── role/
 │   │   └── service.go                     # 角色管理服务
 │   ├── assignment/
@@ -150,32 +150,17 @@ internal/apiserver/modules/authz/
 │   └── version/
 │       └── service.go                     # 版本管理服务
 │
-├── infra/                                 # 基础设施层
-│   ├── mysql/                             # MySQL 实现
+├── infra/                                 # 基础设施层（按技术栈划分）
+│   ├── mysql/                             # MySQL 仓储实现
 │   │   ├── role/
-│   │   │   ├── po.go                      # 持久化对象
-│   │   │   ├── mapper.go                  # BO ↔ PO 转换
-│   │   │   └── repo.go                    # 仓储实现
 │   │   ├── assignment/
-│   │   │   ├── po.go
-│   │   │   ├── mapper.go
-│   │   │   └── repo.go
 │   │   ├── resource/
-│   │   │   ├── po.go
-│   │   │   ├── mapper.go
-│   │   │   └── repo.go
 │   │   └── policy/
-│   │       ├── po.go
-│   │       ├── mapper.go
-│   │       └── repo.go
-│   │
-│   ├── casbin/                            # Casbin 实现
-│   │   ├── model.conf                     # RBAC 模型定义
-│   │   ├── adapter.go                     # Casbin 适配器封装
-│   │   └── enforcer.go                    # CachedEnforcer 封装
-│   │
-│   └── redis/                             # Redis 实现
-│       └── version_pubsub.go              # 版本发布/订阅
+│   ├── casbin/                            # Casbin 适配器与模型
+│   │   ├── model.conf
+│   │   └── adapter.go
+│   └── redis/                             # Redis 发布/订阅
+│       └── version_notifier.go
 │
 ├── interface/                             # 接口层
 │   ├── restful/                           # REST API
@@ -522,7 +507,7 @@ Content-Type: application/json
 // 初始化 Casbin
 casbinAdapter, err := casbin.NewCasbinAdapter(
     db, 
-    "internal/apiserver/modules/authz/infra/casbin/model.conf",
+    "internal/apiserver/infra/casbin/model.conf",
 )
 
 // 初始化仓储
@@ -541,7 +526,7 @@ policyService := policy.NewPolicyService(casbinAdapter, resourceRepo, policyVers
 
 ```go
 import (
-    "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/interface/sdk/go/pep"
+    "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/sdk/go/pep"
 )
 
 type FormUseCase struct {
@@ -622,4 +607,4 @@ V1 之后可以考虑的增强功能：
 - [Casbin 官方文档](https://casbin.org/)
 - [RBAC 权限模型](https://en.wikipedia.org/wiki/Role-based_access_control)
 - [XACML 架构](https://en.wikipedia.org/wiki/XACML)
-- [项目 authn 模块实现](/internal/apiserver/modules/authn/)
+- [项目 authn 模块实现](/internal/apiserver/application/authn/)

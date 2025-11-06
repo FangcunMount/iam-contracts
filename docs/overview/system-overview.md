@@ -260,24 +260,42 @@ iam-contracts/
 │       ├── container/            # DI 容器
 │       │   └── assembler/        # 模块组装器
 │       │       └── user.go       # 用户模块装配
-│       └── modules/              # 业务模块
-│           ├── uc/               # 用户中心模块 ⭐
-│           │   ├── application/  # 应用层
-│           │   │   ├── user/
-│           │   │   │   ├── services.go      # 服务接口定义
-│           │   │   │   ├── services_impl.go # 服务实现
-│           │   │   │   └── query_service.go # CQRS 查询服务
-│           │   │   ├── child/
-│           │   │   ├── guardianship/
-│           │   │   └── uow/      # Unit of Work (事务边界)
-│           │   ├── domain/       # 领域层
-│           │   │   ├── user/
-│           │   │   │   ├── user.go         # 聚合根
-│           │   │   │   ├── user_id.go      # 标识符
-│           │   │   │   ├── user_status.go  # 枚举值对象
-│           │   │   │   ├── port/           # 领域端口
-│           │   │   │   │   ├── driving.go  # 主动端口
-│           │   │   │   │   └── driven.go   # 被动端口
+│       ├── domain/               # 领域层（按业务模块拆分）
+│       │   ├── uc/               # 用户中心模块 ⭐
+│       │   │   ├── user/
+│       │   │   │   ├── user.go         # 聚合根
+│       │   │   │   ├── user_id.go      # 标识符
+│       │   │   │   ├── user_status.go  # 枚举值对象
+│       │   │   │   ├── port/           # 领域端口
+│       │   │   │   │   ├── driving.go  # 主动端口
+│       │   │   │   │   └── driven.go   # 被动端口
+│       │   │   ├── child/
+│       │   │   └── guardianship/
+│       │   ├── authn/
+│       │   ├── authz/
+│       │   └── idp/
+│       ├── application/          # 应用层（用例编排）
+│       │   ├── uc/
+│       │   │   ├── user/
+│       │   │   │   ├── services.go      # 服务接口定义
+│       │   │   │   ├── services_impl.go # 服务实现
+│       │   │   │   └── query_service.go # CQRS 查询服务
+│       │   │   ├── child/
+│       │   │   ├── guardianship/
+│       │   │   └── uow/          # Unit of Work (事务边界)
+│       │   ├── authn/
+│       │   ├── authz/
+│       │   └── idp/
+│       ├── infra/                # 基础设施层
+│       │   ├── uc/
+│       │   ├── authn/
+│       │   ├── authz/
+│       │   └── idp/
+│       └── interface/            # 接口层
+│           ├── uc/
+│           ├── authn/
+│           ├── authz/
+│           └── idp/
 │           │   │   │   └── service/        # 领域服务
 │           │   │   ├── child/
 │           │   │   └── guardianship/
@@ -553,7 +571,7 @@ air
 **定义**: 工作单元模式，管理事务边界
 
 ```go
-// internal/apiserver/modules/uc/application/uow/uow.go
+// internal/apiserver/application/uc/uow/uow.go
 type UnitOfWork interface {
     WithinTx(ctx context.Context, fn func(tx TxRepositories) error) error
 }
@@ -684,11 +702,11 @@ mysql:
 
 ### 11.1 添加新功能
 
-1. **定义领域模型**: `internal/apiserver/modules/{module}/domain/`
+1. **定义领域模型**: `internal/apiserver/domain/{module}/`
 2. **定义领域端口**: `domain/{entity}/port/driving.go`
 3. **实现领域服务**: `domain/{entity}/service/`
 4. **实现应用服务**: `application/{entity}/services.go`
-5. **实现基础设施**: `infrastructure/mysql/{entity}/repo.go`
+5. **实现基础设施**: `infra/mysql/{entity}/repo.go`
 6. **实现接口适配器**: `interface/restful/handler/`
 7. **注册路由**: `internal/apiserver/routers.go`
 8. **更新 DI 容器**: `container/assembler/`

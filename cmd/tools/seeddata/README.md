@@ -283,9 +283,9 @@ make migrate-up
 
 该工具完全复用了项目的现有代码：
 
-- **领域模型**: `internal/apiserver/modules/*/domain`
-- **应用服务**: `internal/apiserver/modules/*/application`
-- **仓储实现**: `internal/apiserver/modules/*/infra/mysql`
+- **领域模型**: `internal/apiserver/domain/*`
+- **应用服务**: `internal/apiserver/application/*`
+- **仓储实现**: `internal/apiserver/infra/*/mysql`
 - **密码工具**: `authentication.HashPassword`
 - **工作单元**: UnitOfWork 管理事务
 

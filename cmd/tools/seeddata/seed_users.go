@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	childApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/child"
-	guardApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/guardianship"
-	ucUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/uow"
-	userApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/user"
+	childApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/child"
+	guardApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
+	ucUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
+	userApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
 )
 
 // ==================== 用户中心相关类型定义 ====================

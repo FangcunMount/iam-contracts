@@ -114,7 +114,7 @@
 ### 领域模型
 
 ```text
-internal/apiserver/modules/authn/domain/jwks/
+internal/apiserver/domain/authn/jwks/
 ├── vo.go                           # 值对象
 │   ├── JWKS                        # JWKS 集合
 │   ├── JWK                         # 单个密钥
@@ -128,7 +128,7 @@ internal/apiserver/modules/authn/domain/jwks/
 ### 应用服务
 
 ```text
-internal/apiserver/modules/authn/app/jwks/
+internal/apiserver/application/authn/jwks/
 └── query.go                        # PublicJWKSApp
     ├── GetPublicJWKS()             # 获取公钥集
     └── GetCacheTag()               # 获取缓存标签
@@ -137,8 +137,8 @@ internal/apiserver/modules/authn/app/jwks/
 ### HTTP 适配器
 
 ```text
-internal/apiserver/modules/authn/adapter/driving/http/rest/
-└── jwks.go                         # JWKS 发布 API
+internal/apiserver/interface/authn/restful/
+└── handler/jwks.go                 # JWKS 发布 API
     ├── GET /.well-known/jwks.json  # JWKS 端点
     └── GET /.well-known/openid-configuration  # OIDC Discovery
 ```

@@ -587,7 +587,7 @@ iam-contracts/
 
 **目录设计原则**：
 
-- `internal/apiserver/modules/`：按业务模块组织，每个模块采用六边形架构（领域层、应用层、基础设施层、接口层）
+- `internal/apiserver/{domain,application,infra,interface}/`：按照架构层划分目录，每层内部再根据业务模块（uc/authn/authz/idp）拆分
 - `pkg/`：可复用库，无业务逻辑，便于跨服务复用
 - `configs/`：配置文件，敏感信息通过环境变量注入
 
@@ -724,8 +724,8 @@ make dev
 make test
 
 # 运行特定模块测试
-go test ./internal/apiserver/modules/uc/...
-go test ./internal/apiserver/modules/authz/...
+go test ./internal/apiserver/domain/uc/...
+go test ./internal/apiserver/application/authz/...
 
 # 生成测试覆盖率报告
 make test-coverage

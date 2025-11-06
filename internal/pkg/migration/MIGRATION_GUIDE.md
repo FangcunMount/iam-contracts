@@ -245,4 +245,4 @@ mysql -u root -p iam_contracts < backup_before_v2.sql
 
 - [golang-migrate 官方文档](https://github.com/golang-migrate/migrate)
 - [数据库设计文档](../../docs/authn/)
-- [领域模型文档](../../internal/apiserver/modules/authn/domain/)
+- [领域模型文档](../../internal/apiserver/domain/authn/)

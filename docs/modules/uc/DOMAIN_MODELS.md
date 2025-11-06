@@ -47,7 +47,7 @@
 #### 3.2.1 User 聚合
 
 ```go
-// internal/apiserver/modules/uc/domain/user/user.go
+// internal/apiserver/domain/uc/user/user.go
 package user
 
 type User struct {
@@ -81,7 +81,7 @@ func (u *User) UpdateIDCard(idc meta.IDCard)  // 更新身份证
 #### 3.2.2 Child 聚合
 
 ```go
-// internal/apiserver/modules/uc/domain/child/child.go
+// internal/apiserver/domain/uc/child/child.go
 package child
 
 type Child struct {
@@ -114,7 +114,7 @@ func (c *Child) UpdateHeightWeight(h meta.Height, w meta.Weight)
 #### 3.2.3 Guardianship 聚合
 
 ```go
-// internal/apiserver/modules/uc/domain/guardianship/guardianship.go
+// internal/apiserver/domain/uc/guardianship/guardianship.go
 package guardianship
 
 type Guardianship struct {

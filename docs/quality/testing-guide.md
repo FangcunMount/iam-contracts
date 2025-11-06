@@ -161,23 +161,27 @@ go test -v ./... 2>&1 | go-test-report -o report.html
 ### 目录结构
 
 ```
-internal/apiserver/modules/
-├── authn/
-│   ├── domain/
-│   │   ├── account/
-│   │   │   ├── account.go
-│   │   │   └── account_test.go          # 领域模型测试
-│   │   └── authentication/
-│   │       ├── password.go
-│   │       └── password_test.go
-│   ├── application/
-│   │   └── login/
-│   │       ├── service.go
-│   │       └── service_test.go          # 应用服务测试
-│   └── infra/
-│       └── jwt/
-│           ├── generator.go
-│           └── generator_test.go        # 基础设施测试
+internal/apiserver/
+├── domain/authn/
+│   ├── account/
+│   │   ├── account.go
+│   │   └── account_test.go          # 领域模型测试
+│   └── authentication/
+│       ├── password.go
+│       └── password_test.go
+├── application/authn/
+│   └── login/
+│       ├── service.go
+│       └── service_test.go          # 应用服务测试
+├── infra/                         # 按技术栈拆分的基础设施实现
+│   ├── crypto/
+│   ├── jwt/
+│   ├── redis/
+│   └── wechat/
+└── interface/authn/
+    └── restful/
+        └── handler/
+            └── auth_test.go         # 接口层测试
 ```
 
 ### Make 命令
@@ -187,10 +191,13 @@ internal/apiserver/modules/
 make test-unit
 
 # 运行特定模块测试
-go test -v ./internal/apiserver/modules/authn/...
+go test -v ./internal/apiserver/domain/authn/... \
+           ./internal/apiserver/application/authn/... \
+           ./internal/apiserver/infra/... \
+           ./internal/apiserver/interface/authn/...
 
 # 运行特定测试函数
-go test -v -run TestPassword ./internal/apiserver/modules/authn/domain/authentication/
+go test -v -run TestPassword ./internal/apiserver/domain/authn/authentication/
 
 # 使用短模式（跳过集成测试）
 go test -short ./...
@@ -201,7 +208,7 @@ go test -short ./...
 #### 领域模型测试
 
 ```go
-// internal/apiserver/modules/authn/domain/authentication/password_test.go
+// internal/apiserver/domain/authn/authentication/password_test.go
 package authentication_test
 
 import (
@@ -447,7 +454,7 @@ func TestWithTransaction(t *testing.T) {
 
 ### E2E 测试示例
 
-项目中已有完整的 E2E 测试案例：`internal/apiserver/modules/authn/e2e_test.go`
+项目中已有完整的 E2E 测试案例：`internal/apiserver/interface/authn/restful/e2e_test.go`
 
 ```go
 // 完整的 JWT 签名 → JWKS 发布 → JWT 验证流程
@@ -489,10 +496,10 @@ func TestCompleteJWTFlow_E2E(t *testing.T) {
 
 ```bash
 # 运行所有 E2E 测试
-go test -v ./internal/apiserver/modules/authn/e2e_test.go
+go test -v ./internal/apiserver/interface/authn/restful/e2e_test.go
 
 # 运行特定 E2E 测试
-go test -v -run TestCompleteJWTFlow_E2E ./internal/apiserver/modules/authn/
+go test -v -run TestCompleteJWTFlow_E2E ./internal/apiserver/interface/authn/restful/
 ```
 
 ---
@@ -584,7 +591,7 @@ func BenchmarkJWTGeneration(b *testing.B) {
 make test-bench
 
 # 运行特定基准测试
-go test -bench=BenchmarkPassword -benchmem ./internal/apiserver/modules/authn/domain/authentication/
+go test -bench=BenchmarkPassword -benchmem ./internal/apiserver/domain/authn/authentication/
 
 # 比较性能（优化前后）
 go test -bench=. -benchmem ./... > old.txt
@@ -651,7 +658,7 @@ make test-race
 go test -race ./...
 
 # 检测特定包
-go test -race ./internal/apiserver/modules/authn/...
+go test -race ./internal/apiserver/{domain,application,infra,interface}/authn/...
 ```
 
 ---
@@ -676,8 +683,8 @@ go tool cover -func=coverage.out
 
 ```bash
 # 输出示例
-github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/account.go:25:    NewAccount              100.0%
-github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/account/account.go:45:    Validate                85.7%
+github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account/account.go:25:    NewAccount              100.0%
+github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account/account.go:45:    Validate                85.7%
 total:                                                                                                  (statements)            78.5%
 ```
 

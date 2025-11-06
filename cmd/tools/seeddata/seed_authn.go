@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/register"
-	authnUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/uow"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/crypto"
-	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user"
-	userRepo "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
+	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/register"
+	authnUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/crypto"
+	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
+	userRepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
 )
 
 // ==================== 认证 Seed 函数 ====================
