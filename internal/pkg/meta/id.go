@@ -44,3 +44,8 @@ func (id *ID) Scan(src interface{}) error {
 	*id = ID(uid)
 	return nil
 }
+
+// IsZero 判断 ID 是否为零值
+func (id ID) IsZero() bool {
+	return id.ToUint64() == 0
+}
