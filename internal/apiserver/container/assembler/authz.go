@@ -7,21 +7,21 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	assignmentApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/application/assignment"
-	policyApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/application/policy"
-	resourceApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/application/resource"
-	roleApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/application/role"
-	assignmentService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/assignment/service"
-	policyService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/policy/service"
-	resourceService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/resource/service"
-	roleService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/domain/role/service"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/infra/casbin"
-	assignmentInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/assignment"
-	policyInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/policy"
-	resourceInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/resource"
-	roleInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/infra/mysql/role"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/infra/redis"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/interface/restful/handler"
+	assignmentApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/assignment"
+	policyApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/policy"
+	resourceApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/resource"
+	roleApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/role"
+	assignmentService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment/service"
+	policyService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy/service"
+	resourceService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource/service"
+	roleService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role/service"
+	casbinInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/casbin"
+	assignmentInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/assignment"
+	policyInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/policy"
+	resourceInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/resource"
+	roleInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/role"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/redis"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/handler"
 )
 
 // AuthzModule 授权模块
@@ -53,7 +53,7 @@ func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *goredis.Client) error
 	// 1. 初始化 Casbin Enforcer
 	// TODO: 配置 Casbin 模型文件路径
 	modelPath := "configs/casbin_model.conf"
-	casbinAdapter, err := casbin.NewCasbinAdapter(db, modelPath)
+	casbinAdapter, err := casbinInfra.NewCasbinAdapter(db, modelPath)
 	if err != nil {
 		return fmt.Errorf("failed to create casbin adapter: %w", err)
 	}

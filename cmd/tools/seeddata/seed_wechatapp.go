@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/application/wechatapp"
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatapp"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/idp/wechatapp"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 )
 
 // ==================== 微信应用相关类型定义 ====================

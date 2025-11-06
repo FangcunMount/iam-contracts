@@ -4,11 +4,11 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	appchild "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/child"
-	appguard "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/guardianship"
-	appuow "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/uow"
-	appuser "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/application/user"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful/handler"
+	appchild "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/child"
+	appguard "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
+	appuow "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
+	appuser "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/handler"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 

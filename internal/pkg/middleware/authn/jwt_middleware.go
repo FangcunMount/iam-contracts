@@ -7,7 +7,7 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/token"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/pkg/core"
 )

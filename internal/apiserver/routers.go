@@ -10,10 +10,10 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
-	authnhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful"
-	authzhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authz/interface/restful"
-	idphttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/interface/restful"
-	userhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/interface/restful"
+	authnhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful"
+	authzhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful"
+	idphttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/idp/restful"
+	userhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful"
 	authnMiddleware "github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
 )
 

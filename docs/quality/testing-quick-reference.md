@@ -28,10 +28,13 @@ make test-bench
 
 ```bash
 # 运行特定包的测试
-go test -v ./internal/apiserver/modules/authn/...
+go test -v ./internal/apiserver/domain/authn/... \
+           ./internal/apiserver/application/authn/... \
+           ./internal/apiserver/infra/... \
+           ./internal/apiserver/interface/authn/...
 
 # 运行特定测试函数
-go test -v -run TestLogin ./internal/apiserver/modules/authn/application/login/
+go test -v -run TestLogin ./internal/apiserver/application/authn/login/
 
 # 运行匹配模式的测试
 go test -v -run TestPassword ./...
@@ -373,7 +376,7 @@ go test -v -run TestSpecificTest ./path/to/package 2>&1 | tee test.log
 go install github.com/go-delve/delve/cmd/dlv@latest
 
 # 调试特定测试
-dlv test ./internal/apiserver/modules/authn/domain/authentication -- -test.run TestPassword
+dlv test ./internal/apiserver/domain/authn/authentication -- -test.run TestPassword
 
 # 在代码中设置断点
 # import "runtime/debug"
@@ -396,7 +399,7 @@ go tool cover -html=coverage.out -o coverage.html
 open coverage.html  # macOS
 
 # 查看特定包的覆盖率
-go test -cover ./internal/apiserver/modules/authn/...
+go test -cover ./internal/apiserver/{domain,application,infra,interface}/authn/...
 ```
 
 ### 覆盖率目标
@@ -442,7 +445,7 @@ func BenchmarkJWTGeneration(b *testing.B) {
 go test -bench=. -benchmem ./...
 
 # 运行特定基准测试
-go test -bench=BenchmarkPassword -benchmem ./internal/apiserver/modules/authn/domain/authentication/
+go test -bench=BenchmarkPassword -benchmem ./internal/apiserver/domain/authn/authentication/
 
 # 运行多次取平均值
 go test -bench=. -benchtime=10s -count=5 ./...

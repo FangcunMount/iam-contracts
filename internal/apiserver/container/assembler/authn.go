@@ -9,31 +9,31 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	accountApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/account"
-	jwksApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/login"
-	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/register"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/token"
-	authnUow "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/uow"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication"
-	authPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/authentication/port"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks"
-	jwksPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/port/driven"
-	jwksService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/service"
-	tokenService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/token/service"
-	authnInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/authentication"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/crypto"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
-	acctrepo "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/account"
-	jwksMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/jwks"
-	redisOTP "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/redis"
-	redistoken "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/redis/token"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/scheduler"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/wechat"
-	authhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/interface/restful/handler"
-	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/idp/domain/wechatapp/port"
-	userPort "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/domain/user/port"
-	mysqluser "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/uc/infra/mysql/user"
+	accountApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/account"
+	jwksApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/jwks"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/login"
+	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/register"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
+	authnUow "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
+	authPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication/port"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
+	jwksPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driven"
+	jwksService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/service"
+	tokenService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token/service"
+	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/port"
+	userPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user/port"
+	authenticationInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/authentication"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/crypto"
+	jwtinfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/jwt"
+	acctrepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/account"
+	credentialrepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/credential"
+	jwksMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/jwks"
+	mysqluser "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
+	redisInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/redis"
+	schedulerInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/scheduler"
+	wechatInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/wechat"
+	authhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful/handler"
 )
 
 // AuthnModule 认证模块
@@ -144,10 +144,10 @@ type infrastructureComponents struct {
 	privateKeyStorage jwksPort.PrivateKeyStorage
 	keyGenerator      jwksPort.KeyGenerator
 	privKeyResolver   jwksPort.PrivateKeyResolver
-	jwtGenerator      *jwt.Generator
+	jwtGenerator      *jwtinfra.Generator
 
 	// Token 存储
-	tokenStore *redistoken.RedisStore
+	tokenStore *redisInfra.RedisStore
 
 	// User 仓储
 	userRepo userPort.UserRepository
@@ -167,10 +167,10 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 	// UnitOfWork
 	infra.unitOfWork = authnUow.NewUnitOfWork(db)
 	infra.accountRepo = acctrepo.NewAccountRepository(db)
-	infra.credentialRepo = acctrepo.NewCredentialRepository(db)
+	infra.credentialRepo = credentialrepo.NewRepository(db)
 
 	// OTP 验证器
-	infra.otpVerifier = redisOTP.NewOTPVerifier(redisClient)
+	infra.otpVerifier = redisInfra.NewOTPVerifier(redisClient)
 
 	// 身份提供商 (微信)
 	// 优先使用 IDP 模块提供的基础设施能力
@@ -178,11 +178,11 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 		infra.wechatAppQuerier = idpDeps.WechatAppQuerier()
 		infra.secretVault = idpDeps.SecretVault()
 		if provider := idpDeps.WechatAuthProvider(); provider != nil {
-			infra.idp = wechat.NewIdentityProvider(provider, nil)
+			infra.idp = wechatInfra.NewIdentityProvider(provider, nil)
 		}
 	}
 	if infra.idp == nil {
-		infra.idp = wechat.NewIdentityProvider(nil, nil)
+		infra.idp = wechatInfra.NewIdentityProvider(nil, nil)
 	}
 
 	// JWKS 仓储
@@ -195,7 +195,7 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 	infra.privKeyResolver = crypto.NewPEMPrivateKeyResolver(keysDir)
 
 	// Token Store
-	infra.tokenStore = redistoken.NewRedisStore(redisClient)
+	infra.tokenStore = redisInfra.NewRedisStore(redisClient)
 
 	// User 仓储（跨模块依赖）
 	infra.userRepo = mysqluser.NewRepository(db)
@@ -234,7 +234,7 @@ func (m *AuthnModule) initializeDomain(infra *infrastructureComponents) *domainC
 	)
 
 	// JWT Generator（依赖 JWKS）
-	infra.jwtGenerator = jwt.NewGenerator(
+	infra.jwtGenerator = jwtinfra.NewGenerator(
 		viper.GetString("auth.jwt_issuer"),
 		domain.keyManager,
 		infra.privKeyResolver,
@@ -255,7 +255,7 @@ func (m *AuthnModule) initializeDomain(infra *infrastructureComponents) *domainC
 	domain.tokenVerifyer = tokenService.NewTokenVerifyer(infra.jwtGenerator, infra.tokenStore)
 
 	// 创建 TokenVerifier 适配器供 authentication 模块使用
-	infra.tokenVerifier = authnInfra.NewTokenVerifierAdapter(domain.tokenVerifyer)
+	infra.tokenVerifier = authenticationInfra.NewTokenVerifierAdapter(domain.tokenVerifyer)
 
 	return domain
 }
@@ -329,7 +329,7 @@ func (m *AuthnModule) initializeSchedulers() {
 	logger := log.New(log.NewOptions())
 	cronSpec := "0 2 * * *" // 每天凌晨2点
 
-	m.RotationScheduler = scheduler.NewKeyRotationCronScheduler(
+	m.RotationScheduler = schedulerInfra.NewKeyRotationCronScheduler(
 		m.KeyRotationApp,
 		cronSpec,
 		logger,

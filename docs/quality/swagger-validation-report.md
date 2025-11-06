@@ -223,4 +223,4 @@
 
 **报告生成时间**: 2025-11-05 19:44  
 **验证工具**: GitHub Copilot + swag v1.8.12  
-**验证范围**: internal/apiserver/modules/*/interface/restful/handler/*.go
+**验证范围**: internal/apiserver/interface/*/restful/handler/*.go

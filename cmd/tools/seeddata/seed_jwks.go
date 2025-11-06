@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	jwksApp "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/application/jwks"
-	jwksService "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/domain/jwks/service"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/crypto"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/jwt"
-	jwksMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/modules/authn/infra/mysql/jwks"
+	jwksApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/jwks"
+	jwksService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/service"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/crypto"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/jwt"
+	jwksMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/jwks"
 )
 
 // ==================== JWKS Seed 函数 ====================

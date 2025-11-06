@@ -249,7 +249,7 @@ Infrastructure Layer (实现领域端口)
 ### 5.2 命令服务示例
 
 ```go
-// internal/apiserver/modules/uc/application/user/services_impl.go
+// internal/apiserver/application/uc/user/services_impl.go
 type userApplicationService struct {
     uow uow.UnitOfWork
 }
@@ -296,7 +296,7 @@ func (s *userApplicationService) Register(
 ### 5.3 查询服务示例
 
 ```go
-// internal/apiserver/modules/uc/application/user/query_service.go
+// internal/apiserver/application/uc/user/query_service.go
 type userQueryApplicationService struct {
     uow uow.UnitOfWork
 }
