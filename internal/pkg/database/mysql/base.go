@@ -9,11 +9,21 @@ import (
 // BaseRepository provides common CRUD helpers for GORM repositories.
 type BaseRepository[T Syncable] struct {
 	db *gorm.DB
+	// errTranslator transforms DB-level errors into domain/business errors.
+	// If nil, no translation is performed.
+	errTranslator func(error) error
 }
 
 // NewBaseRepository constructs a repository wrapper for the provided DB.
 func NewBaseRepository[T Syncable](db *gorm.DB) BaseRepository[T] {
 	return BaseRepository[T]{db: db}
+}
+
+// SetErrorTranslator registers a function to translate DB errors into
+// domain/business errors. This allows repositories to map driver-specific
+// messages (unique constraint, duplicate entry) to structured errors.
+func (r *BaseRepository[T]) SetErrorTranslator(f func(error) error) {
+	r.errTranslator = f
 }
 
 // DB exposes the underlying *gorm.DB for advanced usages.
@@ -30,6 +40,9 @@ func (r *BaseRepository[T]) WithContext(ctx context.Context) *gorm.DB {
 func (r *BaseRepository[T]) CreateAndSync(ctx context.Context, entity T, sync func(T)) error {
 	result := r.db.WithContext(ctx).Create(entity)
 	if result.Error != nil {
+		if r.errTranslator != nil {
+			return r.errTranslator(result.Error)
+		}
 		return result.Error
 	}
 	sync(entity)
@@ -40,6 +53,9 @@ func (r *BaseRepository[T]) CreateAndSync(ctx context.Context, entity T, sync fu
 func (r *BaseRepository[T]) UpdateAndSync(ctx context.Context, entity T, sync func(T)) error {
 	result := r.db.WithContext(ctx).Updates(entity)
 	if result.Error != nil {
+		if r.errTranslator != nil {
+			return r.errTranslator(result.Error)
+		}
 		return result.Error
 	}
 	sync(entity)
