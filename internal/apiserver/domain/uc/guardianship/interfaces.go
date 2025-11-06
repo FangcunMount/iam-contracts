@@ -3,7 +3,6 @@ package guardianship
 import (
 	"context"
 
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -16,12 +15,6 @@ import (
 type Manager interface {
 	AddGuardian(ctx context.Context, userID meta.ID, childID meta.ID, relation Relation) (*Guardianship, error)
 	RemoveGuardian(ctx context.Context, userID meta.ID, childID meta.ID) (*Guardianship, error)
-}
-
-// Register 监护关系注册领域服务接口
-// 负责同时注册儿童和监护关系的复杂用例
-type Register interface {
-	RegisterChildWithGuardian(ctx context.Context, params RegisterChildWithGuardianParams) (*Guardianship, *child.Child, error)
 }
 
 // RegisterChildWithGuardianParams 同时注册儿童和监护关系的参数
