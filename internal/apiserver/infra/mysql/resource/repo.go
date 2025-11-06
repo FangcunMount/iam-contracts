@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
-	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource/port/driven"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"gorm.io/gorm"
 )
@@ -17,10 +16,10 @@ type ResourceRepository struct {
 	db     *gorm.DB
 }
 
-var _ drivenPort.ResourceRepo = (*ResourceRepository)(nil)
+var _ domain.Repository = (*ResourceRepository)(nil)
 
 // NewResourceRepository 创建 Resource 仓储
-func NewResourceRepository(db *gorm.DB) drivenPort.ResourceRepo {
+func NewResourceRepository(db *gorm.DB) domain.Repository {
 	return &ResourceRepository{
 		BaseRepository: mysql.NewBaseRepository[*ResourcePO](db),
 		mapper:         NewMapper(),
@@ -29,16 +28,16 @@ func NewResourceRepository(db *gorm.DB) drivenPort.ResourceRepo {
 }
 
 // Create 创建新资源
-func (r *ResourceRepository) Create(ctx context.Context, res *resource.Resource) error {
+func (r *ResourceRepository) Create(ctx context.Context, res *domain.Resource) error {
 	po := r.mapper.ToPO(res)
 
 	return r.BaseRepository.CreateAndSync(ctx, po, func(updated *ResourcePO) {
-		res.ID = resource.ResourceID(updated.ID)
+		res.ID = domain.ResourceID(updated.ID)
 	})
 }
 
 // Update 更新资源
-func (r *ResourceRepository) Update(ctx context.Context, res *resource.Resource) error {
+func (r *ResourceRepository) Update(ctx context.Context, res *domain.Resource) error {
 	po := r.mapper.ToPO(res)
 
 	return r.BaseRepository.UpdateAndSync(ctx, po, func(updated *ResourcePO) {
@@ -47,7 +46,7 @@ func (r *ResourceRepository) Update(ctx context.Context, res *resource.Resource)
 }
 
 // FindByID 根据ID查找资源
-func (r *ResourceRepository) FindByID(ctx context.Context, id resource.ResourceID) (*resource.Resource, error) {
+func (r *ResourceRepository) FindByID(ctx context.Context, id domain.ResourceID) (*domain.Resource, error) {
 	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find resource: %w", err)
@@ -62,7 +61,7 @@ func (r *ResourceRepository) FindByID(ctx context.Context, id resource.ResourceI
 }
 
 // FindByKey 根据资源键查找
-func (r *ResourceRepository) FindByKey(ctx context.Context, key string) (*resource.Resource, error) {
+func (r *ResourceRepository) FindByKey(ctx context.Context, key string) (*domain.Resource, error) {
 	var po ResourcePO
 
 	// `key` is a reserved word in MySQL; quote the column name to avoid syntax errors
@@ -79,7 +78,7 @@ func (r *ResourceRepository) FindByKey(ctx context.Context, key string) (*resour
 }
 
 // ListByApp 列出应用的资源
-func (r *ResourceRepository) ListByApp(ctx context.Context, appName string, offset, limit int) ([]*resource.Resource, int64, error) {
+func (r *ResourceRepository) ListByApp(ctx context.Context, appName string, offset, limit int) ([]*domain.Resource, int64, error) {
 	var pos []*ResourcePO
 	var total int64
 
@@ -106,7 +105,7 @@ func (r *ResourceRepository) ListByApp(ctx context.Context, appName string, offs
 }
 
 // ListByDomain 列出业务域的资源
-func (r *ResourceRepository) ListByDomain(ctx context.Context, domain string, offset, limit int) ([]*resource.Resource, int64, error) {
+func (r *ResourceRepository) ListByDomain(ctx context.Context, domain string, offset, limit int) ([]*domain.Resource, int64, error) {
 	var pos []*ResourcePO
 	var total int64
 
@@ -133,7 +132,7 @@ func (r *ResourceRepository) ListByDomain(ctx context.Context, domain string, of
 }
 
 // List 列出所有资源
-func (r *ResourceRepository) List(ctx context.Context, offset, limit int) ([]*resource.Resource, int64, error) {
+func (r *ResourceRepository) List(ctx context.Context, offset, limit int) ([]*domain.Resource, int64, error) {
 	var pos []*ResourcePO
 	var total int64
 
@@ -173,7 +172,7 @@ func (r *ResourceRepository) ValidateAction(ctx context.Context, resourceKey, ac
 }
 
 // Delete 删除资源（软删除）
-func (r *ResourceRepository) Delete(ctx context.Context, id resource.ResourceID) error {
+func (r *ResourceRepository) Delete(ctx context.Context, id domain.ResourceID) error {
 	err := r.BaseRepository.DeleteByID(ctx, id.Uint64())
 	if err != nil {
 		return fmt.Errorf("failed to delete resource: %w", err)

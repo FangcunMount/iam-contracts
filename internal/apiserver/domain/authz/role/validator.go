@@ -2,14 +2,12 @@
 //
 // 本包提供角色管理的领域服务，封装业务规则。
 // 领域服务是内部实现细节，不对外暴露，仅被应用服务编排使用。
-package service
+package role
 
 import (
 	"context"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -24,21 +22,21 @@ import (
 // - 不实现 driving 接口（那是应用服务的职责）
 // - 提供细粒度的业务规则方法
 // - 无状态，所有依赖通过构造函数注入
-type RoleManager struct {
-	roleRepo driven.RoleRepo
+type validator struct {
+	roleRepo Repository
 }
 
-// NewRoleManager 创建角色管理领域服务
-func NewRoleManager(roleRepo driven.RoleRepo) *RoleManager {
-	return &RoleManager{
+// NewValidator 创建角色验证器
+func NewValidator(roleRepo Repository) *validator {
+	return &validator{
 		roleRepo: roleRepo,
 	}
 }
 
-// CheckNameUniqueness 检查角色名称在租户内的唯一性
+// CheckNameUnique 检查角色名称在租户内的唯一性
 //
 // 业务规则：角色名称在同一租户内必须唯一
-func (m *RoleManager) CheckNameUniqueness(ctx context.Context, tenantID, name string) error {
+func (v *validator) CheckNameUnique(ctx context.Context, tenantID, name string) error {
 	if tenantID == "" {
 		return errors.WithCode(code.ErrInvalidArgument, "租户ID不能为空")
 	}
@@ -47,7 +45,7 @@ func (m *RoleManager) CheckNameUniqueness(ctx context.Context, tenantID, name st
 	}
 
 	// 查询是否已存在
-	existingRole, err := m.roleRepo.FindByName(ctx, tenantID, name)
+	existingRole, err := v.roleRepo.FindByName(ctx, tenantID, name)
 	if err != nil && !errors.IsCode(err, code.ErrRoleNotFound) {
 		return errors.Wrap(err, "检查角色名称唯一性失败")
 	}
@@ -59,13 +57,24 @@ func (m *RoleManager) CheckNameUniqueness(ctx context.Context, tenantID, name st
 	return nil
 }
 
+// ValidateCreateCommand 验证创建命令
+func (v *validator) ValidateCreateCommand(cmd CreateRoleCommand) error {
+	return v.ValidateCreateParameters(cmd.Name, cmd.DisplayName, cmd.TenantID)
+}
+
+// ValidateUpdateCommand 验证更新命令
+func (v *validator) ValidateUpdateCommand(cmd UpdateRoleCommand) error {
+	// 更新命令的验证逻辑可以根据需要扩展
+	return nil
+}
+
 // ValidateCreateParameters 验证创建角色的参数
 //
 // 业务规则：
 // - Name 不能为空
 // - DisplayName 不能为空
 // - TenantID 不能为空
-func (m *RoleManager) ValidateCreateParameters(name, displayName, tenantID string) error {
+func (v *validator) ValidateCreateParameters(name, displayName, tenantID string) error {
 	if name == "" {
 		return errors.WithCode(code.ErrInvalidArgument, "角色名称不能为空")
 	}
@@ -79,12 +88,12 @@ func (m *RoleManager) ValidateCreateParameters(name, displayName, tenantID strin
 }
 
 // CheckRoleExists 检查角色是否存在
-func (m *RoleManager) CheckRoleExists(ctx context.Context, roleID role.RoleID) (*role.Role, error) {
+func (v *validator) CheckRoleExists(ctx context.Context, roleID RoleID) (*Role, error) {
 	if roleID.Uint64() == 0 {
 		return nil, errors.WithCode(code.ErrInvalidArgument, "角色ID不能为空")
 	}
 
-	foundRole, err := m.roleRepo.FindByID(ctx, roleID)
+	foundRole, err := v.roleRepo.FindByID(ctx, roleID)
 	if err != nil {
 		if errors.IsCode(err, code.ErrRoleNotFound) {
 			return nil, errors.WithCode(code.ErrRoleNotFound, "角色 %d 不存在", roleID.Uint64())
@@ -98,7 +107,7 @@ func (m *RoleManager) CheckRoleExists(ctx context.Context, roleID role.RoleID) (
 // CheckTenantOwnership 检查角色是否属于指定租户
 //
 // 业务规则：租户隔离，只能操作自己租户的角色
-func (m *RoleManager) CheckTenantOwnership(roleEntity *role.Role, tenantID string) error {
+func (v *validator) CheckTenantOwnership(roleEntity *Role, tenantID string) error {
 	if roleEntity == nil {
 		return errors.WithCode(code.ErrInvalidArgument, "角色对象不能为空")
 	}

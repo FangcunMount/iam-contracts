@@ -5,8 +5,7 @@ import (
 	"strconv"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	domainRole "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role/port/driving"
+	roleDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/dto"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/gin-gonic/gin"
@@ -16,14 +15,14 @@ import (
 //
 // 依赖倒置原则：Handler 依赖 driving 接口，不依赖具体实现
 type RoleHandler struct {
-	commander driving.RoleCommander // 命令服务（写操作）
-	queryer   driving.RoleQueryer   // 查询服务（读操作）
+	commander roleDomain.Commander // 命令服务（写操作）
+	queryer   roleDomain.Queryer   // 查询服务（读操作）
 }
 
 // NewRoleHandler 创建角色处理器
 func NewRoleHandler(
-	commander driving.RoleCommander,
-	queryer driving.RoleQueryer,
+	commander roleDomain.Commander,
+	queryer roleDomain.Queryer,
 ) *RoleHandler {
 	return &RoleHandler{
 		commander: commander,
@@ -48,7 +47,7 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 
 	tenantID := getTenantID(c)
 
-	cmd := driving.CreateRoleCommand{
+	cmd := roleDomain.CreateRoleCommand{
 		Name:        req.Name,
 		DisplayName: req.DisplayName,
 		TenantID:    tenantID,
@@ -86,8 +85,8 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 		return
 	}
 
-	cmd := driving.UpdateRoleCommand{
-		ID:          domainRole.NewRoleID(roleID),
+	cmd := roleDomain.UpdateRoleCommand{
+		ID:          roleDomain.NewRoleID(roleID),
 		DisplayName: &req.DisplayName,
 		Description: &req.Description,
 	}
@@ -114,7 +113,7 @@ func (h *RoleHandler) DeleteRole(c *gin.Context) {
 		return
 	}
 
-	err = h.commander.DeleteRole(c.Request.Context(), domainRole.NewRoleID(roleID))
+	err = h.commander.DeleteRole(c.Request.Context(), roleDomain.NewRoleID(roleID))
 	if err != nil {
 		handleError(c, err)
 		return
@@ -137,7 +136,7 @@ func (h *RoleHandler) GetRole(c *gin.Context) {
 		return
 	}
 
-	foundRole, err := h.queryer.GetRoleByID(c.Request.Context(), domainRole.NewRoleID(roleID))
+	foundRole, err := h.queryer.GetRoleByID(c.Request.Context(), roleDomain.NewRoleID(roleID))
 	if err != nil {
 		handleError(c, err)
 		return
@@ -163,7 +162,7 @@ func (h *RoleHandler) ListRoles(c *gin.Context) {
 
 	tenantID := getTenantID(c)
 
-	listQuery := driving.ListRolesQuery{
+	listQuery := roleDomain.ListRolesQuery{
 		TenantID: tenantID,
 		Offset:   query.Offset,
 		Limit:    query.Limit,
@@ -184,7 +183,7 @@ func (h *RoleHandler) ListRoles(c *gin.Context) {
 }
 
 // toRoleResponse 转换为响应对象
-func (h *RoleHandler) toRoleResponse(r *domainRole.Role) dto.RoleResponse {
+func (h *RoleHandler) toRoleResponse(r *roleDomain.Role) dto.RoleResponse {
 	return dto.RoleResponse{
 		ID:          r.ID.Uint64(),
 		Name:        r.Name,

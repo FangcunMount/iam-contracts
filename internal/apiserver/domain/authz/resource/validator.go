@@ -2,14 +2,12 @@
 //
 // 本包提供资源管理的领域服务，封装业务规则。
 // 领域服务是内部实现细节，不对外暴露，仅被应用服务编排使用。
-package service
+package resource
 
 import (
 	"context"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -26,27 +24,27 @@ import (
 // - 无状态，所有依赖通过构造函数注入
 //
 // 注意：虽然是大写导出的，但在架构上只应该被应用层使用，不应该被接口层直接调用
-type ResourceManager struct {
-	resourceRepo driven.ResourceRepo
+type validator struct {
+	resourceRepo Repository
 }
 
-// NewResourceManager 创建资源管理领域服务
-func NewResourceManager(resourceRepo driven.ResourceRepo) *ResourceManager {
-	return &ResourceManager{
+// NewValidator 创建资源管理领域服务
+func NewValidator(resourceRepo Repository) *validator {
+	return &validator{
 		resourceRepo: resourceRepo,
 	}
 }
 
-// CheckKeyUniqueness 检查资源键的唯一性
+// CheckKeyUnique 检查资源键的唯一性
 //
 // 业务规则：资源键在全局范围内必须唯一
-func (m *ResourceManager) CheckKeyUniqueness(ctx context.Context, key string) error {
+func (v *validator) CheckKeyUnique(ctx context.Context, key string) error {
 	if key == "" {
 		return errors.WithCode(code.ErrInvalidArgument, "资源键不能为空")
 	}
 
 	// 查询是否已存在
-	existingResource, err := m.resourceRepo.FindByKey(ctx, key)
+	existingResource, err := v.resourceRepo.FindByKey(ctx, key)
 	if err != nil && !errors.IsCode(err, code.ErrResourceNotFound) {
 		return errors.Wrap(err, "检查资源键唯一性失败")
 	}
@@ -58,6 +56,19 @@ func (m *ResourceManager) CheckKeyUniqueness(ctx context.Context, key string) er
 	return nil
 }
 
+// ValidateCreateCommand 验证创建命令
+func (v *validator) ValidateCreateCommand(cmd CreateResourceCommand) error {
+	return v.ValidateCreateParameters(cmd.Key, cmd.DisplayName, cmd.AppName, cmd.Domain, cmd.Type, cmd.Actions)
+}
+
+// ValidateUpdateCommand 验证更新命令
+func (v *validator) ValidateUpdateCommand(cmd UpdateResourceCommand) error {
+	if cmd.Actions != nil {
+		return v.ValidateUpdateParameters(cmd.Actions)
+	}
+	return nil
+}
+
 // ValidateCreateParameters 验证创建资源的参数
 //
 // 业务规则：
@@ -65,7 +76,7 @@ func (m *ResourceManager) CheckKeyUniqueness(ctx context.Context, key string) er
 // - DisplayName 不能为空
 // - Actions 至少有一个
 // - AppName、Domain、Type 都不能为空
-func (m *ResourceManager) ValidateCreateParameters(key string, displayName string, appName string, domain string, resourceType string, actions []string) error {
+func (v *validator) ValidateCreateParameters(key string, displayName string, appName string, domain string, resourceType string, actions []string) error {
 	if key == "" {
 		return errors.WithCode(code.ErrInvalidArgument, "资源键不能为空")
 	}
@@ -91,7 +102,7 @@ func (m *ResourceManager) ValidateCreateParameters(key string, displayName strin
 //
 // 业务规则：
 // - 如果更新 Actions，至少要保留一个
-func (m *ResourceManager) ValidateUpdateParameters(actions []string) error {
+func (v *validator) ValidateUpdateParameters(actions []string) error {
 	if actions != nil && len(actions) == 0 {
 		return errors.WithCode(code.ErrInvalidArgument, "动作列表不能为空")
 	}
@@ -99,12 +110,12 @@ func (m *ResourceManager) ValidateUpdateParameters(actions []string) error {
 }
 
 // CheckResourceExists 检查资源是否存在
-func (m *ResourceManager) CheckResourceExists(ctx context.Context, resourceID resource.ResourceID) (*resource.Resource, error) {
+func (v *validator) CheckResourceExists(ctx context.Context, resourceID ResourceID) (*Resource, error) {
 	if resourceID.Uint64() == 0 {
 		return nil, errors.WithCode(code.ErrInvalidArgument, "资源ID不能为空")
 	}
 
-	foundResource, err := m.resourceRepo.FindByID(ctx, resourceID)
+	foundResource, err := v.resourceRepo.FindByID(ctx, resourceID)
 	if err != nil {
 		if errors.IsCode(err, code.ErrResourceNotFound) {
 			return nil, errors.WithCode(code.ErrResourceNotFound, "资源 %d 不存在", resourceID.Uint64())

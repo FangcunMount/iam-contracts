@@ -5,7 +5,6 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
-	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"gorm.io/gorm"
 )
@@ -17,10 +16,10 @@ type RoleRepository struct {
 	db     *gorm.DB
 }
 
-var _ drivenPort.RoleRepo = (*RoleRepository)(nil)
+var _ domain.Repository = (*RoleRepository)(nil)
 
 // NewRoleRepository 构造函数
-func NewRoleRepository(db *gorm.DB) drivenPort.RoleRepo {
+func NewRoleRepository(db *gorm.DB) domain.Repository {
 	return &RoleRepository{
 		BaseRepository: mysql.NewBaseRepository[*RolePO](db),
 		mapper:         NewMapper(),

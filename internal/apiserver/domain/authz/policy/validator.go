@@ -1,41 +1,41 @@
-// Package service 策略领域服务
-package service
+// Package policy 策略领域包
+package policy
 
 import (
 	"context"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
-	resourceDriven "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
-	roleDriven "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
-// PolicyManager 策略管理器（领域服务）
+// manager 策略管理器（领域服务实现）
 // 封装策略相关的业务规则，包括：
 // 1. 策略参数验证
 // 2. 角色和资源的存在性检查
 // 3. 租户隔离检查
 // 4. Action 合法性验证
-type PolicyManager struct {
-	roleRepo     roleDriven.RoleRepo
-	resourceRepo resourceDriven.ResourceRepo
+type validator struct {
+	roleRepo     role.Repository
+	resourceRepo resource.Repository
 }
 
-// NewPolicyManager 创建策略管理器
-func NewPolicyManager(
-	roleRepo roleDriven.RoleRepo,
-	resourceRepo resourceDriven.ResourceRepo,
-) *PolicyManager {
-	return &PolicyManager{
+var _ Validator = (*validator)(nil)
+
+// NewManager 创建策略管理器
+func NewValidator(
+	roleRepo role.Repository,
+	resourceRepo resource.Repository,
+) Validator {
+	return &validator{
 		roleRepo:     roleRepo,
 		resourceRepo: resourceRepo,
 	}
 }
 
 // ValidateAddPolicyParameters 验证添加策略参数
-func (m *PolicyManager) ValidateAddPolicyParameters(
+func (v *validator) ValidateAddPolicyParameters(
 	roleID uint64,
 	resourceID resource.ResourceID,
 	action string,
@@ -61,7 +61,7 @@ func (m *PolicyManager) ValidateAddPolicyParameters(
 }
 
 // ValidateRemovePolicyParameters 验证移除策略参数
-func (m *PolicyManager) ValidateRemovePolicyParameters(
+func (v *validator) ValidateRemovePolicyParameters(
 	roleID uint64,
 	resourceID resource.ResourceID,
 	action string,
@@ -69,61 +69,61 @@ func (m *PolicyManager) ValidateRemovePolicyParameters(
 	changedBy string,
 ) error {
 	// 移除策略的参数验证与添加策略相同
-	return m.ValidateAddPolicyParameters(roleID, resourceID, action, tenantID, changedBy)
+	return v.ValidateAddPolicyParameters(roleID, resourceID, action, tenantID, changedBy)
 }
 
 // CheckRoleExistsAndTenant 检查角色是否存在并验证租户隔离
-// 返回角色实体用于后续操作
-func (m *PolicyManager) CheckRoleExistsAndTenant(
+// 返回角色Key用于后续操作
+func (v *validator) CheckRoleExistsAndTenant(
 	ctx context.Context,
 	roleID uint64,
 	tenantID string,
-) (*role.Role, error) {
-	roleExists, err := m.roleRepo.FindByID(ctx, role.NewRoleID(roleID))
+) (string, error) {
+	roleExists, err := v.roleRepo.FindByID(ctx, role.NewRoleID(roleID))
 	if err != nil {
 		if errors.IsCode(err, code.ErrRoleNotFound) {
-			return nil, errors.WithCode(code.ErrRoleNotFound, "角色 %d 不存在", roleID)
+			return "", errors.WithCode(code.ErrRoleNotFound, "角色 %d 不存在", roleID)
 		}
-		return nil, errors.Wrap(err, "获取角色失败")
+		return "", errors.Wrap(err, "获取角色失败")
 	}
 
 	// 检查租户隔离
 	if roleExists.TenantID != tenantID {
-		return nil, errors.WithCode(code.ErrPermissionDenied, "无权操作其他租户的角色")
+		return "", errors.WithCode(code.ErrPermissionDenied, "无权操作其他租户的角色")
 	}
 
-	return roleExists, nil
+	return roleExists.Key(), nil
 }
 
 // CheckResourceExistsAndValidateAction 检查资源是否存在并验证 Action 合法性
-// 返回资源实体用于后续操作
-func (m *PolicyManager) CheckResourceExistsAndValidateAction(
+// 返回资源Key用于后续操作
+func (v *validator) CheckResourceExistsAndValidateAction(
 	ctx context.Context,
 	resourceID resource.ResourceID,
 	action string,
-) (*resource.Resource, error) {
-	resourceExists, err := m.resourceRepo.FindByID(ctx, resourceID)
+) (string, error) {
+	resourceExists, err := v.resourceRepo.FindByID(ctx, resourceID)
 	if err != nil {
 		if errors.IsCode(err, code.ErrResourceNotFound) {
-			return nil, errors.WithCode(code.ErrResourceNotFound, "资源 %d 不存在", resourceID.Uint64())
+			return "", errors.WithCode(code.ErrResourceNotFound, "资源 %d 不存在", resourceID.Uint64())
 		}
-		return nil, errors.Wrap(err, "获取资源失败")
+		return "", errors.Wrap(err, "获取资源失败")
 	}
 
 	// 验证 Action 是否合法
-	valid, err := m.resourceRepo.ValidateAction(ctx, resourceExists.Key, action)
+	valid, err := v.resourceRepo.ValidateAction(ctx, resourceExists.Key, action)
 	if err != nil {
-		return nil, errors.Wrap(err, "验证 Action 失败")
+		return "", errors.Wrap(err, "验证 Action 失败")
 	}
 	if !valid {
-		return nil, errors.WithCode(code.ErrInvalidAction, "Action %s 不被资源 %s 支持", action, resourceExists.Key)
+		return "", errors.WithCode(code.ErrInvalidAction, "Action %s 不被资源 %s 支持", action, resourceExists.Key)
 	}
 
-	return resourceExists, nil
+	return resourceExists.Key, nil
 }
 
 // ValidateGetPoliciesQuery 验证获取策略查询参数
-func (m *PolicyManager) ValidateGetPoliciesQuery(roleID uint64, tenantID string) error {
+func (v *validator) ValidateGetPoliciesQuery(roleID uint64, tenantID string) error {
 	if roleID == 0 {
 		return errors.WithCode(code.ErrInvalidArgument, "角色ID不能为空")
 	}
@@ -134,7 +134,7 @@ func (m *PolicyManager) ValidateGetPoliciesQuery(roleID uint64, tenantID string)
 }
 
 // ValidateGetVersionQuery 验证获取版本查询参数
-func (m *PolicyManager) ValidateGetVersionQuery(tenantID string) error {
+func (v *validator) ValidateGetVersionQuery(tenantID string) error {
 	if tenantID == "" {
 		return errors.WithCode(code.ErrInvalidArgument, "租户ID不能为空")
 	}

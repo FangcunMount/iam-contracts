@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
-	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy/port/driven"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"gorm.io/gorm"
 )
@@ -17,10 +16,10 @@ type PolicyVersionRepository struct {
 	db     *gorm.DB
 }
 
-var _ drivenPort.PolicyVersionRepo = (*PolicyVersionRepository)(nil)
+var _ domain.Repository = (*PolicyVersionRepository)(nil)
 
 // NewPolicyVersionRepository 创建 PolicyVersion 仓储
-func NewPolicyVersionRepository(db *gorm.DB) drivenPort.PolicyVersionRepo {
+func NewPolicyVersionRepository(db *gorm.DB) domain.Repository {
 	return &PolicyVersionRepository{
 		BaseRepository: mysql.NewBaseRepository[*PolicyVersionPO](db),
 		mapper:         NewMapper(),
@@ -29,16 +28,16 @@ func NewPolicyVersionRepository(db *gorm.DB) drivenPort.PolicyVersionRepo {
 }
 
 // Create 创建新版本
-func (r *PolicyVersionRepository) Create(ctx context.Context, pv *policy.PolicyVersion) error {
+func (r *PolicyVersionRepository) Create(ctx context.Context, pv *domain.PolicyVersion) error {
 	po := r.mapper.ToPO(pv)
 
 	return r.BaseRepository.CreateAndSync(ctx, po, func(updated *PolicyVersionPO) {
-		pv.ID = policy.PolicyVersionID(updated.ID)
+		pv.ID = domain.PolicyVersionID(updated.ID)
 	})
 }
 
 // FindByID 根据ID查找版本
-func (r *PolicyVersionRepository) FindByID(ctx context.Context, id policy.PolicyVersionID) (*policy.PolicyVersion, error) {
+func (r *PolicyVersionRepository) FindByID(ctx context.Context, id domain.PolicyVersionID) (*domain.PolicyVersion, error) {
 	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find policy version: %w", err)
@@ -53,7 +52,7 @@ func (r *PolicyVersionRepository) FindByID(ctx context.Context, id policy.Policy
 }
 
 // GetCurrent 获取租户当前版本
-func (r *PolicyVersionRepository) GetCurrent(ctx context.Context, tenantID string) (*policy.PolicyVersion, error) {
+func (r *PolicyVersionRepository) GetCurrent(ctx context.Context, tenantID string) (*domain.PolicyVersion, error) {
 	var po PolicyVersionPO
 
 	err := r.db.WithContext(ctx).
@@ -73,7 +72,7 @@ func (r *PolicyVersionRepository) GetCurrent(ctx context.Context, tenantID strin
 }
 
 // GetOrCreate 获取或创建租户的策略版本
-func (r *PolicyVersionRepository) GetOrCreate(ctx context.Context, tenantID string) (*policy.PolicyVersion, error) {
+func (r *PolicyVersionRepository) GetOrCreate(ctx context.Context, tenantID string) (*domain.PolicyVersion, error) {
 	// 先尝试获取当前版本
 	current, err := r.GetCurrent(ctx, tenantID)
 	if err != nil {
@@ -86,11 +85,11 @@ func (r *PolicyVersionRepository) GetOrCreate(ctx context.Context, tenantID stri
 	}
 
 	// 不存在则创建初始版本
-	newVersion := policy.NewPolicyVersion(
+	newVersion := domain.NewPolicyVersion(
 		tenantID,
 		1, // 初始版本号为 1
-		policy.WithChangedBy("system"),
-		policy.WithReason("初始化策略版本"),
+		domain.WithChangedBy("system"),
+		domain.WithReason("初始化策略版本"),
 	)
 
 	if err := r.Create(ctx, &newVersion); err != nil {
@@ -101,7 +100,7 @@ func (r *PolicyVersionRepository) GetOrCreate(ctx context.Context, tenantID stri
 }
 
 // Increment 递增版本号并记录变更
-func (r *PolicyVersionRepository) Increment(ctx context.Context, tenantID, changedBy, reason string) (*policy.PolicyVersion, error) {
+func (r *PolicyVersionRepository) Increment(ctx context.Context, tenantID, changedBy, reason string) (*domain.PolicyVersion, error) {
 	// 获取当前版本号
 	currentVersion, err := r.GetVersionNumber(ctx, tenantID)
 	if err != nil {
@@ -109,11 +108,11 @@ func (r *PolicyVersionRepository) Increment(ctx context.Context, tenantID, chang
 	}
 
 	// 创建新版本
-	newVersion := policy.NewPolicyVersion(
+	newVersion := domain.NewPolicyVersion(
 		tenantID,
 		currentVersion+1,
-		policy.WithChangedBy(changedBy),
-		policy.WithReason(reason),
+		domain.WithChangedBy(changedBy),
+		domain.WithReason(reason),
 	)
 
 	if err := r.Create(ctx, &newVersion); err != nil {
@@ -138,7 +137,7 @@ func (r *PolicyVersionRepository) GetVersionNumber(ctx context.Context, tenantID
 }
 
 // ListByTenant 列出租户的版本历史
-func (r *PolicyVersionRepository) ListByTenant(ctx context.Context, tenantID string, offset, limit int) ([]*policy.PolicyVersion, int64, error) {
+func (r *PolicyVersionRepository) ListByTenant(ctx context.Context, tenantID string, offset, limit int) ([]*domain.PolicyVersion, int64, error) {
 	var pos []*PolicyVersionPO
 	var total int64
 
@@ -165,7 +164,7 @@ func (r *PolicyVersionRepository) ListByTenant(ctx context.Context, tenantID str
 }
 
 // Delete 删除版本（软删除）
-func (r *PolicyVersionRepository) Delete(ctx context.Context, id policy.PolicyVersionID) error {
+func (r *PolicyVersionRepository) Delete(ctx context.Context, id domain.PolicyVersionID) error {
 	err := r.BaseRepository.DeleteByID(ctx, id.Uint64())
 	if err != nil {
 		return fmt.Errorf("failed to delete policy version: %w", err)

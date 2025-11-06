@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy/port/driven"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -19,7 +19,7 @@ type VersionNotifier struct {
 	closed  bool
 }
 
-var _ drivenPort.VersionNotifier = (*VersionNotifier)(nil)
+var _ domain.VersionNotifier = (*VersionNotifier)(nil)
 
 // VersionChangeMessage 版本变更消息
 type VersionChangeMessage struct {
@@ -28,7 +28,7 @@ type VersionChangeMessage struct {
 }
 
 // NewVersionNotifier 创建版本通知器
-func NewVersionNotifier(client *redis.Client, channel string) drivenPort.VersionNotifier {
+func NewVersionNotifier(client *redis.Client, channel string) domain.VersionNotifier {
 	if channel == "" {
 		channel = "authz:policy_changed"
 	}
@@ -68,7 +68,7 @@ func (n *VersionNotifier) Publish(ctx context.Context, tenantID string, version 
 }
 
 // Subscribe 订阅策略版本变更通知
-func (n *VersionNotifier) Subscribe(ctx context.Context, handler drivenPort.VersionChangeHandler) error {
+func (n *VersionNotifier) Subscribe(ctx context.Context, handler domain.VersionChangeHandler) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
@@ -98,7 +98,7 @@ func (n *VersionNotifier) Subscribe(ctx context.Context, handler drivenPort.Vers
 }
 
 // handleMessages 处理接收到的消息
-func (n *VersionNotifier) handleMessages(handler drivenPort.VersionChangeHandler) {
+func (n *VersionNotifier) handleMessages(handler domain.VersionChangeHandler) {
 	ch := n.pubsub.Channel()
 
 	for msg := range ch {

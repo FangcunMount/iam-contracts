@@ -11,10 +11,10 @@ import (
 	policyApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/policy"
 	resourceApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/resource"
 	roleApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/role"
-	assignmentService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment/service"
-	policyService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy/service"
-	resourceService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource/service"
-	roleService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role/service"
+	assignmentDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
+	policyDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
+	resourceDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
+	roleDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
 	casbinInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/casbin"
 	assignmentInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/assignment"
 	policyInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/policy"
@@ -69,13 +69,13 @@ func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *goredis.Client) error
 
 	// 4. 初始化领域服务
 	// Resource 模块
-	resourceManager := resourceService.NewResourceManager(resourceRepository)
+	resourceManager := resourceDomain.NewValidator(resourceRepository)
 	// Role 模块
-	roleManager := roleService.NewRoleManager(roleRepository)
+	roleManager := roleDomain.NewValidator(roleRepository)
 	// Policy 模块
-	policyManager := policyService.NewPolicyManager(roleRepository, resourceRepository)
+	policyManager := policyDomain.NewValidator(roleRepository, resourceRepository)
 	// Assignment 模块
-	assignmentManager := assignmentService.NewAssignmentManager(assignmentRepository, roleRepository)
+	assignmentManager := assignmentDomain.NewValidator(assignmentRepository, roleRepository)
 
 	// 5. 初始化应用服务 - CQRS 分离
 	// Resource 模块
@@ -85,10 +85,10 @@ func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *goredis.Client) error
 	roleCommander := roleApp.NewRoleCommandService(roleManager, roleRepository)
 	roleQueryer := roleApp.NewRoleQueryService(roleRepository)
 	// Policy 模块
-	policyCommander := policyApp.NewPolicyCommandService(policyManager, policyVersionRepository, casbinAdapter, versionNotifier)
-	policyQueryer := policyApp.NewPolicyQueryService(policyManager, policyVersionRepository, casbinAdapter)
+	policyCommander := policyApp.NewPolicyCommandService(policyManager, policyVersionRepository, casbinAdapter, versionNotifier, roleRepository, resourceRepository)
+	policyQueryer := policyApp.NewPolicyQueryService(policyVersionRepository, casbinAdapter, roleRepository)
 	// Assignment 模块
-	assignmentCommander := assignmentApp.NewAssignmentCommandService(assignmentManager, assignmentRepository, casbinAdapter)
+	assignmentCommander := assignmentApp.NewAssignmentCommandService(assignmentManager, assignmentRepository, roleRepository, casbinAdapter)
 	assignmentQueryer := assignmentApp.NewAssignmentQueryService(assignmentManager, assignmentRepository)
 
 	// 6. 初始化 HTTP 处理器 - 依赖 driving 接口（CQRS）

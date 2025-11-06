@@ -10,11 +10,8 @@ import (
 	assignmentApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/assignment"
 	resourceApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/resource"
 	assignmentDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
-	assignmentDriving "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment/port/driving"
-	assignmentService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment/service"
 	policyDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
-	resourceDriving "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource/port/driving"
-	resourceService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource/service"
+	resourceDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/casbin"
 	assignmentMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/assignment"
 	resourceMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/resource"
@@ -128,7 +125,7 @@ func seedAuthzResources(ctx context.Context, deps *dependencies, state *seedCont
 	}
 
 	resourceRepo := resourceMysql.NewResourceRepository(deps.DB)
-	resourceManager := resourceService.NewResourceManager(resourceRepo)
+	resourceManager := resourceDomain.NewValidator(resourceRepo)
 	resourceCommander := resourceApp.NewResourceCommandService(resourceManager, resourceRepo)
 	resourceQueryer := resourceApp.NewResourceQueryService(resourceRepo)
 
@@ -140,7 +137,7 @@ func seedAuthzResources(ctx context.Context, deps *dependencies, state *seedCont
 		}
 
 		// 创建新资源
-		created, err := resourceCommander.CreateResource(ctx, resourceDriving.CreateResourceCommand{
+		created, err := resourceCommander.CreateResource(ctx, resourceDomain.CreateResourceCommand{
 			Key:         rc.Key,
 			DisplayName: rc.DisplayName,
 			AppName:     rc.AppName,
@@ -189,8 +186,8 @@ func seedRoleAssignments(ctx context.Context, deps *dependencies, state *seedCon
 
 	roleRepo := roleMysql.NewRoleRepository(deps.DB)
 	assignmentRepo := assignmentMysql.NewAssignmentRepository(deps.DB)
-	assignmentManager := assignmentService.NewAssignmentManager(assignmentRepo, roleRepo)
-	assignmentCommander := assignmentApp.NewAssignmentCommandService(assignmentManager, assignmentRepo, casbinPort)
+	assignmentManager := assignmentDomain.NewValidator(assignmentRepo, roleRepo)
+	assignmentCommander := assignmentApp.NewAssignmentCommandService(assignmentManager, assignmentRepo, roleRepo, casbinPort)
 
 	for _, ac := range config.Assignments {
 		// 解析 subject_id: 如果以数字开头,直接使用;否则从 state.Users 查找别名
@@ -201,7 +198,7 @@ func seedRoleAssignments(ctx context.Context, deps *dependencies, state *seedCon
 		}
 		// 否则直接使用配置中的 ID (兼容直接配置ID的情况)
 
-		cmd := assignmentDriving.GrantCommand{
+		cmd := assignmentDomain.GrantCommand{
 			SubjectType: assignmentDomain.SubjectTypeUser,
 			SubjectID:   subjectID,
 			RoleID:      ac.RoleID,

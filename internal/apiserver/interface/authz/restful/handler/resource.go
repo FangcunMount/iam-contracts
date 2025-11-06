@@ -5,8 +5,7 @@ import (
 	"strconv"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	domainResource "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource/port/driving"
+	resourceDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/dto"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/gin-gonic/gin"
@@ -16,14 +15,14 @@ import (
 //
 // 依赖倒置原则：Handler 依赖 driving 接口，不依赖具体实现
 type ResourceHandler struct {
-	commander driving.ResourceCommander // 命令服务（写操作）
-	queryer   driving.ResourceQueryer   // 查询服务（读操作）
+	commander resourceDomain.Commander // 命令服务（写操作）
+	queryer   resourceDomain.Queryer   // 查询服务（读操作）
 }
 
 // NewResourceHandler 创建资源处理器
 func NewResourceHandler(
-	commander driving.ResourceCommander,
-	queryer driving.ResourceQueryer,
+	commander resourceDomain.Commander,
+	queryer resourceDomain.Queryer,
 ) *ResourceHandler {
 	return &ResourceHandler{
 		commander: commander,
@@ -46,7 +45,7 @@ func (h *ResourceHandler) CreateResource(c *gin.Context) {
 		return
 	}
 
-	cmd := driving.CreateResourceCommand{
+	cmd := resourceDomain.CreateResourceCommand{
 		Key:         req.Key,
 		DisplayName: req.DisplayName,
 		AppName:     req.AppName,
@@ -87,8 +86,8 @@ func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 		return
 	}
 
-	cmd := driving.UpdateResourceCommand{
-		ID:          domainResource.NewResourceID(resourceID),
+	cmd := resourceDomain.UpdateResourceCommand{
+		ID:          resourceDomain.NewResourceID(resourceID),
 		DisplayName: &req.DisplayName,
 		Actions:     req.Actions,
 		Description: &req.Description,
@@ -116,7 +115,7 @@ func (h *ResourceHandler) DeleteResource(c *gin.Context) {
 		return
 	}
 
-	err = h.commander.DeleteResource(c.Request.Context(), domainResource.NewResourceID(resourceID))
+	err = h.commander.DeleteResource(c.Request.Context(), resourceDomain.NewResourceID(resourceID))
 	if err != nil {
 		handleError(c, err)
 		return
@@ -139,7 +138,7 @@ func (h *ResourceHandler) GetResource(c *gin.Context) {
 		return
 	}
 
-	foundResource, err := h.queryer.GetResourceByID(c.Request.Context(), domainResource.NewResourceID(resourceID))
+	foundResource, err := h.queryer.GetResourceByID(c.Request.Context(), resourceDomain.NewResourceID(resourceID))
 	if err != nil {
 		handleError(c, err)
 		return
@@ -182,7 +181,7 @@ func (h *ResourceHandler) ListResources(c *gin.Context) {
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 
-	query := driving.ListResourcesQuery{
+	query := resourceDomain.ListResourcesQuery{
 		Offset: offset,
 		Limit:  limit,
 	}
@@ -228,7 +227,7 @@ func (h *ResourceHandler) ValidateAction(c *gin.Context) {
 }
 
 // toResourceResponse 转换为响应对象
-func (h *ResourceHandler) toResourceResponse(r *domainResource.Resource) dto.ResourceResponse {
+func (h *ResourceHandler) toResourceResponse(r *resourceDomain.Resource) dto.ResourceResponse {
 	return dto.ResourceResponse{
 		ID:          r.ID.Uint64(),
 		Key:         r.Key,

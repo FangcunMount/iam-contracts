@@ -5,8 +5,7 @@ import (
 	"strconv"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	domainAssignment "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment/port/driving"
+	assignmentDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/dto"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/gin-gonic/gin"
@@ -14,12 +13,12 @@ import (
 
 // AssignmentHandler 角色分配处理器
 type AssignmentHandler struct {
-	commander driving.AssignmentCommander
-	queryer   driving.AssignmentQueryer
+	commander assignmentDomain.Commander
+	queryer   assignmentDomain.Queryer
 }
 
 // NewAssignmentHandler 创建角色分配处理器
-func NewAssignmentHandler(commander driving.AssignmentCommander, queryer driving.AssignmentQueryer) *AssignmentHandler {
+func NewAssignmentHandler(commander assignmentDomain.Commander, queryer assignmentDomain.Queryer) *AssignmentHandler {
 	return &AssignmentHandler{
 		commander: commander,
 		queryer:   queryer,
@@ -27,12 +26,12 @@ func NewAssignmentHandler(commander driving.AssignmentCommander, queryer driving
 }
 
 // convertToSubjectType 将字符串转换为 SubjectType
-func convertToSubjectType(s string) (domainAssignment.SubjectType, error) {
+func convertToSubjectType(s string) (assignmentDomain.SubjectType, error) {
 	switch s {
 	case "user":
-		return domainAssignment.SubjectTypeUser, nil
+		return assignmentDomain.SubjectTypeUser, nil
 	case "group":
-		return domainAssignment.SubjectTypeGroup, nil
+		return assignmentDomain.SubjectTypeGroup, nil
 	default:
 		return "", errors.WithCode(code.ErrInvalidArgument, "无效的主体类型: %s", s)
 	}
@@ -62,7 +61,7 @@ func (h *AssignmentHandler) GrantRole(c *gin.Context) {
 		return
 	}
 
-	cmd := driving.GrantCommand{
+	cmd := assignmentDomain.GrantCommand{
 		SubjectType: subjectType,
 		SubjectID:   req.SubjectID,
 		RoleID:      req.RoleID,
@@ -102,7 +101,7 @@ func (h *AssignmentHandler) RevokeRole(c *gin.Context) {
 		return
 	}
 
-	cmd := driving.RevokeCommand{
+	cmd := assignmentDomain.RevokeCommand{
 		SubjectType: subjectType,
 		SubjectID:   req.SubjectID,
 		RoleID:      req.RoleID,
@@ -133,8 +132,8 @@ func (h *AssignmentHandler) RevokeRoleByID(c *gin.Context) {
 
 	tenantID := getTenantID(c)
 
-	cmd := driving.RevokeByIDCommand{
-		AssignmentID: domainAssignment.NewAssignmentID(assignmentID),
+	cmd := assignmentDomain.RevokeByIDCommand{
+		AssignmentID: assignmentDomain.NewAssignmentID(assignmentID),
 		TenantID:     tenantID,
 	}
 
@@ -172,7 +171,7 @@ func (h *AssignmentHandler) ListAssignmentsBySubject(c *gin.Context) {
 		return
 	}
 
-	query := driving.ListBySubjectQuery{
+	query := assignmentDomain.ListBySubjectQuery{
 		SubjectType: subjectType,
 		SubjectID:   subjectID,
 		TenantID:    tenantID,
@@ -208,7 +207,7 @@ func (h *AssignmentHandler) ListAssignmentsByRole(c *gin.Context) {
 
 	tenantID := getTenantID(c)
 
-	query := driving.ListByRoleQuery{
+	query := assignmentDomain.ListByRoleQuery{
 		RoleID:   roleID,
 		TenantID: tenantID,
 	}
@@ -228,7 +227,7 @@ func (h *AssignmentHandler) ListAssignmentsByRole(c *gin.Context) {
 }
 
 // toAssignmentResponse 转换为响应对象
-func (h *AssignmentHandler) toAssignmentResponse(a *domainAssignment.Assignment) dto.AssignmentResponse {
+func (h *AssignmentHandler) toAssignmentResponse(a *assignmentDomain.Assignment) dto.AssignmentResponse {
 	return dto.AssignmentResponse{
 		ID:          a.ID.Uint64(),
 		SubjectType: a.SubjectType.String(),

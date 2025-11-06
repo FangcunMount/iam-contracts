@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy/port/driving"
+	policyDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/dto"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
@@ -14,12 +14,12 @@ import (
 
 // PolicyHandler 策略处理器
 type PolicyHandler struct {
-	commander driving.PolicyCommander
-	queryer   driving.PolicyQueryer
+	commander policyDomain.Commander
+	queryer   policyDomain.Queryer
 }
 
 // NewPolicyHandler 创建策略处理器
-func NewPolicyHandler(commander driving.PolicyCommander, queryer driving.PolicyQueryer) *PolicyHandler {
+func NewPolicyHandler(commander policyDomain.Commander, queryer policyDomain.Queryer) *PolicyHandler {
 	return &PolicyHandler{
 		commander: commander,
 		queryer:   queryer,
@@ -44,7 +44,7 @@ func (h *PolicyHandler) AddPolicyRule(c *gin.Context) {
 	tenantID := getTenantID(c)
 	changedBy := getUserID(c)
 
-	cmd := driving.AddPolicyRuleCommand{
+	cmd := policyDomain.AddPolicyRuleCommand{
 		RoleID:     req.RoleID,
 		ResourceID: resource.NewResourceID(req.ResourceID),
 		Action:     req.Action,
@@ -80,7 +80,7 @@ func (h *PolicyHandler) RemovePolicyRule(c *gin.Context) {
 	tenantID := getTenantID(c)
 	changedBy := getUserID(c)
 
-	cmd := driving.RemovePolicyRuleCommand{
+	cmd := policyDomain.RemovePolicyRuleCommand{
 		RoleID:     req.RoleID,
 		ResourceID: resource.NewResourceID(req.ResourceID),
 		Action:     req.Action,
@@ -114,7 +114,7 @@ func (h *PolicyHandler) GetPoliciesByRole(c *gin.Context) {
 
 	tenantID := getTenantID(c)
 
-	query := driving.GetPoliciesByRoleQuery{
+	query := policyDomain.GetPoliciesByRoleQuery{
 		RoleID:   roleID,
 		TenantID: tenantID,
 	}
@@ -147,7 +147,7 @@ func (h *PolicyHandler) GetPoliciesByRole(c *gin.Context) {
 func (h *PolicyHandler) GetCurrentVersion(c *gin.Context) {
 	tenantID := getTenantID(c)
 
-	query := driving.GetCurrentVersionQuery{
+	query := policyDomain.GetCurrentVersionQuery{
 		TenantID: tenantID,
 	}
 

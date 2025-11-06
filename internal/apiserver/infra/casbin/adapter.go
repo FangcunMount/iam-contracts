@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
-	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy/port/driven"
 	"github.com/casbin/casbin/v2"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"gorm.io/gorm"
@@ -17,10 +16,10 @@ type CasbinAdapter struct {
 	mu       sync.RWMutex
 }
 
-var _ drivenPort.CasbinPort = (*CasbinAdapter)(nil)
+var _ domain.CasbinAdapter = (*CasbinAdapter)(nil)
 
 // NewCasbinAdapter 创建 Casbin 适配器
-func NewCasbinAdapter(db *gorm.DB, modelPath string) (drivenPort.CasbinPort, error) {
+func NewCasbinAdapter(db *gorm.DB, modelPath string) (domain.CasbinAdapter, error) {
 	adapter, err := gormadapter.NewAdapterByDB(db)
 	if err != nil {
 		return nil, err

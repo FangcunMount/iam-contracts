@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
-	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment/port/driven"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"gorm.io/gorm"
 )
@@ -17,10 +16,10 @@ type AssignmentRepository struct {
 	db     *gorm.DB
 }
 
-var _ drivenPort.AssignmentRepo = (*AssignmentRepository)(nil)
+var _ domain.Repository = (*AssignmentRepository)(nil)
 
 // NewAssignmentRepository 创建 Assignment 仓储
-func NewAssignmentRepository(db *gorm.DB) drivenPort.AssignmentRepo {
+func NewAssignmentRepository(db *gorm.DB) domain.Repository {
 	return &AssignmentRepository{
 		BaseRepository: mysql.NewBaseRepository[*AssignmentPO](db),
 		mapper:         NewMapper(),
@@ -29,19 +28,19 @@ func NewAssignmentRepository(db *gorm.DB) drivenPort.AssignmentRepo {
 }
 
 // Create 创建新分配
-func (r *AssignmentRepository) Create(ctx context.Context, a *assignment.Assignment) error {
+func (r *AssignmentRepository) Create(ctx context.Context, a *domain.Assignment) error {
 	po := r.mapper.ToPO(a)
 
 	return r.BaseRepository.CreateAndSync(ctx, po, func(updated *AssignmentPO) {
-		a.ID = assignment.AssignmentID(updated.ID)
+		a.ID = domain.AssignmentID(updated.ID)
 	})
 }
 
 // FindByID 根据ID查找分配
-func (r *AssignmentRepository) FindByID(ctx context.Context, id assignment.AssignmentID) (*assignment.Assignment, error) {
+func (r *AssignmentRepository) FindByID(ctx context.Context, id domain.AssignmentID) (*domain.Assignment, error) {
 	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
 	if err != nil {
-		return nil, fmt.Errorf("failed to find assignment: %w", err)
+		return nil, fmt.Errorf("failed to find domain: %w", err)
 	}
 
 	bo := r.mapper.ToBO(po)
@@ -53,13 +52,13 @@ func (r *AssignmentRepository) FindByID(ctx context.Context, id assignment.Assig
 }
 
 // ListBySubject 根据主体列出赋权
-func (r *AssignmentRepository) ListBySubject(ctx context.Context, subjectType assignment.SubjectType, subjectID, tenantID string) ([]*assignment.Assignment, error) {
+func (r *AssignmentRepository) ListBySubject(ctx context.Context, subjectType domain.SubjectType, subjectID, tenantID string) ([]*domain.Assignment, error) {
 	var pos []*AssignmentPO
 
 	err := r.db.WithContext(ctx).Where("tenant_id = ? AND subject_type = ? AND subject_id = ?", tenantID, string(subjectType), subjectID).
 		Find(&pos).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to list assignments by subject: %w", err)
+		return nil, fmt.Errorf("failed to list domains by subject: %w", err)
 	}
 
 	bos := r.mapper.ToBOList(pos)
@@ -68,13 +67,13 @@ func (r *AssignmentRepository) ListBySubject(ctx context.Context, subjectType as
 }
 
 // ListByRole 根据角色列出赋权
-func (r *AssignmentRepository) ListByRole(ctx context.Context, roleID uint64, tenantID string) ([]*assignment.Assignment, error) {
+func (r *AssignmentRepository) ListByRole(ctx context.Context, roleID uint64, tenantID string) ([]*domain.Assignment, error) {
 	var pos []*AssignmentPO
 
 	err := r.db.WithContext(ctx).Where("tenant_id = ? AND role_id = ?", tenantID, roleID).
 		Find(&pos).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to list assignments by role: %w", err)
+		return nil, fmt.Errorf("failed to list domains by role: %w", err)
 	}
 
 	bos := r.mapper.ToBOList(pos)
@@ -83,22 +82,22 @@ func (r *AssignmentRepository) ListByRole(ctx context.Context, roleID uint64, te
 }
 
 // Delete 删除分配
-func (r *AssignmentRepository) Delete(ctx context.Context, id assignment.AssignmentID) error {
+func (r *AssignmentRepository) Delete(ctx context.Context, id domain.AssignmentID) error {
 	err := r.BaseRepository.DeleteByID(ctx, id.Uint64())
 	if err != nil {
-		return fmt.Errorf("failed to delete assignment: %w", err)
+		return fmt.Errorf("failed to delete domain: %w", err)
 	}
 
 	return nil
 }
 
 // DeleteBySubjectAndRole 删除指定主体和角色的分配
-func (r *AssignmentRepository) DeleteBySubjectAndRole(ctx context.Context, subjectType assignment.SubjectType, subjectID string, roleID uint64, tenantID string) error {
+func (r *AssignmentRepository) DeleteBySubjectAndRole(ctx context.Context, subjectType domain.SubjectType, subjectID string, roleID uint64, tenantID string) error {
 	err := r.db.WithContext(ctx).Where("tenant_id = ? AND subject_type = ? AND subject_id = ? AND role_id = ?",
 		tenantID, string(subjectType), subjectID, roleID).
 		Delete(&AssignmentPO{}).Error
 	if err != nil {
-		return fmt.Errorf("failed to delete assignment: %w", err)
+		return fmt.Errorf("failed to delete domain: %w", err)
 	}
 
 	return nil
