@@ -56,11 +56,18 @@ func (u *User) IsUsable() bool   { return u.Status == UserActive }
 func (u *User) IsBlocked() bool  { return u.Status == UserBlocked }
 func (u *User) IsInactive() bool { return u.Status == UserInactive }
 
-// UpdatePhone 更新手机号
-func (u *User) UpdatePhone(p meta.Phone) { u.Phone = p }
+// Rename 更新用户名
+func (u *User) Rename(name string) { u.Name = name }
 
-// UpdateEmail 更新邮箱
-func (u *User) UpdateEmail(e meta.Email) { u.Email = e }
+// UpdatePhone 修改电话
+func (u *User) UpdatePhone(phone meta.Phone) {
+	u.Phone = phone
+}
+
+// UpdateEmail 修改邮箱
+func (u *User) UpdateEmail(email meta.Email) {
+	u.Email = email
+}
 
 // UpdateIDCard 更新身份证
 func (u *User) UpdateIDCard(idc meta.IDCard) { u.IDCard = idc }

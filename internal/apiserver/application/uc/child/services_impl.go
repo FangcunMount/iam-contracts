@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
@@ -31,24 +30,38 @@ func (s *childApplicationService) Register(ctx context.Context, dto RegisterChil
 	var result *ChildResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		// 创建领域服务
-		registerService := child.NewRegisterService(tx.Children)
+		// 创建验证器
+		validator := domain.NewValidator(tx.Children)
 
 		// 转换 DTO 为值对象
 		gender := parseGender(dto.Gender)
 		birthday := meta.NewBirthday(dto.Birthday)
 
-		// 调用领域服务创建儿童实体
-		var child *domain.Child
+		// 验证注册参数
+		if err := validator.ValidateRegister(ctx, dto.Name, gender, birthday); err != nil {
+			return err
+		}
+
+		// 创建儿童实体
+		var newChild *domain.Child
 		var err error
 
 		if dto.IDCard != "" {
 			// 带身份证注册
 			idCard := meta.NewIDCard("", dto.IDCard)
-			child, err = registerService.RegisterWithIDCard(ctx, dto.Name, gender, birthday, idCard)
+			newChild, err = domain.NewChild(
+				dto.Name,
+				domain.WithGender(gender),
+				domain.WithBirthday(birthday),
+				domain.WithIDCard(idCard),
+			)
 		} else {
 			// 普通注册
-			child, err = registerService.Register(ctx, dto.Name, gender, birthday)
+			newChild, err = domain.NewChild(
+				dto.Name,
+				domain.WithGender(gender),
+				domain.WithBirthday(birthday),
+			)
 		}
 
 		if err != nil {
@@ -57,27 +70,27 @@ func (s *childApplicationService) Register(ctx context.Context, dto RegisterChil
 
 		// 设置可选的身高体重
 		if dto.Height != nil || dto.Weight != nil {
-			height := child.Height
+			height := newChild.Height
 			if dto.Height != nil {
 				h, _ := meta.NewHeightFromFloat(float64(*dto.Height))
 				height = h
 			}
-			weight := child.Weight
+			weight := newChild.Weight
 			if dto.Weight != nil {
 				// DTO中的Weight是克，需要转换为千克
 				w, _ := meta.NewWeightFromFloat(float64(*dto.Weight) / 1000.0)
 				weight = w
 			}
-			child.UpdateHeightWeight(height, weight)
+			newChild.UpdateHeightWeight(height, weight)
 		}
 
 		// 持久化儿童
-		if err := tx.Children.Create(ctx, child); err != nil {
+		if err := tx.Children.Create(ctx, newChild); err != nil {
 			return err
 		}
 
 		// 转换为 DTO
-		result = toChildResult(child)
+		result = toChildResult(newChild)
 		return nil
 	})
 
@@ -102,7 +115,8 @@ func NewChildProfileApplicationService(uow uow.UnitOfWork) ChildProfileApplicati
 func (s *childProfileApplicationService) Rename(ctx context.Context, childID string, newName string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := child.NewProfileService(tx.Children)
+		validator := domain.NewValidator(tx.Children)
+		profileService := domain.NewProfileService(tx.Children, validator)
 
 		// 转换 ID
 		id, err := parseChildID(childID)
@@ -111,13 +125,13 @@ func (s *childProfileApplicationService) Rename(ctx context.Context, childID str
 		}
 
 		// 调用领域服务修改姓名
-		child, err := profileService.Rename(ctx, id, newName)
+		modifiedChild, err := profileService.Rename(ctx, id, newName)
 		if err != nil {
 			return err
 		}
 
 		// 持久化修改
-		return tx.Children.Update(ctx, child)
+		return tx.Children.Update(ctx, modifiedChild)
 	})
 }
 
@@ -125,7 +139,8 @@ func (s *childProfileApplicationService) Rename(ctx context.Context, childID str
 func (s *childProfileApplicationService) UpdateIDCard(ctx context.Context, childID string, name string, idCard string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := child.NewProfileService(tx.Children)
+		validator := domain.NewValidator(tx.Children)
+		profileService := domain.NewProfileService(tx.Children, validator)
 
 		// 转换 ID
 		id, err := parseChildID(childID)
@@ -137,13 +152,13 @@ func (s *childProfileApplicationService) UpdateIDCard(ctx context.Context, child
 		idCardVO := meta.NewIDCard(name, idCard)
 
 		// 调用领域服务更新身份证
-		child, err := profileService.UpdateIDCard(ctx, id, idCardVO)
+		modifiedChild, err := profileService.UpdateIDCard(ctx, id, idCardVO)
 		if err != nil {
 			return err
 		}
 
 		// 持久化修改
-		return tx.Children.Update(ctx, child)
+		return tx.Children.Update(ctx, modifiedChild)
 	})
 }
 
@@ -151,7 +166,8 @@ func (s *childProfileApplicationService) UpdateIDCard(ctx context.Context, child
 func (s *childProfileApplicationService) UpdateProfile(ctx context.Context, dto UpdateChildProfileDTO) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := child.NewProfileService(tx.Children)
+		validator := domain.NewValidator(tx.Children)
+		profileService := domain.NewProfileService(tx.Children, validator)
 
 		// 转换 ID
 		id, err := parseChildID(dto.ChildID)
@@ -164,13 +180,13 @@ func (s *childProfileApplicationService) UpdateProfile(ctx context.Context, dto 
 		birthday := meta.NewBirthday(dto.Birthday)
 
 		// 调用领域服务更新资料
-		child, err := profileService.UpdateProfile(ctx, id, gender, birthday)
+		modifiedChild, err := profileService.UpdateProfile(ctx, id, gender, birthday)
 		if err != nil {
 			return err
 		}
 
 		// 持久化修改
-		return tx.Children.Update(ctx, child)
+		return tx.Children.Update(ctx, modifiedChild)
 	})
 }
 
@@ -178,7 +194,8 @@ func (s *childProfileApplicationService) UpdateProfile(ctx context.Context, dto 
 func (s *childProfileApplicationService) UpdateHeightWeight(ctx context.Context, dto UpdateHeightWeightDTO) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := child.NewProfileService(tx.Children)
+		validator := domain.NewValidator(tx.Children)
+		profileService := domain.NewProfileService(tx.Children, validator)
 
 		// 转换 ID
 		id, err := parseChildID(dto.ChildID)
@@ -192,13 +209,13 @@ func (s *childProfileApplicationService) UpdateHeightWeight(ctx context.Context,
 		weight, _ := meta.NewWeightFromFloat(float64(dto.Weight) / 1000.0)
 
 		// 调用领域服务更新身高体重
-		child, err := profileService.UpdateHeightWeight(ctx, id, height, weight)
+		modifiedChild, err := profileService.UpdateHeightWeight(ctx, id, height, weight)
 		if err != nil {
 			return err
 		}
 
 		// 持久化修改
-		return tx.Children.Update(ctx, child)
+		return tx.Children.Update(ctx, modifiedChild)
 	})
 }
 

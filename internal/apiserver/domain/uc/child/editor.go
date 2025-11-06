@@ -8,21 +8,30 @@ import (
 
 // ChildProfileEditor 儿童档案资料编辑应用服务
 type ChildProfileEditor struct {
-	repo Repository
+	repo      Repository
+	validator Validator
 }
 
 // 确保 ChildProfileEditor 实现 ProfileEditor
 var _ ProfileEditor = (*ChildProfileEditor)(nil)
 
 // NewProfileService 创建儿童档案资料服务
-func NewProfileService(repo Repository) *ChildProfileEditor {
-	return &ChildProfileEditor{repo: repo}
+func NewProfileService(repo Repository, validator Validator) *ChildProfileEditor {
+	return &ChildProfileEditor{
+		repo:      repo,
+		validator: validator,
+	}
 }
 
 // Rename 重命名儿童档案
 // 领域逻辑：查询 + 修改实体
 // 注意：不包括持久化，返回修改后的实体供应用层持久化
 func (s *ChildProfileEditor) Rename(ctx context.Context, childID meta.ID, name string) (*Child, error) {
+	// 验证名称
+	if err := s.validator.ValidateRename(name); err != nil {
+		return nil, err
+	}
+
 	child, err := s.repo.FindByID(ctx, childID)
 	if err != nil {
 		return nil, err
@@ -54,6 +63,11 @@ func (s *ChildProfileEditor) UpdateIDCard(ctx context.Context, childID meta.ID, 
 // 领域逻辑：查询 + 修改实体
 // 注意：不包括持久化，返回修改后的实体供应用层持久化
 func (s *ChildProfileEditor) UpdateProfile(ctx context.Context, childID meta.ID, gender meta.Gender, birthday meta.Birthday) (*Child, error) {
+	// 验证资料更新参数
+	if err := s.validator.ValidateUpdateProfile(gender, birthday); err != nil {
+		return nil, err
+	}
+
 	child, err := s.repo.FindByID(ctx, childID)
 	if err != nil {
 		return nil, err

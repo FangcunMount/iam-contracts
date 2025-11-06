@@ -8,7 +8,6 @@ import (
 	childdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
-	guardport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -84,97 +83,9 @@ func (s *guardianshipApplicationService) RemoveGuardian(ctx context.Context, dto
 	})
 }
 
-// RegisterChildWithGuardian 同时注册儿童和监护关系
-func (s *guardianshipApplicationService) RegisterChildWithGuardian(ctx context.Context, dto RegisterChildWithGuardianDTO) (*GuardianshipResult, error) {
-	var result *GuardianshipResult
-
-	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		// 创建领域服务
-		registerService := guardianship.NewRegisterService(tx.Users)
-
-		// 转换 ID 和值对象
-		userID, err := parseUserID(dto.UserID)
-		if err != nil {
-			return err
-		}
-
-		gender := parseGender(dto.ChildGender)
-		birthday := meta.NewBirthday(dto.ChildBirthday)
-		relation := parseRelation(dto.Relation)
-
-		// 构建参数
-		params := guardport.RegisterChildWithGuardianParams{
-			Name:     dto.ChildName,
-			Gender:   gender,
-			Birthday: birthday,
-			UserID:   userID,
-			Relation: relation,
-		}
-
-		// 设置可选参数
-		if dto.ChildIDCard != "" {
-			params.IDCard = meta.NewIDCard("", dto.ChildIDCard)
-		}
-		if dto.ChildHeight != nil {
-			h, _ := meta.NewHeightFromFloat(float64(*dto.ChildHeight))
-			params.Height = &h
-		}
-		if dto.ChildWeight != nil {
-			w, _ := meta.NewWeightFromFloat(float64(*dto.ChildWeight) / 1000.0)
-			params.Weight = &w
-		}
-
-		// 调用领域服务创建儿童和监护关系
-		guardianship, child, err := registerService.RegisterChildWithGuardian(ctx, params)
-		if err != nil {
-			return err
-		}
-
-		// 持久化儿童（先持久化以生成ID）
-		if err := tx.Children.Create(ctx, child); err != nil {
-			return err
-		}
-
-		// 更新监护关系的儿童ID
-		guardianship.Child = child.ID
-
-		// 持久化监护关系
-		if err := tx.Guardianships.Create(ctx, guardianship); err != nil {
-			return err
-		}
-
-		// 转换为 DTO
-		result = toGuardianshipResult(guardianship, child)
-		return nil
-	})
-
-	return result, err
-}
-
-// IsGuardian 检查是否为监护人
-func (s *guardianshipApplicationService) IsGuardian(ctx context.Context, userID string, childID string) (bool, error) {
-	var isGuardian bool
-
-	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		// 创建领域服务
-
-		// 转换 ID
-		uid, err := parseUserID(userID)
-		if err != nil {
-			return err
-		}
-		cid, err := parseChildID(childID)
-		if err != nil {
-			return err
-		}
-
-		// 调用领域服务查询
-		isGuardian, err = tx.Guardianships.IsGuardian(ctx, uid, cid)
-		return err
-	})
-
-	return isGuardian, err
-}
+// ===========================================
+// === GuardianshipQueryApplicationService 实现 ===
+// ===========================================
 
 // GetByUserIDAndChildID 查询监护关系
 func (s *guardianshipApplicationService) GetByUserIDAndChildID(ctx context.Context, userID string, childID string) (*GuardianshipResult, error) {

@@ -130,72 +130,8 @@ func (h *ChildHandler) RegisterChild(c *gin.Context) {
 		return
 	}
 
-	// 构建注册 DTO
-	registerDTO := appguard.RegisterChildWithGuardianDTO{
-		ChildName:     strings.TrimSpace(req.LegalName),
-		ChildGender:   genderIntToString(req.Gender),
-		ChildBirthday: strings.TrimSpace(req.DOB),
-		ChildIDCard:   strings.TrimSpace(req.IDNo),
-		ChildHeight:   parseHeightCm(req.HeightCm),
-		ChildWeight:   parseWeightKg(req.WeightKg),
-		UserID:        rawUserID,
-		Relation:      req.Relation,
-	}
-
-	// 调用应用服务注册儿童并建立监护关系
-	result, err := h.guardApp.RegisterChildWithGuardian(c.Request.Context(), registerDTO)
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	// 构建响应
-	childResp := responsedto.ChildResponse{
-		ID:        result.ChildID,
-		LegalName: result.ChildName,
-		Gender:    stringGenderToInt(result.ChildGender),
-		DOB:       result.ChildBirthday,
-		IDType:    req.IDType,
-		IDMasked:  maskIDCard(result.ChildID),
-	}
-
-	guardResp := responsedto.GuardianshipResponse{
-		ID:       result.ID,
-		UserID:   result.UserID,
-		ChildID:  result.ChildID,
-		Relation: result.Relation,
-		Since:    parseTime(result.EstablishedAt),
-	}
-
-	h.Created(c, responsedto.ChildRegisterResponse{
-		Child:        childResp,
-		Guardianship: guardResp,
-	})
-}
-
-// CreateChild 仅创建儿童档案（不建立监护关系）
-// @Summary 创建儿童档案
-// @Description 仅创建儿童档案，不建立监护关系
-// @Tags Identity-Children
-// @Accept json
-// @Produce json
-// @Param request body requestdto.ChildCreateRequest true "创建儿童请求"
-// @Success 201 {object} responsedto.ChildResponse "创建成功"
-// @Failure 400 {object} core.ErrResponse "请求参数错误"
-// @Failure 401 {object} core.ErrResponse "未授权"
-// @Failure 409 {object} core.ErrResponse "儿童已存在"
-// @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /children [post]
-// @Security BearerAuth
-func (h *ChildHandler) CreateChild(c *gin.Context) {
-	var req requestdto.ChildCreateRequest
-	if err := h.BindJSON(c, &req); err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	// 构建注册 DTO
-	dto := appchild.RegisterChildDTO{
+	// 1. 先注册儿童
+	childDTO := appchild.RegisterChildDTO{
 		Name:     strings.TrimSpace(req.LegalName),
 		Gender:   genderIntToString(req.Gender),
 		Birthday: strings.TrimSpace(req.DOB),
@@ -204,27 +140,66 @@ func (h *ChildHandler) CreateChild(c *gin.Context) {
 		Weight:   parseWeightKg(req.WeightKg),
 	}
 
-	result, err := h.childApp.Register(c.Request.Context(), dto)
+	childResult, err := h.childApp.Register(c.Request.Context(), childDTO)
 	if err != nil {
 		h.Error(c, err)
 		return
 	}
 
-	resp := childResultToResponse(result)
-	resp.IDType = req.IDType
+	// 2. 建立监护关系
+	guardDTO := appguard.AddGuardianDTO{
+		UserID:   rawUserID,
+		ChildID:  childResult.ID,
+		Relation: req.Relation,
+	}
 
-	h.Created(c, resp)
+	if err := h.guardApp.AddGuardian(c.Request.Context(), guardDTO); err != nil {
+		h.Error(c, err)
+		return
+	}
+
+	// 3. 查询监护关系
+	guardResult, err := h.guardQuery.GetByUserIDAndChildID(c.Request.Context(), rawUserID, childResult.ID)
+	if err != nil {
+		h.Error(c, err)
+		return
+	}
+
+	// 构建响应
+	childResp := responsedto.ChildResponse{
+		ID:        childResult.ID,
+		LegalName: childResult.Name,
+		Gender:    stringGenderToInt(childResult.Gender),
+		DOB:       childResult.Birthday,
+		IDType:    req.IDType,
+		IDMasked:  maskIDCard(childResult.IDCard),
+	}
+
+	guardResp := responsedto.GuardianshipResponse{
+		ID:       guardResult.ID,
+		UserID:   guardResult.UserID,
+		ChildID:  guardResult.ChildID,
+		Relation: guardResult.Relation,
+		Since:    parseTime(guardResult.EstablishedAt),
+	}
+
+	h.Created(c, responsedto.ChildRegisterResponse{
+		Child:        childResp,
+		Guardianship: guardResp,
+	})
 }
 
 // GetChild 查询儿童档案
-// @Summary 查询儿童档案
-// @Description 根据儿童 ID 查询儿童详细档案
+// @Summary 查询儿童档案（仅限自己监护的孩子）
+// @Description 根据儿童 ID 查询儿童详细档案，只能查询当前用户监护的孩子
 // @Tags Identity-Children
 // @Accept json
 // @Produce json
 // @Param id path string true "儿童 ID"
 // @Success 200 {object} responsedto.ChildResponse "查询成功"
 // @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 403 {object} core.ErrResponse "无权限访问此儿童"
 // @Failure 404 {object} core.ErrResponse "儿童不存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
 // @Router /children/{id} [get]
@@ -236,7 +211,30 @@ func (h *ChildHandler) GetChild(c *gin.Context) {
 		return
 	}
 
-	child, err := h.childQuery.GetByID(c.Request.Context(), childID)
+	// 获取当前用户ID
+	rawUserID, ok := h.GetUserID(c)
+	if !ok {
+		h.ErrorWithCode(c, code.ErrTokenInvalid, "user id not found in context")
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	// 验证用户是否是该儿童的监护人
+	guardianship, err := h.guardQuery.GetByUserIDAndChildID(ctx, rawUserID, childID)
+	if err != nil {
+		h.ErrorWithCode(c, code.ErrPermissionDenied, "you are not the guardian of this child")
+		return
+	}
+
+	// 检查监护关系是否有效
+	if guardianship == nil {
+		h.ErrorWithCode(c, code.ErrPermissionDenied, "you are not the guardian of this child")
+		return
+	}
+
+	// 查询儿童信息
+	child, err := h.childQuery.GetByID(ctx, childID)
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -246,8 +244,8 @@ func (h *ChildHandler) GetChild(c *gin.Context) {
 }
 
 // PatchChild 更新儿童档案
-// @Summary 更新儿童档案
-// @Description 部分更新儿童档案信息
+// @Summary 更新儿童档案（仅限自己监护的孩子）
+// @Description 部分更新儿童档案信息，只能更新当前用户监护的孩子
 // @Tags Identity-Children
 // @Accept json
 // @Produce json
@@ -255,6 +253,8 @@ func (h *ChildHandler) GetChild(c *gin.Context) {
 // @Param request body requestdto.ChildUpdateRequest true "更新儿童请求"
 // @Success 200 {object} responsedto.ChildResponse "更新成功"
 // @Failure 400 {object} core.ErrResponse "参数错误"
+// @Failure 401 {object} core.ErrResponse "未授权"
+// @Failure 403 {object} core.ErrResponse "无权限修改此儿童"
 // @Failure 404 {object} core.ErrResponse "儿童不存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
 // @Router /children/{id} [patch]
@@ -266,13 +266,33 @@ func (h *ChildHandler) PatchChild(c *gin.Context) {
 		return
 	}
 
+	// 获取当前用户ID
+	rawUserID, ok := h.GetUserID(c)
+	if !ok {
+		h.ErrorWithCode(c, code.ErrTokenInvalid, "user id not found in context")
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	// 验证用户是否是该儿童的监护人
+	guardianship, err := h.guardQuery.GetByUserIDAndChildID(ctx, rawUserID, childID)
+	if err != nil {
+		h.ErrorWithCode(c, code.ErrPermissionDenied, "you are not the guardian of this child")
+		return
+	}
+
+	// 检查监护关系是否有效
+	if guardianship == nil {
+		h.ErrorWithCode(c, code.ErrPermissionDenied, "you are not the guardian of this child")
+		return
+	}
+
 	var req requestdto.ChildUpdateRequest
 	if err := h.BindJSON(c, &req); err != nil {
 		h.Error(c, err)
 		return
 	}
-
-	ctx := c.Request.Context()
 
 	// 更新姓名
 	if req.LegalName != nil && strings.TrimSpace(*req.LegalName) != "" {

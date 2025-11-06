@@ -72,48 +72,6 @@ func (h *GuardianshipHandler) Grant(c *gin.Context) {
 	h.Success(c, guardResultToResponse(result))
 }
 
-// Revoke 撤销监护关系
-// @Summary 撤销监护关系
-// @Description 撤销用户与儿童的监护关系
-// @Tags Identity-Guardianship
-// @Accept json
-// @Produce json
-// @Param request body requestdto.GuardianRevokeRequest true "撤销监护请求"
-// @Success 200 {object} responsedto.GuardianshipResponse "撤销成功"
-// @Failure 400 {object} core.ErrResponse "参数错误"
-// @Failure 401 {object} core.ErrResponse "未授权"
-// @Failure 404 {object} core.ErrResponse "监护关系不存在"
-// @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /guardians/revoke [post]
-// @Security BearerAuth
-func (h *GuardianshipHandler) Revoke(c *gin.Context) {
-	var req requestdto.GuardianRevokeRequest
-	if err := h.BindJSON(c, &req); err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	dto := appguard.RemoveGuardianDTO{
-		UserID:  req.UserID,
-		ChildID: req.ChildID,
-	}
-
-	if err := h.guardApp.RemoveGuardian(c.Request.Context(), dto); err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	// 查询返回监护关系（包含撤销时间）
-	result, err := h.guardQuery.GetByUserIDAndChildID(c.Request.Context(), req.UserID, req.ChildID)
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	resp := guardResultToResponse(result)
-	h.Success(c, resp)
-}
-
 // List 查询监护关系
 // @Summary 查询监护关系
 // @Description 查询用户或儿童的监护关系列表

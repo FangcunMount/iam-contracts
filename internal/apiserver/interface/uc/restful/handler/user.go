@@ -37,7 +37,7 @@ func NewUserHandler(
 }
 
 // GetUserProfile 获取当前用户资料
-// @Summary 获取当前用户资料
+// @Summary 获取当前用户信息
 // @Description 获取当前登录用户的资料信息
 // @Tags Identity-Users
 // @Accept json
@@ -45,7 +45,7 @@ func NewUserHandler(
 // @Success 200 {object} responsedto.UserResponse "查询成功"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /users/profile [get]
+// @Router /me [get]
 // @Security BearerAuth
 func (h *UserHandler) GetUserProfile(c *gin.Context) {
 	rawUserID, exists := c.Get("user_id")
@@ -70,18 +70,17 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 }
 
 // PatchUser 更新用户信息（昵称 / 联系方式）
-// @Summary 更新用户信息
-// @Description 部分更新用户信息，支持更新昵称和联系方式
+// @Summary 更新当前用户信息
+// @Description 部分更新当前登录用户的信息，支持更新昵称和联系方式
 // @Tags Identity-Users
 // @Accept json
 // @Produce json
-// @Param userId path string true "用户 ID"
 // @Param request body requestdto.UserUpdateRequest true "更新用户请求"
 // @Success 200 {object} responsedto.UserResponse "更新成功"
 // @Failure 400 {object} core.ErrResponse "参数错误"
-// @Failure 404 {object} core.ErrResponse "用户不存在"
+// @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /users/{userId} [patch]
+// @Router /me [patch]
 // @Security BearerAuth
 func (h *UserHandler) PatchUser(c *gin.Context) {
 	rawUserID, exists := c.Get("user_id")

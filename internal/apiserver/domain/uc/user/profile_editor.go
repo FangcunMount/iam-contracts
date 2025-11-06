@@ -34,7 +34,7 @@ func (s *profileEditor) Rename(ctx context.Context, id meta.ID, newName string) 
 	}
 
 	// 修改名称
-	user.Name = newName
+	user.Rename(newName)
 
 	return user, nil
 }

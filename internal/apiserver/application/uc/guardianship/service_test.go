@@ -167,65 +167,6 @@ func TestGuardianshipApplicationService_RemoveGuardian_NotFound(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestGuardianshipApplicationService_RegisterChildWithGuardian_Success(t *testing.T) {
-	// Arrange
-	db := testutil.SetupTestDB(t)
-	unitOfWork := uow.NewUnitOfWork(db)
-	ctx := context.Background()
-
-	// 先创建用户
-	userService := user.NewUserApplicationService(unitOfWork)
-	userResult, err := userService.Register(ctx, user.RegisterUserDTO{
-		Name:  "赵六",
-		Phone: "13800138003",
-		Email: "zhao6@test.com",
-	})
-	require.NoError(t, err)
-
-	guardianshipService := guardianship.NewGuardianshipApplicationService(unitOfWork)
-
-	// Act - 同时注册儿童和监护关系
-	dto := guardianship.RegisterChildWithGuardianDTO{
-		ChildName:     "小丽",
-		ChildGender:   "female",
-		ChildBirthday: "2020-06-15",
-		UserID:        userResult.ID,
-		Relation:      "parent",
-	}
-	result, err := guardianshipService.RegisterChildWithGuardian(ctx, dto)
-
-	// Assert
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	assert.NotEmpty(t, result.ChildID)
-	assert.Equal(t, userResult.ID, result.UserID)
-	assert.Equal(t, "小丽", result.ChildName)
-}
-
-func TestGuardianshipApplicationService_RegisterChildWithGuardian_UserNotFound(t *testing.T) {
-	// Arrange
-	db := testutil.SetupTestDB(t)
-	unitOfWork := uow.NewUnitOfWork(db)
-	guardianshipService := guardianship.NewGuardianshipApplicationService(unitOfWork)
-	ctx := context.Background()
-
-	// Act - 使用不存在的用户ID注册
-	dto := guardianship.RegisterChildWithGuardianDTO{
-		ChildName:     "小明",
-		ChildGender:   "male",
-		ChildBirthday: "2020-01-01",
-		UserID:        "999999999999999999", // 不存在的用户
-		Relation:      "parent",
-	}
-	result, err := guardianshipService.RegisterChildWithGuardian(ctx, dto)
-
-	// Assert - 应该失败
-	require.Error(t, err)
-	assert.Nil(t, result)
-}
-
-// ==================== GuardianshipQueryApplicationService 测试 ====================
-
 func TestGuardianshipQueryApplicationService_IsGuardian_True(t *testing.T) {
 	// Arrange
 	db := testutil.SetupTestDB(t)

@@ -9,6 +9,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
 	"github.com/FangcunMount/iam-contracts/pkg/core"
 )
 
@@ -107,8 +108,9 @@ func (h *BaseHandler) GetQueryParamInt(c *gin.Context, key string, defaultValue 
 }
 
 // GetUserID 从上下文获取当前用户ID。
+// 使用常量 ContextKeyUserID 避免字符串拼写错误，增强安全性
 func (h *BaseHandler) GetUserID(c *gin.Context) (string, bool) {
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get(authn.ContextKeyUserID)
 	if !exists || userID == nil {
 		return "", false
 	}

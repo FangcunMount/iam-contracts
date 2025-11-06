@@ -12,8 +12,6 @@ type GuardianshipApplicationService interface {
 	AddGuardian(ctx context.Context, dto AddGuardianDTO) error
 	// RemoveGuardian 移除监护人
 	RemoveGuardian(ctx context.Context, dto RemoveGuardianDTO) error
-	// RegisterChildWithGuardian 同时注册儿童和监护关系
-	RegisterChildWithGuardian(ctx context.Context, dto RegisterChildWithGuardianDTO) (*GuardianshipResult, error)
 }
 
 // GuardianshipQueryApplicationService 监护关系查询应用服务（只读）
@@ -41,20 +39,6 @@ type AddGuardianDTO struct {
 type RemoveGuardianDTO struct {
 	UserID  string // 用户 ID
 	ChildID string // 儿童 ID
-}
-
-// RegisterChildWithGuardianDTO 同时注册儿童和监护关系 DTO
-type RegisterChildWithGuardianDTO struct {
-	// 儿童信息
-	ChildName     string  // 姓名（必填）
-	ChildGender   string  // 性别（可选：male/female）
-	ChildBirthday string  // 生日（格式：YYYY-MM-DD）
-	ChildIDCard   string  // 身份证号（可选）
-	ChildHeight   *uint32 // 身高（厘米，可选）
-	ChildWeight   *uint32 // 体重（克，可选）
-	// 监护人信息
-	UserID   string // 用户 ID
-	Relation string // 关系（parent/grandparents/other）
 }
 
 // GuardianshipResult 监护关系结果 DTO

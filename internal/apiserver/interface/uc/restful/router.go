@@ -32,23 +32,21 @@ func Register(engine *gin.Engine) {
 		api.Use(deps.AuthMiddleware)
 	}
 
-	registerProtectedUserRoutes(api, deps.Module)
+	registerUserRoutes(api, deps.Module)
 	registerChildRoutes(api, deps.Module)
 	registerGuardianshipRoutes(api, deps.Module)
 }
 
-// registerProtectedUserRoutes 注册受保护的用户端点（需要认证）
-func registerProtectedUserRoutes(api *gin.RouterGroup, module *assembler.UserModule) {
+// registerUserRoutes 注册用户相关路由
+func registerUserRoutes(api *gin.RouterGroup, module *assembler.UserModule) {
 	if module.UserHandler == nil {
 		return
 	}
 
-	users := api.Group("/users")
+	me := api.Group("/me")
 	{
-		// 获取当前用户资料（需要认证）
-		users.GET("/profile", module.UserHandler.GetUserProfile)
-		// 更新用户信息（需要认证）
-		users.PATCH("/:userId", module.UserHandler.PatchUser)
+		me.GET("", module.UserHandler.GetUserProfile)
+		me.PATCH("", module.UserHandler.PatchUser)
 	}
 }
 
@@ -67,9 +65,8 @@ func registerChildRoutes(api *gin.RouterGroup, module *assembler.UserModule) {
 
 	children := api.Group("/children")
 	{
-		children.POST("", module.ChildHandler.CreateChild)
-		children.GET("/:childId", module.ChildHandler.GetChild)
-		children.PATCH("/:childId", module.ChildHandler.PatchChild)
+		children.GET("/:id", module.ChildHandler.GetChild)
+		children.PATCH("/:id", module.ChildHandler.PatchChild)
 	}
 }
 
@@ -79,6 +76,4 @@ func registerGuardianshipRoutes(api *gin.RouterGroup, module *assembler.UserModu
 	}
 
 	api.POST("/guardians/grant", module.GuardianshipHandler.Grant)
-	api.POST("/guardians/revoke", module.GuardianshipHandler.Revoke)
-	api.GET("/guardians", module.GuardianshipHandler.List)
 }

@@ -1,14 +1,14 @@
 package user
 
 import (
-"context"
-"errors"
-"strings"
+	"context"
+	"errors"
+	"strings"
 
-perrors "github.com/FangcunMount/component-base/pkg/errors"
-"github.com/FangcunMount/iam-contracts/internal/pkg/code"
-"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
-"gorm.io/gorm"
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"gorm.io/gorm"
 )
 
 // validator 用户验证器（领域服务）

@@ -65,6 +65,336 @@ const docTemplate = `{
                 }
             }
         },
+        "/accounts/wechat/register": {
+            "post": {
+                "description": "使用微信账户信息注册新用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "账户管理"
+                ],
+                "summary": "微信用户注册",
+                "parameters": [
+                    {
+                        "description": "微信注册请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.RegisterWeChatAccountReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "注册成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.RegisterResult"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "用户已存在",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/{accountId}": {
+            "get": {
+                "description": "根据账户ID获取账户详细信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "账户管理"
+                ],
+                "summary": "获取账户信息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "账户ID",
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "账户信息",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.Account"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "账户不存在",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/{accountId}/credentials": {
+            "get": {
+                "description": "获取账户下所有的认证凭证信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "账户管理"
+                ],
+                "summary": "获取账户凭证列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "账户ID",
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "凭证列表",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.CredentialList"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "账户不存在",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/{accountId}/disable": {
+            "post": {
+                "description": "将账户标记为禁用，阻止继续认证",
+                "tags": [
+                    "账户管理"
+                ],
+                "summary": "禁用账户",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "账户ID",
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "禁用成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "账户不存在",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/{accountId}/enable": {
+            "post": {
+                "description": "恢复已禁用的账户",
+                "tags": [
+                    "账户管理"
+                ],
+                "summary": "启用账户",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "账户ID",
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "启用成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "账户不存在",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/{accountId}/profile": {
+            "put": {
+                "description": "更新微信账户的昵称、头像等资料信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "账户管理"
+                ],
+                "summary": "更新账户资料",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "账户ID",
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新资料请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.UpsertWeChatProfileReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "账户不存在",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/{accountId}/unionid": {
+            "put": {
+                "description": "将微信账户的 UnionID 与内部账户关联",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "账户管理"
+                ],
+                "summary": "设置账户 UnionID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "账户ID",
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "设置 UnionID 请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.SetWeChatUnionIDReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "设置成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "账户不存在",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/admin/jwks/keys": {
             "get": {
                 "security": [
@@ -106,7 +436,7 @@ const docTemplate = `{
                     "200": {
                         "description": "密钥列表",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyListResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.KeyListResponse"
                         }
                     },
                     "400": {
@@ -159,7 +489,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateKeyRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.CreateKeyRequest"
                         }
                     }
                 ],
@@ -167,7 +497,7 @@ const docTemplate = `{
                     "201": {
                         "description": "创建成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.KeyResponse"
                         }
                     },
                     "400": {
@@ -216,7 +546,7 @@ const docTemplate = `{
                     "200": {
                         "description": "清理结果",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.CleanupResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.CleanupResponse"
                         }
                     },
                     "401": {
@@ -259,7 +589,7 @@ const docTemplate = `{
                     "200": {
                         "description": "可发布的密钥列表",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.PublishableKeysResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.PublishableKeysResponse"
                         }
                     },
                     "401": {
@@ -311,7 +641,7 @@ const docTemplate = `{
                     "200": {
                         "description": "密钥详情",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.KeyResponse"
                         }
                     },
                     "400": {
@@ -530,336 +860,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/accounts/wechat/register": {
-            "post": {
-                "description": "使用微信账户信息注册新用户",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "账户管理"
-                ],
-                "summary": "微信用户注册",
-                "parameters": [
-                    {
-                        "description": "微信注册请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.RegisterWeChatAccountReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "注册成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.RegisterResult"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "409": {
-                        "description": "用户已存在",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/accounts/{accountId}": {
-            "get": {
-                "description": "根据账户ID获取账户详细信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "账户管理"
-                ],
-                "summary": "获取账户信息",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "账户ID",
-                        "name": "accountId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "账户信息",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "账户不存在",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/accounts/{accountId}/credentials": {
-            "get": {
-                "description": "获取账户下所有的认证凭证信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "账户管理"
-                ],
-                "summary": "获取账户凭证列表",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "账户ID",
-                        "name": "accountId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "凭证列表",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.CredentialList"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "账户不存在",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/accounts/{accountId}/disable": {
-            "post": {
-                "description": "将账户标记为禁用，阻止继续认证",
-                "tags": [
-                    "账户管理"
-                ],
-                "summary": "禁用账户",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "账户ID",
-                        "name": "accountId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "禁用成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.MessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "账户不存在",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/accounts/{accountId}/enable": {
-            "post": {
-                "description": "恢复已禁用的账户",
-                "tags": [
-                    "账户管理"
-                ],
-                "summary": "启用账户",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "账户ID",
-                        "name": "accountId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "启用成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.MessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "账户不存在",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/accounts/{accountId}/profile": {
-            "put": {
-                "description": "更新微信账户的昵称、头像等资料信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "账户管理"
-                ],
-                "summary": "更新账户资料",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "账户ID",
-                        "name": "accountId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "更新资料请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpsertWeChatProfileReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "更新成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.MessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "账户不存在",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/accounts/{accountId}/unionid": {
-            "put": {
-                "description": "将微信账户的 UnionID 与内部账户关联",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "账户管理"
-                ],
-                "summary": "设置账户 UnionID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "账户ID",
-                        "name": "accountId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "设置 UnionID 请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.SetWeChatUnionIDReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "设置成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.MessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "账户不存在",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/auth/login": {
             "post": {
                 "description": "支持多种登录方式：密码登录、手机验证码登录、微信小程序登录、企业微信登录",
@@ -880,7 +880,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LoginRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.LoginRequest"
                         }
                     }
                 ],
@@ -888,7 +888,7 @@ const docTemplate = `{
                     "200": {
                         "description": "登录成功，返回访问令牌和刷新令牌",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.TokenPair"
                         }
                     },
                     "400": {
@@ -928,7 +928,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LogoutRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.LogoutRequest"
                         }
                     }
                 ],
@@ -936,7 +936,7 @@ const docTemplate = `{
                     "200": {
                         "description": "登出成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.MessageResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse"
                         }
                     },
                     "400": {
@@ -969,7 +969,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.RefreshTokenRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -977,7 +977,7 @@ const docTemplate = `{
                     "200": {
                         "description": "刷新成功，返回新的访问令牌",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.TokenPair"
                         }
                     },
                     "400": {
@@ -1017,7 +1017,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.VerifyTokenRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.VerifyTokenRequest"
                         }
                     }
                 ],
@@ -1025,7 +1025,7 @@ const docTemplate = `{
                     "200": {
                         "description": "验证成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenVerifyResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.TokenVerifyResponse"
                         }
                     },
                     "400": {
@@ -1064,7 +1064,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.GrantRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.GrantRequest"
                         }
                     }
                 ],
@@ -1074,13 +1074,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.AssignmentResponse"
+                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AssignmentResponse"
                                         }
                                     }
                                 }
@@ -1109,7 +1109,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RevokeRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RevokeRequest"
                         }
                     }
                 ],
@@ -1117,7 +1117,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                         }
                     }
                 }
@@ -1158,7 +1158,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                                 },
                                 {
                                     "type": "object",
@@ -1166,7 +1166,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.AssignmentResponse"
+                                                "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AssignmentResponse"
                                             }
                                         }
                                     }
@@ -1196,7 +1196,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                         }
                     }
                 }
@@ -1221,7 +1221,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.AddPolicyRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AddPolicyRequest"
                         }
                     }
                 ],
@@ -1229,7 +1229,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                         }
                     }
                 }
@@ -1252,7 +1252,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RemovePolicyRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RemovePolicyRequest"
                         }
                     }
                 ],
@@ -1260,7 +1260,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                         }
                     }
                 }
@@ -1281,13 +1281,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.PolicyVersionResponse"
+                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.PolicyVersionResponse"
                                         }
                                     }
                                 }
@@ -1346,7 +1346,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ListResponse"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ListResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1354,7 +1354,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ResourceResponse"
+                                                "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ResourceResponse"
                                             }
                                         }
                                     }
@@ -1382,7 +1382,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.CreateResourceRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CreateResourceRequest"
                         }
                     }
                 ],
@@ -1392,13 +1392,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ResourceResponse"
+                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ResourceResponse"
                                         }
                                     }
                                 }
@@ -1432,13 +1432,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ResourceResponse"
+                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ResourceResponse"
                                         }
                                     }
                                 }
@@ -1467,7 +1467,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ValidateActionRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ValidateActionRequest"
                         }
                     }
                 ],
@@ -1477,13 +1477,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ValidateActionResponse"
+                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ValidateActionResponse"
                                         }
                                     }
                                 }
@@ -1517,13 +1517,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ResourceResponse"
+                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ResourceResponse"
                                         }
                                     }
                                 }
@@ -1557,7 +1557,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.UpdateResourceRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.UpdateResourceRequest"
                         }
                     }
                 ],
@@ -1567,13 +1567,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ResourceResponse"
+                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ResourceResponse"
                                         }
                                     }
                                 }
@@ -1600,7 +1600,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                         }
                     }
                 }
@@ -1637,7 +1637,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ListResponse"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ListResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1645,7 +1645,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RoleResponse"
+                                                "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RoleResponse"
                                             }
                                         }
                                     }
@@ -1673,7 +1673,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.CreateRoleRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CreateRoleRequest"
                         }
                     }
                 ],
@@ -1683,13 +1683,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RoleResponse"
+                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RoleResponse"
                                         }
                                     }
                                 }
@@ -1723,13 +1723,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RoleResponse"
+                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RoleResponse"
                                         }
                                     }
                                 }
@@ -1763,7 +1763,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.UpdateRoleRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.UpdateRoleRequest"
                         }
                     }
                 ],
@@ -1773,13 +1773,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RoleResponse"
+                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RoleResponse"
                                         }
                                     }
                                 }
@@ -1806,7 +1806,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                         }
                     }
                 }
@@ -1836,7 +1836,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                                 },
                                 {
                                     "type": "object",
@@ -1844,7 +1844,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.AssignmentResponse"
+                                                "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AssignmentResponse"
                                             }
                                         }
                                     }
@@ -1879,7 +1879,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response"
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
                                 },
                                 {
                                     "type": "object",
@@ -1887,75 +1887,12 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.PolicyRuleResponse"
+                                                "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.PolicyRuleResponse"
                                             }
                                         }
                                     }
                                 }
                             ]
-                        }
-                    }
-                }
-            }
-        },
-        "/children": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "仅创建儿童档案，不建立监护关系",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Identity-Children"
-                ],
-                "summary": "创建儿童档案",
-                "parameters": [
-                    {
-                        "description": "创建儿童请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.ChildCreateRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "创建成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "儿童已存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
                         }
                     }
                 }
@@ -1986,7 +1923,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.ChildRegisterRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.ChildRegisterRequest"
                         }
                     }
                 ],
@@ -1994,7 +1931,7 @@ const docTemplate = `{
                     "201": {
                         "description": "注册成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildRegisterResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildRegisterResponse"
                         }
                     },
                     "400": {
@@ -2074,7 +2011,7 @@ const docTemplate = `{
                     "200": {
                         "description": "查询成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildPageResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildPageResponse"
                         }
                     },
                     "400": {
@@ -2105,7 +2042,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "根据儿童 ID 查询儿童详细档案",
+                "description": "根据儿童 ID 查询儿童详细档案，只能查询当前用户监护的孩子",
                 "consumes": [
                     "application/json"
                 ],
@@ -2115,7 +2052,7 @@ const docTemplate = `{
                 "tags": [
                     "Identity-Children"
                 ],
-                "summary": "查询儿童档案",
+                "summary": "查询儿童档案（仅限自己监护的孩子）",
                 "parameters": [
                     {
                         "type": "string",
@@ -2129,11 +2066,23 @@ const docTemplate = `{
                     "200": {
                         "description": "查询成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildResponse"
                         }
                     },
                     "400": {
                         "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限访问此儿童",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
                         }
@@ -2158,7 +2107,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "部分更新儿童档案信息",
+                "description": "部分更新儿童档案信息，只能更新当前用户监护的孩子",
                 "consumes": [
                     "application/json"
                 ],
@@ -2168,7 +2117,7 @@ const docTemplate = `{
                 "tags": [
                     "Identity-Children"
                 ],
-                "summary": "更新儿童档案",
+                "summary": "更新儿童档案（仅限自己监护的孩子）",
                 "parameters": [
                     {
                         "type": "string",
@@ -2183,7 +2132,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.ChildUpdateRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.ChildUpdateRequest"
                         }
                     }
                 ],
@@ -2191,11 +2140,23 @@ const docTemplate = `{
                     "200": {
                         "description": "更新成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildResponse"
                         }
                     },
                     "400": {
                         "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限修改此儿童",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
                         }
@@ -2271,7 +2232,7 @@ const docTemplate = `{
                     "200": {
                         "description": "查询成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipPageResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipPageResponse"
                         }
                     },
                     "400": {
@@ -2320,7 +2281,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.GuardianGrantRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.GuardianGrantRequest"
                         }
                     }
                 ],
@@ -2328,7 +2289,7 @@ const docTemplate = `{
                     "200": {
                         "description": "授予成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipResponse"
                         }
                     },
                     "400": {
@@ -2345,69 +2306,6 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "监护关系已存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/guardians/revoke": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "撤销用户与儿童的监护关系",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Identity-Guardianship"
-                ],
-                "summary": "撤销监护关系",
-                "parameters": [
-                    {
-                        "description": "撤销监护请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.GuardianRevokeRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "撤销成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "监护关系不存在",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
                         }
@@ -2440,7 +2338,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.CreateWechatAppRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_request.CreateWechatAppRequest"
                         }
                     }
                 ],
@@ -2448,19 +2346,19 @@ const docTemplate = `{
                     "201": {
                         "description": "创建成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.WechatAppResponse"
                         }
                     },
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     }
                 }
@@ -2485,7 +2383,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RefreshAccessTokenRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_request.RefreshAccessTokenRequest"
                         }
                     }
                 ],
@@ -2493,25 +2391,25 @@ const docTemplate = `{
                     "200": {
                         "description": "刷新成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.AccessTokenResponse"
                         }
                     },
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "应用不存在",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     }
                 }
@@ -2536,7 +2434,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateAuthSecretRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_request.RotateAuthSecretRequest"
                         }
                     }
                 ],
@@ -2544,25 +2442,25 @@ const docTemplate = `{
                     "200": {
                         "description": "轮换成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.RotateSecretResponse"
                         }
                     },
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "应用不存在",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     }
                 }
@@ -2587,7 +2485,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateMsgSecretRequest"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_request.RotateMsgSecretRequest"
                         }
                     }
                 ],
@@ -2595,25 +2493,25 @@ const docTemplate = `{
                     "200": {
                         "description": "轮换成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.RotateSecretResponse"
                         }
                     },
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "应用不存在",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     }
                 }
@@ -2644,19 +2542,19 @@ const docTemplate = `{
                     "200": {
                         "description": "查询成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.WechatAppResponse"
                         }
                     },
                     "404": {
                         "description": "应用不存在",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     }
                 }
@@ -2687,19 +2585,114 @@ const docTemplate = `{
                     "200": {
                         "description": "获取成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.AccessTokenResponse"
                         }
                     },
                     "404": {
                         "description": "应用不存在",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取当前登录用户的资料信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Identity-Users"
+                ],
+                "summary": "获取当前用户信息",
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "部分更新当前登录用户的信息，支持更新昵称和联系方式",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Identity-Users"
+                ],
+                "summary": "更新当前用户信息",
+                "parameters": [
+                    {
+                        "description": "更新用户请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.UserUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
                         }
                     }
                 }
@@ -2743,115 +2736,11 @@ const docTemplate = `{
                     "200": {
                         "description": "查询成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildPageResponse"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildPageResponse"
                         }
                     },
                     "401": {
                         "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/users/profile": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "获取当前登录用户的资料信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Identity-Users"
-                ],
-                "summary": "获取当前用户资料",
-                "responses": {
-                    "200": {
-                        "description": "查询成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.UserResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/users/{userId}": {
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "部分更新用户信息，支持更新昵称和联系方式",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Identity-Users"
-                ],
-                "summary": "更新用户信息",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "用户 ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "更新用户请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.UserUpdateRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "更新成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.UserResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "用户不存在",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
                         }
@@ -2867,7 +2756,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_domain_jwks.PublicJWK": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_domain_authn_jwks.PublicJWK": {
             "type": "object",
             "properties": {
                 "alg": {
@@ -2904,7 +2793,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.CreateKeyRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.CreateKeyRequest": {
             "type": "object",
             "required": [
                 "algorithm"
@@ -2929,7 +2818,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LoginRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.LoginRequest": {
             "type": "object",
             "required": [
                 "credentials",
@@ -2953,7 +2842,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.LogoutRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.LogoutRequest": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -2966,7 +2855,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.RefreshTokenRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.RefreshTokenRequest": {
             "type": "object",
             "required": [
                 "refresh_token"
@@ -2977,7 +2866,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.RegisterWeChatAccountReq": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.RegisterWeChatAccountReq": {
             "type": "object",
             "properties": {
                 "appId": {
@@ -3019,7 +2908,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.SetWeChatUnionIDReq": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.SetWeChatUnionIDReq": {
             "type": "object",
             "properties": {
                 "unionId": {
@@ -3027,7 +2916,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.UpsertWeChatProfileReq": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.UpsertWeChatProfileReq": {
             "type": "object",
             "properties": {
                 "avatar": {
@@ -3042,7 +2931,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_request.VerifyTokenRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.VerifyTokenRequest": {
             "type": "object",
             "required": [
                 "access_token"
@@ -3053,7 +2942,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Account": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.Account": {
             "type": "object",
             "properties": {
                 "appId": {
@@ -3076,7 +2965,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.CleanupResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.CleanupResponse": {
             "type": "object",
             "properties": {
                 "deletedCount": {
@@ -3085,7 +2974,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Credential": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.Credential": {
             "type": "object",
             "properties": {
                 "accountId": {
@@ -3111,13 +3000,13 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.CredentialList": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.CredentialList": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.Credential"
+                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.Credential"
                     }
                 },
                 "total": {
@@ -3125,7 +3014,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyInfo": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.KeyInfo": {
             "type": "object",
             "properties": {
                 "algorithm": {
@@ -3152,7 +3041,7 @@ const docTemplate = `{
                     "description": "公钥 JWK",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_domain_jwks.PublicJWK"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_domain_authn_jwks.PublicJWK"
                         }
                     ]
                 },
@@ -3166,14 +3055,14 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyListResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.KeyListResponse": {
             "type": "object",
             "properties": {
                 "keys": {
                     "description": "密钥列表",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyInfo"
+                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.KeyInfo"
                     }
                 },
                 "limit": {
@@ -3190,7 +3079,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.KeyResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.KeyResponse": {
             "type": "object",
             "properties": {
                 "algorithm": {
@@ -3217,7 +3106,7 @@ const docTemplate = `{
                     "description": "公钥 JWK",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_domain_jwks.PublicJWK"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_domain_authn_jwks.PublicJWK"
                         }
                     ]
                 },
@@ -3231,7 +3120,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.MessageResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -3239,7 +3128,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.PublishableKeyInfo": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.PublishableKeyInfo": {
             "type": "object",
             "properties": {
                 "algorithm": {
@@ -3262,7 +3151,7 @@ const docTemplate = `{
                     "description": "公钥 JWK",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_domain_jwks.PublicJWK"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_domain_authn_jwks.PublicJWK"
                         }
                     ]
                 },
@@ -3272,23 +3161,23 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.PublishableKeysResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.PublishableKeysResponse": {
             "type": "object",
             "properties": {
                 "keys": {
                     "description": "可发布的密钥列表",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.PublishableKeyInfo"
+                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.PublishableKeyInfo"
                     }
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.RegisterResult": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.RegisterResult": {
             "type": "object",
             "properties": {
                 "accountId": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "accountType": {
                     "type": "string"
@@ -3312,14 +3201,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "userId": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "userName": {
                     "type": "string"
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenClaims": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.TokenClaims": {
             "type": "object",
             "properties": {
                 "account_id": {
@@ -3356,7 +3245,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenPair": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.TokenPair": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -3377,14 +3266,14 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenVerifyResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.TokenVerifyResponse": {
             "type": "object",
             "properties": {
                 "claims": {
                     "description": "令牌声明（如果有效）",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authn_interface_restful_response.TokenClaims"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.TokenClaims"
                         }
                     ]
                 },
@@ -3394,7 +3283,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.AddPolicyRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AddPolicyRequest": {
             "type": "object",
             "required": [
                 "action",
@@ -3420,7 +3309,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.AssignmentResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AssignmentResponse": {
             "type": "object",
             "properties": {
                 "granted_by": {
@@ -3443,7 +3332,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.CreateResourceRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CreateResourceRequest": {
             "type": "object",
             "required": [
                 "actions",
@@ -3481,7 +3370,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.CreateRoleRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CreateRoleRequest": {
             "type": "object",
             "required": [
                 "display_name",
@@ -3499,7 +3388,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.GrantRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.GrantRequest": {
             "type": "object",
             "required": [
                 "granted_by",
@@ -3526,7 +3415,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ListResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ListResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -3547,7 +3436,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.PolicyRuleResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.PolicyRuleResponse": {
             "type": "object",
             "properties": {
                 "action": {
@@ -3564,7 +3453,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.PolicyVersionResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.PolicyVersionResponse": {
             "type": "object",
             "properties": {
                 "changed_by": {
@@ -3581,7 +3470,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RemovePolicyRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RemovePolicyRequest": {
             "type": "object",
             "required": [
                 "action",
@@ -3607,7 +3496,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ResourceResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ResourceResponse": {
             "type": "object",
             "properties": {
                 "actions": {
@@ -3639,7 +3528,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.Response": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response": {
             "type": "object",
             "properties": {
                 "code": {
@@ -3651,7 +3540,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RevokeRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RevokeRequest": {
             "type": "object",
             "required": [
                 "role_id",
@@ -3674,7 +3563,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.RoleResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RoleResponse": {
             "type": "object",
             "properties": {
                 "description": {
@@ -3694,7 +3583,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.UpdateResourceRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.UpdateResourceRequest": {
             "type": "object",
             "properties": {
                 "actions": {
@@ -3712,7 +3601,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.UpdateRoleRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.UpdateRoleRequest": {
             "type": "object",
             "properties": {
                 "description": {
@@ -3723,7 +3612,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ValidateActionRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ValidateActionRequest": {
             "type": "object",
             "required": [
                 "action",
@@ -3738,7 +3627,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_authz_interface_restful_dto.ValidateActionResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ValidateActionResponse": {
             "type": "object",
             "properties": {
                 "valid": {
@@ -3746,7 +3635,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.CreateWechatAppRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_request.CreateWechatAppRequest": {
             "type": "object",
             "required": [
                 "app_id",
@@ -3772,7 +3661,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RefreshAccessTokenRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_request.RefreshAccessTokenRequest": {
             "type": "object",
             "required": [
                 "app_id"
@@ -3784,7 +3673,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateAuthSecretRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_request.RotateAuthSecretRequest": {
             "type": "object",
             "required": [
                 "app_id",
@@ -3801,7 +3690,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_request.RotateMsgSecretRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_request.RotateMsgSecretRequest": {
             "type": "object",
             "required": [
                 "app_id",
@@ -3823,7 +3712,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.AccessTokenResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.AccessTokenResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -3836,7 +3725,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.ErrorResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -3849,7 +3738,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.RotateSecretResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.RotateSecretResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -3862,7 +3751,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_idp_interface_restful_response.WechatAppResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.WechatAppResponse": {
             "type": "object",
             "properties": {
                 "app_id": {
@@ -3887,40 +3776,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.ChildCreateRequest": {
-            "type": "object",
-            "required": [
-                "dob",
-                "gender",
-                "idNo",
-                "idType",
-                "legalName"
-            ],
-            "properties": {
-                "dob": {
-                    "type": "string"
-                },
-                "gender": {
-                    "type": "integer"
-                },
-                "heightCm": {
-                    "type": "integer"
-                },
-                "idNo": {
-                    "type": "string"
-                },
-                "idType": {
-                    "type": "string"
-                },
-                "legalName": {
-                    "type": "string"
-                },
-                "weightKg": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.ChildRegisterRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.ChildRegisterRequest": {
             "type": "object",
             "required": [
                 "dob",
@@ -3962,7 +3818,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.ChildUpdateRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.ChildUpdateRequest": {
             "type": "object",
             "properties": {
                 "dob": {
@@ -3982,7 +3838,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.GuardianGrantRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.GuardianGrantRequest": {
             "type": "object",
             "required": [
                 "childId",
@@ -4006,22 +3862,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.GuardianRevokeRequest": {
-            "type": "object",
-            "required": [
-                "childId",
-                "userId"
-            ],
-            "properties": {
-                "childId": {
-                    "type": "string"
-                },
-                "userId": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.UserContactUpsert": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.UserContactUpsert": {
             "type": "object",
             "required": [
                 "type",
@@ -4040,7 +3881,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.UserUpdateRequest": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.UserUpdateRequest": {
             "type": "object",
             "properties": {
                 "avatar": {
@@ -4049,7 +3890,7 @@ const docTemplate = `{
                 "contacts": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_request.UserContactUpsert"
+                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.UserContactUpsert"
                     }
                 },
                 "nickname": {
@@ -4057,13 +3898,13 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildPageResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildPageResponse": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildResponse"
+                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildResponse"
                     }
                 },
                 "limit": {
@@ -4077,18 +3918,18 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildRegisterResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildRegisterResponse": {
             "type": "object",
             "properties": {
                 "child": {
-                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildResponse"
+                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildResponse"
                 },
                 "guardianship": {
-                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipResponse"
+                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipResponse"
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.ChildResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -4123,13 +3964,13 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipPageResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipPageResponse": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipResponse"
+                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipResponse"
                     }
                 },
                 "limit": {
@@ -4143,7 +3984,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.GuardianshipResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipResponse": {
             "type": "object",
             "properties": {
                 "childId": {
@@ -4166,7 +4007,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.UserResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse": {
             "type": "object",
             "properties": {
                 "avatar": {
@@ -4175,7 +4016,7 @@ const docTemplate = `{
                 "contacts": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.VerifiedContactResponse"
+                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.VerifiedContactResponse"
                     }
                 },
                 "createdAt": {
@@ -4195,7 +4036,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_modules_uc_interface_restful_response.VerifiedContactResponse": {
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.VerifiedContactResponse": {
             "type": "object",
             "properties": {
                 "type": {
@@ -4239,10 +4080,6 @@ const docTemplate = `{
         {
             "description": "认证 - 用户登录",
             "name": "认证"
-        },
-        {
-            "description": "令牌管理 - 刷新、验证、撤销",
-            "name": "Authentication-Tokens"
         },
         {
             "description": "账号管理 - 创建、查询、绑定第三方账号",

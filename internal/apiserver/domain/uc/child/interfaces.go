@@ -10,11 +10,17 @@ import (
 // 这些接口由领域层（领域服务）实现，供应用层调用
 // 按照功能职责拆分，遵循接口隔离原则
 
-// Register 儿童注册领域服务接口
-// 负责儿童档案注册相关的领域逻辑
-type Register interface {
-	Register(ctx context.Context, name string, gender meta.Gender, birthday meta.Birthday) (*Child, error)
-	RegisterWithIDCard(ctx context.Context, name string, gender meta.Gender, birthday meta.Birthday, idCard meta.IDCard) (*Child, error)
+// Validator 儿童验证器接口（Driving Port - 领域服务）
+// 封装儿童相关的验证规则和业务检查
+type Validator interface {
+	// ValidateRegister 验证注册参数
+	ValidateRegister(ctx context.Context, name string, gender meta.Gender, birthday meta.Birthday) error
+
+	// ValidateRename 验证改名参数
+	ValidateRename(name string) error
+
+	// ValidateUpdateProfile 验证资料更新参数
+	ValidateUpdateProfile(gender meta.Gender, birthday meta.Birthday) error
 }
 
 // ProfileEditor 儿童资料管理领域服务接口
