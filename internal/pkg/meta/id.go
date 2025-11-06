@@ -1,6 +1,12 @@
 package meta
 
-import "github.com/FangcunMount/component-base/pkg/util/idutil"
+import (
+	"database/sql/driver"
+	"fmt"
+	"math"
+
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
+)
 
 // ID 是基础实体标识类型
 type ID idutil.ID
@@ -18,6 +24,15 @@ func (id ID) ToUint64() uint64 {
 // String 返回 ID 的字符串表示
 func (id ID) String() string {
 	return idutil.ID(id).String()
+}
+
+// Value 实现 driver.Valuer 接口，确保在 SQL 查询参数中可直接使用
+func (id ID) Value() (driver.Value, error) {
+	value := id.ToUint64()
+	if value > math.MaxInt64 {
+		return nil, fmt.Errorf("meta.ID value %d exceeds max int64", value)
+	}
+	return int64(value), nil
 }
 
 // MarshalJSON 实现 json.Marshaler 接口，输出数字
