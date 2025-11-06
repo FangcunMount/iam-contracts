@@ -1,18 +1,17 @@
-package service
+package user
 
 import (
 	"context"
 	"errors"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 
 // ensurePhoneUnique 确保手机号在系统中唯一
-func ensurePhoneUnique(ctx context.Context, repo port.UserRepository, phone meta.Phone) error {
+func ensurePhoneUnique(ctx context.Context, repo Repository, phone meta.Phone) error {
 	if phone.IsEmpty() {
 		return perrors.WithCode(code.ErrUserBasicInfoInvalid, "phone cannot be empty")
 	}

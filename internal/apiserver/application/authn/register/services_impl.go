@@ -10,7 +10,6 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	credDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/credential"
 	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
-	userPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
@@ -21,7 +20,7 @@ import (
 type registerApplicationService struct {
 	uow      uow.UnitOfWork
 	hasher   authentication.PasswordHasher
-	userRepo userPort.UserRepository
+	userRepo userDomain.Repository
 }
 
 var _ RegisterApplicationService = (*registerApplicationService)(nil)
@@ -29,7 +28,7 @@ var _ RegisterApplicationService = (*registerApplicationService)(nil)
 func NewRegisterApplicationService(
 	uow uow.UnitOfWork,
 	hasher authentication.PasswordHasher,
-	userRepo userPort.UserRepository,
+	userRepo userDomain.Repository,
 ) RegisterApplicationService {
 	return &registerApplicationService{
 		uow:      uow,

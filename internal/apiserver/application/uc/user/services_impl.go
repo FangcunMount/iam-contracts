@@ -6,7 +6,7 @@ import (
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
-	domainservice "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user/service"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -32,7 +32,7 @@ func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserD
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		registerService := domainservice.NewRegisterService(tx.Users)
+		registerService := user.NewRegisterService(tx.Users)
 
 		// 转换 DTO 为值对象
 		phone := meta.NewPhone(dto.Phone)
@@ -80,7 +80,7 @@ func NewUserProfileApplicationService(uow uow.UnitOfWork) UserProfileApplication
 func (s *userProfileApplicationService) Rename(ctx context.Context, userID string, newName string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := domainservice.NewProfileService(tx.Users)
+		profileService := user.NewProfileService(tx.Users)
 
 		// 转换 ID
 		id, err := parseUserID(userID)
@@ -103,7 +103,7 @@ func (s *userProfileApplicationService) Rename(ctx context.Context, userID strin
 func (s *userProfileApplicationService) UpdateContact(ctx context.Context, dto UpdateContactDTO) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := domainservice.NewProfileService(tx.Users)
+		profileService := user.NewProfileService(tx.Users)
 
 		// 转换 ID
 		id, err := parseUserID(dto.UserID)
@@ -130,7 +130,7 @@ func (s *userProfileApplicationService) UpdateContact(ctx context.Context, dto U
 func (s *userProfileApplicationService) UpdateIDCard(ctx context.Context, userID string, idCard string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := domainservice.NewProfileService(tx.Users)
+		profileService := user.NewProfileService(tx.Users)
 
 		// 转换 ID
 		id, err := parseUserID(userID)
@@ -170,7 +170,7 @@ func NewUserStatusApplicationService(uow uow.UnitOfWork) UserStatusApplicationSe
 func (s *userStatusApplicationService) Activate(ctx context.Context, userID string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		statusService := domainservice.NewStatusService(tx.Users)
+		statusService := user.NewStatusService(tx.Users)
 
 		// 转换 ID
 		id, err := parseUserID(userID)
@@ -193,7 +193,7 @@ func (s *userStatusApplicationService) Activate(ctx context.Context, userID stri
 func (s *userStatusApplicationService) Deactivate(ctx context.Context, userID string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		statusService := domainservice.NewStatusService(tx.Users)
+		statusService := user.NewStatusService(tx.Users)
 
 		// 转换 ID
 		id, err := parseUserID(userID)
@@ -216,7 +216,7 @@ func (s *userStatusApplicationService) Deactivate(ctx context.Context, userID st
 func (s *userStatusApplicationService) Block(ctx context.Context, userID string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		statusService := domainservice.NewStatusService(tx.Users)
+		statusService := user.NewStatusService(tx.Users)
 
 		// 转换 ID
 		id, err := parseUserID(userID)
@@ -255,14 +255,13 @@ func (s *userQueryApplicationService) GetByID(ctx context.Context, userID string
 
 	// 查询操作也通过 UoW，但不需要写操作，可以直接使用只读事务
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		queryService := domainservice.NewQueryService(tx.Users)
 
 		userIDObj, err := parseUserID(userID)
 		if err != nil {
 			return err
 		}
 
-		user, err := queryService.FindByID(ctx, userIDObj)
+		user, err := tx.Users.FindByID(ctx, userIDObj)
 		if err != nil {
 			return err
 		}
@@ -279,11 +278,10 @@ func (s *userQueryApplicationService) GetByPhone(ctx context.Context, phone stri
 	var result *UserResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		queryService := domainservice.NewQueryService(tx.Users)
 
 		phoneObj := meta.NewPhone(phone)
 
-		user, err := queryService.FindByPhone(ctx, phoneObj)
+		user, err := tx.Users.FindByPhone(ctx, phoneObj)
 		if err != nil {
 			return err
 		}

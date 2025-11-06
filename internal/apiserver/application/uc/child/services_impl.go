@@ -6,7 +6,7 @@ import (
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
-	domainservice "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child/service"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -32,7 +32,7 @@ func (s *childApplicationService) Register(ctx context.Context, dto RegisterChil
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		registerService := domainservice.NewRegisterService(tx.Children)
+		registerService := child.NewRegisterService(tx.Children)
 
 		// 转换 DTO 为值对象
 		gender := parseGender(dto.Gender)
@@ -102,7 +102,7 @@ func NewChildProfileApplicationService(uow uow.UnitOfWork) ChildProfileApplicati
 func (s *childProfileApplicationService) Rename(ctx context.Context, childID string, newName string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := domainservice.NewProfileService(tx.Children)
+		profileService := child.NewProfileService(tx.Children)
 
 		// 转换 ID
 		id, err := parseChildID(childID)
@@ -125,7 +125,7 @@ func (s *childProfileApplicationService) Rename(ctx context.Context, childID str
 func (s *childProfileApplicationService) UpdateIDCard(ctx context.Context, childID string, name string, idCard string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := domainservice.NewProfileService(tx.Children)
+		profileService := child.NewProfileService(tx.Children)
 
 		// 转换 ID
 		id, err := parseChildID(childID)
@@ -151,7 +151,7 @@ func (s *childProfileApplicationService) UpdateIDCard(ctx context.Context, child
 func (s *childProfileApplicationService) UpdateProfile(ctx context.Context, dto UpdateChildProfileDTO) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := domainservice.NewProfileService(tx.Children)
+		profileService := child.NewProfileService(tx.Children)
 
 		// 转换 ID
 		id, err := parseChildID(dto.ChildID)
@@ -178,7 +178,7 @@ func (s *childProfileApplicationService) UpdateProfile(ctx context.Context, dto 
 func (s *childProfileApplicationService) UpdateHeightWeight(ctx context.Context, dto UpdateHeightWeightDTO) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := domainservice.NewProfileService(tx.Children)
+		profileService := child.NewProfileService(tx.Children)
 
 		// 转换 ID
 		id, err := parseChildID(dto.ChildID)
@@ -221,14 +221,13 @@ func (s *childQueryApplicationService) GetByID(ctx context.Context, childID stri
 	var result *ChildResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		queryService := domainservice.NewQueryService(tx.Children)
 
 		childIDObj, err := parseChildID(childID)
 		if err != nil {
 			return err
 		}
 
-		child, err := queryService.FindByID(ctx, childIDObj)
+		child, err := tx.Children.FindByID(ctx, childIDObj)
 		if err != nil {
 			return err
 		}
@@ -245,11 +244,10 @@ func (s *childQueryApplicationService) GetByIDCard(ctx context.Context, idCard s
 	var result *ChildResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		queryService := domainservice.NewQueryService(tx.Children)
 
 		idCardObj := meta.NewIDCard("", idCard)
 
-		child, err := queryService.FindByIDCard(ctx, idCardObj)
+		child, err := tx.Children.FindByIDCard(ctx, idCardObj)
 		if err != nil {
 			return err
 		}
@@ -266,12 +264,11 @@ func (s *childQueryApplicationService) FindSimilar(ctx context.Context, name str
 	var results []*ChildResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		queryService := domainservice.NewQueryService(tx.Children)
 
 		genderObj := parseGender(gender)
 		birthdayObj := meta.NewBirthday(birthday)
 
-		children, err := queryService.FindSimilar(ctx, name, genderObj, birthdayObj)
+		children, err := tx.Children.FindSimilar(ctx, name, genderObj, birthdayObj)
 		if err != nil {
 			return err
 		}

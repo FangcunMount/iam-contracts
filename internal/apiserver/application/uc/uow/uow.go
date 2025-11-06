@@ -5,9 +5,9 @@ import (
 
 	"gorm.io/gorm"
 
-	childport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child/port"
-	guardport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship/port"
-	userport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user/port"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	childrepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/child"
 	guardrepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/guardianship"
 	userrepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
@@ -17,9 +17,9 @@ import (
 
 // TxRepositories 聚合事务中可使用的仓储集合。
 type TxRepositories struct {
-	Guardianships guardport.GuardianshipRepository
-	Children      childport.ChildRepository
-	Users         userport.UserRepository
+	Guardianships guardianship.Repository
+	Children      child.Repository
+	Users         user.Repository
 }
 
 // UnitOfWork 提供业务事务边界。

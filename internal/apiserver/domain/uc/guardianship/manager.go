@@ -1,31 +1,27 @@
-package service
+package guardianship
 
 import (
 	"context"
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	childDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
-	childport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child/port"
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
-	guardport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship/port"
-	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
-	userport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user/port"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
 // GuardianshipManager 监护关系管理领域服务
 type GuardianshipManager struct {
-	repo      guardport.GuardianshipRepository
-	childRepo childport.ChildRepository
-	userRepo  userport.UserRepository
+	repo      Repository
+	childRepo child.Repository
+	userRepo  user.Repository
 }
 
 // 确保实现
-var _ guardport.GuardianshipManager = (*GuardianshipManager)(nil)
+var _ Manager = (*GuardianshipManager)(nil)
 
 // NewManagerService 创建管理服务
-func NewManagerService(r guardport.GuardianshipRepository, cr childport.ChildRepository, ur userport.UserRepository) *GuardianshipManager {
+func NewManagerService(r Repository, cr child.Repository, ur user.Repository) *GuardianshipManager {
 	return &GuardianshipManager{
 		repo:      r,
 		childRepo: cr,
@@ -36,7 +32,7 @@ func NewManagerService(r guardport.GuardianshipRepository, cr childport.ChildRep
 // AddGuardian 添加监护人
 // 领域逻辑：验证用户和儿童存在性 + 验证监护关系不重复 + 创建监护实体
 // 注意：不包括持久化，返回创建的监护关系实体供应用层持久化
-func (s *GuardianshipManager) AddGuardian(ctx context.Context, userID userDomain.UserID, childID childDomain.ChildID, relation domain.Relation) (*domain.Guardianship, error) {
+func (s *GuardianshipManager) AddGuardian(ctx context.Context, userID user.UserID, childID child.ChildID, relation Relation) (*Guardianship, error) {
 	// 验证儿童存在
 	c, err := s.childRepo.FindByID(ctx, childID)
 	if err != nil {
@@ -70,7 +66,7 @@ func (s *GuardianshipManager) AddGuardian(ctx context.Context, userID userDomain
 	}
 
 	// 创建监护关系实体
-	newGuard := &domain.Guardianship{
+	newGuard := &Guardianship{
 		User:          userID,
 		Child:         childID,
 		Rel:           relation,
@@ -84,7 +80,7 @@ func (s *GuardianshipManager) AddGuardian(ctx context.Context, userID userDomain
 // RemoveGuardian 撤销监护
 // 领域逻辑：查询监护关系 + 撤销监护
 // 注意：不包括持久化，返回修改后的监护关系实体供应用层持久化
-func (s *GuardianshipManager) RemoveGuardian(ctx context.Context, userID userDomain.UserID, childID childDomain.ChildID) (*domain.Guardianship, error) {
+func (s *GuardianshipManager) RemoveGuardian(ctx context.Context, userID user.UserID, childID child.ChildID) (*Guardianship, error) {
 	// 查询监护关系
 	guardians, err := s.repo.FindByChildID(ctx, childID)
 	if err != nil {
@@ -92,7 +88,7 @@ func (s *GuardianshipManager) RemoveGuardian(ctx context.Context, userID userDom
 	}
 
 	// 查找目标监护关系
-	var target *domain.Guardianship
+	var target *Guardianship
 	for _, g := range guardians {
 		if g == nil {
 			continue

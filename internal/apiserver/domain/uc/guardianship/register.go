@@ -1,4 +1,4 @@
-package service
+package guardianship
 
 import (
 	"context"
@@ -6,22 +6,20 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	childDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
-	guardport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship/port"
-	userport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user/port"
+	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
 // GuardianshipRegister 监护关系注册领域服务
 type GuardianshipRegister struct {
-	userRepo userport.UserRepository
+	userRepo userDomain.Repository
 }
 
 // 确保实现
-var _ guardport.GuardianshipRegister = (*GuardianshipRegister)(nil)
+var _ Register = (*GuardianshipRegister)(nil)
 
 // NewRegisterService 创建注册服务
-func NewRegisterService(ur userport.UserRepository) *GuardianshipRegister {
+func NewRegisterService(ur userDomain.Repository) *GuardianshipRegister {
 	return &GuardianshipRegister{
 		userRepo: ur,
 	}
@@ -31,7 +29,7 @@ func NewRegisterService(ur userport.UserRepository) *GuardianshipRegister {
 // 领域逻辑：验证监护人存在 + 创建儿童实体 + 创建监护关系实体
 // 注意：不包括持久化，返回创建的两个实体供应用层在事务中持久化
 // 注意：这是一个跨聚合的复杂用例，需要应用层协调事务
-func (s *GuardianshipRegister) RegisterChildWithGuardian(ctx context.Context, params guardport.RegisterChildWithGuardianParams) (*domain.Guardianship, *childDomain.Child, error) {
+func (s *GuardianshipRegister) RegisterChildWithGuardian(ctx context.Context, params RegisterChildWithGuardianParams) (*Guardianship, *childDomain.Child, error) {
 	// 验证监护人（用户）存在
 	userEntity, err := s.userRepo.FindByID(ctx, params.UserID)
 	if err != nil {
@@ -71,7 +69,7 @@ func (s *GuardianshipRegister) RegisterChildWithGuardian(ctx context.Context, pa
 
 	// 创建监护关系实体
 	// 注意：此时 child.ID 还是空的，需要在应用层持久化 child 后再设置
-	guard := &domain.Guardianship{
+	guard := &Guardianship{
 		User:          params.UserID,
 		Child:         child.ID, // 将由应用层在持久化 child 后更新
 		Rel:           params.Relation,

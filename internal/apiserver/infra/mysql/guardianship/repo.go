@@ -5,8 +5,8 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	child "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship/port"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"gorm.io/gorm"
@@ -19,7 +19,7 @@ type Repository struct {
 }
 
 // NewRepository 创建监护关系存储库
-func NewRepository(db *gorm.DB) port.GuardianshipRepository {
+func NewRepository(db *gorm.DB) guardianship.Repository {
 	return &Repository{
 		BaseRepository: mysql.NewBaseRepository[*GuardianshipPO](db),
 		mapper:         NewGuardianshipMapper(),
@@ -71,7 +71,32 @@ func (r *Repository) FindByUserID(ctx context.Context, id user.UserID) ([]*domai
 	return r.toDomainSlice(pos), nil
 }
 
-// Update 更新监护关系
+// FindByUserIDAndChildID 根据监护人 ID 和儿童 ID 查找监护关系
+func (r *Repository) FindByUserIDAndChildID(ctx context.Context, userID user.UserID, childID child.ChildID) (*domain.Guardianship, error) {
+	var po GuardianshipPO
+	if err := r.WithContext(ctx).Where("user_id = ? AND child_id = ?", userID.Uint64(), childID.Uint64()).First(&po).Error; err != nil {
+		return nil, err
+	}
+
+	g := r.mapper.ToBO(&po)
+	if g == nil {
+		return nil, gorm.ErrRecordNotFound
+	}
+	return g, nil
+}
+
+// IsGuardian 检查是否为监护关系
+func (r *Repository) IsGuardian(ctx context.Context, userID user.UserID, childID child.ChildID) (bool, error) {
+	var count int64
+	if err := r.WithContext(ctx).Model(&GuardianshipPO{}).
+		Where("user_id = ? AND child_id = ?", userID.Uint64(), childID.Uint64()).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// Update 更新监护关系// Update 更新监护关系
 func (r *Repository) Update(ctx context.Context, g *domain.Guardianship) error {
 	po := r.mapper.ToPO(g)
 	return r.UpdateAndSync(ctx, po, func(updated *GuardianshipPO) {

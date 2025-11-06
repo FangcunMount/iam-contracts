@@ -1,36 +1,33 @@
-package service
+package child
 
 import (
 	"context"
 
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
-	port "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // ChildProfileEditor 儿童档案资料编辑应用服务
 type ChildProfileEditor struct {
-	repo port.ChildRepository
+	repo Repository
 }
 
-// 确保 ChildProfileEditor 实现 port.ChildProfileEditor
-var _ port.ChildProfileEditor = (*ChildProfileEditor)(nil)
+// 确保 ChildProfileEditor 实现 ProfileEditor
+var _ ProfileEditor = (*ChildProfileEditor)(nil)
 
 // NewProfileService 创建儿童档案资料服务
-func NewProfileService(repo port.ChildRepository) *ChildProfileEditor {
+func NewProfileService(repo Repository) *ChildProfileEditor {
 	return &ChildProfileEditor{repo: repo}
 }
 
 // Rename 重命名儿童档案
 // 领域逻辑：查询 + 修改实体
 // 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *ChildProfileEditor) Rename(ctx context.Context, childID domain.ChildID, name string) (*domain.Child, error) {
-	child, err := NewQueryService(s.repo).FindByID(ctx, childID)
+func (s *ChildProfileEditor) Rename(ctx context.Context, childID ChildID, name string) (*Child, error) {
+	child, err := s.repo.FindByID(ctx, childID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 领域逻辑：重命名
 	child.Rename(name)
 
 	// 返回修改后的实体，由应用层持久化
@@ -40,8 +37,8 @@ func (s *ChildProfileEditor) Rename(ctx context.Context, childID domain.ChildID,
 // UpdateIDCard 更新儿童身份证信息
 // 领域逻辑：查询 + 修改实体
 // 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *ChildProfileEditor) UpdateIDCard(ctx context.Context, childID domain.ChildID, idCard meta.IDCard) (*domain.Child, error) {
-	child, err := NewQueryService(s.repo).FindByID(ctx, childID)
+func (s *ChildProfileEditor) UpdateIDCard(ctx context.Context, childID ChildID, idCard meta.IDCard) (*Child, error) {
+	child, err := s.repo.FindByID(ctx, childID)
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +53,8 @@ func (s *ChildProfileEditor) UpdateIDCard(ctx context.Context, childID domain.Ch
 // UpdateProfile 更新儿童基础信息
 // 领域逻辑：查询 + 修改实体
 // 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *ChildProfileEditor) UpdateProfile(ctx context.Context, childID domain.ChildID, gender meta.Gender, birthday meta.Birthday) (*domain.Child, error) {
-	child, err := NewQueryService(s.repo).FindByID(ctx, childID)
+func (s *ChildProfileEditor) UpdateProfile(ctx context.Context, childID ChildID, gender meta.Gender, birthday meta.Birthday) (*Child, error) {
+	child, err := s.repo.FindByID(ctx, childID)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +69,8 @@ func (s *ChildProfileEditor) UpdateProfile(ctx context.Context, childID domain.C
 // UpdateHeightWeight 更新儿童身高体重信息
 // 领域逻辑：查询 + 修改实体
 // 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *ChildProfileEditor) UpdateHeightWeight(ctx context.Context, childID domain.ChildID, height meta.Height, weight meta.Weight) (*domain.Child, error) {
-	child, err := NewQueryService(s.repo).FindByID(ctx, childID)
+func (s *ChildProfileEditor) UpdateHeightWeight(ctx context.Context, childID ChildID, height meta.Height, weight meta.Weight) (*Child, error) {
+	child, err := s.repo.FindByID(ctx, childID)
 	if err != nil {
 		return nil, err
 	}

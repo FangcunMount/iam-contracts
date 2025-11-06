@@ -1,39 +1,37 @@
-package service
+package user
 
 import (
 	"context"
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
-// UserProfileEditor 用户资料编辑应用服务
-type UserProfileEditor struct {
-	repo port.UserRepository
+// profileEditor 用户资料编辑应用服务
+type profileEditor struct {
+	repo Repository
 }
 
-// 确保 UserProfileEditor 实现了 port.UserProfileEditor 接口
-var _ port.UserProfileEditor = (*UserProfileEditor)(nil)
+// 确保 profileEditor 实现了 ProfileEditor 接口
+var _ ProfileEditor = (*profileEditor)(nil)
 
 // NewProfileService 创建用户资料服务
-func NewProfileService(repo port.UserRepository) *UserProfileEditor {
-	return &UserProfileEditor{repo: repo}
+func NewProfileService(repo Repository) *profileEditor {
+	return &profileEditor{repo: repo}
 }
 
 // Rename 更新用户昵称
 // 领域逻辑：验证 + 修改实体
 // 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *UserProfileEditor) Rename(ctx context.Context, userID domain.UserID, name string) (*domain.User, error) {
+func (s *profileEditor) Rename(ctx context.Context, userID UserID, name string) (*User, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return nil, perrors.WithCode(code.ErrUserBasicInfoInvalid, "nickname cannot be empty")
 	}
 
-	user, err := NewQueryService(s.repo).FindByID(ctx, userID)
+	user, err := s.repo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +46,8 @@ func (s *UserProfileEditor) Rename(ctx context.Context, userID domain.UserID, na
 // UpdateContact 更新用户联系方式
 // 领域逻辑：验证 + 修改实体
 // 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *UserProfileEditor) UpdateContact(ctx context.Context, userID domain.UserID, phone meta.Phone, email meta.Email) (*domain.User, error) {
-	user, err := NewQueryService(s.repo).FindByID(ctx, userID)
+func (s *profileEditor) UpdateContact(ctx context.Context, userID UserID, phone meta.Phone, email meta.Email) (*User, error) {
+	user, err := s.repo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +71,8 @@ func (s *UserProfileEditor) UpdateContact(ctx context.Context, userID domain.Use
 // UpdateIDCard 更新身份证信息
 // 领域逻辑：验证 + 修改实体
 // 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *UserProfileEditor) UpdateIDCard(ctx context.Context, userID domain.UserID, idCard meta.IDCard) (*domain.User, error) {
-	user, err := NewQueryService(s.repo).FindByID(ctx, userID)
+func (s *profileEditor) UpdateIDCard(ctx context.Context, userID UserID, idCard meta.IDCard) (*User, error) {
+	user, err := s.repo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

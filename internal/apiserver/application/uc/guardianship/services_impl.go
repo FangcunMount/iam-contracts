@@ -7,8 +7,8 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	childdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
-	guardport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship/port"
-	domainservice "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship/service"
+	guardport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	userdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
@@ -32,7 +32,7 @@ func NewGuardianshipApplicationService(uow uow.UnitOfWork) GuardianshipApplicati
 func (s *guardianshipApplicationService) AddGuardian(ctx context.Context, dto AddGuardianDTO) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		managerService := domainservice.NewManagerService(tx.Guardianships, tx.Children, tx.Users)
+		managerService := guardianship.NewManagerService(tx.Guardianships, tx.Children, tx.Users)
 
 		// 转换 ID
 		userID, err := parseUserID(dto.UserID)
@@ -62,7 +62,7 @@ func (s *guardianshipApplicationService) AddGuardian(ctx context.Context, dto Ad
 func (s *guardianshipApplicationService) RemoveGuardian(ctx context.Context, dto RemoveGuardianDTO) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		managerService := domainservice.NewManagerService(tx.Guardianships, tx.Children, tx.Users)
+		managerService := guardianship.NewManagerService(tx.Guardianships, tx.Children, tx.Users)
 
 		// 转换 ID
 		userID, err := parseUserID(dto.UserID)
@@ -91,7 +91,7 @@ func (s *guardianshipApplicationService) RegisterChildWithGuardian(ctx context.C
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		registerService := domainservice.NewRegisterService(tx.Users)
+		registerService := guardianship.NewRegisterService(tx.Users)
 
 		// 转换 ID 和值对象
 		userID, err := parseUserID(dto.UserID)
@@ -158,7 +158,6 @@ func (s *guardianshipApplicationService) IsGuardian(ctx context.Context, userID 
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		queryService := domainservice.NewQueryService(tx.Guardianships, tx.Children)
 
 		// 转换 ID
 		uid, err := parseUserID(userID)
@@ -171,7 +170,7 @@ func (s *guardianshipApplicationService) IsGuardian(ctx context.Context, userID 
 		}
 
 		// 调用领域服务查询
-		isGuardian, err = queryService.IsGuardian(ctx, uid, cid)
+		isGuardian, err = tx.Guardianships.IsGuardian(ctx, uid, cid)
 		return err
 	})
 
@@ -184,7 +183,6 @@ func (s *guardianshipApplicationService) GetByUserIDAndChildID(ctx context.Conte
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		queryService := domainservice.NewQueryService(tx.Guardianships, tx.Children)
 
 		// 转换 ID
 		uid, err := parseUserID(userID)
@@ -197,7 +195,7 @@ func (s *guardianshipApplicationService) GetByUserIDAndChildID(ctx context.Conte
 		}
 
 		// 调用领域服务查询
-		guardianship, err := queryService.FindByUserIDAndChildID(ctx, uid, cid)
+		guardianship, err := tx.Guardianships.FindByUserIDAndChildID(ctx, uid, cid)
 		if err != nil {
 			return err
 		}
@@ -222,7 +220,6 @@ func (s *guardianshipApplicationService) ListChildrenByUserID(ctx context.Contex
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		queryService := domainservice.NewQueryService(tx.Guardianships, tx.Children)
 
 		// 转换 ID
 		uid, err := parseUserID(userID)
@@ -231,7 +228,7 @@ func (s *guardianshipApplicationService) ListChildrenByUserID(ctx context.Contex
 		}
 
 		// 调用领域服务查询
-		guardianships, err := queryService.FindListByUserID(ctx, uid)
+		guardianships, err := tx.Guardianships.FindByUserID(ctx, uid)
 		if err != nil {
 			return err
 		}
@@ -257,7 +254,6 @@ func (s *guardianshipApplicationService) ListGuardiansByChildID(ctx context.Cont
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		queryService := domainservice.NewQueryService(tx.Guardianships, tx.Children)
 
 		// 转换 ID
 		cid, err := parseChildID(childID)
@@ -266,7 +262,7 @@ func (s *guardianshipApplicationService) ListGuardiansByChildID(ctx context.Cont
 		}
 
 		// 调用领域服务查询
-		guardianships, err := queryService.FindListByChildID(ctx, cid)
+		guardianships, err := tx.Guardianships.FindByChildID(ctx, cid)
 		if err != nil {
 			return err
 		}
@@ -306,7 +302,6 @@ func (s *guardianshipQueryApplicationService) IsGuardian(ctx context.Context, us
 	var isGuardian bool
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		queryService := domainservice.NewQueryService(tx.Guardianships, tx.Children)
 
 		userIDObj, err := parseUserID(userID)
 		if err != nil {
@@ -318,7 +313,7 @@ func (s *guardianshipQueryApplicationService) IsGuardian(ctx context.Context, us
 			return err
 		}
 
-		isGuardian, err = queryService.IsGuardian(ctx, userIDObj, childIDObj)
+		isGuardian, err = tx.Guardianships.IsGuardian(ctx, userIDObj, childIDObj)
 		return err
 	})
 
@@ -330,7 +325,6 @@ func (s *guardianshipQueryApplicationService) GetByUserIDAndChildID(ctx context.
 	var result *GuardianshipResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		queryService := domainservice.NewQueryService(tx.Guardianships, tx.Children)
 
 		userIDObj, err := parseUserID(userID)
 		if err != nil {
@@ -342,7 +336,7 @@ func (s *guardianshipQueryApplicationService) GetByUserIDAndChildID(ctx context.
 			return err
 		}
 
-		guardianship, err := queryService.FindByUserIDAndChildID(ctx, userIDObj, childIDObj)
+		guardianship, err := tx.Guardianships.FindByUserIDAndChildID(ctx, userIDObj, childIDObj)
 		if err != nil {
 			return err
 		}
@@ -365,14 +359,13 @@ func (s *guardianshipQueryApplicationService) ListChildrenByUserID(ctx context.C
 	var results []*GuardianshipResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		queryService := domainservice.NewQueryService(tx.Guardianships, tx.Children)
 
 		userIDObj, err := parseUserID(userID)
 		if err != nil {
 			return err
 		}
 
-		guardianships, err := queryService.FindListByUserID(ctx, userIDObj)
+		guardianships, err := tx.Guardianships.FindByUserID(ctx, userIDObj)
 		if err != nil {
 			return err
 		}
@@ -401,14 +394,13 @@ func (s *guardianshipQueryApplicationService) ListGuardiansByChildID(ctx context
 	var results []*GuardianshipResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		queryService := domainservice.NewQueryService(tx.Guardianships, tx.Children)
 
 		childIDObj, err := parseChildID(childID)
 		if err != nil {
 			return err
 		}
 
-		guardianships, err := queryService.FindListByChildID(ctx, childIDObj)
+		guardianships, err := tx.Guardianships.FindByChildID(ctx, childIDObj)
 		if err != nil {
 			return err
 		}

@@ -19,7 +19,7 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
 	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/port"
-	userPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user/port"
+	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	authenticationInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/crypto"
 	jwtinfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/jwt"
@@ -147,7 +147,7 @@ type infrastructureComponents struct {
 	tokenStore *redisInfra.RedisStore
 
 	// User 仓储
-	userRepo userPort.UserRepository
+	userRepo userDomain.Repository
 
 	// IDP 基础设施
 	wechatAppQuerier idpPort.WechatAppQuerier

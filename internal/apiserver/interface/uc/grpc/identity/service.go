@@ -11,11 +11,9 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	childdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
-	childport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child/port"
-	guardport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship/port"
-	userdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
-	userport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user/port"
+	childDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
+	guardianshipDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
+	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	identityv1 "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/grpc/pb/iam/identity/v1"
 )
 
@@ -27,18 +25,18 @@ type Service struct {
 
 // NewService 创建 identity gRPC 服务
 func NewService(
-	userQuery userport.UserQueryer,
-	childQuery childport.ChildQueryer,
-	guardQuery guardport.GuardianshipQueryer,
+	userRepo userDomain.Repository,
+	childRepo childDomain.Repository,
+	guardRepo guardianshipDomain.Repository,
 ) *Service {
 	return &Service{
 		identityRead: identityReadServer{
-			userQuery:  userQuery,
-			childQuery: childQuery,
+			userRepo:  userRepo,
+			childRepo: childRepo,
 		},
 		guardianshipQry: guardianshipQueryServer{
-			childQuery: childQuery,
-			guardQuery: guardQuery,
+			childRepo: childRepo,
+			guardRepo: guardRepo,
 		},
 	}
 }
@@ -51,14 +49,14 @@ func (s *Service) RegisterService(server *grpc.Server) {
 
 type identityReadServer struct {
 	identityv1.UnimplementedIdentityReadServer
-	userQuery  userport.UserQueryer
-	childQuery childport.ChildQueryer
+	userRepo  userDomain.Repository
+	childRepo childDomain.Repository
 }
 
 type guardianshipQueryServer struct {
 	identityv1.UnimplementedGuardianshipQueryServer
-	childQuery childport.ChildQueryer
-	guardQuery guardport.GuardianshipQueryer
+	childRepo childDomain.Repository
+	guardRepo guardianshipDomain.Repository
 }
 
 // GetUser 查询用户
@@ -72,7 +70,7 @@ func (s *identityReadServer) GetUser(ctx context.Context, req *identityv1.GetUse
 		return nil, err
 	}
 
-	u, err := s.userQuery.FindByID(ctx, userID)
+	u, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -91,7 +89,7 @@ func (s *identityReadServer) GetChild(ctx context.Context, req *identityv1.GetCh
 		return nil, err
 	}
 
-	child, err := s.childQuery.FindByID(ctx, childID)
+	child, err := s.childRepo.FindByID(ctx, childID)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -115,7 +113,7 @@ func (s *guardianshipQueryServer) IsGuardian(ctx context.Context, req *identityv
 		return nil, err
 	}
 
-	guardianship, err := s.guardQuery.FindByUserIDAndChildID(ctx, userID, childID)
+	guardianship, err := s.guardRepo.FindByUserIDAndChildID(ctx, userID, childID)
 	if err != nil {
 		if coder := errors.ParseCoder(err); coder != nil && coder.HTTPStatus() == 404 {
 			return &identityv1.IsGuardianResp{IsGuardian: false}, nil
@@ -146,7 +144,7 @@ func (s *guardianshipQueryServer) ListChildren(ctx context.Context, req *identit
 		return nil, status.Error(codes.InvalidArgument, "offset must be >= 0")
 	}
 
-	guardianships, err := s.guardQuery.FindListByUserID(ctx, userID)
+	guardianships, err := s.guardRepo.FindByUserID(ctx, userID)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -170,7 +168,7 @@ func (s *guardianshipQueryServer) ListChildren(ctx context.Context, req *identit
 			continue
 		}
 
-		child, err := s.childQuery.FindByID(ctx, g.Child)
+		child, err := s.childRepo.FindByID(ctx, g.Child)
 		if err != nil {
 			return nil, toGRPCError(err)
 		}
@@ -183,35 +181,35 @@ func (s *guardianshipQueryServer) ListChildren(ctx context.Context, req *identit
 	}, nil
 }
 
-func parseUserID(raw string) (userdomain.UserID, error) {
+func parseUserID(raw string) (userDomain.UserID, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return userdomain.UserID{}, status.Error(codes.InvalidArgument, "user_id cannot be empty")
+		return userDomain.UserID{}, status.Error(codes.InvalidArgument, "user_id cannot be empty")
 	}
 
 	id, err := strconv.ParseUint(raw, 10, 64)
 	if err != nil {
-		return userdomain.UserID{}, status.Errorf(codes.InvalidArgument, "invalid user_id: %s", raw)
+		return userDomain.UserID{}, status.Errorf(codes.InvalidArgument, "invalid user_id: %s", raw)
 	}
 
-	return userdomain.NewUserID(id), nil
+	return userDomain.NewUserID(id), nil
 }
 
-func parseChildID(raw string) (childdomain.ChildID, error) {
+func parseChildID(raw string) (childDomain.ChildID, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return childdomain.ChildID{}, status.Error(codes.InvalidArgument, "child_id cannot be empty")
+		return childDomain.ChildID{}, status.Error(codes.InvalidArgument, "child_id cannot be empty")
 	}
 
 	id, err := strconv.ParseUint(raw, 10, 64)
 	if err != nil {
-		return childdomain.ChildID{}, status.Errorf(codes.InvalidArgument, "invalid child_id: %s", raw)
+		return childDomain.ChildID{}, status.Errorf(codes.InvalidArgument, "invalid child_id: %s", raw)
 	}
 
-	return childdomain.NewChildID(id), nil
+	return childDomain.NewChildID(id), nil
 }
 
-func toProtoUser(u *userdomain.User) *identityv1.User {
+func toProtoUser(u *userDomain.User) *identityv1.User {
 	if u == nil {
 		return nil
 	}
@@ -226,7 +224,7 @@ func toProtoUser(u *userdomain.User) *identityv1.User {
 	return user
 }
 
-func toProtoChild(c *childdomain.Child) *identityv1.Child {
+func toProtoChild(c *childDomain.Child) *identityv1.Child {
 	if c == nil {
 		return nil
 	}

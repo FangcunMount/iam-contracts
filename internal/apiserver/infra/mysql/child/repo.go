@@ -4,7 +4,7 @@ import (
 	"context"
 
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child/port"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
@@ -17,7 +17,7 @@ type Repository struct {
 }
 
 // NewRepository 创建儿童档案存储库
-func NewRepository(db *gorm.DB) port.ChildRepository {
+func NewRepository(db *gorm.DB) child.Repository {
 	return &Repository{
 		BaseRepository: mysql.NewBaseRepository[*ChildPO](db),
 		mapper:         NewChildMapper(),

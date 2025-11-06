@@ -4,7 +4,7 @@ import (
 	"context"
 
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user/port"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
@@ -17,7 +17,7 @@ type Repository struct {
 }
 
 // NewRepository 创建用户存储库
-func NewRepository(db *gorm.DB) port.UserRepository {
+func NewRepository(db *gorm.DB) user.Repository {
 	return &Repository{
 		BaseRepository: mysql.NewBaseRepository[*UserPO](db),
 		mapper:         NewUserMapper(),
