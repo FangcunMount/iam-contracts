@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/crypto/argon2"
 
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication/port"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 )
 
 // Argon2Hasher 基于Argon2id的密码哈希实现
@@ -22,11 +22,11 @@ type Argon2Hasher struct {
 }
 
 // 确保实现了接口
-var _ port.PasswordHasher = (*Argon2Hasher)(nil)
+var _ authentication.PasswordHasher = (*Argon2Hasher)(nil)
 
 // NewArgon2Hasher 创建Argon2密码哈希器
 // pepper: 全局密钥，应该从环境变量或配置中读取，不应硬编码
-func NewArgon2Hasher(pepper string) port.PasswordHasher {
+func NewArgon2Hasher(pepper string) authentication.PasswordHasher {
 	return &Argon2Hasher{
 		pepper:     pepper,
 		memory:     64 * 1024, // 64 MB

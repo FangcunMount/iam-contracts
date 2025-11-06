@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -26,7 +26,7 @@ type PEMPrivateKeyStorage struct {
 	fileMode os.FileMode
 }
 
-var _ driven.PrivateKeyStorage = (*PEMPrivateKeyStorage)(nil)
+var _ jwks.PrivateKeyStorage = (*PEMPrivateKeyStorage)(nil)
 
 // NewPEMPrivateKeyStorage 创建 PEM 私钥存储
 func NewPEMPrivateKeyStorage(keysDir string) *PEMPrivateKeyStorage {

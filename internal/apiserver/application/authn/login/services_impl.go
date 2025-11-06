@@ -5,14 +5,14 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
-	tokenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token/port"
+	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
 type loginApplicationService struct {
-	tokenIssuer      tokenPort.TokenIssuer
-	tokenRefresher   tokenPort.TokenRefresher
+	tokenIssuer      tokenDomain.Issuer
+	tokenRefresher   tokenDomain.Refresher
 	authenticater    *authentication.Authenticater
 	wechatAppQuerier idpPort.WechatAppQuerier
 	secretVault      idpPort.SecretVault
@@ -21,8 +21,8 @@ type loginApplicationService struct {
 var _ LoginApplicationService = (*loginApplicationService)(nil)
 
 func NewLoginApplicationService(
-	tokenIssuer tokenPort.TokenIssuer,
-	tokenRefresher tokenPort.TokenRefresher,
+	tokenIssuer tokenDomain.Issuer,
+	tokenRefresher tokenDomain.Refresher,
 	authenticater *authentication.Authenticater,
 	wechatAppQuerier idpPort.WechatAppQuerier,
 	secretVault idpPort.SecretVault,

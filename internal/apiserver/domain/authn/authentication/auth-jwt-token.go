@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -48,8 +47,8 @@ func newJWTTokenCredential(input AuthInput) (AuthCredential, error) {
 // 用于 API 调用场景，使用 JWT 访问令牌进行认证
 type JWTTokenAuthStrategy struct {
 	scenario      Scenario
-	tokenVerifier port.TokenVerifier
-	accountRepo   port.AccountRepository
+	tokenVerifier TokenVerifier
+	accountRepo   AccountRepository
 }
 
 // 实现认证策略接口
@@ -57,8 +56,8 @@ var _ AuthStrategy = (*JWTTokenAuthStrategy)(nil)
 
 // NewJWTTokenAuthStrategy 构造函数（注入依赖）
 func NewJWTTokenAuthStrategy(
-	tokenVerifier port.TokenVerifier,
-	accountRepo port.AccountRepository,
+	tokenVerifier TokenVerifier,
+	accountRepo AccountRepository,
 ) *JWTTokenAuthStrategy {
 	return &JWTTokenAuthStrategy{
 		scenario:      AuthJWTToken,

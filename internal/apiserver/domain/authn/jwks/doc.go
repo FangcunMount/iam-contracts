@@ -6,19 +6,19 @@
 // # 服务分类
 //
 // 1. KeyManager - 密钥生命周期管理服务
-//   - 实现：driving.KeyManagementService 接口
+//   - 实现：jwks.Manager 接口
 //   - 功能：创建密钥、获取密钥、状态转换、清理过期密钥
-//   - 依赖：driven.KeyRepository, driven.KeyGenerator
+//   - 依赖：jwks.Repository, jwks.KeyGenerator
 //
 // 2. KeySetBuilder - JWKS 构建服务
-//   - 实现：driving.KeySetPublishService 接口
+//   - 实现：jwks.Publisher 接口
 //   - 功能：构建 JWKS JSON、缓存管理、ETag 生成
-//   - 依赖：driven.KeyRepository
+//   - 依赖：jwks.Repository
 //
 // 3. KeyRotator - 密钥轮换服务（待实现）
-//   - 实现：driving.KeyRotationService 接口
+//   - 实现：jwks.Rotator 接口
 //   - 功能：自动轮换、策略管理
-//   - 依赖：driven.KeyRepository, driven.KeyGenerator
+//   - 依赖：jwks.Repository, jwks.KeyGenerator
 //
 // # KeyManager 服务详情
 //
@@ -173,4 +173,4 @@
 //
 //	// 刷新缓存（密钥轮换后）
 //	err := builder.RefreshCache(ctx)
-package service
+package jwks

@@ -6,7 +6,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication/port"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 )
 
 // OTPVerifierImpl OTP验证器的Redis实现
@@ -15,10 +15,10 @@ type OTPVerifierImpl struct {
 }
 
 // 确保实现了接口
-var _ port.OTPVerifier = (*OTPVerifierImpl)(nil)
+var _ authentication.OTPVerifier = (*OTPVerifierImpl)(nil)
 
 // NewOTPVerifier 创建OTP验证器
-func NewOTPVerifier(client *redis.Client) port.OTPVerifier {
+func NewOTPVerifier(client *redis.Client) authentication.OTPVerifier {
 	return &OTPVerifierImpl{client: client}
 }
 

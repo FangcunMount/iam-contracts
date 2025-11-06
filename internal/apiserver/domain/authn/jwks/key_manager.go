@@ -1,30 +1,26 @@
-package service
+package jwks
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driven"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driving"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/google/uuid"
 )
 
 // KeyManager 密钥生命周期管理服务
-// 实现 driving.KeyManagementService 接口
+// 实现 Manager 接口
 type KeyManager struct {
-	keyRepo      driven.KeyRepository
-	keyGenerator driven.KeyGenerator
+	keyRepo      Repository
+	keyGenerator KeyGenerator
 }
 
 // NewKeyManager 创建密钥管理器
 func NewKeyManager(
-	keyRepo driven.KeyRepository,
-	keyGenerator driven.KeyGenerator,
+	keyRepo Repository,
+	keyGenerator KeyGenerator,
 ) *KeyManager {
 	return &KeyManager{
 		keyRepo:      keyRepo,
@@ -33,14 +29,14 @@ func NewKeyManager(
 }
 
 // Ensure KeyManager implements KeyManagementService
-var _ driving.KeyManagementService = (*KeyManager)(nil)
+var _ Manager = (*KeyManager)(nil)
 
 // CreateKey 创建新密钥
 func (s *KeyManager) CreateKey(
 	ctx context.Context,
 	alg string,
 	notBefore, notAfter *time.Time,
-) (*jwks.Key, error) {
+) (*Key, error) {
 	// 生成 kid (UUID)
 	kid := uuid.New().String()
 
@@ -51,24 +47,24 @@ func (s *KeyManager) CreateKey(
 	}
 
 	// 构建 KeyOption
-	var opts []jwks.KeyOption
+	var opts []KeyOption
 	if notBefore != nil {
-		opts = append(opts, jwks.WithNotBefore(*notBefore))
+		opts = append(opts, WithNotBefore(*notBefore))
 	} else {
 		// 默认立即生效
 		now := time.Now()
-		opts = append(opts, jwks.WithNotBefore(now))
+		opts = append(opts, WithNotBefore(now))
 	}
 
 	if notAfter != nil {
-		opts = append(opts, jwks.WithNotAfter(*notAfter))
+		opts = append(opts, WithNotAfter(*notAfter))
 	}
 
 	// 默认状态为 Active
-	opts = append(opts, jwks.WithStatus(jwks.KeyActive))
+	opts = append(opts, WithStatus(KeyActive))
 
 	// 创建密钥实体
-	key := jwks.NewKey(kid, keyPair.PublicJWK, opts...)
+	key := NewKey(kid, keyPair.PublicJWK, opts...)
 
 	// 验证密钥
 	if err := key.Validate(); err != nil {
@@ -84,8 +80,8 @@ func (s *KeyManager) CreateKey(
 }
 
 // GetActiveKey 获取当前激活的密钥
-func (s *KeyManager) GetActiveKey(ctx context.Context) (*jwks.Key, error) {
-	keys, err := s.keyRepo.FindByStatus(ctx, jwks.KeyActive)
+func (s *KeyManager) GetActiveKey(ctx context.Context) (*Key, error) {
+	keys, err := s.keyRepo.FindByStatus(ctx, KeyActive)
 	if err != nil {
 		return nil, errors.WithCode(code.ErrDatabase, "failed to find active keys: %v", err)
 	}
@@ -106,7 +102,7 @@ func (s *KeyManager) GetActiveKey(ctx context.Context) (*jwks.Key, error) {
 }
 
 // GetKeyByKid 根据 kid 获取密钥
-func (s *KeyManager) GetKeyByKid(ctx context.Context, kid string) (*jwks.Key, error) {
+func (s *KeyManager) GetKeyByKid(ctx context.Context, kid string) (*Key, error) {
 	key, err := s.keyRepo.FindByKid(ctx, kid)
 	if err != nil {
 		return nil, errors.WithCode(code.ErrDatabase, "failed to find key: %v", err)
@@ -205,7 +201,7 @@ func (s *KeyManager) CleanupExpiredKeys(ctx context.Context) (int, error) {
 	// 只删除 Retired 状态的过期密钥
 	deletedCount := 0
 	for _, key := range expiredKeys {
-		if key.Status == jwks.KeyRetired {
+		if key.Status == KeyRetired {
 			if err := s.keyRepo.Delete(ctx, key.Kid); err != nil {
 				// 继续删除其他密钥，记录错误
 				continue
@@ -227,9 +223,9 @@ func (s *KeyManager) CleanupExpiredKeys(ctx context.Context) (int, error) {
 // ListKeys 列出密钥（分页）
 func (s *KeyManager) ListKeys(
 	ctx context.Context,
-	status jwks.KeyStatus,
+	status KeyStatus,
 	limit, offset int,
-) ([]*jwks.Key, int64, error) {
+) ([]*Key, int64, error) {
 	// 如果指定了状态，按状态查询
 	if status != 0 {
 		keys, err := s.keyRepo.FindByStatus(ctx, status)
@@ -261,10 +257,10 @@ func (s *KeyManager) ListKeys(
 }
 
 // GetKeyStats 获取密钥统计信息（辅助方法）
-func (s *KeyManager) GetKeyStats(ctx context.Context) (map[jwks.KeyStatus]int64, error) {
-	stats := make(map[jwks.KeyStatus]int64)
+func (s *KeyManager) GetKeyStats(ctx context.Context) (map[KeyStatus]int64, error) {
+	stats := make(map[KeyStatus]int64)
 
-	for _, status := range []jwks.KeyStatus{jwks.KeyActive, jwks.KeyGrace, jwks.KeyRetired} {
+	for _, status := range []KeyStatus{KeyActive, KeyGrace, KeyRetired} {
 		count, err := s.keyRepo.CountByStatus(ctx, status)
 		if err != nil {
 			return nil, errors.WithCode(code.ErrDatabase, "failed to count keys: %v", err)

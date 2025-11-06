@@ -7,7 +7,7 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
-	authPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication/port"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	credDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/credential"
 	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	userPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user/port"
@@ -20,7 +20,7 @@ import (
 
 type registerApplicationService struct {
 	uow      uow.UnitOfWork
-	hasher   authPort.PasswordHasher
+	hasher   authentication.PasswordHasher
 	userRepo userPort.UserRepository
 }
 
@@ -28,7 +28,7 @@ var _ RegisterApplicationService = (*registerApplicationService)(nil)
 
 func NewRegisterApplicationService(
 	uow uow.UnitOfWork,
-	hasher authPort.PasswordHasher,
+	hasher authentication.PasswordHasher,
 	userRepo userPort.UserRepository,
 ) RegisterApplicationService {
 	return &registerApplicationService{

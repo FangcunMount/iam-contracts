@@ -4,21 +4,19 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
-	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
 // TokenVerifyer 令牌验证者
 type TokenVerifyer struct {
-	tokenGenerator drivenPort.TokenGenerator // JWT 生成器
-	tokenStore     drivenPort.TokenStore     // 令牌存储（Redis）
+	tokenGenerator TokenGenerator // JWT 生成器
+	tokenStore     TokenStore     // 令牌存储（Redis）
 }
 
 // NewTokenVerifyer 创建令牌验证者
 func NewTokenVerifyer(
-	tokenGenerator drivenPort.TokenGenerator,
-	tokenStore drivenPort.TokenStore,
+	tokenGenerator TokenGenerator,
+	tokenStore TokenStore,
 ) *TokenVerifyer {
 	return &TokenVerifyer{
 		tokenGenerator: tokenGenerator,
@@ -27,7 +25,7 @@ func NewTokenVerifyer(
 }
 
 // VerifyAccessToken 验证访问令牌
-func (s *TokenVerifyer) VerifyAccessToken(ctx context.Context, tokenValue string) (*domain.TokenClaims, error) {
+func (s *TokenVerifyer) VerifyAccessToken(ctx context.Context, tokenValue string) (*TokenClaims, error) {
 	// 解析 JWT
 	claims, err := s.tokenGenerator.ParseAccessToken(tokenValue)
 	if err != nil {

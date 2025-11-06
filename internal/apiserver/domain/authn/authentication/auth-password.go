@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -53,9 +52,9 @@ func newPasswordCredential(input AuthInput) (AuthCredential, error) {
 // PasswordAuthStrategy 用户名+密码认证策略
 type PasswordAuthStrategy struct {
 	scenario    Scenario
-	credRepo    port.CredentialRepository
-	accountRepo port.AccountRepository
-	hasher      port.PasswordHasher
+	credRepo    CredentialRepository
+	accountRepo AccountRepository
+	hasher      PasswordHasher
 }
 
 // 实现认证策略接口
@@ -63,9 +62,9 @@ var _ AuthStrategy = (*PasswordAuthStrategy)(nil)
 
 // NewPasswordAuthStrategy 构造函数（注入依赖）
 func NewPasswordAuthStrategy(
-	credRepo port.CredentialRepository,
-	accountRepo port.AccountRepository,
-	hasher port.PasswordHasher,
+	credRepo CredentialRepository,
+	accountRepo AccountRepository,
+	hasher PasswordHasher,
 ) *PasswordAuthStrategy {
 	return &PasswordAuthStrategy{
 		scenario:    AuthPassword,

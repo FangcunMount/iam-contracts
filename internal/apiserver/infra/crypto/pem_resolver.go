@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driven"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -23,10 +23,10 @@ type PEMPrivateKeyResolver struct {
 	keysDir string
 }
 
-var _ driven.PrivateKeyResolver = (*PEMPrivateKeyResolver)(nil)
+var _ jwks.PrivateKeyResolver = (*PEMPrivateKeyResolver)(nil)
 
 // NewPEMPrivateKeyResolver 创建 PEM 私钥解析器
-func NewPEMPrivateKeyResolver(keysDir string) driven.PrivateKeyResolver {
+func NewPEMPrivateKeyResolver(keysDir string) jwks.PrivateKeyResolver {
 	return &PEMPrivateKeyResolver{
 		keysDir: keysDir,
 	}

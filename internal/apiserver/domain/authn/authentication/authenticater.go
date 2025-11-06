@@ -4,7 +4,6 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -16,22 +15,22 @@ type AuthStrategy interface {
 
 // Authenticater 认证器
 type Authenticater struct {
-	credRepo      port.CredentialRepository
-	accountRepo   port.AccountRepository
-	hasher        port.PasswordHasher
-	otpVerifier   port.OTPVerifier
-	idp           port.IdentityProvider
-	tokenVerifier port.TokenVerifier
+	credRepo      CredentialRepository
+	accountRepo   AccountRepository
+	hasher        PasswordHasher
+	otpVerifier   OTPVerifier
+	idp           IdentityProvider
+	tokenVerifier TokenVerifier
 }
 
 // NewAuthenticater 创建认证器
 func NewAuthenticater(
-	credRepo port.CredentialRepository,
-	accountRepo port.AccountRepository,
-	hasher port.PasswordHasher,
-	otpVerifier port.OTPVerifier,
-	idp port.IdentityProvider,
-	tokenVerifier port.TokenVerifier,
+	credRepo CredentialRepository,
+	accountRepo AccountRepository,
+	hasher PasswordHasher,
+	otpVerifier OTPVerifier,
+	idp IdentityProvider,
+	tokenVerifier TokenVerifier,
 ) *Authenticater {
 	return &Authenticater{
 		credRepo:      credRepo,

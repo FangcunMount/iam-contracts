@@ -6,19 +6,18 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driving"
 )
 
 // KeyRotationAppService 密钥轮换应用服务
 // 负责密钥的自动轮换和策略管理
 type KeyRotationAppService struct {
-	keyRotationSvc driving.KeyRotationService
+	keyRotationSvc jwks.Rotator
 	logger         log.Logger
 }
 
 // NewKeyRotationAppService 创建密钥轮换应用服务
 func NewKeyRotationAppService(
-	keyRotationSvc driving.KeyRotationService,
+	keyRotationSvc jwks.Rotator,
 	logger log.Logger,
 ) *KeyRotationAppService {
 	return &KeyRotationAppService{

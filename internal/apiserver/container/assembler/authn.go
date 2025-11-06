@@ -16,11 +16,8 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
 	authnUow "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
-	authPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication/port"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
-	jwksPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driven"
-	jwksService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/service"
-	tokenService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token/service"
+	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp/port"
 	userPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user/port"
 	authenticationInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/authentication"
@@ -72,7 +69,7 @@ func NewAuthnModule() *AuthnModule {
 // params[0]: *gorm.DB
 // params[1]: *redis.Client
 // 可选参数：
-//   - authPort.PasswordHasher 自定义密码哈希器
+//   - authentication.PasswordHasher 自定义密码哈希器
 //   - *IDPModule              注入 IDP 模块提供的基础设施能力
 func (m *AuthnModule) Initialize(params ...interface{}) error {
 	if len(params) < 2 {
@@ -94,12 +91,12 @@ func (m *AuthnModule) Initialize(params ...interface{}) error {
 
 	// 获取可选依赖
 	var (
-		hasher  authPort.PasswordHasher
+		hasher  authentication.PasswordHasher
 		idpDeps *IDPModule
 	)
 	for _, opt := range params[2:] {
 		switch v := opt.(type) {
-		case authPort.PasswordHasher:
+		case authentication.PasswordHasher:
 			hasher = v
 		case *IDPModule:
 			idpDeps = v
@@ -133,17 +130,17 @@ type infrastructureComponents struct {
 	redis      *redis.Client
 	unitOfWork authnUow.UnitOfWork
 
-	accountRepo    authPort.AccountRepository
-	credentialRepo authPort.CredentialRepository
-	otpVerifier    authPort.OTPVerifier
-	idp            authPort.IdentityProvider
-	tokenVerifier  authPort.TokenVerifier
+	accountRepo    authentication.AccountRepository
+	credentialRepo authentication.CredentialRepository
+	otpVerifier    authentication.OTPVerifier
+	idp            authentication.IdentityProvider
+	tokenVerifier  authentication.TokenVerifier
 
 	// JWKS 相关
-	keyRepo           jwksPort.KeyRepository
-	privateKeyStorage jwksPort.PrivateKeyStorage
-	keyGenerator      jwksPort.KeyGenerator
-	privKeyResolver   jwksPort.PrivateKeyResolver
+	keyRepo           jwks.Repository
+	privateKeyStorage jwks.PrivateKeyStorage
+	keyGenerator      jwks.KeyGenerator
+	privKeyResolver   jwks.PrivateKeyResolver
 	jwtGenerator      *jwtinfra.Generator
 
 	// Token 存储
@@ -206,14 +203,14 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 // domainComponents 领域层组件
 type domainComponents struct {
 	// Token 服务
-	tokenIssuer    *tokenService.TokenIssuer
-	tokenRefresher *tokenService.TokenRefresher
-	tokenVerifyer  *tokenService.TokenVerifyer
+	tokenIssuer    *tokenDomain.TokenIssuer
+	tokenRefresher *tokenDomain.TokenRefresher
+	tokenVerifyer  *tokenDomain.TokenVerifyer
 
 	// JWKS 服务
-	keyManager    *jwksService.KeyManager
-	keySetBuilder *jwksService.KeySetBuilder
-	keyRotation   *jwksService.KeyRotation
+	keyManager    *jwks.KeyManager
+	keySetBuilder *jwks.KeySetBuilder
+	keyRotation   *jwks.KeyRotation
 }
 
 // initializeDomain 初始化领域层
@@ -221,12 +218,12 @@ func (m *AuthnModule) initializeDomain(infra *infrastructureComponents) *domainC
 	domain := &domainComponents{}
 
 	// JWKS 领域服务
-	domain.keyManager = jwksService.NewKeyManager(infra.keyRepo, infra.keyGenerator)
-	domain.keySetBuilder = jwksService.NewKeySetBuilder(infra.keyRepo)
+	domain.keyManager = jwks.NewKeyManager(infra.keyRepo, infra.keyGenerator)
+	domain.keySetBuilder = jwks.NewKeySetBuilder(infra.keyRepo)
 
 	rotationPolicy := jwks.DefaultRotationPolicy()
 	logger := log.New(log.NewOptions())
-	domain.keyRotation = jwksService.NewKeyRotation(
+	domain.keyRotation = jwks.NewKeyRotation(
 		infra.keyRepo,
 		infra.keyGenerator,
 		rotationPolicy,
@@ -250,9 +247,9 @@ func (m *AuthnModule) initializeDomain(infra *infrastructureComponents) *domainC
 		refreshTTL = 7 * 24 * 60 * 60 * 1000000000 // 7天（纳秒）
 	}
 
-	domain.tokenIssuer = tokenService.NewTokenIssuer(infra.jwtGenerator, infra.tokenStore, accessTTL, refreshTTL)
-	domain.tokenRefresher = tokenService.NewTokenRefresher(infra.jwtGenerator, infra.tokenStore, accessTTL, refreshTTL)
-	domain.tokenVerifyer = tokenService.NewTokenVerifyer(infra.jwtGenerator, infra.tokenStore)
+	domain.tokenIssuer = tokenDomain.NewTokenIssuer(infra.jwtGenerator, infra.tokenStore, accessTTL, refreshTTL)
+	domain.tokenRefresher = tokenDomain.NewTokenRefresher(infra.jwtGenerator, infra.tokenStore, accessTTL, refreshTTL)
+	domain.tokenVerifyer = tokenDomain.NewTokenVerifyer(infra.jwtGenerator, infra.tokenStore)
 
 	// 创建 TokenVerifier 适配器供 authentication 模块使用
 	infra.tokenVerifier = authenticationInfra.NewTokenVerifierAdapter(domain.tokenVerifyer)
@@ -264,7 +261,7 @@ func (m *AuthnModule) initializeDomain(infra *infrastructureComponents) *domainC
 func (m *AuthnModule) initializeApplication(
 	infra *infrastructureComponents,
 	domain *domainComponents,
-	hasher authPort.PasswordHasher,
+	hasher authentication.PasswordHasher,
 ) {
 	// 账户应用服务
 	m.AccountService = accountApp.NewAccountApplicationService(infra.unitOfWork)

@@ -6,19 +6,18 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driving"
 )
 
 // KeyPublishAppService JWKS 发布应用服务
 // 负责构建和发布 /.well-known/jwks.json
 type KeyPublishAppService struct {
-	keyPublishSvc driving.KeySetPublishService
+	keyPublishSvc jwks.Publisher
 	logger        log.Logger
 }
 
 // NewKeyPublishAppService 创建 JWKS 发布应用服务
 func NewKeyPublishAppService(
-	keyPublishSvc driving.KeySetPublishService,
+	keyPublishSvc jwks.Publisher,
 	logger log.Logger,
 ) *KeyPublishAppService {
 	return &KeyPublishAppService{
@@ -118,7 +117,7 @@ func (s *KeyPublishAppService) ValidateCacheTag(ctx context.Context, req Validat
 		"clientLastModified", req.LastModified,
 	)
 
-	clientTag := driving.CacheTag{
+	clientTag := jwks.CacheTag{
 		ETag:         req.ETag,
 		LastModified: req.LastModified,
 	}

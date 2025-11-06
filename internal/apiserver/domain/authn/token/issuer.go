@@ -4,29 +4,25 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
-
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
-	drivenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"github.com/google/uuid"
 )
 
 // TokenIssuer 令牌颁发者
 type TokenIssuer struct {
-	tokenGenerator drivenPort.TokenGenerator // JWT 生成器
-	tokenStore     drivenPort.TokenStore     // 令牌存储（Redis）
-	accessTTL      time.Duration             // 访问令牌有效期
-	refreshTTL     time.Duration             // 刷新令牌有效期
+	tokenGenerator TokenGenerator // JWT 生成器
+	tokenStore     TokenStore     // 令牌存储（Redis）
+	accessTTL      time.Duration  // 访问令牌有效期
+	refreshTTL     time.Duration  // 刷新令牌有效期
 }
 
 // NewTokenIssuer 创建令牌颁发者
 func NewTokenIssuer(
-	tokenGenerator drivenPort.TokenGenerator,
-	tokenStore drivenPort.TokenStore,
+	tokenGenerator TokenGenerator,
+	tokenStore TokenStore,
 	accessTTL time.Duration,
 	refreshTTL time.Duration,
 ) *TokenIssuer {
@@ -39,7 +35,7 @@ func NewTokenIssuer(
 }
 
 // IssueToken 颁发令牌对
-func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.Principal) (*domain.TokenPair, error) {
+func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.Principal) (*TokenPair, error) {
 	if principal == nil {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "principal is required")
 	}
@@ -52,7 +48,7 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 
 	// 生成刷新令牌（UUID）
 	refreshTokenValue := uuid.New().String()
-	refreshToken := domain.NewRefreshToken(
+	refreshToken := NewRefreshToken(
 		uuid.New().String(),                     // token ID
 		refreshTokenValue,                       // token value
 		meta.NewID(uint64(principal.UserID)),    // user ID
@@ -65,7 +61,7 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to save refresh token")
 	}
 
-	return domain.NewTokenPair(accessToken, refreshToken), nil
+	return NewTokenPair(accessToken, refreshToken), nil
 }
 
 // RevokeToken 撤销令牌

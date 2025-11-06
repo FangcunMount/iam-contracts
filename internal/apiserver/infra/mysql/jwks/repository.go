@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driven"
 	"gorm.io/gorm"
 )
 
@@ -15,10 +14,10 @@ type KeyRepository struct {
 	db     *gorm.DB
 }
 
-var _ driven.KeyRepository = (*KeyRepository)(nil)
+var _ jwks.Repository = (*KeyRepository)(nil)
 
 // NewKeyRepository 创建 KeyRepository 实例
-func NewKeyRepository(db *gorm.DB) driven.KeyRepository {
+func NewKeyRepository(db *gorm.DB) jwks.Repository {
 	return &KeyRepository{
 		mapper: NewMapper(),
 		db:     db,

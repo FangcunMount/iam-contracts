@@ -6,19 +6,18 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driving"
 )
 
 // KeyManagementAppService 密钥管理应用服务
 // 负责密钥生命周期管理的应用层协调
 type KeyManagementAppService struct {
-	keyMgmtSvc driving.KeyManagementService
+	keyMgmtSvc jwks.Manager
 	logger     log.Logger
 }
 
 // NewKeyManagementAppService 创建密钥管理应用服务
 func NewKeyManagementAppService(
-	keyMgmtSvc driving.KeyManagementService,
+	keyMgmtSvc jwks.Manager,
 	logger log.Logger,
 ) *KeyManagementAppService {
 	return &KeyManagementAppService{

@@ -4,21 +4,21 @@ import (
 	"context"
 	"fmt"
 
-	authPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication/port"
-	tokenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token/port"
+	authPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
+	tokenPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 )
 
 // TokenVerifierAdapter JWT令牌验证适配器
 // 将 token 模块的 TokenVerifier 适配为 authentication 模块需要的接口
 type TokenVerifierAdapter struct {
-	tokenVerifier tokenPort.TokenVerifier
+	tokenVerifier tokenPort.Verifier
 }
 
 // 实现 authentication.port.TokenVerifier 接口
 var _ authPort.TokenVerifier = (*TokenVerifierAdapter)(nil)
 
 // NewTokenVerifierAdapter 创建令牌验证适配器
-func NewTokenVerifierAdapter(tokenVerifier tokenPort.TokenVerifier) *TokenVerifierAdapter {
+func NewTokenVerifierAdapter(tokenVerifier tokenPort.Verifier) *TokenVerifierAdapter {
 	return &TokenVerifierAdapter{
 		tokenVerifier: tokenVerifier,
 	}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -57,9 +56,9 @@ func newWechatMinipCredential(input AuthInput) (AuthCredential, error) {
 // OAuthWechatMinipAuthStrategy 微信小程序认证策略
 type OAuthWechatMinipAuthStrategy struct {
 	scenario    Scenario
-	credRepo    port.CredentialRepository
-	accountRepo port.AccountRepository
-	idp         port.IdentityProvider
+	credRepo    CredentialRepository
+	accountRepo AccountRepository
+	idp         IdentityProvider
 }
 
 // 实现认证策略接口
@@ -67,9 +66,9 @@ var _ AuthStrategy = (*OAuthWechatMinipAuthStrategy)(nil)
 
 // NewOAuthWechatMinipAuthStrategy 构造函数（注入依赖）
 func NewOAuthWechatMinipAuthStrategy(
-	credRepo port.CredentialRepository,
-	accountRepo port.AccountRepository,
-	idp port.IdentityProvider,
+	credRepo CredentialRepository,
+	accountRepo AccountRepository,
+	idp IdentityProvider,
 ) *OAuthWechatMinipAuthStrategy {
 	return &OAuthWechatMinipAuthStrategy{
 		scenario:    AuthWxMinip,

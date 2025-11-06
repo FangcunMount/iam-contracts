@@ -10,12 +10,11 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driven"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
 // RSAKeyGenerator RSA 密钥生成器
-// 实现 driven.KeyGenerator 接口
+// 实现 jwks.KeyGenerator 接口
 type RSAKeyGenerator struct {
 	// 默认密钥大小（位）
 	defaultKeySize int
@@ -38,10 +37,10 @@ func NewRSAKeyGeneratorWithSize(keySize int) *RSAKeyGenerator {
 }
 
 // Ensure RSAKeyGenerator implements KeyGenerator
-var _ driven.KeyGenerator = (*RSAKeyGenerator)(nil)
+var _ jwks.KeyGenerator = (*RSAKeyGenerator)(nil)
 
 // GenerateKeyPair 生成 RSA 密钥对
-func (g *RSAKeyGenerator) GenerateKeyPair(ctx context.Context, algorithm, kid string) (*driven.KeyPair, error) {
+func (g *RSAKeyGenerator) GenerateKeyPair(ctx context.Context, algorithm, kid string) (*jwks.KeyPair, error) {
 	// 验证算法
 	if !IsSupportedAlgorithm(algorithm) {
 		return nil, errors.WithCode(
@@ -79,7 +78,7 @@ func (g *RSAKeyGenerator) GenerateKeyPair(ctx context.Context, algorithm, kid st
 		)
 	}
 
-	return &driven.KeyPair{
+	return &jwks.KeyPair{
 		PrivateKey: privateKey,
 		PublicJWK:  publicJWK,
 	}, nil

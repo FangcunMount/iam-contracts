@@ -6,7 +6,7 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
-	authPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication/port"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	credDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/credential"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
@@ -166,12 +166,12 @@ func (s *accountApplicationService) DeleteAccount(ctx context.Context, accountID
 
 type credentialApplicationService struct {
 	uow    uow.UnitOfWork
-	hasher authPort.PasswordHasher
+	hasher authentication.PasswordHasher
 }
 
 var _ CredentialApplicationService = (*credentialApplicationService)(nil)
 
-func NewCredentialApplicationService(uow uow.UnitOfWork, hasher authPort.PasswordHasher) CredentialApplicationService {
+func NewCredentialApplicationService(uow uow.UnitOfWork, hasher authentication.PasswordHasher) CredentialApplicationService {
 	return &credentialApplicationService{
 		uow:    uow,
 		hasher: hasher,

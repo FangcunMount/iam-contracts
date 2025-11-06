@@ -1,4 +1,4 @@
-package service
+package jwks
 
 import (
 	"context"
@@ -7,26 +7,23 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driven"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driving"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
 // KeyRotation 密钥轮换服务
-// 实现 driving.KeyRotationService 接口
+// 实现 Rotator 接口
 type KeyRotation struct {
-	keyRepo driven.KeyRepository
-	keyGen  driven.KeyGenerator
-	policy  jwks.RotationPolicy
+	keyRepo Repository
+	keyGen  KeyGenerator
+	policy  RotationPolicy
 	logger  log.Logger
 }
 
 // NewKeyRotation 创建密钥轮换服务
 func NewKeyRotation(
-	keyRepo driven.KeyRepository,
-	keyGen driven.KeyGenerator,
-	policy jwks.RotationPolicy,
+	keyRepo Repository,
+	keyGen KeyGenerator,
+	policy RotationPolicy,
 	logger log.Logger,
 ) *KeyRotation {
 	return &KeyRotation{
@@ -43,11 +40,11 @@ func NewKeyRotation(
 // 2. 将当前 Active 密钥转为 Grace 状态
 // 3. 清理超过 MaxKeys 的密钥（将最老的 Grace 密钥转为 Retired）
 // 4. 清理过期的 Retired 密钥
-func (s *KeyRotation) RotateKey(ctx context.Context) (*jwks.Key, error) {
+func (s *KeyRotation) RotateKey(ctx context.Context) (*Key, error) {
 	s.logger.Info("Starting key rotation")
 
 	// Step 1: 将当前所有 Active 密钥转为 Grace 状态
-	activeKeys, err := s.keyRepo.FindByStatus(ctx, jwks.KeyActive)
+	activeKeys, err := s.keyRepo.FindByStatus(ctx, KeyActive)
 	if err != nil {
 		s.logger.Errorw("Failed to find active keys", "error", err)
 		return nil, errors.WithCode(code.ErrDatabase, "failed to find active keys: %v", err)
@@ -80,12 +77,12 @@ func (s *KeyRotation) RotateKey(ctx context.Context) (*jwks.Key, error) {
 	notBefore := now
 	notAfter := now.Add(s.policy.RotationInterval + s.policy.GracePeriod)
 
-	newKey := jwks.NewKey(
+	newKey := NewKey(
 		kid,
 		keyPair.PublicJWK,
-		jwks.WithNotBefore(notBefore),
-		jwks.WithNotAfter(notAfter),
-		jwks.WithStatus(jwks.KeyActive),
+		WithNotBefore(notBefore),
+		WithNotAfter(notAfter),
+		WithStatus(KeyActive),
 	)
 
 	if err := s.keyRepo.Save(ctx, newKey); err != nil {
@@ -123,7 +120,7 @@ func (s *KeyRotation) RotateKey(ctx context.Context) (*jwks.Key, error) {
 // 根据 RotationPolicy 判断当前 Active 密钥是否已到轮换时间
 func (s *KeyRotation) ShouldRotate(ctx context.Context) (bool, error) {
 	// 获取当前 Active 密钥
-	activeKeys, err := s.keyRepo.FindByStatus(ctx, jwks.KeyActive)
+	activeKeys, err := s.keyRepo.FindByStatus(ctx, KeyActive)
 	if err != nil {
 		return false, errors.WithCode(code.ErrDatabase, "failed to find active keys: %v", err)
 	}
@@ -154,12 +151,12 @@ func (s *KeyRotation) ShouldRotate(ctx context.Context) (bool, error) {
 }
 
 // GetRotationPolicy 获取当前轮换策略
-func (s *KeyRotation) GetRotationPolicy() jwks.RotationPolicy {
+func (s *KeyRotation) GetRotationPolicy() RotationPolicy {
 	return s.policy
 }
 
 // UpdateRotationPolicy 更新轮换策略
-func (s *KeyRotation) UpdateRotationPolicy(ctx context.Context, policy jwks.RotationPolicy) error {
+func (s *KeyRotation) UpdateRotationPolicy(ctx context.Context, policy RotationPolicy) error {
 	// 验证策略有效性
 	if err := policy.Validate(); err != nil {
 		return err
@@ -176,26 +173,26 @@ func (s *KeyRotation) UpdateRotationPolicy(ctx context.Context, policy jwks.Rota
 }
 
 // GetRotationStatus 获取轮换状态
-func (s *KeyRotation) GetRotationStatus(ctx context.Context) (*driving.RotationStatus, error) {
+func (s *KeyRotation) GetRotationStatus(ctx context.Context) (*RotationStatus, error) {
 	// 获取 Active 密钥
-	activeKeys, err := s.keyRepo.FindByStatus(ctx, jwks.KeyActive)
+	activeKeys, err := s.keyRepo.FindByStatus(ctx, KeyActive)
 	if err != nil {
 		return nil, errors.WithCode(code.ErrDatabase, "failed to find active keys: %v", err)
 	}
 
 	// 获取 Grace 密钥
-	graceKeys, err := s.keyRepo.FindByStatus(ctx, jwks.KeyGrace)
+	graceKeys, err := s.keyRepo.FindByStatus(ctx, KeyGrace)
 	if err != nil {
 		return nil, errors.WithCode(code.ErrDatabase, "failed to find grace keys: %v", err)
 	}
 
 	// 获取 Retired 密钥数量
-	retiredCount, err := s.keyRepo.CountByStatus(ctx, jwks.KeyRetired)
+	retiredCount, err := s.keyRepo.CountByStatus(ctx, KeyRetired)
 	if err != nil {
 		return nil, errors.WithCode(code.ErrDatabase, "failed to count retired keys: %v", err)
 	}
 
-	status := &driving.RotationStatus{
+	status := &RotationStatus{
 		Policy:      s.policy,
 		RetiredKeys: int(retiredCount),
 	}
@@ -203,7 +200,7 @@ func (s *KeyRotation) GetRotationStatus(ctx context.Context) (*driving.RotationS
 	// 设置 Active 密钥信息
 	if len(activeKeys) > 0 {
 		key := activeKeys[0]
-		status.ActiveKey = &driving.KeyInfo{
+		status.ActiveKey = &KeyInfo{
 			Kid:       key.Kid,
 			Status:    key.Status,
 			Algorithm: key.JWK.Alg,
@@ -221,7 +218,7 @@ func (s *KeyRotation) GetRotationStatus(ctx context.Context) (*driving.RotationS
 
 	// 设置 Grace 密钥列表
 	for _, key := range graceKeys {
-		status.GraceKeys = append(status.GraceKeys, &driving.KeyInfo{
+		status.GraceKeys = append(status.GraceKeys, &KeyInfo{
 			Kid:       key.Kid,
 			Status:    key.Status,
 			Algorithm: key.JWK.Alg,
@@ -238,12 +235,12 @@ func (s *KeyRotation) GetRotationStatus(ctx context.Context) (*driving.RotationS
 // 将最老的 Grace 密钥转为 Retired
 func (s *KeyRotation) cleanupExcessKeys(ctx context.Context) error {
 	// 计算当前 JWKS 中的密钥数量（Active + Grace）
-	activeCount, err := s.keyRepo.CountByStatus(ctx, jwks.KeyActive)
+	activeCount, err := s.keyRepo.CountByStatus(ctx, KeyActive)
 	if err != nil {
 		return errors.WithCode(code.ErrDatabase, "failed to count active keys: %v", err)
 	}
 
-	graceCount, err := s.keyRepo.CountByStatus(ctx, jwks.KeyGrace)
+	graceCount, err := s.keyRepo.CountByStatus(ctx, KeyGrace)
 	if err != nil {
 		return errors.WithCode(code.ErrDatabase, "failed to count grace keys: %v", err)
 	}
@@ -256,7 +253,7 @@ func (s *KeyRotation) cleanupExcessKeys(ctx context.Context) error {
 	}
 
 	// 获取所有 Grace 密钥（按创建时间排序）
-	graceKeys, err := s.keyRepo.FindByStatus(ctx, jwks.KeyGrace)
+	graceKeys, err := s.keyRepo.FindByStatus(ctx, KeyGrace)
 	if err != nil {
 		return errors.WithCode(code.ErrDatabase, "failed to find grace keys: %v", err)
 	}
@@ -284,7 +281,7 @@ func (s *KeyRotation) cleanupExcessKeys(ctx context.Context) error {
 // cleanupExpiredRetiredKeys 清理过期的 Retired 密钥
 // 删除 NotAfter < now 且 Status = Retired 的密钥
 func (s *KeyRotation) cleanupExpiredRetiredKeys(ctx context.Context) (int, error) {
-	retiredKeys, err := s.keyRepo.FindByStatus(ctx, jwks.KeyRetired)
+	retiredKeys, err := s.keyRepo.FindByStatus(ctx, KeyRetired)
 	if err != nil {
 		return 0, errors.WithCode(code.ErrDatabase, "failed to find retired keys: %v", err)
 	}

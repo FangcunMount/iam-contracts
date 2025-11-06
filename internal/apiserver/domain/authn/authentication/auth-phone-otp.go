@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication/port"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -53,9 +52,9 @@ func newPhoneOTPCredential(input AuthInput) (AuthCredential, error) {
 // PhoneOTPAuthStrategy 手机短信验证码认证策略
 type PhoneOTPAuthStrategy struct {
 	scenario    Scenario
-	credRepo    port.CredentialRepository
-	accountRepo port.AccountRepository
-	otpVerifier port.OTPVerifier
+	credRepo    CredentialRepository
+	accountRepo AccountRepository
+	otpVerifier OTPVerifier
 }
 
 // 实现认证策略接口
@@ -63,9 +62,9 @@ var _ AuthStrategy = (*PhoneOTPAuthStrategy)(nil)
 
 // NewPhoneOTPAuthStrategy 构造函数（注入依赖）
 func NewPhoneOTPAuthStrategy(
-	credRepo port.CredentialRepository,
-	accountRepo port.AccountRepository,
-	otpVerifier port.OTPVerifier,
+	credRepo CredentialRepository,
+	accountRepo AccountRepository,
+	otpVerifier OTPVerifier,
 ) *PhoneOTPAuthStrategy {
 	return &PhoneOTPAuthStrategy{
 		scenario:    AuthPhoneOTP,

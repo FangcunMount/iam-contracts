@@ -11,24 +11,23 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driven"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/port/driving"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Generator JWT 令牌生成器（使用 JWKS 的 RSA 密钥签名）
 type Generator struct {
-	issuer          string                       // 颁发者
-	keyMgmt         driving.KeyManagementService // 密钥管理服务
-	privKeyResolver driven.PrivateKeyResolver    // 私钥解析器
+	issuer          string                  // 颁发者
+	keyMgmt         jwks.Manager            // 密钥管理服务
+	privKeyResolver jwks.PrivateKeyResolver // 私钥解析器
 }
 
 // NewGenerator 创建 JWT 生成器
 func NewGenerator(
 	issuer string,
-	keyMgmt driving.KeyManagementService,
-	privKeyResolver driven.PrivateKeyResolver,
+	keyMgmt jwks.Manager,
+	privKeyResolver jwks.PrivateKeyResolver,
 ) *Generator {
 	return &Generator{
 		issuer:          issuer,
