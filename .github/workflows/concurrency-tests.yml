@@ -35,6 +35,9 @@ jobs:
         with:
           go-version: '1.21'
 
+      - name: Install DB client (mysql)
+        run: sudo apt-get update && sudo apt-get install -y default-mysql-client
+
       - name: Wait for MySQL to be ready
         env:
           MYSQL_PWD: ${{ secrets.CI_MYSQL_PASSWORD || 'iam_password' }}
@@ -49,9 +52,6 @@ jobs:
           done
           echo 'MySQL did not become ready in time' >&2
           exit 1
-
-      - name: Install DB client (mysql)
-        run: sudo apt-get update && sudo apt-get install -y default-mysql-client
 
       - name: Prepare DB schema for tests
         env:
