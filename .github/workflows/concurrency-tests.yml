@@ -9,14 +9,18 @@ on:
 jobs:
   mysql-concurrency-tests:
     runs-on: ubuntu-latest
+    # Only a single MySQL service is required for these concurrency tests.
+    # Credentials are taken from repository secrets when available; defaults
+    # are provided for convenience but you should set secrets in production.
     services:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: iam_test
-          MYSQL_USER: iam
-          MYSQL_PASSWORD: iam_password
+          MYSQL_ROOT_PASSWORD: ${{ secrets.CI_MYSQL_ROOT_PASSWORD || 'root' }}
+          MYSQL_DATABASE: ${{ secrets.CI_MYSQL_DATABASE || 'iam_test' }}
+          MYSQL_USER: ${{ secrets.CI_MYSQL_USER || 'iam' }}
+          MYSQL_PASSWORD: ${{ secrets.CI_MYSQL_PASSWORD || 'iam_password' }}
+        # Exposing ports is unnecessary for the runner steps but kept for clarity.
         ports:
           - 3306:3306
         options: >-
@@ -32,10 +36,12 @@ jobs:
           go-version: '1.21'
 
       - name: Wait for MySQL to be ready
+        env:
+          MYSQL_PWD: ${{ secrets.CI_MYSQL_PASSWORD || 'iam_password' }}
         run: |
           echo 'Waiting for MySQL to be available...'
           for i in {1..30}; do
-            if mysql --host=127.0.0.1 --port=3306 -u iam -piam_password -e 'SELECT 1' >/dev/null 2>&1; then
+            if mysql --host=127.0.0.1 --port=3306 -u ${{ secrets.CI_MYSQL_USER || 'iam' }} -p${MYSQL_PWD} -e 'SELECT 1' >/dev/null 2>&1; then
               echo 'MySQL is ready'
               exit 0
             fi
@@ -43,19 +49,26 @@ jobs:
           done
           echo 'MySQL did not become ready in time' >&2
           exit 1
-        env:
-          MYSQL_PWD: iam_password
 
       - name: Install DB client (mysql)
         run: sudo apt-get update && sudo apt-get install -y default-mysql-client
 
       - name: Prepare DB schema for tests
+        env:
+          MYSQL_PWD: ${{ secrets.CI_MYSQL_ROOT_PASSWORD || 'root' }}
         run: |
-          mysql --host=127.0.0.1 --port=3306 -u root -proot -e "CREATE DATABASE IF NOT EXISTS iam_test;"
+          mysql --host=127.0.0.1 --port=3306 -u root -p${MYSQL_PWD} -e "CREATE DATABASE IF NOT EXISTS ${{ secrets.CI_MYSQL_DATABASE || 'iam_test' }};"
 
       - name: Run concurrency tests (dev-test-all if available)
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_USER: ${{ secrets.CI_MYSQL_USER || 'iam' }}
+          MYSQL_PASSWORD: ${{ secrets.CI_MYSQL_PASSWORD || 'iam_password' }}
+          MYSQL_DATABASE: ${{ secrets.CI_MYSQL_DATABASE || 'iam_test' }}
         run: |
           set -e
+          export MYSQL_PWD="$MYSQL_PASSWORD"
           if command -v make >/dev/null 2>&1 && grep -q "dev-test-all" Makefile; then
             echo "Running make dev-test-all"
             MAKEFLAGS="" make dev-test-all
@@ -63,9 +76,3 @@ jobs:
             echo "Running targeted go tests"
             go test ./internal/apiserver/infra/mysql/... -v -count=1
           fi
-        env:
-          MYSQL_HOST: 127.0.0.1
-          MYSQL_PORT: 3306
-          MYSQL_USER: iam
-          MYSQL_PASSWORD: iam_password
-          MYSQL_DATABASE: iam_test
