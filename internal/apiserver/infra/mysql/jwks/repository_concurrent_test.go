@@ -33,10 +33,11 @@ func TestKeyRepository_Save_ConcurrentDuplicateDetection(t *testing.T) {
 
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := 0; i < concurrency; i++ {
-		go func() {
+		delay := rng.Intn(8)
+		go func(delayInt int) {
 			defer wg.Done()
 			// small jitter to reduce table-lock collisions
-			time.Sleep(time.Millisecond * time.Duration(rng.Intn(8)))
+			time.Sleep(time.Millisecond * time.Duration(delayInt))
 			n := "n"
 			e := "AQAB"
 			key := d.NewKey("dup-kid", d.PublicJWK{Kty: "RSA", Use: "sig", Alg: "RS256", Kid: "dup-kid", N: &n, E: &e}, d.WithStatus(d.KeyActive))
@@ -45,7 +46,7 @@ func TestKeyRepository_Save_ConcurrentDuplicateDetection(t *testing.T) {
 				return
 			}
 			errs <- nil
-		}()
+		}(delay)
 	}
 
 	wg.Wait()

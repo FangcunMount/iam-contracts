@@ -35,17 +35,18 @@ func TestRoleRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := 0; i < concurrency; i++ {
-		go func() {
+		delay := rng.Intn(8)
+		go func(d int) {
 			defer wg.Done()
 			// add tiny random delay to reduce SQLITE table-lock contention
-			time.Sleep(time.Millisecond * time.Duration(rng.Intn(8)))
+			time.Sleep(time.Millisecond * time.Duration(d))
 			r := domain.NewRole("role-dup", "Role Dup", "tenant-1")
 			if err := repo.Create(ctx, &r); err != nil {
 				errs <- err
 				return
 			}
 			errs <- nil
-		}()
+		}(delay)
 	}
 
 	wg.Wait()

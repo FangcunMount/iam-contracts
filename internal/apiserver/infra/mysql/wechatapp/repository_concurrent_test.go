@@ -63,16 +63,18 @@ func TestWechatAppRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := 0; i < concurrency; i++ {
-		go func() {
+		// compute delay in the parent goroutine to avoid concurrent access to rng
+		delay := rng.Intn(8)
+		go func(d int) {
 			defer wg.Done()
-			time.Sleep(time.Millisecond * time.Duration(rng.Intn(8)))
+			time.Sleep(time.Millisecond * time.Duration(d))
 			app := wechatapp.NewWechatApp(wechatapp.AppType("minip"), "app-dup", wechatapp.WithWechatAppName("concurrent"))
 			if err := repo.Create(ctx, app); err != nil {
 				errs <- err
 				return
 			}
 			errs <- nil
-		}()
+		}(delay)
 	}
 
 	wg.Wait()

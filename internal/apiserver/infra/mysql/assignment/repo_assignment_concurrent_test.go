@@ -40,16 +40,17 @@ func TestAssignmentRepository_Create_ConcurrentDuplicateDetection(t *testing.T) 
 
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := 0; i < concurrency; i++ {
-		go func() {
+		delay := rng.Intn(8)
+		go func(d int) {
 			defer wg.Done()
-			time.Sleep(time.Millisecond * time.Duration(rng.Intn(8)))
+			time.Sleep(time.Millisecond * time.Duration(d))
 			a := domain.NewAssignment(domain.SubjectTypeUser, "user-123", 42, "tenant-1")
 			if err := repo.Create(ctx, &a); err != nil {
 				errs <- err
 				return
 			}
 			errs <- nil
-		}()
+		}(delay)
 	}
 
 	wg.Wait()

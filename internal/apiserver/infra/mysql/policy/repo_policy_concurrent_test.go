@@ -40,16 +40,18 @@ func TestPolicyVersionRepository_Create_ConcurrentDuplicateDetection(t *testing.
 	tenant := "tenant-concurrent"
 	version := int64(1)
 	for i := 0; i < concurrency; i++ {
-		go func() {
+		// compute delay in parent goroutine to avoid concurrent access to rng
+		delay := rng.Intn(8)
+		go func(d int) {
 			defer wg.Done()
-			time.Sleep(time.Millisecond * time.Duration(rng.Intn(8)))
+			time.Sleep(time.Millisecond * time.Duration(d))
 			pv := domain.NewPolicyVersion(tenant, version)
 			if err := repo.Create(ctx, &pv); err != nil {
 				errs <- err
 				return
 			}
 			errs <- nil
-		}()
+		}(delay)
 	}
 
 	wg.Wait()

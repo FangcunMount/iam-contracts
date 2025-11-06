@@ -36,17 +36,19 @@ func TestCredentialRepository_Create_ConcurrentDuplicateDetection(t *testing.T) 
 
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := 0; i < concurrency; i++ {
-		go func() {
+		// compute delay in parent goroutine to avoid concurrent access to rng
+		delay := rng.Intn(8)
+		go func(d int) {
 			defer wg.Done()
 			// add tiny random delay to reduce SQLITE table-lock contention
-			time.Sleep(time.Millisecond * time.Duration(rng.Intn(8)))
+			time.Sleep(time.Millisecond * time.Duration(d))
 			cred := domain.NewPhoneOTPCredential(m.NewID(1), "+8613800000000")
 			if err := repo.Create(ctx, cred); err != nil {
 				errs <- err
 				return
 			}
 			errs <- nil
-		}()
+		}(delay)
 	}
 
 	wg.Wait()

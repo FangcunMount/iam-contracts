@@ -37,10 +37,11 @@ func TestChildRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	idNumber := "ID202511060001"
 	for i := 0; i < concurrency; i++ {
-		go func() {
+		delay := rng.Intn(8)
+		go func(d int) {
 			defer wg.Done()
 			// tiny jitter to reduce lock storms on SQLite
-			time.Sleep(time.Millisecond * time.Duration(rng.Intn(8)))
+			time.Sleep(time.Millisecond * time.Duration(d))
 			c, err := domain.NewChild("Alice", domain.WithIDCard(m.NewIDCard("Alice", idNumber)))
 			if err != nil {
 				errs <- err
@@ -51,7 +52,7 @@ func TestChildRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 				return
 			}
 			errs <- nil
-		}()
+		}(delay)
 	}
 
 	wg.Wait()
