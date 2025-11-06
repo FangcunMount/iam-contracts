@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"gorm.io/gorm"
 )
@@ -20,8 +22,13 @@ var _ domain.Repository = (*ResourceRepository)(nil)
 
 // NewResourceRepository 创建 Resource 仓储
 func NewResourceRepository(db *gorm.DB) domain.Repository {
+	base := mysql.NewBaseRepository[*ResourcePO](db)
+	base.SetErrorTranslator(mysql.NewDuplicateToTranslator(func(e error) error {
+		return perrors.WithCode(code.ErrResourceAlreadyExists, "resource already exists")
+	}))
+
 	return &ResourceRepository{
-		BaseRepository: mysql.NewBaseRepository[*ResourcePO](db),
+		BaseRepository: base,
 		mapper:         NewMapper(),
 		db:             db,
 	}

@@ -3,7 +3,9 @@ package role
 import (
 	"context"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
@@ -20,8 +22,13 @@ var _ domain.Repository = (*RoleRepository)(nil)
 
 // NewRoleRepository 构造函数
 func NewRoleRepository(db *gorm.DB) domain.Repository {
+	base := mysql.NewBaseRepository[*RolePO](db)
+	base.SetErrorTranslator(mysql.NewDuplicateToTranslator(func(e error) error {
+		return perrors.WithCode(code.ErrRoleAlreadyExists, "role already exists")
+	}))
+
 	return &RoleRepository{
-		BaseRepository: mysql.NewBaseRepository[*RolePO](db),
+		BaseRepository: base,
 		mapper:         NewMapper(),
 		db:             db,
 	}

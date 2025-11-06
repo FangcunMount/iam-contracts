@@ -3,9 +3,10 @@ package guardianship
 import (
 	"context"
 
+	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
@@ -18,9 +19,16 @@ type Repository struct {
 }
 
 // NewRepository 创建监护关系存储库
-func NewRepository(db *gorm.DB) guardianship.Repository {
+func NewRepository(db *gorm.DB) domain.Repository {
+	base := mysql.NewBaseRepository[*GuardianshipPO](db)
+	// register a driver-aware translator that maps duplicate DB errors to the
+	// guardianship-specific business error code.
+	base.SetErrorTranslator(mysql.NewDuplicateToTranslator(func(e error) error {
+		return errors.WithCode(code.ErrIdentityGuardianshipExists, "guardianship already exists")
+	}))
+
 	return &Repository{
-		BaseRepository: mysql.NewBaseRepository[*GuardianshipPO](db),
+		BaseRepository: base,
 		mapper:         NewGuardianshipMapper(),
 	}
 }

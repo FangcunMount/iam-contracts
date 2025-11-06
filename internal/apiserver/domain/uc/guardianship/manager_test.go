@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -42,8 +43,10 @@ func (s *stubGuardianshipRepo) FindByUserID(context.Context, meta.ID) ([]*Guardi
 func (s *stubGuardianshipRepo) FindByUserIDAndChildID(context.Context, meta.ID, meta.ID) (*Guardianship, error) {
 	return nil, nil
 }
-func (s *stubGuardianshipRepo) IsGuardian(context.Context, meta.ID, meta.ID) (bool, error) { return false, nil }
-func (s *stubGuardianshipRepo) Update(context.Context, *Guardianship) error               { return nil }
+func (s *stubGuardianshipRepo) IsGuardian(context.Context, meta.ID, meta.ID) (bool, error) {
+	return false, nil
+}
+func (s *stubGuardianshipRepo) Update(context.Context, *Guardianship) error { return nil }
 
 type stubChildDomainRepo struct {
 	child *childdomain.Child
@@ -195,4 +198,142 @@ func TestGuardianshipManager_RemoveGuardian_NotFound(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, removed)
 	assert.Contains(t, fmt.Sprintf("%-v", err), "active guardian not found")
+}
+
+func TestGuardianshipManager_AddGuardian_ChildRepoError(t *testing.T) {
+	childRepo := &stubChildDomainRepo{err: errors.New("db error")}
+	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.NewID(2)}}
+	guardRepo := &stubGuardianshipRepo{}
+
+	manager := NewManagerService(guardRepo, childRepo, userRepo)
+
+	guardian, err := manager.AddGuardian(context.Background(), meta.NewID(2), meta.NewID(1), RelParent)
+
+	require.Error(t, err)
+	assert.Nil(t, guardian)
+	assert.Contains(t, fmt.Sprintf("%-v", err), "find child failed")
+}
+
+func TestGuardianshipManager_AddGuardian_UserNotFound(t *testing.T) {
+	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.NewID(1)}}
+	userRepo := &stubUserDomainRepo{user: nil}
+	guardRepo := &stubGuardianshipRepo{}
+
+	manager := NewManagerService(guardRepo, childRepo, userRepo)
+
+	guardian, err := manager.AddGuardian(context.Background(), meta.NewID(2), meta.NewID(1), RelParent)
+
+	require.Error(t, err)
+	assert.Nil(t, guardian)
+	assert.Contains(t, fmt.Sprintf("%-v", err), "user not found")
+}
+
+func TestGuardianshipManager_RemoveGuardian_FindError(t *testing.T) {
+	guardRepo := &stubGuardianshipRepo{findErr: errors.New("db error")}
+	manager := NewManagerService(guardRepo, &stubChildDomainRepo{}, &stubUserDomainRepo{})
+
+	removed, err := manager.RemoveGuardian(context.Background(), meta.NewID(2), meta.NewID(1))
+
+	require.Error(t, err)
+	assert.Nil(t, removed)
+	assert.Contains(t, fmt.Sprintf("%-v", err), "find guardians failed")
+}
+
+// seqGuardRepo 提供按调用序列返回不同结果的 FindByChildID，帮助并发测试
+type seqGuardRepo struct {
+	mu        sync.Mutex
+	calls     int
+	responses [][]*Guardianship
+}
+
+func (s *seqGuardRepo) Create(context.Context, *Guardianship) error                { return nil }
+func (s *seqGuardRepo) FindByID(context.Context, idutil.ID) (*Guardianship, error) { return nil, nil }
+func (s *seqGuardRepo) FindByChildID(ctx context.Context, id meta.ID) ([]*Guardianship, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.calls < len(s.responses) {
+		res := s.responses[s.calls]
+		s.calls++
+		return res, nil
+	}
+	return s.responses[len(s.responses)-1], nil
+}
+func (s *seqGuardRepo) FindByUserID(context.Context, meta.ID) ([]*Guardianship, error) {
+	return nil, nil
+}
+func (s *seqGuardRepo) FindByUserIDAndChildID(context.Context, meta.ID, meta.ID) (*Guardianship, error) {
+	return nil, nil
+}
+func (s *seqGuardRepo) IsGuardian(context.Context, meta.ID, meta.ID) (bool, error) { return false, nil }
+func (s *seqGuardRepo) Update(context.Context, *Guardianship) error                { return nil }
+
+func TestGuardianshipManager_AddGuardian_ConcurrentDuplicateDetection(t *testing.T) {
+	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.NewID(1)}}
+	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.NewID(2)}}
+
+	existing := &Guardianship{User: meta.NewID(2), Child: meta.NewID(1)}
+	seq := &seqGuardRepo{
+		responses: [][]*Guardianship{
+			{},         // first caller sees none
+			{existing}, // second caller sees existing guardian
+		},
+	}
+
+	manager := NewManagerService(seq, childRepo, userRepo)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	startCh := make(chan struct{})
+	results := make([]struct {
+		g   *Guardianship
+		err error
+	}, 2)
+
+	for i := 0; i < 2; i++ {
+		idx := i
+		go func() {
+			defer wg.Done()
+			<-startCh
+			g, err := manager.AddGuardian(context.Background(), meta.NewID(2), meta.NewID(1), RelParent)
+			results[idx].g = g
+			results[idx].err = err
+		}()
+	}
+
+	// 同时开始，两者几乎同时调用 FindByChildID
+	close(startCh)
+	wg.Wait()
+
+	// 期望：一个成功，另一个因为已存在而失败
+	var success, duplicated int
+	for _, r := range results {
+		if r.err == nil && r.g != nil {
+			success++
+		} else if r.err != nil {
+			if fmt.Sprintf("%-v", r.err) == fmt.Sprintf("%-v", r.err) &&
+				contains(fmt.Sprintf("%-v", r.err), "guardian already exists") {
+				duplicated++
+			}
+		}
+	}
+
+	// 要求至少有一个成功和至少一个重复错误
+	assert.GreaterOrEqual(t, success, 1)
+	assert.GreaterOrEqual(t, duplicated, 1)
+}
+
+// contains 方便在断言中检查子串
+func contains(s, sub string) bool {
+	return len(sub) == 0 || (len(s) >= len(sub) && (indexOf(s, sub) >= 0))
+}
+
+// indexOf 是一个简单实现，避免引入 strings 包以保持测试文件与其余代码风格一致
+func indexOf(s, sub string) int {
+	for i := 0; i+len(sub) <= len(s); i++ {
+		if s[i:i+len(sub)] == sub {
+			return i
+		}
+	}
+	return -1
 }

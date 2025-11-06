@@ -2,6 +2,7 @@ package guardianship_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -405,4 +406,65 @@ func TestGuardianshipQueryApplicationService_ListGuardiansByChildID_Success(t *t
 	// Assert
 	require.NoError(t, err)
 	assert.Len(t, results, 2)
+}
+
+func TestGuardianshipApplicationService_AddGuardian_ConcurrentPersistence_10(t *testing.T) {
+	// Arrange
+	db := testutil.SetupTestDB(t)
+	unitOfWork := uow.NewUnitOfWork(db)
+	ctx := context.Background()
+
+	// 创建用户和儿童（使用唯一 email 避免 UNIQUE 冲突）
+	userService := user.NewUserApplicationService(unitOfWork)
+	userResult, err := userService.Register(ctx, user.RegisterUserDTO{
+		Name:  "并发父亲",
+		Phone: "13900000000",
+		Email: "concurrent_father@example.com",
+	})
+	require.NoError(t, err)
+
+	childService := child.NewChildApplicationService(unitOfWork)
+	childResult, err := childService.Register(ctx, child.RegisterChildDTO{
+		Name:     "并发孩子",
+		Gender:   "male",
+		Birthday: "2020-02-02",
+	})
+	require.NoError(t, err)
+
+	guardianshipService := guardianship.NewGuardianshipApplicationService(unitOfWork)
+	queryService := guardianship.NewGuardianshipQueryApplicationService(unitOfWork)
+
+	// Act - 并发发起 10 个添加监护请求
+	const N = 10
+	var wg sync.WaitGroup
+	wg.Add(N)
+
+	// 为了提高并发命中率，让 goroutine 等待同一个开始信号
+	start := make(chan struct{})
+
+	for i := 0; i < N; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			<-start
+			dto := guardianship.AddGuardianDTO{
+				UserID:   userResult.ID,
+				ChildID:  childResult.ID,
+				Relation: "parent",
+			}
+			_ = guardianshipService.AddGuardian(ctx, dto)
+		}(i)
+	}
+
+	close(start)
+	wg.Wait()
+
+	// Assert - 查询数据库中该儿童的监护人数量，期望为 1（防止重复创建）
+	results, err := queryService.ListGuardiansByChildID(ctx, childResult.ID)
+	require.NoError(t, err)
+
+	// 记录数量
+	t.Logf("concurrent add results count: %d", len(results))
+
+	// 现在数据库层已添加唯一约束，期望只有一条监护关系被成功持久化
+	require.Equal(t, 1, len(results))
 }

@@ -3,8 +3,10 @@ package user
 import (
 	"context"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
@@ -18,8 +20,13 @@ type Repository struct {
 
 // NewRepository 创建用户存储库
 func NewRepository(db *gorm.DB) user.Repository {
+	base := mysql.NewBaseRepository[*UserPO](db)
+	base.SetErrorTranslator(mysql.NewDuplicateToTranslator(func(e error) error {
+		return perrors.WithCode(code.ErrUserAlreadyExists, "user already exists")
+	}))
+
 	return &Repository{
-		BaseRepository: mysql.NewBaseRepository[*UserPO](db),
+		BaseRepository: base,
 		mapper:         NewUserMapper(),
 	}
 }

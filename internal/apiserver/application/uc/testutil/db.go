@@ -19,7 +19,9 @@ func SetupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
 	// 创建内存数据库
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
+	// 使用共享内存模式，确保在连接池中多个连接可以访问相同的内存数据库
+	// 参考：https://www.sqlite.org/inmemorydb.html
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
 		Logger:                                   logger.Default.LogMode(logger.Silent), // 测试时静默日志
 		DisableForeignKeyConstraintWhenMigrating: true,                                  // SQLite 兼容性
 	})

@@ -3,8 +3,10 @@ package child
 import (
 	"context"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
@@ -18,8 +20,13 @@ type Repository struct {
 
 // NewRepository 创建儿童档案存储库
 func NewRepository(db *gorm.DB) child.Repository {
+	base := mysql.NewBaseRepository[*ChildPO](db)
+	base.SetErrorTranslator(mysql.NewDuplicateToTranslator(func(e error) error {
+		return perrors.WithCode(code.ErrIdentityChildExists, "child already exists")
+	}))
+
 	return &Repository{
-		BaseRepository: mysql.NewBaseRepository[*ChildPO](db),
+		BaseRepository: base,
 		mapper:         NewChildMapper(),
 	}
 }

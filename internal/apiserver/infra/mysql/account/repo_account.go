@@ -4,22 +4,30 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 
-// AccountRepository 账号仓储实现
+// AccountRepository 账号仓储实现（基于 BaseRepository）
 type AccountRepository struct {
-	db     *gorm.DB
+	mysql.BaseRepository[*AccountPO]
 	mapper *Mapper
 }
 
 // NewAccountRepository 创建账号仓储实例
 func NewAccountRepository(db *gorm.DB) *AccountRepository {
+	base := mysql.NewBaseRepository[*AccountPO](db)
+	base.SetErrorTranslator(mysql.NewDuplicateToTranslator(func(e error) error {
+		return errors.WithCode(code.ErrAccountExists, "account already exists")
+	}))
+
 	return &AccountRepository{
-		db:     db,
-		mapper: NewMapper(),
+		BaseRepository: base,
+		mapper:         NewMapper(),
 	}
 }
 
@@ -28,11 +36,11 @@ func NewAccountRepository(db *gorm.DB) *AccountRepository {
 // Create 创建账号
 func (r *AccountRepository) Create(ctx context.Context, acc *domain.Account) error {
 	po := r.mapper.ToAccountPO(acc)
-	if err := r.db.WithContext(ctx).Create(po).Error; err != nil {
+	if err := r.CreateAndSync(ctx, po, func(updated *AccountPO) {
+		acc.ID = meta.NewID(updated.ID.ToUint64())
+	}); err != nil {
 		return fmt.Errorf("failed to create account: %w", err)
 	}
-	// 回填生成的 ID
-	acc.ID = meta.NewID(po.ID.ToUint64())
 	return nil
 }
 
@@ -41,7 +49,7 @@ func (r *AccountRepository) Create(ctx context.Context, acc *domain.Account) err
 // UpdateUniqueID 更新唯一标识
 func (r *AccountRepository) UpdateUniqueID(ctx context.Context, id meta.ID, uniqueID domain.UnionID) error {
 	uniqueIDStr := string(uniqueID)
-	result := r.db.WithContext(ctx).
+	result := r.WithContext(ctx).
 		Model(&AccountPO{}).
 		Where("id = ?", id.ToUint64()).
 		Update("unique_id", uniqueIDStr)
@@ -57,7 +65,7 @@ func (r *AccountRepository) UpdateUniqueID(ctx context.Context, id meta.ID, uniq
 
 // UpdateStatus 更新账号状态
 func (r *AccountRepository) UpdateStatus(ctx context.Context, id meta.ID, status domain.AccountStatus) error {
-	result := r.db.WithContext(ctx).
+	result := r.WithContext(ctx).
 		Model(&AccountPO{}).
 		Where("id = ?", id.ToUint64()).
 		Update("status", int8(status))
@@ -74,7 +82,7 @@ func (r *AccountRepository) UpdateStatus(ctx context.Context, id meta.ID, status
 // UpdateProfile 更新用户资料
 func (r *AccountRepository) UpdateProfile(ctx context.Context, id meta.ID, profile map[string]string) error {
 	profileJSON := mapToJSON(profile)
-	result := r.db.WithContext(ctx).
+	result := r.WithContext(ctx).
 		Model(&AccountPO{}).
 		Where("id = ?", id.ToUint64()).
 		Update("profile", profileJSON)
@@ -91,7 +99,7 @@ func (r *AccountRepository) UpdateProfile(ctx context.Context, id meta.ID, profi
 // UpdateMeta 更新元数据
 func (r *AccountRepository) UpdateMeta(ctx context.Context, id meta.ID, metaData map[string]string) error {
 	metaJSON := mapToJSON(metaData)
-	result := r.db.WithContext(ctx).
+	result := r.WithContext(ctx).
 		Model(&AccountPO{}).
 		Where("id = ?", id.ToUint64()).
 		Update("meta", metaJSON)
@@ -110,7 +118,7 @@ func (r *AccountRepository) UpdateMeta(ctx context.Context, id meta.ID, metaData
 // GetByID 根据ID查询账号
 func (r *AccountRepository) GetByID(ctx context.Context, id meta.ID) (*domain.Account, error) {
 	var po AccountPO
-	if err := r.db.WithContext(ctx).
+	if err := r.WithContext(ctx).
 		Where("id = ?", id.ToUint64()).
 		First(&po).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -124,7 +132,7 @@ func (r *AccountRepository) GetByID(ctx context.Context, id meta.ID) (*domain.Ac
 // GetByUniqueID 根据唯一标识查询账号
 func (r *AccountRepository) GetByUniqueID(ctx context.Context, uniqueID domain.UnionID) (*domain.Account, error) {
 	var po AccountPO
-	if err := r.db.WithContext(ctx).
+	if err := r.WithContext(ctx).
 		Where("unique_id = ?", string(uniqueID)).
 		First(&po).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -138,7 +146,7 @@ func (r *AccountRepository) GetByUniqueID(ctx context.Context, uniqueID domain.U
 // GetByExternalIDAppId 根据外部ID和AppID查询账号
 func (r *AccountRepository) GetByExternalIDAppId(ctx context.Context, externalID domain.ExternalID, appID domain.AppId) (*domain.Account, error) {
 	var po AccountPO
-	query := r.db.WithContext(ctx).Where("external_id = ?", string(externalID))
+	query := r.WithContext(ctx).Where("external_id = ?", string(externalID))
 
 	// AppID 可能为空
 	if appID != "" {
@@ -166,7 +174,7 @@ func (r *AccountRepository) FindAccountByUsername(ctx context.Context, tenantID 
 	// 这里需要根据实际业务逻辑调整查询条件
 	var po AccountPO
 
-	query := r.db.WithContext(ctx).Where("external_id = ?", username)
+	query := r.WithContext(ctx).Where("external_id = ?", username)
 
 	// 如果有租户隔离，可以通过 user_id 或其他字段实现
 	// 这里假设暂不支持租户隔离，或者租户信息在其他表中
@@ -186,7 +194,7 @@ func (r *AccountRepository) FindAccountByUsername(ctx context.Context, tenantID 
 func (r *AccountRepository) GetAccountStatus(ctx context.Context, accountID meta.ID) (enabled, locked bool, err error) {
 	var po AccountPO
 
-	if err := r.db.WithContext(ctx).
+	if err := r.WithContext(ctx).
 		Select("status").
 		Where("id = ?", accountID).
 		First(&po).Error; err != nil {
