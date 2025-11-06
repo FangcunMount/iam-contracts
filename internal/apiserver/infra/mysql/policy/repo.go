@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"gorm.io/gorm"
 )
@@ -20,8 +22,13 @@ var _ domain.Repository = (*PolicyVersionRepository)(nil)
 
 // NewPolicyVersionRepository 创建 PolicyVersion 仓储
 func NewPolicyVersionRepository(db *gorm.DB) domain.Repository {
+	base := mysql.NewBaseRepository[*PolicyVersionPO](db)
+	base.SetErrorTranslator(mysql.NewDuplicateToTranslator(func(e error) error {
+		return perrors.WithCode(code.ErrPolicyVersionAlreadyExists, "policy version already exists")
+	}))
+
 	return &PolicyVersionRepository{
-		BaseRepository: mysql.NewBaseRepository[*PolicyVersionPO](db),
+		BaseRepository: base,
 		mapper:         NewMapper(),
 		db:             db,
 	}

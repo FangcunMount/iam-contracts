@@ -51,6 +51,8 @@ const (
 const (
 	// ErrPolicyVersionNotFound - 404: Policy version not found.
 	ErrPolicyVersionNotFound = 103400
+	// ErrPolicyVersionAlreadyExists - 409: Policy version already exists.
+	ErrPolicyVersionAlreadyExists = 103401
 )
 
 // nolint: gochecknoinits
@@ -75,6 +77,10 @@ func registerAuthz() {
 	// 赋权相关错误
 	registerAuthzCode(ErrAssignmentNotFound, http.StatusNotFound, "Assignment not found")
 	registerAuthzCode(ErrAssignmentAlreadyExists, http.StatusConflict, "Assignment already exists")
+
+	// 策略版本相关错误
+	registerAuthzCode(ErrPolicyVersionNotFound, http.StatusNotFound, "Policy version not found")
+	registerAuthzCode(ErrPolicyVersionAlreadyExists, http.StatusConflict, "Policy version already exists")
 
 	// 策略相关错误
 	registerAuthzCode(ErrPolicyVersionNotFound, http.StatusNotFound, "Policy version not found")
