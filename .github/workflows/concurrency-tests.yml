@@ -67,12 +67,24 @@ jobs:
           MYSQL_PASSWORD: ${{ secrets.CI_MYSQL_PASSWORD || 'iam_password' }}
           MYSQL_DATABASE: ${{ secrets.CI_MYSQL_DATABASE || 'iam_test' }}
         run: |
-          set -e
+          set -o pipefail
           export MYSQL_PWD="$MYSQL_PASSWORD"
+          mkdir -p test-artifacts
           if command -v make >/dev/null 2>&1 && grep -q "dev-test-all" Makefile; then
             echo "Running make dev-test-all"
-            MAKEFLAGS="" make dev-test-all
+            MAKEFLAGS="" make dev-test-all 2>&1 | tee test-artifacts/dev-test-all.txt
+            rc=${PIPESTATUS[0]}
           else
             echo "Running targeted go tests"
-            go test ./internal/apiserver/infra/mysql/... -v -count=1
+            go test ./internal/apiserver/infra/mysql/... -v -count=1 2>&1 | tee test-artifacts/go-tests.txt
+            rc=${PIPESTATUS[0]}
           fi
+          echo "Test exit code: $rc"
+          exit $rc
+
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: concurrency-test-logs-${{ github.run_id }}
+          path: test-artifacts/**
