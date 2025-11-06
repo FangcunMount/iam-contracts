@@ -55,6 +55,7 @@ Thumbs.db
 *.env.production
 .env.*.local
 build/docker/infra/dev.env
+build/docker/infra/.env
 
 # SSL/TLS Certificates (except README)
 configs/cert/*.crt
