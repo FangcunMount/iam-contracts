@@ -53,9 +53,9 @@ func (m *JWTAuthMiddleware) AuthRequired() gin.HandlerFunc {
 
 		// 将用户信息存入上下文（从 Claims 中读取）
 		if resp.Claims != nil {
-			c.Set("user_id", resp.Claims.UserID.String())
-			c.Set("account_id", resp.Claims.AccountID.String())
-			c.Set("token_id", resp.Claims.TokenID)
+			c.Set(ContextKeyUserID, resp.Claims.UserID.String())
+			c.Set(ContextKeyAccountID, resp.Claims.AccountID.String())
+			c.Set(ContextKeyTokenID, resp.Claims.TokenID)
 		}
 
 		c.Next()
@@ -90,9 +90,9 @@ func (m *JWTAuthMiddleware) AuthOptional() gin.HandlerFunc {
 
 		// 将用户信息存入上下文（从 Claims 中读取）
 		if resp.Claims != nil {
-			c.Set("user_id", resp.Claims.UserID.String())
-			c.Set("account_id", resp.Claims.AccountID.String())
-			c.Set("token_id", resp.Claims.TokenID)
+			c.Set(ContextKeyUserID, resp.Claims.UserID.String())
+			c.Set(ContextKeyAccountID, resp.Claims.AccountID.String())
+			c.Set(ContextKeyTokenID, resp.Claims.TokenID)
 		}
 
 		c.Next()
@@ -104,7 +104,7 @@ func (m *JWTAuthMiddleware) AuthOptional() gin.HandlerFunc {
 func (m *JWTAuthMiddleware) RequireRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从上下文获取用户信息
-		accountID, exists := c.Get("account_id")
+		accountID, exists := c.Get(ContextKeyAccountID)
 		if !exists {
 			core.WriteResponse(c, errors.WithCode(code.ErrUnauthorized, "Not authenticated"), nil)
 			c.Abort()
@@ -125,7 +125,7 @@ func (m *JWTAuthMiddleware) RequireRole(roles ...string) gin.HandlerFunc {
 func (m *JWTAuthMiddleware) RequirePermission(permissions ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从上下文获取用户信息
-		accountID, exists := c.Get("account_id")
+		accountID, exists := c.Get(ContextKeyAccountID)
 		if !exists {
 			core.WriteResponse(c, errors.WithCode(code.ErrUnauthorized, "Not authenticated"), nil)
 			c.Abort()
