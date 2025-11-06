@@ -12,13 +12,13 @@ import (
 // PO 持久化对象，对应凭据表。
 type PO struct {
 	base.AuditFields
-	AccountID meta.ID `gorm:"column:account_id;type:bigint unsigned;not null;index:idx_account_type,priority:1"`
+	AccountID meta.ID `gorm:"column:account_id;type:bigint unsigned;not null;index:idx_account_type,priority:1;uniqueIndex:uk_account_idp_identifier,priority:1"`
 	Type      string  `gorm:"column:type;type:varchar(32);not null;index:idx_account_type,priority:2"`
 
 	// 外部身份三元组
-	IDP           *string `gorm:"column:idp;type:varchar(32)"`                                      // wechat/wecom/phone
-	IDPIdentifier string  `gorm:"column:idp_identifier;type:varchar(255);index:idx_idp_identifier"` // unionid/openid@appid/userid/phone
-	AppID         *string `gorm:"column:app_id;type:varchar(64)"`                                   // appid/corp_id
+	IDP           *string `gorm:"column:idp;type:varchar(32);uniqueIndex:uk_account_idp_identifier,priority:2"`                                      // wechat/wecom/phone
+	IDPIdentifier string  `gorm:"column:idp_identifier;type:varchar(255);index:idx_idp_identifier;uniqueIndex:uk_account_idp_identifier,priority:3"` // unionid/openid@appid/userid/phone
+	AppID         *string `gorm:"column:app_id;type:varchar(64)"`                                                                                    // appid/corp_id
 
 	// 凭据材料（password 专用）
 	Material []byte  `gorm:"column:material;type:varbinary(512)"` // PHC hash
