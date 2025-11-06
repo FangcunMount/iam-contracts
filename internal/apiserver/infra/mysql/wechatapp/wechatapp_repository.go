@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package mysql
 
 import (
@@ -8,8 +11,8 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 )
 
 // wechatAppRepository 微信应用仓储实现
