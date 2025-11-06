@@ -30,7 +30,7 @@ TLS_CERT_DEST ?= /etc/iam-contracts/ssl/yangshujie.com.crt
 TLS_KEY_DEST ?= /etc/iam-contracts/ssl/yangshujie.com.key
 
 # Go 相关
-GO := go
+GO := env -u GOROOT go
 GO_BUILD := $(GO) build
 GO_TEST := $(GO) test
 GO_LDFLAGS := -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)"
@@ -319,14 +319,14 @@ test-dev-config: ## 测试开发环境配置
 
 test: ## 运行测试
 	@echo "🧪 运行测试..."
-	@go test ./...
+	@$(GO_TEST) ./...
 
 clean: ## 清理构建文件和进程
 	@echo "🧹 清理构建文件和进程..."
 	@$(MAKE) stop-apiserver
 	@rm -rf tmp bin $(LOG_DIR)/*.log
 	@rm -f $(APISERVER_BIN)
-	@go clean
+	@$(GO) clean
 	@echo "✅ 清理完成"
 
 create-dirs: ## 创建必要的目录
@@ -445,9 +445,9 @@ proto-gen: ## 生成 protobuf 代码
 install-tools: ## 安装开发工具
 	@echo "$(COLOR_CYAN)📦 安装开发工具...$(COLOR_RESET)"
 	@echo "安装 Air (热更新)..."
-	@go install github.com/air-verse/air@latest
+	@$(GO) install github.com/air-verse/air@latest
 	@echo "安装 mockgen..."
-	@go install go.uber.org/mock/mockgen@latest
+	@$(GO) install go.uber.org/mock/mockgen@latest
 	@echo "$(COLOR_GREEN)✅ 工具安装完成$(COLOR_RESET)"
 
 # ============================================================================
