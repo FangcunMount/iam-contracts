@@ -88,8 +88,6 @@ func (s *stubUserDomainRepo) FindByPhone(context.Context, meta.Phone) (*userdoma
 }
 func (s *stubUserDomainRepo) Update(context.Context, *userdomain.User) error { return nil }
 
-type idutilID interface{ Uint64() uint64 }
-
 func TestGuardianshipManager_AddGuardianSuccess(t *testing.T) {
 	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.NewID(1)}}
 	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.NewID(2)}}
@@ -311,8 +309,7 @@ func TestGuardianshipManager_AddGuardian_ConcurrentDuplicateDetection(t *testing
 		if r.err == nil && r.g != nil {
 			success++
 		} else if r.err != nil {
-			if fmt.Sprintf("%-v", r.err) == fmt.Sprintf("%-v", r.err) &&
-				contains(fmt.Sprintf("%-v", r.err), "guardian already exists") {
+			if contains(fmt.Sprintf("%-v", r.err), "guardian already exists") {
 				duplicated++
 			}
 		}
