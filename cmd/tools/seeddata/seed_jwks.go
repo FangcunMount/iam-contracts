@@ -6,7 +6,7 @@ import (
 	"time"
 
 	jwksApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/jwks"
-	jwksService "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks/service"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/crypto"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/jwt"
 	jwksMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/jwks"
@@ -32,7 +32,7 @@ func seedJWKS(ctx context.Context, deps *dependencies) error {
 	keyRepo := jwksMysql.NewKeyRepository(deps.DB)
 	privateStorage := crypto.NewPEMPrivateKeyStorage(deps.KeysDir)
 	keyGenerator := crypto.NewRSAKeyGeneratorWithStorage(privateStorage)
-	keyManager := jwksService.NewKeyManager(keyRepo, keyGenerator)
+	keyManager := jwks.NewKeyManager(keyRepo, keyGenerator)
 
 	keyResolver := crypto.NewPEMPrivateKeyResolver(deps.KeysDir)
 	jwtGenerator := jwt.NewGenerator("iam-seed", keyManager, keyResolver)
