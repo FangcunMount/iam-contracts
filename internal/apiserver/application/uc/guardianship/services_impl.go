@@ -357,18 +357,6 @@ func parseChildID(childID string) (meta.ID, error) {
 	return meta.NewID(id), nil
 }
 
-// parseGender 解析性别字符串
-func parseGender(gender string) meta.Gender {
-	switch gender {
-	case "male", "男":
-		return meta.GenderMale
-	case "female", "女":
-		return meta.GenderFemale
-	default:
-		return meta.GenderOther
-	}
-}
-
 // parseRelation 解析关系字符串
 func parseRelation(relation string) domain.Relation {
 	switch relation {
