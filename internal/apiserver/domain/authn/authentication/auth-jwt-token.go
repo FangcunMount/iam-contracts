@@ -6,6 +6,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 func init() {
@@ -17,7 +18,7 @@ func init() {
 
 // JWTTokenCredential JWT Token 认证凭据
 type JWTTokenCredential struct {
-	TenantID    *int64
+	TenantID    meta.ID
 	RemoteIP    string
 	UserAgent   string
 	AccessToken string
@@ -132,6 +133,6 @@ func (j *JWTTokenAuthStrategy) Authenticate(ctx context.Context, credential Auth
 	return AuthDecision{
 		OK:           true,
 		Principal:    principal,
-		CredentialID: 0, // JWT Token 认证不对应具体的凭据记录
+		CredentialID: meta.ID{}, // JWT Token 认证不对应具体的凭据记录
 	}, nil
 }

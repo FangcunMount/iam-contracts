@@ -8,6 +8,7 @@ import (
 	assignmentDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
 	policyDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
 	roleDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // AssignmentCommandService 赋权命令服务（实现 AssignmentCommander 接口）
@@ -15,9 +16,9 @@ import (
 // 核心职责：管理数据库和 Casbin 的双写事务一致性
 type AssignmentCommandService struct {
 	assignmentValidator assignmentDomain.Validator
-	assignmentRepo    assignmentDomain.Repository
-	roleRepo          roleDomain.Repository
-	casbinAdapter     policyDomain.CasbinAdapter
+	assignmentRepo      assignmentDomain.Repository
+	roleRepo            roleDomain.Repository
+	casbinAdapter       policyDomain.CasbinAdapter
 }
 
 // NewAssignmentCommandService 创建赋权命令服务
@@ -29,9 +30,9 @@ func NewAssignmentCommandService(
 ) *AssignmentCommandService {
 	return &AssignmentCommandService{
 		assignmentValidator: assignmentValidator,
-		assignmentRepo:    assignmentRepo,
-		roleRepo:          roleRepo,
-		casbinAdapter:     casbinAdapter,
+		assignmentRepo:      assignmentRepo,
+		roleRepo:            roleRepo,
+		casbinAdapter:       casbinAdapter,
 	}
 }
 
@@ -48,7 +49,7 @@ func (s *AssignmentCommandService) Grant(ctx context.Context, cmd assignmentDoma
 	}
 
 	// 3. 获取角色信息以构建 Casbin 规则
-	role, err := s.roleRepo.FindByID(ctx, roleDomain.NewRoleID(cmd.RoleID))
+	role, err := s.roleRepo.FindByID(ctx, meta.NewID(cmd.RoleID))
 	if err != nil {
 		return nil, errors.Wrap(err, "获取角色失败")
 	}
@@ -98,7 +99,7 @@ func (s *AssignmentCommandService) Revoke(ctx context.Context, cmd assignmentDom
 	}
 
 	// 3. 获取角色信息以构建 Casbin 规则
-	role, err := s.roleRepo.FindByID(ctx, roleDomain.NewRoleID(cmd.RoleID))
+	role, err := s.roleRepo.FindByID(ctx, meta.NewID(cmd.RoleID))
 	if err != nil {
 		return errors.Wrap(err, "获取角色失败")
 	}
@@ -141,7 +142,7 @@ func (s *AssignmentCommandService) revokeAssignment(
 	targetAssignment *assignmentDomain.Assignment,
 ) error {
 	// 1. 获取角色信息以构建 Casbin 规则
-	role, err := s.roleRepo.FindByID(ctx, roleDomain.NewRoleID(targetAssignment.RoleID))
+	role, err := s.roleRepo.FindByID(ctx, meta.NewID(targetAssignment.RoleID))
 	if err != nil {
 		return errors.Wrap(err, "获取角色失败")
 	}

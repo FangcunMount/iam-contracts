@@ -9,7 +9,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
@@ -48,7 +47,7 @@ type CustomClaims struct {
 func (g *Generator) GenerateAccessToken(principal *authentication.Principal, expiresIn time.Duration) (*domain.Token, error) {
 	ctx := context.Background() // TODO: 从参数传递 context
 	now := time.Now()
-	tokenID := idutil.NewID(0).String() // 生成唯一 Token ID
+	tokenID := meta.NewID(0).String() // 生成唯一 Token ID
 
 	// 获取当前活跃的密钥
 	activeKey, err := g.keyMgmt.GetActiveKey(ctx)
@@ -69,8 +68,8 @@ func (g *Generator) GenerateAccessToken(principal *authentication.Principal, exp
 	}
 
 	claims := CustomClaims{
-		UserID:    uint64(principal.UserID),
-		AccountID: uint64(principal.AccountID),
+		UserID:    principal.UserID.ToUint64(),
+		AccountID: principal.AccountID.ToUint64(),
 		StandardClaims: jwt.StandardClaims{
 			Id:        tokenID,
 			Issuer:    g.issuer,
@@ -95,8 +94,8 @@ func (g *Generator) GenerateAccessToken(principal *authentication.Principal, exp
 	return domain.NewAccessToken(
 		tokenID,
 		tokenString,
-		meta.NewID(uint64(principal.UserID)),
-		meta.NewID(uint64(principal.AccountID)),
+		principal.UserID,
+		principal.AccountID,
 		expiresIn,
 	), nil
 }

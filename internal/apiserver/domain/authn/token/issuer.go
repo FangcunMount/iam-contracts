@@ -7,7 +7,6 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
-	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/google/uuid"
 )
 
@@ -49,10 +48,10 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 	// 生成刷新令牌（UUID）
 	refreshTokenValue := uuid.New().String()
 	refreshToken := NewRefreshToken(
-		uuid.New().String(),                     // token ID
-		refreshTokenValue,                       // token value
-		meta.NewID(uint64(principal.UserID)),    // user ID
-		meta.NewID(uint64(principal.AccountID)), // account ID
+		uuid.New().String(), // token ID
+		refreshTokenValue,   // token value
+		principal.UserID,    // user ID
+		principal.AccountID, // account ID
 		s.refreshTTL,
 	)
 

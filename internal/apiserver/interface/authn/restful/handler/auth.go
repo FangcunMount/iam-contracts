@@ -13,6 +13,7 @@ import (
 	req "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful/request"
 	resp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful/response"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // AuthHandler 认证 HTTP 处理器
@@ -85,9 +86,8 @@ func (h *AuthHandler) handlePasswordLogin(c *gin.Context, reqBody req.LoginReque
 		Username: &creds.Username,
 		Password: &creds.Password,
 	}
-	if creds.TenantID != nil {
-		tenantID := int64(*creds.TenantID)
-		loginReq.TenantID = &tenantID
+	if creds.TenantID != 0 {
+		loginReq.TenantID = meta.NewID(creds.TenantID)
 	}
 
 	h.executeLogin(c, loginReq)

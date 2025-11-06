@@ -75,7 +75,7 @@ type RegisterResult struct {
 	ExternalID  domain.ExternalID  // 外部标识
 
 	// 凭据信息
-	CredentialID int64 // 凭据ID
+	CredentialID meta.ID // 凭据ID
 
 	// 状态
 	IsNewUser    bool // 是否新建用户（true=新建，false=已存在）

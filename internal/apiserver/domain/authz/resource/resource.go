@@ -1,6 +1,9 @@
 package resource
 
-import "github.com/FangcunMount/component-base/pkg/util/idutil"
+import (
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+)
 
 // Resource 域对象资源目录（聚合根）
 // V1：仅域对象类型，格式：<app>:<domain>:<type>:* 例如 scale:form:*
@@ -51,7 +54,7 @@ func (r *Resource) HasAction(action string) bool {
 type ResourceID idutil.ID
 
 func NewResourceID(value uint64) ResourceID {
-	return ResourceID(idutil.NewID(value))
+	return ResourceID(meta.NewID(value))
 }
 
 func (id ResourceID) Uint64() uint64 {

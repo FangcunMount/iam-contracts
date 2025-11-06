@@ -3,8 +3,8 @@ package mysql
 import (
 	"time"
 
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // WechatAppPO 微信应用持久化对象
@@ -40,7 +40,7 @@ func (po *WechatAppPO) ToDomain() *domain.WechatApp {
 	}
 
 	app := &domain.WechatApp{
-		ID:     idutil.NewID(po.ID),
+		ID:     meta.NewID(po.ID),
 		AppID:  po.AppID,
 		Name:   po.Name,
 		Type:   domain.AppType(po.Type),
@@ -77,7 +77,7 @@ func (po *WechatAppPO) FromDomain(app *domain.WechatApp) {
 		return
 	}
 
-	po.ID = app.ID.Uint64()
+	po.ID = app.ID.ToUint64()
 	po.AppID = app.AppID
 	po.Name = app.Name
 	po.Type = string(app.Type)

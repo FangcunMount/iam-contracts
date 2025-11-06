@@ -63,7 +63,7 @@ func (s *registerApplicationService) Register(ctx context.Context, req RegisterR
 		// ========== 步骤4: 构造返回结果 ==========
 		result = &RegisterResult{
 			// 用户信息
-			UserID:     meta.NewID(user.ID.Uint64()),
+			UserID:     user.ID,
 			UserName:   user.Name,
 			Phone:      user.Phone,
 			Email:      user.Email,
@@ -76,7 +76,6 @@ func (s *registerApplicationService) Register(ctx context.Context, req RegisterR
 
 			// 凭据信息
 			CredentialID: credential.ID,
-
 			// 状态
 			IsNewUser:    isNewUser,
 			IsNewAccount: isNewAccount,
@@ -126,7 +125,7 @@ func (s *registerApplicationService) createOrGetAccount(
 	ctx context.Context,
 	tx uow.TxRepositories,
 	req RegisterRequest,
-	userID userDomain.UserID,
+	userID meta.ID,
 ) (*domain.Account, bool, error) {
 	// 根据凭据类型确定账户类型和外部ID
 	accountType, appID, externalID := s.determineAccountInfo(req)
@@ -139,7 +138,7 @@ func (s *registerApplicationService) createOrGetAccount(
 
 	if existingAccount != nil {
 		// 账户已存在，验证是否属于同一用户
-		if existingAccount.UserID != meta.NewID(userID.Uint64()) {
+		if existingAccount.UserID != userID {
 			return nil, false, perrors.WithCode(code.ErrExternalExists, "account already belongs to another user")
 		}
 		return existingAccount, false, nil
@@ -148,7 +147,7 @@ func (s *registerApplicationService) createOrGetAccount(
 	// 创建新账户
 	creater := domain.NewCreator(tx.Accounts)
 	account, err := creater.Create(ctx, domain.CreateAccountDTO{
-		UserID:      meta.NewID(userID.Uint64()),
+		UserID:      userID,
 		AccountType: accountType,
 		AppID:       appID,
 		ExternalID:  externalID,
@@ -228,7 +227,7 @@ func (s *registerApplicationService) createPasswordCredential(
 
 	algo := "argon2id"
 	return binder.Bind(credDomain.BindSpec{
-		AccountID: int64(account.ID.ToUint64()),
+		AccountID: account.ID,
 		Type:      credDomain.CredPassword,
 		Material:  []byte(hashedPassword),
 		Algo:      &algo,
@@ -243,7 +242,7 @@ func (s *registerApplicationService) createPhoneCredential(
 ) (*credDomain.Credential, error) {
 	idp := "phone"
 	return binder.Bind(credDomain.BindSpec{
-		AccountID:     int64(account.ID.ToUint64()),
+		AccountID:     account.ID,
 		Type:          credDomain.CredPhoneOTP,
 		IDP:           &idp,
 		IDPIdentifier: req.Phone.String(),
@@ -270,7 +269,7 @@ func (s *registerApplicationService) createWechatCredential(
 	}
 
 	return binder.Bind(credDomain.BindSpec{
-		AccountID:     int64(account.ID.ToUint64()),
+		AccountID:     account.ID,
 		Type:          credDomain.CredOAuthWxMinip,
 		IDP:           &idp,
 		IDPIdentifier: idpIdentifier,
@@ -294,7 +293,7 @@ func (s *registerApplicationService) createWecomCredential(
 
 	idp := "wecom"
 	return binder.Bind(credDomain.BindSpec{
-		AccountID:     int64(account.ID.ToUint64()),
+		AccountID:     account.ID,
 		Type:          credDomain.CredOAuthWecom,
 		IDP:           &idp,
 		IDPIdentifier: *req.WecomUserID,

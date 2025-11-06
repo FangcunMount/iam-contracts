@@ -3,7 +3,6 @@ package credential
 import (
 	"time"
 
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/credential"
 )
 
@@ -40,8 +39,8 @@ func (m *Mapper) ToPO(cred *domain.Credential) *PO {
 		Rev:            cred.Rev,
 	}
 
-	if cred.ID != 0 {
-		po.ID = idutil.NewID(uint64(cred.ID))
+	if !cred.ID.IsZero() {
+		po.ID = cred.ID
 	}
 
 	return po
@@ -54,7 +53,7 @@ func (m *Mapper) ToDO(po *PO) *domain.Credential {
 	}
 
 	return &domain.Credential{
-		ID:             int64(po.ID.Uint64()),
+		ID:             po.ID,
 		AccountID:      po.AccountID,
 		IDP:            po.IDP,
 		IDPIdentifier:  po.IDPIdentifier,

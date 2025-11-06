@@ -12,7 +12,7 @@ import (
 // Repository 儿童档案存储接口
 type Repository interface {
 	Create(ctx context.Context, child *Child) error
-	FindByID(ctx context.Context, id ChildID) (*Child, error)
+	FindByID(ctx context.Context, id meta.ID) (*Child, error)
 	FindByName(ctx context.Context, name string) (*Child, error)
 	FindByIDCard(ctx context.Context, idCard meta.IDCard) (*Child, error)
 	FindListByName(ctx context.Context, name string) (children []*Child, err error)

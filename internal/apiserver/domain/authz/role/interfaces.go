@@ -3,6 +3,8 @@ package role
 
 import (
 	"context"
+
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Commander 角色命令服务接口（Driving Port - 写操作）
@@ -19,7 +21,7 @@ type Commander interface {
 	UpdateRole(ctx context.Context, cmd UpdateRoleCommand) (*Role, error)
 
 	// DeleteRole 删除角色
-	DeleteRole(ctx context.Context, roleID RoleID) error
+	DeleteRole(ctx context.Context, roleID meta.ID) error
 }
 
 // CreateRoleCommand 创建角色命令
@@ -40,7 +42,7 @@ type CreateRoleCommand struct {
 // UpdateRoleCommand 更新角色命令
 type UpdateRoleCommand struct {
 	// ID 角色ID
-	ID RoleID
+	ID meta.ID
 
 	// DisplayName 更新的显示名称（可选）
 	DisplayName *string
@@ -57,7 +59,7 @@ type UpdateRoleCommand struct {
 // - 支持租户隔离的查询
 type Queryer interface {
 	// GetRoleByID 根据ID获取角色
-	GetRoleByID(ctx context.Context, roleID RoleID) (*Role, error)
+	GetRoleByID(ctx context.Context, roleID meta.ID) (*Role, error)
 
 	// GetRoleByName 根据名称获取角色（租户内）
 	GetRoleByName(ctx context.Context, tenantID, name string) (*Role, error)

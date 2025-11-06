@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -31,14 +31,19 @@ func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserD
 	var result *UserResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		// 创建领域服务
-		registerService := user.NewRegisterService(tx.Users)
+		// 创建验证器
+		validator := user.NewValidator(tx.Users)
 
 		// 转换 DTO 为值对象
 		phone := meta.NewPhone(dto.Phone)
 
-		// 调用领域服务创建用户实体
-		user, err := registerService.Register(ctx, dto.Name, phone)
+		// 验证注册参数
+		if err := validator.ValidateRegister(ctx, dto.Name, phone); err != nil {
+			return err
+		}
+
+		// 创建用户实体
+		newUser, err := user.NewUser(dto.Name, phone)
 		if err != nil {
 			return err
 		}
@@ -46,16 +51,16 @@ func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserD
 		// 设置可选的邮箱
 		if dto.Email != "" {
 			email := meta.NewEmail(dto.Email)
-			user.UpdateEmail(email)
+			newUser.UpdateEmail(email)
 		}
 
 		// 持久化用户
-		if err := tx.Users.Create(ctx, user); err != nil {
+		if err := tx.Users.Create(ctx, newUser); err != nil {
 			return err
 		}
 
 		// 转换为 DTO
-		result = toUserResult(user)
+		result = toUserResult(newUser)
 		return nil
 	})
 
@@ -80,7 +85,8 @@ func NewUserProfileApplicationService(uow uow.UnitOfWork) UserProfileApplication
 func (s *userProfileApplicationService) Rename(ctx context.Context, userID string, newName string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := user.NewProfileService(tx.Users)
+		validator := user.NewValidator(tx.Users)
+		profileEditor := user.NewProfileEditor(tx.Users, validator)
 
 		// 转换 ID
 		id, err := parseUserID(userID)
@@ -89,13 +95,13 @@ func (s *userProfileApplicationService) Rename(ctx context.Context, userID strin
 		}
 
 		// 调用领域服务修改名称
-		user, err := profileService.Rename(ctx, id, newName)
+		modifiedUser, err := profileEditor.Rename(ctx, id, newName)
 		if err != nil {
 			return err
 		}
 
 		// 持久化修改
-		return tx.Users.Update(ctx, user)
+		return tx.Users.Update(ctx, modifiedUser)
 	})
 }
 
@@ -103,7 +109,8 @@ func (s *userProfileApplicationService) Rename(ctx context.Context, userID strin
 func (s *userProfileApplicationService) UpdateContact(ctx context.Context, dto UpdateContactDTO) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := user.NewProfileService(tx.Users)
+		validator := user.NewValidator(tx.Users)
+		profileEditor := user.NewProfileEditor(tx.Users, validator)
 
 		// 转换 ID
 		id, err := parseUserID(dto.UserID)
@@ -116,13 +123,13 @@ func (s *userProfileApplicationService) UpdateContact(ctx context.Context, dto U
 		email := meta.NewEmail(dto.Email)
 
 		// 调用领域服务更新联系方式
-		user, err := profileService.UpdateContact(ctx, id, phone, email)
+		modifiedUser, err := profileEditor.UpdateContact(ctx, id, phone, email)
 		if err != nil {
 			return err
 		}
 
 		// 持久化修改
-		return tx.Users.Update(ctx, user)
+		return tx.Users.Update(ctx, modifiedUser)
 	})
 }
 
@@ -130,7 +137,8 @@ func (s *userProfileApplicationService) UpdateContact(ctx context.Context, dto U
 func (s *userProfileApplicationService) UpdateIDCard(ctx context.Context, userID string, idCard string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		profileService := user.NewProfileService(tx.Users)
+		validator := user.NewValidator(tx.Users)
+		profileEditor := user.NewProfileEditor(tx.Users, validator)
 
 		// 转换 ID
 		id, err := parseUserID(userID)
@@ -142,13 +150,13 @@ func (s *userProfileApplicationService) UpdateIDCard(ctx context.Context, userID
 		idCardVO := meta.NewIDCard("", idCard)
 
 		// 调用领域服务更新身份证
-		user, err := profileService.UpdateIDCard(ctx, id, idCardVO)
+		modifiedUser, err := profileEditor.UpdateIDCard(ctx, id, idCardVO)
 		if err != nil {
 			return err
 		}
 
 		// 持久化修改
-		return tx.Users.Update(ctx, user)
+		return tx.Users.Update(ctx, modifiedUser)
 	})
 }
 
@@ -170,7 +178,7 @@ func NewUserStatusApplicationService(uow uow.UnitOfWork) UserStatusApplicationSe
 func (s *userStatusApplicationService) Activate(ctx context.Context, userID string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		statusService := user.NewStatusService(tx.Users)
+		lifecycler := user.NewLifecycler(tx.Users)
 
 		// 转换 ID
 		id, err := parseUserID(userID)
@@ -179,13 +187,13 @@ func (s *userStatusApplicationService) Activate(ctx context.Context, userID stri
 		}
 
 		// 调用领域服务激活用户
-		user, err := statusService.Activate(ctx, id)
+		modifiedUser, err := lifecycler.Activate(ctx, id)
 		if err != nil {
 			return err
 		}
 
 		// 持久化修改
-		return tx.Users.Update(ctx, user)
+		return tx.Users.Update(ctx, modifiedUser)
 	})
 }
 
@@ -193,7 +201,7 @@ func (s *userStatusApplicationService) Activate(ctx context.Context, userID stri
 func (s *userStatusApplicationService) Deactivate(ctx context.Context, userID string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		statusService := user.NewStatusService(tx.Users)
+		lifecycler := user.NewLifecycler(tx.Users)
 
 		// 转换 ID
 		id, err := parseUserID(userID)
@@ -202,13 +210,13 @@ func (s *userStatusApplicationService) Deactivate(ctx context.Context, userID st
 		}
 
 		// 调用领域服务停用用户
-		user, err := statusService.Deactivate(ctx, id)
+		modifiedUser, err := lifecycler.Deactivate(ctx, id)
 		if err != nil {
 			return err
 		}
 
 		// 持久化修改
-		return tx.Users.Update(ctx, user)
+		return tx.Users.Update(ctx, modifiedUser)
 	})
 }
 
@@ -216,7 +224,7 @@ func (s *userStatusApplicationService) Deactivate(ctx context.Context, userID st
 func (s *userStatusApplicationService) Block(ctx context.Context, userID string) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		statusService := user.NewStatusService(tx.Users)
+		lifecycler := user.NewLifecycler(tx.Users)
 
 		// 转换 ID
 		id, err := parseUserID(userID)
@@ -225,13 +233,13 @@ func (s *userStatusApplicationService) Block(ctx context.Context, userID string)
 		}
 
 		// 调用领域服务封禁用户
-		user, err := statusService.Block(ctx, id)
+		modifiedUser, err := lifecycler.Block(ctx, id)
 		if err != nil {
 			return err
 		}
 
 		// 持久化修改
-		return tx.Users.Update(ctx, user)
+		return tx.Users.Update(ctx, modifiedUser)
 	})
 }
 
@@ -296,14 +304,14 @@ func (s *userQueryApplicationService) GetByPhone(ctx context.Context, phone stri
 // ============= DTO 转换辅助函数 =============
 
 // parseUserID 解析用户ID字符串
-func parseUserID(userID string) (domain.UserID, error) {
+func parseUserID(userID string) (meta.ID, error) {
 	// 将字符串转换为uint64
 	var id uint64
 	_, err := fmt.Sscanf(userID, "%d", &id)
 	if err != nil {
-		return domain.UserID{}, err
+		return meta.ID{}, err
 	}
-	return domain.NewUserID(id), nil
+	return meta.NewID(id), nil
 }
 
 // toUserResult 将领域实体转换为 DTO

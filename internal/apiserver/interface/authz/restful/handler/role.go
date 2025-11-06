@@ -8,6 +8,7 @@ import (
 	roleDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/dto"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/gin-gonic/gin"
 )
 
@@ -86,7 +87,7 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 	}
 
 	cmd := roleDomain.UpdateRoleCommand{
-		ID:          roleDomain.NewRoleID(roleID),
+		ID:          meta.NewID(roleID),
 		DisplayName: &req.DisplayName,
 		Description: &req.Description,
 	}
@@ -113,7 +114,7 @@ func (h *RoleHandler) DeleteRole(c *gin.Context) {
 		return
 	}
 
-	err = h.commander.DeleteRole(c.Request.Context(), roleDomain.NewRoleID(roleID))
+	err = h.commander.DeleteRole(c.Request.Context(), meta.NewID(roleID))
 	if err != nil {
 		handleError(c, err)
 		return
@@ -136,7 +137,7 @@ func (h *RoleHandler) GetRole(c *gin.Context) {
 		return
 	}
 
-	foundRole, err := h.queryer.GetRoleByID(c.Request.Context(), roleDomain.NewRoleID(roleID))
+	foundRole, err := h.queryer.GetRoleByID(c.Request.Context(), meta.NewID(roleID))
 	if err != nil {
 		handleError(c, err)
 		return
@@ -185,7 +186,7 @@ func (h *RoleHandler) ListRoles(c *gin.Context) {
 // toRoleResponse 转换为响应对象
 func (h *RoleHandler) toRoleResponse(r *roleDomain.Role) dto.RoleResponse {
 	return dto.RoleResponse{
-		ID:          r.ID.Uint64(),
+		ID:          r.ID.ToUint64(),
 		Name:        r.Name,
 		DisplayName: r.DisplayName,
 		TenantID:    r.TenantID,

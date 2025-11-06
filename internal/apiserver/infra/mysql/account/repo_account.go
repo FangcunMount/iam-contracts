@@ -32,7 +32,7 @@ func (r *AccountRepository) Create(ctx context.Context, acc *domain.Account) err
 		return fmt.Errorf("failed to create account: %w", err)
 	}
 	// 回填生成的 ID
-	acc.ID = meta.NewID(po.ID.Uint64())
+	acc.ID = meta.NewID(po.ID.ToUint64())
 	return nil
 }
 
@@ -161,7 +161,7 @@ func (r *AccountRepository) GetByExternalIDAppId(ctx context.Context, externalID
 
 // FindAccountByUsername 根据用户名查找账户（用于密码认证）
 // 实现 wechatapp.AccountRepository 接口
-func (r *AccountRepository) FindAccountByUsername(ctx context.Context, tenantID *int64, username string) (accountID, userID int64, err error) {
+func (r *AccountRepository) FindAccountByUsername(ctx context.Context, tenantID meta.ID, username string) (accountID, userID meta.ID, err error) {
 	// 在当前设计中，username 对应 external_id，租户ID对应 user_id
 	// 这里需要根据实际业务逻辑调整查询条件
 	var po AccountPO
@@ -173,17 +173,17 @@ func (r *AccountRepository) FindAccountByUsername(ctx context.Context, tenantID 
 
 	if err := query.First(&po).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return 0, 0, nil // 账户不存在，返回空值
+			return meta.NewID(0), meta.NewID(0), nil // 账户不存在，返回空值
 		}
-		return 0, 0, fmt.Errorf("failed to find account by username: %w", err)
+		return meta.NewID(0), meta.NewID(0), fmt.Errorf("failed to find account by username: %w", err)
 	}
 
-	return int64(po.ID.Uint64()), int64(po.UserID.Uint64()), nil
+	return po.ID, po.UserID, nil
 }
 
 // GetAccountStatus 获取账户状态（用于检查账户是否锁定/禁用）
 // 实现 wechatapp.AccountRepository 接口
-func (r *AccountRepository) GetAccountStatus(ctx context.Context, accountID int64) (enabled, locked bool, err error) {
+func (r *AccountRepository) GetAccountStatus(ctx context.Context, accountID meta.ID) (enabled, locked bool, err error) {
 	var po AccountPO
 
 	if err := r.db.WithContext(ctx).

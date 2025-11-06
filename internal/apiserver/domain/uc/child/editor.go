@@ -22,7 +22,7 @@ func NewProfileService(repo Repository) *ChildProfileEditor {
 // Rename 重命名儿童档案
 // 领域逻辑：查询 + 修改实体
 // 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *ChildProfileEditor) Rename(ctx context.Context, childID ChildID, name string) (*Child, error) {
+func (s *ChildProfileEditor) Rename(ctx context.Context, childID meta.ID, name string) (*Child, error) {
 	child, err := s.repo.FindByID(ctx, childID)
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func (s *ChildProfileEditor) Rename(ctx context.Context, childID ChildID, name s
 // UpdateIDCard 更新儿童身份证信息
 // 领域逻辑：查询 + 修改实体
 // 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *ChildProfileEditor) UpdateIDCard(ctx context.Context, childID ChildID, idCard meta.IDCard) (*Child, error) {
+func (s *ChildProfileEditor) UpdateIDCard(ctx context.Context, childID meta.ID, idCard meta.IDCard) (*Child, error) {
 	child, err := s.repo.FindByID(ctx, childID)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (s *ChildProfileEditor) UpdateIDCard(ctx context.Context, childID ChildID, 
 // UpdateProfile 更新儿童基础信息
 // 领域逻辑：查询 + 修改实体
 // 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *ChildProfileEditor) UpdateProfile(ctx context.Context, childID ChildID, gender meta.Gender, birthday meta.Birthday) (*Child, error) {
+func (s *ChildProfileEditor) UpdateProfile(ctx context.Context, childID meta.ID, gender meta.Gender, birthday meta.Birthday) (*Child, error) {
 	child, err := s.repo.FindByID(ctx, childID)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func (s *ChildProfileEditor) UpdateProfile(ctx context.Context, childID ChildID,
 // UpdateHeightWeight 更新儿童身高体重信息
 // 领域逻辑：查询 + 修改实体
 // 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *ChildProfileEditor) UpdateHeightWeight(ctx context.Context, childID ChildID, height meta.Height, weight meta.Weight) (*Child, error) {
+func (s *ChildProfileEditor) UpdateHeightWeight(ctx context.Context, childID meta.ID, height meta.Height, weight meta.Weight) (*Child, error) {
 	child, err := s.repo.FindByID(ctx, childID)
 	if err != nil {
 		return nil, err

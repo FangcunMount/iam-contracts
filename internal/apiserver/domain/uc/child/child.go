@@ -8,7 +8,7 @@ import (
 
 // Child 孩子（儿童档案）
 type Child struct {
-	ID       ChildID
+	ID       meta.ID
 	Name     string
 	IDCard   meta.IDCard
 	Gender   meta.Gender
@@ -34,7 +34,7 @@ func NewChild(name string, opts ...ChildOption) (*Child, error) {
 type ChildOption func(*Child)
 
 // With*** 儿童档案选项函数
-func WithChildID(id ChildID) ChildOption        { return func(c *Child) { c.ID = id } }
+func WithChildID(id meta.ID) ChildOption        { return func(c *Child) { c.ID = id } }
 func WithIDCard(idCard meta.IDCard) ChildOption { return func(c *Child) { c.IDCard = idCard } }
 func WithGender(gender meta.Gender) ChildOption { return func(c *Child) { c.Gender = gender } }
 func WithBirthday(birthday meta.Birthday) ChildOption {

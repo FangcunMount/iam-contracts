@@ -3,6 +3,8 @@ package authentication
 import (
 	"context"
 	"time"
+
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // ================== External Service Interfaces (Driven Ports) ==================
@@ -55,7 +57,7 @@ type TokenVerifier interface {
 	// VerifyAccessToken 验证访问令牌
 	// 返回：用户ID、账户ID、租户ID（可选）、错误信息
 	// 如果令牌无效/过期/被撤销，返回错误
-	VerifyAccessToken(ctx context.Context, tokenValue string) (userID, accountID int64, tenantID *int64, err error)
+	VerifyAccessToken(ctx context.Context, tokenValue string) (userID, accountID meta.ID, tenantID meta.ID, err error)
 }
 
 // AuditLogger 审计日志（可选）
@@ -65,8 +67,8 @@ type AuditLogger interface {
 }
 
 type AuthAuditEvent struct {
-	AccountID    int64
-	CredentialID int64
+	AccountID    meta.ID
+	CredentialID meta.ID
 	Scenario     string
 	Success      bool
 	ErrCode      string

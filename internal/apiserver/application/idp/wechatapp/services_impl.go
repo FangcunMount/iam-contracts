@@ -7,6 +7,7 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // ============= 应用服务实现 =============
@@ -43,7 +44,7 @@ func (s *wechatAppApplicationService) CreateApp(ctx context.Context, dto CreateW
 	}
 
 	// 分配内部 ID
-	app.ID = idutil.NewID(idutil.GetIntID())
+	app.ID = meta.NewID(idutil.GetIntID())
 
 	// 初始化凭据结构
 	app.Cred = &domain.Credentials{}

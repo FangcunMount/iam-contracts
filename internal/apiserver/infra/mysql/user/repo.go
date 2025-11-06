@@ -3,8 +3,8 @@ package user
 import (
 	"context"
 
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
@@ -28,13 +28,13 @@ func NewRepository(db *gorm.DB) user.Repository {
 func (r *Repository) Create(ctx context.Context, u *domain.User) error {
 	po := r.mapper.ToPO(u)
 	return r.CreateAndSync(ctx, po, func(updated *UserPO) {
-		u.ID = domain.NewUserID(updated.ID.Uint64())
+		u.ID = meta.NewID(updated.ID.ToUint64())
 	})
 }
 
 // FindByID 根据ID查找用户
-func (r *Repository) FindByID(ctx context.Context, id domain.UserID) (*domain.User, error) {
-	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
+func (r *Repository) FindByID(ctx context.Context, id meta.ID) (*domain.User, error) {
+	po, err := r.BaseRepository.FindByID(ctx, id.ToUint64())
 	if err != nil {
 		return nil, err
 	}
@@ -63,6 +63,6 @@ func (r *Repository) FindByPhone(ctx context.Context, phone meta.Phone) (*domain
 func (r *Repository) Update(ctx context.Context, u *domain.User) error {
 	po := r.mapper.ToPO(u)
 	return r.UpdateAndSync(ctx, po, func(updated *UserPO) {
-		u.ID = domain.NewUserID(updated.ID.Uint64())
+		u.ID = meta.NewID(updated.ID.ToUint64())
 	})
 }

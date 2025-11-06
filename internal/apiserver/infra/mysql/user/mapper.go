@@ -43,7 +43,7 @@ func (m *UserMapper) ToBO(po *UserPO) *domain.User {
 	uBO, err := domain.NewUser(
 		po.Name,
 		meta.NewPhone(po.Phone),
-		domain.WithID(domain.UserID(po.ID)),
+		domain.WithID(po.ID),
 		domain.WithEmail(meta.NewEmail(po.Email)),
 		domain.WithIDCard(meta.NewIDCard(po.Name, po.IDCard)),
 		domain.WithStatus(domain.UserStatus(po.Status)),

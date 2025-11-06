@@ -35,7 +35,7 @@ func (r *LoginRequest) Validate() error {
 type PasswordCredentials struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
-	TenantID *int   `json:"tenant_id,omitempty"`
+	TenantID uint64 `json:"tenant_id,omitempty"`
 }
 
 // PhoneOTPCredentials 手机号验证码凭证

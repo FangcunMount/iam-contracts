@@ -39,14 +39,14 @@ type BindResult struct {
 
 // RegisterResult 注册结果响应
 type RegisterResult struct {
-	UserID       string `json:"userId"`
+	UserID       uint64 `json:"userId"`
 	UserName     string `json:"userName"`
 	Phone        string `json:"phone"`
 	Email        string `json:"email,omitempty"`
-	AccountID    string `json:"accountId"`
+	AccountID    uint64 `json:"accountId"`
 	AccountType  string `json:"accountType"`
 	ExternalID   string `json:"externalId"`
-	CredentialID int64  `json:"credentialID"`
+	CredentialID uint64 `json:"credentialID"`
 	IsNewUser    bool   `json:"isNewUser"`
 	IsNewAccount bool   `json:"isNewAccount"`
 }
@@ -59,8 +59,8 @@ type CredentialList struct {
 
 // Credential 凭据响应
 type Credential struct {
-	ID            int64  `json:"id"`
-	AccountID     int64  `json:"accountId"`
+	ID            uint64 `json:"id"`
+	AccountID     uint64 `json:"accountId"`
 	Type          string `json:"type"`
 	IDP           string `json:"idp,omitempty"`
 	IDPIdentifier string `json:"idpIdentifier"`

@@ -95,8 +95,8 @@ type AccountResult struct {
 
 // CredentialResult 凭据结果DTO
 type CredentialResult struct {
-	ID            int64                       // 凭据ID
-	AccountID     int64                       // 账户ID
+	ID            uint64                      // 凭据ID
+	AccountID     uint64                      // 账户ID
 	Type          credDomain.CredentialType   // 凭据类型
 	IDP           *string                     // IDP类型
 	IDPIdentifier string                      // IDP标识符

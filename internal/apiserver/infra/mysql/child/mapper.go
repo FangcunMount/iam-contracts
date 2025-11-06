@@ -52,7 +52,7 @@ func (m *ChildMapper) ToBO(po *ChildPO) *domain.Child {
 	}
 
 	child := &domain.Child{
-		ID:       domain.ChildID(po.ID),
+		ID:       meta.ID(po.ID),
 		Name:     po.Name,
 		IDCard:   meta.NewIDCard(po.Name, idCardNum),
 		Gender:   meta.NewGender(po.Gender),

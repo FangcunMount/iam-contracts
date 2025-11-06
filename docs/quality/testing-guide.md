@@ -474,7 +474,7 @@ func TestCompleteJWTFlow_E2E(t *testing.T) {
     require.NoError(t, err)
     
     // 3. 签发 JWT Token
-    userID := idutil.NewID()
+    userID := meta.NewID()
     jwtGen := jwtGen.NewJWTGenerator(crypto.NewRSASigner())
     token, err := jwtGen.GenerateToken(userID, key)
     require.NoError(t, err)
@@ -1017,7 +1017,7 @@ mockRepo.EXPECT().
 // ✅ 使用工厂函数
 func NewTestUser(overrides ...func(*User)) *User {
     user := &User{
-        ID:       idutil.NewID(),
+        ID:       meta.NewID(),
         Username: "testuser",
         Email:    "test@example.com",
     }

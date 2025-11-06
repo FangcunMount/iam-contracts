@@ -4,11 +4,10 @@ import (
 	"context"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	child "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 
@@ -30,7 +29,7 @@ func NewRepository(db *gorm.DB) guardianship.Repository {
 func (r *Repository) Create(ctx context.Context, g *domain.Guardianship) error {
 	po := r.mapper.ToPO(g)
 	return r.CreateAndSync(ctx, po, func(updated *GuardianshipPO) {
-		g.ID = int64(updated.ID.Uint64())
+		g.ID = updated.ID
 		if updated.EstablishedAt.IsZero() {
 			return
 		}
@@ -52,9 +51,9 @@ func (r *Repository) FindByID(ctx context.Context, id idutil.ID) (*domain.Guardi
 }
 
 // FindByChildID 根据儿童 ID 查找监护关系
-func (r *Repository) FindByChildID(ctx context.Context, id child.ChildID) ([]*domain.Guardianship, error) {
+func (r *Repository) FindByChildID(ctx context.Context, id meta.ID) ([]*domain.Guardianship, error) {
 	var pos []*GuardianshipPO
-	if err := r.WithContext(ctx).Where("child_id = ?", id.Uint64()).Find(&pos).Error; err != nil {
+	if err := r.WithContext(ctx).Where("child_id = ?", id.ToUint64()).Find(&pos).Error; err != nil {
 		return nil, err
 	}
 
@@ -62,9 +61,9 @@ func (r *Repository) FindByChildID(ctx context.Context, id child.ChildID) ([]*do
 }
 
 // FindByUserID 根据监护人 ID 查找监护关系
-func (r *Repository) FindByUserID(ctx context.Context, id user.UserID) ([]*domain.Guardianship, error) {
+func (r *Repository) FindByUserID(ctx context.Context, id meta.ID) ([]*domain.Guardianship, error) {
 	var pos []*GuardianshipPO
-	if err := r.WithContext(ctx).Where("user_id = ?", id.Uint64()).Find(&pos).Error; err != nil {
+	if err := r.WithContext(ctx).Where("user_id = ?", id.ToUint64()).Find(&pos).Error; err != nil {
 		return nil, err
 	}
 
@@ -72,9 +71,9 @@ func (r *Repository) FindByUserID(ctx context.Context, id user.UserID) ([]*domai
 }
 
 // FindByUserIDAndChildID 根据监护人 ID 和儿童 ID 查找监护关系
-func (r *Repository) FindByUserIDAndChildID(ctx context.Context, userID user.UserID, childID child.ChildID) (*domain.Guardianship, error) {
+func (r *Repository) FindByUserIDAndChildID(ctx context.Context, userID meta.ID, childID meta.ID) (*domain.Guardianship, error) {
 	var po GuardianshipPO
-	if err := r.WithContext(ctx).Where("user_id = ? AND child_id = ?", userID.Uint64(), childID.Uint64()).First(&po).Error; err != nil {
+	if err := r.WithContext(ctx).Where("user_id = ? AND child_id = ?", userID.ToUint64(), childID.ToUint64()).First(&po).Error; err != nil {
 		return nil, err
 	}
 
@@ -86,10 +85,10 @@ func (r *Repository) FindByUserIDAndChildID(ctx context.Context, userID user.Use
 }
 
 // IsGuardian 检查是否为监护关系
-func (r *Repository) IsGuardian(ctx context.Context, userID user.UserID, childID child.ChildID) (bool, error) {
+func (r *Repository) IsGuardian(ctx context.Context, userID meta.ID, childID meta.ID) (bool, error) {
 	var count int64
 	if err := r.WithContext(ctx).Model(&GuardianshipPO{}).
-		Where("user_id = ? AND child_id = ?", userID.Uint64(), childID.Uint64()).
+		Where("user_id = ? AND child_id = ?", userID.ToUint64(), childID.ToUint64()).
 		Count(&count).Error; err != nil {
 		return false, err
 	}
@@ -100,7 +99,7 @@ func (r *Repository) IsGuardian(ctx context.Context, userID user.UserID, childID
 func (r *Repository) Update(ctx context.Context, g *domain.Guardianship) error {
 	po := r.mapper.ToPO(g)
 	return r.UpdateAndSync(ctx, po, func(updated *GuardianshipPO) {
-		g.ID = int64(updated.ID.Uint64())
+		g.ID = updated.ID
 		g.EstablishedAt = updated.EstablishedAt
 		g.RevokedAt = updated.RevokedAt
 	})

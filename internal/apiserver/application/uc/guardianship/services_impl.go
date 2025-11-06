@@ -6,10 +6,9 @@ import (
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	childdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	guardport "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
-	userdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -428,23 +427,23 @@ func (s *guardianshipQueryApplicationService) ListGuardiansByChildID(ctx context
 // ============= DTO 转换辅助函数 =============
 
 // parseUserID 解析用户ID字符串
-func parseUserID(userID string) (userdomain.UserID, error) {
+func parseUserID(userID string) (meta.ID, error) {
 	var id uint64
 	_, err := fmt.Sscanf(userID, "%d", &id)
 	if err != nil {
-		return userdomain.UserID{}, err
+		return meta.ID{}, err
 	}
-	return userdomain.NewUserID(id), nil
+	return meta.NewID(id), nil
 }
 
 // parseChildID 解析儿童ID字符串
-func parseChildID(childID string) (childdomain.ChildID, error) {
+func parseChildID(childID string) (meta.ID, error) {
 	var id uint64
 	_, err := fmt.Sscanf(childID, "%d", &id)
 	if err != nil {
-		return childdomain.ChildID{}, err
+		return meta.ID{}, err
 	}
-	return childdomain.NewChildID(id), nil
+	return meta.NewID(id), nil
 }
 
 // parseGender 解析性别字符串
@@ -478,7 +477,7 @@ func toGuardianshipResult(guardianship *domain.Guardianship, child *childdomain.
 	}
 
 	result := &GuardianshipResult{
-		ID:            int64(guardianship.ID),
+		ID:            guardianship.ID.ToUint64(),
 		UserID:        guardianship.User.String(),
 		ChildID:       guardianship.Child.String(),
 		Relation:      string(guardianship.Rel), // Relation 是 string 类型

@@ -8,6 +8,7 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // GuardianshipManager 监护关系管理领域服务
@@ -32,7 +33,7 @@ func NewManagerService(r Repository, cr child.Repository, ur user.Repository) *G
 // AddGuardian 添加监护人
 // 领域逻辑：验证用户和儿童存在性 + 验证监护关系不重复 + 创建监护实体
 // 注意：不包括持久化，返回创建的监护关系实体供应用层持久化
-func (s *GuardianshipManager) AddGuardian(ctx context.Context, userID user.UserID, childID child.ChildID, relation Relation) (*Guardianship, error) {
+func (s *GuardianshipManager) AddGuardian(ctx context.Context, userID meta.ID, childID meta.ID, relation Relation) (*Guardianship, error) {
 	// 验证儿童存在
 	c, err := s.childRepo.FindByID(ctx, childID)
 	if err != nil {
@@ -80,7 +81,7 @@ func (s *GuardianshipManager) AddGuardian(ctx context.Context, userID user.UserI
 // RemoveGuardian 撤销监护
 // 领域逻辑：查询监护关系 + 撤销监护
 // 注意：不包括持久化，返回修改后的监护关系实体供应用层持久化
-func (s *GuardianshipManager) RemoveGuardian(ctx context.Context, userID user.UserID, childID child.ChildID) (*Guardianship, error) {
+func (s *GuardianshipManager) RemoveGuardian(ctx context.Context, userID meta.ID, childID meta.ID) (*Guardianship, error) {
 	// 查询监护关系
 	guardians, err := s.repo.FindByChildID(ctx, childID)
 	if err != nil {

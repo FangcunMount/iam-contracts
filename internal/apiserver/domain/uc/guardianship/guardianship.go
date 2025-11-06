@@ -3,8 +3,7 @@ package guardianship
 import (
 	"time"
 
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 type Relation string // 监护关系
@@ -17,9 +16,9 @@ const (
 
 // Guardianship 监护关系
 type Guardianship struct {
-	ID            int64
-	User          user.UserID
-	Child         child.ChildID
+	ID            meta.ID
+	User          meta.ID
+	Child         meta.ID
 	Rel           Relation
 	EstablishedAt time.Time
 	RevokedAt     *time.Time

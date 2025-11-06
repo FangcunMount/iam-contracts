@@ -30,7 +30,7 @@ func (r *Repository) Create(ctx context.Context, cred *domain.Credential) error 
 	if err := r.db.WithContext(ctx).Create(po).Error; err != nil {
 		return fmt.Errorf("failed to create credential: %w", err)
 	}
-	cred.ID = int64(po.ID.Uint64())
+	cred.ID = po.ID
 	return nil
 }
 
@@ -227,27 +227,27 @@ func (r *Repository) GetByIDPIdentifier(ctx context.Context, idpIdentifier strin
 
 // FindPasswordCredential 根据账户ID查找密码凭据
 // 返回：凭据ID、密码哈希值（PHC格式）
-func (r *Repository) FindPasswordCredential(ctx context.Context, accountID int64) (credentialID int64, passwordHash string, err error) {
+func (r *Repository) FindPasswordCredential(ctx context.Context, accountID meta.ID) (credentialID meta.ID, passwordHash string, err error) {
 	var po PO
 	if err := r.db.WithContext(ctx).
 		Select("id", "material").
 		Where("account_id = ? AND type = ?", accountID, "password").
 		First(&po).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return 0, "", nil
+			return meta.NewID(0), "", nil
 		}
-		return 0, "", fmt.Errorf("failed to find password credential: %w", err)
+		return meta.NewID(0), "", fmt.Errorf("failed to find password credential: %w", err)
 	}
-	return int64(po.ID.Uint64()), string(po.Material), nil
+	return po.ID, string(po.Material), nil
 }
 
 // FindPhoneOTPCredential 根据手机号查找OTP凭据绑定
 // 返回：账户ID、用户ID、凭据ID
-func (r *Repository) FindPhoneOTPCredential(ctx context.Context, phoneE164 string) (accountID, userID, credentialID int64, err error) {
+func (r *Repository) FindPhoneOTPCredential(ctx context.Context, phoneE164 string) (accountID, userID, credentialID meta.ID, err error) {
 	type Result struct {
-		CredentialID int64 `gorm:"column:credential_id"`
-		AccountID    int64 `gorm:"column:account_id"`
-		UserID       int64 `gorm:"column:user_id"`
+		CredentialID uint64 `gorm:"column:credential_id"`
+		AccountID    uint64 `gorm:"column:account_id"`
+		UserID       uint64 `gorm:"column:user_id"`
 	}
 
 	var result Result
@@ -260,23 +260,23 @@ func (r *Repository) FindPhoneOTPCredential(ctx context.Context, phoneE164 strin
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return 0, 0, 0, nil
+			return meta.NewID(0), meta.NewID(0), meta.NewID(0), nil
 		}
-		return 0, 0, 0, fmt.Errorf("failed to find phone OTP credential: %w", err)
+		return meta.NewID(0), meta.NewID(0), meta.NewID(0), fmt.Errorf("failed to find phone OTP credential: %w", err)
 	}
 
-	return result.AccountID, result.UserID, result.CredentialID, nil
+	return meta.NewID(result.AccountID), meta.NewID(result.UserID), meta.NewID(result.CredentialID), nil
 }
 
 // FindOAuthCredential 根据身份提供商标识查找OAuth凭据绑定
 // idpType: "wx_minip" | "wecom" | ...
 // idpIdentifier: OpenID/UnionID/UserID
 // 返回：账户ID、用户ID、凭据ID
-func (r *Repository) FindOAuthCredential(ctx context.Context, idpType, appID, idpIdentifier string) (accountID, userID, credentialID int64, err error) {
+func (r *Repository) FindOAuthCredential(ctx context.Context, idpType, appID, idpIdentifier string) (accountID, userID, credentialID meta.ID, err error) {
 	type Result struct {
-		CredentialID int64 `gorm:"column:credential_id"`
-		AccountID    int64 `gorm:"column:account_id"`
-		UserID       int64 `gorm:"column:user_id"`
+		CredentialID uint64 `gorm:"column:credential_id"`
+		AccountID    uint64 `gorm:"column:account_id"`
+		UserID       uint64 `gorm:"column:user_id"`
 	}
 
 	var result Result
@@ -294,10 +294,10 @@ func (r *Repository) FindOAuthCredential(ctx context.Context, idpType, appID, id
 	err = query.First(&result).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return 0, 0, 0, nil
+			return meta.NewID(0), meta.NewID(0), meta.NewID(0), nil
 		}
-		return 0, 0, 0, fmt.Errorf("failed to find OAuth credential: %w", err)
+		return meta.NewID(0), meta.NewID(0), meta.NewID(0), fmt.Errorf("failed to find OAuth credential: %w", err)
 	}
 
-	return result.AccountID, result.UserID, result.CredentialID, nil
+	return meta.NewID(result.AccountID), meta.NewID(result.UserID), meta.NewID(result.CredentialID), nil
 }

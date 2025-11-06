@@ -3,8 +3,8 @@ package policy
 import (
 	"encoding/json"
 
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Mapper PolicyVersion BO 和 PO 转换器
@@ -44,7 +44,7 @@ func (m *Mapper) ToPO(bo *policy.PolicyVersion) *PolicyVersionPO {
 		ChangedBy:     bo.ChangedBy,
 		Reason:        bo.Reason,
 	}
-	po.ID = idutil.NewID(bo.ID.Uint64())
+	po.ID = meta.NewID(bo.ID.Uint64())
 
 	return po
 }

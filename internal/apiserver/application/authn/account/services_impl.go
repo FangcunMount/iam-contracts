@@ -182,7 +182,7 @@ func (s *credentialApplicationService) BindCredential(ctx context.Context, dto B
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		binder := credDomain.NewBinder()
 		spec := credDomain.BindSpec{
-			AccountID:     int64(dto.AccountID.ToUint64()),
+			AccountID:     dto.AccountID,
 			Type:          dto.Type,
 			IDP:           dto.IDP,
 			IDPIdentifier: dto.IDPIdentifier,
@@ -235,7 +235,7 @@ func (s *credentialApplicationService) RotatePassword(
 		rotator.Rotate(credential, newMaterial, &newAlgo)
 
 		// 持久化
-		return tx.Credentials.UpdateMaterial(ctx, meta.NewID(uint64(credential.ID)), newMaterial, newAlgo)
+		return tx.Credentials.UpdateMaterial(ctx, credential.ID, newMaterial, newAlgo)
 	})
 }
 
@@ -332,8 +332,8 @@ func toCredentialResult(cred *credDomain.Credential) *CredentialResult {
 	}
 
 	return &CredentialResult{
-		ID:            cred.ID,
-		AccountID:     cred.AccountID,
+		ID:            cred.ID.ToUint64(),
+		AccountID:     cred.AccountID.ToUint64(),
 		Type:          credType,
 		IDP:           cred.IDP,
 		IDPIdentifier: cred.IDPIdentifier,

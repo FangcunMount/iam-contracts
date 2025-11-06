@@ -2,12 +2,14 @@ package credential
 
 import (
 	"time"
+
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Credential 凭据实体
 type Credential struct {
-	ID        int64
-	AccountID int64
+	ID        meta.ID
+	AccountID meta.ID
 
 	// —— 外部身份三元组：仅 OAuth/Phone 有值；password 留空 —— //
 	IDP           *string // "wechat"|"wecom"|"phone" | nil(本地)
@@ -148,7 +150,7 @@ func (c *Credential) UpdateParams(params []byte) {
 // ==================== 工厂方法 ====================
 
 // NewPasswordCredential 创建密码类型凭据
-func NewPasswordCredential(accountID int64, material []byte, algo string) *Credential {
+func NewPasswordCredential(accountID meta.ID, material []byte, algo string) *Credential {
 	return &Credential{
 		AccountID:      accountID,
 		Material:       material,
@@ -159,7 +161,7 @@ func NewPasswordCredential(accountID int64, material []byte, algo string) *Crede
 }
 
 // NewOAuthCredential 创建 OAuth 类型凭据
-func NewOAuthCredential(accountID int64, idp, identifier, appID string, params []byte) *Credential {
+func NewOAuthCredential(accountID meta.ID, idp, identifier, appID string, params []byte) *Credential {
 	return &Credential{
 		AccountID:     accountID,
 		IDP:           &idp,
@@ -171,7 +173,7 @@ func NewOAuthCredential(accountID int64, idp, identifier, appID string, params [
 }
 
 // NewPhoneOTPCredential 创建手机号 OTP 凭据
-func NewPhoneOTPCredential(accountID int64, phoneNumber string) *Credential {
+func NewPhoneOTPCredential(accountID meta.ID, phoneNumber string) *Credential {
 	idp := "phone"
 	return &Credential{
 		AccountID:     accountID,

@@ -1,17 +1,5 @@
 package user
 
-import (
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
-)
-
-// UserID 用户唯一标识
-type UserID = idutil.ID
-
-// NewUserID 创建用户ID
-func NewUserID(value uint64) UserID {
-	return idutil.NewID(value)
-}
-
 // UserStatus 用户状态
 type UserStatus uint8
 

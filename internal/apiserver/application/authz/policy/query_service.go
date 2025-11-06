@@ -5,6 +5,7 @@ import (
 
 	policyDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
 	roleDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 type PolicyQueryService struct {
@@ -30,7 +31,7 @@ func (s *PolicyQueryService) GetPoliciesByRole(
 	query policyDomain.GetPoliciesByRoleQuery,
 ) ([]policyDomain.PolicyRule, error) {
 	// 1. 获取角色信息
-	role, err := s.roleRepo.FindByID(ctx, roleDomain.NewRoleID(query.RoleID))
+	role, err := s.roleRepo.FindByID(ctx, meta.NewID(query.RoleID))
 	if err != nil {
 		return nil, err
 	}

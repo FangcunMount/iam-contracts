@@ -4,7 +4,7 @@ import "time"
 
 // GuardianshipResponse 监护关系响应
 type GuardianshipResponse struct {
-	ID        int64      `json:"id"`
+	ID        uint64     `json:"id"`
 	UserID    string     `json:"userId"`
 	ChildID   string     `json:"childId"`
 	Relation  string     `json:"relation"`

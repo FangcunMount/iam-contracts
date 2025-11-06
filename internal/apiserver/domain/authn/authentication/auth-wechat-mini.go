@@ -6,6 +6,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Register the Wechat Mini Program credential builder
@@ -17,7 +18,7 @@ func init() {
 
 // WechatMinipCredential 认证凭据（微信小程序登录所需的数据）
 type WechatMinipCredential struct {
-	TenantID  *int64
+	TenantID  meta.ID
 	RemoteIP  string
 	UserAgent string
 	AppID     string
@@ -116,7 +117,7 @@ func (o *OAuthWechatMinipAuthStrategy) Authenticate(ctx context.Context, credent
 	if err != nil {
 		return AuthDecision{}, fmt.Errorf("failed to find wx minip credential: %w", err)
 	}
-	if credentialID == 0 {
+	if credentialID.IsZero() {
 		// 业务失败：微信账号未绑定
 		return AuthDecision{
 			OK:      false,

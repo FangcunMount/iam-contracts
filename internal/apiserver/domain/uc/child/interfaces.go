@@ -20,8 +20,8 @@ type Register interface {
 // ProfileEditor 儿童资料管理领域服务接口
 // 负责儿童档案编辑相关的领域逻辑
 type ProfileEditor interface {
-	Rename(ctx context.Context, childID ChildID, name string) (*Child, error)
-	UpdateIDCard(ctx context.Context, childID ChildID, idCard meta.IDCard) (*Child, error)
-	UpdateProfile(ctx context.Context, childID ChildID, gender meta.Gender, birthday meta.Birthday) (*Child, error)
-	UpdateHeightWeight(ctx context.Context, childID ChildID, height meta.Height, weight meta.Weight) (*Child, error)
+	Rename(ctx context.Context, childID meta.ID, name string) (*Child, error)
+	UpdateIDCard(ctx context.Context, childID meta.ID, idCard meta.IDCard) (*Child, error)
+	UpdateProfile(ctx context.Context, childID meta.ID, gender meta.Gender, birthday meta.Birthday) (*Child, error)
+	UpdateHeightWeight(ctx context.Context, childID meta.ID, height meta.Height, weight meta.Weight) (*Child, error)
 }

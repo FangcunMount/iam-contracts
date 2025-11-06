@@ -5,6 +5,7 @@ import (
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // ============= 应用服务接口（Driving Ports）=============
@@ -39,7 +40,7 @@ type LoginRequest struct {
 	AuthType AuthType // 认证类型
 
 	// ========== 密码认证字段 ==========
-	TenantID *int64  // 租户ID（可选）
+	TenantID meta.ID // 租户ID（可选）
 	Username *string // 用户名（当 AuthType=password 时必须）
 	Password *string // 密码（当 AuthType=password 时必须）
 
@@ -68,9 +69,9 @@ type LoginResult struct {
 	TokenPair *domain.TokenPair // 访问令牌 + 刷新令牌
 
 	// 用户标识
-	UserID    int64  // 用户ID
-	AccountID int64  // 账户ID
-	TenantID  *int64 // 租户ID（可选）
+	UserID    meta.ID // 用户ID
+	AccountID meta.ID // 账户ID
+	TenantID  meta.ID // 租户ID（可选）
 }
 
 // LogoutRequest 登出请求

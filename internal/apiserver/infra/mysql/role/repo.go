@@ -3,9 +3,9 @@ package role
 import (
 	"context"
 
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 
@@ -31,7 +31,7 @@ func NewRoleRepository(db *gorm.DB) domain.Repository {
 func (r *RoleRepository) Create(ctx context.Context, role *domain.Role) error {
 	po := r.mapper.ToRolePO(role)
 	return r.BaseRepository.CreateAndSync(ctx, po, func(updated *RolePO) {
-		role.ID = domain.RoleID(updated.ID)
+		role.ID = updated.ID
 	})
 }
 
@@ -44,13 +44,13 @@ func (r *RoleRepository) Update(ctx context.Context, role *domain.Role) error {
 }
 
 // Delete 删除角色
-func (r *RoleRepository) Delete(ctx context.Context, id domain.RoleID) error {
-	return r.BaseRepository.DeleteByID(ctx, idutil.ID(id).Uint64())
+func (r *RoleRepository) Delete(ctx context.Context, id meta.ID) error {
+	return r.BaseRepository.DeleteByID(ctx, id.ToUint64())
 }
 
 // FindByID 根据ID获取角色
-func (r *RoleRepository) FindByID(ctx context.Context, id domain.RoleID) (*domain.Role, error) {
-	po, err := r.BaseRepository.FindByID(ctx, idutil.ID(id).Uint64())
+func (r *RoleRepository) FindByID(ctx context.Context, id meta.ID) (*domain.Role, error) {
+	po, err := r.BaseRepository.FindByID(ctx, id.ToUint64())
 	if err != nil {
 		return nil, err
 	}

@@ -1,12 +1,12 @@
 package wechatapp
 
 import (
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // WechatApp 微信应用领域对象
 type WechatApp struct {
-	ID idutil.ID
+	ID meta.ID
 
 	AppID  string
 	Name   string
@@ -33,7 +33,7 @@ func NewWechatApp(t AppType, aid string, opts ...WechatAppOption) *WechatApp {
 // WechatAppOption 微信应用选项
 type WechatAppOption func(*WechatApp)
 
-func WithWechatAppID(id idutil.ID) WechatAppOption  { return func(w *WechatApp) { w.ID = id } }
+func WithWechatAppID(id meta.ID) WechatAppOption    { return func(w *WechatApp) { w.ID = id } }
 func WithWechatAppName(name string) WechatAppOption { return func(w *WechatApp) { w.Name = name } }
 func WithWechatAppType(t AppType) WechatAppOption   { return func(w *WechatApp) { w.Type = t } }
 func WithWechatAppStatus(status Status) WechatAppOption {

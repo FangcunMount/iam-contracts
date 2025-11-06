@@ -15,6 +15,7 @@ import (
 	guardianshipDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	identityv1 "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/grpc/pb/iam/identity/v1"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Service 聚合 identity 模块的 gRPC 服务
@@ -181,32 +182,32 @@ func (s *guardianshipQueryServer) ListChildren(ctx context.Context, req *identit
 	}, nil
 }
 
-func parseUserID(raw string) (userDomain.UserID, error) {
+func parseUserID(raw string) (meta.ID, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return userDomain.UserID{}, status.Error(codes.InvalidArgument, "user_id cannot be empty")
+		return meta.ID{}, status.Error(codes.InvalidArgument, "user_id cannot be empty")
 	}
 
 	id, err := strconv.ParseUint(raw, 10, 64)
 	if err != nil {
-		return userDomain.UserID{}, status.Errorf(codes.InvalidArgument, "invalid user_id: %s", raw)
+		return meta.ID{}, status.Errorf(codes.InvalidArgument, "invalid user_id: %s", raw)
 	}
 
-	return userDomain.NewUserID(id), nil
+	return meta.NewID(id), nil
 }
 
-func parseChildID(raw string) (childDomain.ChildID, error) {
+func parseChildID(raw string) (meta.ID, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return childDomain.ChildID{}, status.Error(codes.InvalidArgument, "child_id cannot be empty")
+		return meta.ID{}, status.Error(codes.InvalidArgument, "child_id cannot be empty")
 	}
 
 	id, err := strconv.ParseUint(raw, 10, 64)
 	if err != nil {
-		return childDomain.ChildID{}, status.Errorf(codes.InvalidArgument, "invalid child_id: %s", raw)
+		return meta.ID{}, status.Errorf(codes.InvalidArgument, "invalid child_id: %s", raw)
 	}
 
-	return childDomain.NewChildID(id), nil
+	return meta.NewID(id), nil
 }
 
 func toProtoUser(u *userDomain.User) *identityv1.User {

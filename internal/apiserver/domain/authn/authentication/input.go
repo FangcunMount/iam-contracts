@@ -1,8 +1,10 @@
 package authentication
 
+import "github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+
 // AuthInput 统一认证输入参数（应用层 -> 领域层）
 type AuthInput struct {
-	TenantID  *int64
+	TenantID  meta.ID
 	RemoteIP  string
 	UserAgent string
 
@@ -47,7 +49,7 @@ type AuthDecision struct {
 	OK           bool
 	ErrCode      ErrCode
 	Principal    *Principal // OK=true 时有效
-	CredentialID int64      // 命中的凭据ID（给应用层记成功/失败/锁定）
+	CredentialID meta.ID    // 命中的凭据ID（给应用层记成功/失败/锁定）
 
 	// 可选：比如密码条件再哈希
 	ShouldRotate bool

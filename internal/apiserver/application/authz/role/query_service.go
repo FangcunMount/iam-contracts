@@ -5,6 +5,7 @@ import (
 	"context"
 
 	roleDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // RoleQueryService 角色查询服务（读操作）
@@ -24,7 +25,7 @@ func NewRoleQueryService(
 // GetRoleByID 根据ID获取角色
 func (s *RoleQueryService) GetRoleByID(
 	ctx context.Context,
-	roleID roleDomain.RoleID,
+	roleID meta.ID,
 ) (*roleDomain.Role, error) {
 	return s.roleRepo.FindByID(ctx, roleID)
 }

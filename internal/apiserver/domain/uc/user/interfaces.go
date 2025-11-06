@@ -8,28 +8,45 @@ import (
 
 // ================== Domain Service Interfaces (Driving Ports) ==================
 // 这些接口由领域层（领域服务）实现，供应用层调用
-// 按照功能职责拆分，遵循接口隔离原则
 
-// Register 用户注册领域服务接口
-// 负责用户注册相关的领域逻辑
-type Register interface {
-	Register(ctx context.Context, name string, phone meta.Phone) (*User, error)
+// Validator 用户验证器接口（Driving Port - 领域服务）
+// 封装用户相关的验证规则和业务检查
+type Validator interface {
+	// ValidateRegister 验证注册参数
+	ValidateRegister(ctx context.Context, name string, phone meta.Phone) error
+
+	// ValidateRename 验证改名参数
+	ValidateRename(name string) error
+
+	// ValidateUpdateContact 验证更新联系方式参数
+	ValidateUpdateContact(ctx context.Context, user *User, phone meta.Phone, email meta.Email) error
+
+	// CheckPhoneUnique 检查手机号唯一性
+	CheckPhoneUnique(ctx context.Context, phone meta.Phone) error
 }
 
-// ProfileEditor 用户资料管理领域服务接口
-// 负责用户资料编辑相关的领域逻辑
-// 返回修改后的实体，由应用层负责持久化
+// ProfileEditor 用户资料编辑器接口（Driving Port - 领域服务）
+// 负责用户资料的修改操作
 type ProfileEditor interface {
-	Rename(ctx context.Context, userID UserID, name string) (*User, error)
-	UpdateContact(ctx context.Context, userID UserID, phone meta.Phone, email meta.Email) (*User, error)
-	UpdateIDCard(ctx context.Context, userID UserID, idCard meta.IDCard) (*User, error)
+	// Rename 修改用户名称
+	Rename(ctx context.Context, id meta.ID, newName string) (*User, error)
+
+	// UpdateContact 更新联系方式
+	UpdateContact(ctx context.Context, id meta.ID, phone meta.Phone, email meta.Email) (*User, error)
+
+	// UpdateIDCard 更新身份证
+	UpdateIDCard(ctx context.Context, id meta.ID, idCard meta.IDCard) (*User, error)
 }
 
-// StatusChanger 用户状态管理领域服务接口
-// 负责用户状态变更相关的领域逻辑
-// 返回修改后的实体，由应用层负责持久化
-type StatusChanger interface {
-	Activate(ctx context.Context, userID UserID) (*User, error)
-	Deactivate(ctx context.Context, userID UserID) (*User, error)
-	Block(ctx context.Context, userID UserID) (*User, error)
+// Lifecycler 用户生命周期管理器接口（Driving Port - 领域服务）
+// 负责用户状态的变更操作
+type Lifecycler interface {
+	// Activate 激活用户
+	Activate(ctx context.Context, id meta.ID) (*User, error)
+
+	// Deactivate 停用用户
+	Deactivate(ctx context.Context, id meta.ID) (*User, error)
+
+	// Block 封禁用户
+	Block(ctx context.Context, id meta.ID) (*User, error)
 }

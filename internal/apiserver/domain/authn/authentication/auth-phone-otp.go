@@ -6,6 +6,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Register the phone OTP credential builder
@@ -17,7 +18,7 @@ func init() {
 
 // PhoneOTPCredential 认证凭据（手机号+验证码）
 type PhoneOTPCredential struct {
-	TenantID  *int64
+	TenantID  meta.ID
 	RemoteIP  string
 	UserAgent string
 	PhoneE164 string
@@ -106,7 +107,7 @@ func (p *PhoneOTPAuthStrategy) Authenticate(ctx context.Context, credential Auth
 	if err != nil {
 		return AuthDecision{}, fmt.Errorf("failed to find phone OTP credential: %w", err)
 	}
-	if credentialID == 0 {
+	if credentialID.IsZero() {
 		// 业务失败：手机号未绑定账户
 		return AuthDecision{
 			OK:      false,

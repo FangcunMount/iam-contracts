@@ -20,7 +20,7 @@ func Latest(children []*Child) *Child {
 		if c == nil {
 			continue
 		}
-		value := c.ID.Uint64()
+		value := c.ID.ToUint64()
 		if selected == nil || value > maxID {
 			selected = c
 			maxID = value

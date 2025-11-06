@@ -1,10 +1,7 @@
 package guardianship
 
 import (
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	child "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 )
 
 // GuardianshipMapper 监护关系映射器
@@ -29,8 +26,8 @@ func (m *GuardianshipMapper) ToPO(gBO *domain.Guardianship) *GuardianshipPO {
 		RevokedAt:     gBO.RevokedAt,
 	}
 
-	if gBO.ID > 0 {
-		po.ID = idutil.NewID(uint64(gBO.ID))
+	if !gBO.ID.IsZero() {
+		po.ID = gBO.ID
 	}
 
 	return po
@@ -43,9 +40,9 @@ func (m *GuardianshipMapper) ToBO(po *GuardianshipPO) *domain.Guardianship {
 	}
 
 	gBO := &domain.Guardianship{
-		ID:            int64(po.ID.Uint64()),
-		User:          user.UserID(po.UserID),
-		Child:         child.ChildID(po.ChildID),
+		ID:            po.ID,
+		User:          po.UserID,
+		Child:         po.ChildID,
 		Rel:           domain.Relation(po.Relation),
 		EstablishedAt: po.EstablishedAt,
 		RevokedAt:     po.RevokedAt,

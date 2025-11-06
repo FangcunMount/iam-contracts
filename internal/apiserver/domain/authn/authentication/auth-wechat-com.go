@@ -6,6 +6,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Register the Wecom credential builder
@@ -17,7 +18,7 @@ func init() {
 
 // WecomCredential 认证凭据（企业微信登录所需的数据）
 type WecomCredential struct {
-	TenantID   *int64
+	TenantID   meta.ID
 	RemoteIP   string
 	UserAgent  string
 	CorpID     string
@@ -122,7 +123,7 @@ func (o *OAuthWeChatComAuthStrategy) Authenticate(ctx context.Context, credentia
 	if err != nil {
 		return AuthDecision{}, fmt.Errorf("failed to find wecom credential: %w", err)
 	}
-	if credentialID == 0 {
+	if credentialID.IsZero() {
 		// 业务失败：企业微信账号未绑定
 		return AuthDecision{
 			OK:      false,

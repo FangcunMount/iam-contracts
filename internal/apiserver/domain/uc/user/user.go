@@ -8,7 +8,7 @@ import (
 
 // User 基础用户（身份锚点）
 type User struct {
-	ID     UserID
+	ID     meta.ID
 	Name   string
 	Phone  meta.Phone
 	Email  meta.Email
@@ -41,7 +41,7 @@ func NewUser(name string, phone meta.Phone, opts ...UserOption) (*User, error) {
 type UserOption func(*User)
 
 // With*** 用户选项函数
-func WithID(id UserID) UserOption              { return func(u *User) { u.ID = id } }
+func WithID(id meta.ID) UserOption             { return func(u *User) { u.ID = id } }
 func WithEmail(email meta.Email) UserOption    { return func(u *User) { u.Email = email } }
 func WithIDCard(idCard meta.IDCard) UserOption { return func(u *User) { u.IDCard = idCard } }
 func WithStatus(status UserStatus) UserOption  { return func(u *User) { u.Status = status } }

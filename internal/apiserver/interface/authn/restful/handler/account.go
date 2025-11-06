@@ -131,14 +131,14 @@ func (h *AccountHandler) RegisterWithWeChat(c *gin.Context) {
 	}
 
 	response := resp.RegisterResult{
-		UserID:       result.UserID.String(),
+		UserID:       result.UserID.ToUint64(),
 		UserName:     result.UserName,
 		Phone:        result.Phone.String(),
 		Email:        result.Email.String(),
-		AccountID:    result.AccountID.String(),
+		AccountID:    result.AccountID.ToUint64(),
 		AccountType:  string(result.AccountType),
 		ExternalID:   string(result.ExternalID),
-		CredentialID: result.CredentialID,
+		CredentialID: result.CredentialID.ToUint64(),
 		IsNewUser:    result.IsNewUser,
 		IsNewAccount: result.IsNewAccount,
 	}

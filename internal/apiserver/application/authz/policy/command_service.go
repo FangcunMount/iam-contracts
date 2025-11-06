@@ -1,15 +1,16 @@
 package policy
 
 import (
-"context"
+	"context"
 
-policyDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
-resourceDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
-roleDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
+	policyDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
+	resourceDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
+	roleDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 type PolicyCommandService struct {
-	policyValidator   policyDomain.Validator
+	policyValidator policyDomain.Validator
 	policyRepo      policyDomain.Repository
 	casbinAdapter   policyDomain.CasbinAdapter
 	versionNotifier policyDomain.VersionNotifier
@@ -18,15 +19,15 @@ type PolicyCommandService struct {
 }
 
 func NewPolicyCommandService(
-policyValidator policyDomain.Validator,
-policyRepo policyDomain.Repository,
-casbinAdapter policyDomain.CasbinAdapter,
-versionNotifier policyDomain.VersionNotifier,
-roleRepo roleDomain.Repository,
-resourceRepo resourceDomain.Repository,
+	policyValidator policyDomain.Validator,
+	policyRepo policyDomain.Repository,
+	casbinAdapter policyDomain.CasbinAdapter,
+	versionNotifier policyDomain.VersionNotifier,
+	roleRepo roleDomain.Repository,
+	resourceRepo resourceDomain.Repository,
 ) *PolicyCommandService {
 	return &PolicyCommandService{
-		policyValidator:   policyValidator,
+		policyValidator: policyValidator,
 		policyRepo:      policyRepo,
 		casbinAdapter:   casbinAdapter,
 		versionNotifier: versionNotifier,
@@ -36,11 +37,11 @@ resourceRepo resourceDomain.Repository,
 }
 
 func (s *PolicyCommandService) AddPolicyRule(
-ctx context.Context,
-cmd policyDomain.AddPolicyRuleCommand,
+	ctx context.Context,
+	cmd policyDomain.AddPolicyRuleCommand,
 ) error {
 	// 1. 获取角色和资源信息
-	role, err := s.roleRepo.FindByID(ctx, roleDomain.NewRoleID(cmd.RoleID))
+	role, err := s.roleRepo.FindByID(ctx, meta.NewID(cmd.RoleID))
 	if err != nil {
 		return err
 	}
@@ -76,11 +77,11 @@ cmd policyDomain.AddPolicyRuleCommand,
 }
 
 func (s *PolicyCommandService) RemovePolicyRule(
-ctx context.Context,
-cmd policyDomain.RemovePolicyRuleCommand,
+	ctx context.Context,
+	cmd policyDomain.RemovePolicyRuleCommand,
 ) error {
 	// 1. 获取角色和资源信息
-	role, err := s.roleRepo.FindByID(ctx, roleDomain.NewRoleID(cmd.RoleID))
+	role, err := s.roleRepo.FindByID(ctx, meta.NewID(cmd.RoleID))
 	if err != nil {
 		return err
 	}

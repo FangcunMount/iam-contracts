@@ -3,6 +3,8 @@ package role
 
 import (
 	"context"
+
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Repository 角色仓储接口（Driven Port）
@@ -12,9 +14,9 @@ type Repository interface {
 	// Update 更新角色
 	Update(ctx context.Context, role *Role) error
 	// Delete 删除角色
-	Delete(ctx context.Context, id RoleID) error
+	Delete(ctx context.Context, id meta.ID) error
 	// FindByID 根据ID获取角色
-	FindByID(ctx context.Context, id RoleID) (*Role, error)
+	FindByID(ctx context.Context, id meta.ID) (*Role, error)
 	// FindByName 根据名称和租户获取角色
 	FindByName(ctx context.Context, tenantID, name string) (*Role, error)
 	// List 列出角色

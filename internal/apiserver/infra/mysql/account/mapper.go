@@ -3,9 +3,7 @@ package account
 import (
 	"encoding/json"
 
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
-	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Mapper 负责领域模型与持久化对象之间的转换。
@@ -25,7 +23,7 @@ func (m *Mapper) ToAccountPO(acc *domain.Account) *AccountPO {
 	}
 
 	po := &AccountPO{
-		UserID:     idutil.NewID(acc.UserID.ToUint64()),
+		UserID:     acc.UserID,
 		Type:       string(acc.Type),
 		ExternalID: string(acc.ExternalID),
 		Profile:    mapToJSON(acc.Profile),
@@ -35,7 +33,7 @@ func (m *Mapper) ToAccountPO(acc *domain.Account) *AccountPO {
 
 	// 设置 ID（如果已存在）
 	if acc.ID.ToUint64() != 0 {
-		po.ID = idutil.NewID(acc.ID.ToUint64())
+		po.ID = acc.ID
 	}
 
 	// 设置 AppID
@@ -60,8 +58,8 @@ func (m *Mapper) ToAccountDO(po *AccountPO) *domain.Account {
 	}
 
 	acc := &domain.Account{
-		ID:         meta.NewID(po.ID.Uint64()),
-		UserID:     meta.NewID(po.UserID.Uint64()),
+		ID:         po.ID,
+		UserID:     po.UserID,
 		Type:       domain.AccountType(po.Type),
 		ExternalID: domain.ExternalID(po.ExternalID),
 		Profile:    jsonToMap(po.Profile),

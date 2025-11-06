@@ -59,7 +59,7 @@ type RegisterChildWithGuardianDTO struct {
 
 // GuardianshipResult 监护关系结果 DTO
 type GuardianshipResult struct {
-	ID            int64  // 监护关系 ID
+	ID            uint64 // 监护关系 ID
 	UserID        string // 用户 ID
 	ChildID       string // 儿童 ID
 	Relation      string // 关系

@@ -1,6 +1,9 @@
 package policy
 
-import "github.com/FangcunMount/component-base/pkg/util/idutil"
+import (
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+)
 
 // PolicyVersion 策略版本（用于缓存失效通知）
 type PolicyVersion struct {
@@ -48,7 +51,7 @@ func (pv *PolicyVersion) PubSubChannel() string {
 type PolicyVersionID idutil.ID
 
 func NewPolicyVersionID(value uint64) PolicyVersionID {
-	return PolicyVersionID(idutil.NewID(value))
+	return PolicyVersionID(meta.NewID(value))
 }
 
 func (id PolicyVersionID) Uint64() uint64 {

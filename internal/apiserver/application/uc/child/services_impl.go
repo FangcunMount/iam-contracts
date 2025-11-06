@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -283,13 +283,13 @@ func (s *childQueryApplicationService) FindSimilar(ctx context.Context, name str
 // ============= DTO 转换辅助函数 =============
 
 // parseChildID 解析儿童ID字符串
-func parseChildID(childID string) (domain.ChildID, error) {
+func parseChildID(childID string) (meta.ID, error) {
 	var id uint64
 	_, err := fmt.Sscanf(childID, "%d", &id)
 	if err != nil {
-		return domain.ChildID{}, err
+		return meta.ID{}, err
 	}
-	return domain.NewChildID(id), nil
+	return meta.NewID(id), nil
 }
 
 // parseGender 解析性别字符串

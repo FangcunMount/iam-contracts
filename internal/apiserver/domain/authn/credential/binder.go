@@ -21,7 +21,7 @@ func NewBinder() Binder {
 // 根据规范创建凭据实体，不涉及持久化
 func (b *binder) Bind(spec BindSpec) (*Credential, error) {
 	// 参数校验
-	if spec.AccountID == 0 {
+	if spec.AccountID.IsZero() {
 		return nil, errors.WithCode(code.ErrInvalidArgument, "account ID cannot be zero")
 	}
 	if spec.Type == "" {

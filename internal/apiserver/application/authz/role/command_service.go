@@ -5,12 +5,13 @@ import (
 	"context"
 
 	roleDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // RoleCommandService 角色命令服务（写操作）
 type RoleCommandService struct {
 	roleValidator roleDomain.Validator
-	roleRepo    roleDomain.Repository
+	roleRepo      roleDomain.Repository
 }
 
 // NewRoleCommandService 创建角色命令服务
@@ -20,7 +21,7 @@ func NewRoleCommandService(
 ) *RoleCommandService {
 	return &RoleCommandService{
 		roleValidator: roleValidator,
-		roleRepo:    roleRepo,
+		roleRepo:      roleRepo,
 	}
 }
 
@@ -85,7 +86,7 @@ func (s *RoleCommandService) UpdateRole(
 // DeleteRole 删除角色
 func (s *RoleCommandService) DeleteRole(
 	ctx context.Context,
-	roleID roleDomain.RoleID,
+	roleID meta.ID,
 ) error {
 	// 直接删除角色（Repository 会处理不存在的情况）
 	return s.roleRepo.Delete(ctx, roleID)

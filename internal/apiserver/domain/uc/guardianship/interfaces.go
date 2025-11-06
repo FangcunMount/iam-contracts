@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -15,8 +14,8 @@ import (
 // Manager 监护关系管理领域服务接口
 // 负责监护关系建立和撤销相关的领域逻辑
 type Manager interface {
-	AddGuardian(ctx context.Context, userID user.UserID, childID child.ChildID, relation Relation) (*Guardianship, error)
-	RemoveGuardian(ctx context.Context, userID user.UserID, childID child.ChildID) (*Guardianship, error)
+	AddGuardian(ctx context.Context, userID meta.ID, childID meta.ID, relation Relation) (*Guardianship, error)
+	RemoveGuardian(ctx context.Context, userID meta.ID, childID meta.ID) (*Guardianship, error)
 }
 
 // Register 监护关系注册领域服务接口
@@ -33,6 +32,6 @@ type RegisterChildWithGuardianParams struct {
 	IDCard   meta.IDCard  // 可选
 	Height   *meta.Height // 可选
 	Weight   *meta.Weight // 可选
-	UserID   user.UserID  // 监护人ID
+	UserID   meta.ID      // 监护人ID
 	Relation Relation     // 监护关系
 }

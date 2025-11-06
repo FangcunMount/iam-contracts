@@ -7,6 +7,7 @@ import (
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // AssignmentManager 赋权管理器（领域服务）
@@ -118,7 +119,7 @@ func (v *validator) ValidateRevokeParameters(
 
 // CheckRoleExists 检查角色是否存在
 func (v *validator) CheckRoleExists(ctx context.Context, roleID uint64, tenantID string) error {
-	roleExists, err := v.roleRepo.FindByID(ctx, role.NewRoleID(roleID))
+	roleExists, err := v.roleRepo.FindByID(ctx, meta.NewID(roleID))
 	if err != nil {
 		if errors.IsCode(err, code.ErrRoleNotFound) {
 			return errors.WithCode(code.ErrRoleNotFound, "角色不存在")
@@ -163,7 +164,7 @@ func (v *validator) CheckRoleExistsAndTenant(
 	roleID uint64,
 	tenantID string,
 ) (*role.Role, error) {
-	roleExists, err := v.roleRepo.FindByID(ctx, role.NewRoleID(roleID))
+	roleExists, err := v.roleRepo.FindByID(ctx, meta.NewID(roleID))
 	if err != nil {
 		if errors.IsCode(err, code.ErrRoleNotFound) {
 			return nil, errors.WithCode(code.ErrRoleNotFound, "角色 %d 不存在", roleID)

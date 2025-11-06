@@ -1,6 +1,9 @@
 package assignment
 
-import "github.com/FangcunMount/component-base/pkg/util/idutil"
+import (
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+)
 
 // Assignment 用户/组 ↔ 角色赋权（聚合根）
 type Assignment struct {
@@ -39,14 +42,14 @@ func (a *Assignment) SubjectKey() string {
 
 // RoleKey 返回 Casbin 中的角色标识
 func (a *Assignment) RoleKey() string {
-	return "role:" + idutil.NewID(a.RoleID).String()
+	return "role:" + meta.NewID(a.RoleID).String()
 }
 
 // AssignmentID 赋权ID值对象
 type AssignmentID idutil.ID
 
 func NewAssignmentID(value uint64) AssignmentID {
-	return AssignmentID(idutil.NewID(value))
+	return AssignmentID(meta.NewID(value))
 }
 
 func (id AssignmentID) Uint64() uint64 {

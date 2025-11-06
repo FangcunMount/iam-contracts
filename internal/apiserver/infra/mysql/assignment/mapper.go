@@ -1,8 +1,8 @@
 package assignment
 
 import (
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Mapper Assignment BO 和 PO 转换器
@@ -44,7 +44,7 @@ func (m *Mapper) ToPO(bo *assignment.Assignment) *AssignmentPO {
 		TenantID:    bo.TenantID,
 		GrantedBy:   bo.GrantedBy,
 	}
-	po.ID = idutil.NewID(bo.ID.Uint64())
+	po.ID = meta.NewID(bo.ID.Uint64())
 
 	return po
 }

@@ -1,5 +1,7 @@
 package authentication
 
+import "github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+
 // 选择哪种认证策略
 type Scenario string
 
@@ -24,9 +26,9 @@ const (
 
 // 认证主体（输出，用于签 Token/授权）
 type Principal struct {
-	AccountID int64
-	UserID    int64
-	TenantID  *int64
+	AccountID meta.ID
+	UserID    meta.ID
+	TenantID  meta.ID
 	AMR       []string
 	Claims    map[string]any
 }

@@ -8,8 +8,8 @@ import (
 	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/register"
 	authnUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/crypto"
-	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	userRepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // ==================== 认证 Seed 函数 ====================
@@ -110,11 +110,11 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 	return nil
 }
 
-// parseAuthnUserID 解析用户ID字符串为 userDomain.UserID
-func parseAuthnUserID(userIDStr string) (userDomain.UserID, error) {
+// parseAuthnUserID 解析用户ID字符串为 meta.ID
+func parseAuthnUserID(userIDStr string) (meta.ID, error) {
 	var id uint64
 	if _, err := fmt.Sscanf(userIDStr, "%d", &id); err != nil {
-		return userDomain.UserID{}, fmt.Errorf("invalid user id format: %s", userIDStr)
+		return meta.ID{}, fmt.Errorf("invalid user id format: %s", userIDStr)
 	}
-	return userDomain.NewUserID(id), nil
+	return meta.NewID(id), nil
 }

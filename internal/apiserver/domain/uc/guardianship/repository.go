@@ -4,8 +4,7 @@ import (
 	"context"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // ================== Repository Interface (Driven Port) ==================
@@ -15,9 +14,9 @@ import (
 type Repository interface {
 	Create(ctx context.Context, guardianship *Guardianship) error
 	FindByID(ctx context.Context, id idutil.ID) (*Guardianship, error)
-	FindByChildID(ctx context.Context, id child.ChildID) (guardianships []*Guardianship, err error)
-	FindByUserID(ctx context.Context, id user.UserID) (guardianships []*Guardianship, err error)
-	FindByUserIDAndChildID(ctx context.Context, userID user.UserID, childID child.ChildID) (*Guardianship, error)
-	IsGuardian(ctx context.Context, userID user.UserID, childID child.ChildID) (bool, error)
+	FindByChildID(ctx context.Context, id meta.ID) (guardianships []*Guardianship, err error)
+	FindByUserID(ctx context.Context, id meta.ID) (guardianships []*Guardianship, err error)
+	FindByUserIDAndChildID(ctx context.Context, userID meta.ID, childID meta.ID) (*Guardianship, error)
+	IsGuardian(ctx context.Context, userID meta.ID, childID meta.ID) (bool, error)
 	Update(ctx context.Context, guardianship *Guardianship) error
 }

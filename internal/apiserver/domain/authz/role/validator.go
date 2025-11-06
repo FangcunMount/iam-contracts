@@ -9,6 +9,7 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // RoleManager 角色管理领域服务
@@ -88,15 +89,15 @@ func (v *validator) ValidateCreateParameters(name, displayName, tenantID string)
 }
 
 // CheckRoleExists 检查角色是否存在
-func (v *validator) CheckRoleExists(ctx context.Context, roleID RoleID) (*Role, error) {
-	if roleID.Uint64() == 0 {
+func (v *validator) CheckRoleExists(ctx context.Context, roleID meta.ID) (*Role, error) {
+	if roleID.ToUint64() == 0 {
 		return nil, errors.WithCode(code.ErrInvalidArgument, "角色ID不能为空")
 	}
 
 	foundRole, err := v.roleRepo.FindByID(ctx, roleID)
 	if err != nil {
 		if errors.IsCode(err, code.ErrRoleNotFound) {
-			return nil, errors.WithCode(code.ErrRoleNotFound, "角色 %d 不存在", roleID.Uint64())
+			return nil, errors.WithCode(code.ErrRoleNotFound, "角色 %d 不存在", roleID.ToUint64())
 		}
 		return nil, errors.Wrap(err, "获取角色失败")
 	}

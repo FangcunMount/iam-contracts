@@ -3,8 +3,8 @@ package child
 import (
 	"context"
 
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
@@ -28,13 +28,13 @@ func NewRepository(db *gorm.DB) child.Repository {
 func (r *Repository) Create(ctx context.Context, child *domain.Child) error {
 	po := r.mapper.ToPO(child)
 	return r.CreateAndSync(ctx, po, func(updated *ChildPO) {
-		child.ID = domain.NewChildID(updated.ID.Uint64())
+		child.ID = updated.ID
 	})
 }
 
 // FindByID 根据 ID 查找儿童档案
-func (r *Repository) FindByID(ctx context.Context, id domain.ChildID) (*domain.Child, error) {
-	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
+func (r *Repository) FindByID(ctx context.Context, id meta.ID) (*domain.Child, error) {
+	po, err := r.BaseRepository.FindByID(ctx, id.ToUint64())
 	if err != nil {
 		return nil, err
 	}
@@ -134,6 +134,6 @@ func (r *Repository) toChildren(pos []*ChildPO) []*domain.Child {
 func (r *Repository) Update(ctx context.Context, child *domain.Child) error {
 	po := r.mapper.ToPO(child)
 	return r.UpdateAndSync(ctx, po, func(updated *ChildPO) {
-		child.ID = domain.NewChildID(updated.ID.Uint64())
+		child.ID = updated.ID
 	})
 }

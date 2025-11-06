@@ -5,6 +5,7 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	base "github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 
@@ -27,22 +28,22 @@ func (UserPO) TableName() string {
 // BeforeCreate 在创建前设置信息
 func (p *UserPO) BeforeCreate(tx *gorm.DB) error {
 	// 仅在 ID 未设置时生成新 ID
-	if p.ID.Uint64() == 0 {
+	if p.ID.ToUint64() == 0 {
 		newID := idutil.GetIntID()
-		p.ID = idutil.NewID(newID)
+		p.ID = meta.NewID(newID)
 	}
 	p.CreatedAt = time.Now()
 	p.UpdatedAt = time.Now()
-	p.CreatedBy = idutil.NewID(0)
-	p.UpdatedBy = idutil.NewID(0)
-	p.DeletedBy = idutil.NewID(0)
+	p.CreatedBy = meta.NewID(0)
+	p.UpdatedBy = meta.NewID(0)
+	p.DeletedBy = meta.NewID(0)
 	p.Version = base.InitialVersion
 
 	return nil
 } // BeforeUpdate 在更新前设置信息
 func (p *UserPO) BeforeUpdate(tx *gorm.DB) error {
 	p.UpdatedAt = time.Now()
-	p.UpdatedBy = idutil.NewID(0)
+	p.UpdatedBy = meta.NewID(0)
 
 	return nil
 }

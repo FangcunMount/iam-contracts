@@ -2,84 +2,73 @@ package user
 
 import (
 	"context"
-	"strings"
 
-	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
-// profileEditor 用户资料编辑应用服务
+// profileEditor 用户资料编辑服务实现
 type profileEditor struct {
-	repo Repository
+	repo      Repository
+	validator Validator
 }
 
-// 确保 profileEditor 实现了 ProfileEditor 接口
-var _ ProfileEditor = (*profileEditor)(nil)
-
-// NewProfileService 创建用户资料服务
-func NewProfileService(repo Repository) *profileEditor {
-	return &profileEditor{repo: repo}
+// NewProfileEditor 创建用户资料编辑服务
+func NewProfileEditor(repo Repository, validator Validator) ProfileEditor {
+	return &profileEditor{
+		repo:      repo,
+		validator: validator,
+	}
 }
 
-// Rename 更新用户昵称
-// 领域逻辑：验证 + 修改实体
-// 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *profileEditor) Rename(ctx context.Context, userID UserID, name string) (*User, error) {
-	name = strings.TrimSpace(name)
-	if name == "" {
-		return nil, perrors.WithCode(code.ErrUserBasicInfoInvalid, "nickname cannot be empty")
+// Rename 修改用户名称
+func (s *profileEditor) Rename(ctx context.Context, id meta.ID, newName string) (*User, error) {
+	// 验证名称
+	if err := s.validator.ValidateRename(newName); err != nil {
+		return nil, err
 	}
 
-	user, err := s.repo.FindByID(ctx, userID)
+	// 查找用户
+	user, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	// 领域逻辑：修改实体
-	user.Name = name
+	// 修改名称
+	user.Name = newName
 
-	// 返回修改后的实体，由应用层持久化
 	return user, nil
 }
 
-// UpdateContact 更新用户联系方式
-// 领域逻辑：验证 + 修改实体
-// 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *profileEditor) UpdateContact(ctx context.Context, userID UserID, phone meta.Phone, email meta.Email) (*User, error) {
-	user, err := s.repo.FindByID(ctx, userID)
+// UpdateContact 更新联系方式
+func (s *profileEditor) UpdateContact(ctx context.Context, id meta.ID, phone meta.Phone, email meta.Email) (*User, error) {
+	// 查找用户
+	user, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	// 领域规则：验证手机号唯一性
-	if !phone.IsEmpty() && !user.Phone.Equal(phone) {
-		if err := ensurePhoneUnique(ctx, s.repo, phone); err != nil {
-			return nil, err
-		}
-		user.UpdatePhone(phone)
+	// 验证联系方式变更
+	if err := s.validator.ValidateUpdateContact(ctx, user, phone, email); err != nil {
+		return nil, err
 	}
 
-	if !email.IsEmpty() {
-		user.UpdateEmail(email)
-	}
+	// 更新联系方式
+	user.UpdatePhone(phone)
+	user.UpdateEmail(email)
 
-	// 返回修改后的实体，由应用层持久化
 	return user, nil
 }
 
-// UpdateIDCard 更新身份证信息
-// 领域逻辑：验证 + 修改实体
-// 注意：不包括持久化，返回修改后的实体供应用层持久化
-func (s *profileEditor) UpdateIDCard(ctx context.Context, userID UserID, idCard meta.IDCard) (*User, error) {
-	user, err := s.repo.FindByID(ctx, userID)
+// UpdateIDCard 更新身份证
+func (s *profileEditor) UpdateIDCard(ctx context.Context, id meta.ID, idCard meta.IDCard) (*User, error) {
+	// 查找用户
+	user, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	// 领域逻辑：修改实体
+	// 更新身份证
 	user.UpdateIDCard(idCard)
 
-	// 返回修改后的实体，由应用层持久化
 	return user, nil
 }

@@ -53,8 +53,8 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 
 	// 创建新的认证主体（从刷新令牌中恢复）
 	principal := &authentication.Principal{
-		UserID:    int64(refreshToken.UserID.ToUint64()),
-		AccountID: int64(refreshToken.AccountID.ToUint64()),
+		UserID:    refreshToken.UserID,
+		AccountID: refreshToken.AccountID,
 		// provider 和其他信息在刷新时不需要
 	}
 

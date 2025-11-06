@@ -6,6 +6,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Register the password credential builder
@@ -17,7 +18,7 @@ func init() {
 
 // PasswordCredential 认证凭据（用户名+密码）
 type PasswordCredential struct {
-	TenantID  *int64
+	TenantID  meta.ID
 	RemoteIP  string
 	UserAgent string
 	Username  string
@@ -99,7 +100,7 @@ func (p *PasswordAuthStrategy) Authenticate(ctx context.Context, credential Auth
 		// 系统异常（如数据库错误）
 		return AuthDecision{}, fmt.Errorf("failed to find account: %w", err)
 	}
-	if accountID == 0 {
+	if accountID.IsZero() {
 		// 业务失败：账户不存在（用统一的错误码，防止用户名枚举攻击）
 		return AuthDecision{
 			OK:      false,
@@ -130,7 +131,7 @@ func (p *PasswordAuthStrategy) Authenticate(ctx context.Context, credential Auth
 	if err != nil {
 		return AuthDecision{}, fmt.Errorf("failed to find password credential: %w", err)
 	}
-	if credentialID == 0 {
+	if credentialID.IsZero() {
 		// 账户没有设置密码
 		return AuthDecision{
 			OK:      false,

@@ -1,7 +1,6 @@
 package role
 
 import (
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
 	base "github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 )
@@ -20,7 +19,7 @@ func (m *Mapper) ToRoleBO(po *RolePO) *domain.Role {
 		return nil
 	}
 	return &domain.Role{
-		ID:          domain.RoleID(po.ID),
+		ID:          po.ID,
 		Name:        po.Name,
 		DisplayName: po.DisplayName,
 		TenantID:    po.TenantID,
@@ -35,7 +34,7 @@ func (m *Mapper) ToRolePO(role *domain.Role) *RolePO {
 	}
 	return &RolePO{
 		AuditFields: base.AuditFields{
-			ID: idutil.ID(role.ID),
+			ID: role.ID,
 		},
 		Name:        role.Name,
 		DisplayName: role.DisplayName,
