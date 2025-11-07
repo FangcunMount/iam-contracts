@@ -50,25 +50,27 @@ func OpenDBForIntegrationTest(t *testing.T, models ...interface{}) *gorm.DB {
 	}
 
 	// Fallback to sqlite using a per-test temporary file-backed DB to avoid
-	// cross-test locking when tests run concurrently. We still enable a small
-	// busy timeout and WAL mode to improve concurrency behavior.
+	// cross-test locking when tests run concurrently. We enable WAL and a busy
+	// timeout via the DSN so the sqlite driver applies them at open time. This
+	// is more reliable across driver versions than only issuing PRAGMA after open.
 	tmpFile, err := os.CreateTemp("", "iam_test_db-*.db")
 	require.NoError(t, err, "failed to create temp sqlite file for test")
 	// ensure the file is removed when the test finishes
 	t.Cleanup(func() {
 		_ = os.Remove(tmpFile.Name())
 	})
+	// close the os.File handle returned by CreateTemp; GORM/sqlite will open by path
+	_ = tmpFile.Close()
 
-	// Open sqlite on the temporary file and set a busy timeout via DSN
-	// so short-lived locks will be retried by the driver.
-	dsn := tmpFile.Name() + "?_busy_timeout=5000"
+	// Use a file: DSN so that journal_mode and busy_timeout can be applied
+	// as DSN query params and take effect immediately.
+	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=5000", tmpFile.Name())
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	require.NoError(t, err, "failed to open sqlite DB file for test")
 
-	// enable WAL to improve concurrent write/read behavior where supported
+	// also try to set pragmas as a best-effort fallback; ignore errors
 	sqlDB, derr := db.DB()
 	if derr == nil {
-		// try to set pragmas; ignore errors since it's only a best-effort for test stability
 		_, _ = sqlDB.ExecContext(t.Context(), "PRAGMA journal_mode=WAL;")
 		_, _ = sqlDB.ExecContext(t.Context(), "PRAGMA busy_timeout=5000;")
 	}
