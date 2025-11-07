@@ -16,7 +16,6 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 	gormmysql "gorm.io/driver/mysql"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -47,9 +46,7 @@ func TestWechatAppRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 		require.NoError(t, db.AutoMigrate(&WechatAppPO{}))
 		require.NoError(t, db.Exec("DELETE FROM iam_idp_wechat_apps WHERE app_id = ?", "app-dup").Error)
 	} else {
-		db, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-		require.NoError(t, err)
-
+		db = testhelpers.SetupTempSQLiteDB(t)
 		require.NoError(t, db.AutoMigrate(&WechatAppPO{}))
 	}
 

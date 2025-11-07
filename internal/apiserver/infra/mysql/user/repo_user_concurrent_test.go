@@ -14,16 +14,12 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	m "github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 // 并发创建相同身份证的用户，期望只有 1 条记录被写入，
 // 其余并发请求因唯一约束被 translator 映射为业务错误 code.ErrUserAlreadyExists。
 func TestUserRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	require.NoError(t, err)
-
+	db := testhelpers.SetupTempSQLiteDB(t)
 	require.NoError(t, db.AutoMigrate(&UserPO{}))
 
 	repo := NewRepository(db)

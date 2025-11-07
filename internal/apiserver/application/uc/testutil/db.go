@@ -58,7 +58,6 @@ func SetupTestDB(t *testing.T) *gorm.DB {
 	)
 	require.NoError(t, err, "failed to auto-migrate tables")
 
-
 	return db
 }
 

@@ -9,21 +9,18 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	testutil "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/testutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/credential"
 	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	m "github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 // 并发创建相同的 credential（相同 account_id + idp + idp_identifier），期望只有 1 条记录被写入，
 // 其余并发请求因唯一约束被 translator 映射为业务错误 code.ErrCredentialExists。
 func TestCredentialRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	require.NoError(t, err)
-
+	db := testutil.SetupTestDB(t)
 	require.NoError(t, db.AutoMigrate(&PO{}))
 
 	repo := NewRepository(db)

@@ -13,16 +13,12 @@ import (
 	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 // 并发创建相同的 resource（相同 key），期望只有 1 条记录被写入，
 // 其余并发请求因唯一约束被 translator 映射为业务错误 code.ErrResourceAlreadyExists。
 func TestResourceRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	require.NoError(t, err)
-
+	db := testhelpers.SetupTempSQLiteDB(t)
 	require.NoError(t, db.AutoMigrate(&ResourcePO{}))
 
 	repo := NewResourceRepository(db)
