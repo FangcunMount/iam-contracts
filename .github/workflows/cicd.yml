@@ -132,7 +132,7 @@ jobs:
 
   test:
     name: Run Tests
-    needs: [validate-secrets, lint]
+    needs: [validate-secrets]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -171,12 +171,11 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-      - name: Install dependencies
-        run: |
-          go mod download
-      - name: Run make lint
-        run: |
-          make lint
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.1.6
+          args: --timeout=5m
 
   build:
     name: Build Application
