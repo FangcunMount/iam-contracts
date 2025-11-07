@@ -566,7 +566,7 @@ jobs:
     name: Send Notification
     needs: [deploy]
     runs-on: ubuntu-latest
-    if: always()
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Log deployment status
         run: |
