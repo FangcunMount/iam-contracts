@@ -64,7 +64,8 @@ func OpenDBForIntegrationTest(t *testing.T, models ...interface{}) *gorm.DB {
 
 	// Use a file: DSN so that journal_mode and busy_timeout can be applied
 	// as DSN query params and take effect immediately.
-	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=5000", tmpFile.Name())
+	// increase busy timeout to give retries more time under high contention
+	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=10000", tmpFile.Name())
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	require.NoError(t, err, "failed to open sqlite DB file for test")
 
@@ -72,7 +73,13 @@ func OpenDBForIntegrationTest(t *testing.T, models ...interface{}) *gorm.DB {
 	sqlDB, derr := db.DB()
 	if derr == nil {
 		_, _ = sqlDB.ExecContext(t.Context(), "PRAGMA journal_mode=WAL;")
-		_, _ = sqlDB.ExecContext(t.Context(), "PRAGMA busy_timeout=5000;")
+		_, _ = sqlDB.ExecContext(t.Context(), "PRAGMA busy_timeout=10000;")
+		// Limit the underlying connection pool to a single connection to
+		// serialize DB access at the connection level for each test DB. This
+		// reduces sqlite "database table is locked" errors that occur when
+		// many goroutines open parallel connections to the same file.
+		sqlDB.SetMaxOpenConns(1)
+		sqlDB.SetMaxIdleConns(1)
 	}
 
 	if len(models) > 0 {
