@@ -17,6 +17,6 @@ func TestAssignment_CreateAndKeys(t *testing.T) {
 	rk := a.RoleKey()
 	// role: followed by numeric id
 	assert.Contains(t, rk, "role:")
-	id := meta.FromUint64(1)
+	id := meta.FromUint64(42)
 	assert.Equal(t, id.String(), rk[len("role:"):])
 }

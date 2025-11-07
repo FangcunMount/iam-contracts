@@ -52,7 +52,7 @@ func TestChildApplicationService_Register_WithOptionalFields(t *testing.T) {
 		Name:     "小红",
 		Gender:   "female",
 		Birthday: "2019-05-20",
-		IDCard:   "110101201905201234",
+		IDCard:   "110101201905201236",
 		Height:   &height,
 		Weight:   &weight,
 	}
@@ -386,7 +386,7 @@ func TestChildQueryApplicationService_FindSimilar_Success(t *testing.T) {
 		Name:     "小强",
 		Gender:   "male",
 		Birthday: "2020-03-10",
-		IDCard:   "110101202003101111", // 唯一身份证
+		IDCard:   "110101202003101118", // 唯一身份证
 	})
 	require.NoError(t, err)
 
@@ -394,7 +394,7 @@ func TestChildQueryApplicationService_FindSimilar_Success(t *testing.T) {
 		Name:     "小丽",
 		Gender:   "female",
 		Birthday: "2020-03-10",
-		IDCard:   "110101202003102222", // 另一个唯一身份证
+		IDCard:   "110101202003102225", // 另一个唯一身份证
 	})
 	require.NoError(t, err)
 

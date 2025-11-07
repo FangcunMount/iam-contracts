@@ -304,7 +304,7 @@ func TestGuardianshipQueryApplicationService_ListChildrenByUserID_Success(t *tes
 		Name:     "大宝",
 		Gender:   "male",
 		Birthday: "2018-01-01",
-		IDCard:   "110101201801011111",
+		IDCard:   "110101201801011112",
 	})
 	require.NoError(t, err)
 
@@ -312,7 +312,7 @@ func TestGuardianshipQueryApplicationService_ListChildrenByUserID_Success(t *tes
 		Name:     "二宝",
 		Gender:   "female",
 		Birthday: "2020-06-01",
-		IDCard:   "110101202006012222",
+		IDCard:   "110101202006012225",
 	})
 	require.NoError(t, err)
 
@@ -359,7 +359,7 @@ func TestGuardianshipQueryApplicationService_ListGuardiansByChildID_Success(t *t
 
 	// 设置唯一的 IDCard 避免 UNIQUE 约束冲突
 	profileService := user.NewUserProfileApplicationService(unitOfWork)
-	err = profileService.UpdateIDCard(ctx, user1.ID, "320106198001011111")
+	err = profileService.UpdateIDCard(ctx, user1.ID, "320106198001011110")
 	require.NoError(t, err)
 
 	user2, err := userService.Register(ctx, user.RegisterUserDTO{
@@ -370,7 +370,7 @@ func TestGuardianshipQueryApplicationService_ListGuardiansByChildID_Success(t *t
 	require.NoError(t, err)
 
 	// 设置唯一的 IDCard 避免 UNIQUE 约束冲突
-	err = profileService.UpdateIDCard(ctx, user2.ID, "320106198001012222")
+	err = profileService.UpdateIDCard(ctx, user2.ID, "320106198001012228")
 	require.NoError(t, err)
 
 	// 创建儿童
