@@ -23,7 +23,9 @@ type Account struct {
 func NewAccount(uID meta.ID, t AccountType, eID ExternalID, opts ...AccountOption) *Account {
 	// 创建账号实体
 	acc := &Account{
-		ID:         uID,
+		// 第一个参数表示关联的 UserID（调用方通常传入用户 ID），
+		// 实际的 Account.ID 应由持久层生成或通过 WithID 明确设置。
+		UserID:     uID,
 		Type:       t,
 		ExternalID: eID,
 		Status:     StatusActive, // 默认激活
