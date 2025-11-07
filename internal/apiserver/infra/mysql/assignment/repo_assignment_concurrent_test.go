@@ -10,19 +10,16 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
+	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 // 并发创建相同的 assignment（相同 subject_type+subject_id+role_id+tenant_id），
 // 在测试环境为表添加唯一索引以触发重复错误，期望只有 1 条记录写入，
 // 其余被翻译为 code.ErrAssignmentAlreadyExists。
 func TestAssignmentRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	require.NoError(t, err)
-
+	db := testhelpers.SetupTempSQLiteDB(t)
 	require.NoError(t, db.AutoMigrate(&AssignmentPO{}))
 
 	// 为测试环境显式创建唯一索引，避免在 PO tag 中改动生产 schema
@@ -45,7 +42,7 @@ func TestAssignmentRepository_Create_ConcurrentDuplicateDetection(t *testing.T) 
 			defer wg.Done()
 			time.Sleep(time.Millisecond * time.Duration(d))
 			a := domain.NewAssignment(domain.SubjectTypeUser, "user-123", 42, "tenant-1")
-			if err := repo.Create(ctx, &a); err != nil {
+			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Create(ctx, &a) }); err != nil {
 				errs <- err
 				return
 			}

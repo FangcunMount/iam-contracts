@@ -1,6 +1,8 @@
 package testutil
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -18,14 +20,35 @@ import (
 func SetupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
-	// 创建内存数据库
-	// 使用共享内存模式，确保在连接池中多个连接可以访问相同的内存数据库
-	// 参考：https://www.sqlite.org/inmemorydb.html
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+	// 创建每个测试使用的临时 sqlite 文件数据库，启用 WAL 和 busy_timeout
+	// 这样可以在并发测试中减少锁争用噪声（比共享内存模式更稳定）
+	tmp, err := os.CreateTemp("", "testdb-*.db")
+	require.NoError(t, err, "failed to create temp db file")
+	tmpPath := tmp.Name()
+	// 关闭并让 GORM 打开自己的连接
+	_ = tmp.Close()
+
+	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=10000", tmpPath)
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
 		Logger:                                   logger.Default.LogMode(logger.Silent), // 测试时静默日志
 		DisableForeignKeyConstraintWhenMigrating: true,                                  // SQLite 兼容性
 	})
-	require.NoError(t, err, "failed to create in-memory database")
+	require.NoError(t, err, "failed to create sqlite temp database")
+
+	// 限制底层 sql.DB 连接池，避免并发连接导致 sqlite 锁竞争
+	if sqlDB, cerr := db.DB(); cerr == nil {
+		sqlDB.SetMaxOpenConns(1)
+		sqlDB.SetMaxIdleConns(1)
+	}
+
+	// 在测试结束时清理：关闭连接并删除临时文件
+	t.Cleanup(func() {
+		sqlDB, _ := db.DB()
+		if sqlDB != nil {
+			_ = sqlDB.Close()
+		}
+		_ = os.Remove(tmpPath)
+	})
 
 	// 自动迁移所有表
 	err = db.AutoMigrate(
@@ -34,14 +57,6 @@ func SetupTestDB(t *testing.T) *gorm.DB {
 		&guardpo.GuardianshipPO{},
 	)
 	require.NoError(t, err, "failed to auto-migrate tables")
-
-	// 在测试结束时清理
-	t.Cleanup(func() {
-		sqlDB, err := db.DB()
-		if err == nil {
-			_ = sqlDB.Close()
-		}
-	})
 
 	return db
 }

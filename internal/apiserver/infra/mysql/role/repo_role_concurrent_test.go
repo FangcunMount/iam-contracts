@@ -10,18 +10,15 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
+	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 // 并发创建相同的 role（相同 tenant_id+name），期望只有 1 条记录被写入，
 // 其余并发请求因唯一约束被 translator 映射为业务错误 code.ErrRoleAlreadyExists。
 func TestRoleRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	require.NoError(t, err)
-
+	db := testhelpers.SetupTempSQLiteDB(t)
 	require.NoError(t, db.AutoMigrate(&RolePO{}))
 
 	repo := NewRoleRepository(db)
@@ -41,7 +38,7 @@ func TestRoleRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 			// add tiny random delay to reduce SQLITE table-lock contention
 			time.Sleep(time.Millisecond * time.Duration(d))
 			r := domain.NewRole("role-dup", "Role Dup", "tenant-1")
-			if err := repo.Create(ctx, &r); err != nil {
+			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Create(ctx, &r) }); err != nil {
 				errs <- err
 				return
 			}

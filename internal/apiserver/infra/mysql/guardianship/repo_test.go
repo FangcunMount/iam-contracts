@@ -6,17 +6,14 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
+	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 func TestRepository_Create_DuplicateReturnsBusinessError(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	require.NoError(t, err)
-
+	db := testhelpers.SetupTempSQLiteDB(t)
 	// Ensure table exists with unique index defined in PO tags
 	require.NoError(t, db.AutoMigrate(&GuardianshipPO{}))
 
@@ -32,7 +29,7 @@ func TestRepository_Create_DuplicateReturnsBusinessError(t *testing.T) {
 	}
 
 	// first create should succeed
-	err = repo.Create(ctx, g1)
+	err := repo.Create(ctx, g1)
 	require.NoError(t, err)
 
 	// second create with same user+child should be treated as business 'exists' error

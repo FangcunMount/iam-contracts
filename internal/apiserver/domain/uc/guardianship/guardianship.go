@@ -1,6 +1,7 @@
 package guardianship
 
 import (
+	"sync"
 	"time"
 
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
@@ -16,6 +17,7 @@ const (
 
 // Guardianship 监护关系
 type Guardianship struct {
+	mu            sync.RWMutex `json:"-"`
 	ID            meta.ID
 	User          meta.ID
 	Child         meta.ID
@@ -25,7 +27,20 @@ type Guardianship struct {
 }
 
 // IsActive 是否有效
-func (g *Guardianship) IsActive() bool { return g.RevokedAt == nil }
+func (g *Guardianship) IsActive() bool {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.RevokedAt == nil
+}
 
-// Revoke 撤销监护关系
-func (g *Guardianship) Revoke(at time.Time) { g.RevokedAt = &at }
+// Revoke 撤销监护关系 (并发安全)
+func (g *Guardianship) Revoke(at time.Time) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	// allocate a fresh time on the heap and copy the value so
+	// concurrent callers don't end up writing the same stack address
+	// (the race detector can still observe races when &at is used).
+	t := new(time.Time)
+	*t = at
+	g.RevokedAt = t
+}

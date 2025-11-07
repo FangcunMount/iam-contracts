@@ -12,10 +12,10 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
+	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 	gormmysql "gorm.io/driver/mysql"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -46,9 +46,7 @@ func TestWechatAppRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 		require.NoError(t, db.AutoMigrate(&WechatAppPO{}))
 		require.NoError(t, db.Exec("DELETE FROM iam_idp_wechat_apps WHERE app_id = ?", "app-dup").Error)
 	} else {
-		db, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-		require.NoError(t, err)
-
+		db = testhelpers.SetupTempSQLiteDB(t)
 		require.NoError(t, db.AutoMigrate(&WechatAppPO{}))
 	}
 
@@ -69,7 +67,7 @@ func TestWechatAppRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 			defer wg.Done()
 			time.Sleep(time.Millisecond * time.Duration(d))
 			app := wechatapp.NewWechatApp(wechatapp.AppType("minip"), "app-dup", wechatapp.WithWechatAppName("concurrent"))
-			if err := repo.Create(ctx, app); err != nil {
+			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Create(ctx, app) }); err != nil {
 				errs <- err
 				return
 			}

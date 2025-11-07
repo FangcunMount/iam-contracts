@@ -8,18 +8,16 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	testutil "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/testutil"
 	d "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
+	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 // 并发保存相同 kid 的 Key，期望只有 1 条记录被写入，其他请求返回业务错误 ErrKeyAlreadyExists
 func TestKeyRepository_Save_ConcurrentDuplicateDetection(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	require.NoError(t, err)
-
+	db := testutil.SetupTestDB(t)
 	require.NoError(t, db.AutoMigrate(&KeyPO{}))
 
 	repo := NewKeyRepository(db)
@@ -41,7 +39,7 @@ func TestKeyRepository_Save_ConcurrentDuplicateDetection(t *testing.T) {
 			n := "n"
 			e := "AQAB"
 			key := d.NewKey("dup-kid", d.PublicJWK{Kty: "RSA", Use: "sig", Alg: "RS256", Kid: "dup-kid", N: &n, E: &e}, d.WithStatus(d.KeyActive))
-			if err := repo.Save(ctx, key); err != nil {
+			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Save(ctx, key) }); err != nil {
 				errs <- err
 				return
 			}

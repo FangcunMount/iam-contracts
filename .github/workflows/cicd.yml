@@ -132,7 +132,7 @@ jobs:
 
   test:
     name: Run Tests
-    needs: [validate-secrets]
+    needs: [validate-secrets, lint]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -171,11 +171,12 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
-        with:
-          version: v2.1.6
-          args: --timeout=5m
+      - name: Install dependencies
+        run: |
+          go mod download
+      - name: Run make lint
+        run: |
+          make lint
 
   build:
     name: Build Application
@@ -566,7 +567,7 @@ jobs:
     name: Send Notification
     needs: [deploy]
     runs-on: ubuntu-latest
-    if: always()
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Log deployment status
         run: |

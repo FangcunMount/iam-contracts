@@ -1,160 +1,107 @@
-package child
+package child_test
 
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
+	child "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
-
-type stubChildRepository struct {
-	child      *Child
-	findErr    error
-	findCalls  int
-	updateArgs []*Child
-}
-
-func (s *stubChildRepository) Create(context.Context, *Child) error { return nil }
-func (s *stubChildRepository) FindByID(ctx context.Context, id meta.ID) (*Child, error) {
-	s.findCalls++
-	if s.findErr != nil {
-		return nil, s.findErr
-	}
-	if s.child == nil {
-		return nil, fmt.Errorf("child %d not found", id.Uint64())
-	}
-	return s.child, nil
-}
-func (s *stubChildRepository) FindByName(context.Context, string) (*Child, error) {
-	return nil, s.findErr
-}
-func (s *stubChildRepository) FindByIDCard(context.Context, meta.IDCard) (*Child, error) {
-	return nil, s.findErr
-}
-func (s *stubChildRepository) FindListByName(context.Context, string) ([]*Child, error) {
-	return nil, s.findErr
-}
-func (s *stubChildRepository) FindListByNameAndBirthday(context.Context, string, meta.Birthday) ([]*Child, error) {
-	return nil, s.findErr
-}
-func (s *stubChildRepository) FindSimilar(context.Context, string, meta.Gender, meta.Birthday) ([]*Child, error) {
-	return nil, s.findErr
-}
-func (s *stubChildRepository) Update(ctx context.Context, child *Child) error {
-	s.updateArgs = append(s.updateArgs, child)
-	return s.findErr
-}
-
-type stubChildValidator struct {
-	renameErr        error
-	updateProfileErr error
-}
-
-func (s *stubChildValidator) ValidateRegister(context.Context, string, meta.Gender, meta.Birthday) error {
-	return nil
-}
-func (s *stubChildValidator) ValidateRename(string) error {
-	return s.renameErr
-}
-func (s *stubChildValidator) ValidateUpdateProfile(meta.Gender, meta.Birthday) error {
-	return s.updateProfileErr
-}
 
 func TestChildProfileEditor_RenameSuccess(t *testing.T) {
 	id := meta.FromUint64(1)
-	child := &Child{ID: id, Name: "Old"}
-	repo := &stubChildRepository{child: child}
-	editor := NewProfileService(repo, &stubChildValidator{})
+	ch := &child.Child{ID: id, Name: "Old"}
+	repo := &testhelpers.ChildRepoStub{Child: ch}
+	editor := child.NewProfileService(repo, &testhelpers.ChildValidatorStub{})
 
-	updated, err := editor.Rename(context.Background(), child.ID, "NewName")
+	updated, err := editor.Rename(context.Background(), ch.ID, "NewName")
 
 	require.NoError(t, err)
-	assert.Equal(t, "NewName", child.Name)
-	assert.Same(t, child, updated)
-	assert.Equal(t, 1, repo.findCalls)
+	assert.Equal(t, "NewName", ch.Name)
+	assert.Same(t, ch, updated)
+	assert.Equal(t, 1, repo.FindCalls)
 }
 
 func TestChildProfileEditor_RenameValidatorError(t *testing.T) {
 	id := meta.FromUint64(1)
-	repo := &stubChildRepository{child: &Child{ID: id, Name: "Old"}}
-	editor := NewProfileService(repo, &stubChildValidator{renameErr: errors.New("invalid name")})
+	repo := &testhelpers.ChildRepoStub{Child: &child.Child{ID: id, Name: "Old"}}
+	editor := child.NewProfileService(repo, &testhelpers.ChildValidatorStub{RenameErr: errors.New("invalid name")})
 
-	updated, err := editor.Rename(context.Background(), repo.child.ID, "bad")
+	updated, err := editor.Rename(context.Background(), repo.Child.ID, "bad")
 
 	require.Error(t, err)
 	assert.Nil(t, updated)
-	assert.Equal(t, 0, repo.findCalls, "repository should not be called when validation fails")
+	assert.Equal(t, 0, repo.FindCalls, "repository should not be called when validation fails")
 }
 
 func TestChildProfileEditor_RenameRepoError(t *testing.T) {
-	repo := &stubChildRepository{child: &Child{ID: meta.FromUint64(1)}, findErr: errors.New("db error")}
-	editor := NewProfileService(repo, &stubChildValidator{})
+	repo := &testhelpers.ChildRepoStub{Child: &child.Child{ID: meta.FromUint64(1)}, FindErr: errors.New("db error")}
+	editor := child.NewProfileService(repo, &testhelpers.ChildValidatorStub{})
 
-	updated, err := editor.Rename(context.Background(), repo.child.ID, "Name")
+	updated, err := editor.Rename(context.Background(), repo.Child.ID, "Name")
 
 	require.Error(t, err)
 	assert.Nil(t, updated)
-	assert.Equal(t, 1, repo.findCalls)
+	assert.Equal(t, 1, repo.FindCalls)
 }
 
 func TestChildProfileEditor_UpdateProfileSuccess(t *testing.T) {
-	child := &Child{ID: meta.FromUint64(2)}
-	repo := &stubChildRepository{child: child}
-	editor := NewProfileService(repo, &stubChildValidator{})
+	ch := &child.Child{ID: meta.FromUint64(2)}
+	repo := &testhelpers.ChildRepoStub{Child: ch}
+	editor := child.NewProfileService(repo, &testhelpers.ChildValidatorStub{})
 
 	birthday := meta.NewBirthday("2020-05-06")
-	updated, err := editor.UpdateProfile(context.Background(), child.ID, meta.GenderFemale, birthday)
+	updated, err := editor.UpdateProfile(context.Background(), ch.ID, meta.GenderFemale, birthday)
 
 	require.NoError(t, err)
-	assert.Same(t, child, updated)
-	assert.Equal(t, meta.GenderFemale, child.Gender)
-	assert.True(t, child.Birthday.Equal(birthday))
+	assert.Same(t, ch, updated)
+	assert.Equal(t, meta.GenderFemale, ch.Gender)
+	assert.True(t, ch.Birthday.Equal(birthday))
 }
 
 func TestChildProfileEditor_UpdateProfileValidatorError(t *testing.T) {
-	repo := &stubChildRepository{child: &Child{ID: meta.FromUint64(3)}}
-	editor := NewProfileService(repo, &stubChildValidator{updateProfileErr: errors.New("bad birthday")})
+	repo := &testhelpers.ChildRepoStub{Child: &child.Child{ID: meta.FromUint64(3)}}
+	editor := child.NewProfileService(repo, &testhelpers.ChildValidatorStub{UpdateProfileErr: errors.New("bad birthday")})
 
-	updated, err := editor.UpdateProfile(context.Background(), repo.child.ID, meta.GenderMale, meta.Birthday{})
+	updated, err := editor.UpdateProfile(context.Background(), repo.Child.ID, meta.GenderMale, meta.Birthday{})
 
 	require.Error(t, err)
 	assert.Nil(t, updated)
-	assert.Equal(t, 0, repo.findCalls)
+	assert.Equal(t, 0, repo.FindCalls)
 }
 
 func TestChildProfileEditor_UpdateHeightWeight(t *testing.T) {
-	child := &Child{ID: meta.FromUint64(4)}
-	repo := &stubChildRepository{child: child}
-	editor := NewProfileService(repo, &stubChildValidator{})
+	ch := &child.Child{ID: meta.FromUint64(4)}
+	repo := &testhelpers.ChildRepoStub{Child: ch}
+	editor := child.NewProfileService(repo, &testhelpers.ChildValidatorStub{})
 
 	height, err := meta.NewHeightFromFloat(150.4)
 	require.NoError(t, err)
 	weight, err := meta.NewWeightFromFloat(45.1)
 	require.NoError(t, err)
 
-	updated, err := editor.UpdateHeightWeight(context.Background(), child.ID, height, weight)
+	updated, err := editor.UpdateHeightWeight(context.Background(), ch.ID, height, weight)
 
 	require.NoError(t, err)
-	assert.Same(t, child, updated)
-	assert.Equal(t, height.Tenths(), child.Height.Tenths())
-	assert.Equal(t, weight.Tenths(), child.Weight.Tenths())
+	assert.Same(t, ch, updated)
+	assert.Equal(t, height.Tenths(), ch.Height.Tenths())
+	assert.Equal(t, weight.Tenths(), ch.Weight.Tenths())
 }
 
 func TestChildProfileEditor_UpdateIDCard(t *testing.T) {
-	child := &Child{ID: meta.FromUint64(5)}
-	repo := &stubChildRepository{child: child}
-	editor := NewProfileService(repo, &stubChildValidator{})
+	ch := &child.Child{ID: meta.FromUint64(5)}
+	repo := &testhelpers.ChildRepoStub{Child: ch}
+	editor := child.NewProfileService(repo, &testhelpers.ChildValidatorStub{})
 
 	idCard, err := meta.NewIDCard("tester", "110101199003070011")
 	require.NoError(t, err)
-	updated, err := editor.UpdateIDCard(context.Background(), child.ID, idCard)
+	updated, err := editor.UpdateIDCard(context.Background(), ch.ID, idCard)
 
 	require.NoError(t, err)
-	assert.Same(t, child, updated)
-	assert.True(t, child.IDCard.Equal(idCard))
+	assert.Same(t, ch, updated)
+	assert.True(t, ch.IDCard.Equal(idCard))
 }

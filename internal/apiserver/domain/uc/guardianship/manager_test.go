@@ -11,86 +11,21 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	childdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	userdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
-type stubGuardianshipRepo struct {
-	childrenResults map[uint64][]*Guardianship
-	findErr         error
-	findCalls       int
-}
+// package-local guardianship test helpers have been moved to
+// guardianship_test_helpers.go to keep test file focused on behavior.
 
-func (s *stubGuardianshipRepo) Create(context.Context, *Guardianship) error { return nil }
-func (s *stubGuardianshipRepo) FindByID(context.Context, idutil.ID) (*Guardianship, error) {
-	return nil, nil
-}
-func (s *stubGuardianshipRepo) FindByChildID(ctx context.Context, id meta.ID) ([]*Guardianship, error) {
-	s.findCalls++
-	if s.findErr != nil {
-		return nil, s.findErr
-	}
-	if s.childrenResults == nil {
-		return nil, nil
-	}
-	return s.childrenResults[id.Uint64()], nil
-}
-func (s *stubGuardianshipRepo) FindByUserID(context.Context, meta.ID) ([]*Guardianship, error) {
-	return nil, nil
-}
-func (s *stubGuardianshipRepo) FindByUserIDAndChildID(context.Context, meta.ID, meta.ID) (*Guardianship, error) {
-	return nil, nil
-}
-func (s *stubGuardianshipRepo) IsGuardian(context.Context, meta.ID, meta.ID) (bool, error) {
-	return false, nil
-}
-func (s *stubGuardianshipRepo) Update(context.Context, *Guardianship) error { return nil }
-
-type stubChildDomainRepo struct {
-	child *childdomain.Child
-	err   error
-}
-
-func (s *stubChildDomainRepo) Create(context.Context, *childdomain.Child) error { return nil }
-func (s *stubChildDomainRepo) FindByID(context.Context, meta.ID) (*childdomain.Child, error) {
-	return s.child, s.err
-}
-func (s *stubChildDomainRepo) FindByName(context.Context, string) (*childdomain.Child, error) {
-	return nil, nil
-}
-func (s *stubChildDomainRepo) FindByIDCard(context.Context, meta.IDCard) (*childdomain.Child, error) {
-	return nil, nil
-}
-func (s *stubChildDomainRepo) FindListByName(context.Context, string) ([]*childdomain.Child, error) {
-	return nil, nil
-}
-func (s *stubChildDomainRepo) FindListByNameAndBirthday(context.Context, string, meta.Birthday) ([]*childdomain.Child, error) {
-	return nil, nil
-}
-func (s *stubChildDomainRepo) FindSimilar(context.Context, string, meta.Gender, meta.Birthday) ([]*childdomain.Child, error) {
-	return nil, nil
-}
-func (s *stubChildDomainRepo) Update(context.Context, *childdomain.Child) error { return nil }
-
-type stubUserDomainRepo struct {
-	user *userdomain.User
-	err  error
-}
-
-func (s *stubUserDomainRepo) Create(context.Context, *userdomain.User) error { return nil }
-func (s *stubUserDomainRepo) FindByID(context.Context, meta.ID) (*userdomain.User, error) {
-	return s.user, s.err
-}
-func (s *stubUserDomainRepo) FindByPhone(context.Context, meta.Phone) (*userdomain.User, error) {
-	return nil, nil
-}
-func (s *stubUserDomainRepo) Update(context.Context, *userdomain.User) error { return nil }
+// child and user repo stubs replaced by shared testhelpers stubs
 
 func TestGuardianshipManager_AddGuardianSuccess(t *testing.T) {
-	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.FromUint64(1)}}
-	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.FromUint64(2)}}
+	childRepo := &testhelpers.ChildRepoStub{Child: &childdomain.Child{ID: meta.FromUint64(1)}}
+	userRepo := testhelpers.NewUserRepoStub()
+	userRepo.UsersByID[meta.FromUint64(2).Uint64()] = &userdomain.User{ID: meta.FromUint64(2)}
 	guardRepo := &stubGuardianshipRepo{childrenResults: make(map[uint64][]*Guardianship)}
 
 	manager := NewManagerService(guardRepo, childRepo, userRepo)
@@ -106,8 +41,9 @@ func TestGuardianshipManager_AddGuardianSuccess(t *testing.T) {
 }
 
 func TestGuardianshipManager_AddGuardian_Duplicate(t *testing.T) {
-	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.FromUint64(1)}}
-	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.FromUint64(2)}}
+	childRepo := &testhelpers.ChildRepoStub{Child: &childdomain.Child{ID: meta.FromUint64(1)}}
+	userRepo := testhelpers.NewUserRepoStub()
+	userRepo.UsersByID[meta.FromUint64(2).Uint64()] = &userdomain.User{ID: meta.FromUint64(2)}
 	existing := &Guardianship{User: meta.FromUint64(2), Child: meta.FromUint64(1)}
 	guardRepo := &stubGuardianshipRepo{
 		childrenResults: map[uint64][]*Guardianship{
@@ -125,8 +61,9 @@ func TestGuardianshipManager_AddGuardian_Duplicate(t *testing.T) {
 }
 
 func TestGuardianshipManager_AddGuardian_ChildNotFound(t *testing.T) {
-	childRepo := &stubChildDomainRepo{child: nil}
-	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.FromUint64(2)}}
+	childRepo := &testhelpers.ChildRepoStub{Child: nil}
+	userRepo := testhelpers.NewUserRepoStub()
+	userRepo.UsersByID[meta.FromUint64(2).Uint64()] = &userdomain.User{ID: meta.FromUint64(2)}
 	guardRepo := &stubGuardianshipRepo{}
 
 	manager := NewManagerService(guardRepo, childRepo, userRepo)
@@ -139,8 +76,9 @@ func TestGuardianshipManager_AddGuardian_ChildNotFound(t *testing.T) {
 }
 
 func TestGuardianshipManager_AddGuardian_UserRepoError(t *testing.T) {
-	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.FromUint64(1)}}
-	userRepo := &stubUserDomainRepo{err: errors.New("db error")}
+	childRepo := &testhelpers.ChildRepoStub{Child: &childdomain.Child{ID: meta.FromUint64(1)}}
+	userRepo := testhelpers.NewUserRepoStub()
+	userRepo.FindErr = errors.New("db error")
 	guardRepo := &stubGuardianshipRepo{}
 
 	manager := NewManagerService(guardRepo, childRepo, userRepo)
@@ -153,8 +91,9 @@ func TestGuardianshipManager_AddGuardian_UserRepoError(t *testing.T) {
 }
 
 func TestGuardianshipManager_AddGuardian_FindByChildError(t *testing.T) {
-	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.FromUint64(1)}}
-	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.FromUint64(2)}}
+	childRepo := &testhelpers.ChildRepoStub{Child: &childdomain.Child{ID: meta.FromUint64(1)}}
+	userRepo := testhelpers.NewUserRepoStub()
+	userRepo.UsersByID[meta.FromUint64(2).Uint64()] = &userdomain.User{ID: meta.FromUint64(2)}
 	guardRepo := &stubGuardianshipRepo{findErr: errors.New("db error")}
 
 	manager := NewManagerService(guardRepo, childRepo, userRepo)
@@ -173,7 +112,7 @@ func TestGuardianshipManager_RemoveGuardianSuccess(t *testing.T) {
 			1: {target},
 		},
 	}
-	manager := NewManagerService(guardRepo, &stubChildDomainRepo{}, &stubUserDomainRepo{})
+	manager := NewManagerService(guardRepo, &testhelpers.ChildRepoStub{}, testhelpers.NewUserRepoStub())
 
 	removed, err := manager.RemoveGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1))
 
@@ -189,7 +128,7 @@ func TestGuardianshipManager_RemoveGuardian_NotFound(t *testing.T) {
 			1: {},
 		},
 	}
-	manager := NewManagerService(guardRepo, &stubChildDomainRepo{}, &stubUserDomainRepo{})
+	manager := NewManagerService(guardRepo, &testhelpers.ChildRepoStub{}, testhelpers.NewUserRepoStub())
 
 	removed, err := manager.RemoveGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1))
 
@@ -199,8 +138,9 @@ func TestGuardianshipManager_RemoveGuardian_NotFound(t *testing.T) {
 }
 
 func TestGuardianshipManager_AddGuardian_ChildRepoError(t *testing.T) {
-	childRepo := &stubChildDomainRepo{err: errors.New("db error")}
-	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.FromUint64(2)}}
+	childRepo := &testhelpers.ChildRepoStub{FindErr: errors.New("db error")}
+	userRepo := testhelpers.NewUserRepoStub()
+	userRepo.UsersByID[meta.FromUint64(2).Uint64()] = &userdomain.User{ID: meta.FromUint64(2)}
 	guardRepo := &stubGuardianshipRepo{}
 
 	manager := NewManagerService(guardRepo, childRepo, userRepo)
@@ -213,8 +153,10 @@ func TestGuardianshipManager_AddGuardian_ChildRepoError(t *testing.T) {
 }
 
 func TestGuardianshipManager_AddGuardian_UserNotFound(t *testing.T) {
-	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.FromUint64(1)}}
-	userRepo := &stubUserDomainRepo{user: nil}
+	childRepo := &testhelpers.ChildRepoStub{Child: &childdomain.Child{ID: meta.FromUint64(1)}}
+	userRepo := testhelpers.NewUserRepoStub()
+	// ensure repo returns (nil, nil) for the id to simulate "user not found" without DB error
+	userRepo.UsersByID[meta.FromUint64(2).Uint64()] = nil
 	guardRepo := &stubGuardianshipRepo{}
 
 	manager := NewManagerService(guardRepo, childRepo, userRepo)
@@ -228,7 +170,7 @@ func TestGuardianshipManager_AddGuardian_UserNotFound(t *testing.T) {
 
 func TestGuardianshipManager_RemoveGuardian_FindError(t *testing.T) {
 	guardRepo := &stubGuardianshipRepo{findErr: errors.New("db error")}
-	manager := NewManagerService(guardRepo, &stubChildDomainRepo{}, &stubUserDomainRepo{})
+	manager := NewManagerService(guardRepo, &testhelpers.ChildRepoStub{}, testhelpers.NewUserRepoStub())
 
 	removed, err := manager.RemoveGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1))
 
@@ -237,37 +179,11 @@ func TestGuardianshipManager_RemoveGuardian_FindError(t *testing.T) {
 	assert.Contains(t, fmt.Sprintf("%-v", err), "find guardians failed")
 }
 
-// seqGuardRepo 提供按调用序列返回不同结果的 FindByChildID，帮助并发测试
-type seqGuardRepo struct {
-	mu        sync.Mutex
-	calls     int
-	responses [][]*Guardianship
-}
-
-func (s *seqGuardRepo) Create(context.Context, *Guardianship) error                { return nil }
-func (s *seqGuardRepo) FindByID(context.Context, idutil.ID) (*Guardianship, error) { return nil, nil }
-func (s *seqGuardRepo) FindByChildID(ctx context.Context, id meta.ID) ([]*Guardianship, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.calls < len(s.responses) {
-		res := s.responses[s.calls]
-		s.calls++
-		return res, nil
-	}
-	return s.responses[len(s.responses)-1], nil
-}
-func (s *seqGuardRepo) FindByUserID(context.Context, meta.ID) ([]*Guardianship, error) {
-	return nil, nil
-}
-func (s *seqGuardRepo) FindByUserIDAndChildID(context.Context, meta.ID, meta.ID) (*Guardianship, error) {
-	return nil, nil
-}
-func (s *seqGuardRepo) IsGuardian(context.Context, meta.ID, meta.ID) (bool, error) { return false, nil }
-func (s *seqGuardRepo) Update(context.Context, *Guardianship) error                { return nil }
-
+// seqGuardRepo and helper functions have been moved to guardianship_test_helpers.go
 func TestGuardianshipManager_AddGuardian_ConcurrentDuplicateDetection(t *testing.T) {
-	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.FromUint64(1)}}
-	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.FromUint64(2)}}
+	childRepo := &testhelpers.ChildRepoStub{Child: &childdomain.Child{ID: meta.FromUint64(1)}}
+	userRepo := testhelpers.NewUserRepoStub()
+	userRepo.UsersByID[meta.FromUint64(2).Uint64()] = &userdomain.User{ID: meta.FromUint64(2)}
 
 	existing := &Guardianship{User: meta.FromUint64(2), Child: meta.FromUint64(1)}
 	seq := &seqGuardRepo{
@@ -320,17 +236,4 @@ func TestGuardianshipManager_AddGuardian_ConcurrentDuplicateDetection(t *testing
 	assert.GreaterOrEqual(t, duplicated, 1)
 }
 
-// contains 方便在断言中检查子串
-func contains(s, sub string) bool {
-	return len(sub) == 0 || (len(s) >= len(sub) && (indexOf(s, sub) >= 0))
-}
-
-// indexOf 是一个简单实现，避免引入 strings 包以保持测试文件与其余代码风格一致
-func indexOf(s, sub string) int {
-	for i := 0; i+len(sub) <= len(s); i++ {
-		if s[i:i+len(sub)] == sub {
-			return i
-		}
-	}
-	return -1
-}
+// helper functions moved to guardianship_test_helpers.go

@@ -9,19 +9,17 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	testutil "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/testutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
+	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 // 并发创建相同的 policy version（相同 tenant + version），期望只有 1 条记录被写入，
 // 其余并发请求因唯一约束被 translator 映射为业务错误 code.ErrPolicyVersionAlreadyExists。
 func TestPolicyVersionRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	require.NoError(t, err)
-
+	db := testutil.SetupTestDB(t)
 	require.NoError(t, db.AutoMigrate(&PolicyVersionPO{}))
 
 	repoIface := NewPolicyVersionRepository(db)
@@ -46,7 +44,7 @@ func TestPolicyVersionRepository_Create_ConcurrentDuplicateDetection(t *testing.
 			defer wg.Done()
 			time.Sleep(time.Millisecond * time.Duration(d))
 			pv := domain.NewPolicyVersion(tenant, version)
-			if err := repo.Create(ctx, &pv); err != nil {
+			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Create(ctx, &pv) }); err != nil {
 				errs <- err
 				return
 			}

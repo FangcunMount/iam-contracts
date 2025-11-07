@@ -1,4 +1,3 @@
-// Package assignment 赋权领域包
 package assignment
 
 import (
