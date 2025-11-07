@@ -12,6 +12,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
+	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 	gormmysql "gorm.io/driver/mysql"
@@ -69,7 +70,7 @@ func TestWechatAppRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 			defer wg.Done()
 			time.Sleep(time.Millisecond * time.Duration(d))
 			app := wechatapp.NewWechatApp(wechatapp.AppType("minip"), "app-dup", wechatapp.WithWechatAppName("concurrent"))
-			if err := repo.Create(ctx, app); err != nil {
+			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Create(ctx, app) }); err != nil {
 				errs <- err
 				return
 			}

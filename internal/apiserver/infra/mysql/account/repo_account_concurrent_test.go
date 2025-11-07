@@ -10,6 +10,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
+	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
@@ -43,7 +44,7 @@ func TestAccountRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 			time.Sleep(time.Millisecond * time.Duration(d))
 			userID := meta.FromUint64(1) // 测试用 ID，必定有效
 			acc := domain.NewAccount(userID, domain.TypeWcMinip, domain.ExternalID("ext-dup"), domain.WithAppID(domain.AppId("app-1")))
-			if err := repo.Create(ctx, acc); err != nil {
+			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Create(ctx, acc) }); err != nil {
 				errs <- err
 				return
 			}

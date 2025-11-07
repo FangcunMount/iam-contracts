@@ -5,6 +5,7 @@
 目标：将域层测试中重复出现的本地 stub 抽取到 `internal/apiserver/testhelpers`，并尽量把测试迁移为外部测试包（`package foo_test`），以便复用 stub 并避免导入循环。
 
 概览
+
 - 已迁移并使用共享 stub：
   - `internal/apiserver/domain/authz/assignment` — 测试改为外部包并使用 `testhelpers.AssignmentRepoStub`、`testhelpers.RoleRepoStub` 等。
   - `internal/apiserver/domain/uc/user` — 测试已改用 `testhelpers.NewUserRepoStub()` 等；旧的包内本地 helper 已删除。
@@ -16,6 +17,7 @@
     - 已做的改进：将这些包内专用 stub 及测试辅助函数抽取到 `internal/apiserver/domain/uc/guardianship/guardianship_test_helpers.go`（同包、非导出），以提高可读性并集中维护。
 
 变更验证
+
 - 我在本次迁移后运行了回归测试：
 
   ```bash
@@ -25,6 +27,7 @@
   结果：所有可测试的包均通过（cached/ok），没有发现回归。
 
 建议与下一步
+
 - 对于已保留包内 stub 的包（当前仅 guardianship）：保持其 helpers 文件并在注释中明确说明为何不能迁移到共享 `testhelpers`（并发序列化、顺序响应等）。
 - 若未来需要把这些复杂场景也统一管理，可以考虑为共享 stub 增加可配置的行为（例如可注入的响应序列），但这需要仔细设计以避免引入复杂性或耦合。
 - 如需，我可以：
@@ -33,20 +36,25 @@
   3. 将迁移策略写进项目文档（迁移准则、何时保留包内 stub）。
 
 记录（变更清单）
+
 - 新增： `internal/apiserver/domain/uc/guardianship/guardianship_test_helpers.go`（提取的包内 helpers）
 - 删除： `internal/apiserver/domain/uc/user/user_test_helpers_test.go`（已用共享 stubs 替代）
 - 修改： `internal/apiserver/domain/authz/assignment/validator_test.go`、`internal/apiserver/domain/authz/assignment/assignment_test.go`（改为外部测试并使用 `testhelpers`）
 
 如果需要更详细的变更 diff 或把改动包装为 PR，我可以继续执行。
+
 TESTHELPERS 迁移说明
+
 =====================
 
 概述
 ----
+
 为减少重复测试桩（stub）代码，我将多个包中使用的测试桩抽取到 `internal/apiserver/testhelpers`，并在测试中引用该共享包。但直接引用共享包会在某些情况下造成包间的导入循环（import cycle），以及 stub 的方法签名与领域接口不一致的问题。为保证仓库能编译并通过测试，我做了如下修复与迁移工作。
 
 已做变更（最小化修改集）
 -------------------------
+
 1. 修正 shared stub 的方法签名以匹配领域接口
    - 文件：`internal/apiserver/testhelpers/stubs.go`
    - 变更摘要：把 `RoleRepoStub.Delete` / `FindByID` 的 id 参数类型从 `idutil.ID` 改为领域层使用的 `meta.ID`，确保实现满足 `role.Repository` 接口。
@@ -57,25 +65,29 @@ TESTHELPERS 迁移说明
 
 为什么要这么改
 ----------------
+
 - 共享 stub 能减少重复并提高可维护性，但共享包不能和领域包互相导入（会出现 import cycle）。
 - 领域接口使用特定类型（例如 `meta.ID`），如果 stub 签名不匹配则会导致编译错误（stub 未实现接口）。
 - 使用外部测试包（`xxx_test`）是一种常见做法，既能以"黑盒"方式测试导出的 API，又能避免循环依赖。
 
 影响范围（文件列表）
 ---------------------
+
 - 新/改文件：
   - `internal/apiserver/testhelpers/stubs.go`（已修改）
   - `internal/apiserver/domain/authz/assignment/validator_test.go`（已修改）
 
 验证
 ----
+
 - 我在仓库根目录运行了 `go test ./...`，所有包能成功构建并运行测试（输出显示包为 ok / cached，没有新的失败）。
 
 后续建议
 --------
+
 1. 审查其它测试对 `internal/apiserver/testhelpers` 的引用（当前仓库仅发现 assignment 的测试需要修改）。如果将来你逐步把更多 stubs 迁移到 `testhelpers`，建议在变更前先检视：
    - 目标 stub 是否依赖领域包的内部类型或导出类型？（尽量只使用导出类型 meta.*）
-   - 是否会造成 import cycle？若会，优先把测试改为外部测试包 `pkgname_test` 或把 stub 保留在包内 `_test.go`。 
+   - 是否会造成 import cycle？若会，优先把测试改为外部测试包 `pkgname_test` 或把 stub 保留在包内 `_test.go`。
 
 2. 设计建议
    - 将 `testhelpers` 限制为只依赖 `internal/pkg` 之类的基础数据类型（例如 `meta`），不要直接 import 业务逻辑包。若某些 stub 必须依赖领域实体，考虑把该 stub 保留在对应领域包的 `_test.go` 中。
@@ -86,6 +98,7 @@ TESTHELPERS 迁移说明
 
 我能为你做的后续工作
 ----------------------
+
 - 如果你同意，我可以：
   1. 扫描并列出所有可能受影响的测试文件（已完成，当前仅 assignment 一处）;
   2. 把上述建议写入仓库文档（例如补充到 `README.md` 或新增 `TESTHELPERS_MIGRATION.md` — 已创建本文件）；
@@ -93,4 +106,5 @@ TESTHELPERS 迁移说明
 
 结语
 ----
+
 已完成最小修复以恢复构建与测试绿灯。若你希望我继续把共享 stub 的责任边界做成更严格的规范（或把 stubs 迁移回每个包以减少耦合），请告诉我优先级，我会继续推进并在每一步运行测试验证。

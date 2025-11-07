@@ -10,6 +10,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
+	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
@@ -46,7 +47,7 @@ func TestPolicyVersionRepository_Create_ConcurrentDuplicateDetection(t *testing.
 			defer wg.Done()
 			time.Sleep(time.Millisecond * time.Duration(d))
 			pv := domain.NewPolicyVersion(tenant, version)
-			if err := repo.Create(ctx, &pv); err != nil {
+			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Create(ctx, &pv) }); err != nil {
 				errs <- err
 				return
 			}

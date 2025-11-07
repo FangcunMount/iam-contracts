@@ -10,6 +10,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
+	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
@@ -41,7 +42,7 @@ func TestRoleRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 			// add tiny random delay to reduce SQLITE table-lock contention
 			time.Sleep(time.Millisecond * time.Duration(d))
 			r := domain.NewRole("role-dup", "Role Dup", "tenant-1")
-			if err := repo.Create(ctx, &r); err != nil {
+			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Create(ctx, &r) }); err != nil {
 				errs <- err
 				return
 			}

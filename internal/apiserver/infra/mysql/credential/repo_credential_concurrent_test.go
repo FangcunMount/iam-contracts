@@ -10,6 +10,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/credential"
+	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	m "github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
@@ -44,7 +45,7 @@ func TestCredentialRepository_Create_ConcurrentDuplicateDetection(t *testing.T) 
 			time.Sleep(time.Millisecond * time.Duration(d))
 			accountID := m.FromUint64(1) // 测试用 ID，必定有效
 			cred := domain.NewPhoneOTPCredential(accountID, "+8613800000000")
-			if err := repo.Create(ctx, cred); err != nil {
+			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Create(ctx, cred) }); err != nil {
 				errs <- err
 				return
 			}

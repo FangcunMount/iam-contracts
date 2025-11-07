@@ -10,6 +10,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
+	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	m "github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
@@ -56,7 +57,7 @@ func TestUserRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 				errs <- err
 				return
 			}
-			if err := repo.Create(ctx, u); err != nil {
+			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Create(ctx, u) }); err != nil {
 				errs <- err
 				return
 			}

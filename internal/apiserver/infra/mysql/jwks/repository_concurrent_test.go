@@ -9,6 +9,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	d "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
+	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
@@ -41,7 +42,7 @@ func TestKeyRepository_Save_ConcurrentDuplicateDetection(t *testing.T) {
 			n := "n"
 			e := "AQAB"
 			key := d.NewKey("dup-kid", d.PublicJWK{Kty: "RSA", Use: "sig", Alg: "RS256", Kid: "dup-kid", N: &n, E: &e}, d.WithStatus(d.KeyActive))
-			if err := repo.Save(ctx, key); err != nil {
+			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Save(ctx, key) }); err != nil {
 				errs <- err
 				return
 			}
