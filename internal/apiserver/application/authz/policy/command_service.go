@@ -41,7 +41,7 @@ func (s *PolicyCommandService) AddPolicyRule(
 	cmd policyDomain.AddPolicyRuleCommand,
 ) error {
 	// 1. 获取角色和资源信息
-	role, err := s.roleRepo.FindByID(ctx, meta.NewID(cmd.RoleID))
+	role, err := s.roleRepo.FindByID(ctx, meta.FromUint64(cmd.RoleID))
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func (s *PolicyCommandService) RemovePolicyRule(
 	cmd policyDomain.RemovePolicyRuleCommand,
 ) error {
 	// 1. 获取角色和资源信息
-	role, err := s.roleRepo.FindByID(ctx, meta.NewID(cmd.RoleID))
+	role, err := s.roleRepo.FindByID(ctx, meta.FromUint64(cmd.RoleID))
 	if err != nil {
 		return err
 	}

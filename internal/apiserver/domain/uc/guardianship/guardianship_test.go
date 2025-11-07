@@ -11,18 +11,18 @@ import (
 )
 
 func TestGuardianship_IsActive_NoRevoked(t *testing.T) {
-	g := &Guardianship{ID: meta.NewID(1)}
+	g := &Guardianship{ID: meta.FromUint64(1)}
 	assert.True(t, g.IsActive())
 }
 
 func TestGuardianship_IsActive_WithRevoked(t *testing.T) {
 	now := time.Now()
-	g := &Guardianship{ID: meta.NewID(1), RevokedAt: &now}
+	g := &Guardianship{ID: meta.FromUint64(1), RevokedAt: &now}
 	assert.False(t, g.IsActive())
 }
 
 func TestGuardianship_Revoke_SetsRevokedAt(t *testing.T) {
-	g := &Guardianship{ID: meta.NewID(1)}
+	g := &Guardianship{ID: meta.FromUint64(1)}
 	tNow := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
 	g.Revoke(tNow)
 

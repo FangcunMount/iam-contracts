@@ -35,7 +35,10 @@ func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserD
 		validator := user.NewValidator(tx.Users)
 
 		// 转换 DTO 为值对象
-		phone := meta.NewPhone(dto.Phone)
+		phone, err := meta.NewPhone(dto.Phone)
+		if err != nil {
+			return err
+		}
 
 		// 验证注册参数
 		if err := validator.ValidateRegister(ctx, dto.Name, phone); err != nil {
@@ -50,7 +53,10 @@ func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserD
 
 		// 设置可选的邮箱
 		if dto.Email != "" {
-			email := meta.NewEmail(dto.Email)
+			email, err := meta.NewEmail(dto.Email)
+			if err != nil {
+				return err
+			}
 			newUser.UpdateEmail(email)
 		}
 
@@ -119,8 +125,14 @@ func (s *userProfileApplicationService) UpdateContact(ctx context.Context, dto U
 		}
 
 		// 转换值对象
-		phone := meta.NewPhone(dto.Phone)
-		email := meta.NewEmail(dto.Email)
+		phone, err := meta.NewPhone(dto.Phone)
+		if err != nil {
+			return err
+		}
+		email, err := meta.NewEmail(dto.Email)
+		if err != nil {
+			return err
+		}
 
 		// 调用领域服务更新联系方式
 		modifiedUser, err := profileEditor.UpdateContact(ctx, id, phone, email)
@@ -147,7 +159,10 @@ func (s *userProfileApplicationService) UpdateIDCard(ctx context.Context, userID
 		}
 
 		// 转换身份证 (NewIDCard 需要name和number两个参数，这里我们只传number，name留空)
-		idCardVO := meta.NewIDCard("", idCard)
+		idCardVO, err := meta.NewIDCard("", idCard)
+		if err != nil {
+			return err
+		}
 
 		// 调用领域服务更新身份证
 		modifiedUser, err := profileEditor.UpdateIDCard(ctx, id, idCardVO)
@@ -287,7 +302,10 @@ func (s *userQueryApplicationService) GetByPhone(ctx context.Context, phone stri
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 
-		phoneObj := meta.NewPhone(phone)
+		phoneObj, err := meta.NewPhone(phone)
+		if err != nil {
+			return err
+		}
 
 		user, err := tx.Users.FindByPhone(ctx, phoneObj)
 		if err != nil {
@@ -309,9 +327,9 @@ func parseUserID(userID string) (meta.ID, error) {
 	var id uint64
 	_, err := fmt.Sscanf(userID, "%d", &id)
 	if err != nil {
-		return meta.ID{}, err
+		return meta.FromUint64(0), err
 	}
-	return meta.NewID(id), nil
+	return meta.FromUint64(id), nil
 }
 
 // toUserResult 将领域实体转换为 DTO

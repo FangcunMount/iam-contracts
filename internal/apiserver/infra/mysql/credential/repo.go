@@ -47,7 +47,7 @@ func (r *Repository) Create(ctx context.Context, cred *domain.Credential) error 
 func (r *Repository) UpdateMaterial(ctx context.Context, id meta.ID, material []byte, algo string) error {
 	result := r.db.WithContext(ctx).
 		Model(&PO{}).
-		Where("id = ?", id.ToUint64()).
+		Where("id = ?", id.Uint64()).
 		Updates(map[string]interface{}{
 			"material": material,
 			"algo":     algo,
@@ -66,7 +66,7 @@ func (r *Repository) UpdateMaterial(ctx context.Context, id meta.ID, material []
 func (r *Repository) UpdateStatus(ctx context.Context, id meta.ID, status domain.CredentialStatus) error {
 	result := r.db.WithContext(ctx).
 		Model(&PO{}).
-		Where("id = ?", id.ToUint64()).
+		Where("id = ?", id.Uint64()).
 		Update("status", int8(status))
 
 	if result.Error != nil {
@@ -82,7 +82,7 @@ func (r *Repository) UpdateStatus(ctx context.Context, id meta.ID, status domain
 func (r *Repository) UpdateFailedAttempts(ctx context.Context, id meta.ID, attempts int) error {
 	result := r.db.WithContext(ctx).
 		Model(&PO{}).
-		Where("id = ?", id.ToUint64()).
+		Where("id = ?", id.Uint64()).
 		Update("failed_attempts", attempts)
 
 	if result.Error != nil {
@@ -98,7 +98,7 @@ func (r *Repository) UpdateFailedAttempts(ctx context.Context, id meta.ID, attem
 func (r *Repository) UpdateLockedUntil(ctx context.Context, id meta.ID, lockedUntil *time.Time) error {
 	result := r.db.WithContext(ctx).
 		Model(&PO{}).
-		Where("id = ?", id.ToUint64()).
+		Where("id = ?", id.Uint64()).
 		Update("locked_until", lockedUntil)
 
 	if result.Error != nil {
@@ -114,7 +114,7 @@ func (r *Repository) UpdateLockedUntil(ctx context.Context, id meta.ID, lockedUn
 func (r *Repository) UpdateLastSuccessAt(ctx context.Context, id meta.ID, lastSuccessAt time.Time) error {
 	result := r.db.WithContext(ctx).
 		Model(&PO{}).
-		Where("id = ?", id.ToUint64()).
+		Where("id = ?", id.Uint64()).
 		Update("last_success_at", lastSuccessAt)
 
 	if result.Error != nil {
@@ -130,7 +130,7 @@ func (r *Repository) UpdateLastSuccessAt(ctx context.Context, id meta.ID, lastSu
 func (r *Repository) UpdateLastFailureAt(ctx context.Context, id meta.ID, lastFailureAt time.Time) error {
 	result := r.db.WithContext(ctx).
 		Model(&PO{}).
-		Where("id = ?", id.ToUint64()).
+		Where("id = ?", id.Uint64()).
 		Update("last_failure_at", lastFailureAt)
 
 	if result.Error != nil {
@@ -151,7 +151,7 @@ func (r *Repository) UpdateExpiresAt(ctx context.Context, id meta.ID, expiresAt 
 func (r *Repository) GetByID(ctx context.Context, id meta.ID) (*domain.Credential, error) {
 	var po PO
 	if err := r.db.WithContext(ctx).
-		Where("id = ?", id.ToUint64()).
+		Where("id = ?", id.Uint64()).
 		First(&po).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -165,7 +165,7 @@ func (r *Repository) GetByID(ctx context.Context, id meta.ID) (*domain.Credentia
 func (r *Repository) GetByAccountIDAndType(ctx context.Context, accountID meta.ID, credType domain.CredentialType) (*domain.Credential, error) {
 	var po PO
 	if err := r.db.WithContext(ctx).
-		Where("account_id = ? AND type = ?", accountID.ToUint64(), string(credType)).
+		Where("account_id = ? AND type = ?", accountID.Uint64(), string(credType)).
 		First(&po).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -193,7 +193,7 @@ func (r *Repository) GetPhoneOTP(ctx context.Context, accountID int64, phone str
 func (r *Repository) ListByAccountID(ctx context.Context, accountID meta.ID) ([]*domain.Credential, error) {
 	var pos []PO
 	if err := r.db.WithContext(ctx).
-		Where("account_id = ?", accountID.ToUint64()).
+		Where("account_id = ?", accountID.Uint64()).
 		Find(&pos).Error; err != nil {
 		return nil, fmt.Errorf("failed to list credentials by account: %w", err)
 	}
@@ -208,7 +208,7 @@ func (r *Repository) ListByAccountID(ctx context.Context, accountID meta.ID) ([]
 // Delete 删除指定ID的凭据（接口方法）。
 func (r *Repository) Delete(ctx context.Context, id meta.ID) error {
 	result := r.db.WithContext(ctx).
-		Where("id = ?", id.ToUint64()).
+		Where("id = ?", id.Uint64()).
 		Delete(&PO{})
 
 	if result.Error != nil {
@@ -243,9 +243,9 @@ func (r *Repository) FindPasswordCredential(ctx context.Context, accountID meta.
 		Where("account_id = ? AND type = ?", accountID, "password").
 		First(&po).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return meta.NewID(0), "", nil
+			return meta.ZeroID, "", nil
 		}
-		return meta.NewID(0), "", fmt.Errorf("failed to find password credential: %w", err)
+		return meta.ZeroID, "", fmt.Errorf("failed to find password credential: %w", err)
 	}
 	return po.ID, string(po.Material), nil
 }
@@ -269,12 +269,17 @@ func (r *Repository) FindPhoneOTPCredential(ctx context.Context, phoneE164 strin
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return meta.NewID(0), meta.NewID(0), meta.NewID(0), nil
+			zeroID := meta.FromUint64(0)
+			return zeroID, zeroID, zeroID, err
 		}
-		return meta.NewID(0), meta.NewID(0), meta.NewID(0), fmt.Errorf("failed to find phone OTP credential: %w", err)
+		zeroID := meta.FromUint64(0)
+		return zeroID, zeroID, zeroID, fmt.Errorf("failed to find phone OTP credential: %w", err)
 	}
 
-	return meta.NewID(result.AccountID), meta.NewID(result.UserID), meta.NewID(result.CredentialID), nil
+	accID := meta.FromUint64(result.AccountID)
+	usrID := meta.FromUint64(result.UserID)
+	credID := meta.FromUint64(result.CredentialID)
+	return accID, usrID, credID, nil
 }
 
 // FindOAuthCredential 根据身份提供商标识查找OAuth凭据绑定
@@ -303,10 +308,15 @@ func (r *Repository) FindOAuthCredential(ctx context.Context, idpType, appID, id
 	err = query.First(&result).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return meta.NewID(0), meta.NewID(0), meta.NewID(0), nil
+			zeroID := meta.FromUint64(0)
+			return zeroID, zeroID, zeroID, nil
 		}
-		return meta.NewID(0), meta.NewID(0), meta.NewID(0), fmt.Errorf("failed to find OAuth credential: %w", err)
+		zeroID := meta.FromUint64(0)
+		return zeroID, zeroID, zeroID, fmt.Errorf("failed to find OAuth credential: %w", err)
 	}
 
-	return meta.NewID(result.AccountID), meta.NewID(result.UserID), meta.NewID(result.CredentialID), nil
+	accID := meta.FromUint64(result.AccountID)
+	usrID := meta.FromUint64(result.UserID)
+	credID := meta.FromUint64(result.CredentialID)
+	return accID, usrID, credID, nil
 }

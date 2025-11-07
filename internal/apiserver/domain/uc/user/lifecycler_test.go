@@ -13,9 +13,12 @@ import (
 
 func TestLifecycler_StatusTransitions(t *testing.T) {
 	repo := newStubUserRepository()
-	userEntity, _ := NewUser("user", meta.NewPhone("10086"))
-	userEntity.ID = meta.NewID(10)
-	repo.usersByID[userEntity.ID.ToUint64()] = userEntity
+	phone, err := meta.NewPhone("+8613012345678")
+	require.NoError(t, err)
+
+	userEntity, _ := NewUser("user", phone)
+	userEntity.ID = meta.FromUint64(10)
+	repo.usersByID[userEntity.ID.Uint64()] = userEntity
 
 	lifecycle := NewLifecycler(repo)
 
@@ -37,7 +40,7 @@ func TestLifecycler_RepoError(t *testing.T) {
 	repo.findErr = errors.New("db error")
 	lifecycle := NewLifecycler(repo)
 
-	activated, err := lifecycle.Activate(context.Background(), meta.NewID(1))
+	activated, err := lifecycle.Activate(context.Background(), meta.FromUint64(1))
 	require.Error(t, err)
 	assert.Nil(t, activated)
 }

@@ -2,7 +2,6 @@ package user
 
 import (
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
-	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // UserMapper 用户映射器
@@ -22,9 +21,9 @@ func (m *UserMapper) ToPO(uBO *domain.User) *UserPO {
 
 	po := &UserPO{
 		Name:   uBO.Name,
-		Phone:  uBO.Phone.String(),
-		Email:  uBO.Email.String(),
-		IDCard: uBO.IDCard.String(),
+		Phone:  uBO.Phone,
+		Email:  uBO.Email,
+		IDCard: uBO.IDCard,
 		Status: uBO.Status.Value(),
 	}
 
@@ -42,10 +41,10 @@ func (m *UserMapper) ToBO(po *UserPO) *domain.User {
 
 	uBO, err := domain.NewUser(
 		po.Name,
-		meta.NewPhone(po.Phone),
+		po.Phone,
 		domain.WithID(po.ID),
-		domain.WithEmail(meta.NewEmail(po.Email)),
-		domain.WithIDCard(meta.NewIDCard(po.Name, po.IDCard)),
+		domain.WithEmail(po.Email),
+		domain.WithIDCard(po.IDCard),
 		domain.WithStatus(domain.UserStatus(po.Status)),
 	)
 	if err != nil {

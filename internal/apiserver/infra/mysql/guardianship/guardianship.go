@@ -26,27 +26,28 @@ func (GuardianshipPO) TableName() string {
 }
 
 // BeforeCreate 在创建前设置信息
-func (p *GuardianshipPO) BeforeCreate(tx *gorm.DB) error {
-	p.ID = meta.NewID(idutil.GetIntID())
+func (g *GuardianshipPO) BeforeCreate(tx *gorm.DB) error {
+	id := meta.FromUint64(idutil.GetIntID()) // 新生成的 ID 必定有效
 	now := time.Now()
-	p.CreatedAt = now
-	p.UpdatedAt = now
-	p.CreatedBy = meta.NewID(0)
-	p.UpdatedBy = meta.NewID(0)
-	p.DeletedBy = meta.NewID(0)
-	p.Version = base.InitialVersion
-
-	if p.EstablishedAt.IsZero() {
-		p.EstablishedAt = now
-	}
+	createdBy := meta.FromUint64(0)
+	updatedBy := meta.FromUint64(0)
+	deletedBy := meta.FromUint64(0)
+	g.ID = id
+	g.CreatedAt = now
+	g.UpdatedAt = now
+	g.CreatedBy = createdBy
+	g.UpdatedBy = updatedBy
+	g.DeletedBy = deletedBy
 
 	return nil
 }
 
 // BeforeUpdate 在更新前设置信息
-func (p *GuardianshipPO) BeforeUpdate(tx *gorm.DB) error {
-	p.UpdatedAt = time.Now()
-	p.UpdatedBy = meta.NewID(0)
+func (g *GuardianshipPO) BeforeUpdate(tx *gorm.DB) error {
+	g.UpdatedAt = time.Now()
+
+	updatedBy := meta.FromUint64(0)
+	g.UpdatedBy = updatedBy
 
 	return nil
 }

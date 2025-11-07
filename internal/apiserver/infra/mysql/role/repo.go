@@ -52,12 +52,12 @@ func (r *RoleRepository) Update(ctx context.Context, role *domain.Role) error {
 
 // Delete 删除角色
 func (r *RoleRepository) Delete(ctx context.Context, id meta.ID) error {
-	return r.BaseRepository.DeleteByID(ctx, id.ToUint64())
+	return r.BaseRepository.DeleteByID(ctx, id.Uint64())
 }
 
 // FindByID 根据ID获取角色
 func (r *RoleRepository) FindByID(ctx context.Context, id meta.ID) (*domain.Role, error) {
-	po, err := r.BaseRepository.FindByID(ctx, id.ToUint64())
+	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
 	if err != nil {
 		return nil, err
 	}

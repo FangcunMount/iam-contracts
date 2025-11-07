@@ -25,7 +25,7 @@ func (m *Mapper) ToBO(po *ResourcePO) *resource.Resource {
 	actions, _ := m.parseActions(po.Actions)
 
 	r := &resource.Resource{
-		ID:          resource.ResourceID(po.ID),
+		ID:          resource.NewResourceID(po.ID.Uint64()),
 		Key:         po.Key,
 		DisplayName: po.DisplayName,
 		AppName:     po.AppName,
@@ -56,7 +56,8 @@ func (m *Mapper) ToPO(bo *resource.Resource) *ResourcePO {
 		Actions:     actionsJSON,
 		Description: bo.Description,
 	}
-	po.ID = meta.NewID(bo.ID.Uint64())
+	id := meta.FromUint64(bo.ID.Uint64()) // 来自业务对象，必定有效
+	po.ID = id
 
 	return po
 }

@@ -1,7 +1,6 @@
 package assignment
 
 import (
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -42,22 +41,24 @@ func (a *Assignment) SubjectKey() string {
 
 // RoleKey 返回 Casbin 中的角色标识
 func (a *Assignment) RoleKey() string {
-	return "role:" + meta.NewID(a.RoleID).String()
+	id := meta.FromUint64(a.RoleID) // RoleID 来自内部，必定有效
+	return "role:" + id.String()
 }
 
 // AssignmentID 赋权ID值对象
-type AssignmentID idutil.ID
+type AssignmentID meta.ID
 
 func NewAssignmentID(value uint64) AssignmentID {
-	return AssignmentID(meta.NewID(value))
+	id := meta.FromUint64(value) // 来自 URL 或内部生成
+	return AssignmentID(id)
 }
 
 func (id AssignmentID) Uint64() uint64 {
-	return idutil.ID(id).Uint64()
+	return meta.ID(id).Uint64()
 }
 
 func (id AssignmentID) String() string {
-	return idutil.ID(id).String()
+	return meta.ID(id).String()
 }
 
 // SubjectType 主体类型

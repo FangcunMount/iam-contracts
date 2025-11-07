@@ -96,7 +96,7 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 		}
 
 		// 5. 保存账号ID到状态
-		state.Accounts[ac.Alias] = result.AccountID.ToUint64()
+		state.Accounts[ac.Alias] = result.AccountID.Uint64()
 		deps.Logger.Infow("✅ 账号创建成功",
 			"account_alias", ac.Alias,
 			"account_id", result.AccountID.String(),
@@ -114,7 +114,7 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 func parseAuthnUserID(userIDStr string) (meta.ID, error) {
 	var id uint64
 	if _, err := fmt.Sscanf(userIDStr, "%d", &id); err != nil {
-		return meta.ID{}, fmt.Errorf("invalid user id format: %s", userIDStr)
+		return meta.FromUint64(0), fmt.Errorf("invalid user id format: %s", userIDStr)
 	}
-	return meta.NewID(id), nil
+	return meta.FromUint64(id), nil
 }

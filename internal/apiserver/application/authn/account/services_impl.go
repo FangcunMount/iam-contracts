@@ -201,7 +201,7 @@ func (s *credentialApplicationService) BindCredential(ctx context.Context, dto B
 
 func (s *credentialApplicationService) UnbindCredential(ctx context.Context, credentialID int64) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		return tx.Credentials.Delete(ctx, meta.NewID(uint64(credentialID)))
+		return tx.Credentials.Delete(ctx, meta.FromUint64(uint64(credentialID)))
 	})
 }
 
@@ -280,13 +280,13 @@ func (s *credentialApplicationService) GetCredentialsByAccountID(ctx context.Con
 
 func (s *credentialApplicationService) DisableCredential(ctx context.Context, credentialID int64) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		return tx.Credentials.UpdateStatus(ctx, meta.NewID(uint64(credentialID)), credDomain.CredStatusDisabled)
+		return tx.Credentials.UpdateStatus(ctx, meta.FromUint64(uint64(credentialID)), credDomain.CredStatusDisabled)
 	})
 }
 
 func (s *credentialApplicationService) EnableCredential(ctx context.Context, credentialID int64) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
-		return tx.Credentials.UpdateStatus(ctx, meta.NewID(uint64(credentialID)), credDomain.CredStatusEnabled)
+		return tx.Credentials.UpdateStatus(ctx, meta.FromUint64(uint64(credentialID)), credDomain.CredStatusEnabled)
 	})
 }
 
@@ -332,8 +332,8 @@ func toCredentialResult(cred *credDomain.Credential) *CredentialResult {
 	}
 
 	return &CredentialResult{
-		ID:            cred.ID.ToUint64(),
-		AccountID:     cred.AccountID.ToUint64(),
+		ID:            cred.ID.Uint64(),
+		AccountID:     cred.AccountID.Uint64(),
 		Type:          credType,
 		IDP:           cred.IDP,
 		IDPIdentifier: cred.IDPIdentifier,

@@ -32,7 +32,7 @@ func (m *Mapper) ToAccountPO(acc *domain.Account) *AccountPO {
 	}
 
 	// 设置 ID（如果已存在）
-	if acc.ID.ToUint64() != 0 {
+	if acc.ID.Uint64() != 0 {
 		po.ID = acc.ID
 	}
 

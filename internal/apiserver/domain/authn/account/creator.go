@@ -26,7 +26,7 @@ func NewCreator(repo Repository) Creator {
 // Create 创建账户
 func (c *creator) Create(ctx context.Context, dto CreateAccountDTO) (*Account, error) {
 	// 参数校验，验证输入数据的合法性
-	if !idutil.ValidateIntID(dto.UserID.ToUint64()) {
+	if !idutil.ValidateIntID(dto.UserID.Uint64()) {
 		return nil, errors.WithCode(code.ErrInvalidArgument, "invalid user ID")
 	}
 	if !dto.AccountType.Validate() {

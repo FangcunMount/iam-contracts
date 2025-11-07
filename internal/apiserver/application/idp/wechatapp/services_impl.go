@@ -44,7 +44,8 @@ func (s *wechatAppApplicationService) CreateApp(ctx context.Context, dto CreateW
 	}
 
 	// 分配内部 ID
-	app.ID = meta.NewID(idutil.GetIntID())
+	id := meta.FromUint64(idutil.GetIntID()) // 新生成的 ID 必定有效
+	app.ID = id
 
 	// 初始化凭据结构
 	app.Cred = &domain.Credentials{}

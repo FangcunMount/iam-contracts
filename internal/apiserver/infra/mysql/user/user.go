@@ -13,11 +13,11 @@ import (
 // 对应数据库表结构
 type UserPO struct {
 	base.AuditFields
-	Name   string `gorm:"column:name;type:varchar(64);not null;comment:用户名称"`
-	Phone  string `gorm:"column:phone;type:varchar(20);index;not null;comment:手机号"`
-	Email  string `gorm:"column:email;type:varchar(100);not null;comment:邮箱"`
-	IDCard string `gorm:"column:id_card;type:varchar(20);uniqueIndex;not null;comment:身份证号"`
-	Status uint8  `gorm:"column:status;type:int;not null;default:1;comment:用户状态"`
+	Name   string      `gorm:"column:name;type:varchar(64);not null;comment:用户名称"`
+	Phone  meta.Phone  `gorm:"column:phone;type:varchar(20);index;not null;comment:手机号"`
+	Email  meta.Email  `gorm:"column:email;type:varchar(100);not null;comment:邮箱"`
+	IDCard meta.IDCard `gorm:"column:id_card;type:varchar(20);uniqueIndex;not null;comment:身份证号"`
+	Status uint8       `gorm:"column:status;type:int;not null;default:1;comment:用户状态"`
 }
 
 // TableName 指定表名
@@ -28,22 +28,27 @@ func (UserPO) TableName() string {
 // BeforeCreate 在创建前设置信息
 func (p *UserPO) BeforeCreate(tx *gorm.DB) error {
 	// 仅在 ID 未设置时生成新 ID
-	if p.ID.ToUint64() == 0 {
+	if p.ID.Uint64() == 0 {
 		newID := idutil.GetIntID()
-		p.ID = meta.NewID(newID)
+		id := meta.FromUint64(newID) // 新生成的 ID 必定有效
+		p.ID = id
 	}
 	p.CreatedAt = time.Now()
 	p.UpdatedAt = time.Now()
-	p.CreatedBy = meta.NewID(0)
-	p.UpdatedBy = meta.NewID(0)
-	p.DeletedBy = meta.NewID(0)
+	createdBy := meta.FromUint64(0)
+	updatedBy := meta.FromUint64(0)
+	deletedBy := meta.FromUint64(0)
+	p.CreatedBy = createdBy
+	p.UpdatedBy = updatedBy
+	p.DeletedBy = deletedBy
 	p.Version = base.InitialVersion
 
 	return nil
 } // BeforeUpdate 在更新前设置信息
-func (p *UserPO) BeforeUpdate(tx *gorm.DB) error {
-	p.UpdatedAt = time.Now()
-	p.UpdatedBy = meta.NewID(0)
+func (u *UserPO) BeforeUpdate(tx *gorm.DB) error {
+	u.UpdatedAt = time.Now()
+	updatedBy := meta.FromUint64(0) // 0 必定是有效 ID
+	u.UpdatedBy = updatedBy
 
 	return nil
 }

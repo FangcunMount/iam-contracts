@@ -35,13 +35,14 @@ func NewRepository(db *gorm.DB) user.Repository {
 func (r *Repository) Create(ctx context.Context, u *domain.User) error {
 	po := r.mapper.ToPO(u)
 	return r.CreateAndSync(ctx, po, func(updated *UserPO) {
-		u.ID = meta.NewID(updated.ID.ToUint64())
+		id := meta.FromUint64(updated.ID.Uint64()) // ID 来自数据库，必定有效
+		u.ID = id
 	})
 }
 
 // FindByID 根据ID查找用户
 func (r *Repository) FindByID(ctx context.Context, id meta.ID) (*domain.User, error) {
-	po, err := r.BaseRepository.FindByID(ctx, id.ToUint64())
+	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +71,7 @@ func (r *Repository) FindByPhone(ctx context.Context, phone meta.Phone) (*domain
 func (r *Repository) Update(ctx context.Context, u *domain.User) error {
 	po := r.mapper.ToPO(u)
 	return r.UpdateAndSync(ctx, po, func(updated *UserPO) {
-		u.ID = meta.NewID(updated.ID.ToUint64())
+		id := meta.FromUint64(updated.ID.Uint64()) // ID 来自数据库，必定有效
+		u.ID = id
 	})
 }

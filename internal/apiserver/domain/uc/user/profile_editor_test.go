@@ -38,10 +38,13 @@ func (s *stubUserValidator) CheckPhoneUnique(context.Context, meta.Phone) error 
 
 func TestProfileEditor_RenameSuccess(t *testing.T) {
 	repo := newStubUserRepository()
-	userEntity, err := NewUser("old", meta.NewPhone("10086"))
+	phone, err := meta.NewPhone("+8613012345678")
 	require.NoError(t, err)
-	userEntity.ID = meta.NewID(1)
-	repo.usersByID[userEntity.ID.ToUint64()] = userEntity
+
+	userEntity, err := NewUser("old", phone)
+	require.NoError(t, err)
+	userEntity.ID = meta.FromUint64(1)
+	repo.usersByID[userEntity.ID.Uint64()] = userEntity
 
 	validator := &stubUserValidator{}
 	editor := NewProfileEditor(repo, validator)
@@ -57,9 +60,11 @@ func TestProfileEditor_RenameSuccess(t *testing.T) {
 
 func TestProfileEditor_RenameValidationError(t *testing.T) {
 	repo := newStubUserRepository()
-	userEntity, _ := NewUser("old", meta.NewPhone("10086"))
-	userEntity.ID = meta.NewID(2)
-	repo.usersByID[userEntity.ID.ToUint64()] = userEntity
+	phone, err := meta.NewPhone("+8613012345678")
+	require.NoError(t, err)
+	userEntity, _ := NewUser("old", phone)
+	userEntity.ID = meta.FromUint64(2)
+	repo.usersByID[userEntity.ID.Uint64()] = userEntity
 
 	validator := &stubUserValidator{renameErr: errors.New("bad name")}
 	editor := NewProfileEditor(repo, validator)
@@ -74,15 +79,19 @@ func TestProfileEditor_RenameValidationError(t *testing.T) {
 
 func TestProfileEditor_UpdateContact(t *testing.T) {
 	repo := newStubUserRepository()
-	userEntity, _ := NewUser("user", meta.NewPhone("10086"))
-	userEntity.ID = meta.NewID(3)
-	repo.usersByID[userEntity.ID.ToUint64()] = userEntity
+	phone, err := meta.NewPhone("+8613012345678")
+	require.NoError(t, err)
+	userEntity, _ := NewUser("user", phone)
+	userEntity.ID = meta.FromUint64(3)
+	repo.usersByID[userEntity.ID.Uint64()] = userEntity
 
 	validator := &stubUserValidator{}
 	editor := NewProfileEditor(repo, validator)
 
-	newPhone := meta.NewPhone("10010")
-	newEmail := meta.NewEmail("user@example.com")
+	newPhone, err := meta.NewPhone("+8613112345678")
+	require.NoError(t, err)
+	newEmail, err := meta.NewEmail("user@example.com")
+	require.NoError(t, err)
 
 	updated, err := editor.UpdateContact(context.Background(), userEntity.ID, newPhone, newEmail)
 
@@ -95,14 +104,21 @@ func TestProfileEditor_UpdateContact(t *testing.T) {
 
 func TestProfileEditor_UpdateContactValidationError(t *testing.T) {
 	repo := newStubUserRepository()
-	userEntity, _ := NewUser("user", meta.NewPhone("10086"))
-	userEntity.ID = meta.NewID(4)
-	repo.usersByID[userEntity.ID.ToUint64()] = userEntity
+	phone, err := meta.NewPhone("+8613012345678")
+	require.NoError(t, err)
+	userEntity, _ := NewUser("user", phone)
+	userEntity.ID = meta.FromUint64(4)
+	repo.usersByID[userEntity.ID.Uint64()] = userEntity
 
 	validator := &stubUserValidator{updateContactErr: errors.New("duplicate")}
 	editor := NewProfileEditor(repo, validator)
 
-	updated, err := editor.UpdateContact(context.Background(), userEntity.ID, meta.NewPhone("10010"), meta.NewEmail("user@example.com"))
+	newPhone, err := meta.NewPhone("+8613112345678")
+	require.NoError(t, err)
+	newEmail, err := meta.NewEmail("user@example.com")
+	require.NoError(t, err)
+
+	updated, err := editor.UpdateContact(context.Background(), userEntity.ID, newPhone, newEmail)
 
 	require.Error(t, err)
 	assert.Nil(t, updated)
@@ -113,12 +129,15 @@ func TestProfileEditor_UpdateContactValidationError(t *testing.T) {
 
 func TestProfileEditor_UpdateIDCard(t *testing.T) {
 	repo := newStubUserRepository()
-	userEntity, _ := NewUser("user", meta.NewPhone("10086"))
-	userEntity.ID = meta.NewID(5)
-	repo.usersByID[userEntity.ID.ToUint64()] = userEntity
+	phone, err := meta.NewPhone("+8613012345678")
+	require.NoError(t, err)
+	userEntity, _ := NewUser("user", phone)
+	userEntity.ID = meta.FromUint64(5)
+	repo.usersByID[userEntity.ID.Uint64()] = userEntity
 
 	editor := NewProfileEditor(repo, &stubUserValidator{})
-	idCard := meta.NewIDCard("tester", "654321")
+	idCard, err := meta.NewIDCard("tester", "110101199003070011")
+	require.NoError(t, err)
 
 	updated, err := editor.UpdateIDCard(context.Background(), userEntity.ID, idCard)
 

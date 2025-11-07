@@ -40,8 +40,8 @@ func (s *RedisStore) SaveRefreshToken(ctx context.Context, token *domain.Token) 
 
 	data := refreshTokenData{
 		TokenID:   token.ID,
-		UserID:    token.UserID.ToUint64(),
-		AccountID: token.AccountID.ToUint64(),
+		UserID:    token.UserID.Uint64(),
+		AccountID: token.AccountID.Uint64(),
 		ExpiresAt: token.ExpiresAt,
 	}
 
@@ -86,11 +86,13 @@ func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*d
 
 	// 构造 Token 对象
 	ttl := time.Until(data.ExpiresAt)
+	userID := meta.FromUint64(data.UserID)
+	accountID := meta.FromUint64(data.AccountID)
 	token := domain.NewRefreshToken(
 		data.TokenID,
 		tokenValue,
-		meta.NewID(data.UserID),
-		meta.NewID(data.AccountID),
+		userID,
+		accountID,
 		ttl,
 	)
 

@@ -32,7 +32,7 @@ func (s *stubUserRepository) Create(ctx context.Context, user *User) error {
 		return s.findErr
 	}
 	if user != nil {
-		s.usersByID[user.ID.ToUint64()] = user
+		s.usersByID[user.ID.Uint64()] = user
 		s.usersByPhone[user.Phone.String()] = user
 	}
 	return nil
@@ -43,7 +43,7 @@ func (s *stubUserRepository) FindByID(ctx context.Context, id meta.ID) (*User, e
 	if s.findErr != nil {
 		return nil, s.findErr
 	}
-	if user, ok := s.usersByID[id.ToUint64()]; ok {
+	if user, ok := s.usersByID[id.Uint64()]; ok {
 		return user, nil
 	}
 	return nil, gorm.ErrRecordNotFound

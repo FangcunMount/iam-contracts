@@ -37,7 +37,8 @@ func NewAccountRepository(db *gorm.DB) *AccountRepository {
 func (r *AccountRepository) Create(ctx context.Context, acc *domain.Account) error {
 	po := r.mapper.ToAccountPO(acc)
 	if err := r.CreateAndSync(ctx, po, func(updated *AccountPO) {
-		acc.ID = meta.NewID(updated.ID.ToUint64())
+		id := meta.FromUint64(updated.ID.Uint64()) // ID 来自数据库，必定有效
+		acc.ID = id
 	}); err != nil {
 		return fmt.Errorf("failed to create account: %w", err)
 	}
@@ -51,7 +52,7 @@ func (r *AccountRepository) UpdateUniqueID(ctx context.Context, id meta.ID, uniq
 	uniqueIDStr := string(uniqueID)
 	result := r.WithContext(ctx).
 		Model(&AccountPO{}).
-		Where("id = ?", id.ToUint64()).
+		Where("id = ?", id.Uint64()).
 		Update("unique_id", uniqueIDStr)
 
 	if result.Error != nil {
@@ -67,7 +68,7 @@ func (r *AccountRepository) UpdateUniqueID(ctx context.Context, id meta.ID, uniq
 func (r *AccountRepository) UpdateStatus(ctx context.Context, id meta.ID, status domain.AccountStatus) error {
 	result := r.WithContext(ctx).
 		Model(&AccountPO{}).
-		Where("id = ?", id.ToUint64()).
+		Where("id = ?", id.Uint64()).
 		Update("status", int8(status))
 
 	if result.Error != nil {
@@ -84,7 +85,7 @@ func (r *AccountRepository) UpdateProfile(ctx context.Context, id meta.ID, profi
 	profileJSON := mapToJSON(profile)
 	result := r.WithContext(ctx).
 		Model(&AccountPO{}).
-		Where("id = ?", id.ToUint64()).
+		Where("id = ?", id.Uint64()).
 		Update("profile", profileJSON)
 
 	if result.Error != nil {
@@ -101,7 +102,7 @@ func (r *AccountRepository) UpdateMeta(ctx context.Context, id meta.ID, metaData
 	metaJSON := mapToJSON(metaData)
 	result := r.WithContext(ctx).
 		Model(&AccountPO{}).
-		Where("id = ?", id.ToUint64()).
+		Where("id = ?", id.Uint64()).
 		Update("meta", metaJSON)
 
 	if result.Error != nil {
@@ -119,7 +120,7 @@ func (r *AccountRepository) UpdateMeta(ctx context.Context, id meta.ID, metaData
 func (r *AccountRepository) GetByID(ctx context.Context, id meta.ID) (*domain.Account, error) {
 	var po AccountPO
 	if err := r.WithContext(ctx).
-		Where("id = ?", id.ToUint64()).
+		Where("id = ?", id.Uint64()).
 		First(&po).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -181,9 +182,11 @@ func (r *AccountRepository) FindAccountByUsername(ctx context.Context, tenantID 
 
 	if err := query.First(&po).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return meta.NewID(0), meta.NewID(0), nil // 账户不存在，返回空值
+			zeroID := meta.FromUint64(0)
+			return zeroID, zeroID, nil // 账户不存在，返回空值
 		}
-		return meta.NewID(0), meta.NewID(0), fmt.Errorf("failed to find account by username: %w", err)
+		zeroID := meta.FromUint64(0)
+		return zeroID, zeroID, fmt.Errorf("failed to find account by username: %w", err)
 	}
 
 	return po.ID, po.UserID, nil

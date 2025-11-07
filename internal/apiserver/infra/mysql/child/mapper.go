@@ -21,9 +21,9 @@ func (m *ChildMapper) ToPO(cBO *domain.Child) *ChildPO {
 	}
 
 	// 将空身份证号映射为 nil，以便在数据库中写入 NULL（避免 UNIQUE 索引与空字符串冲突）
-	var idCardPtr *string
-	if s := cBO.IDCard.String(); s != "" {
-		idCardPtr = &s
+	var idCardPtr *meta.IDCard
+	if cBO.IDCard.String() != "" {
+		idCardPtr = &cBO.IDCard
 	}
 
 	po := &ChildPO{
@@ -46,15 +46,15 @@ func (m *ChildMapper) ToBO(po *ChildPO) *domain.Child {
 		return nil
 	}
 
-	idCardNum := ""
+	var idCard meta.IDCard
 	if po.IDCard != nil {
-		idCardNum = *po.IDCard
+		idCard = *po.IDCard
 	}
 
 	child := &domain.Child{
 		ID:       meta.ID(po.ID),
 		Name:     po.Name,
-		IDCard:   meta.NewIDCard(po.Name, idCardNum),
+		IDCard:   idCard,
 		Gender:   meta.NewGender(po.Gender),
 		Birthday: meta.NewBirthday(po.Birthday),
 		Height:   meta.NewHeightFromTenths(po.Height),

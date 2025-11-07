@@ -42,7 +42,8 @@ func TestCredentialRepository_Create_ConcurrentDuplicateDetection(t *testing.T) 
 			defer wg.Done()
 			// add tiny random delay to reduce SQLITE table-lock contention
 			time.Sleep(time.Millisecond * time.Duration(d))
-			cred := domain.NewPhoneOTPCredential(m.NewID(1), "+8613800000000")
+			accountID := m.FromUint64(1) // 测试用 ID，必定有效
+			cred := domain.NewPhoneOTPCredential(accountID, "+8613800000000")
 			if err := repo.Create(ctx, cred); err != nil {
 				errs <- err
 				return

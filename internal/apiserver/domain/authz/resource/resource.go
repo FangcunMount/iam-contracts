@@ -2,7 +2,6 @@ package resource
 
 import (
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Resource 域对象资源目录（聚合根）
@@ -54,7 +53,7 @@ func (r *Resource) HasAction(action string) bool {
 type ResourceID idutil.ID
 
 func NewResourceID(value uint64) ResourceID {
-	return ResourceID(meta.NewID(value))
+	return ResourceID(idutil.NewID(value)) // 从 uint64 构造
 }
 
 func (id ResourceID) Uint64() uint64 {

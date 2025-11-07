@@ -41,7 +41,7 @@ func (r *Repository) Create(ctx context.Context, child *domain.Child) error {
 
 // FindByID 根据 ID 查找儿童档案
 func (r *Repository) FindByID(ctx context.Context, id meta.ID) (*domain.Child, error) {
-	po, err := r.BaseRepository.FindByID(ctx, id.ToUint64())
+	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
 	if err != nil {
 		return nil, err
 	}

@@ -47,7 +47,8 @@ type CustomClaims struct {
 func (g *Generator) GenerateAccessToken(principal *authentication.Principal, expiresIn time.Duration) (*domain.Token, error) {
 	ctx := context.Background() // TODO: 从参数传递 context
 	now := time.Now()
-	tokenID := meta.NewID(0).String() // 生成唯一 Token ID
+	zeroID := meta.FromUint64(0)
+	tokenID := zeroID.String() // 生成唯一 Token ID
 
 	// 获取当前活跃的密钥
 	activeKey, err := g.keyMgmt.GetActiveKey(ctx)
@@ -68,8 +69,8 @@ func (g *Generator) GenerateAccessToken(principal *authentication.Principal, exp
 	}
 
 	claims := CustomClaims{
-		UserID:    principal.UserID.ToUint64(),
-		AccountID: principal.AccountID.ToUint64(),
+		UserID:    principal.UserID.Uint64(),
+		AccountID: principal.AccountID.Uint64(),
 		StandardClaims: jwt.StandardClaims{
 			Id:        tokenID,
 			Issuer:    g.issuer,
@@ -146,10 +147,12 @@ func (g *Generator) ParseAccessToken(tokenValue string) (*domain.TokenClaims, er
 	}
 
 	// 转换为领域模型
+	userID := meta.FromUint64(claims.UserID)
+	accountID := meta.FromUint64(claims.AccountID)
 	return domain.NewTokenClaims(
 		claims.Id,
-		meta.NewID(claims.UserID),
-		meta.NewID(claims.AccountID),
+		userID,
+		accountID,
 		time.Unix(claims.IssuedAt, 0),
 		time.Unix(claims.ExpiresAt, 0),
 	), nil

@@ -11,16 +11,18 @@ import (
 )
 
 func TestNewChild_Success(t *testing.T) {
+	id := meta.FromUint64(42)
 	height, err := meta.NewHeightFromFloat(120.5)
 	require.NoError(t, err)
 	weight, err := meta.NewWeightFromFloat(35.2)
 	require.NoError(t, err)
 	birthday := meta.NewBirthday("2020-01-02")
-	idCard := meta.NewIDCard("tester", "1234567890")
+	idCard, err := meta.NewIDCard("tester", "110101199003070011")
+	require.NoError(t, err)
 
 	child, err := NewChild(
 		"小明",
-		WithChildID(meta.NewID(42)),
+		WithChildID(id),
 		WithGender(meta.GenderMale),
 		WithBirthday(birthday),
 		WithIDCard(idCard),
@@ -30,7 +32,7 @@ func TestNewChild_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, child)
-	assert.Equal(t, meta.NewID(42), child.ID)
+	assert.Equal(t, id, child.ID)
 	assert.Equal(t, "小明", child.Name)
 	assert.Equal(t, meta.GenderMale, child.Gender)
 	assert.True(t, child.Birthday.Equal(birthday))
@@ -51,7 +53,8 @@ func TestChildRenamingAndProfileUpdates(t *testing.T) {
 	child, err := NewChild("原名")
 	require.NoError(t, err)
 
-	newIDCard := meta.NewIDCard("tester", "222")
+	newIDCard, err := meta.NewIDCard("tester", "110101199003070011")
+	require.NoError(t, err)
 	newBirthday := meta.NewBirthday("2019-02-03")
 	newHeight, err := meta.NewHeightFromFloat(130.0)
 	require.NoError(t, err)

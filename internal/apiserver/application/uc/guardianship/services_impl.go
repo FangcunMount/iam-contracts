@@ -342,9 +342,10 @@ func parseUserID(userID string) (meta.ID, error) {
 	var id uint64
 	_, err := fmt.Sscanf(userID, "%d", &id)
 	if err != nil {
-		return meta.ID{}, err
+		return meta.FromUint64(0), err
 	}
-	return meta.NewID(id), nil
+
+	return meta.FromUint64(id), nil
 }
 
 // parseChildID 解析儿童ID字符串
@@ -352,9 +353,9 @@ func parseChildID(childID string) (meta.ID, error) {
 	var id uint64
 	_, err := fmt.Sscanf(childID, "%d", &id)
 	if err != nil {
-		return meta.ID{}, err
+		return meta.FromUint64(0), err
 	}
-	return meta.NewID(id), nil
+	return meta.FromUint64(id), nil
 }
 
 // parseRelation 解析关系字符串
@@ -376,7 +377,7 @@ func toGuardianshipResult(guardianship *domain.Guardianship, child *childdomain.
 	}
 
 	result := &GuardianshipResult{
-		ID:            guardianship.ID.ToUint64(),
+		ID:            guardianship.ID.Uint64(),
 		UserID:        guardianship.User.String(),
 		ChildID:       guardianship.Child.String(),
 		Relation:      string(guardianship.Rel), // Relation 是 string 类型

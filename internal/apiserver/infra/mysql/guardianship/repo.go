@@ -61,7 +61,7 @@ func (r *Repository) FindByID(ctx context.Context, id idutil.ID) (*domain.Guardi
 // FindByChildID 根据儿童 ID 查找监护关系
 func (r *Repository) FindByChildID(ctx context.Context, id meta.ID) ([]*domain.Guardianship, error) {
 	var pos []*GuardianshipPO
-	if err := r.WithContext(ctx).Where("child_id = ?", id.ToUint64()).Find(&pos).Error; err != nil {
+	if err := r.WithContext(ctx).Where("child_id = ?", id.Uint64()).Find(&pos).Error; err != nil {
 		return nil, err
 	}
 
@@ -71,7 +71,7 @@ func (r *Repository) FindByChildID(ctx context.Context, id meta.ID) ([]*domain.G
 // FindByUserID 根据监护人 ID 查找监护关系
 func (r *Repository) FindByUserID(ctx context.Context, id meta.ID) ([]*domain.Guardianship, error) {
 	var pos []*GuardianshipPO
-	if err := r.WithContext(ctx).Where("user_id = ?", id.ToUint64()).Find(&pos).Error; err != nil {
+	if err := r.WithContext(ctx).Where("user_id = ?", id.Uint64()).Find(&pos).Error; err != nil {
 		return nil, err
 	}
 
@@ -81,7 +81,7 @@ func (r *Repository) FindByUserID(ctx context.Context, id meta.ID) ([]*domain.Gu
 // FindByUserIDAndChildID 根据监护人 ID 和儿童 ID 查找监护关系
 func (r *Repository) FindByUserIDAndChildID(ctx context.Context, userID meta.ID, childID meta.ID) (*domain.Guardianship, error) {
 	var po GuardianshipPO
-	if err := r.WithContext(ctx).Where("user_id = ? AND child_id = ?", userID.ToUint64(), childID.ToUint64()).First(&po).Error; err != nil {
+	if err := r.WithContext(ctx).Where("user_id = ? AND child_id = ?", userID.Uint64(), childID.Uint64()).First(&po).Error; err != nil {
 		return nil, err
 	}
 
@@ -96,7 +96,7 @@ func (r *Repository) FindByUserIDAndChildID(ctx context.Context, userID meta.ID,
 func (r *Repository) IsGuardian(ctx context.Context, userID meta.ID, childID meta.ID) (bool, error) {
 	var count int64
 	if err := r.WithContext(ctx).Model(&GuardianshipPO{}).
-		Where("user_id = ? AND child_id = ?", userID.ToUint64(), childID.ToUint64()).
+		Where("user_id = ? AND child_id = ?", userID.Uint64(), childID.Uint64()).
 		Count(&count).Error; err != nil {
 		return false, err
 	}

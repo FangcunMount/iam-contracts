@@ -23,9 +23,11 @@ func TestRepository_Create_DuplicateReturnsBusinessError(t *testing.T) {
 	repo := NewRepository(db)
 	ctx := context.Background()
 
+	userID1 := meta.FromUint64(1)
+	childID2 := meta.FromUint64(2)
 	g1 := &guardianship.Guardianship{
-		User:  meta.NewID(1),
-		Child: meta.NewID(2),
+		User:  userID1,
+		Child: childID2,
 		Rel:   guardianship.RelParent,
 	}
 
@@ -34,9 +36,11 @@ func TestRepository_Create_DuplicateReturnsBusinessError(t *testing.T) {
 	require.NoError(t, err)
 
 	// second create with same user+child should be treated as business 'exists' error
+	userID1_2 := meta.FromUint64(1)
+	childID2_2 := meta.FromUint64(2)
 	g2 := &guardianship.Guardianship{
-		User:  meta.NewID(1),
-		Child: meta.NewID(2),
+		User:  userID1_2,
+		Child: childID2_2,
 		Rel:   guardianship.RelParent,
 	}
 	err = repo.Create(ctx, g2)

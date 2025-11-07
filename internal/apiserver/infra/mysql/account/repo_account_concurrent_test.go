@@ -41,7 +41,8 @@ func TestAccountRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 			defer wg.Done()
 			// add tiny random delay to reduce SQLITE table-lock contention
 			time.Sleep(time.Millisecond * time.Duration(d))
-			acc := domain.NewAccount(meta.NewID(1), domain.TypeWcMinip, domain.ExternalID("ext-dup"), domain.WithAppID(domain.AppId("app-1")))
+			userID := meta.FromUint64(1) // 测试用 ID，必定有效
+			acc := domain.NewAccount(userID, domain.TypeWcMinip, domain.ExternalID("ext-dup"), domain.WithAppID(domain.AppId("app-1")))
 			if err := repo.Create(ctx, acc); err != nil {
 				errs <- err
 				return

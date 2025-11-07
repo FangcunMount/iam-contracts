@@ -89,10 +89,18 @@ func (h *AccountHandler) RegisterWithWeChat(c *gin.Context) {
 		return
 	}
 
-	phone := meta.NewPhone(strings.TrimSpace(reqBody.Phone))
+	phone, err := meta.NewPhone(strings.TrimSpace(reqBody.Phone))
+	if err != nil {
+		h.Error(c, err)
+		return
+	}
 	var email meta.Email
 	if strings.TrimSpace(reqBody.Email) != "" {
-		email = meta.NewEmail(strings.TrimSpace(reqBody.Email))
+		email, err = meta.NewEmail(strings.TrimSpace(reqBody.Email))
+		if err != nil {
+			h.Error(c, err)
+			return
+		}
 	}
 
 	appID := strings.TrimSpace(reqBody.AppID)
@@ -131,14 +139,14 @@ func (h *AccountHandler) RegisterWithWeChat(c *gin.Context) {
 	}
 
 	response := resp.RegisterResult{
-		UserID:       result.UserID.ToUint64(),
+		UserID:       result.UserID.Uint64(),
 		UserName:     result.UserName,
 		Phone:        result.Phone.String(),
 		Email:        result.Email.String(),
-		AccountID:    result.AccountID.ToUint64(),
+		AccountID:    result.AccountID.Uint64(),
 		AccountType:  string(result.AccountType),
 		ExternalID:   string(result.ExternalID),
-		CredentialID: result.CredentialID.ToUint64(),
+		CredentialID: result.CredentialID.Uint64(),
 		IsNewUser:    result.IsNewUser,
 		IsNewAccount: result.IsNewAccount,
 	}
@@ -150,15 +158,15 @@ func (h *AccountHandler) RegisterWithWeChat(c *gin.Context) {
 func parseAccountID(idStr string) (meta.ID, error) {
 	idStr = strings.TrimSpace(idStr)
 	if idStr == "" {
-		return meta.ID{}, perrors.WithCode(code.ErrInvalidArgument, "accountId is required")
+		return meta.FromUint64(0), perrors.WithCode(code.ErrInvalidArgument, "accountId is required")
 	}
 
 	var id uint64
 	if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
-		return meta.ID{}, perrors.WithCode(code.ErrInvalidArgument, "invalid accountId format")
+		return meta.FromUint64(0), perrors.WithCode(code.ErrInvalidArgument, "invalid accountId format")
 	}
 
-	return meta.NewID(id), nil
+	return meta.FromUint64(id), nil
 }
 
 // toAccountResponse 转换为账户响应（简化版）

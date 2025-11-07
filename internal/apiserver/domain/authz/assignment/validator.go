@@ -119,7 +119,8 @@ func (v *validator) ValidateRevokeParameters(
 
 // CheckRoleExists 检查角色是否存在
 func (v *validator) CheckRoleExists(ctx context.Context, roleID uint64, tenantID string) error {
-	roleExists, err := v.roleRepo.FindByID(ctx, meta.NewID(roleID))
+	id := meta.FromUint64(roleID) // roleID 来自请求，必定有效
+	roleExists, err := v.roleRepo.FindByID(ctx, id)
 	if err != nil {
 		if errors.IsCode(err, code.ErrRoleNotFound) {
 			return errors.WithCode(code.ErrRoleNotFound, "角色不存在")
@@ -164,7 +165,8 @@ func (v *validator) CheckRoleExistsAndTenant(
 	roleID uint64,
 	tenantID string,
 ) (*role.Role, error) {
-	roleExists, err := v.roleRepo.FindByID(ctx, meta.NewID(roleID))
+	id := meta.FromUint64(roleID) // roleID 来自请求，必定有效
+	roleExists, err := v.roleRepo.FindByID(ctx, id)
 	if err != nil {
 		if errors.IsCode(err, code.ErrRoleNotFound) {
 			return nil, errors.WithCode(code.ErrRoleNotFound, "角色 %d 不存在", roleID)

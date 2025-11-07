@@ -11,26 +11,34 @@ import (
 )
 
 func TestNewUser_Success(t *testing.T) {
+	phone, _ := meta.NewPhone("+8613012345678")
+	email, _ := meta.NewEmail("test@example.com")
+	idCard, _ := meta.NewIDCard("tester", "110101199003070011")
+
 	user, err := NewUser(
 		"小明",
-		meta.NewPhone("+8613012345678"),
-		WithID(meta.NewID(10)),
-		WithEmail(meta.NewEmail("test@example.com")),
-		WithIDCard(meta.NewIDCard("tester", "123456")),
+		phone,
+		WithID(meta.FromUint64(10)),
+		WithEmail(email),
+		WithIDCard(idCard),
 		WithStatus(UserInactive),
 	)
 
 	require.NoError(t, err)
 	require.NotNil(t, user)
 	assert.Equal(t, "小明", user.Name)
-	assert.True(t, user.Phone.Equal(meta.NewPhone("+8613012345678")))
-	assert.Equal(t, meta.NewEmail("test@example.com"), user.Email)
-	assert.True(t, user.IDCard.Equal(meta.NewIDCard("tester", "123456")))
+	expectedPhone, _ := meta.NewPhone("+8613012345678")
+	assert.True(t, user.Phone.Equal(expectedPhone))
+	expectedEmail, _ := meta.NewEmail("test@example.com")
+	assert.Equal(t, expectedEmail, user.Email)
+	expectedIDCard, _ := meta.NewIDCard("tester", "110101199003070011")
+	assert.True(t, user.IDCard.Equal(expectedIDCard))
 	assert.Equal(t, UserInactive, user.Status)
 }
 
 func TestNewUser_Validations(t *testing.T) {
-	_, err := NewUser("", meta.NewPhone("+8613012345678"))
+	validPhone, _ := meta.NewPhone("+8613012345678")
+	_, err := NewUser("", validPhone)
 	require.Error(t, err)
 	assert.Contains(t, fmt.Sprintf("%-v", err), "name cannot be empty")
 
@@ -40,7 +48,9 @@ func TestNewUser_Validations(t *testing.T) {
 }
 
 func TestUserLifecycleAndUpdates(t *testing.T) {
-	user, err := NewUser("tester", meta.NewPhone("10086"))
+	phone, err := meta.NewPhone("+8613012345678")
+	require.NoError(t, err)
+	user, err := NewUser("tester", phone)
 	require.NoError(t, err)
 
 	user.Deactivate()
@@ -55,15 +65,18 @@ func TestUserLifecycleAndUpdates(t *testing.T) {
 	user.Rename("new name")
 	assert.Equal(t, "new name", user.Name)
 
-	newPhone := meta.NewPhone("10010")
+	newPhone, err := meta.NewPhone("+8613112345678")
+	require.NoError(t, err)
 	user.UpdatePhone(newPhone)
 	assert.True(t, user.Phone.Equal(newPhone))
 
-	newEmail := meta.NewEmail("user@example.com")
+	newEmail, err := meta.NewEmail("user@example.com")
+	require.NoError(t, err)
 	user.UpdateEmail(newEmail)
 	assert.Equal(t, newEmail, user.Email)
 
-	newIDCard := meta.NewIDCard("tester", "654321")
+	newIDCard, err := meta.NewIDCard("tester", "110101199003070011")
+	require.NoError(t, err)
 	user.UpdateIDCard(newIDCard)
 	assert.True(t, user.IDCard.Equal(newIDCard))
 }

@@ -133,6 +133,6 @@ func (j *JWTTokenAuthStrategy) Authenticate(ctx context.Context, credential Auth
 	return AuthDecision{
 		OK:           true,
 		Principal:    principal,
-		CredentialID: meta.ID{}, // JWT Token 认证不对应具体的凭据记录
+		CredentialID: meta.FromUint64(0), // JWT Token 认证不对应具体的凭据记录
 	}, nil
 }

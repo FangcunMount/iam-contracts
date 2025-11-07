@@ -31,7 +31,7 @@ func (s *PolicyQueryService) GetPoliciesByRole(
 	query policyDomain.GetPoliciesByRoleQuery,
 ) ([]policyDomain.PolicyRule, error) {
 	// 1. 获取角色信息
-	role, err := s.roleRepo.FindByID(ctx, meta.NewID(query.RoleID))
+	role, err := s.roleRepo.FindByID(ctx, meta.FromUint64(query.RoleID))
 	if err != nil {
 		return nil, err
 	}

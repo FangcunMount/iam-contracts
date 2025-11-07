@@ -44,7 +44,8 @@ func (m *Mapper) ToPO(bo *assignment.Assignment) *AssignmentPO {
 		TenantID:    bo.TenantID,
 		GrantedBy:   bo.GrantedBy,
 	}
-	po.ID = meta.NewID(bo.ID.Uint64())
+	id := meta.FromUint64(bo.ID.Uint64()) // 来自业务对象，必定有效
+	po.ID = id
 
 	return po
 }

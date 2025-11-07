@@ -49,7 +49,7 @@ func (s *AssignmentCommandService) Grant(ctx context.Context, cmd assignmentDoma
 	}
 
 	// 3. 获取角色信息以构建 Casbin 规则
-	role, err := s.roleRepo.FindByID(ctx, meta.NewID(cmd.RoleID))
+	role, err := s.roleRepo.FindByID(ctx, meta.FromUint64(cmd.RoleID))
 	if err != nil {
 		return nil, errors.Wrap(err, "获取角色失败")
 	}
@@ -99,7 +99,7 @@ func (s *AssignmentCommandService) Revoke(ctx context.Context, cmd assignmentDom
 	}
 
 	// 3. 获取角色信息以构建 Casbin 规则
-	role, err := s.roleRepo.FindByID(ctx, meta.NewID(cmd.RoleID))
+	role, err := s.roleRepo.FindByID(ctx, meta.FromUint64(cmd.RoleID))
 	if err != nil {
 		return errors.Wrap(err, "获取角色失败")
 	}
@@ -142,7 +142,7 @@ func (s *AssignmentCommandService) revokeAssignment(
 	targetAssignment *assignmentDomain.Assignment,
 ) error {
 	// 1. 获取角色信息以构建 Casbin 规则
-	role, err := s.roleRepo.FindByID(ctx, meta.NewID(targetAssignment.RoleID))
+	role, err := s.roleRepo.FindByID(ctx, meta.FromUint64(targetAssignment.RoleID))
 	if err != nil {
 		return errors.Wrap(err, "获取角色失败")
 	}

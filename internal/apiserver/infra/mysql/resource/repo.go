@@ -39,7 +39,7 @@ func (r *ResourceRepository) Create(ctx context.Context, res *domain.Resource) e
 	po := r.mapper.ToPO(res)
 
 	return r.BaseRepository.CreateAndSync(ctx, po, func(updated *ResourcePO) {
-		res.ID = domain.ResourceID(updated.ID)
+		res.ID = domain.NewResourceID(updated.ID.Uint64())
 	})
 }
 

@@ -87,7 +87,7 @@ func (h *AuthHandler) handlePasswordLogin(c *gin.Context, reqBody req.LoginReque
 		Password: &creds.Password,
 	}
 	if creds.TenantID != 0 {
-		loginReq.TenantID = meta.NewID(creds.TenantID)
+		loginReq.TenantID = meta.FromUint64(creds.TenantID)
 	}
 
 	h.executeLogin(c, loginReq)

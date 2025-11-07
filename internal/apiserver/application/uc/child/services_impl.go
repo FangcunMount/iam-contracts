@@ -48,7 +48,10 @@ func (s *childApplicationService) Register(ctx context.Context, dto RegisterChil
 
 		if dto.IDCard != "" {
 			// 带身份证注册
-			idCard := meta.NewIDCard("", dto.IDCard)
+			idCard, err := meta.NewIDCard(dto.Name, dto.IDCard)
+			if err != nil {
+				return err
+			}
 			newChild, err = domain.NewChild(
 				dto.Name,
 				domain.WithGender(gender),
@@ -149,7 +152,10 @@ func (s *childProfileApplicationService) UpdateIDCard(ctx context.Context, child
 		}
 
 		// 转换身份证
-		idCardVO := meta.NewIDCard(name, idCard)
+		idCardVO, err := meta.NewIDCard(name, idCard)
+		if err != nil {
+			return err
+		}
 
 		// 调用领域服务更新身份证
 		modifiedChild, err := profileService.UpdateIDCard(ctx, id, idCardVO)
@@ -262,7 +268,10 @@ func (s *childQueryApplicationService) GetByIDCard(ctx context.Context, idCard s
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 
-		idCardObj := meta.NewIDCard("", idCard)
+		idCardObj, err := meta.NewIDCard("", idCard)
+		if err != nil {
+			return err
+		}
 
 		child, err := tx.Children.FindByIDCard(ctx, idCardObj)
 		if err != nil {
@@ -304,9 +313,10 @@ func parseChildID(childID string) (meta.ID, error) {
 	var id uint64
 	_, err := fmt.Sscanf(childID, "%d", &id)
 	if err != nil {
-		return meta.ID{}, err
+		return meta.FromUint64(0), err
 	}
-	return meta.NewID(id), nil
+	parsedChildID := meta.FromUint64(id)
+	return parsedChildID, nil
 }
 
 // parseGender 解析性别字符串

@@ -35,7 +35,7 @@ func (s *stubGuardianshipRepo) FindByChildID(ctx context.Context, id meta.ID) ([
 	if s.childrenResults == nil {
 		return nil, nil
 	}
-	return s.childrenResults[id.ToUint64()], nil
+	return s.childrenResults[id.Uint64()], nil
 }
 func (s *stubGuardianshipRepo) FindByUserID(context.Context, meta.ID) ([]*Guardianship, error) {
 	return nil, nil
@@ -89,26 +89,26 @@ func (s *stubUserDomainRepo) FindByPhone(context.Context, meta.Phone) (*userdoma
 func (s *stubUserDomainRepo) Update(context.Context, *userdomain.User) error { return nil }
 
 func TestGuardianshipManager_AddGuardianSuccess(t *testing.T) {
-	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.NewID(1)}}
-	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.NewID(2)}}
+	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.FromUint64(1)}}
+	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.FromUint64(2)}}
 	guardRepo := &stubGuardianshipRepo{childrenResults: make(map[uint64][]*Guardianship)}
 
 	manager := NewManagerService(guardRepo, childRepo, userRepo)
 
-	guardian, err := manager.AddGuardian(context.Background(), meta.NewID(2), meta.NewID(1), RelParent)
+	guardian, err := manager.AddGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1), RelParent)
 
 	require.NoError(t, err)
 	require.NotNil(t, guardian)
-	assert.Equal(t, meta.NewID(2), guardian.User)
-	assert.Equal(t, meta.NewID(1), guardian.Child)
+	assert.Equal(t, meta.FromUint64(2), guardian.User)
+	assert.Equal(t, meta.FromUint64(1), guardian.Child)
 	assert.Equal(t, RelParent, guardian.Rel)
 	assert.False(t, guardian.EstablishedAt.IsZero())
 }
 
 func TestGuardianshipManager_AddGuardian_Duplicate(t *testing.T) {
-	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.NewID(1)}}
-	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.NewID(2)}}
-	existing := &Guardianship{User: meta.NewID(2), Child: meta.NewID(1)}
+	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.FromUint64(1)}}
+	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.FromUint64(2)}}
+	existing := &Guardianship{User: meta.FromUint64(2), Child: meta.FromUint64(1)}
 	guardRepo := &stubGuardianshipRepo{
 		childrenResults: map[uint64][]*Guardianship{
 			1: {existing},
@@ -117,7 +117,7 @@ func TestGuardianshipManager_AddGuardian_Duplicate(t *testing.T) {
 
 	manager := NewManagerService(guardRepo, childRepo, userRepo)
 
-	guardian, err := manager.AddGuardian(context.Background(), meta.NewID(2), meta.NewID(1), RelParent)
+	guardian, err := manager.AddGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1), RelParent)
 
 	require.Error(t, err)
 	assert.Nil(t, guardian)
@@ -126,12 +126,12 @@ func TestGuardianshipManager_AddGuardian_Duplicate(t *testing.T) {
 
 func TestGuardianshipManager_AddGuardian_ChildNotFound(t *testing.T) {
 	childRepo := &stubChildDomainRepo{child: nil}
-	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.NewID(2)}}
+	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.FromUint64(2)}}
 	guardRepo := &stubGuardianshipRepo{}
 
 	manager := NewManagerService(guardRepo, childRepo, userRepo)
 
-	guardian, err := manager.AddGuardian(context.Background(), meta.NewID(2), meta.NewID(1), RelParent)
+	guardian, err := manager.AddGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1), RelParent)
 
 	require.Error(t, err)
 	assert.Nil(t, guardian)
@@ -139,13 +139,13 @@ func TestGuardianshipManager_AddGuardian_ChildNotFound(t *testing.T) {
 }
 
 func TestGuardianshipManager_AddGuardian_UserRepoError(t *testing.T) {
-	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.NewID(1)}}
+	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.FromUint64(1)}}
 	userRepo := &stubUserDomainRepo{err: errors.New("db error")}
 	guardRepo := &stubGuardianshipRepo{}
 
 	manager := NewManagerService(guardRepo, childRepo, userRepo)
 
-	guardian, err := manager.AddGuardian(context.Background(), meta.NewID(2), meta.NewID(1), RelParent)
+	guardian, err := manager.AddGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1), RelParent)
 
 	require.Error(t, err)
 	assert.Nil(t, guardian)
@@ -153,13 +153,13 @@ func TestGuardianshipManager_AddGuardian_UserRepoError(t *testing.T) {
 }
 
 func TestGuardianshipManager_AddGuardian_FindByChildError(t *testing.T) {
-	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.NewID(1)}}
-	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.NewID(2)}}
+	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.FromUint64(1)}}
+	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.FromUint64(2)}}
 	guardRepo := &stubGuardianshipRepo{findErr: errors.New("db error")}
 
 	manager := NewManagerService(guardRepo, childRepo, userRepo)
 
-	guardian, err := manager.AddGuardian(context.Background(), meta.NewID(2), meta.NewID(1), RelParent)
+	guardian, err := manager.AddGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1), RelParent)
 
 	require.Error(t, err)
 	assert.Nil(t, guardian)
@@ -167,7 +167,7 @@ func TestGuardianshipManager_AddGuardian_FindByChildError(t *testing.T) {
 }
 
 func TestGuardianshipManager_RemoveGuardianSuccess(t *testing.T) {
-	target := &Guardianship{User: meta.NewID(2), Child: meta.NewID(1)}
+	target := &Guardianship{User: meta.FromUint64(2), Child: meta.FromUint64(1)}
 	guardRepo := &stubGuardianshipRepo{
 		childrenResults: map[uint64][]*Guardianship{
 			1: {target},
@@ -175,7 +175,7 @@ func TestGuardianshipManager_RemoveGuardianSuccess(t *testing.T) {
 	}
 	manager := NewManagerService(guardRepo, &stubChildDomainRepo{}, &stubUserDomainRepo{})
 
-	removed, err := manager.RemoveGuardian(context.Background(), meta.NewID(2), meta.NewID(1))
+	removed, err := manager.RemoveGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1))
 
 	require.NoError(t, err)
 	assert.NotNil(t, removed)
@@ -191,7 +191,7 @@ func TestGuardianshipManager_RemoveGuardian_NotFound(t *testing.T) {
 	}
 	manager := NewManagerService(guardRepo, &stubChildDomainRepo{}, &stubUserDomainRepo{})
 
-	removed, err := manager.RemoveGuardian(context.Background(), meta.NewID(2), meta.NewID(1))
+	removed, err := manager.RemoveGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1))
 
 	require.Error(t, err)
 	assert.Nil(t, removed)
@@ -200,12 +200,12 @@ func TestGuardianshipManager_RemoveGuardian_NotFound(t *testing.T) {
 
 func TestGuardianshipManager_AddGuardian_ChildRepoError(t *testing.T) {
 	childRepo := &stubChildDomainRepo{err: errors.New("db error")}
-	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.NewID(2)}}
+	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.FromUint64(2)}}
 	guardRepo := &stubGuardianshipRepo{}
 
 	manager := NewManagerService(guardRepo, childRepo, userRepo)
 
-	guardian, err := manager.AddGuardian(context.Background(), meta.NewID(2), meta.NewID(1), RelParent)
+	guardian, err := manager.AddGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1), RelParent)
 
 	require.Error(t, err)
 	assert.Nil(t, guardian)
@@ -213,13 +213,13 @@ func TestGuardianshipManager_AddGuardian_ChildRepoError(t *testing.T) {
 }
 
 func TestGuardianshipManager_AddGuardian_UserNotFound(t *testing.T) {
-	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.NewID(1)}}
+	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.FromUint64(1)}}
 	userRepo := &stubUserDomainRepo{user: nil}
 	guardRepo := &stubGuardianshipRepo{}
 
 	manager := NewManagerService(guardRepo, childRepo, userRepo)
 
-	guardian, err := manager.AddGuardian(context.Background(), meta.NewID(2), meta.NewID(1), RelParent)
+	guardian, err := manager.AddGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1), RelParent)
 
 	require.Error(t, err)
 	assert.Nil(t, guardian)
@@ -230,7 +230,7 @@ func TestGuardianshipManager_RemoveGuardian_FindError(t *testing.T) {
 	guardRepo := &stubGuardianshipRepo{findErr: errors.New("db error")}
 	manager := NewManagerService(guardRepo, &stubChildDomainRepo{}, &stubUserDomainRepo{})
 
-	removed, err := manager.RemoveGuardian(context.Background(), meta.NewID(2), meta.NewID(1))
+	removed, err := manager.RemoveGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1))
 
 	require.Error(t, err)
 	assert.Nil(t, removed)
@@ -266,10 +266,10 @@ func (s *seqGuardRepo) IsGuardian(context.Context, meta.ID, meta.ID) (bool, erro
 func (s *seqGuardRepo) Update(context.Context, *Guardianship) error                { return nil }
 
 func TestGuardianshipManager_AddGuardian_ConcurrentDuplicateDetection(t *testing.T) {
-	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.NewID(1)}}
-	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.NewID(2)}}
+	childRepo := &stubChildDomainRepo{child: &childdomain.Child{ID: meta.FromUint64(1)}}
+	userRepo := &stubUserDomainRepo{user: &userdomain.User{ID: meta.FromUint64(2)}}
 
-	existing := &Guardianship{User: meta.NewID(2), Child: meta.NewID(1)}
+	existing := &Guardianship{User: meta.FromUint64(2), Child: meta.FromUint64(1)}
 	seq := &seqGuardRepo{
 		responses: [][]*Guardianship{
 			{},         // first caller sees none
@@ -293,7 +293,7 @@ func TestGuardianshipManager_AddGuardian_ConcurrentDuplicateDetection(t *testing
 		go func() {
 			defer wg.Done()
 			<-startCh
-			g, err := manager.AddGuardian(context.Background(), meta.NewID(2), meta.NewID(1), RelParent)
+			g, err := manager.AddGuardian(context.Background(), meta.FromUint64(2), meta.FromUint64(1), RelParent)
 			results[idx].g = g
 			results[idx].err = err
 		}()

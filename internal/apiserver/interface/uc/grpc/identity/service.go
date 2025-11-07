@@ -185,29 +185,29 @@ func (s *guardianshipQueryServer) ListChildren(ctx context.Context, req *identit
 func parseUserID(raw string) (meta.ID, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return meta.ID{}, status.Error(codes.InvalidArgument, "user_id cannot be empty")
+		return meta.FromUint64(0), status.Error(codes.InvalidArgument, "user_id cannot be empty")
 	}
 
 	id, err := strconv.ParseUint(raw, 10, 64)
 	if err != nil {
-		return meta.ID{}, status.Errorf(codes.InvalidArgument, "invalid user_id: %s", raw)
+		return meta.FromUint64(0), status.Errorf(codes.InvalidArgument, "invalid user_id: %s", raw)
 	}
 
-	return meta.NewID(id), nil
+	return meta.FromUint64(id), nil
 }
 
 func parseChildID(raw string) (meta.ID, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return meta.ID{}, status.Error(codes.InvalidArgument, "child_id cannot be empty")
+		return meta.FromUint64(0), status.Error(codes.InvalidArgument, "child_id cannot be empty")
 	}
 
 	id, err := strconv.ParseUint(raw, 10, 64)
 	if err != nil {
-		return meta.ID{}, status.Errorf(codes.InvalidArgument, "invalid child_id: %s", raw)
+		return meta.FromUint64(0), status.Errorf(codes.InvalidArgument, "invalid child_id: %s", raw)
 	}
 
-	return meta.NewID(id), nil
+	return meta.FromUint64(id), nil
 }
 
 func toProtoUser(u *userDomain.User) *identityv1.User {

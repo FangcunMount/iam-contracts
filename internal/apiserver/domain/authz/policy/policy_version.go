@@ -1,7 +1,6 @@
 package policy
 
 import (
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -48,16 +47,16 @@ func (pv *PolicyVersion) PubSubChannel() string {
 }
 
 // PolicyVersionID 策略版本ID值对象
-type PolicyVersionID idutil.ID
+type PolicyVersionID meta.ID
 
 func NewPolicyVersionID(value uint64) PolicyVersionID {
-	return PolicyVersionID(meta.NewID(value))
+	return PolicyVersionID(meta.FromUint64(value)) // 从 uint64 构造
 }
 
 func (id PolicyVersionID) Uint64() uint64 {
-	return idutil.ID(id).Uint64()
+	return meta.ID(id).Uint64()
 }
 
 func (id PolicyVersionID) String() string {
-	return idutil.ID(id).String()
+	return meta.ID(id).String()
 }

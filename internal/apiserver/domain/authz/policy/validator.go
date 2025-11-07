@@ -80,7 +80,8 @@ func (v *validator) CheckRoleExistsAndTenant(
 	roleID uint64,
 	tenantID string,
 ) (string, error) {
-	roleExists, err := v.roleRepo.FindByID(ctx, meta.NewID(roleID))
+	id := meta.FromUint64(roleID) // roleID 来自请求，必定有效
+	roleExists, err := v.roleRepo.FindByID(ctx, id)
 	if err != nil {
 		if errors.IsCode(err, code.ErrRoleNotFound) {
 			return "", errors.WithCode(code.ErrRoleNotFound, "角色 %d 不存在", roleID)

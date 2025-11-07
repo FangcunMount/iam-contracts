@@ -31,7 +31,8 @@ func (a *TokenVerifierAdapter) VerifyAccessToken(ctx context.Context, tokenValue
 	// 调用 token 模块的验证服务
 	claims, err := a.tokenVerifier.VerifyAccessToken(ctx, tokenValue)
 	if err != nil {
-		return meta.NewID(0), meta.NewID(0), meta.NewID(0), fmt.Errorf("token verification failed: %w", err)
+		zeroID := meta.FromUint64(0)
+		return zeroID, zeroID, zeroID, fmt.Errorf("token verification failed: %w", err)
 	}
 
 	// 从 claims 中提取信息
@@ -40,5 +41,6 @@ func (a *TokenVerifierAdapter) VerifyAccessToken(ctx context.Context, tokenValue
 
 	// tenantID 目前从 token claims 中无法获取，返回 nil
 	// 如果需要，可以在 TokenClaims 中添加 TenantID 字段
-	return userID, accountID, meta.NewID(0), nil
+	zeroTenantID := meta.FromUint64(0)
+	return userID, accountID, zeroTenantID, nil
 }

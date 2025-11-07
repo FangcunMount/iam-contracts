@@ -35,13 +35,23 @@ func TestUserRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 	errs := make(chan error, concurrency)
 
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	idNumber := "USERID202511060001"
+	idNumber := "110101199003070011" // 有效的测试身份证号
 	for i := 0; i < concurrency; i++ {
 		delay := rng.Intn(8)
 		go func(d int) {
 			defer wg.Done()
 			time.Sleep(time.Millisecond * time.Duration(d))
-			u, err := domain.NewUser("Bob", m.NewPhone("+8613900000000"), domain.WithIDCard(m.NewIDCard("Bob", idNumber)))
+			phone, err := m.NewPhone("+8613900000000")
+			if err != nil {
+				errs <- err
+				return
+			}
+			idCard, err := m.NewIDCard("Bob", idNumber)
+			if err != nil {
+				errs <- err
+				return
+			}
+			u, err := domain.NewUser("Bob", phone, domain.WithIDCard(idCard))
 			if err != nil {
 				errs <- err
 				return

@@ -36,13 +36,13 @@ func TestUserApplicationService_Register_Success(t *testing.T) {
 	require.NotNil(t, result)
 	assert.NotEmpty(t, result.ID)
 	assert.Equal(t, dto.Name, result.Name)
-	assert.Equal(t, dto.Phone, result.Phone)
+	assert.Equal(t, "+86"+dto.Phone, result.Phone) // Phone 会被规范化为 E.164 格式
 	assert.Equal(t, dto.Email, result.Email)
 	assert.Equal(t, domain.UserActive, result.Status)
 
 	// 验证数据库持久化
 	queryService := user.NewUserQueryApplicationService(unitOfWork)
-	saved, err := queryService.GetByPhone(ctx, dto.Phone)
+	saved, err := queryService.GetByPhone(ctx, "+86"+dto.Phone) // 查询时也需要使用 E.164 格式
 	require.NoError(t, err)
 	assert.Equal(t, result.ID, saved.ID)
 }
@@ -68,8 +68,8 @@ func TestUserApplicationService_Register_WithoutEmail(t *testing.T) {
 	require.NotNil(t, result)
 	assert.NotEmpty(t, result.ID)
 	assert.Equal(t, dto.Name, result.Name)
-	assert.Equal(t, dto.Phone, result.Phone)
-	assert.Empty(t, result.Email) // 邮箱应该为空
+	assert.Equal(t, "+86"+dto.Phone, result.Phone) // Phone 会被规范化为 E.164 格式
+	assert.Empty(t, result.Email)                  // 邮箱应该为空
 }
 
 func TestUserApplicationService_Register_DuplicatePhone(t *testing.T) {
@@ -205,7 +205,7 @@ func TestUserProfileApplicationService_UpdateContact_Success(t *testing.T) {
 	queryService := user.NewUserQueryApplicationService(unitOfWork)
 	updated, err := queryService.GetByID(ctx, created.ID)
 	require.NoError(t, err)
-	assert.Equal(t, dto.Phone, updated.Phone)
+	assert.Equal(t, "+86"+dto.Phone, updated.Phone) // Phone 会被规范化为 E.164 格式
 	assert.Equal(t, dto.Email, updated.Email)
 }
 
@@ -224,7 +224,7 @@ func TestUserProfileApplicationService_UpdateIDCard_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	profileService := user.NewUserProfileApplicationService(unitOfWork)
-	idCard := "110101199001011234"
+	idCard := "110101199003070011" // 有效的测试身份证号
 
 	// Act
 	err = profileService.UpdateIDCard(ctx, created.ID, idCard)

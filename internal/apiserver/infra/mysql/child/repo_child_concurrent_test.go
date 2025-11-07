@@ -35,14 +35,19 @@ func TestChildRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 	errs := make(chan error, concurrency)
 
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	idNumber := "ID202511060001"
+	idNumber := "110101199003070011" // 有效的测试身份证号
 	for i := 0; i < concurrency; i++ {
 		delay := rng.Intn(8)
 		go func(d int) {
 			defer wg.Done()
 			// tiny jitter to reduce lock storms on SQLite
 			time.Sleep(time.Millisecond * time.Duration(d))
-			c, err := domain.NewChild("Alice", domain.WithIDCard(m.NewIDCard("Alice", idNumber)))
+			idCard, err := m.NewIDCard("Alice", idNumber)
+			if err != nil {
+				errs <- err
+				return
+			}
+			c, err := domain.NewChild("Alice", domain.WithIDCard(idCard))
 			if err != nil {
 				errs <- err
 				return

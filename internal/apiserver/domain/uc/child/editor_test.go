@@ -26,7 +26,7 @@ func (s *stubChildRepository) FindByID(ctx context.Context, id meta.ID) (*Child,
 		return nil, s.findErr
 	}
 	if s.child == nil {
-		return nil, fmt.Errorf("child %d not found", id.ToUint64())
+		return nil, fmt.Errorf("child %d not found", id.Uint64())
 	}
 	return s.child, nil
 }
@@ -66,7 +66,8 @@ func (s *stubChildValidator) ValidateUpdateProfile(meta.Gender, meta.Birthday) e
 }
 
 func TestChildProfileEditor_RenameSuccess(t *testing.T) {
-	child := &Child{ID: meta.NewID(1), Name: "Old"}
+	id := meta.FromUint64(1)
+	child := &Child{ID: id, Name: "Old"}
 	repo := &stubChildRepository{child: child}
 	editor := NewProfileService(repo, &stubChildValidator{})
 
@@ -79,7 +80,8 @@ func TestChildProfileEditor_RenameSuccess(t *testing.T) {
 }
 
 func TestChildProfileEditor_RenameValidatorError(t *testing.T) {
-	repo := &stubChildRepository{child: &Child{ID: meta.NewID(1), Name: "Old"}}
+	id := meta.FromUint64(1)
+	repo := &stubChildRepository{child: &Child{ID: id, Name: "Old"}}
 	editor := NewProfileService(repo, &stubChildValidator{renameErr: errors.New("invalid name")})
 
 	updated, err := editor.Rename(context.Background(), repo.child.ID, "bad")
@@ -90,7 +92,7 @@ func TestChildProfileEditor_RenameValidatorError(t *testing.T) {
 }
 
 func TestChildProfileEditor_RenameRepoError(t *testing.T) {
-	repo := &stubChildRepository{child: &Child{ID: meta.NewID(1)}, findErr: errors.New("db error")}
+	repo := &stubChildRepository{child: &Child{ID: meta.FromUint64(1)}, findErr: errors.New("db error")}
 	editor := NewProfileService(repo, &stubChildValidator{})
 
 	updated, err := editor.Rename(context.Background(), repo.child.ID, "Name")
@@ -101,7 +103,7 @@ func TestChildProfileEditor_RenameRepoError(t *testing.T) {
 }
 
 func TestChildProfileEditor_UpdateProfileSuccess(t *testing.T) {
-	child := &Child{ID: meta.NewID(2)}
+	child := &Child{ID: meta.FromUint64(2)}
 	repo := &stubChildRepository{child: child}
 	editor := NewProfileService(repo, &stubChildValidator{})
 
@@ -115,7 +117,7 @@ func TestChildProfileEditor_UpdateProfileSuccess(t *testing.T) {
 }
 
 func TestChildProfileEditor_UpdateProfileValidatorError(t *testing.T) {
-	repo := &stubChildRepository{child: &Child{ID: meta.NewID(3)}}
+	repo := &stubChildRepository{child: &Child{ID: meta.FromUint64(3)}}
 	editor := NewProfileService(repo, &stubChildValidator{updateProfileErr: errors.New("bad birthday")})
 
 	updated, err := editor.UpdateProfile(context.Background(), repo.child.ID, meta.GenderMale, meta.Birthday{})
@@ -126,7 +128,7 @@ func TestChildProfileEditor_UpdateProfileValidatorError(t *testing.T) {
 }
 
 func TestChildProfileEditor_UpdateHeightWeight(t *testing.T) {
-	child := &Child{ID: meta.NewID(4)}
+	child := &Child{ID: meta.FromUint64(4)}
 	repo := &stubChildRepository{child: child}
 	editor := NewProfileService(repo, &stubChildValidator{})
 
@@ -144,11 +146,12 @@ func TestChildProfileEditor_UpdateHeightWeight(t *testing.T) {
 }
 
 func TestChildProfileEditor_UpdateIDCard(t *testing.T) {
-	child := &Child{ID: meta.NewID(5)}
+	child := &Child{ID: meta.FromUint64(5)}
 	repo := &stubChildRepository{child: child}
 	editor := NewProfileService(repo, &stubChildValidator{})
 
-	idCard := meta.NewIDCard("tester", "111")
+	idCard, err := meta.NewIDCard("tester", "110101199003070011")
+	require.NoError(t, err)
 	updated, err := editor.UpdateIDCard(context.Background(), child.ID, idCard)
 
 	require.NoError(t, err)
