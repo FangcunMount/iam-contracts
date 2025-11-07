@@ -2,6 +2,7 @@ package testhelpers
 
 import (
 	"context"
+	"sync"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	assignment "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
@@ -78,18 +79,24 @@ type ChildRepoStub struct {
 	FindErr    error
 	FindCalls  int
 	UpdateArgs []*child.Child
+	mu         sync.Mutex
 }
 
 func (s *ChildRepoStub) Create(ctx context.Context, c *child.Child) error { return nil }
 func (s *ChildRepoStub) FindByID(ctx context.Context, id meta.ID) (*child.Child, error) {
+	s.mu.Lock()
 	s.FindCalls++
-	if s.FindErr != nil {
-		return nil, s.FindErr
+	findErr := s.FindErr
+	ch := s.Child
+	s.mu.Unlock()
+
+	if findErr != nil {
+		return nil, findErr
 	}
-	if s.Child == nil {
+	if ch == nil {
 		return nil, nil
 	}
-	return s.Child, nil
+	return ch, nil
 }
 func (s *ChildRepoStub) FindByName(ctx context.Context, name string) (*child.Child, error) {
 	return nil, s.FindErr
@@ -107,8 +114,11 @@ func (s *ChildRepoStub) FindSimilar(ctx context.Context, name string, gender met
 	return nil, s.FindErr
 }
 func (s *ChildRepoStub) Update(ctx context.Context, ch *child.Child) error {
+	s.mu.Lock()
 	s.UpdateArgs = append(s.UpdateArgs, ch)
-	return s.FindErr
+	findErr := s.FindErr
+	s.mu.Unlock()
+	return findErr
 }
 
 // ChildValidatorStub is a stub for child.Validator used in tests.
@@ -137,6 +147,7 @@ type UserRepoStub struct {
 	CreateArgs     []*user.User
 	FindIDCalls    int
 	FindPhoneCalls int
+	mu             sync.Mutex
 }
 
 func NewUserRepoStub() *UserRepoStub {
@@ -147,42 +158,64 @@ func NewUserRepoStub() *UserRepoStub {
 }
 
 func (s *UserRepoStub) Create(ctx context.Context, u *user.User) error {
+	s.mu.Lock()
 	s.CreateArgs = append(s.CreateArgs, u)
-	if s.FindErr != nil {
-		return s.FindErr
-	}
+	findErr := s.FindErr
 	if u != nil {
 		s.UsersByID[u.ID.Uint64()] = u
 		s.UsersByPhone[u.Phone.String()] = u
 	}
-	return nil
+	s.mu.Unlock()
+	return findErr
 }
 
 func (s *UserRepoStub) FindByID(ctx context.Context, id meta.ID) (*user.User, error) {
+	s.mu.Lock()
 	s.FindIDCalls++
-	if s.FindErr != nil {
-		return nil, s.FindErr
+	findErr := s.FindErr
+	u, ok := s.UsersByID[id.Uint64()]
+	s.mu.Unlock()
+
+	if findErr != nil {
+		return nil, findErr
 	}
-	if u, ok := s.UsersByID[id.Uint64()]; ok {
-		return u, nil
+	// If the map contains the key but the value is nil, treat it as "not found"
+	// without a DB error (return nil, nil). Only return gorm.ErrRecordNotFound
+	// when the key is absent from the map.
+	if ok {
+		if u != nil {
+			return u, nil
+		}
+		return nil, nil
 	}
 	return nil, gorm.ErrRecordNotFound
 }
 
 func (s *UserRepoStub) FindByPhone(ctx context.Context, phone meta.Phone) (*user.User, error) {
+	s.mu.Lock()
 	s.FindPhoneCalls++
-	if s.PhoneErr != nil {
-		return nil, s.PhoneErr
+	phoneErr := s.PhoneErr
+	u, ok := s.UsersByPhone[phone.String()]
+	s.mu.Unlock()
+
+	if phoneErr != nil {
+		return nil, phoneErr
 	}
-	if u, ok := s.UsersByPhone[phone.String()]; ok {
-		return u, nil
+	if ok {
+		if u != nil {
+			return u, nil
+		}
+		return nil, nil
 	}
 	return nil, gorm.ErrRecordNotFound
 }
 
 func (s *UserRepoStub) Update(ctx context.Context, u *user.User) error {
+	s.mu.Lock()
 	s.UpdateArgs = append(s.UpdateArgs, u)
-	return s.FindErr
+	findErr := s.FindErr
+	s.mu.Unlock()
+	return findErr
 }
 
 // UserValidatorStub is a stub for user.Validator used in tests.
