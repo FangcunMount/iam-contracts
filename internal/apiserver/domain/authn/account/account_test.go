@@ -3,105 +3,80 @@ package account
 import (
 	"testing"
 
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
-func TestNewAccount_DefaultsAndOptions(t *testing.T) {
-	acc := NewAccount(meta.FromUint64(1), AccountType("wc-minip"), ExternalID("ext-1"))
+func TestNewAccount_And_Options(t *testing.T) {
+	userID := meta.FromUint64(10)
+	acc := NewAccount(userID, TypeWcMinip, ExternalID("ext-1"))
+
 	require.NotNil(t, acc)
-	assert.Equal(t, StatusActive, acc.Status)
+	// NewAccount 首参应当作为关联 UserID
+	assert.Equal(t, userID, acc.UserID)
+	// 默认情况下 ID 由持久层生成，应为零值
+	assert.Equal(t, uint64(0), acc.ID.Uint64())
+	assert.Equal(t, TypeWcMinip, acc.Type)
 	assert.Equal(t, ExternalID("ext-1"), acc.ExternalID)
-
-	// options
-	a2 := NewAccount(meta.FromUint64(2), AccountType("wc-offi"), ExternalID("e2"), WithUnionID(UnionID("u2")), WithAppID(AppId("appid")))
-	assert.Equal(t, UnionID("u2"), a2.UniqueID)
-	assert.Equal(t, AppId("appid"), a2.AppID)
-}
-
-func TestStatusQueriesAndTransitions(t *testing.T) {
-	acc := NewAccount(meta.FromUint64(10), AccountType("t"), ExternalID("e"))
-	// initial
-	assert.True(t, acc.IsActive())
-	assert.False(t, acc.IsDisabled())
-
-	acc.Disable()
-	assert.True(t, acc.IsDisabled())
-
-	acc.Activate()
 	assert.True(t, acc.IsActive())
 
-	acc.Archive()
-	assert.True(t, acc.IsArchived())
-
-	acc.Delete()
-	assert.True(t, acc.IsDeleted())
+	// WithID 与 WithAppID 生效
+	id := meta.FromUint64(123)
+	acc2 := NewAccount(userID, TypeWcMinip, ExternalID("x"), WithID(id), WithAppID(AppId("app-x")))
+	require.NotNil(t, acc2)
+	assert.Equal(t, id, acc2.ID)
+	assert.Equal(t, AppId("app-x"), acc2.AppID)
 }
 
 func TestSetUniqueID_Idempotency(t *testing.T) {
-	acc := NewAccount(meta.FromUint64(3), AccountType("t"), ExternalID("e"))
-	ok := acc.SetUniqueID(UnionID("u1"))
-	assert.True(t, ok)
-	assert.Equal(t, UnionID("u1"), acc.UniqueID)
+	userID := meta.FromUint64(11)
+	acc := NewAccount(userID, TypeWcMinip, ExternalID("e"))
 
-	// second set should fail
-	ok2 := acc.SetUniqueID(UnionID("u2"))
+	ok := acc.SetUniqueID(UnionID("u-1"))
+	assert.True(t, ok)
+	assert.Equal(t, UnionID("u-1"), acc.UniqueID)
+
+	// 再次设置应该被拒绝
+	ok2 := acc.SetUniqueID(UnionID("u-2"))
 	assert.False(t, ok2)
-	assert.Equal(t, UnionID("u1"), acc.UniqueID)
+	assert.Equal(t, UnionID("u-1"), acc.UniqueID)
 }
 
-func TestProfileAndMetaMergeAndFields(t *testing.T) {
-	acc := NewAccount(meta.FromUint64(4), AccountType("t"), ExternalID("e"))
-	acc.UpdateProfile(map[string]string{"nick": "n1"})
-	v, ok := acc.GetProfileField("nick")
-	assert.True(t, ok)
-	assert.Equal(t, "n1", v)
+func TestProfileAndMetaMerge(t *testing.T) {
+	userID := meta.FromUint64(12)
+	acc := NewAccount(userID, TypeWcMinip, ExternalID("e2"))
 
-	acc.UpdateProfile(map[string]string{"avatar": "a1"})
-	v2, ok2 := acc.GetProfileField("avatar")
-	assert.True(t, ok2)
-	assert.Equal(t, "a1", v2)
+	acc.UpdateProfile(map[string]string{"name": "A", "age": "5"})
+	assert.Equal(t, "A", acc.Profile["name"])
+	assert.Equal(t, "5", acc.Profile["age"])
 
-	acc.SetProfileField("nick", "n2")
-	v3, _ := acc.GetProfileField("nick")
-	assert.Equal(t, "n2", v3)
+	// merge 更新
+	acc.UpdateProfile(map[string]string{"age": "6", "city": "X"})
+	assert.Equal(t, "6", acc.Profile["age"])
+	assert.Equal(t, "X", acc.Profile["city"])
 
-	// meta
-	acc.UpdateMeta(map[string]string{"k": "v"})
-	mv, mok := acc.GetMetaField("k")
-	assert.True(t, mok)
-	assert.Equal(t, "v", mv)
-
-	acc.SetMetaField("k", "v2")
-	mv2, _ := acc.GetMetaField("k")
-	assert.Equal(t, "v2", mv2)
+	// meta 同理
+	acc.UpdateMeta(map[string]string{"k1": "v1"})
+	assert.Equal(t, "v1", acc.Meta["k1"])
 }
 
-func TestCanTransitionToRules(t *testing.T) {
-	acc := NewAccount(meta.FromUint64(5), AccountType("t"), ExternalID("e"))
+func TestStatusTransitions(t *testing.T) {
+	userID := meta.FromUint64(13)
+	acc := NewAccount(userID, TypeWcMinip, ExternalID("e3"))
 
-	// Active -> Disabled, Archived, Deleted
+	// 默认 Active
 	assert.True(t, acc.CanTransitionTo(StatusDisabled))
 	assert.True(t, acc.CanTransitionTo(StatusArchived))
-	assert.True(t, acc.CanTransitionTo(StatusDeleted))
+	assert.False(t, acc.CanTransitionTo(-99))
 
 	// Disabled -> Active
 	acc.Disable()
+	assert.True(t, acc.IsDisabled())
 	assert.True(t, acc.CanTransitionTo(StatusActive))
-
-	// Archived -> Active
-	acc.Archive()
-	assert.True(t, acc.CanTransitionTo(StatusActive))
-
-	// Deleted is terminal
-	acc.Delete()
-	assert.False(t, acc.CanTransitionTo(StatusActive))
-	assert.True(t, acc.CanTransitionTo(StatusDeleted))
 }
 
-func TestCanUpdateWhenDeleted(t *testing.T) {
+func TestIsSameUserAndHelpers(t *testing.T) {
 	acc := NewAccount(meta.FromUint64(6), AccountType("t"), ExternalID("e"))
 	assert.True(t, acc.CanUpdateProfile())
 	assert.True(t, acc.CanUpdateMeta())

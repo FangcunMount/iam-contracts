@@ -1,4 +1,4 @@
-package user
+package user_test
 
 import (
 	"context"
@@ -10,12 +10,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
+	user "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 func TestValidator_ValidateRegisterSuccess(t *testing.T) {
-	repo := newStubUserRepository()
-	v := NewValidator(repo)
+	repo := testhelpers.NewUserRepoStub()
+	v := user.NewValidator(repo)
 
 	phone, err := meta.NewPhone("+8613012345678")
 	require.NoError(t, err)
@@ -23,12 +25,12 @@ func TestValidator_ValidateRegisterSuccess(t *testing.T) {
 	err = v.ValidateRegister(context.Background(), " name ", phone)
 
 	require.NoError(t, err)
-	assert.Equal(t, 1, repo.findPhoneCalls)
+	assert.Equal(t, 1, repo.FindPhoneCalls)
 }
 
 func TestValidator_ValidateRegister_EmptyInputs(t *testing.T) {
-	repo := newStubUserRepository()
-	v := NewValidator(repo)
+	repo := testhelpers.NewUserRepoStub()
+	v := user.NewValidator(repo)
 
 	phone, err := meta.NewPhone("+8613012345678")
 	require.NoError(t, err)
@@ -43,23 +45,23 @@ func TestValidator_ValidateRegister_EmptyInputs(t *testing.T) {
 }
 
 func TestValidator_ValidateRegister_DuplicatePhone(t *testing.T) {
-	repo := newStubUserRepository()
+	repo := testhelpers.NewUserRepoStub()
 	phone, err := meta.NewPhone("+8613012345678")
 	require.NoError(t, err)
-	repo.usersByPhone[phone.String()] = &User{}
-	v := NewValidator(repo)
+	repo.UsersByPhone[phone.String()] = &user.User{}
+	v := user.NewValidator(repo)
 
 	err = v.ValidateRegister(context.Background(), "name", phone)
 
 	require.Error(t, err)
 	assert.Contains(t, fmt.Sprintf("%-v", err), "already exists")
-	assert.Equal(t, 1, repo.findPhoneCalls)
+	assert.Equal(t, 1, repo.FindPhoneCalls)
 }
 
 func TestValidator_CheckPhoneUnique_ErrorPropagation(t *testing.T) {
-	repo := newStubUserRepository()
-	repo.phoneErr = errors.New("db failure")
-	v := NewValidator(repo)
+	repo := testhelpers.NewUserRepoStub()
+	repo.PhoneErr = errors.New("db failure")
+	v := user.NewValidator(repo)
 
 	phone, err := meta.NewPhone("+8613012345678")
 	require.NoError(t, err)
@@ -68,12 +70,12 @@ func TestValidator_CheckPhoneUnique_ErrorPropagation(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, fmt.Sprintf("%-v", err), "check user phone")
-	assert.Equal(t, 1, repo.findPhoneCalls)
+	assert.Equal(t, 1, repo.FindPhoneCalls)
 }
 
 func TestValidator_CheckPhoneUnique_EmptyPhone(t *testing.T) {
-	repo := newStubUserRepository()
-	v := NewValidator(repo)
+	repo := testhelpers.NewUserRepoStub()
+	v := user.NewValidator(repo)
 
 	err := v.CheckPhoneUnique(context.Background(), meta.Phone{})
 	require.Error(t, err)
@@ -81,7 +83,7 @@ func TestValidator_CheckPhoneUnique_EmptyPhone(t *testing.T) {
 }
 
 func TestValidator_ValidateRename(t *testing.T) {
-	v := NewValidator(newStubUserRepository())
+	v := user.NewValidator(testhelpers.NewUserRepoStub())
 
 	assert.NoError(t, v.ValidateRename(" valid "))
 
@@ -91,11 +93,11 @@ func TestValidator_ValidateRename(t *testing.T) {
 }
 
 func TestValidator_ValidateUpdateContact(t *testing.T) {
-	repo := newStubUserRepository()
+	repo := testhelpers.NewUserRepoStub()
 	phone, err := meta.NewPhone("+8613012345678")
 	require.NoError(t, err)
-	userEntity, _ := NewUser("user", phone)
-	v := NewValidator(repo)
+	userEntity, _ := user.NewUser("user", phone)
+	v := user.NewValidator(repo)
 
 	email, err := meta.NewEmail("a@b.com")
 	require.NoError(t, err)
@@ -103,28 +105,28 @@ func TestValidator_ValidateUpdateContact(t *testing.T) {
 	// same phone should skip uniqueness check
 	err = v.ValidateUpdateContact(context.Background(), userEntity, phone, email)
 	require.NoError(t, err)
-	assert.Equal(t, 0, repo.findPhoneCalls)
+	assert.Equal(t, 0, repo.FindPhoneCalls)
 
 	// changed phone and repository says available
 	newPhone1, err := meta.NewPhone("+8613112345678")
 	require.NoError(t, err)
 	err = v.ValidateUpdateContact(context.Background(), userEntity, newPhone1, email)
 	require.NoError(t, err)
-	assert.Equal(t, 1, repo.findPhoneCalls)
+	assert.Equal(t, 1, repo.FindPhoneCalls)
 
 	// changed phone but duplicate exists
 	newPhone2, err := meta.NewPhone("+8613212345678")
 	require.NoError(t, err)
-	repo.usersByPhone[newPhone2.String()] = &User{}
+	repo.UsersByPhone[newPhone2.String()] = &user.User{}
 	err = v.ValidateUpdateContact(context.Background(), userEntity, newPhone2, email)
 	require.Error(t, err)
 	assert.Contains(t, fmt.Sprintf("%-v", err), "already exists")
-	assert.Equal(t, 2, repo.findPhoneCalls)
+	assert.Equal(t, 2, repo.FindPhoneCalls)
 }
 
 func TestValidator_CheckPhoneUnique_NotFound(t *testing.T) {
-	repo := newStubUserRepository()
-	v := NewValidator(repo)
+	repo := testhelpers.NewUserRepoStub()
+	v := user.NewValidator(repo)
 
 	phone, err := meta.NewPhone("+8613012345678")
 	require.NoError(t, err)
@@ -132,41 +134,41 @@ func TestValidator_CheckPhoneUnique_NotFound(t *testing.T) {
 	err = v.CheckPhoneUnique(context.Background(), phone)
 
 	require.NoError(t, err)
-	assert.Equal(t, 1, repo.findPhoneCalls)
+	assert.Equal(t, 1, repo.FindPhoneCalls)
 }
 
 func TestValidator_CheckPhoneUnique_Found(t *testing.T) {
-	repo := newStubUserRepository()
+	repo := testhelpers.NewUserRepoStub()
 	phone, err := meta.NewPhone("+8613012345678")
 	require.NoError(t, err)
-	repo.usersByPhone[phone.String()] = &User{}
-	v := NewValidator(repo)
+	repo.UsersByPhone[phone.String()] = &user.User{}
+	v := user.NewValidator(repo)
 
 	err = v.CheckPhoneUnique(context.Background(), phone)
 
 	require.Error(t, err)
-	assert.Equal(t, 1, repo.findPhoneCalls)
+	assert.Equal(t, 1, repo.FindPhoneCalls)
 	assert.Contains(t, fmt.Sprintf("%-v", err), "already exists")
 }
 
 func TestValidator_CheckPhoneUnique_RepoReturnsNotFound(t *testing.T) {
-	repo := newStubUserRepository()
-	phone, err := meta.NewPhone("+8613312345678")
+	repo := testhelpers.NewUserRepoStub()
+	phone, err := meta.NewPhone("+8613012345678")
 	require.NoError(t, err)
 	// ensure stub returns ErrRecordNotFound
-	delete(repo.usersByPhone, phone.String())
-	v := NewValidator(repo)
+	delete(repo.UsersByPhone, phone.String())
+	v := user.NewValidator(repo)
 
 	err = v.CheckPhoneUnique(context.Background(), phone)
 
 	require.NoError(t, err)
-	assert.Equal(t, 1, repo.findPhoneCalls)
+	assert.Equal(t, 1, repo.FindPhoneCalls)
 }
 
 func TestValidator_CheckPhoneUnique_RepoReturnsUnknown(t *testing.T) {
-	repo := newStubUserRepository()
-	repo.phoneErr = gorm.ErrInvalidDB
-	v := NewValidator(repo)
+	repo := testhelpers.NewUserRepoStub()
+	repo.PhoneErr = gorm.ErrInvalidDB
+	v := user.NewValidator(repo)
 
 	phone, err := meta.NewPhone("+8613412345678")
 	require.NoError(t, err)
@@ -175,5 +177,5 @@ func TestValidator_CheckPhoneUnique_RepoReturnsUnknown(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, fmt.Sprintf("%-v", err), "failed")
-	assert.Equal(t, 1, repo.findPhoneCalls)
+	assert.Equal(t, 1, repo.FindPhoneCalls)
 }

@@ -1,15 +1,16 @@
-package assignment
+package assignment_test
 
 import (
 	"testing"
 
+	assignment "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAssignment_CreateAndKeys(t *testing.T) {
-	a := NewAssignment(SubjectTypeUser, "u1", 42, "tenant", WithID(NewAssignmentID(5)), WithGrantedBy("admin"))
-	assert.Equal(t, SubjectTypeUser, a.SubjectType)
+	a := assignment.NewAssignment(assignment.SubjectTypeUser, "u1", 42, "tenant", assignment.WithID(assignment.NewAssignmentID(5)), assignment.WithGrantedBy("admin"))
+	assert.Equal(t, assignment.SubjectTypeUser, a.SubjectType)
 	assert.Equal(t, "u1", a.SubjectID)
 	assert.Equal(t, "admin", a.GrantedBy)
 	assert.Equal(t, "user:u1", a.SubjectKey())

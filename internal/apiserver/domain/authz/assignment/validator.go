@@ -1,4 +1,3 @@
-// Package service 赋权领域服务
 package assignment
 
 import (

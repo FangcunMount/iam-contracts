@@ -45,10 +45,11 @@ func (s *childApplicationService) Register(ctx context.Context, dto RegisterChil
 		// 创建儿童实体
 		var newChild *domain.Child
 		var err error
+		var idCard meta.IDCard
 
 		if dto.IDCard != "" {
 			// 带身份证注册
-			idCard, err := meta.NewIDCard(dto.Name, dto.IDCard)
+			idCard, err = meta.NewIDCard(dto.Name, dto.IDCard)
 			if err != nil {
 				return err
 			}
