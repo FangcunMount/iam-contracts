@@ -27,8 +27,6 @@ type Credential struct {
 	LockedUntil    *time.Time // 锁定截止时间
 	LastSuccessAt  *time.Time // 最近成功时间
 	LastFailureAt  *time.Time // 最近失败时间
-
-	Rev int64 // 乐观锁
 }
 
 // ==================== 状态查询方法 ====================

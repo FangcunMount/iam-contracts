@@ -31,8 +31,6 @@ type PO struct {
 	LockedUntil    *time.Time `gorm:"column:locked_until;type:datetime"`
 	LastSuccessAt  *time.Time `gorm:"column:last_success_at;type:datetime"`
 	LastFailureAt  *time.Time `gorm:"column:last_failure_at;type:datetime"`
-
-	Rev int64 `gorm:"column:rev;type:bigint;not null;default:0"` // 乐观锁版本号
 }
 
 // TableName 指定凭据表名。
@@ -54,7 +52,6 @@ func (p *PO) BeforeCreate(tx *gorm.DB) error {
 	p.UpdatedBy = updatedBy
 	p.DeletedBy = deletedBy
 	p.Version = base.InitialVersion
-	p.Rev = 0
 	return nil
 }
 
@@ -63,6 +60,5 @@ func (p *PO) BeforeUpdate(tx *gorm.DB) error {
 	p.UpdatedAt = time.Now()
 	updatedBy := meta.FromUint64(0)
 	p.UpdatedBy = updatedBy
-	p.Rev++ // 乐观锁版本递增
 	return nil
 }

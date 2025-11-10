@@ -36,7 +36,6 @@ func (m *Mapper) ToPO(cred *domain.Credential) *PO {
 		LockedUntil:    copyTimePtr(cred.LockedUntil),
 		LastSuccessAt:  copyTimePtr(cred.LastSuccessAt),
 		LastFailureAt:  copyTimePtr(cred.LastFailureAt),
-		Rev:            cred.Rev,
 	}
 
 	if !cred.ID.IsZero() {
@@ -66,7 +65,6 @@ func (m *Mapper) ToDO(po *PO) *domain.Credential {
 		LockedUntil:    copyTimePtr(po.LockedUntil),
 		LastSuccessAt:  copyTimePtr(po.LastSuccessAt),
 		LastFailureAt:  copyTimePtr(po.LastFailureAt),
-		Rev:            po.Rev,
 	}
 }
 
