@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	redis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -242,15 +243,40 @@ func (dm *DatabaseManager) initSingleRedis(instanceName string, opts *options.Si
 	// 构建地址
 	addr := fmt.Sprintf("%s:%d", opts.Host, opts.Port)
 
-	client := redis.NewClient(&redis.Options{
-		Addr:     addr,
-		Username: opts.Username,
-		Password: opts.Password,
-		DB:       opts.Database,
-	})
+	// 创建 Redis 客户端配置
+	redisOpts := &redis.Options{
+		Addr:            addr,
+		Username:        opts.Username,
+		Password:        opts.Password,
+		DB:              opts.Database,
+		MaxRetries:      3,
+		MinRetryBackoff: 8 * time.Millisecond,
+		MaxRetryBackoff: 512 * time.Millisecond,
+	}
 
-	// 测试连接
-	if err := client.Ping(context.Background()).Err(); err != nil {
+	// 设置超时时间
+	if opts.Timeout > 0 {
+		timeout := time.Duration(opts.Timeout) * time.Second
+		redisOpts.DialTimeout = timeout
+		redisOpts.ReadTimeout = timeout
+		redisOpts.WriteTimeout = timeout
+	}
+
+	// 设置连接池参数
+	if opts.MaxIdle > 0 {
+		redisOpts.MinIdleConns = opts.MaxIdle
+	}
+	if opts.MaxActive > 0 {
+		redisOpts.PoolSize = opts.MaxActive
+	}
+
+	client := redis.NewClient(redisOpts)
+
+	// 测试连接(使用较长的超时时间)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("failed to connect to Redis %s (%s): %w", instanceName, addr, err)
 	}
 
