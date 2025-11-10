@@ -265,6 +265,7 @@ func (r *Repository) FindPhoneOTPCredential(ctx context.Context, phoneE164 strin
 		Select("c.id as credential_id", "c.account_id", "a.user_id").
 		Joins("INNER JOIN iam_auth_accounts a ON c.account_id = a.id").
 		Where("c.type = ? AND c.idp = ? AND c.idp_identifier = ?", "phone_otp", "phone", phoneE164).
+		Order("c.id").
 		First(&result).Error
 
 	if err != nil {
@@ -300,12 +301,12 @@ func (r *Repository) FindOAuthCredential(ctx context.Context, idpType, appID, id
 		Joins("INNER JOIN iam_auth_accounts a ON c.account_id = a.id").
 		Where("c.type = ? AND c.idp_identifier = ?", idpType, idpIdentifier)
 
-	// 如果提供了 appID，则增加 appID 过滤条件
+	// 如果提供了 appID,则增加 appID 过滤条件
 	if appID != "" {
 		query = query.Where("c.app_id = ?", appID)
 	}
 
-	err = query.First(&result).Error
+	err = query.Order("c.id").First(&result).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			zeroID := meta.FromUint64(0)
