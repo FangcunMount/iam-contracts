@@ -23,7 +23,7 @@ type PO struct {
 	// 凭据材料（password 专用）
 	Material []byte  `gorm:"column:material;type:varbinary(512)"` // PHC hash
 	Algo     *string `gorm:"column:algo;type:varchar(32)"`        // argon2id/bcrypt
-	Params   []byte  `gorm:"column:params;type:json"`             // 扩展参数
+	Params   []byte  `gorm:"column:params_json;type:json"`        // 扩展参数
 
 	// 状态管理
 	Status         int8       `gorm:"column:status;type:tinyint;not null;default:1"`
