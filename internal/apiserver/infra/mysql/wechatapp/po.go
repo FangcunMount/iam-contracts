@@ -12,12 +12,10 @@ import (
 type WechatAppPO struct {
 	mysql.AuditFields
 
-	AppID     string    `gorm:"column:app_id;type:varchar(64);uniqueIndex;not null" json:"app_id"`
-	Name      string    `gorm:"column:name;type:varchar(255);not null" json:"name"`
-	Type      string    `gorm:"column:type;type:varchar(32);not null;index:idx_type" json:"type"`
-	Status    string    `gorm:"column:status;type:varchar(32);not null;default:'Enabled';index:idx_status" json:"status"`
-	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime;index:idx_created_at" json:"created_at"`
-	UpdatedAt time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updated_at"`
+	AppID  string `gorm:"column:app_id;type:varchar(64);uniqueIndex;not null" json:"app_id"`
+	Name   string `gorm:"column:name;type:varchar(255);not null" json:"name"`
+	Type   string `gorm:"column:type;type:varchar(32);not null;index:idx_type" json:"type"`
+	Status string `gorm:"column:status;type:varchar(32);not null;default:'Enabled';index:idx_status" json:"status"`
 
 	// 凭据字段（加密存储）
 	AuthSecretCipher    []byte     `gorm:"column:auth_secret_cipher;type:blob" json:"-"`
