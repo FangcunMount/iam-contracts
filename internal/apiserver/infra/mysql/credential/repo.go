@@ -259,23 +259,27 @@ func (r *Repository) FindPhoneOTPCredential(ctx context.Context, phoneE164 strin
 		UserID       uint64 `gorm:"column:user_id"`
 	}
 
-	var result Result
+	var results []Result
 	err = r.db.WithContext(ctx).
 		Table("iam_auth_credentials c").
 		Select("c.id as credential_id", "c.account_id", "a.user_id").
 		Joins("INNER JOIN iam_auth_accounts a ON c.account_id = a.id").
 		Where("c.type = ? AND c.idp = ? AND c.idp_identifier = ?", "phone_otp", "phone", phoneE164).
 		Order("c.id").
-		First(&result).Error
+		Limit(1).
+		Find(&results).Error
 
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			zeroID := meta.FromUint64(0)
-			return zeroID, zeroID, zeroID, err
-		}
 		zeroID := meta.FromUint64(0)
 		return zeroID, zeroID, zeroID, fmt.Errorf("failed to find phone OTP credential: %w", err)
 	}
+
+	if len(results) == 0 {
+		zeroID := meta.FromUint64(0)
+		return zeroID, zeroID, zeroID, gorm.ErrRecordNotFound
+	}
+
+	result := results[0]
 
 	accID := meta.FromUint64(result.AccountID)
 	usrID := meta.FromUint64(result.UserID)
@@ -294,7 +298,7 @@ func (r *Repository) FindOAuthCredential(ctx context.Context, idpType, appID, id
 		UserID       uint64 `gorm:"column:user_id"`
 	}
 
-	var result Result
+	var results []Result
 	query := r.db.WithContext(ctx).
 		Table("iam_auth_credentials c").
 		Select("c.id as credential_id", "c.account_id", "a.user_id").
@@ -306,15 +310,18 @@ func (r *Repository) FindOAuthCredential(ctx context.Context, idpType, appID, id
 		query = query.Where("c.app_id = ?", appID)
 	}
 
-	err = query.Order("c.id").First(&result).Error
+	err = query.Order("c.id").Limit(1).Find(&results).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			zeroID := meta.FromUint64(0)
-			return zeroID, zeroID, zeroID, nil
-		}
 		zeroID := meta.FromUint64(0)
 		return zeroID, zeroID, zeroID, fmt.Errorf("failed to find OAuth credential: %w", err)
 	}
+
+	if len(results) == 0 {
+		zeroID := meta.FromUint64(0)
+		return zeroID, zeroID, zeroID, nil
+	}
+
+	result := results[0]
 
 	accID := meta.FromUint64(result.AccountID)
 	usrID := meta.FromUint64(result.UserID)
