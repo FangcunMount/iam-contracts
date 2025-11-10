@@ -2,11 +2,8 @@ package middleware
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/log"
@@ -57,37 +54,7 @@ func APILoggerWithConfig(config APILoggerConfig) gin.HandlerFunc {
 			return
 		}
 
-		ctx := c.Request.Context()
-		logger := log.L(ctx).WithValues("tag", cfg.Tag)
 		start := time.Now()
-
-		var requestBody []byte
-		if cfg.LogRequestBody && c.Request.Body != nil {
-			requestBody = readRequestBody(c)
-		}
-
-		startFields := []interface{}{
-			"event", "request_started",
-			"method", c.Request.Method,
-			"path", c.Request.URL.Path,
-			"query", c.Request.URL.RawQuery,
-			"client_ip", c.ClientIP(),
-			"user_agent", c.Request.UserAgent(),
-		}
-
-		if cfg.LogRequestHeaders {
-			if headers := captureHeaders(c.Request.Header, cfg.MaskSensitiveData); len(headers) > 0 {
-				startFields = append(startFields, "request_headers", headers)
-			}
-		}
-
-		if cfg.LogRequestBody && len(requestBody) > 0 {
-			if body := renderBodyForLog(requestBody, len(requestBody), cfg.MaxBodyBytes, cfg.MaskSensitiveData); body != "" {
-				startFields = append(startFields, "request_body", body)
-			}
-		}
-
-		logger.Infow("HTTP request started", startFields...)
 
 		writer := newBodyCaptureWriter(c.Writer, cfg.LogResponseBody, cfg.MaxBodyBytes)
 		c.Writer = writer
@@ -97,43 +64,26 @@ func APILoggerWithConfig(config APILoggerConfig) gin.HandlerFunc {
 		statusCode := writer.Status()
 		latency := time.Since(start)
 
-		respSize := writer.Size()
-		if respSize < 0 {
-			respSize = 0
-		}
-
-		responseFields := []interface{}{
-			"event", "request_completed",
-			"method", c.Request.Method,
-			"path", c.Request.URL.Path,
-			"status_code", statusCode,
-			"duration_ms", latency.Milliseconds(),
-			"response_size", respSize,
-		}
-
-		if cfg.LogResponseHeaders {
-			if headers := captureHeaders(c.Writer.Header(), cfg.MaskSensitiveData); len(headers) > 0 {
-				responseFields = append(responseFields, "response_headers", headers)
-			}
-		}
-
-		if cfg.LogResponseBody {
-			if body := renderBodyForLog(writer.Body(), respSize, cfg.MaxBodyBytes, cfg.MaskSensitiveData); body != "" {
-				responseFields = append(responseFields, "response_body", body)
-			}
-		}
-
-		if len(c.Errors) > 0 {
-			responseFields = append(responseFields, "errors", c.Errors.String())
-		}
+		// 使用简洁的格式化日志，而不是结构化日志
+		logMsg := fmt.Sprintf("%-6s %s %d | %6.3fms | %s | %s",
+			c.Request.Method,
+			c.Request.URL.Path,
+			statusCode,
+			float64(latency.Microseconds())/1000.0,
+			c.ClientIP(),
+			c.Request.UserAgent(),
+		)
 
 		switch {
 		case statusCode >= http.StatusInternalServerError:
-			logger.Errorw("HTTP request completed with server error", responseFields...)
+			log.Errorf("[API] %s", logMsg)
+			if len(c.Errors) > 0 {
+				log.Errorf("[API] Errors: %s", c.Errors.String())
+			}
 		case statusCode >= http.StatusBadRequest:
-			logger.Warnw("HTTP request completed with client error", responseFields...)
+			log.Warnf("[API] %s", logMsg)
 		default:
-			logger.Infow("HTTP request completed", responseFields...)
+			log.Infof("[API] %s", logMsg)
 		}
 	}
 }
@@ -229,6 +179,9 @@ func minInt64(a int64, b int64) int64 {
 	return b
 }
 
+// 以下函数保留以备将来需要详细日志时使用
+
+/*
 func readRequestBody(c *gin.Context) []byte {
 	data, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -307,3 +260,4 @@ func formatJSON(data []byte) string {
 	}
 	return result
 }
+*/
