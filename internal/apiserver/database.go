@@ -243,15 +243,31 @@ func (dm *DatabaseManager) initSingleRedis(instanceName string, opts *options.Si
 	// 构建地址
 	addr := fmt.Sprintf("%s:%d", opts.Host, opts.Port)
 
+	log.Infof("Initializing Redis %s connection to %s (username: %q, password: %s, db: %d)",
+		instanceName, addr,
+		opts.Username,
+		func() string {
+			if opts.Password == "" {
+				return "<empty>"
+			}
+			return "<set>"
+		}(),
+		opts.Database,
+	)
+
 	// 创建 Redis 客户端配置
 	redisOpts := &redis.Options{
 		Addr:            addr,
-		Username:        opts.Username,
 		Password:        opts.Password,
 		DB:              opts.Database,
 		MaxRetries:      3,
 		MinRetryBackoff: 8 * time.Millisecond,
 		MaxRetryBackoff: 512 * time.Millisecond,
+	}
+
+	// 只有当 username 不为空时才设置
+	if opts.Username != "" {
+		redisOpts.Username = opts.Username
 	}
 
 	// 设置超时时间
@@ -276,7 +292,10 @@ func (dm *DatabaseManager) initSingleRedis(instanceName string, opts *options.Si
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	log.Infof("Testing Redis %s connection with PING...", instanceName)
 	if err := client.Ping(ctx).Err(); err != nil {
+		log.Errorf("Redis %s PING failed: %v (addr: %s, username: %q, db: %d)",
+			instanceName, err, addr, opts.Username, opts.Database)
 		return nil, fmt.Errorf("failed to connect to Redis %s (%s): %w", instanceName, addr, err)
 	}
 
