@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -90,26 +91,53 @@ func CloseGORM(db *gorm.DB) {
 }
 
 // MustOpenRedis creates a Redis client if address is provided.
+// For Aliyun Redis, password format can be:
+// - Simple password: "your_password"
+// - Instance ID format: "instance_id:password" (for Aliyun Redis cluster)
+// - Username format: "username:password" (for Redis 6+ ACL)
 func MustOpenRedis(addr string, password ...string) *redis.Client {
 	if addr == "" {
 		return nil
 	}
 
 	pwd := ""
+	username := ""
 	if len(password) > 0 {
 		pwd = password[0]
+		// Check if password contains username/instanceId (format: "user:pass")
+		// For Aliyun Redis, this might be "instanceId:password"
+		if strings.Contains(pwd, ":") {
+			log.Printf("Detected username/instanceId in password format")
+			// Don't split here - Redis client will handle it
+			// Aliyun Redis uses the full "instanceId:password" as password
+		}
 	}
 
-	client := redis.NewClient(&redis.Options{
+	opts := &redis.Options{
 		Addr:         addr,
+		Username:     username,
 		Password:     pwd,
+		DB:           0, // default DB
+		DialTimeout:  10 * time.Second,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
 		PoolTimeout:  30 * time.Second,
 		MinIdleConns: 10,
-	})
-
-	if err := client.Ping(context.Background()).Err(); err != nil {
-		log.Fatalf("failed to ping redis: %v", err)
+		MaxRetries:   3,
 	}
 
+	// Enable debug logging for connection issues
+	log.Printf("Connecting to Redis at %s (password length: %d)", addr, len(pwd))
+
+	client := redis.NewClient(opts)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	if err := client.Ping(ctx).Err(); err != nil {
+		log.Fatalf("failed to ping redis at %s: %v", addr, err)
+	}
+
+	log.Printf("✅ Successfully connected to Redis at %s", addr)
 	return client
 }
