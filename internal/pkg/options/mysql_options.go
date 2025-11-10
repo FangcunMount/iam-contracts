@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 // MySQLOptions defines options for mysql database.
@@ -32,7 +33,7 @@ func NewMySQLOptions() *MySQLOptions {
 		MaxIdleConnections:    100,
 		MaxOpenConnections:    100,
 		MaxConnectionLifeTime: time.Duration(10) * time.Second,
-		LogLevel:              1, // Silent
+		LogLevel:              viper.GetInt("mysql.log-level"),
 	}
 }
 
