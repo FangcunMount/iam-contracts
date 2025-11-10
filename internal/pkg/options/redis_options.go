@@ -81,6 +81,9 @@ func (o *RedisOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringSliceVar(&o.Cache.Addrs, "redis.cache.addrs", o.Cache.Addrs, ""+
 		"Redis cache cluster addresses. If set, host and port will be ignored.")
 
+	fs.StringVar(&o.Cache.Username, "redis.cache.username", o.Cache.Username, ""+
+		"Username for Redis 6.0+ ACL authentication (cache).")
+
 	fs.StringVar(&o.Cache.Password, "redis.cache.password", o.Cache.Password, ""+
 		"Password for access to redis cache service.")
 
@@ -114,6 +117,9 @@ func (o *RedisOptions) AddFlags(fs *pflag.FlagSet) {
 
 	fs.StringSliceVar(&o.Store.Addrs, "redis.store.addrs", o.Store.Addrs, ""+
 		"Redis store cluster addresses. If set, host and port will be ignored.")
+
+	fs.StringVar(&o.Store.Username, "redis.store.username", o.Store.Username, ""+
+		"Username for Redis 6.0+ ACL authentication (store).")
 
 	fs.StringVar(&o.Store.Password, "redis.store.password", o.Store.Password, ""+
 		"Password for access to redis store service.")
