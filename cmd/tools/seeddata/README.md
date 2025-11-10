@@ -4,37 +4,53 @@ IAM 系统数据库初始化和种子数据填充工具。
 
 ## 功能概述
 
-该工具用于快速初始化 IAM 系统的基础数据，包括：
+该工具用于快速初始化 IAM 系统的基础数据，包括:
 
 1. **租户数据** (tenants) - 创建默认租户和演示租户
 2. **用户中心** (user) - 创建系统管理员和测试用户、儿童档案、监护关系
 3. **认证账号** (authn) - 创建运营后台登录账号和凭证
-4. **授权资源** (resources) - 创建系统资源定义
-5. **角色分配** (assignments) - 为用户分配角色
-6. **Casbin策略** (casbin) - 初始化权限控制策略规则
-7. **JWKS密钥** (jwks) - 生成JWT签名密钥对
+4. **基础角色** (roles) - 创建系统预定义角色
+5. **授权资源** (resources) - 创建系统资源定义
+6. **角色分配** (assignments) - 为用户分配角色
+7. **Casbin策略** (casbin) - 初始化权限控制策略规则
+8. **JWKS密钥** (jwks) - 生成JWT签名密钥对
+9. **微信应用** (wechatapp) - 创建微信小程序/公众号应用配置
 
 ## 快速开始
 
 ### 前置条件
 
 1. MySQL 数据库已创建并完成迁移（运行过 `make migrate-up`）
-2. Redis 服务已启动（可选，用于策略版本通知）
+2. Redis 服务已启动（可选）
+   - **Cache Redis**: 用于缓存、会话、限流等临时数据
+   - **Store Redis**: 用于持久化存储、队列、发布订阅等
 3. 准备好存放 JWKS 密钥的目录
+4. 配置种子数据文件 `configs/seeddata.yaml`
 
 ### 基本用法
 
 ```bash
-# 使用命令行参数
+# 使用命令行参数(完整示例)
 go run ./cmd/tools/seeddata \
   --dsn "root:password@tcp(localhost:3306)/iam_contracts?parseTime=true&loc=Local" \
-  --redis "localhost:6379" \
+  --redis-cache "redis-cache:6379" \
+  --redis-cache-username "app" \
+  --redis-cache-password "your_cache_password" \
+  --redis-store "r-xxx.redis.rds.aliyuncs.com:6380" \
+  --redis-store-username "app" \
+  --redis-store-password "your_store_password" \
   --keys-dir "./tmp/keys" \
-  --casbin-model "./configs/casbin_model.conf"
+  --casbin-model "./configs/casbin_model.conf" \
+  --config "./configs/seeddata.yaml"
+
+# 最小配置(只使用必需参数)
+go run ./cmd/tools/seeddata \
+  --dsn "root:password@tcp(localhost:3306)/iam_contracts?parseTime=true&loc=Local"
 
 # 使用环境变量
 export IAM_SEEDER_DSN="root:password@tcp(localhost:3306)/iam_contracts?parseTime=true&loc=Local"
-export IAM_SEEDER_REDIS="localhost:6379"
+export IAM_SEEDER_REDIS_CACHE="redis-cache:6379"
+export IAM_SEEDER_REDIS_CACHE_PASSWORD="your_cache_password"
 go run ./cmd/tools/seeddata
 ```
 
@@ -54,7 +70,7 @@ go run ./cmd/tools/seeddata \
   --steps "authn,jwks"
 
 # 执行所有步骤（默认）
-go run ./cmd/tools/seeddata --dsn "..." --steps "tenants,user,authn,resources,assignments,casbin,jwks"
+go run ./cmd/tools/seeddata --dsn "..." --steps "tenants,user,authn,roles,resources,assignments,casbin,jwks,wechatapp"
 ```
 
 ## 命令行参数
@@ -62,9 +78,15 @@ go run ./cmd/tools/seeddata --dsn "..." --steps "tenants,user,authn,resources,as
 | 参数 | 环境变量 | 默认值 | 说明 |
 |------|----------|--------|------|
 | `--dsn` | `IAM_SEEDER_DSN` | 必填 | MySQL数据源名称（DSN） |
-| `--redis` | `IAM_SEEDER_REDIS` | 可选 | Redis地址（host:port） |
+| `--redis-cache` | `IAM_SEEDER_REDIS_CACHE` | 可选 | Cache Redis地址（host:port，用于缓存、会话、限流） |
+| `--redis-cache-username` | `IAM_SEEDER_REDIS_CACHE_USERNAME` | 可选 | Cache Redis用户名（Redis 6.0+ ACL） |
+| `--redis-cache-password` | `IAM_SEEDER_REDIS_CACHE_PASSWORD` | 可选 | Cache Redis密码 |
+| `--redis-store` | `IAM_SEEDER_REDIS_STORE` | 可选 | Store Redis地址（host:port，用于持久化存储、队列） |
+| `--redis-store-username` | `IAM_SEEDER_REDIS_STORE_USERNAME` | 可选 | Store Redis用户名（Redis 6.0+ ACL） |
+| `--redis-store-password` | `IAM_SEEDER_REDIS_STORE_PASSWORD` | 可选 | Store Redis密码 |
 | `--keys-dir` | - | `./tmp/keys` | JWKS私钥存储目录 |
 | `--casbin-model` | - | `configs/casbin_model.conf` | Casbin模型配置文件路径 |
+| `--config` | - | `configs/seeddata.yaml` | 种子数据配置文件路径 |
 | `--steps` | - | 所有步骤 | 逗号分隔的步骤列表 |
 
 ## 种子数据详情
@@ -206,16 +228,39 @@ user (依赖租户)
     ↓
 authn (依赖用户)
     ↓
+roles (独立)
+    ↓
 resources (独立)
     ↓
-assignments (依赖用户和资源)
+assignments (依赖用户、角色和资源)
     ↓
 casbin (依赖角色和资源)
     ↓
 jwks (独立)
+    ↓
+wechatapp (依赖租户)
 ```
 
 ## 常见问题
+
+### Q: 双 Redis 架构的用途是什么？
+
+**A**: seeddata 工具支持双 Redis 实例架构:
+
+- **Cache Redis** (`--redis-cache`): 用于临时数据
+  - 会话管理(Session)
+  - API 限流(Rate Limiting)
+  - 临时缓存(Cache)
+  - 特点: 可以配置 LRU/LFU 淘汰策略,丢失数据不影响业务
+
+- **Store Redis** (`--redis-store`): 用于持久化数据
+  - Token 黑名单
+  - 消息队列
+  - 发布订阅
+  - 分布式锁
+  - 特点: 需要持久化配置,数据不能丢失
+
+两个 Redis 实例都是**可选的**。如果不需要相关功能,可以不配置。
 
 ### Q: 可以在生产环境运行吗？
 
