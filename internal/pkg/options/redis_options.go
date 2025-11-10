@@ -9,6 +9,7 @@ type SingleRedisOptions struct {
 	Host                  string   `json:"host,omitempty"                         mapstructure:"host"`
 	Port                  int      `json:"port,omitempty"                         mapstructure:"port"`
 	Addrs                 []string `json:"addrs,omitempty"                        mapstructure:"addrs"`
+	Username              string   `json:"username,omitempty"                     mapstructure:"username"`
 	Password              string   `json:"-"                                      mapstructure:"password"`
 	Database              int      `json:"database"                               mapstructure:"database"`
 	MaxIdle               int      `json:"max-idle,omitempty"                     mapstructure:"max-idle"`
@@ -34,6 +35,7 @@ func NewRedisOptions() *RedisOptions {
 			Host:                  "127.0.0.1",
 			Port:                  6379,
 			Addrs:                 []string{},
+			Username:              "",
 			Password:              "",
 			Database:              0, // 缓存使用 DB 0
 			MaxIdle:               50,
@@ -47,6 +49,7 @@ func NewRedisOptions() *RedisOptions {
 			Host:                  "127.0.0.1",
 			Port:                  6379,
 			Addrs:                 []string{},
+			Username:              "",
 			Password:              "",
 			Database:              1, // 存储使用 DB 1
 			MaxIdle:               50,

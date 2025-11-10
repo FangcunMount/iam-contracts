@@ -244,6 +244,7 @@ func (dm *DatabaseManager) initSingleRedis(instanceName string, opts *options.Si
 
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
+		Username: opts.Username,
 		Password: opts.Password,
 		DB:       opts.Database,
 	})

@@ -36,6 +36,7 @@ redis:
   cache:
     host: "127.0.0.1"
     port: 6379
+    username: ""  # Redis 6.0+ ACL 用户名，留空表示使用 default 用户
     password: ""
     database: 0  # 缓存使用 DB 0
     max-idle: 50
@@ -48,6 +49,7 @@ redis:
   store:
     host: "127.0.0.1"
     port: 6380
+    username: ""  # Redis 6.0+ ACL 用户名，留空表示使用 default 用户
     password: ""
     database: 1  # 存储使用 DB 1
     max-idle: 50

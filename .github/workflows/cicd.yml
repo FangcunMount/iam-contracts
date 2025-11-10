@@ -34,10 +34,12 @@ jobs:
           REDIS_CATCH_HOST: ${{ secrets.REDIS_CATCH_HOST }}
           REDIS_CATCH_PORT: ${{ secrets.REDIS_CATCH_PORT }}
           REDIS_CATCH_DB: ${{ secrets.REDIS_CATCH_DB }}
+          REDIS_CATCH_USERNAME: ${{ secrets.REDIS_CATCH_USERNAME }}
           REDIS_CATCH_PASSWORD: ${{ secrets.REDIS_CATCH_PASSWORD }}
           REDIS_STORE_HOST: ${{ secrets.REDIS_STORE_HOST }}
           REDIS_STORE_PORT: ${{ secrets.REDIS_STORE_PORT }}
           REDIS_STORE_DB: ${{ secrets.REDIS_STORE_DB }}
+          REDIS_STORE_USERNAME: ${{ secrets.REDIS_STORE_USERNAME }}
           REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           IPD_ENCRYPTION_KEY: ${{ secrets.IPD_ENCRYPTION_KEY }}
@@ -57,7 +59,7 @@ jobs:
           fi
 
           REQUIRED_SECRETS=(SVRA_HOST SVRA_USERNAME SVRA_SSH_KEY MYSQL_HOST MYSQL_USERNAME MYSQL_PASSWORD MYSQL_DBNAME REDIS_CATCH_HOST REDIS_STORE_HOST JWT_SECRET DOCKERHUB_USERNAME DOCKERHUB_TOKEN)
-          OPTIONAL_SECRETS=(SVRA_SSH_PORT SVRA_SUDO_PASSWORD MYSQL_PORT REDIS_CATCH_PORT REDIS_CATCH_DB REDIS_CATCH_PASSWORD REDIS_STORE_PORT REDIS_STORE_DB REDIS_STORE_PASSWORD WWW_UID WWW_GID)
+          OPTIONAL_SECRETS=(SVRA_SSH_PORT SVRA_SUDO_PASSWORD MYSQL_PORT REDIS_CATCH_PORT REDIS_CATCH_DB REDIS_CATCH_USERNAME REDIS_CATCH_PASSWORD REDIS_STORE_PORT REDIS_STORE_DB REDIS_STORE_USERNAME REDIS_STORE_PASSWORD WWW_UID WWW_GID)
 
           REQUIRED_SECRETS+=(IPD_ENCRYPTION_KEY)
 
@@ -98,6 +100,9 @@ jobs:
                 REDIS_CATCH_DB)
                   echo "⚠️ $SECRET_NAME is not set (defaults to DB 0)"
                   ;;
+                REDIS_CATCH_USERNAME)
+                  echo "⚠️ $SECRET_NAME is not set (uses default Redis user)"
+                  ;;
                 REDIS_CATCH_PASSWORD)
                   echo "⚠️ $SECRET_NAME is not set (Redis cache auth disabled)"
                   ;;
@@ -106,6 +111,9 @@ jobs:
                   ;;
                 REDIS_STORE_DB)
                   echo "⚠️ $SECRET_NAME is not set (defaults to DB 1)"
+                  ;;
+                REDIS_STORE_USERNAME)
+                  echo "⚠️ $SECRET_NAME is not set (uses default Redis user)"
                   ;;
                 REDIS_STORE_PASSWORD)
                   echo "⚠️ $SECRET_NAME is not set (Redis store auth disabled)"
@@ -278,8 +286,13 @@ jobs:
           REDIS_CATCH_HOST: ${{ secrets.REDIS_CATCH_HOST }}
           REDIS_CATCH_PORT: ${{ secrets.REDIS_CATCH_PORT || 6379 }}
           REDIS_CATCH_DB: ${{ secrets.REDIS_CATCH_DB || 0 }}
+          REDIS_CATCH_USERNAME: ${{ secrets.REDIS_CATCH_USERNAME }}
           REDIS_CATCH_PASSWORD: ${{ secrets.REDIS_CATCH_PASSWORD }}
           REDIS_STORE_HOST: ${{ secrets.REDIS_STORE_HOST }}
+          REDIS_STORE_PORT: ${{ secrets.REDIS_STORE_PORT || 6380 }}
+          REDIS_STORE_DB: ${{ secrets.REDIS_STORE_DB || 1 }}
+          REDIS_STORE_USERNAME: ${{ secrets.REDIS_STORE_USERNAME }}
+          REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}
           REDIS_STORE_PORT: ${{ secrets.REDIS_STORE_PORT || 6380 }}
           REDIS_STORE_DB: ${{ secrets.REDIS_STORE_DB || 1 }}
           REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}
@@ -307,12 +320,14 @@ jobs:
           # Redis Cache (缓存实例 - ServerA 本地 Redis)
           IAM_APISERVER_REDIS_CACHE_HOST=${REDIS_CATCH_HOST}
           IAM_APISERVER_REDIS_CACHE_PORT=${REDIS_CATCH_PORT}
+          IAM_APISERVER_REDIS_CACHE_USERNAME=${REDIS_CATCH_USERNAME}
           IAM_APISERVER_REDIS_CACHE_PASSWORD=${REDIS_CATCH_PASSWORD}
           IAM_APISERVER_REDIS_CACHE_DATABASE=${REDIS_CATCH_DB}
           
           # Redis Store (持久化存储实例 - 阿里云 RDS Redis)
           IAM_APISERVER_REDIS_STORE_HOST=${REDIS_STORE_HOST}
           IAM_APISERVER_REDIS_STORE_PORT=${REDIS_STORE_PORT}
+          IAM_APISERVER_REDIS_STORE_USERNAME=${REDIS_STORE_USERNAME}
           IAM_APISERVER_REDIS_STORE_PASSWORD=${REDIS_STORE_PASSWORD}
           IAM_APISERVER_REDIS_STORE_DATABASE=${REDIS_STORE_DB}
           

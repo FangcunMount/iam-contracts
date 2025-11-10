@@ -108,8 +108,10 @@ func main() {
 	// 解析命令行参数
 	dsnFlag := flag.String("dsn", "", "MySQL DSN, e.g. user:pass@tcp(host:3306)/iam_contracts?parseTime=true&loc=Local")
 	redisCacheFlag := flag.String("redis-cache", "", "Cache Redis address host:port (optional, for caching, sessions, rate limiting)")
+	redisCacheUsernameFlag := flag.String("redis-cache-username", "", "Cache Redis username (optional, for Redis 6.0+ ACL)")
 	redisCachePasswordFlag := flag.String("redis-cache-password", "", "Cache Redis password (optional)")
 	redisStoreFlag := flag.String("redis-store", "", "Store Redis address host:port (optional, for persistent storage, queues)")
+	redisStoreUsernameFlag := flag.String("redis-store-username", "", "Store Redis username (optional, for Redis 6.0+ ACL)")
 	redisStorePasswordFlag := flag.String("redis-store-password", "", "Store Redis password (optional)")
 	keysDirFlag := flag.String("keys-dir", "./tmp/keys", "Directory to store generated JWKS private keys")
 	casbinModelFlag := flag.String("casbin-model", "configs/casbin_model.conf", "Path to casbin model configuration file")
@@ -143,7 +145,7 @@ func main() {
 	redisCacheAddr := common.ResolveRedisAddr(*redisCacheFlag)
 	var redisCacheClient *redis.Client
 	if redisCacheAddr != "" {
-		redisCacheClient = common.MustOpenRedis(redisCacheAddr, *redisCachePasswordFlag)
+		redisCacheClient = common.MustOpenRedisWithAuth(redisCacheAddr, *redisCacheUsernameFlag, *redisCachePasswordFlag)
 		defer func() {
 			_ = redisCacheClient.Close()
 		}()
@@ -153,7 +155,7 @@ func main() {
 	redisStoreAddr := common.ResolveRedisAddr(*redisStoreFlag)
 	var redisStoreClient *redis.Client
 	if redisStoreAddr != "" {
-		redisStoreClient = common.MustOpenRedis(redisStoreAddr, *redisStorePasswordFlag)
+		redisStoreClient = common.MustOpenRedisWithAuth(redisStoreAddr, *redisStoreUsernameFlag, *redisStorePasswordFlag)
 		defer func() {
 			_ = redisStoreClient.Close()
 		}()

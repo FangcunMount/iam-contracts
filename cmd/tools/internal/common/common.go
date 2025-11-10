@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -95,22 +94,24 @@ func CloseGORM(db *gorm.DB) {
 // - Simple password: "your_password"
 // - Instance ID format: "instance_id:password" (for Aliyun Redis cluster)
 // - Username format: "username:password" (for Redis 6+ ACL)
+//
+// Deprecated: Use MustOpenRedisWithAuth instead for better control.
 func MustOpenRedis(addr string, password ...string) *redis.Client {
+	return MustOpenRedisWithAuth(addr, "", password...)
+}
+
+// MustOpenRedisWithAuth creates a Redis client with username and password.
+// For Aliyun Redis ACL:
+// - username: Redis 6.0+ ACL username (e.g., "iam_user"), leave empty for default user
+// - password: Can be simple password or "instanceId:password" for Aliyun cluster
+func MustOpenRedisWithAuth(addr string, username string, password ...string) *redis.Client {
 	if addr == "" {
 		return nil
 	}
 
 	pwd := ""
-	username := ""
 	if len(password) > 0 {
 		pwd = password[0]
-		// Check if password contains username/instanceId (format: "user:pass")
-		// For Aliyun Redis, this might be "instanceId:password"
-		if strings.Contains(pwd, ":") {
-			log.Printf("Detected username/instanceId in password format")
-			// Don't split here - Redis client will handle it
-			// Aliyun Redis uses the full "instanceId:password" as password
-		}
 	}
 
 	opts := &redis.Options{
@@ -127,7 +128,11 @@ func MustOpenRedis(addr string, password ...string) *redis.Client {
 	}
 
 	// Enable debug logging for connection issues
-	log.Printf("Connecting to Redis at %s (password length: %d)", addr, len(pwd))
+	if username != "" {
+		log.Printf("Connecting to Redis at %s with username %s", addr, username)
+	} else {
+		log.Printf("Connecting to Redis at %s (no username, using default)", addr)
+	}
 
 	client := redis.NewClient(opts)
 
