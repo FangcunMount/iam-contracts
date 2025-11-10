@@ -17,7 +17,7 @@ server:
 mysql:
   host: "127.0.0.1:3306"
   username: "root"
-  password: "REDACTED_DEV_ROOT"  # 对应 infra MYSQL_ROOT_PASSWORD
+  password: "dev_root_123"  # 对应 infra MYSQL_ROOT_PASSWORD
   database: "iam_contracts"
   max-idle-conns: 10
   max-open-conns: 100
@@ -36,7 +36,7 @@ redis:
   cache:
     host: "127.0.0.1"
     port: 6379
-    password: "REDACTED_REDIS_CACHE"  # 与 infra REDIS_CACHE_PASSWORD 一致
+    password: "dev_cache_123"  # 与 infra REDIS_CACHE_PASSWORD 一致
     database: 0  # Cache 使用 DB 0
     max-idle: 50
     max-active: 100
@@ -48,7 +48,7 @@ redis:
   store:
     host: "127.0.0.1"
     port: 6380
-    password: "REDACTED_REDIS_AUTH"  # 与 infra REDIS_AUTH_PASSWORD 一致
+    password: "dev_auth_123"  # 与 infra REDIS_AUTH_PASSWORD 一致
     database: 0  # Auth 实例使用 DB 0（单独实例不需要不同 DB）
     max-idle: 50
     max-active: 100

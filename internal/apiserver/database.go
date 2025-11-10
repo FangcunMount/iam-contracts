@@ -85,6 +85,12 @@ func (dm *DatabaseManager) runMigrations() error {
 		return nil // 如果没有 MySQL，跳过迁移
 	}
 
+	// 确保 gormDB 不为 nil
+	if gormDB == nil {
+		log.Warn("Cannot run migration: MySQL connection is nil")
+		return nil
+	}
+
 	// 确保数据库存在（在执行迁移前）
 	if err := dm.ensureDatabase(gormDB); err != nil {
 		return fmt.Errorf("failed to ensure database exists: %w", err)
@@ -173,6 +179,9 @@ func (dm *DatabaseManager) ensureDatabase(gormDB *gorm.DB) error {
 func (dm *DatabaseManager) initMySQL() error {
 	// 创建 GORM logger 实例
 	gormLogger := logger.New(dm.config.MySQLOptions.LogLevel)
+
+	// 打印日志配置信息，便于调试
+	log.Infof("Initializing MySQL with log level: %d", dm.config.MySQLOptions.LogLevel)
 
 	mysqlConfig := &connecter.MySQLConfig{
 		Host:                  dm.config.MySQLOptions.Host,

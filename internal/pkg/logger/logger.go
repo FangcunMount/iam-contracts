@@ -63,7 +63,7 @@ func New(level int) gormlogger.Interface {
 
 	config := Config{
 		SlowThreshold: 200 * time.Millisecond,
-		Colorful:      false,
+		Colorful:      true, // 开启彩色输出，便于开发调试
 		LogLevel:      gormlogger.LogLevel(level),
 	}
 
@@ -149,6 +149,9 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (string, i
 		}
 	case l.LogLevel >= Info:
 		sql, rows := fc()
+		// 添加调试信息
+		log.Debugf("GORM Trace - LogLevel: %d, SQL: %s, Rows: %d, Elapsed: %.3fms",
+			l.LogLevel, sql, rows, float64(elapsed.Nanoseconds())/1e6)
 		if rows == -1 {
 			l.Printf(l.traceStr, fileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, "-", sql)
 		} else {
