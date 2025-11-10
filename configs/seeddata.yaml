@@ -20,7 +20,7 @@ tenants:
   - code: "default"
     name: "默认租户"
     contact_name: "张三"
-    contact_phone: "13800138000"
+    contact_phone: "13923456789"
     contact_email: "zhangsan@example.com"
     status: "active"
     max_users: 1000
@@ -31,39 +31,39 @@ users:
   # 系统管理员
   - alias: "admin"
     name: "系统管理员"
-    phone: "10086000001"
+    phone: "13912345678"
     email: "admin@system.com"
-    id_card: "110101199001011001"
+    id_card: "11010119900101100X"
     status: 1
   
   # 张三
   - alias: "zhangsan"
     name: "张三"
-    phone: "13800138000"
+    phone: "13923456789"
     email: "zhangsan@example.com"
-    id_card: "110101199001011002"
+    id_card: "11010119900101100X"
     status: 1
   
   # 李四
   - alias: "lisi"
     name: "李四"
-    phone: "13800138001"
+    phone: "13934567890"
     email: "lisi@example.com"
-    id_card: "110101199001011003"
+    id_card: "11010119900101100X"
     status: 1
   
   # 王五 (监护人)
   - alias: "wangwu"
     name: "王五"
-    phone: "13800138002"
+    phone: "13945678901"
     email: "wangwu@example.com"
-    id_card: "110101198001011004"
+    id_card: "110101198001011005"
     status: 1
   
   # 赵六 (监护人)
   - alias: "zhaoliu"
     name: "赵六"
-    phone: "13800138003"
+    phone: "13956789012"
     email: "zhaoliu@example.com"
     id_card: "110101198001011005"
     status: 1
@@ -73,7 +73,7 @@ children:
   # 小明
   - alias: "xiaoming"
     name: "小明"
-    id_card: "110101201501011001"
+    id_card: "110101201501011006"
     gender: 1  # 男
     birthday: "2015-01-01"
     height: 1450  # 145.0cm
@@ -82,7 +82,7 @@ children:
   # 小红
   - alias: "xiaohong"
     name: "小红"
-    id_card: "110101201502011002"
+    id_card: "110101201502011008"
     gender: 2  # 女
     birthday: "2015-02-01"
     height: 1420  # 142.0cm
@@ -91,7 +91,7 @@ children:
   # 小刚
   - alias: "xiaogang"
     name: "小刚"
-    id_card: "110101201603011003"
+    id_card: "110101201603011007"
     gender: 1  # 男
     birthday: "2016-03-01"
     height: 1380  # 138.0cm
