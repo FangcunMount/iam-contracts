@@ -17,7 +17,10 @@
 //
 // Usage:
 //
-//	go run ./cmd/tools/seeddata --dsn "user:pass@tcp(host:port)/db" --redis "host:port"
+//	go run ./cmd/tools/seeddata \
+//	  --dsn "user:pass@tcp(host:port)/db" \
+//	  --redis-cache "host:port" --redis-cache-password "pwd" \
+//	  --redis-store "host:port" --redis-store-password "pwd"
 //
 // See README.md for detailed documentation.
 package main
@@ -72,7 +75,8 @@ var defaultSteps = []seedStep{
 // dependencies holds all external dependencies required by seed functions.
 type dependencies struct {
 	DB          *gorm.DB      // 数据库连接
-	Redis       *redis.Client // Redis客户端（可选）
+	RedisCache  *redis.Client // Cache Redis客户端（可选，用于缓存、会话等）
+	RedisStore  *redis.Client // Store Redis客户端（可选，用于持久化存储）
 	KeysDir     string        // JWKS密钥存储目录
 	CasbinModel string        // Casbin模型文件路径
 	Logger      log.Logger    // 日志记录器
@@ -103,8 +107,10 @@ func newSeedContext() *seedContext {
 func main() {
 	// 解析命令行参数
 	dsnFlag := flag.String("dsn", "", "MySQL DSN, e.g. user:pass@tcp(host:3306)/iam_contracts?parseTime=true&loc=Local")
-	redisFlag := flag.String("redis", "", "Redis address host:port (optional, used for authz policy version notifications)")
-	redisPasswordFlag := flag.String("redis-password", "", "Redis password (optional)")
+	redisCacheFlag := flag.String("redis-cache", "", "Cache Redis address host:port (optional, for caching, sessions, rate limiting)")
+	redisCachePasswordFlag := flag.String("redis-cache-password", "", "Cache Redis password (optional)")
+	redisStoreFlag := flag.String("redis-store", "", "Store Redis address host:port (optional, for persistent storage, queues)")
+	redisStorePasswordFlag := flag.String("redis-store-password", "", "Store Redis password (optional)")
 	keysDirFlag := flag.String("keys-dir", "./tmp/keys", "Directory to store generated JWKS private keys")
 	casbinModelFlag := flag.String("casbin-model", "configs/casbin_model.conf", "Path to casbin model configuration file")
 	configFileFlag := flag.String("config", "configs/seeddata.yaml", "Path to seed data configuration file")
@@ -133,20 +139,31 @@ func main() {
 	db := common.MustOpenGORM(dsn)
 	defer common.CloseGORM(db)
 
-	// 连接 Redis（可选）
-	redisAddr := common.ResolveRedisAddr(*redisFlag)
-	var redisClient *redis.Client
-	if redisAddr != "" {
-		redisClient = common.MustOpenRedis(redisAddr, *redisPasswordFlag)
+	// 连接 Cache Redis（可选）
+	redisCacheAddr := common.ResolveRedisAddr(*redisCacheFlag)
+	var redisCacheClient *redis.Client
+	if redisCacheAddr != "" {
+		redisCacheClient = common.MustOpenRedis(redisCacheAddr, *redisCachePasswordFlag)
 		defer func() {
-			_ = redisClient.Close()
+			_ = redisCacheClient.Close()
+		}()
+	}
+
+	// 连接 Store Redis（可选）
+	redisStoreAddr := common.ResolveRedisAddr(*redisStoreFlag)
+	var redisStoreClient *redis.Client
+	if redisStoreAddr != "" {
+		redisStoreClient = common.MustOpenRedis(redisStoreAddr, *redisStorePasswordFlag)
+		defer func() {
+			_ = redisStoreClient.Close()
 		}()
 	}
 
 	// 创建依赖对象
 	deps := &dependencies{
 		DB:          db,
-		Redis:       redisClient,
+		RedisCache:  redisCacheClient,
+		RedisStore:  redisStoreClient,
 		KeysDir:     *keysDirFlag,
 		CasbinModel: *casbinModelFlag,
 		Logger:      logger,
