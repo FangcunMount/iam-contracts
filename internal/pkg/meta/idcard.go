@@ -125,7 +125,7 @@ func (id IDNumber) ProvinceCode() string {
 
 func (id IDNumber) Value() (driver.Value, error) {
 	if id.IsEmpty() {
-		return "", nil // 返回空字符串以符合 NOT NULL 约束
+		return nil, nil // 返回 NULL 值，支持数据库可空字段
 	}
 	// 防御检查：必须是规范化的 18 位
 	if _, err := normalize18(id.v); err != nil {
