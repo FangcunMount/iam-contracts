@@ -293,9 +293,6 @@ jobs:
           REDIS_STORE_DB: ${{ secrets.REDIS_STORE_DB || 1 }}
           REDIS_STORE_USERNAME: ${{ secrets.REDIS_STORE_USERNAME }}
           REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}
-          REDIS_STORE_PORT: ${{ secrets.REDIS_STORE_PORT || 6380 }}
-          REDIS_STORE_DB: ${{ secrets.REDIS_STORE_DB || 1 }}
-          REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           IPD_ENCRYPTION_KEY: ${{ secrets.IPD_ENCRYPTION_KEY }}
         run: |
