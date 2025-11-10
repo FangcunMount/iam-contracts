@@ -22,7 +22,7 @@ mysql:
   max-idle-conns: 10
   max-open-conns: 100
   conn-max-lifetime: 3600  # 秒
-  log-level: 1 # GORM log level, 1: silent, 2:error, 3:warn, 4:info (生产环境使用 silent)
+  log-level: 4 # GORM log level, 1: silent, 2:error, 3:warn, 4:info (生产环境使用 silent)
 
 # 数据库迁移配置
 migration:
