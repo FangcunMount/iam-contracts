@@ -86,19 +86,15 @@ log:
   enable-time-rotation: false  # 开发环境暂不启用
   time-rotation-format: "2006-01-02"  # 按天轮转格式
   
-  # 🎯 分级输出（v0.2.7 核心功能）
-  enable-level-output: true    # 启用分级输出
-  level-output-mode: "above"   # 输出模式：above=该级别及以上，exact=仅该级别
+  # 🎯 分级输出（v0.2.9 duplicate 模式）
+  enable-level-output: true       # 启用分级输出
+  level-output-mode: "duplicate"  # 输出模式：duplicate=重复输出（推荐）
   level-output-paths:
-    debug: 
-      - stdout                 # DEBUG 输出到控制台（彩色）
-    info: 
-      - stdout                 # INFO 输出到控制台（彩色）
-      - logs/iam-apiserver.log # INFO 及以上记录到文件
-    warn:
-      - logs/iam-warn.log      # WARN 及以上单独记录
+    all:
+      - stdout                    # 所有日志输出到控制台（彩色，开发环境）
+      - logs/iam-apiserver.log    # 所有日志记录到文件（完整日志）
     error:
-      - logs/iam-error.log     # ERROR 单独记录（便于快速定位问题）
+      - logs/iam-error.log        # 额外记录 ERROR（快速定位故障）
 
 # JWT 配置
 jwt:
