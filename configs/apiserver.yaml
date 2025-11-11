@@ -84,11 +84,13 @@ log:
   level-output-mode: "duplicate"  # 重复输出模式（推荐）
   level-output-paths:
     all:
+      - stdout                              # 容器/进程标准输出保留完整日志
       - /var/log/iam-contracts/app.log      # 完整日志（所有级别）
-    error:
-      - /var/log/iam-contracts/error.log    # 额外记录 ERROR（快速定位故障）
     warn:
       - /var/log/iam-contracts/warn.log     # 额外记录 WARN（发现潜在问题，可选）
+    error:
+      - stderr                              # ERROR 级别写入标准错误，便于监控采集
+      - /var/log/iam-contracts/error.log    # 额外记录 ERROR（快速定位故障）
 
 # jwt 配置
 jwt:

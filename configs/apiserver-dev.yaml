@@ -58,23 +58,15 @@ redis:
     enable-cluster: false
     use-ssl: false
 
-# 日志配置（使用 component-base v0.2.7 最新功能）
+# 日志配置（使用 component-base v0.2.9 duplicate 模式）
 log:
   # 基础配置
   disable-caller: false        # 开发环境显示调用者信息
   disable-stacktrace: false    # 开发环境显示堆栈
   level: debug                 # 开发环境使用 debug 级别
   format: console              # 控制台格式（console/json）
-  enable-color: true           # 🎨 启用彩色输出（v0.2.7 新功能）
+  enable-color: true           # 🎨 开发环境启用彩色输出，便于调试
   development: true            # 开发模式
-  
-  # 输出路径
-  output-paths: 
-    - stdout                   # 控制台输出
-    - logs/iam-apiserver.log   # 文件输出
-  error-output-paths: 
-    - stderr
-    - logs/iam-apiserver-error.log
   
   # 📊 日志轮转配置（按大小）
   max-size: 100                # 单个日志文件最大大小（MB）
@@ -93,8 +85,10 @@ log:
     all:
       - stdout                    # 所有日志输出到控制台（彩色，开发环境）
       - logs/iam-apiserver.log    # 所有日志记录到文件（完整日志）
+    warn:
+      - logs/iam-warn.log         # WARN 以上额外记录，辅助排查性能/配置问题
     error:
-      - logs/iam-error.log        # 额外记录 ERROR（快速定位故障）
+      - logs/iam-error.log        # ERROR 额外落盘，便于快速定位故障
 
 # JWT 配置
 jwt:
