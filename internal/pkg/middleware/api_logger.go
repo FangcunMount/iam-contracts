@@ -208,15 +208,15 @@ func readAndRestoreRequestBody(c *gin.Context, maxSize int64) []byte {
 
 // logRequestStart 记录请求开始信息
 func logRequestStart(c *gin.Context, config APILoggerConfig, requestID string) {
-	fields := []interface{}{
-		"event", "request_start",
-		"request_id", requestID,
-		"method", c.Request.Method,
-		"path", c.Request.URL.Path,
-		"query", c.Request.URL.RawQuery,
-		"client_ip", c.ClientIP(),
-		"user_agent", c.Request.UserAgent(),
-		"timestamp", time.Now(),
+	fields := []log.Field{
+		log.String("event", "request_start"),
+		log.String("request_id", requestID),
+		log.String("method", c.Request.Method),
+		log.String("path", c.Request.URL.Path),
+		log.String("query", c.Request.URL.RawQuery),
+		log.String("client_ip", c.ClientIP()),
+		log.String("user_agent", c.Request.UserAgent()),
+		log.Time("timestamp", time.Now()),
 	}
 
 	// 记录请求头
@@ -231,23 +231,26 @@ func logRequestStart(c *gin.Context, config APILoggerConfig, requestID string) {
 				headers[name] = value
 			}
 		}
-		fields = append(fields, "request_headers", headers)
+		fields = append(fields, log.Any("request_headers", headers))
 	}
 
-	log.Infow("HTTP Request Started", fields...)
+	// 添加分布式追踪字段
+	fields = append(fields, log.TraceFields(c.Request.Context())...)
+
+	log.HTTP("HTTP Request Started", fields...)
 }
 
 // logRequestEnd 记录请求结束信息
 func logRequestEnd(c *gin.Context, config APILoggerConfig, requestID string, latency time.Duration, statusCode int, requestBody, responseBody []byte) {
-	fields := []interface{}{
-		"event", "request_end",
-		"request_id", requestID,
-		"method", c.Request.Method,
-		"path", c.Request.URL.Path,
-		"status_code", statusCode,
-		"duration_ms", latency.Milliseconds(),
-		"response_size", len(responseBody),
-		"timestamp", time.Now(),
+	fields := []log.Field{
+		log.String("event", "request_end"),
+		log.String("request_id", requestID),
+		log.String("method", c.Request.Method),
+		log.String("path", c.Request.URL.Path),
+		log.Int("status_code", statusCode),
+		log.Int64("duration_ms", latency.Milliseconds()),
+		log.Int("response_size", len(responseBody)),
+		log.Time("timestamp", time.Now()),
 	}
 
 	// 记录请求体
@@ -256,7 +259,7 @@ func logRequestEnd(c *gin.Context, config APILoggerConfig, requestID string, lat
 		if config.MaskSensitiveData {
 			bodyStr = maskSensitiveJSON(bodyStr)
 		}
-		fields = append(fields, "request_body", bodyStr)
+		fields = append(fields, log.String("request_body", bodyStr))
 	}
 
 	// 记录响应头
@@ -267,7 +270,7 @@ func logRequestEnd(c *gin.Context, config APILoggerConfig, requestID string, lat
 				headers[name] = values[0]
 			}
 		}
-		fields = append(fields, "response_headers", headers)
+		fields = append(fields, log.Any("response_headers", headers))
 	}
 
 	// 记录响应体
@@ -276,21 +279,24 @@ func logRequestEnd(c *gin.Context, config APILoggerConfig, requestID string, lat
 		if config.MaskSensitiveData {
 			bodyStr = maskSensitiveJSON(bodyStr)
 		}
-		fields = append(fields, "response_body", bodyStr)
+		fields = append(fields, log.String("response_body", bodyStr))
 	}
 
 	// 记录错误信息
 	if len(c.Errors) > 0 {
-		fields = append(fields, "errors", c.Errors.String())
+		fields = append(fields, log.String("errors", c.Errors.String()))
 	}
+
+	// 添加分布式追踪字段
+	fields = append(fields, log.TraceFields(c.Request.Context())...)
 
 	// 根据状态码选择日志级别
 	if statusCode >= http.StatusInternalServerError {
-		log.Errorw("HTTP Request Completed with Server Error", fields...)
+		log.HTTPError("HTTP Request Completed with Server Error", fields...)
 	} else if statusCode >= http.StatusBadRequest {
-		log.Warnw("HTTP Request Completed with Client Error", fields...)
+		log.HTTPWarn("HTTP Request Completed with Client Error", fields...)
 	} else {
-		log.Infow("HTTP Request Completed Successfully", fields...)
+		log.HTTPDebug("HTTP Request Completed Successfully", fields...)
 	}
 }
 
