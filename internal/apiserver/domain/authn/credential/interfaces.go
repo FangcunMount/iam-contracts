@@ -7,7 +7,7 @@ import "time"
 // 遵循接口隔离原则，按职责细分
 
 // Binder 凭据绑定器接口（Driving Port）
-// 职责：将外部认证信息绑定到账号，创建凭据实体
+// 职责：将外部认证信息绑定到账号，创建凭据实体（不含持久化）
 type Binder interface {
 	Bind(spec BindSpec) (*Credential, error)
 }

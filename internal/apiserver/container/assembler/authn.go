@@ -270,6 +270,7 @@ func (m *AuthnModule) initializeApplication(
 	m.RegisterService = registerApp.NewRegisterApplicationService(
 		infra.unitOfWork,
 		hasher,
+		infra.idp, // 添加 IDP 参数
 		infra.userRepo,
 	)
 

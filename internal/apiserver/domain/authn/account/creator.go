@@ -3,58 +3,77 @@ package account
 import (
 	"context"
 
-	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"gorm.io/gorm"
 )
 
-// creator 账号创建器实现
-type creator struct {
-	repo Repository
+// ==================== 账户创建器实现 ====================
+
+// accountCreator 账户创建器实现
+type accountCreator struct {
+	repo       Repository
+	strategies map[AccountType]CreatorStrategy
 }
 
-// 确保实现了 Creator 接口
-var _ Creator = (*creator)(nil)
+var _ AccountCreator = (*accountCreator)(nil)
 
-// NewCreator 创建账号创建器实例
-func NewCreator(repo Repository) Creator {
-	return &creator{
-		repo: repo,
+// NewAccountCreator 创建账户创建器
+// 内部自动注册所有策略，应用层无需关心策略细节
+func NewAccountCreator(repo Repository, idp authentication.IdentityProvider) AccountCreator {
+	// 注册所有策略
+	strategies := map[AccountType]CreatorStrategy{
+		TypeOpera:   NewOperaCreatorStrategy(),
+		TypeWcMinip: NewWechatMinipCreatorStrategy(idp),
+		TypeWcCom:   NewWecomCreatorStrategy(idp),
+	}
+
+	return &accountCreator{
+		repo:       repo,
+		strategies: strategies,
 	}
 }
 
-// Create 创建账户
-func (c *creator) Create(ctx context.Context, dto CreateAccountDTO) (*Account, error) {
-	// 参数校验，验证输入数据的合法性
-	if !idutil.ValidateIntID(dto.UserID.Uint64()) {
-		return nil, errors.WithCode(code.ErrInvalidArgument, "invalid user ID")
-	}
-	if !dto.AccountType.Validate() {
-		return nil, errors.WithCode(code.ErrInvalidArgument, "invalid account type")
-	}
-	if dto.AppID.Len() == 0 {
-		return nil, errors.WithCode(code.ErrInvalidArgument, "app ID cannot be empty")
-	}
-	if dto.ExternalID.Len() == 0 {
-		return nil, errors.WithCode(code.ErrInvalidArgument, "external ID cannot be empty")
+// CreateAccount 创建账户实体（不包含持久化）
+// 职责：
+// 1. 选择策略并准备数据
+// 2. 幂等性检查（查询已存在的账户）
+// 3. 创建账户实体
+// 注意：持久化由应用层负责
+func (c *accountCreator) CreateAccount(ctx context.Context, input CreationInput) (*Account, *CreationParams, error) {
+	// ========== 步骤1: 选择创建策略 ==========
+	strategy, ok := c.strategies[input.AccountType]
+	if !ok {
+		return nil, nil, perrors.WithCode(code.ErrInvalidArgument, "unsupported account type: %s", input.AccountType)
 	}
 
-	// 幂等性检查，确保同一用户、同一应用、同一外部ID的账号不会重复创建
-	if existingAccount, err := c.repo.GetByExternalIDAppId(ctx, dto.ExternalID, dto.AppID); err != nil {
-		return nil, err
-	} else if existingAccount != nil && existingAccount.UserID == dto.UserID {
-		return nil, errors.WithCode(code.ErrExternalExists, "create account failed, external ID belongs to the other user")
-	} else if existingAccount != nil {
-		return nil, errors.WithCode(code.ErrAccountExists, "create account failed, external ID already exists")
+	// ========== 步骤2: 准备账户创建参数 ==========
+	params, err := strategy.PrepareData(ctx, input)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	// 创建新的账号实体
-	account := NewAccount(
-		dto.UserID,
-		dto.AccountType,
-		dto.ExternalID,
-		WithAppID(dto.AppID),
-	)
+	// ========== 步骤3: 幂等性检查 ==========
+	existingAccount, err := c.repo.GetByExternalIDAppId(ctx, params.ExternalID, params.AppID)
+	if err != nil && !perrors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil, err
+	}
 
-	return account, nil
+	if existingAccount != nil {
+		// 账户已存在，验证是否属于同一用户
+		if existingAccount.UserID != input.UserID {
+			return nil, nil, perrors.WithCode(code.ErrExternalExists, "account already belongs to another user")
+		}
+		return existingAccount, params, nil
+	}
+
+	// ========== 步骤4: 使用策略创建账户实体 ==========
+	account, err := strategy.Create(ctx, params)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// 注意：账户持久化由应用层负责
+	return account, params, nil
 }

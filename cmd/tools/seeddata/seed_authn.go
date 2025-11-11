@@ -9,6 +9,7 @@ import (
 	authnUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/crypto"
 	userRepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
+	wechatInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/wechat"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -43,10 +44,14 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 	// TODO: pepper 应该从配置中读取
 	passwordHasher := crypto.NewArgon2Hasher("default-pepper-change-me")
 
+	// 初始化身份提供商（简单实现，用于 seeddata）
+	idp := wechatInfra.NewIdentityProvider(nil, nil)
+
 	// 初始化应用服务
 	registerService := registerApp.NewRegisterApplicationService(
 		unitOfWork,
 		passwordHasher,
+		idp, // 添加 IDP 参数
 		userRepository,
 	)
 

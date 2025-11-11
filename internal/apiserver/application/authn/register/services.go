@@ -19,16 +19,6 @@ type RegisterApplicationService interface {
 
 // ============= DTOs =============
 
-// CredentialType 凭据类型（用于注册）
-type CredentialType string
-
-const (
-	CredTypePassword CredentialType = "password" // 密码
-	CredTypePhone    CredentialType = "phone"    // 手机号
-	CredTypeWechat   CredentialType = "wechat"   // 微信小程序
-	CredTypeWecom    CredentialType = "wecom"    // 企业微信
-)
-
 // RegisterRequest 统一注册请求
 type RegisterRequest struct {
 	// ========== 用户基本信息（必须）==========
@@ -36,29 +26,41 @@ type RegisterRequest struct {
 	Phone meta.Phone // 手机号（E.164格式）
 	Email meta.Email // 邮箱（可选）
 
-	// ========== 凭据信息 ==========
-	CredentialType CredentialType // 凭据类型
+	// ========== 账户类型（必须）==========
+	AccountType domain.AccountType // 账户类型（决定注册流程，如微信小程序需要 code2session）
 
-	// 密码凭据
+	// ========== 凭据类型（必须）==========
+	CredentialType CredentialType // 凭据类型（决定绑定哪种凭据）
+
+	// ========== 密码凭据参数 ==========
 	Password *string // 密码（当 CredentialType = password 时必须）
 
-	// 手机OTP凭据
-	// Phone 已在用户基本信息中，无需额外字段
+	// ========== 微信小程序账户参数 ==========
+	WechatAppID     *string // 微信AppID（当 AccountType = TypeWcMinip 时必须）
+	WechatAppSecret *string // 微信AppSecret（用于 code2session）
+	WechatJsCode    *string // 微信JsCode（用于 code2session）
+	WechatOpenID    *string // 微信OpenID（可选，如果有就不需要 code2session）
+	WechatUnionID   *string // 微信UnionID（可选）
 
-	// 微信凭据
-	WechatAppID   *string // 微信AppID（当 CredentialType = wechat 时必须）
-	WechatOpenID  *string // 微信OpenID（当 CredentialType = wechat 时必须）
-	WechatUnionID *string // 微信UnionID（可选）
-
-	// 企业微信凭据
-	WecomCorpID *string // 企业CorpID（当 CredentialType = wecom 时必须）
-	WecomUserID *string // 企业微信UserID（当 CredentialType = wecom 时必须）
+	// ========== 企业微信账户参数 ==========
+	WecomCorpID *string // 企业CorpID（当 AccountType = TypeWcCom 时必须）
+	WecomUserID *string // 企业微信UserID（当 AccountType = TypeWcCom 时必须）
 
 	// ========== 账户元数据（可选）==========
 	Profile    map[string]string // 用户资料（昵称、头像等）
 	Meta       map[string]string // 额外元数据
 	ParamsJSON []byte            // 第三方平台用户信息JSON
 }
+
+// CredentialType 凭据类型
+type CredentialType string
+
+const (
+	CredTypePassword CredentialType = "password" // 密码
+	CredTypePhone    CredentialType = "phone"    // 手机号OTP
+	CredTypeWechat   CredentialType = "wechat"   // 微信小程序
+	CredTypeWecom    CredentialType = "wecom"    // 企业微信
+)
 
 // RegisterResult 注册结果
 type RegisterResult struct {
