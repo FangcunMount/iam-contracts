@@ -2,11 +2,12 @@ package middleware
 
 import (
 	"bytes"
-	"fmt"
+	"encoding/json"
+	"io"
 	"net/http"
 	"time"
 
-	"github.com/FangcunMount/component-base/pkg/log"
+	"github.com/FangcunMount/iam-contracts/pkg/log"
 	"github.com/gin-gonic/gin"
 )
 
@@ -55,36 +56,30 @@ func APILoggerWithConfig(config APILoggerConfig) gin.HandlerFunc {
 		}
 
 		start := time.Now()
+		requestID := c.GetString(XRequestIDKey)
 
+		// === 1. 记录请求开始信息 ===
+		logRequestStart(c, cfg, requestID)
+
+		// 读取并缓存请求体
+		var requestBody []byte
+		if cfg.LogRequestBody && c.Request.Body != nil {
+			requestBody = readAndRestoreRequestBody(c, cfg.MaxBodyBytes)
+		}
+
+		// 包装 ResponseWriter 以捕获响应
 		writer := newBodyCaptureWriter(c.Writer, cfg.LogResponseBody, cfg.MaxBodyBytes)
 		c.Writer = writer
 
+		// 处理请求
 		c.Next()
 
+		// === 2. 记录请求结束信息 ===
 		statusCode := writer.Status()
 		latency := time.Since(start)
+		responseBody := writer.Body()
 
-		// 使用简洁的格式化日志，而不是结构化日志
-		logMsg := fmt.Sprintf("%-6s %s %d | %6.3fms | %s | %s",
-			c.Request.Method,
-			c.Request.URL.Path,
-			statusCode,
-			float64(latency.Microseconds())/1000.0,
-			c.ClientIP(),
-			c.Request.UserAgent(),
-		)
-
-		switch {
-		case statusCode >= http.StatusInternalServerError:
-			log.Errorf("[API] %s", logMsg)
-			if len(c.Errors) > 0 {
-				log.Errorf("[API] Errors: %s", c.Errors.String())
-			}
-		case statusCode >= http.StatusBadRequest:
-			log.Warnf("[API] %s", logMsg)
-		default:
-			log.Infof("[API] %s", logMsg)
-		}
+		logRequestEnd(c, cfg, requestID, start, latency, statusCode, requestBody, responseBody)
 	}
 }
 
@@ -179,6 +174,133 @@ func minInt64(a int64, b int64) int64 {
 	return b
 }
 
+// readAndRestoreRequestBody 读取请求体并恢复到请求中
+func readAndRestoreRequestBody(c *gin.Context, maxSize int64) []byte {
+	if c.Request.Body == nil {
+		return nil
+	}
+
+	// 限制读取大小
+	reader := io.LimitReader(c.Request.Body, maxSize)
+	body, err := io.ReadAll(reader)
+	if err != nil {
+		log.Warnw("Failed to read request body", "error", err)
+		return nil
+	}
+
+	// 恢复请求体
+	c.Request.Body = io.NopCloser(bytes.NewReader(body))
+
+	return body
+}
+
+// logRequestStart 记录请求开始信息
+func logRequestStart(c *gin.Context, config APILoggerConfig, requestID string) {
+	fields := []interface{}{
+		"event", "request_start",
+		"request_id", requestID,
+		"method", c.Request.Method,
+		"path", c.Request.URL.Path,
+		"query", c.Request.URL.RawQuery,
+		"client_ip", c.ClientIP(),
+		"user_agent", c.Request.UserAgent(),
+		"timestamp", time.Now(),
+	}
+
+	// 记录请求头
+	if config.LogRequestHeaders {
+		headers := make(map[string]string)
+		for name, values := range c.Request.Header {
+			if len(values) > 0 {
+				value := values[0]
+				if config.MaskSensitiveData && isSensitiveHeader(name) {
+					value = maskSensitiveValue(value)
+				}
+				headers[name] = value
+			}
+		}
+		fields = append(fields, "request_headers", headers)
+	}
+
+	log.Infow("HTTP Request Started", fields...)
+}
+
+// logRequestEnd 记录请求结束信息
+func logRequestEnd(c *gin.Context, config APILoggerConfig, requestID string, start time.Time, latency time.Duration, statusCode int, requestBody, responseBody []byte) {
+	fields := []interface{}{
+		"event", "request_end",
+		"request_id", requestID,
+		"method", c.Request.Method,
+		"path", c.Request.URL.Path,
+		"status_code", statusCode,
+		"duration_ms", latency.Milliseconds(),
+		"response_size", len(responseBody),
+		"timestamp", time.Now(),
+	}
+
+	// 记录请求体
+	if config.LogRequestBody && len(requestBody) > 0 {
+		bodyStr := string(requestBody)
+		if config.MaskSensitiveData {
+			bodyStr = maskSensitiveJSON(bodyStr)
+		}
+		fields = append(fields, "request_body", bodyStr)
+	}
+
+	// 记录响应头
+	if config.LogResponseHeaders {
+		headers := make(map[string]string)
+		for name, values := range c.Writer.Header() {
+			if len(values) > 0 {
+				headers[name] = values[0]
+			}
+		}
+		fields = append(fields, "response_headers", headers)
+	}
+
+	// 记录响应体
+	if config.LogResponseBody && len(responseBody) > 0 {
+		bodyStr := string(responseBody)
+		if config.MaskSensitiveData {
+			bodyStr = maskSensitiveJSON(bodyStr)
+		}
+		fields = append(fields, "response_body", bodyStr)
+	}
+
+	// 记录错误信息
+	if len(c.Errors) > 0 {
+		fields = append(fields, "errors", c.Errors.String())
+	}
+
+	// 根据状态码选择日志级别
+	if statusCode >= http.StatusInternalServerError {
+		log.Errorw("HTTP Request Completed with Server Error", fields...)
+	} else if statusCode >= http.StatusBadRequest {
+		log.Warnw("HTTP Request Completed with Client Error", fields...)
+	} else {
+		log.Infow("HTTP Request Completed Successfully", fields...)
+	}
+}
+
+// isJSON 检查数据是否为 JSON 格式
+func isJSON(data []byte) bool {
+	var js json.RawMessage
+	return json.Unmarshal(data, &js) == nil
+}
+
+// formatJSON 格式化 JSON 数据（移除不必要的空格和换行）
+func formatJSON(data []byte) string {
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, data); err != nil {
+		return string(data)
+	}
+	result := compact.String()
+	if len(result) > 500 {
+		return result[:500] + "..."
+	}
+	return result
+}
+
 // 以下函数保留以备将来需要详细日志时使用
 
 /*
@@ -242,6 +364,96 @@ func renderBodyForLog(data []byte, actualLen int, max int64, mask bool) string {
 	return body
 }
 
+// 敏感字段列表
+var sensitiveFields = []string{
+	"password", "secret", "token", "authorization", "api_key", "apikey",
+	"access_token", "refresh_token", "private_key", "client_secret",
+}
+
+// isSensitiveHeader 判断是否为敏感的请求头
+func isSensitiveHeader(name string) bool {
+	name = strings.ToLower(name)
+	return name == "authorization" || name == "cookie" || name == "x-api-key"
+}
+
+// maskSensitiveValue 对敏感值进行脱敏处理
+func maskSensitiveValue(value string) string {
+	if len(value) <= 8 {
+		return "***"
+	}
+	return value[:4] + "***" + value[len(value)-4:]
+}
+
+// maskSensitiveJSON 对 JSON 字符串中的敏感字段进行脱敏
+func maskSensitiveJSON(jsonStr string) string {
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
+		return jsonStr
+	}
+
+	maskSensitiveInData(data)
+
+	masked, err := json.Marshal(data)
+	if err != nil {
+		return jsonStr
+	}
+
+	return string(masked)
+}
+
+// maskSensitiveWithRegex 使用正则表达式对常见敏感信息进行脱敏
+func maskSensitiveWithRegex(text string) string {
+	// 密码字段: "password":"xxx" -> "password":"***"
+	re := regexp.MustCompile(`("password"\s*:\s*)"[^"]*"`)
+	text = re.ReplaceAllString(text, `$1"***"`)
+
+	// Token 字段
+	re = regexp.MustCompile(`("token"\s*:\s*)"[^"]*"`)
+	text = re.ReplaceAllString(text, `$1"***"`)
+
+	re = regexp.MustCompile(`("access_token"\s*:\s*)"[^"]*"`)
+	text = re.ReplaceAllString(text, `$1"***"`)
+
+	// API Key
+	re = regexp.MustCompile(`("api_key"\s*:\s*)"[^"]*"`)
+	text = re.ReplaceAllString(text, `$1"***"`)
+
+	return text
+}
+
+// maskSensitiveInData 递归处理数据结构中的敏感字段
+func maskSensitiveInData(data interface{}) interface{} {
+	switch v := data.(type) {
+	case map[string]interface{}:
+		for key, value := range v {
+			if isSensitiveField(key) {
+				if str, ok := value.(string); ok {
+					v[key] = maskSensitiveValue(str)
+				}
+			} else {
+				v[key] = maskSensitiveInData(value)
+			}
+		}
+	case []interface{}:
+		for i, item := range v {
+			v[i] = maskSensitiveInData(item)
+		}
+	}
+	return data
+}
+
+// isSensitiveField 判断字段名是否为敏感字段
+func isSensitiveField(fieldName string) bool {
+	lower := strings.ToLower(fieldName)
+	for _, sensitive := range sensitiveFields {
+		if lower == sensitive {
+			return true
+		}
+	}
+	return false
+}
+
+/*
 // isJSON 检查数据是否为 JSON 格式
 func isJSON(data []byte) bool {
 	var js json.RawMessage

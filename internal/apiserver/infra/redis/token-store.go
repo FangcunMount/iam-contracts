@@ -8,6 +8,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	"github.com/FangcunMount/component-base/pkg/log"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
@@ -48,6 +49,7 @@ func (s *RedisStore) SaveRefreshToken(ctx context.Context, token *domain.Token) 
 	// 序列化
 	jsonData, err := json.Marshal(data)
 	if err != nil {
+		redisError(ctx, "failed to marshal refresh token", log.String("error", err.Error()))
 		return fmt.Errorf("failed to marshal refresh token: %w", err)
 	}
 
@@ -55,13 +57,24 @@ func (s *RedisStore) SaveRefreshToken(ctx context.Context, token *domain.Token) 
 	key := fmt.Sprintf("refresh_token:%s", token.Value)
 	ttl := token.RemainingDuration()
 	if ttl <= 0 {
+		redisWarn(ctx, "attempted to save expired refresh token", log.String("token_id", token.ID))
 		return fmt.Errorf("token already expired")
 	}
 
 	if err := s.client.Set(ctx, key, jsonData, ttl).Err(); err != nil {
+		redisError(ctx, "failed to save refresh token",
+			log.String("error", err.Error()),
+			log.String("token_id", token.ID),
+			log.String("key", key),
+		)
 		return fmt.Errorf("failed to save refresh token to redis: %w", err)
 	}
 
+	redisInfo(ctx, "refresh token cached",
+		log.String("token_id", token.ID),
+		log.String("key", key),
+		log.Duration("ttl", ttl),
+	)
 	return nil
 }
 
@@ -73,14 +86,20 @@ func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*d
 	jsonData, err := s.client.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
+			redisDebug(ctx, "refresh token cache miss", log.String("key", key))
 			return nil, nil // 令牌不存在
 		}
+		redisError(ctx, "failed to query refresh token",
+			log.String("error", err.Error()),
+			log.String("key", key),
+		)
 		return nil, fmt.Errorf("failed to get refresh token from redis: %w", err)
 	}
 
 	// 反序列化
 	var data refreshTokenData
 	if err := json.Unmarshal([]byte(jsonData), &data); err != nil {
+		redisError(ctx, "failed to unmarshal refresh token", log.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to unmarshal refresh token: %w", err)
 	}
 
@@ -96,6 +115,11 @@ func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*d
 		ttl,
 	)
 
+	redisDebug(ctx, "refresh token cache hit",
+		log.String("token_id", data.TokenID),
+		log.String("key", key),
+		log.Duration("ttl", ttl),
+	)
 	return token, nil
 }
 
@@ -104,9 +128,11 @@ func (s *RedisStore) DeleteRefreshToken(ctx context.Context, tokenValue string) 
 	key := fmt.Sprintf("refresh_token:%s", tokenValue)
 
 	if err := s.client.Del(ctx, key).Err(); err != nil {
+		redisError(ctx, "failed to delete refresh token", log.String("error", err.Error()), log.String("key", key))
 		return fmt.Errorf("failed to delete refresh token from redis: %w", err)
 	}
 
+	redisInfo(ctx, "refresh token deleted", log.String("key", key))
 	return nil
 }
 
@@ -116,9 +142,11 @@ func (s *RedisStore) AddToBlacklist(ctx context.Context, tokenID string, expiry 
 
 	// 设置黑名单标记，TTL 为令牌剩余有效期
 	if err := s.client.Set(ctx, key, "1", expiry).Err(); err != nil {
+		redisError(ctx, "failed to add token to blacklist", log.String("error", err.Error()), log.String("token_id", tokenID))
 		return fmt.Errorf("failed to add token to blacklist: %w", err)
 	}
 
+	redisInfo(ctx, "token blacklisted", log.String("token_id", tokenID), log.Duration("ttl", expiry))
 	return nil
 }
 
@@ -129,8 +157,13 @@ func (s *RedisStore) IsBlacklisted(ctx context.Context, tokenID string) (bool, e
 	// 检查 key 是否存在
 	exists, err := s.client.Exists(ctx, key).Result()
 	if err != nil {
+		redisError(ctx, "failed to check token blacklist", log.String("error", err.Error()), log.String("token_id", tokenID))
 		return false, fmt.Errorf("failed to check token blacklist: %w", err)
 	}
 
+	redisDebug(ctx, "checked token blacklist",
+		log.String("token_id", tokenID),
+		log.Bool("blacklisted", exists > 0),
+	)
 	return exists > 0, nil
 }

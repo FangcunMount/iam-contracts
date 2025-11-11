@@ -6,6 +6,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 )
 
@@ -44,8 +45,24 @@ func (v *OTPVerifierImpl) VerifyAndConsume(ctx context.Context, phoneE164, scene
 
 	result, err := v.client.Eval(ctx, script, []string{key}).Int()
 	if err != nil {
-		// Redis错误，返回验证失败
+		redisError(ctx, "OTP verification failed",
+			log.String("error", err.Error()),
+			log.String("key", key),
+			log.String("scene", scene),
+		)
 		return false
+	}
+
+	if result == 1 {
+		redisInfo(ctx, "OTP verified",
+			log.String("scene", scene),
+			log.String("phone", phoneE164),
+		)
+	} else {
+		redisDebug(ctx, "OTP not found or already consumed",
+			log.String("scene", scene),
+			log.String("phone", phoneE164),
+		)
 	}
 
 	return result == 1

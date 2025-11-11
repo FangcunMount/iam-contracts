@@ -13,11 +13,13 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/FangcunMount/component-base/pkg/log"
+	"github.com/FangcunMount/component-base/pkg/util/idutil"
 )
 
 // LoggingInterceptor 统一的 gRPC 日志拦截器
 func LoggingInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		ctx = ensureTraceContext(ctx)
 		start := time.Now()
 
 		// 获取客户端信息
@@ -26,9 +28,13 @@ func LoggingInterceptor() grpc.UnaryServerInterceptor {
 		requestID := getRequestID(ctx)
 		headers := getHeaders(ctx)
 
-		// 记录请求开始（包含请求参数）
-		log.Infof("gRPC Request Started - RequestID: %s, Method: %s, ClientIP: %s, UserAgent: %s, Headers: %v, Request: %+v",
-			requestID, info.FullMethod, clientIP, userAgent, headers, req)
+		startFields := append([]log.Field{
+			log.String("method", info.FullMethod),
+			log.String("client_ip", clientIP),
+			log.String("user_agent", userAgent),
+			log.Any("metadata", headers),
+		}, log.TraceFields(ctx)...)
+		log.GRPC("gRPC request started", startFields...)
 
 		// 执行实际的处理器
 		resp, err := handler(ctx, req)
@@ -49,15 +55,22 @@ func LoggingInterceptor() grpc.UnaryServerInterceptor {
 			}
 		}
 
-		// 记录请求完成（包含响应数据）
+		fields := []log.Field{
+			log.String("method", info.FullMethod),
+			log.String("request_id", requestID),
+			log.Duration("duration", duration),
+			log.String("status_code", statusCode.String()),
+		}
+
 		if err != nil {
-			log.Errorf("gRPC Request Failed - RequestID: %s, Method: %s, Duration: %v, Status: %s, Error: %s",
-				requestID, info.FullMethod, duration, statusCode, errorMsg)
+			fields = append(fields, log.String("error", errorMsg))
+			fields = append(fields, log.TraceFields(ctx)...)
+			log.GRPCError("gRPC request failed", fields...)
 		} else {
-			// 生成响应摘要，避免日志过长
 			responseSummary := generateResponseSummary(resp)
-			log.Infof("gRPC Request Completed - RequestID: %s, Method: %s, Duration: %v, Status: %s, ResponseSummary: %s",
-				requestID, info.FullMethod, duration, statusCode, responseSummary)
+			fields = append(fields, log.String("response_summary", responseSummary))
+			fields = append(fields, log.TraceFields(ctx)...)
+			log.GRPC("gRPC request completed", fields...)
 		}
 
 		return resp, err
@@ -67,9 +80,15 @@ func LoggingInterceptor() grpc.UnaryServerInterceptor {
 // RecoveryInterceptor 恢复拦截器，防止 panic 导致服务崩溃
 func RecoveryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		ctx = ensureTraceContext(ctx)
 		defer func() {
 			if r := recover(); r != nil {
-				log.Errorf("gRPC Request Panic Recovered - Method: %s, Panic: %v, Stack: %s", info.FullMethod, r, debug.Stack())
+				fields := append([]log.Field{
+					log.String("method", info.FullMethod),
+					log.Any("panic", r),
+					log.String("stack", string(debug.Stack())),
+				}, log.TraceFields(ctx)...)
+				log.GRPCError("gRPC request panic recovered", fields...)
 				err = status.Error(codes.Internal, fmt.Sprintf("内部服务器错误: %v", r))
 			}
 		}()
@@ -81,11 +100,8 @@ func RecoveryInterceptor() grpc.UnaryServerInterceptor {
 // RequestIDInterceptor 请求ID拦截器，为每个请求生成唯一ID
 func RequestIDInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		// 生成请求ID
 		requestID := generateRequestID()
-
-		// 将请求ID添加到上下文
-		ctx = context.WithValue(ctx, "request_id", requestID)
+		ctx = log.WithRequestID(ctx, requestID)
 
 		return handler(ctx, req)
 	}
@@ -130,12 +146,15 @@ func getRequestID(ctx context.Context) string {
 	if requestID, ok := ctx.Value("request_id").(string); ok {
 		return requestID
 	}
+	if requestID := log.ExtractRequestID(ctx); requestID != "" {
+		return requestID
+	}
 	return "unknown"
 }
 
 // generateRequestID 生成请求ID
 func generateRequestID() string {
-	return fmt.Sprintf("grpc-%d", time.Now().UnixNano())
+	return idutil.NewRequestID()
 }
 
 // generateResponseSummary 生成响应摘要
@@ -164,4 +183,30 @@ func generateResponseSummary(resp interface{}) string {
 	}
 
 	return respStr
+}
+
+func ensureTraceContext(ctx context.Context) context.Context {
+	traceID := metadataValue(ctx, "x-trace-id")
+	if traceID == "" {
+		traceID = idutil.NewTraceID()
+	}
+
+	requestID := metadataValue(ctx, "x-request-id")
+	if requestID == "" {
+		requestID = idutil.NewRequestID()
+	}
+
+	spanID := idutil.NewSpanID()
+
+	return log.WithTraceContext(ctx, traceID, spanID, requestID)
+}
+
+func metadataValue(ctx context.Context, key string) string {
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		values := md.Get(key)
+		if len(values) > 0 {
+			return values[0]
+		}
+	}
+	return ""
 }

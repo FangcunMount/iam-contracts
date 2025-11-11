@@ -49,14 +49,16 @@ func Secure(c *gin.Context) {
 // defaultMiddlewares 返回默认的中间件
 func defaultMiddlewares() map[string]gin.HandlerFunc {
 	return map[string]gin.HandlerFunc{
-		"recovery":        gin.Recovery(),
-		"secure":          Secure,
-		"options":         Options,
-		"nocache":         NoCache,
-		"cors":            Cors(),
-		"requestid":       RequestID(),
-		"logger":          Logger(),
-		"enhanced_logger": EnhancedLogger(), // 增强日志中间件
-		"dump":            gindump.Dump(),
+		"recovery": gin.Recovery(),
+		"secure":   Secure,
+		"options":  Options,
+		"nocache":  NoCache,
+		"cors":     Cors(),
+		"tracing":  Tracing(), // 链路追踪中间件（整合了 request_id 生成）
+		"dump":     gindump.Dump(),
+		// 注意: 以下中间件已被更优的方案替代，建议使用 api_logger
+		// "requestid":       RequestID(),        // 已被 tracing 中间件整合
+		// "logger":          Logger(),           // 已被 api_logger 替代（Deprecated）
+		// "enhanced_logger": EnhancedLogger(),   // 已被 api_logger 替代（Deprecated）
 	}
 }

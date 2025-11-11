@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"sync"
 
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/FangcunMount/component-base/pkg/log"
+	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
 )
 
 // VersionNotifier Redis 版本通知器实现
@@ -56,14 +58,25 @@ func (n *VersionNotifier) Publish(ctx context.Context, tenantID string, version 
 
 	data, err := json.Marshal(msg)
 	if err != nil {
+		redisError(ctx, "failed to marshal version notifier payload", log.String("error", err.Error()))
 		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 
 	err = n.client.Publish(ctx, n.channel, data).Err()
 	if err != nil {
+		redisError(ctx, "failed to publish version change",
+			log.String("error", err.Error()),
+			log.String("tenant_id", tenantID),
+			log.Int64("version", version),
+		)
 		return fmt.Errorf("failed to publish message: %w", err)
 	}
 
+	redisInfo(ctx, "version change published",
+		log.String("tenant_id", tenantID),
+		log.Int64("version", version),
+		log.String("channel", n.channel),
+	)
 	return nil
 }
 
@@ -88,12 +101,14 @@ func (n *VersionNotifier) Subscribe(ctx context.Context, handler domain.VersionC
 	if err != nil {
 		_ = n.pubsub.Close()
 		n.pubsub = nil
+		redisError(ctx, "failed to subscribe version channel", log.String("error", err.Error()), log.String("channel", n.channel))
 		return fmt.Errorf("failed to subscribe: %w", err)
 	}
 
 	// 启动消息处理协程
 	go n.handleMessages(handler)
 
+	redisInfo(ctx, "subscribed to version channel", log.String("channel", n.channel))
 	return nil
 }
 
@@ -105,11 +120,17 @@ func (n *VersionNotifier) handleMessages(handler domain.VersionChangeHandler) {
 		var changeMsg VersionChangeMessage
 
 		if err := json.Unmarshal([]byte(msg.Payload), &changeMsg); err != nil {
-			// 记录日志但继续处理
-			fmt.Printf("failed to unmarshal message: %v\n", err)
+			redisWarn(context.Background(), "failed to unmarshal version message",
+				log.String("error", err.Error()),
+				log.String("channel", n.channel),
+			)
 			continue
 		}
 
+		redisDebug(context.Background(), "version change received",
+			log.String("tenant_id", changeMsg.TenantID),
+			log.Int64("version", changeMsg.Version),
+		)
 		// 调用处理函数
 		handler(changeMsg.TenantID, changeMsg.Version)
 	}
@@ -129,6 +150,7 @@ func (n *VersionNotifier) Close() error {
 	if n.pubsub != nil {
 		err := n.pubsub.Close()
 		n.pubsub = nil
+		redisInfo(context.Background(), "version notifier closed", log.String("channel", n.channel))
 		return err
 	}
 

@@ -75,16 +75,24 @@ func (s *GenericAPIServer) Setup() {
 
 // InstallMiddlewares 安装中间件
 func (s *GenericAPIServer) InstallMiddlewares() {
+	// ===== 1. 基础设施层 =====
 	// 必要的中间件
-	// 请求 ID 中间件
-	s.Use(middleware.RequestID())
+	s.Use(middleware.Cors())  // CORS 跨域
+	s.Use(middleware.Secure)  // 安全头
+	s.Use(middleware.Options) // OPTIONS 请求处理
+
+	// ===== 2. 可观测性层 =====
+	// Tracing 中间件（整合了 trace_id, span_id, request_id 生成）
+	s.Use(middleware.Tracing())
+	// API 日志中间件（类型化日志 + 追踪信息）
+	s.Use(middleware.APILogger())
+
+	// ===== 3. 上下文层 =====
 	// 上下文中间件
 	s.Use(middleware.Context())
 
-	// 使用 API 日志中间件（开发环境友好的格式化输出）
-	s.Use(middleware.APILogger())
-
-	// 安装自定义中间件
+	// ===== 4. 业务层（动态加载） =====
+	// 安装自定义中间件（如 JWT 认证、权限验证等）
 	for _, m := range s.middlewares {
 		mw, ok := middleware.Middlewares[m]
 		if !ok {
