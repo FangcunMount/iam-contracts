@@ -6,7 +6,6 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
-	github.com/mattn/go-isatty v0.0.20
 	github.com/moby/term v0.5.2
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/silenceper/wechat/v2 v2.1.10
@@ -79,6 +78,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/microsoft/go-mssqldb v1.6.0 // indirect
@@ -129,7 +129,7 @@ require (
 )
 
 require (
-	github.com/FangcunMount/component-base v0.3.0
+	github.com/FangcunMount/component-base v0.3.1
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/casbin/casbin/v2 v2.128.0
 	github.com/casbin/gorm-adapter/v3 v3.37.0
@@ -144,7 +144,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/nyaruka/phonenumbers v1.6.6
 	github.com/redis/go-redis/v9 v9.14.0
-	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sony/sonyflake v1.3.0 // indirect
 	github.com/speps/go-hashids v2.0.0+incompatible // indirect
