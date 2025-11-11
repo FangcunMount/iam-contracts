@@ -18,6 +18,7 @@ type SingleRedisOptions struct {
 	EnableCluster         bool     `json:"enable-cluster,omitempty"               mapstructure:"enable-cluster"`
 	UseSSL                bool     `json:"use-ssl,omitempty"                      mapstructure:"use-ssl"`
 	SSLInsecureSkipVerify bool     `json:"ssl-insecure-skip-verify,omitempty"     mapstructure:"ssl-insecure-skip-verify"`
+	EnableLogging         bool     `json:"enable-logging,omitempty"               mapstructure:"enable-logging"`
 }
 
 // RedisOptions defines options for dual redis instances (cache + store).
@@ -44,6 +45,7 @@ func NewRedisOptions() *RedisOptions {
 			EnableCluster:         false,
 			UseSSL:                false,
 			SSLInsecureSkipVerify: false,
+			EnableLogging:         false, // 默认不开启 Redis 命令日志
 		},
 		Store: &SingleRedisOptions{
 			Host:                  "127.0.0.1",
@@ -58,6 +60,7 @@ func NewRedisOptions() *RedisOptions {
 			EnableCluster:         false,
 			UseSSL:                false,
 			SSLInsecureSkipVerify: false,
+			EnableLogging:         false, // 默认不开启 Redis 命令日志
 		},
 	}
 }

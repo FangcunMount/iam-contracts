@@ -243,7 +243,7 @@ func (dm *DatabaseManager) initSingleRedis(instanceName string, opts *options.Si
 	// 构建地址
 	addr := fmt.Sprintf("%s:%d", opts.Host, opts.Port)
 
-	log.Infof("Initializing Redis %s connection to %s (username: %q, password: %s, db: %d)",
+	log.Infof("Initializing Redis %s connection to %s (username: %q, password: %s, db: %d, log_enabled: %v)",
 		instanceName, addr,
 		opts.Username,
 		func() string {
@@ -253,6 +253,7 @@ func (dm *DatabaseManager) initSingleRedis(instanceName string, opts *options.Si
 			return "<set>"
 		}(),
 		opts.Database,
+		opts.EnableLogging,
 	)
 
 	// 创建 Redis 客户端配置
@@ -286,7 +287,15 @@ func (dm *DatabaseManager) initSingleRedis(instanceName string, opts *options.Si
 		redisOpts.PoolSize = opts.MaxActive
 	}
 
+	// 创建 Redis 客户端
 	client := redis.NewClient(redisOpts)
+
+	// 添加 Redis Hook 日志记录
+	if opts.EnableLogging {
+		log.Infof("Enabling Redis %s command logging (slow threshold: 200ms)", instanceName)
+		redisHook := logger.NewRedisHook(true, 200*time.Millisecond)
+		client.AddHook(redisHook)
+	}
 
 	// 测试连接(使用较长的超时时间)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

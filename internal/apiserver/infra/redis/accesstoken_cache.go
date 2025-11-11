@@ -40,10 +40,10 @@ func (c *accessTokenCache) Get(ctx context.Context, appID string) (*wechatapp.Ap
 	data, err := c.client.Get(ctx, key).Bytes()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			redisDebug(ctx, "access token cache miss", log.String("key", key))
+			// Redis Hook 已经记录了 GET 命令，这里不需要再记录 cache miss
 			return nil, nil // 缓存未命中
 		}
-		redisError(ctx, "failed to get access token", log.String("error", err.Error()), log.String("key", key))
+		// Redis Hook 已经记录了命令错误，只返回错误即可
 		return nil, fmt.Errorf("failed to get access token from cache: %w", err)
 	}
 
@@ -53,7 +53,7 @@ func (c *accessTokenCache) Get(ctx context.Context, appID string) (*wechatapp.Ap
 		return nil, fmt.Errorf("failed to unmarshal access token: %w", err)
 	}
 
-	redisDebug(ctx, "access token cache hit", log.String("app_id", appID))
+	// Redis Hook 已经记录了 GET 命令成功，这里不需要再记录 cache hit
 	return &aat, nil
 }
 
@@ -74,7 +74,7 @@ func (c *accessTokenCache) Set(ctx context.Context, appID string, aat *wechatapp
 	}
 
 	if err := c.client.Set(ctx, key, data, ttl).Err(); err != nil {
-		redisError(ctx, "failed to write access token", log.String("error", err.Error()), log.String("app_id", appID))
+		// Redis Hook 已经记录了 SET 命令错误，只返回错误即可
 		return fmt.Errorf("failed to set access token to cache: %w", err)
 	}
 
@@ -96,12 +96,12 @@ func (c *accessTokenCache) TryLockRefresh(ctx context.Context, appID string, ttl
 	// 尝试获取分布式锁（使用 SET NX EX）
 	ok, err = c.client.SetNX(ctx, lockKey, "1", ttl).Result()
 	if err != nil {
-		redisError(ctx, "failed to acquire access token lock", log.String("error", err.Error()), log.String("lock_key", lockKey))
+		// Redis Hook 已经记录了 SETNX 命令错误，只返回错误即可
 		return false, nil, fmt.Errorf("failed to acquire lock: %w", err)
 	}
 
 	if !ok {
-		redisDebug(ctx, "access token lock already held", log.String("lock_key", lockKey))
+		// Redis Hook 已经记录了 SETNX 命令返回 false（锁已被持有）
 		// 未获取到锁
 		return false, nil, nil
 	}
@@ -109,7 +109,7 @@ func (c *accessTokenCache) TryLockRefresh(ctx context.Context, appID string, ttl
 	// 获取到锁，返回解锁函数
 	unlock = func() {
 		c.client.Del(context.Background(), lockKey)
-		redisDebug(context.Background(), "access token lock released", log.String("lock_key", lockKey))
+		// Redis Hook 已经记录了 DEL 命令
 	}
 
 	redisInfo(ctx, "access token lock acquired", log.String("lock_key", lockKey), log.Duration("ttl", ttl))

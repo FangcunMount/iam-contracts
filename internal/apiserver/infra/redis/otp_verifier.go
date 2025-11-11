@@ -45,11 +45,7 @@ func (v *OTPVerifierImpl) VerifyAndConsume(ctx context.Context, phoneE164, scene
 
 	result, err := v.client.Eval(ctx, script, []string{key}).Int()
 	if err != nil {
-		redisError(ctx, "OTP verification failed",
-			log.String("error", err.Error()),
-			log.String("key", key),
-			log.String("scene", scene),
-		)
+		// Redis Hook 已经记录了 EVAL 命令错误，只返回错误即可
 		return false
 	}
 
@@ -58,12 +54,8 @@ func (v *OTPVerifierImpl) VerifyAndConsume(ctx context.Context, phoneE164, scene
 			log.String("scene", scene),
 			log.String("phone", phoneE164),
 		)
-	} else {
-		redisDebug(ctx, "OTP not found or already consumed",
-			log.String("scene", scene),
-			log.String("phone", phoneE164),
-		)
 	}
+	// Redis Hook 已经记录了 EVAL 命令执行，不需要记录 OTP not found
 
 	return result == 1
 }

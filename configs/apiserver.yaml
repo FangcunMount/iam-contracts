@@ -44,6 +44,7 @@ redis:
     timeout: 5
     enable-cluster: false
     use-ssl: false
+    enable-logging: true  # 开启 Redis 命令日志（用于调试，生产环境建议关闭）
   
   # Store Redis - 用于持久化存储、队列、发布订阅等
   store:
@@ -57,6 +58,7 @@ redis:
     timeout: 5
     enable-cluster: false
     use-ssl: false
+    enable-logging: true  # 开启 Redis 命令日志（用于调试，生产环境建议关闭）
 
 # 日志配置（生产环境 - 使用 component-base v0.2.9 duplicate 模式）
 log:

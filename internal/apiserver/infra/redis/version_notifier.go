@@ -64,11 +64,7 @@ func (n *VersionNotifier) Publish(ctx context.Context, tenantID string, version 
 
 	err = n.client.Publish(ctx, n.channel, data).Err()
 	if err != nil {
-		redisError(ctx, "failed to publish version change",
-			log.String("error", err.Error()),
-			log.String("tenant_id", tenantID),
-			log.Int64("version", version),
-		)
+		// Redis Hook 已经记录了 PUBLISH 命令错误，只返回错误即可
 		return fmt.Errorf("failed to publish message: %w", err)
 	}
 
@@ -101,7 +97,7 @@ func (n *VersionNotifier) Subscribe(ctx context.Context, handler domain.VersionC
 	if err != nil {
 		_ = n.pubsub.Close()
 		n.pubsub = nil
-		redisError(ctx, "failed to subscribe version channel", log.String("error", err.Error()), log.String("channel", n.channel))
+		// Redis Hook 已经记录了 SUBSCRIBE 命令错误，只返回错误即可
 		return fmt.Errorf("failed to subscribe: %w", err)
 	}
 
