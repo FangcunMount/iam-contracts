@@ -29,8 +29,9 @@ type Config struct {
 	LogLevel      gormlogger.LogLevel
 }
 
-// New 创建 gorm 日志实例
-func New(level int) gormlogger.Interface {
+// NewGormLogger 创建 GORM 日志适配器
+// 将 GORM 的日志输出适配到 component-base 的类型化日志系统
+func NewGormLogger(level int) gormlogger.Interface {
 	config := Config{
 		SlowThreshold: 200 * time.Millisecond,
 		Colorful:      true,

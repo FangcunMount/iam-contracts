@@ -179,7 +179,7 @@ func (dm *DatabaseManager) ensureDatabase(gormDB *gorm.DB) error {
 // initMySQL 初始化MySQL连接
 func (dm *DatabaseManager) initMySQL() error {
 	// 创建 GORM logger 实例
-	gormLogger := logger.New(dm.config.MySQLOptions.LogLevel)
+	gormLogger := logger.NewGormLogger(dm.config.MySQLOptions.LogLevel)
 
 	// 打印日志配置信息，便于调试
 	log.Infof("Initializing MySQL with log level: %d", dm.config.MySQLOptions.LogLevel)
