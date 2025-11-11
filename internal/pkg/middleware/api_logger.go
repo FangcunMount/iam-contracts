@@ -5,13 +5,25 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
-	"github.com/FangcunMount/iam-contracts/pkg/log"
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/gin-gonic/gin"
 )
 
-const defaultAPILogTag = "http.access"
+const (
+	defaultAPILogTag = "http.access"
+	// 最大记录的请求/响应体大小 (16KB)
+	defaultMaxBodySize = 16 * 1024
+)
+
+// 敏感字段列表，需要脱敏处理
+var sensitiveFields = []string{
+	"password", "secret", "token", "authorization", "api_key", "apikey",
+	"access_token", "refresh_token", "private_key", "client_secret",
+}
 
 // APILoggerConfig 定义 API 日志中间件的可配置项
 type APILoggerConfig struct {
@@ -35,7 +47,7 @@ func DefaultAPILoggerConfig() APILoggerConfig {
 		LogResponseHeaders: true,
 		LogResponseBody:    true,
 		MaskSensitiveData:  true,
-		MaxBodyBytes:       16 * 1024, // 16KB
+		MaxBodyBytes:       defaultMaxBodySize,
 	}
 }
 
@@ -79,7 +91,7 @@ func APILoggerWithConfig(config APILoggerConfig) gin.HandlerFunc {
 		latency := time.Since(start)
 		responseBody := writer.Body()
 
-		logRequestEnd(c, cfg, requestID, start, latency, statusCode, requestBody, responseBody)
+		logRequestEnd(c, cfg, requestID, latency, statusCode, requestBody, responseBody)
 	}
 }
 
@@ -90,7 +102,7 @@ func (cfg APILoggerConfig) withDefaults() APILoggerConfig {
 		result.Tag = defaultAPILogTag
 	}
 	if result.MaxBodyBytes <= 0 {
-		result.MaxBodyBytes = DefaultAPILoggerConfig().MaxBodyBytes
+		result.MaxBodyBytes = defaultMaxBodySize
 	}
 
 	return result
@@ -129,7 +141,7 @@ func newBodyCaptureWriter(w gin.ResponseWriter, capture bool, limit int64) *body
 	return &bodyCaptureWriter{
 		ResponseWriter: w,
 		body:           buffer,
-		statusCode:     w.Status(),
+		statusCode:     http.StatusOK,
 		limitBytes:     limit,
 		capture:        capture,
 	}
@@ -226,7 +238,7 @@ func logRequestStart(c *gin.Context, config APILoggerConfig, requestID string) {
 }
 
 // logRequestEnd 记录请求结束信息
-func logRequestEnd(c *gin.Context, config APILoggerConfig, requestID string, start time.Time, latency time.Duration, statusCode int, requestBody, responseBody []byte) {
+func logRequestEnd(c *gin.Context, config APILoggerConfig, requestID string, latency time.Duration, statusCode int, requestBody, responseBody []byte) {
 	fields := []interface{}{
 		"event", "request_end",
 		"request_id", requestID,
@@ -280,94 +292,6 @@ func logRequestEnd(c *gin.Context, config APILoggerConfig, requestID string, sta
 	} else {
 		log.Infow("HTTP Request Completed Successfully", fields...)
 	}
-}
-
-// isJSON 检查数据是否为 JSON 格式
-func isJSON(data []byte) bool {
-	var js json.RawMessage
-	return json.Unmarshal(data, &js) == nil
-}
-
-// formatJSON 格式化 JSON 数据（移除不必要的空格和换行）
-func formatJSON(data []byte) string {
-	var compact bytes.Buffer
-	if err := json.Compact(&compact, data); err != nil {
-		return string(data)
-	}
-	result := compact.String()
-	if len(result) > 500 {
-		return result[:500] + "..."
-	}
-	return result
-}
-
-// 以下函数保留以备将来需要详细日志时使用
-
-/*
-func readRequestBody(c *gin.Context) []byte {
-	data, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		log.L(c.Request.Context()).Warnw("failed to read request body", "error", err)
-		return nil
-	}
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(data))
-	return data
-}
-
-func captureHeaders(headers http.Header, mask bool) map[string]string {
-	if len(headers) == 0 {
-		return nil
-	}
-
-	result := make(map[string]string, len(headers))
-	for key, values := range headers {
-		if len(values) == 0 {
-			continue
-		}
-		value := strings.Join(values, ", ")
-		if mask && isSensitiveHeader(key) {
-			value = maskSensitiveValue(value)
-		}
-		result[key] = value
-	}
-
-	return result
-}
-
-func renderBodyForLog(data []byte, actualLen int, max int64, mask bool) string {
-	if actualLen <= 0 {
-		actualLen = len(data)
-	}
-	if actualLen == 0 {
-		return ""
-	}
-	if max > 0 && int64(actualLen) > max {
-		return fmt.Sprintf("[omitted body: %d bytes exceeds limit %d bytes]", actualLen, max)
-	}
-	if len(data) == 0 {
-		return ""
-	}
-
-	var body string
-	if isJSON(data) {
-		body = formatJSON(data)
-		if mask {
-			body = maskSensitiveJSON(body)
-		}
-	} else {
-		body = string(data)
-		if mask {
-			body = maskSensitiveWithRegex(body)
-		}
-	}
-
-	return body
-}
-
-// 敏感字段列表
-var sensitiveFields = []string{
-	"password", "secret", "token", "authorization", "api_key", "apikey",
-	"access_token", "refresh_token", "private_key", "client_secret",
 }
 
 // isSensitiveHeader 判断是否为敏感的请求头
@@ -452,24 +376,3 @@ func isSensitiveField(fieldName string) bool {
 	}
 	return false
 }
-
-/*
-// isJSON 检查数据是否为 JSON 格式
-func isJSON(data []byte) bool {
-	var js json.RawMessage
-	return json.Unmarshal(data, &js) == nil
-}
-
-// formatJSON 格式化 JSON 数据（移除不必要的空格和换行）
-func formatJSON(data []byte) string {
-	var compact bytes.Buffer
-	if err := json.Compact(&compact, data); err != nil {
-		return string(data)
-	}
-	result := compact.String()
-	if len(result) > 500 {
-		return result[:500] + "..."
-	}
-	return result
-}
-*/
