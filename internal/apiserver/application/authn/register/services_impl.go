@@ -8,6 +8,7 @@ import (
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	credDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/credential"
+	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
@@ -17,10 +18,12 @@ import (
 // ============= RegisterApplicationService 实现 =============
 
 type registerApplicationService struct {
-	uow      uow.UnitOfWork
-	userRepo userDomain.Repository
-	hasher   authentication.PasswordHasher
-	idp      authentication.IdentityProvider
+	uow              uow.UnitOfWork
+	userRepo         userDomain.Repository
+	hasher           authentication.PasswordHasher
+	idp              authentication.IdentityProvider
+	wechatAppQuerier idpPort.Repository
+	secretVault      idpPort.SecretVault
 }
 
 var _ RegisterApplicationService = (*registerApplicationService)(nil)
@@ -30,12 +33,16 @@ func NewRegisterApplicationService(
 	hasher authentication.PasswordHasher,
 	idp authentication.IdentityProvider,
 	userRepo userDomain.Repository,
+	wechatAppQuerier idpPort.Repository,
+	secretVault idpPort.SecretVault,
 ) RegisterApplicationService {
 	return &registerApplicationService{
-		uow:      uow,
-		userRepo: userRepo,
-		hasher:   hasher,
-		idp:      idp,
+		uow:              uow,
+		userRepo:         userRepo,
+		hasher:           hasher,
+		idp:              idp,
+		wechatAppQuerier: wechatAppQuerier,
+		secretVault:      secretVault,
 	}
 }
 
@@ -51,8 +58,11 @@ func (s *registerApplicationService) Register(ctx context.Context, req RegisterR
 		}
 
 		// ========== 步骤2: 根据 AccountType 创建账户 ==========
-		// 构造领域层输入
-		domainInput := s.toDomainInput(req, user.ID)
+		// 构造领域层输入（包含查询 AppSecret）
+		domainInput, err := s.toDomainInput(ctx, req, user.ID)
+		if err != nil {
+			return err
+		}
 
 		// 创建账户创建器（策略选择在领域层内部完成）
 		accountCreator := domain.NewAccountCreator(tx.Accounts, s.idp)
@@ -177,24 +187,56 @@ func (s *registerApplicationService) issueCredential(
 	default:
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "unsupported credential type: %s", req.CredentialType)
 	}
-} // toDomainInput 将应用层DTO转换为领域层输入
-func (s *registerApplicationService) toDomainInput(req RegisterRequest, userID meta.ID) domain.CreationInput {
-	return domain.CreationInput{
-		UserID:          userID,
-		Phone:           req.Phone,
-		Email:           req.Email,
-		AccountType:     req.AccountType,
-		WechatAppID:     req.WechatAppID,
-		WechatAppSecret: req.WechatAppSecret,
-		WechatJsCode:    req.WechatJsCode,
-		WechatOpenID:    req.WechatOpenID,
-		WechatUnionID:   req.WechatUnionID,
-		WecomCorpID:     req.WecomCorpID,
-		WecomUserID:     req.WecomUserID,
-		Profile:         req.Profile,
-		Meta:            req.Meta,
-		ParamsJSON:      req.ParamsJSON,
+}
+
+// toDomainInput 将应用层DTO转换为领域层输入，必要时查询 AppSecret
+func (s *registerApplicationService) toDomainInput(ctx context.Context, req RegisterRequest, userID meta.ID) (domain.CreationInput, error) {
+	input := domain.CreationInput{
+		UserID:        userID,
+		Phone:         req.Phone,
+		Email:         req.Email,
+		AccountType:   req.AccountType,
+		WechatAppID:   req.WechatAppID,
+		WechatJsCode:  req.WechatJsCode,
+		WechatOpenID:  req.WechatOpenID,
+		WechatUnionID: req.WechatUnionID,
+		WecomCorpID:   req.WecomCorpID,
+		WecomUserID:   req.WecomUserID,
+		Profile:       req.Profile,
+		Meta:          req.Meta,
+		ParamsJSON:    req.ParamsJSON,
 	}
+
+	// 如果是微信小程序注册且提供了 JsCode，需要查询 AppSecret
+	if req.AccountType == domain.TypeWcMinip && req.WechatAppID != nil && req.WechatJsCode != nil {
+		if s.wechatAppQuerier == nil || s.secretVault == nil {
+			return domain.CreationInput{}, perrors.WithCode(code.ErrInvalidArgument, "wechat app configuration service not available")
+		}
+
+		wechatApp, err := s.wechatAppQuerier.GetByAppID(ctx, *req.WechatAppID)
+		if err != nil {
+			return domain.CreationInput{}, perrors.WithCode(code.ErrInvalidArgument, "failed to query wechat app: %v", err)
+		}
+		if wechatApp == nil {
+			return domain.CreationInput{}, perrors.WithCode(code.ErrInvalidArgument, "wechat app not found: %s", *req.WechatAppID)
+		}
+		if !wechatApp.IsEnabled() {
+			return domain.CreationInput{}, perrors.WithCode(code.ErrInvalidArgument, "wechat app is disabled: %s", *req.WechatAppID)
+		}
+		if wechatApp.Cred == nil || wechatApp.Cred.Auth == nil {
+			return domain.CreationInput{}, perrors.WithCode(code.ErrInvalidArgument, "wechat app credentials not found")
+		}
+
+		appSecretPlain, err := s.secretVault.Decrypt(ctx, wechatApp.Cred.Auth.AppSecretCipher)
+		if err != nil {
+			return domain.CreationInput{}, perrors.WithCode(code.ErrInvalidArgument, "failed to decrypt app secret: %v", err)
+		}
+
+		appSecret := string(appSecretPlain)
+		input.WechatAppSecret = &appSecret
+	}
+
+	return input, nil
 }
 
 // ============= 内部辅助方法 =============

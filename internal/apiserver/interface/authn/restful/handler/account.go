@@ -65,7 +65,7 @@ func (h *AccountHandler) GetAccountByID(c *gin.Context) {
 
 // RegisterWithWeChat 微信用户注册
 // @Summary 微信用户注册
-// @Description 使用微信账户信息注册新用户
+// @Description 使用微信 JS Code 注册新用户，服务端根据 AppID 查询 AppSecret 并自动调用 code2session 获取 OpenID 和 UnionID
 // @Tags 账户管理
 // @Accept json
 // @Produce json
@@ -77,11 +77,6 @@ func (h *AccountHandler) GetAccountByID(c *gin.Context) {
 func (h *AccountHandler) RegisterWithWeChat(c *gin.Context) {
 	var reqBody req.RegisterWeChatAccountReq
 	if err := h.BindJSON(c, &reqBody); err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	if err := reqBody.Validate(); err != nil {
 		h.Error(c, err)
 		return
 	}
@@ -101,7 +96,7 @@ func (h *AccountHandler) RegisterWithWeChat(c *gin.Context) {
 	}
 
 	appID := strings.TrimSpace(reqBody.AppID)
-	openID := strings.TrimSpace(reqBody.OpenID)
+	jsCode := strings.TrimSpace(reqBody.JsCode)
 
 	profile := make(map[string]string)
 	if reqBody.Nickname != nil && *reqBody.Nickname != "" {
@@ -121,10 +116,10 @@ func (h *AccountHandler) RegisterWithWeChat(c *gin.Context) {
 		Name:           strings.TrimSpace(reqBody.Name),
 		Phone:          phone,
 		Email:          email,
+		AccountType:    domain.TypeWcMinip,
 		CredentialType: appRegister.CredTypeWechat,
 		WechatAppID:    &appID,
-		WechatOpenID:   &openID,
-		WechatUnionID:  reqBody.UnionID,
+		WechatJsCode:   &jsCode,
 		Profile:        profile,
 		Meta:           metaMap,
 	}

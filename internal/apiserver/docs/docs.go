@@ -67,7 +67,7 @@ const docTemplate = `{
         },
         "/accounts/wechat/register": {
             "post": {
-                "description": "使用微信账户信息注册新用户",
+                "description": "使用微信 JS Code 注册新用户，服务端根据 AppID 查询 AppSecret 并自动调用 code2session 获取 OpenID 和 UnionID",
                 "consumes": [
                     "application/json"
                 ],
@@ -140,52 +140,6 @@ const docTemplate = `{
                         "description": "账户信息",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.Account"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "账户不存在",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/accounts/{accountId}/credentials": {
-            "get": {
-                "description": "获取账户下所有的认证凭证信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "账户管理"
-                ],
-                "summary": "获取账户凭证列表",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "账户ID",
-                        "name": "accountId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "凭证列表",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.CredentialList"
                         }
                     },
                     "400": {
@@ -2868,6 +2822,12 @@ const docTemplate = `{
         },
         "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.RegisterWeChatAccountReq": {
             "type": "object",
+            "required": [
+                "appId",
+                "jsCode",
+                "name",
+                "phone"
+            ],
             "properties": {
                 "appId": {
                     "description": "微信应用ID",
@@ -2879,6 +2839,10 @@ const docTemplate = `{
                 },
                 "email": {
                     "description": "邮箱（可选）",
+                    "type": "string"
+                },
+                "jsCode": {
+                    "description": "微信登录凭证（临时登录凭证）",
                     "type": "string"
                 },
                 "meta": {
@@ -2894,16 +2858,8 @@ const docTemplate = `{
                     "description": "微信昵称（可选）",
                     "type": "string"
                 },
-                "openId": {
-                    "description": "微信OpenID",
-                    "type": "string"
-                },
                 "phone": {
                     "description": "手机号（必填）",
-                    "type": "string"
-                },
-                "unionId": {
-                    "description": "微信UnionID（可选）",
                     "type": "string"
                 }
             }
@@ -2970,46 +2926,6 @@ const docTemplate = `{
             "properties": {
                 "deletedCount": {
                     "description": "删除的密钥数量",
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.Credential": {
-            "type": "object",
-            "properties": {
-                "accountId": {
-                    "type": "integer"
-                },
-                "appId": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "idp": {
-                    "type": "string"
-                },
-                "idpIdentifier": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.CredentialList": {
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.Credential"
-                    }
-                },
-                "total": {
                     "type": "integer"
                 }
             }

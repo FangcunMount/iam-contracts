@@ -36,11 +36,10 @@ type RegisterRequest struct {
 	Password *string // 密码（当 CredentialType = password 时必须）
 
 	// ========== 微信小程序账户参数 ==========
-	WechatAppID     *string // 微信AppID（当 AccountType = TypeWcMinip 时必须）
-	WechatAppSecret *string // 微信AppSecret（用于 code2session）
-	WechatJsCode    *string // 微信JsCode（用于 code2session）
-	WechatOpenID    *string // 微信OpenID（可选，如果有就不需要 code2session）
-	WechatUnionID   *string // 微信UnionID（可选）
+	WechatAppID   *string // 微信AppID（当 AccountType = TypeWcMinip 时必须）
+	WechatJsCode  *string // 微信JsCode（用于 code2session，AppSecret 由服务端根据 AppID 查询）
+	WechatOpenID  *string // 微信OpenID（可选，如果有就不需要 code2session）
+	WechatUnionID *string // 微信UnionID（可选）
 
 	// ========== 企业微信账户参数 ==========
 	WecomCorpID *string // 企业CorpID（当 AccountType = TypeWcCom 时必须）

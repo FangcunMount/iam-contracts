@@ -7,6 +7,7 @@ import (
 
 	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/register"
 	authnUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
+	accountDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/crypto"
 	userRepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
 	wechatInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/wechat"
@@ -48,11 +49,14 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 	idp := wechatInfra.NewIdentityProvider(nil, nil)
 
 	// 初始化应用服务
+	// 注意：seed 阶段仅支持密码注册，不需要微信相关功能，因此传入 nil
 	registerService := registerApp.NewRegisterApplicationService(
 		unitOfWork,
 		passwordHasher,
-		idp, // 添加 IDP 参数
+		idp,
 		userRepository,
+		nil, // wechatAppQuerier - seed 阶段不需要
+		nil, // secretVault - seed 阶段不需要
 	)
 
 	// 从配置文件读取账号数据
@@ -91,6 +95,7 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 			Name:           user.Name,
 			Phone:          user.Phone,
 			Email:          user.Email,
+			AccountType:    accountDomain.TypeOpera, // 运营账号类型
 			CredentialType: registerApp.CredTypePassword,
 			Password:       &ac.Password,
 		}
