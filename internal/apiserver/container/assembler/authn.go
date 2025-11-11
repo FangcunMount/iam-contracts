@@ -307,7 +307,6 @@ func (m *AuthnModule) initializeApplication(
 func (m *AuthnModule) initializeInterface() {
 	m.AccountHandler = authhandler.NewAccountHandler(
 		m.AccountService,
-		nil, // TODO: CredentialApplicationService
 		m.RegisterService,
 	)
 

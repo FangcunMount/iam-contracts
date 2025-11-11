@@ -207,8 +207,8 @@ func (s *registerApplicationService) createOrGetUser(ctx context.Context, req Re
 		return nil, false, err
 	}
 
+	// 用户已存在
 	if existingUser != nil {
-		// 用户已存在
 		return existingUser, false, nil
 	}
 

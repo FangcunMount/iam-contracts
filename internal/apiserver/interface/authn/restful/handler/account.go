@@ -20,22 +20,19 @@ import (
 // AccountHandler 账户管理 HTTP Handler
 type AccountHandler struct {
 	*BaseHandler
-	accountService    appAccount.AccountApplicationService
-	credentialService appAccount.CredentialApplicationService
-	registerService   appRegister.RegisterApplicationService
+	accountService  appAccount.AccountApplicationService
+	registerService appRegister.RegisterApplicationService
 }
 
 // NewAccountHandler 创建账户处理器
 func NewAccountHandler(
 	accountService appAccount.AccountApplicationService,
-	credentialService appAccount.CredentialApplicationService,
 	registerService appRegister.RegisterApplicationService,
 ) *AccountHandler {
 	return &AccountHandler{
-		BaseHandler:       NewBaseHandler(),
-		accountService:    accountService,
-		credentialService: credentialService,
-		registerService:   registerService,
+		BaseHandler:     NewBaseHandler(),
+		accountService:  accountService,
+		registerService: registerService,
 	}
 }
 
@@ -322,49 +319,6 @@ func (h *AccountHandler) EnableAccount(c *gin.Context) {
 	}
 
 	h.Success(c, resp.MessageResponse{Message: "Account enabled successfully"})
-}
-
-// GetCredentials 获取账户的所有凭证
-// @Summary 获取账户凭证列表
-// @Description 获取账户下所有的认证凭证信息
-// @Tags 账户管理
-// @Accept json
-// @Produce json
-// @Param accountId path string true "账户ID"
-// @Success 200 {object} resp.CredentialList "凭证列表"
-// @Failure 400 {object} map[string]interface{} "请求参数错误"
-// @Failure 404 {object} map[string]interface{} "账户不存在"
-// @Router /accounts/{accountId}/credentials [get]
-func (h *AccountHandler) GetCredentials(c *gin.Context) {
-	accountID, err := parseAccountID(c.Param("accountId"))
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	credentials, err := h.credentialService.GetCredentialsByAccountID(c.Request.Context(), accountID)
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	items := make([]resp.Credential, 0, len(credentials))
-	for _, cred := range credentials {
-		items = append(items, resp.Credential{
-			ID:            cred.ID,
-			AccountID:     cred.AccountID,
-			Type:          string(cred.Type),
-			IDP:           ptrToString(cred.IDP),
-			IDPIdentifier: cred.IDPIdentifier,
-			AppID:         ptrToString(cred.AppID),
-			Status:        cred.Status.String(),
-		})
-	}
-
-	h.Success(c, resp.CredentialList{
-		Total: len(items),
-		Items: items,
-	})
 }
 
 // ptrToString 将字符串指针转为字符串，nil 返回空字符串

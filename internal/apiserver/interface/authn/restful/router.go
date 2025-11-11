@@ -101,9 +101,9 @@ func registerAccountEndpoints(v1 *gin.RouterGroup, h *authhandler.AccountHandler
 	accounts.PUT("/:accountId/unionid", h.SetUnionID)
 	accounts.POST("/:accountId/enable", h.EnableAccount)
 	accounts.POST("/:accountId/disable", h.DisableAccount)
-	accounts.GET("/:accountId/credentials", h.GetCredentials)
 
 	// TODO: 以下端点待实现
+	// accounts.GET("/:accountId/credentials", h.GetCredentials) // 待实现凭据查询服务
 	// accounts.POST("/operation", h.CreateOperationAccount)
 	// accounts.PATCH("/operation/:username", h.UpdateOperationCredential)
 	// accounts.POST("/operation/:username/change", h.ChangeOperationUsername)
