@@ -73,6 +73,21 @@ func (s *KeyManager) CreateKey(
 
 	// 保存密钥
 	if err := s.keyRepo.Save(ctx, key); err != nil {
+		// 如果是重复键错误（可能由并发创建导致），尝试读取已存在的密钥并返回它，
+		// 这样启动时的竞态不会导致致命错误。
+		if errors.IsCode(err, code.ErrKeyAlreadyExists) {
+			// 直接从仓储查询已有的 key（按 kid）
+			existing, findErr := s.keyRepo.FindByKid(ctx, kid)
+			if findErr != nil {
+				return nil, errors.WithCode(code.ErrDatabase, "failed to save key and failed to fetch existing key: %v; fetch err: %v", err, findErr)
+			}
+			if existing != nil {
+				return existing, nil
+			}
+			// 如果未找到（极不可能），回退为通用数据库错误
+			return nil, errors.WithCode(code.ErrDatabase, "failed to save key: %v", err)
+		}
+
 		return nil, errors.WithCode(code.ErrDatabase, "failed to save key: %v", err)
 	}
 
