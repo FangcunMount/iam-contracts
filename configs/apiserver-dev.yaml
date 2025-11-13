@@ -16,8 +16,8 @@ server:
 # MySQL 配置
 mysql:
   host: "127.0.0.1:3306"
-  username: "root"
-  password: "dev_root_123"  # 对应 infra MYSQL_ROOT_PASSWORD
+  username: "infra_dev"        # 对应 build/docker/infra/dev.env -> MYSQL_USER
+  password: "dev_pass_123"     # 对应 build/docker/infra/dev.env -> MYSQL_PASSWORD
   database: "iam_contracts"
   max-idle-conns: 10
   max-open-conns: 100
@@ -36,8 +36,8 @@ redis:
   cache:
     host: "127.0.0.1"
     port: 6379
-    username: ""  # Redis 6.0+ ACL 用户名，留空表示使用 default 用户
-    password: "dev_cache_123"  # 与 infra REDIS_CACHE_PASSWORD 一致
+    username: "app"  # 开发环境默认使用 default 用户
+    password: "dev_app_123"  # 对应 build/docker/infra/dev.env -> REDIS_CACHE_PASSWORD/REDIS_AUTH_APP_PASSWORD
     database: 0  # Cache 使用 DB 0
     max-idle: 50
     max-active: 100
@@ -50,8 +50,8 @@ redis:
   store:
     host: "127.0.0.1"
     port: 6380
-    username: ""  # Redis 6.0+ ACL 用户名，留空表示使用 default 用户
-    password: "dev_auth_123"  # 与 infra REDIS_AUTH_PASSWORD 一致
+    username: "app"  # 对应 build/docker/infra/dev.env -> REDIS_AUTH_APP_USERNAME
+    password: "dev_app_123"  # 与 build/docker/infra/dev.env -> REDIS_AUTH_APP_PASSWORD 一致
     database: 0  # Auth 实例使用 DB 0（单独实例不需要不同 DB）
     max-idle: 50
     max-active: 100
