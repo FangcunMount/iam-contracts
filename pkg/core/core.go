@@ -22,6 +22,19 @@ type ErrResponse struct {
 	Reference string `json:"reference,omitempty"`
 }
 
+// SuccessResponse 定义了当请求成功时返回的消息
+// swagger:model
+type SuccessResponse struct {
+	// Code 定义了业务成功代码
+	Code int `json:"code"`
+
+	// Message 包含此消息的详细信息
+	Message string `json:"message"`
+
+	// Data 包含成功响应的数据
+	Data interface{} `json:"data,omitempty"`
+}
+
 // WriteResponse 将错误或响应数据写入HTTP响应。
 // 所有响应(包括业务错误)统一返回 HTTP 200,通过响应体中的 code 字段区分成功/失败。
 // 如果err不为空，则将解析后的错误信息写入响应体的 ErrResponse 结构；
@@ -40,5 +53,9 @@ func WriteResponse(c *gin.Context, err error, data interface{}) {
 		return
 	}
 
-	c.JSON(http.StatusOK, data)
+	c.JSON(http.StatusOK, SuccessResponse{
+		Code:    0, // 0 表示成功
+		Message: "success",
+		Data:    data,
+	})
 }
