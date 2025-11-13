@@ -67,6 +67,17 @@ configs/cert/*.csr
 configs/cert/*.srl
 configs/cert/openssl.cnf
 !configs/cert/README.md
+
+# Keys for JWT signing (except README)
+configs/keys/*.pem
+configs/keys/*.key
+configs/keys/*.crt
+configs/keys/*.csr
+configs/keys/*.srl
+configs/keys/*.p12
+configs/keys/*.pfx
+configs/keys/openssl.cnf
+!configs/keys/README.md
  
 # Artifacts from CI or local runs (build outputs should not be committed)
 artifacts-

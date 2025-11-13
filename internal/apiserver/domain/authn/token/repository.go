@@ -47,7 +47,7 @@ type TokenGenerator interface {
 	//
 	// 返回:
 	//   - token: 令牌对象（包含 JWT 字符串）
-	GenerateAccessToken(principal *authentication.Principal, expiresIn time.Duration) (*Token, error)
+	GenerateAccessToken(ctx context.Context, principal *authentication.Principal, expiresIn time.Duration) (*Token, error)
 
 	// ParseAccessToken 解析访问令牌
 	//
@@ -57,5 +57,5 @@ type TokenGenerator interface {
 	// 返回:
 	//   - claims: 令牌声明
 	//   - err: 解析错误（如签名无效、过期等）
-	ParseAccessToken(tokenValue string) (*TokenClaims, error)
+	ParseAccessToken(ctx context.Context, tokenValue string) (*TokenClaims, error)
 }

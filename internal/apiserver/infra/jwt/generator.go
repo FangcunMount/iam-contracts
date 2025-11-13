@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
@@ -44,8 +45,7 @@ type CustomClaims struct {
 
 // GenerateAccessToken 生成访问令牌（JWT）
 // 使用 JWKS 中的活跃 RSA 密钥进行签名
-func (g *Generator) GenerateAccessToken(principal *authentication.Principal, expiresIn time.Duration) (*domain.Token, error) {
-	ctx := context.Background() // TODO: 从参数传递 context
+func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authentication.Principal, expiresIn time.Duration) (*domain.Token, error) {
 	now := time.Now()
 	zeroID := meta.FromUint64(0)
 	tokenID := zeroID.String() // 生成唯一 Token ID
@@ -53,12 +53,14 @@ func (g *Generator) GenerateAccessToken(principal *authentication.Principal, exp
 	// 获取当前活跃的密钥
 	activeKey, err := g.keyMgmt.GetActiveKey(ctx)
 	if err != nil {
+		log.Errorw("failed to get active key", "error", err)
 		return nil, fmt.Errorf("failed to get active key: %w", err)
 	}
 
 	// 获取私钥
 	privKey, err := g.privKeyResolver.ResolveSigningKey(ctx, activeKey.Kid, activeKey.JWK.Alg)
 	if err != nil {
+		log.Errorw("failed to resolve private key", "kid", activeKey.Kid, "error", err)
 		return nil, fmt.Errorf("failed to resolve private key: %w", err)
 	}
 
@@ -103,9 +105,7 @@ func (g *Generator) GenerateAccessToken(principal *authentication.Principal, exp
 
 // ParseAccessToken 解析访问令牌
 // 使用 JWKS 公钥验证 RSA 签名
-func (g *Generator) ParseAccessToken(tokenValue string) (*domain.TokenClaims, error) {
-	ctx := context.Background() // TODO: 从参数传递 context
-
+func (g *Generator) ParseAccessToken(ctx context.Context, tokenValue string) (*domain.TokenClaims, error) {
 	// 解析 token（不验证签名，先提取 kid）
 	token, err := jwt.ParseWithClaims(tokenValue, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// 验证签名方法是 RSA

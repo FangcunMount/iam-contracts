@@ -40,7 +40,7 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 	}
 
 	// 生成访问令牌（JWT）
-	accessToken, err := s.tokenGenerator.GenerateAccessToken(principal, s.accessTTL)
+	accessToken, err := s.tokenGenerator.GenerateAccessToken(ctx, principal, s.accessTTL)
 	if err != nil {
 		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to generate access token")
 	}
@@ -68,7 +68,7 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 // 将令牌加入黑名单，使其立即失效
 func (s *TokenIssuer) RevokeToken(ctx context.Context, tokenValue string) error {
 	// 解析令牌以获取 tokenID 和过期时间
-	claims, err := s.tokenGenerator.ParseAccessToken(tokenValue)
+	claims, err := s.tokenGenerator.ParseAccessToken(ctx, tokenValue)
 	if err != nil {
 		return perrors.WrapC(err, code.ErrTokenInvalid, "failed to parse token for revocation")
 	}

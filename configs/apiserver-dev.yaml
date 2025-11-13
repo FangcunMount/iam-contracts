@@ -92,10 +92,11 @@ log:
     error:
       - logs/iam-error.log        # ERROR 额外落盘，便于快速定位故障
 
-# JWT 配置
-jwt:
-  secret: "dev-secret-key-change-in-production"  # 开发环境密钥
-  expire: 86400  # 24小时
+# JWKS 配置
+jwks:
+  keys_dir: "./configs/keys"  # 私钥存放目录（相对或绝对路径）
+  auto_init: true           # 启动时若无 active key 则自动生成（仅建议在开发环境启用）
+
 
 # CORS 配置（开发环境允许所有来源）
 cors:

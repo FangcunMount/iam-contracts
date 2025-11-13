@@ -94,10 +94,14 @@ log:
       - stderr                              # ERROR 级别写入标准错误，便于监控采集
       - /var/log/iam-contracts/error.log    # 额外记录 ERROR（快速定位故障）
 
-# jwt 配置
-jwt:
-  secret: ""
-  expire: 86400
+# JWKS 配置
+jwks:
+  keys_dir: "configs/keys"
+  auto_init: true
+migration:
+  autoseed: true
+app:
+  mode: production  
 
 # cors 配置
 cors:

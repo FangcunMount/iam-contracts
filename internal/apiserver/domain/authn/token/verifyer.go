@@ -27,7 +27,7 @@ func NewTokenVerifyer(
 // VerifyAccessToken 验证访问令牌
 func (s *TokenVerifyer) VerifyAccessToken(ctx context.Context, tokenValue string) (*TokenClaims, error) {
 	// 解析 JWT
-	claims, err := s.tokenGenerator.ParseAccessToken(tokenValue)
+	claims, err := s.tokenGenerator.ParseAccessToken(ctx, tokenValue)
 	if err != nil {
 		return nil, perrors.WrapC(err, code.ErrTokenInvalid, "failed to parse access token")
 	}

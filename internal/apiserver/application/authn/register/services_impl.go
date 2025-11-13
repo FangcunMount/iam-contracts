@@ -52,7 +52,11 @@ func (s *registerApplicationService) Register(ctx context.Context, req RegisterR
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// ========== 步骤1: 创建或获取 User ==========
-		user, isNewUser, err := s.createOrGetUser(ctx, req)
+		userRepo := tx.Users
+		if userRepo == nil {
+			userRepo = s.userRepo
+		}
+		user, isNewUser, err := s.createOrGetUser(ctx, userRepo, req)
 		if err != nil {
 			return err
 		}
@@ -242,9 +246,13 @@ func (s *registerApplicationService) toDomainInput(ctx context.Context, req Regi
 // ============= 内部辅助方法 =============
 
 // createOrGetUser 创建或获取用户（步骤1）
-func (s *registerApplicationService) createOrGetUser(ctx context.Context, req RegisterRequest) (*userDomain.User, bool, error) {
+func (s *registerApplicationService) createOrGetUser(ctx context.Context, repo userDomain.Repository, req RegisterRequest) (*userDomain.User, bool, error) {
+	if repo == nil {
+		return nil, false, perrors.WithCode(code.ErrInternalServerError, "user repository is not initialized")
+	}
+
 	// 通过手机号查找现有用户
-	existingUser, err := s.userRepo.FindByPhone(ctx, req.Phone)
+	existingUser, err := repo.FindByPhone(ctx, req.Phone)
 	if err != nil && !perrors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, false, err
 	}
@@ -265,7 +273,7 @@ func (s *registerApplicationService) createOrGetUser(ctx context.Context, req Re
 	}
 
 	// 持久化用户
-	if err := s.userRepo.Create(ctx, user); err != nil {
+	if err := repo.Create(ctx, user); err != nil {
 		return nil, false, perrors.WithCode(code.ErrDatabase, "failed to save user: %v", err)
 	}
 

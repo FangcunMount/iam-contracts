@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -114,6 +115,16 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 	// 创建并初始化路由器
 	NewRouter(s.container).RegisterRoutes(s.genericAPIServer.Engine)
 
+	// 如果认证模块提供了密钥轮换调度器，启动它并在优雅关闭时停止
+	if s.container != nil && s.container.AuthnModule != nil && s.container.AuthnModule.RotationScheduler != nil {
+		go func() {
+			if err := s.container.AuthnModule.RotationScheduler.Start(context.Background()); err != nil {
+				log.Errorf("failed to start key rotation scheduler: %v", err)
+			}
+		}()
+		log.Infow("Key rotation scheduler initialized", "description", "periodic key rotation scheduler started")
+	}
+
 	// 注册 gRPC 服务 (暂时注释，待实现)
 	// if s.grpcServer != nil && s.container != nil && s.container.UserModule != nil && s.container.UserModule.IdentityGRPCService != nil {
 	// 	s.grpcServer.RegisterService(s.container.UserModule.IdentityGRPCService)
@@ -133,6 +144,13 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 
 	// 添加关闭回调
 	s.gs.AddShutdownCallback(shutdown.ShutdownFunc(func(string) error {
+		// 停止密钥轮换调度器（如在运行）
+		if s.container != nil && s.container.AuthnModule != nil && s.container.AuthnModule.RotationScheduler != nil && s.container.AuthnModule.RotationScheduler.IsRunning() {
+			if err := s.container.AuthnModule.RotationScheduler.Stop(); err != nil {
+				log.Errorf("Failed to stop key rotation scheduler: %v", err)
+			}
+		}
+
 		// 清理容器资源
 		if s.container != nil {
 			// 容器清理逻辑可以在这里添加

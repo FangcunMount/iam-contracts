@@ -17,13 +17,13 @@ type genStub struct {
 	err error
 }
 
-func (g *genStub) GenerateAccessToken(pr *authentication.Principal, expiresIn time.Duration) (*token.Token, error) {
+func (g *genStub) GenerateAccessToken(ctx context.Context, pr *authentication.Principal, expiresIn time.Duration) (*token.Token, error) {
 	if g.err != nil {
 		return nil, g.err
 	}
 	return g.tok, nil
 }
-func (g *genStub) ParseAccessToken(tokenValue string) (*token.TokenClaims, error) {
+func (g *genStub) ParseAccessToken(ctx context.Context, tokenValue string) (*token.TokenClaims, error) {
 	if g.tok == nil {
 		return nil, errors.New("no token")
 	}

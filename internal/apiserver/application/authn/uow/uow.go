@@ -7,8 +7,10 @@ import (
 
 	accountDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
 	credentialDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/credential"
+	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	acctrepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/account"
 	credentialrepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/credential"
+	userrepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/tx"
 )
@@ -17,6 +19,7 @@ import (
 type TxRepositories struct {
 	Accounts    accountDomain.Repository
 	Credentials credentialDomain.Repository
+	Users       userDomain.Repository
 }
 
 // UnitOfWork 提供业务事务边界。
@@ -46,6 +49,7 @@ func (u *gormUnitOfWork) WithinTx(ctx context.Context, fn func(tx TxRepositories
 		repos := TxRepositories{
 			Accounts:    acctrepo.NewAccountRepository(tx),
 			Credentials: credentialrepo.NewRepository(tx),
+			Users:       userrepo.NewRepository(tx),
 		}
 		return fn(repos)
 	})

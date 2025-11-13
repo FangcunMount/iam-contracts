@@ -3,6 +3,8 @@ package assembler
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	redis "github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
@@ -187,6 +189,12 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 
 	// JWKS 基础设施
 	keysDir := viper.GetString("jwks.keys_dir")
+	// 打印 keys_dir 以便启动时诊断（如果为空，会提示警告）
+	if strings.TrimSpace(keysDir) == "" {
+		log.Warnw("jwks.keys_dir is empty; private keys will be looked up in current working directory", "jwks.keys_dir", keysDir)
+	} else {
+		log.Infow("JWKS keys directory", "jwks.keys_dir", keysDir)
+	}
 	infra.privateKeyStorage = crypto.NewPEMPrivateKeyStorage(keysDir)
 	infra.keyGenerator = crypto.NewRSAKeyGeneratorWithStorage(infra.privateKeyStorage)
 	infra.privKeyResolver = crypto.NewPEMPrivateKeyResolver(keysDir)
@@ -230,6 +238,23 @@ func (m *AuthnModule) initializeDomain(infra *infrastructureComponents) *domainC
 		logger,
 	)
 
+	// Auto-initialize JWKS: ensure there's at least one active key (useful for dev/autoseed)
+	// 条件：配置允许自动初始化（jwks.auto_init 或 migration.autoseed 或 dev 模式）
+	if viper.GetBool("jwks.auto_init") || viper.GetBool("migration.autoseed") || viper.GetString("app.mode") == "development" {
+		ctx := context.Background()
+		if _, err := domain.keyManager.GetActiveKey(ctx); err != nil {
+			// 没有 active key，尝试创建一个
+			now := time.Now()
+			if _, err := domain.keyManager.CreateKey(ctx, "RS256", &now, ptrTime(now.AddDate(1, 0, 0))); err != nil {
+				logger.Warnw("failed to auto-create jwks active key", "error", err)
+			} else {
+				logger.Infow("auto-created initial jwks active key", "alg", "RS256")
+			}
+		} else {
+			logger.Debugw("active jwks key present, skip auto-init")
+		}
+	}
+
 	// JWT Generator（依赖 JWKS）
 	infra.jwtGenerator = jwtinfra.NewGenerator(
 		viper.GetString("auth.jwt_issuer"),
@@ -255,6 +280,11 @@ func (m *AuthnModule) initializeDomain(infra *infrastructureComponents) *domainC
 	infra.tokenVerifier = authenticationInfra.NewTokenVerifierAdapter(domain.tokenVerifyer)
 
 	return domain
+}
+
+// ptrTime 返回时间指针（本文件局部辅助函数）
+func ptrTime(t time.Time) *time.Time {
+	return &t
 }
 
 // initializeApplication 初始化应用层

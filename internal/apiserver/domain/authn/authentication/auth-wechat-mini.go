@@ -113,7 +113,7 @@ func (o *OAuthWechatMinipAuthStrategy) Authenticate(ctx context.Context, credent
 		idpIdentifier = unionID
 	}
 
-	accountID, userID, credentialID, err := o.credRepo.FindOAuthCredential(ctx, "wx_minip", wechatCred.AppID, idpIdentifier)
+	accountID, userID, credentialID, err := o.credRepo.FindOAuthCredential(ctx, string(AuthWxMinip), wechatCred.AppID, idpIdentifier)
 	if err != nil {
 		return AuthDecision{}, fmt.Errorf("failed to find wx minip credential: %w", err)
 	}

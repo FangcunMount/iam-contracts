@@ -4,6 +4,7 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
@@ -46,13 +47,35 @@ func (s *loginApplicationService) Login(ctx context.Context, req LoginRequest) (
 	if err != nil {
 		return nil, err
 	}
+	/**
+	OK           bool
+	ErrCode      ErrCode
+	Principal    *Principal // OK=true 时有效
+	CredentialID meta.ID    // 命中的凭据ID（给应用层记成功/失败/锁定）
+
+	// 可选：比如密码条件再哈希
+	ShouldRotate bool
+	NewMaterial  []byte
+	NewAlgo      *string
+	*/
+
+	log.Info("auth end, desicion: ")
+	log.Infow("ErrCode: %v", decision.ErrCode)
+	log.Infow("Principal: %v", decision.Principal)
+	log.Infow("CredentialID: %v", decision.CredentialID)
+	log.Infow("ShouldRotate: %v", decision.ShouldRotate)
 
 	if !decision.OK {
+		log.Warnw("authentication failed: %v", decision.ErrCode)
 		return nil, s.convertAuthError(decision.ErrCode)
 	}
 
+	log.Infow("begin to issue token for principal: %v", decision.Principal)
 	tokenPair, err := s.tokenIssuer.IssueToken(ctx, decision.Principal)
+
+	log.Infow("token issued: %v", tokenPair)
 	if err != nil {
+		log.Errorw("failed to issue token: %v", err)
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "failed to issue token: %v", err)
 	}
 
