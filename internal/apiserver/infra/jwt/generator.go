@@ -4,16 +4,16 @@ package jwt
 import (
 	"context"
 	"crypto/rsa"
+	"encoding/base64"
 	"fmt"
+	"math/big"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
-
-	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 // Generator JWT 令牌生成器（使用 JWKS 的 RSA 密钥签名）
@@ -53,14 +53,12 @@ func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authenti
 	// 获取当前活跃的密钥
 	activeKey, err := g.keyMgmt.GetActiveKey(ctx)
 	if err != nil {
-		log.Errorw("failed to get active key", "error", err)
 		return nil, fmt.Errorf("failed to get active key: %w", err)
 	}
 
 	// 获取私钥
 	privKey, err := g.privKeyResolver.ResolveSigningKey(ctx, activeKey.Kid, activeKey.JWK.Alg)
 	if err != nil {
-		log.Errorw("failed to resolve private key", "kid", activeKey.Kid, "error", err)
 		return nil, fmt.Errorf("failed to resolve private key: %w", err)
 	}
 
@@ -130,10 +128,41 @@ func (g *Generator) ParseAccessToken(ctx context.Context, tokenValue string) (*d
 		}
 
 		// 从 JWK 解析 RSA 公钥用于验签
-		// TODO: 实现从 JWK (N, E) 构造 RSA 公钥
-		// 目前先返回 nil，后续完善
-		_ = key // 避免 unused 警告
-		return nil, fmt.Errorf("RSA public key parsing from JWK not implemented yet")
+		if key == nil {
+			return nil, fmt.Errorf("key not found for kid %s", kid)
+		}
+
+		if key.JWK.Kty != "RSA" {
+			return nil, fmt.Errorf("unsupported key kty for verification: %s", key.JWK.Kty)
+		}
+
+		if key.JWK.N == nil || key.JWK.E == nil {
+			return nil, fmt.Errorf("missing RSA parameters in JWK for kid %s", kid)
+		}
+
+		// n and e are base64url encoded (no padding)
+		nBytes, err := base64.RawURLEncoding.DecodeString(*key.JWK.N)
+		if err != nil {
+			return nil, fmt.Errorf("failed to base64url-decode n for kid %s: %w", kid, err)
+		}
+		eBytes, err := base64.RawURLEncoding.DecodeString(*key.JWK.E)
+		if err != nil {
+			return nil, fmt.Errorf("failed to base64url-decode e for kid %s: %w", kid, err)
+		}
+
+		n := new(big.Int).SetBytes(nBytes)
+
+		// convert exponent bytes to int (big-endian)
+		e := 0
+		for _, b := range eBytes {
+			e = e<<8 + int(b)
+		}
+		if e == 0 {
+			return nil, fmt.Errorf("invalid exponent parsed for kid %s", kid)
+		}
+
+		pub := &rsa.PublicKey{N: n, E: e}
+		return pub, nil
 	})
 
 	if err != nil {
