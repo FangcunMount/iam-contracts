@@ -423,6 +423,12 @@ jobs:
             $SUDO mkdir -p "$LOG_DIR_HOST"
             $SUDO chown -R "$APP_UID:$APP_GID" "$LOG_DIR_HOST"
 
+            # JWKS 私钥持久化目录（与 apiserver.yaml 中的 /app/data/keys 对应）
+            KEY_DIR_HOST="/data/ops/iam-keys"
+            $SUDO mkdir -p "$KEY_DIR_HOST"
+            $SUDO chown -R "$APP_UID:$APP_GID" "$KEY_DIR_HOST"
+            $SUDO chmod 0750 "$KEY_DIR_HOST"
+
             # 清理临时目录与上传包
             rm -rf "$DEPLOY_TMP"
             rm -f /tmp/deploy-package.tar.gz
@@ -483,6 +489,7 @@ jobs:
               -p 8080:9080 \
               -p 9444:9444 \
               -v /opt/iam/configs:/app/configs \
+              -v $KEY_DIR_HOST:/app/data/keys \
               -v $LOG_DIR_HOST:/var/log/iam-contracts \
               --env-file /opt/iam/configs/env/config.prod.env \
               $TLS_MOUNTS"
