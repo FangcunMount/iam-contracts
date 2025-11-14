@@ -25,6 +25,8 @@ services:
       # 挂载 TLS 证书（需要提前放置好文件）
       - /data/ssl/certs/yangshujie.com.crt:/etc/iam-contracts/ssl/yangshujie.com.crt:ro
       - /data/ssl/private/yangshujie.com.key:/etc/iam-contracts/ssl/yangshujie.com.key:ro
+      # 挂载 JWKS 密钥目录（如果需要自动生成密钥，确保目录存在且权限正确）
+      - /data/ops/iam-keys:/app/configs/keys:rw
     environment:
       - TZ=Asia/Shanghai
       - GO_ENV=production

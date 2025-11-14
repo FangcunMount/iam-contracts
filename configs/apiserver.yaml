@@ -97,7 +97,7 @@ log:
 # JWKS 配置
 jwks:
   keys_dir: "configs/keys"
-  auto_init: true
+  auto_init: false
 
 # cors 配置
 cors:
