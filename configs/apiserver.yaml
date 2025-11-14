@@ -98,10 +98,6 @@ log:
 jwks:
   keys_dir: "configs/keys"
   auto_init: true
-migration:
-  autoseed: true
-app:
-  mode: production  
 
 # cors 配置
 cors:
