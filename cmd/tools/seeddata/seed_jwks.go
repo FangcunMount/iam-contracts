@@ -40,10 +40,11 @@ func seedJWKS(ctx context.Context, deps *dependencies) error {
 
 	manager := jwksApp.NewKeyManagementAppService(keyManager, deps.Logger)
 	now := time.Now()
+	policy := jwks.DefaultRotationPolicy()
 	req := jwksApp.CreateKeyRequest{
 		Algorithm: "RS256", // 使用 RS256 算法
 		NotBefore: &now,
-		NotAfter:  ptrTime(now.AddDate(1, 0, 0)),
+		NotAfter:  ptrTime(now.Add(policy.RotationInterval + policy.GracePeriod)),
 	}
 
 	if _, err := manager.CreateKey(ctx, req); err != nil {
