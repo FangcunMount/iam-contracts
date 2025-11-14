@@ -67,8 +67,8 @@ COPY --from=builder /build/apiserver /app/apiserver
 # 复制配置文件
 COPY --chown=app:app configs /app/configs
 
-# 创建日志目录
-RUN mkdir -p /app/logs /var/log/iam-contracts && \
+# 创建应用运行所需目录（日志、持久化密钥等）
+RUN mkdir -p /app/logs /app/data/keys /var/log/iam-contracts && \
     chown -R app:app /app /var/log/iam-contracts
 
 # 预创建 TLS 目录，避免按文件挂载失败
