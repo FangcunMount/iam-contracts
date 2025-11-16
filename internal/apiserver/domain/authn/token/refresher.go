@@ -5,8 +5,10 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/security/sanitize"
 )
 
 // TokenRefresher 令牌刷新者
@@ -37,15 +39,26 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 	// 从 Redis 获取刷新令牌
 	refreshToken, err := s.tokenStore.GetRefreshToken(ctx, refreshTokenValue)
 	if err != nil {
+		log.Warnw("failed to load refresh token from store",
+			"error", err,
+			"token_hint", sanitize.MaskToken(refreshTokenValue),
+		)
 		return nil, perrors.WrapC(err, code.ErrTokenInvalid, "refresh token not found or invalid")
 	}
 
 	if refreshToken == nil {
+		log.Warnw("refresh token not found in store",
+			"token_hint", sanitize.MaskToken(refreshTokenValue),
+		)
 		return nil, perrors.WithCode(code.ErrTokenInvalid, "refresh token not found")
 	}
 
 	// 检查刷新令牌是否过期
 	if refreshToken.IsExpired() {
+		log.Infow("refresh token expired",
+			"token_hint", sanitize.MaskToken(refreshTokenValue),
+			"user_id", refreshToken.UserID,
+		)
 		// 删除过期的刷新令牌
 		_ = s.tokenStore.DeleteRefreshToken(ctx, refreshTokenValue)
 		return nil, perrors.WithCode(code.ErrExpired, "refresh token has expired")
@@ -67,7 +80,10 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 	// 轮换刷新令牌：删除旧的刷新令牌
 	if err := s.tokenStore.DeleteRefreshToken(ctx, refreshTokenValue); err != nil {
 		// 记录错误但不影响主流程
-		// TODO: 添加日志
+		log.Errorw("failed to delete stale refresh token after rotation",
+			"error", err,
+			"token_hint", sanitize.MaskToken(refreshTokenValue),
+		)
 	}
 
 	return newTokenPair, nil

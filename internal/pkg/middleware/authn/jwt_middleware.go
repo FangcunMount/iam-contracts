@@ -6,8 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/security/sanitize"
 	"github.com/FangcunMount/iam-contracts/pkg/core"
 )
 
@@ -28,8 +30,14 @@ func NewJWTAuthMiddleware(tokenService token.TokenApplicationService) *JWTAuthMi
 // 验证请求中的 JWT 令牌,如果无效则返回 401
 func (m *JWTAuthMiddleware) AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenValue, _ := m.extractToken(c)
+		tokenValue, source := m.extractToken(c)
 		if tokenValue == "" {
+			log.Warnw("authorization token missing",
+				"path", c.FullPath(),
+				"method", c.Request.Method,
+				"token_source", source,
+				"request_id", requestIDFromContext(c),
+			)
 			core.WriteResponse(c, errors.WithCode(code.ErrTokenInvalid, "Missing authorization token"), nil)
 			c.Abort()
 			return
@@ -40,11 +48,25 @@ func (m *JWTAuthMiddleware) AuthRequired() gin.HandlerFunc {
 		// 验证令牌
 		resp, err := m.tokenService.VerifyToken(c.Request.Context(), tokenValue)
 		if err != nil {
+			log.Errorw("token verification request failed",
+				"error", err,
+				"path", c.FullPath(),
+				"method", c.Request.Method,
+				"token_source", source,
+				"request_id", requestIDFromContext(c),
+			)
 			core.WriteResponse(c, errors.WithCode(code.ErrTokenInvalid, "Token verification failed"), nil)
 			c.Abort()
 			return
 		}
 		if resp == nil || !resp.Valid {
+			log.Warnw("token rejected by verification",
+				"path", c.FullPath(),
+				"method", c.Request.Method,
+				"token_source", source,
+				"request_id", requestIDFromContext(c),
+				"token_hint", sanitize.MaskToken(tokenValue),
+			)
 			core.WriteResponse(c, errors.WithCode(code.ErrTokenInvalid, "Invalid or expired token"), nil)
 			c.Abort()
 			return
@@ -69,7 +91,7 @@ func (m *JWTAuthMiddleware) AuthRequired() gin.HandlerFunc {
 // 如果有令牌则验证,没有令牌也允许通过(但不设置用户信息)
 func (m *JWTAuthMiddleware) AuthOptional() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenValue, _ := m.extractToken(c)
+		tokenValue, source := m.extractToken(c)
 		if tokenValue == "" {
 			// 没有令牌,允许通过
 			c.Next()
@@ -80,12 +102,26 @@ func (m *JWTAuthMiddleware) AuthOptional() gin.HandlerFunc {
 		resp, err := m.tokenService.VerifyToken(c.Request.Context(), tokenValue)
 		if err != nil {
 			// 验证失败，允许通过（不设置用户信息）
+			log.Debugw("token verification failed in optional auth",
+				"error", err,
+				"path", c.FullPath(),
+				"method", c.Request.Method,
+				"token_source", source,
+				"request_id", requestIDFromContext(c),
+			)
 			c.Next()
 			return
 		}
 
 		if resp == nil || !resp.Valid {
 			// 令牌无效,但允许通过(不设置用户信息)
+			log.Debugw("token invalid in optional auth",
+				"path", c.FullPath(),
+				"method", c.Request.Method,
+				"token_source", source,
+				"request_id", requestIDFromContext(c),
+				"token_hint", sanitize.MaskToken(tokenValue),
+			)
 			c.Next()
 			return
 		}
@@ -198,6 +234,18 @@ func GetCurrentAccountID(c *gin.Context) (string, bool) {
 		return id, true
 	}
 	return "", false
+}
+
+func requestIDFromContext(c *gin.Context) string {
+	if rid, ok := c.Get("request_id"); ok {
+		if v, ok := rid.(string); ok && v != "" {
+			return v
+		}
+	}
+	if rid := c.GetHeader("X-Request-Id"); rid != "" {
+		return rid
+	}
+	return ""
 }
 
 // GetCurrentSessionID 从上下文获取当前会话 ID

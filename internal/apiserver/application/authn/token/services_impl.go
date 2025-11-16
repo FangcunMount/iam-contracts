@@ -4,8 +4,10 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/log"
 	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/security/sanitize"
 )
 
 // ============= TokenApplicationService 实现 =============
@@ -66,6 +68,10 @@ func (s *tokenApplicationService) VerifyToken(ctx context.Context, accessToken s
 	// 验证访问令牌
 	claims, err := s.tokenVerifier.VerifyAccessToken(ctx, accessToken)
 	if err != nil {
+		log.Warnw("access token verification failed",
+			"error", err,
+			"token_hint", sanitize.MaskToken(accessToken),
+		)
 		// 令牌无效
 		return &TokenVerifyResult{
 			Valid:  false,
