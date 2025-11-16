@@ -9,9 +9,11 @@
 根据 `api/grpc/iam/identity/v1/identity.proto` 文件，我们实现了以下 4 个 gRPC 服务：
 
 ### 1. IdentityRead - 身份读取服务
+
 用于查询用户和儿童的身份信息。
 
 **RPC 方法：**
+
 - `GetUser` - 获取单个用户信息
 - `BatchGetUsers` - 批量获取用户信息
 - `SearchUsers` - 搜索用户
@@ -19,17 +21,21 @@
 - `BatchGetChildren` - 批量获取儿童信息
 
 ### 2. GuardianshipQuery - 监护关系查询服务
+
 用于查询监护关系。
 
 **RPC 方法：**
+
 - `IsGuardian` - 检查是否为监护人
 - `ListChildren` - 列出监护人的所有儿童
 - `ListGuardians` - 列出儿童的所有监护人
 
 ### 3. GuardianshipCommand - 监护关系命令服务
+
 用于管理监护关系。
 
 **RPC 方法：**
+
 - `AddGuardian` - 添加监护人
 - `UpdateGuardianRelation` - 更新监护关系
 - `RevokeGuardian` - 撤销监护人
@@ -37,9 +43,11 @@
 - `ImportGuardians` - 导入监护人
 
 ### 4. IdentityLifecycle - 身份生命周期服务
+
 用于管理用户的创建、更新、状态变更等。
 
 **RPC 方法：**
+
 - `CreateUser` - 创建用户
 - `UpdateUser` - 更新用户信息
 - `DeactivateUser` - 停用用户
@@ -49,9 +57,10 @@
 ## 代码结构
 
 ### 服务实现层
+
 位置：`internal/apiserver/interface/uc/grpc/`
 
-```
+```text
 internal/apiserver/interface/uc/grpc/
 ├── service.go                    # UC gRPC 服务聚合器
 └── identity/
@@ -61,10 +70,12 @@ internal/apiserver/interface/uc/grpc/
 ```
 
 #### service.go (UC 聚合器)
+
 - 聚合所有 UC 相关的 gRPC 服务
 - 提供统一的注册方法
 
 #### identity/service.go
+
 - 创建 4 个服务器实例：
   - `identityReadServer` - 身份读取
   - `guardianshipQueryServer` - 监护关系查询
@@ -73,11 +84,13 @@ internal/apiserver/interface/uc/grpc/
 - 依赖注入：领域仓储、应用服务
 
 #### identity/service_impl.go
+
 - 实现所有 RPC 方法
 - 错误处理和状态码映射
 - 分页参数处理
 
 #### identity/mapper.go
+
 - `userResultToProto()` - 用户结果转 Proto
 - `childResultToProto()` - 儿童结果转 Proto  
 - `guardianshipResultToProto()` - 监护关系转 Proto
@@ -86,11 +99,13 @@ internal/apiserver/interface/uc/grpc/
 ### 依赖注入
 
 #### Container 集成
+
 - 位置：`internal/apiserver/container/assembler/user.go`
 - gRPC 服务已集成到 `UserModule` 中
 - `UserModule.GRPCService` 字段存储 UC gRPC 服务
 
 #### 初始化流程
+
 在 `UserModule.Initialize()` 方法中：
 
 ```go
@@ -126,6 +141,7 @@ m.GRPCService = ucGrpc.NewService(identitySvc)
 ### 服务注册
 
 #### server.go 集成
+
 位置：`internal/apiserver/server.go`
 
 在 `registerGRPCServices()` 方法中注册：
@@ -141,13 +157,15 @@ if s.container.UserModule != nil && s.container.UserModule.GRPCService != nil {
 ## 架构特点
 
 ### 六边形架构
+
 - **接口层 (Interface)**: gRPC 服务实现
 - **应用层 (Application)**: 业务逻辑编排
 - **领域层 (Domain)**: 领域模型和仓储接口
 - **基础设施层 (Infra)**: 数据库访问实现
 
 ### 依赖关系
-```
+
+```text
 gRPC Service (interface)
     ↓ 依赖
 Application Service (application)
@@ -158,6 +176,7 @@ MySQL Repository (infra/mysql)
 ```
 
 ### 错误处理
+
 - 使用 `toGRPCError()` 将应用层错误码映射到 gRPC 状态码
 - 支持的映射：
   - `code.ErrUserNotFound` → `codes.NotFound`
@@ -168,8 +187,10 @@ MySQL Repository (infra/mysql)
 ## 测试
 
 ### 验证服务注册
+
 启动服务后，查看日志：
-```
+
+```text
 📡 Registered User gRPC services (IdentityRead, GuardianshipQuery, GuardianshipCommand, IdentityLifecycle)
 ✅ All gRPC services registered successfully
 ```
@@ -177,30 +198,35 @@ MySQL Repository (infra/mysql)
 ### grpcurl 测试示例
 
 #### 1. 获取用户信息
+
 ```bash
 grpcurl -plaintext -d '{"user_id": 1}' \
   localhost:8081 iam.identity.v1.IdentityRead/GetUser
 ```
 
 #### 2. 批量获取用户
+
 ```bash
 grpcurl -plaintext -d '{"user_ids": [1, 2, 3]}' \
   localhost:8081 iam.identity.v1.IdentityRead/BatchGetUsers
 ```
 
 #### 3. 搜索用户
+
 ```bash
 grpcurl -plaintext -d '{"query": "张三", "page_num": 1, "page_size": 10}' \
   localhost:8081 iam.identity.v1.IdentityRead/SearchUsers
 ```
 
 #### 4. 检查监护关系
+
 ```bash
 grpcurl -plaintext -d '{"guardian_user_id": 1, "child_id": 100}' \
   localhost:8081 iam.identity.v1.GuardianshipQuery/IsGuardian
 ```
 
 #### 5. 添加监护人
+
 ```bash
 grpcurl -plaintext -d '{
   "guardian_user_id": 1,
@@ -210,6 +236,7 @@ grpcurl -plaintext -d '{
 ```
 
 #### 6. 创建用户
+
 ```bash
 grpcurl -plaintext -d '{
   "username": "newuser",
@@ -219,6 +246,7 @@ grpcurl -plaintext -d '{
 ```
 
 ### 使用 grpcui 可视化测试
+
 ```bash
 grpcui -plaintext localhost:8081
 ```
