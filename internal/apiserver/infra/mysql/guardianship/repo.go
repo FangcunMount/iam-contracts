@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
@@ -46,7 +45,7 @@ func (r *Repository) Create(ctx context.Context, g *domain.Guardianship) error {
 }
 
 // FindByID 根据 ID 查找监护关系
-func (r *Repository) FindByID(ctx context.Context, id idutil.ID) (*domain.Guardianship, error) {
+func (r *Repository) FindByID(ctx context.Context, id meta.ID) (*domain.Guardianship, error) {
 	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
 	if err != nil {
 		return nil, err

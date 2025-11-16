@@ -115,6 +115,9 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 	// 创建并初始化路由器
 	NewRouter(s.container).RegisterRoutes(s.genericAPIServer.Engine)
 
+	// 注册 gRPC 服务
+	s.registerGRPCServices()
+
 	// 如果认证模块提供了密钥轮换调度器，启动它并在优雅关闭时停止
 	if s.container != nil && s.container.AuthnModule != nil && s.container.AuthnModule.RotationScheduler != nil {
 		go func() {
@@ -124,11 +127,6 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 		}()
 		log.Infow("Key rotation scheduler initialized", "description", "periodic key rotation scheduler started")
 	}
-
-	// 注册 gRPC 服务 (暂时注释，待实现)
-	// if s.grpcServer != nil && s.container != nil && s.container.UserModule != nil && s.container.UserModule.IdentityGRPCService != nil {
-	// 	s.grpcServer.RegisterService(s.container.UserModule.IdentityGRPCService)
-	// }
 
 	log.Info("🏗️  Hexagonal Architecture initialized successfully!")
 	log.Info("   📦 Domain: user")
@@ -174,6 +172,33 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 	}))
 
 	return preparedAPIServer{s}
+}
+
+// registerGRPCServices 注册所有 gRPC 服务到 gRPC 服务器
+func (s *apiServer) registerGRPCServices() {
+	if s.grpcServer == nil {
+		log.Warn("gRPC server is nil, skipping service registration")
+		return
+	}
+
+	if s.container == nil {
+		log.Warn("Container is nil, skipping gRPC service registration")
+		return
+	}
+
+	// 注册认证模块的 gRPC 服务
+	if s.container.AuthnModule != nil && s.container.AuthnModule.GRPCService != nil {
+		s.container.AuthnModule.GRPCService.Register(s.grpcServer.Server)
+		log.Info("📡 Registered Authn gRPC services (AuthService, JWKSService)")
+	}
+
+	// 注册用户模块的 gRPC 服务（包含 Identity 相关服务）
+	if s.container.UserModule != nil && s.container.UserModule.GRPCService != nil {
+		s.container.UserModule.GRPCService.Register(s.grpcServer.Server)
+		log.Info("📡 Registered User gRPC services (IdentityRead, GuardianshipQuery, GuardianshipCommand, IdentityLifecycle)")
+	}
+
+	log.Info("✅ All gRPC services registered successfully")
 }
 
 // loadIDPEncryptionKey 解析 IDP 加密密钥，支持 base64、base64url、hex 或纯 32 字节字符串

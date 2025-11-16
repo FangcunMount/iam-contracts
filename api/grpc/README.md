@@ -34,11 +34,13 @@ api/grpc/
 
 | Service | 主要消费方 | 能力概览 |
 |---------|------------|-----------|
-| `IdentityRead` | 运营、OA、消息 | 获取/搜索用户与儿童 (`GetUser/BatchGetUsers/SearchUsers/GetChild/BatchGetChildren`)
-| `GuardianshipQuery` | 运营、消息 | 读取监护关系 (`IsGuardian/ListChildren/ListGuardians`)
-| `GuardianshipCommand` | OA、运营 | 写入监护关系 (`Add/Update/Revoke/BatchRevoke/Import`)
-| `IdentityLifecycle` | OA、自动化 | 账号生命周期 (`Create/Update/Deactivate/Block/LinkExternalIdentity`)
-| `IdentityStream` (可选) | 消息、审计 | 订阅用户/监护事件 (`SubscribeUserEvents/SubscribeGuardianshipEvents`)
+| `IdentityRead` | 运营、OA、消息 | 获取/搜索用户与儿童 (`GetUser/BatchGetUsers/SearchUsers/GetChild/BatchGetChildren`) |
+| `GuardianshipQuery` | 运营、消息 | 读取监护关系 (`IsGuardian/ListChildren/ListGuardians`) |
+| `GuardianshipCommand` | OA、运营 | 写入监护关系 (`Add/Update/Revoke/BatchRevoke/Import`) |
+| `IdentityLifecycle` | OA、自动化 | 账号生命周期 (`Create/Update/Deactivate/Block/LinkExternalIdentity`) |
+| `IdentityStream` (可选) | 消息、审计 | 订阅用户/监护事件 (`SubscribeUserEvents/SubscribeGuardianshipEvents`) |
+| `AuthService` | 业务服务、网关 | 认证能力 (`VerifyToken/RefreshToken/RevokeToken/RevokeRefreshToken/IssueServiceToken`) |
+| `JWKSService` | SDK、业务服务 | gRPC 方式获取 JWKS |
 
 ---
 

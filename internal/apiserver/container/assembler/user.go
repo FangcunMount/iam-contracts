@@ -8,6 +8,11 @@ import (
 	appguard "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
 	appuow "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	appuser "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
+	childInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/child"
+	guardianshipInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/guardianship"
+	userInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
+	ucGrpc "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/grpc"
+	identityGrpc "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/grpc/identity"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/handler"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
@@ -19,8 +24,8 @@ type UserModule struct {
 	UserHandler         *handler.UserHandler
 	ChildHandler        *handler.ChildHandler
 	GuardianshipHandler *handler.GuardianshipHandler
-	// IdentityGRPCService 暂时注释，待实现
-	// IdentityGRPCService *identitygrpc.Service
+	// gRPC 服务
+	GRPCService *ucGrpc.Service
 }
 
 // NewUserModule 创建用户模块
@@ -38,9 +43,15 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 	// 事务
 	uow := appuow.NewUnitOfWork(db)
 
+	// 初始化仓储层
+	userRepo := userInfra.NewRepository(db)
+	childRepo := childInfra.NewRepository(db)
+	guardRepo := guardianshipInfra.NewRepository(db)
+
 	// 用户应用服务（命令）
 	userAppSrv := appuser.NewUserApplicationService(uow)
 	userProfileAppSrv := appuser.NewUserProfileApplicationService(uow)
+	userStatusSrv := appuser.NewUserStatusApplicationService(uow)
 
 	// 用户查询服务
 	userQuerySrv := appuser.NewUserQueryApplicationService(uow)
@@ -78,8 +89,21 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 		guardQuerySrv,
 	)
 
-	// TODO: IdentityGRPCService 需要查询服务，暂时跳过
-	// m.IdentityGRPCService = identitygrpc.NewService(...)
+	// 初始化 gRPC 服务
+	identitySvc := identityGrpc.NewService(
+		userRepo,
+		childRepo,
+		guardRepo,
+		userQuerySrv,
+		childQuerySrv,
+		guardQuerySrv,
+		userAppSrv,
+		userProfileAppSrv,
+		userStatusSrv,
+		guardAppSrv,
+	)
+
+	m.GRPCService = ucGrpc.NewService(identitySvc)
 
 	return nil
 }

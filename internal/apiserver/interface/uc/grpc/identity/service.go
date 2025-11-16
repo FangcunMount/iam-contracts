@@ -1,281 +1,111 @@
 package identity
 
 import (
-	"context"
-	"math"
-	"strconv"
-	"strings"
-
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
-	"github.com/FangcunMount/component-base/pkg/errors"
+	childApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/child"
+	guardianshipApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
+	userApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
 	childDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	guardianshipDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	identityv1 "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/grpc/pb/iam/identity/v1"
-	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Service 聚合 identity 模块的 gRPC 服务
 type Service struct {
-	identityRead    identityReadServer
-	guardianshipQry guardianshipQueryServer
+	identityRead      identityReadServer
+	guardianshipQry   guardianshipQueryServer
+	guardianshipCmd   guardianshipCommandServer
+	identityLifecycle identityLifecycleServer
 }
 
 // NewService 创建 identity gRPC 服务
+// 参数：
+//   - userRepo: 用户领域仓储
+//   - childRepo: 儿童领域仓储
+//   - guardRepo: 监护关系领域仓储
+//   - userQuerySvc: 用户查询应用服务
+//   - childQuerySvc: 儿童查询应用服务
+//   - guardianshipQuerySvc: 监护关系查询应用服务
+//   - userSvc: 用户应用服务
+//   - userProfileSvc: 用户资料应用服务
+//   - userStatusSvc: 用户状态应用服务
+//   - guardianshipSvc: 监护关系应用服务
 func NewService(
 	userRepo userDomain.Repository,
 	childRepo childDomain.Repository,
 	guardRepo guardianshipDomain.Repository,
+	userQuerySvc userApp.UserQueryApplicationService,
+	childQuerySvc childApp.ChildQueryApplicationService,
+	guardianshipQuerySvc guardianshipApp.GuardianshipQueryApplicationService,
+	userSvc userApp.UserApplicationService,
+	userProfileSvc userApp.UserProfileApplicationService,
+	userStatusSvc userApp.UserStatusApplicationService,
+	guardianshipSvc guardianshipApp.GuardianshipApplicationService,
 ) *Service {
 	return &Service{
 		identityRead: identityReadServer{
-			userRepo:  userRepo,
-			childRepo: childRepo,
+			userRepo:      userRepo,
+			childRepo:     childRepo,
+			userQuerySvc:  userQuerySvc,
+			childQuerySvc: childQuerySvc,
 		},
 		guardianshipQry: guardianshipQueryServer{
-			childRepo: childRepo,
-			guardRepo: guardRepo,
+			childRepo:            childRepo,
+			guardRepo:            guardRepo,
+			guardianshipQuerySvc: guardianshipQuerySvc,
+		},
+		guardianshipCmd: guardianshipCommandServer{
+			guardianshipSvc: guardianshipSvc,
+			guardRepo:       guardRepo,
+		},
+		identityLifecycle: identityLifecycleServer{
+			userSvc:        userSvc,
+			userProfileSvc: userProfileSvc,
+			userStatusSvc:  userStatusSvc,
 		},
 	}
 }
 
-// RegisterService 注册 gRPC 服务
+// RegisterService 注册 gRPC 服务到 gRPC 服务器
 func (s *Service) RegisterService(server *grpc.Server) {
 	identityv1.RegisterIdentityReadServer(server, &s.identityRead)
 	identityv1.RegisterGuardianshipQueryServer(server, &s.guardianshipQry)
+	identityv1.RegisterGuardianshipCommandServer(server, &s.guardianshipCmd)
+	identityv1.RegisterIdentityLifecycleServer(server, &s.identityLifecycle)
 }
 
+// ============= 服务器结构体定义 =============
+
+// identityReadServer 用户和儿童身份读取服务
 type identityReadServer struct {
 	identityv1.UnimplementedIdentityReadServer
-	userRepo  userDomain.Repository
-	childRepo childDomain.Repository
+	userRepo      userDomain.Repository
+	childRepo     childDomain.Repository
+	userQuerySvc  userApp.UserQueryApplicationService
+	childQuerySvc childApp.ChildQueryApplicationService
 }
 
+// guardianshipQueryServer 监护关系查询服务
 type guardianshipQueryServer struct {
 	identityv1.UnimplementedGuardianshipQueryServer
-	childRepo childDomain.Repository
-	guardRepo guardianshipDomain.Repository
+	childRepo            childDomain.Repository
+	guardRepo            guardianshipDomain.Repository
+	guardianshipQuerySvc guardianshipApp.GuardianshipQueryApplicationService
 }
 
-// GetUser 查询用户
-func (s *identityReadServer) GetUser(ctx context.Context, req *identityv1.GetUserReq) (*identityv1.GetUserResp, error) {
-	if req == nil || strings.TrimSpace(req.GetUserId()) == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id is required")
-	}
-
-	userID, err := parseUserID(req.GetUserId())
-	if err != nil {
-		return nil, err
-	}
-
-	u, err := s.userRepo.FindByID(ctx, userID)
-	if err != nil {
-		return nil, toGRPCError(err)
-	}
-
-	return &identityv1.GetUserResp{User: toProtoUser(u)}, nil
+// guardianshipCommandServer 监护关系命令服务（写操作）
+type guardianshipCommandServer struct {
+	identityv1.UnimplementedGuardianshipCommandServer
+	guardianshipSvc guardianshipApp.GuardianshipApplicationService
+	guardRepo       guardianshipDomain.Repository
 }
 
-// GetChild 查询儿童档案
-func (s *identityReadServer) GetChild(ctx context.Context, req *identityv1.GetChildReq) (*identityv1.GetChildResp, error) {
-	if req == nil || strings.TrimSpace(req.GetChildId()) == "" {
-		return nil, status.Error(codes.InvalidArgument, "child_id is required")
-	}
-
-	childID, err := parseChildID(req.GetChildId())
-	if err != nil {
-		return nil, err
-	}
-
-	child, err := s.childRepo.FindByID(ctx, childID)
-	if err != nil {
-		return nil, toGRPCError(err)
-	}
-
-	return &identityv1.GetChildResp{Child: toProtoChild(child)}, nil
-}
-
-// IsGuardian 判定是否为监护人
-func (s *guardianshipQueryServer) IsGuardian(ctx context.Context, req *identityv1.IsGuardianReq) (*identityv1.IsGuardianResp, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request is required")
-	}
-
-	userID, err := parseUserID(req.GetUserId())
-	if err != nil {
-		return nil, err
-	}
-
-	childID, err := parseChildID(req.GetChildId())
-	if err != nil {
-		return nil, err
-	}
-
-	guardianship, err := s.guardRepo.FindByUserIDAndChildID(ctx, userID, childID)
-	if err != nil {
-		if coder := errors.ParseCoder(err); coder != nil && coder.HTTPStatus() == 404 {
-			return &identityv1.IsGuardianResp{IsGuardian: false}, nil
-		}
-		return nil, toGRPCError(err)
-	}
-
-	return &identityv1.IsGuardianResp{IsGuardian: guardianship != nil && guardianship.IsActive()}, nil
-}
-
-// ListChildren 列出监护的儿童
-func (s *guardianshipQueryServer) ListChildren(ctx context.Context, req *identityv1.ListChildrenReq) (*identityv1.ListChildrenResp, error) {
-	if req == nil || strings.TrimSpace(req.GetUserId()) == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id is required")
-	}
-
-	userID, err := parseUserID(req.GetUserId())
-	if err != nil {
-		return nil, err
-	}
-
-	limit := int(req.GetLimit())
-	offset := int(req.GetOffset())
-	if limit <= 0 {
-		limit = 20
-	}
-	if offset < 0 {
-		return nil, status.Error(codes.InvalidArgument, "offset must be >= 0")
-	}
-
-	guardianships, err := s.guardRepo.FindByUserID(ctx, userID)
-	if err != nil {
-		return nil, toGRPCError(err)
-	}
-
-	total := len(guardianships)
-	if offset >= total {
-		return &identityv1.ListChildrenResp{
-			Total: int32(total),
-			Items: []*identityv1.Child{},
-		}, nil
-	}
-
-	end := offset + limit
-	if end > total {
-		end = total
-	}
-
-	items := make([]*identityv1.Child, 0, end-offset)
-	for _, g := range guardianships[offset:end] {
-		if g == nil {
-			continue
-		}
-
-		child, err := s.childRepo.FindByID(ctx, g.Child)
-		if err != nil {
-			return nil, toGRPCError(err)
-		}
-		items = append(items, toProtoChild(child))
-	}
-
-	return &identityv1.ListChildrenResp{
-		Total: int32(total),
-		Items: items,
-	}, nil
-}
-
-func parseUserID(raw string) (meta.ID, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return meta.FromUint64(0), status.Error(codes.InvalidArgument, "user_id cannot be empty")
-	}
-
-	id, err := strconv.ParseUint(raw, 10, 64)
-	if err != nil {
-		return meta.FromUint64(0), status.Errorf(codes.InvalidArgument, "invalid user_id: %s", raw)
-	}
-
-	return meta.FromUint64(id), nil
-}
-
-func parseChildID(raw string) (meta.ID, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return meta.FromUint64(0), status.Error(codes.InvalidArgument, "child_id cannot be empty")
-	}
-
-	id, err := strconv.ParseUint(raw, 10, 64)
-	if err != nil {
-		return meta.FromUint64(0), status.Errorf(codes.InvalidArgument, "invalid child_id: %s", raw)
-	}
-
-	return meta.FromUint64(id), nil
-}
-
-func toProtoUser(u *userDomain.User) *identityv1.User {
-	if u == nil {
-		return nil
-	}
-
-	user := &identityv1.User{
-		Id:       u.ID.String(),
-		Status:   u.Status.String(),
-		Nickname: u.Name,
-		Avatar:   "",
-	}
-
-	return user
-}
-
-func toProtoChild(c *childDomain.Child) *identityv1.Child {
-	if c == nil {
-		return nil
-	}
-
-	var (
-		height int32
-		weight string
-	)
-
-	if c.Height.Tenths() > 0 {
-		height = int32(math.Round(c.Height.Float()))
-	}
-	if c.Weight.Tenths() > 0 {
-		weight = c.Weight.String()
-	}
-
-	child := &identityv1.Child{
-		Id:        c.ID.String(),
-		LegalName: c.Name,
-		Gender:    int32(c.Gender.Value()),
-		Dob:       c.Birthday.String(),
-		IdType:    "",
-		HeightCm:  height,
-		WeightKg:  weight,
-	}
-
-	return child
-}
-
-func toGRPCError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	if coder := errors.ParseCoder(err); coder != nil {
-		switch coder.HTTPStatus() {
-		case 400:
-			return status.Error(codes.InvalidArgument, coder.String())
-		case 401:
-			return status.Error(codes.Unauthenticated, coder.String())
-		case 403:
-			return status.Error(codes.PermissionDenied, coder.String())
-		case 404:
-			return status.Error(codes.NotFound, coder.String())
-		case 409:
-			return status.Error(codes.AlreadyExists, coder.String())
-		default:
-			return status.Error(codes.Internal, coder.String())
-		}
-	}
-
-	return status.Error(codes.Internal, err.Error())
+// identityLifecycleServer 身份生命周期服务（用户管理）
+type identityLifecycleServer struct {
+	identityv1.UnimplementedIdentityLifecycleServer
+	userSvc        userApp.UserApplicationService
+	userProfileSvc userApp.UserProfileApplicationService
+	userStatusSvc  userApp.UserStatusApplicationService
 }

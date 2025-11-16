@@ -3,7 +3,6 @@ package guardianship
 import (
 	"context"
 
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -13,7 +12,7 @@ import (
 // Repository 监护关系存储接口
 type Repository interface {
 	Create(ctx context.Context, guardianship *Guardianship) error
-	FindByID(ctx context.Context, id idutil.ID) (*Guardianship, error)
+	FindByID(ctx context.Context, id meta.ID) (*Guardianship, error)
 	FindByChildID(ctx context.Context, id meta.ID) (guardianships []*Guardianship, err error)
 	FindByUserID(ctx context.Context, id meta.ID) (guardianships []*Guardianship, err error)
 	FindByUserIDAndChildID(ctx context.Context, userID meta.ID, childID meta.ID) (*Guardianship, error)

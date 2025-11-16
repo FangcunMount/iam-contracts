@@ -19,16 +19,22 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IdentityRead_GetUser_FullMethodName  = "/iam.identity.v1.IdentityRead/GetUser"
-	IdentityRead_GetChild_FullMethodName = "/iam.identity.v1.IdentityRead/GetChild"
+	IdentityRead_GetUser_FullMethodName          = "/iam.identity.v1.IdentityRead/GetUser"
+	IdentityRead_BatchGetUsers_FullMethodName    = "/iam.identity.v1.IdentityRead/BatchGetUsers"
+	IdentityRead_SearchUsers_FullMethodName      = "/iam.identity.v1.IdentityRead/SearchUsers"
+	IdentityRead_GetChild_FullMethodName         = "/iam.identity.v1.IdentityRead/GetChild"
+	IdentityRead_BatchGetChildren_FullMethodName = "/iam.identity.v1.IdentityRead/BatchGetChildren"
 )
 
 // IdentityReadClient is the client API for IdentityRead service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type IdentityReadClient interface {
-	GetUser(ctx context.Context, in *GetUserReq, opts ...grpc.CallOption) (*GetUserResp, error)
-	GetChild(ctx context.Context, in *GetChildReq, opts ...grpc.CallOption) (*GetChildResp, error)
+	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
+	BatchGetUsers(ctx context.Context, in *BatchGetUsersRequest, opts ...grpc.CallOption) (*BatchGetUsersResponse, error)
+	SearchUsers(ctx context.Context, in *SearchUsersRequest, opts ...grpc.CallOption) (*SearchUsersResponse, error)
+	GetChild(ctx context.Context, in *GetChildRequest, opts ...grpc.CallOption) (*GetChildResponse, error)
+	BatchGetChildren(ctx context.Context, in *BatchGetChildrenRequest, opts ...grpc.CallOption) (*BatchGetChildrenResponse, error)
 }
 
 type identityReadClient struct {
@@ -39,9 +45,9 @@ func NewIdentityReadClient(cc grpc.ClientConnInterface) IdentityReadClient {
 	return &identityReadClient{cc}
 }
 
-func (c *identityReadClient) GetUser(ctx context.Context, in *GetUserReq, opts ...grpc.CallOption) (*GetUserResp, error) {
+func (c *identityReadClient) GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetUserResp)
+	out := new(GetUserResponse)
 	err := c.cc.Invoke(ctx, IdentityRead_GetUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -49,10 +55,40 @@ func (c *identityReadClient) GetUser(ctx context.Context, in *GetUserReq, opts .
 	return out, nil
 }
 
-func (c *identityReadClient) GetChild(ctx context.Context, in *GetChildReq, opts ...grpc.CallOption) (*GetChildResp, error) {
+func (c *identityReadClient) BatchGetUsers(ctx context.Context, in *BatchGetUsersRequest, opts ...grpc.CallOption) (*BatchGetUsersResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetChildResp)
+	out := new(BatchGetUsersResponse)
+	err := c.cc.Invoke(ctx, IdentityRead_BatchGetUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityReadClient) SearchUsers(ctx context.Context, in *SearchUsersRequest, opts ...grpc.CallOption) (*SearchUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchUsersResponse)
+	err := c.cc.Invoke(ctx, IdentityRead_SearchUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityReadClient) GetChild(ctx context.Context, in *GetChildRequest, opts ...grpc.CallOption) (*GetChildResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetChildResponse)
 	err := c.cc.Invoke(ctx, IdentityRead_GetChild_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityReadClient) BatchGetChildren(ctx context.Context, in *BatchGetChildrenRequest, opts ...grpc.CallOption) (*BatchGetChildrenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetChildrenResponse)
+	err := c.cc.Invoke(ctx, IdentityRead_BatchGetChildren_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -63,8 +99,11 @@ func (c *identityReadClient) GetChild(ctx context.Context, in *GetChildReq, opts
 // All implementations must embed UnimplementedIdentityReadServer
 // for forward compatibility.
 type IdentityReadServer interface {
-	GetUser(context.Context, *GetUserReq) (*GetUserResp, error)
-	GetChild(context.Context, *GetChildReq) (*GetChildResp, error)
+	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
+	BatchGetUsers(context.Context, *BatchGetUsersRequest) (*BatchGetUsersResponse, error)
+	SearchUsers(context.Context, *SearchUsersRequest) (*SearchUsersResponse, error)
+	GetChild(context.Context, *GetChildRequest) (*GetChildResponse, error)
+	BatchGetChildren(context.Context, *BatchGetChildrenRequest) (*BatchGetChildrenResponse, error)
 	mustEmbedUnimplementedIdentityReadServer()
 }
 
@@ -75,11 +114,20 @@ type IdentityReadServer interface {
 // pointer dereference when methods are called.
 type UnimplementedIdentityReadServer struct{}
 
-func (UnimplementedIdentityReadServer) GetUser(context.Context, *GetUserReq) (*GetUserResp, error) {
+func (UnimplementedIdentityReadServer) GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
 }
-func (UnimplementedIdentityReadServer) GetChild(context.Context, *GetChildReq) (*GetChildResp, error) {
+func (UnimplementedIdentityReadServer) BatchGetUsers(context.Context, *BatchGetUsersRequest) (*BatchGetUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchGetUsers not implemented")
+}
+func (UnimplementedIdentityReadServer) SearchUsers(context.Context, *SearchUsersRequest) (*SearchUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchUsers not implemented")
+}
+func (UnimplementedIdentityReadServer) GetChild(context.Context, *GetChildRequest) (*GetChildResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetChild not implemented")
+}
+func (UnimplementedIdentityReadServer) BatchGetChildren(context.Context, *BatchGetChildrenRequest) (*BatchGetChildrenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchGetChildren not implemented")
 }
 func (UnimplementedIdentityReadServer) mustEmbedUnimplementedIdentityReadServer() {}
 func (UnimplementedIdentityReadServer) testEmbeddedByValue()                      {}
@@ -103,7 +151,7 @@ func RegisterIdentityReadServer(s grpc.ServiceRegistrar, srv IdentityReadServer)
 }
 
 func _IdentityRead_GetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetUserReq)
+	in := new(GetUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -115,13 +163,49 @@ func _IdentityRead_GetUser_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: IdentityRead_GetUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityReadServer).GetUser(ctx, req.(*GetUserReq))
+		return srv.(IdentityReadServer).GetUser(ctx, req.(*GetUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityRead_BatchGetUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityReadServer).BatchGetUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityRead_BatchGetUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityReadServer).BatchGetUsers(ctx, req.(*BatchGetUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityRead_SearchUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityReadServer).SearchUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityRead_SearchUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityReadServer).SearchUsers(ctx, req.(*SearchUsersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _IdentityRead_GetChild_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetChildReq)
+	in := new(GetChildRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -133,7 +217,25 @@ func _IdentityRead_GetChild_Handler(srv interface{}, ctx context.Context, dec fu
 		FullMethod: IdentityRead_GetChild_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityReadServer).GetChild(ctx, req.(*GetChildReq))
+		return srv.(IdentityReadServer).GetChild(ctx, req.(*GetChildRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityRead_BatchGetChildren_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetChildrenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityReadServer).BatchGetChildren(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityRead_BatchGetChildren_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityReadServer).BatchGetChildren(ctx, req.(*BatchGetChildrenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -150,8 +252,20 @@ var IdentityRead_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _IdentityRead_GetUser_Handler,
 		},
 		{
+			MethodName: "BatchGetUsers",
+			Handler:    _IdentityRead_BatchGetUsers_Handler,
+		},
+		{
+			MethodName: "SearchUsers",
+			Handler:    _IdentityRead_SearchUsers_Handler,
+		},
+		{
 			MethodName: "GetChild",
 			Handler:    _IdentityRead_GetChild_Handler,
+		},
+		{
+			MethodName: "BatchGetChildren",
+			Handler:    _IdentityRead_BatchGetChildren_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -159,16 +273,18 @@ var IdentityRead_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	GuardianshipQuery_IsGuardian_FullMethodName   = "/iam.identity.v1.GuardianshipQuery/IsGuardian"
-	GuardianshipQuery_ListChildren_FullMethodName = "/iam.identity.v1.GuardianshipQuery/ListChildren"
+	GuardianshipQuery_IsGuardian_FullMethodName    = "/iam.identity.v1.GuardianshipQuery/IsGuardian"
+	GuardianshipQuery_ListChildren_FullMethodName  = "/iam.identity.v1.GuardianshipQuery/ListChildren"
+	GuardianshipQuery_ListGuardians_FullMethodName = "/iam.identity.v1.GuardianshipQuery/ListGuardians"
 )
 
 // GuardianshipQueryClient is the client API for GuardianshipQuery service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GuardianshipQueryClient interface {
-	IsGuardian(ctx context.Context, in *IsGuardianReq, opts ...grpc.CallOption) (*IsGuardianResp, error)
-	ListChildren(ctx context.Context, in *ListChildrenReq, opts ...grpc.CallOption) (*ListChildrenResp, error)
+	IsGuardian(ctx context.Context, in *IsGuardianRequest, opts ...grpc.CallOption) (*IsGuardianResponse, error)
+	ListChildren(ctx context.Context, in *ListChildrenRequest, opts ...grpc.CallOption) (*ListChildrenResponse, error)
+	ListGuardians(ctx context.Context, in *ListGuardiansRequest, opts ...grpc.CallOption) (*ListGuardiansResponse, error)
 }
 
 type guardianshipQueryClient struct {
@@ -179,9 +295,9 @@ func NewGuardianshipQueryClient(cc grpc.ClientConnInterface) GuardianshipQueryCl
 	return &guardianshipQueryClient{cc}
 }
 
-func (c *guardianshipQueryClient) IsGuardian(ctx context.Context, in *IsGuardianReq, opts ...grpc.CallOption) (*IsGuardianResp, error) {
+func (c *guardianshipQueryClient) IsGuardian(ctx context.Context, in *IsGuardianRequest, opts ...grpc.CallOption) (*IsGuardianResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(IsGuardianResp)
+	out := new(IsGuardianResponse)
 	err := c.cc.Invoke(ctx, GuardianshipQuery_IsGuardian_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -189,10 +305,20 @@ func (c *guardianshipQueryClient) IsGuardian(ctx context.Context, in *IsGuardian
 	return out, nil
 }
 
-func (c *guardianshipQueryClient) ListChildren(ctx context.Context, in *ListChildrenReq, opts ...grpc.CallOption) (*ListChildrenResp, error) {
+func (c *guardianshipQueryClient) ListChildren(ctx context.Context, in *ListChildrenRequest, opts ...grpc.CallOption) (*ListChildrenResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListChildrenResp)
+	out := new(ListChildrenResponse)
 	err := c.cc.Invoke(ctx, GuardianshipQuery_ListChildren_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guardianshipQueryClient) ListGuardians(ctx context.Context, in *ListGuardiansRequest, opts ...grpc.CallOption) (*ListGuardiansResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListGuardiansResponse)
+	err := c.cc.Invoke(ctx, GuardianshipQuery_ListGuardians_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -203,8 +329,9 @@ func (c *guardianshipQueryClient) ListChildren(ctx context.Context, in *ListChil
 // All implementations must embed UnimplementedGuardianshipQueryServer
 // for forward compatibility.
 type GuardianshipQueryServer interface {
-	IsGuardian(context.Context, *IsGuardianReq) (*IsGuardianResp, error)
-	ListChildren(context.Context, *ListChildrenReq) (*ListChildrenResp, error)
+	IsGuardian(context.Context, *IsGuardianRequest) (*IsGuardianResponse, error)
+	ListChildren(context.Context, *ListChildrenRequest) (*ListChildrenResponse, error)
+	ListGuardians(context.Context, *ListGuardiansRequest) (*ListGuardiansResponse, error)
 	mustEmbedUnimplementedGuardianshipQueryServer()
 }
 
@@ -215,11 +342,14 @@ type GuardianshipQueryServer interface {
 // pointer dereference when methods are called.
 type UnimplementedGuardianshipQueryServer struct{}
 
-func (UnimplementedGuardianshipQueryServer) IsGuardian(context.Context, *IsGuardianReq) (*IsGuardianResp, error) {
+func (UnimplementedGuardianshipQueryServer) IsGuardian(context.Context, *IsGuardianRequest) (*IsGuardianResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IsGuardian not implemented")
 }
-func (UnimplementedGuardianshipQueryServer) ListChildren(context.Context, *ListChildrenReq) (*ListChildrenResp, error) {
+func (UnimplementedGuardianshipQueryServer) ListChildren(context.Context, *ListChildrenRequest) (*ListChildrenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListChildren not implemented")
+}
+func (UnimplementedGuardianshipQueryServer) ListGuardians(context.Context, *ListGuardiansRequest) (*ListGuardiansResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListGuardians not implemented")
 }
 func (UnimplementedGuardianshipQueryServer) mustEmbedUnimplementedGuardianshipQueryServer() {}
 func (UnimplementedGuardianshipQueryServer) testEmbeddedByValue()                           {}
@@ -243,7 +373,7 @@ func RegisterGuardianshipQueryServer(s grpc.ServiceRegistrar, srv GuardianshipQu
 }
 
 func _GuardianshipQuery_IsGuardian_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IsGuardianReq)
+	in := new(IsGuardianRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -255,13 +385,13 @@ func _GuardianshipQuery_IsGuardian_Handler(srv interface{}, ctx context.Context,
 		FullMethod: GuardianshipQuery_IsGuardian_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GuardianshipQueryServer).IsGuardian(ctx, req.(*IsGuardianReq))
+		return srv.(GuardianshipQueryServer).IsGuardian(ctx, req.(*IsGuardianRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _GuardianshipQuery_ListChildren_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListChildrenReq)
+	in := new(ListChildrenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -273,7 +403,25 @@ func _GuardianshipQuery_ListChildren_Handler(srv interface{}, ctx context.Contex
 		FullMethod: GuardianshipQuery_ListChildren_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GuardianshipQueryServer).ListChildren(ctx, req.(*ListChildrenReq))
+		return srv.(GuardianshipQueryServer).ListChildren(ctx, req.(*ListChildrenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuardianshipQuery_ListGuardians_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListGuardiansRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuardianshipQueryServer).ListGuardians(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuardianshipQuery_ListGuardians_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuardianshipQueryServer).ListGuardians(ctx, req.(*ListGuardiansRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -293,7 +441,665 @@ var GuardianshipQuery_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ListChildren",
 			Handler:    _GuardianshipQuery_ListChildren_Handler,
 		},
+		{
+			MethodName: "ListGuardians",
+			Handler:    _GuardianshipQuery_ListGuardians_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
+	Metadata: "iam/identity/v1/identity.proto",
+}
+
+const (
+	GuardianshipCommand_AddGuardian_FullMethodName            = "/iam.identity.v1.GuardianshipCommand/AddGuardian"
+	GuardianshipCommand_UpdateGuardianRelation_FullMethodName = "/iam.identity.v1.GuardianshipCommand/UpdateGuardianRelation"
+	GuardianshipCommand_RevokeGuardian_FullMethodName         = "/iam.identity.v1.GuardianshipCommand/RevokeGuardian"
+	GuardianshipCommand_BatchRevokeGuardians_FullMethodName   = "/iam.identity.v1.GuardianshipCommand/BatchRevokeGuardians"
+	GuardianshipCommand_ImportGuardians_FullMethodName        = "/iam.identity.v1.GuardianshipCommand/ImportGuardians"
+)
+
+// GuardianshipCommandClient is the client API for GuardianshipCommand service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type GuardianshipCommandClient interface {
+	AddGuardian(ctx context.Context, in *AddGuardianRequest, opts ...grpc.CallOption) (*AddGuardianResponse, error)
+	UpdateGuardianRelation(ctx context.Context, in *UpdateGuardianRelationRequest, opts ...grpc.CallOption) (*UpdateGuardianRelationResponse, error)
+	RevokeGuardian(ctx context.Context, in *RevokeGuardianRequest, opts ...grpc.CallOption) (*RevokeGuardianResponse, error)
+	BatchRevokeGuardians(ctx context.Context, in *BatchRevokeGuardiansRequest, opts ...grpc.CallOption) (*BatchRevokeGuardiansResponse, error)
+	ImportGuardians(ctx context.Context, in *ImportGuardiansRequest, opts ...grpc.CallOption) (*ImportGuardiansResponse, error)
+}
+
+type guardianshipCommandClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewGuardianshipCommandClient(cc grpc.ClientConnInterface) GuardianshipCommandClient {
+	return &guardianshipCommandClient{cc}
+}
+
+func (c *guardianshipCommandClient) AddGuardian(ctx context.Context, in *AddGuardianRequest, opts ...grpc.CallOption) (*AddGuardianResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddGuardianResponse)
+	err := c.cc.Invoke(ctx, GuardianshipCommand_AddGuardian_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guardianshipCommandClient) UpdateGuardianRelation(ctx context.Context, in *UpdateGuardianRelationRequest, opts ...grpc.CallOption) (*UpdateGuardianRelationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateGuardianRelationResponse)
+	err := c.cc.Invoke(ctx, GuardianshipCommand_UpdateGuardianRelation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guardianshipCommandClient) RevokeGuardian(ctx context.Context, in *RevokeGuardianRequest, opts ...grpc.CallOption) (*RevokeGuardianResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevokeGuardianResponse)
+	err := c.cc.Invoke(ctx, GuardianshipCommand_RevokeGuardian_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guardianshipCommandClient) BatchRevokeGuardians(ctx context.Context, in *BatchRevokeGuardiansRequest, opts ...grpc.CallOption) (*BatchRevokeGuardiansResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchRevokeGuardiansResponse)
+	err := c.cc.Invoke(ctx, GuardianshipCommand_BatchRevokeGuardians_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guardianshipCommandClient) ImportGuardians(ctx context.Context, in *ImportGuardiansRequest, opts ...grpc.CallOption) (*ImportGuardiansResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ImportGuardiansResponse)
+	err := c.cc.Invoke(ctx, GuardianshipCommand_ImportGuardians_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// GuardianshipCommandServer is the server API for GuardianshipCommand service.
+// All implementations must embed UnimplementedGuardianshipCommandServer
+// for forward compatibility.
+type GuardianshipCommandServer interface {
+	AddGuardian(context.Context, *AddGuardianRequest) (*AddGuardianResponse, error)
+	UpdateGuardianRelation(context.Context, *UpdateGuardianRelationRequest) (*UpdateGuardianRelationResponse, error)
+	RevokeGuardian(context.Context, *RevokeGuardianRequest) (*RevokeGuardianResponse, error)
+	BatchRevokeGuardians(context.Context, *BatchRevokeGuardiansRequest) (*BatchRevokeGuardiansResponse, error)
+	ImportGuardians(context.Context, *ImportGuardiansRequest) (*ImportGuardiansResponse, error)
+	mustEmbedUnimplementedGuardianshipCommandServer()
+}
+
+// UnimplementedGuardianshipCommandServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedGuardianshipCommandServer struct{}
+
+func (UnimplementedGuardianshipCommandServer) AddGuardian(context.Context, *AddGuardianRequest) (*AddGuardianResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddGuardian not implemented")
+}
+func (UnimplementedGuardianshipCommandServer) UpdateGuardianRelation(context.Context, *UpdateGuardianRelationRequest) (*UpdateGuardianRelationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateGuardianRelation not implemented")
+}
+func (UnimplementedGuardianshipCommandServer) RevokeGuardian(context.Context, *RevokeGuardianRequest) (*RevokeGuardianResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RevokeGuardian not implemented")
+}
+func (UnimplementedGuardianshipCommandServer) BatchRevokeGuardians(context.Context, *BatchRevokeGuardiansRequest) (*BatchRevokeGuardiansResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchRevokeGuardians not implemented")
+}
+func (UnimplementedGuardianshipCommandServer) ImportGuardians(context.Context, *ImportGuardiansRequest) (*ImportGuardiansResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ImportGuardians not implemented")
+}
+func (UnimplementedGuardianshipCommandServer) mustEmbedUnimplementedGuardianshipCommandServer() {}
+func (UnimplementedGuardianshipCommandServer) testEmbeddedByValue()                             {}
+
+// UnsafeGuardianshipCommandServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to GuardianshipCommandServer will
+// result in compilation errors.
+type UnsafeGuardianshipCommandServer interface {
+	mustEmbedUnimplementedGuardianshipCommandServer()
+}
+
+func RegisterGuardianshipCommandServer(s grpc.ServiceRegistrar, srv GuardianshipCommandServer) {
+	// If the following call pancis, it indicates UnimplementedGuardianshipCommandServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&GuardianshipCommand_ServiceDesc, srv)
+}
+
+func _GuardianshipCommand_AddGuardian_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddGuardianRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuardianshipCommandServer).AddGuardian(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuardianshipCommand_AddGuardian_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuardianshipCommandServer).AddGuardian(ctx, req.(*AddGuardianRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuardianshipCommand_UpdateGuardianRelation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateGuardianRelationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuardianshipCommandServer).UpdateGuardianRelation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuardianshipCommand_UpdateGuardianRelation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuardianshipCommandServer).UpdateGuardianRelation(ctx, req.(*UpdateGuardianRelationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuardianshipCommand_RevokeGuardian_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeGuardianRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuardianshipCommandServer).RevokeGuardian(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuardianshipCommand_RevokeGuardian_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuardianshipCommandServer).RevokeGuardian(ctx, req.(*RevokeGuardianRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuardianshipCommand_BatchRevokeGuardians_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchRevokeGuardiansRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuardianshipCommandServer).BatchRevokeGuardians(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuardianshipCommand_BatchRevokeGuardians_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuardianshipCommandServer).BatchRevokeGuardians(ctx, req.(*BatchRevokeGuardiansRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuardianshipCommand_ImportGuardians_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportGuardiansRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuardianshipCommandServer).ImportGuardians(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuardianshipCommand_ImportGuardians_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuardianshipCommandServer).ImportGuardians(ctx, req.(*ImportGuardiansRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// GuardianshipCommand_ServiceDesc is the grpc.ServiceDesc for GuardianshipCommand service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var GuardianshipCommand_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "iam.identity.v1.GuardianshipCommand",
+	HandlerType: (*GuardianshipCommandServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AddGuardian",
+			Handler:    _GuardianshipCommand_AddGuardian_Handler,
+		},
+		{
+			MethodName: "UpdateGuardianRelation",
+			Handler:    _GuardianshipCommand_UpdateGuardianRelation_Handler,
+		},
+		{
+			MethodName: "RevokeGuardian",
+			Handler:    _GuardianshipCommand_RevokeGuardian_Handler,
+		},
+		{
+			MethodName: "BatchRevokeGuardians",
+			Handler:    _GuardianshipCommand_BatchRevokeGuardians_Handler,
+		},
+		{
+			MethodName: "ImportGuardians",
+			Handler:    _GuardianshipCommand_ImportGuardians_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "iam/identity/v1/identity.proto",
+}
+
+const (
+	IdentityLifecycle_CreateUser_FullMethodName           = "/iam.identity.v1.IdentityLifecycle/CreateUser"
+	IdentityLifecycle_UpdateUser_FullMethodName           = "/iam.identity.v1.IdentityLifecycle/UpdateUser"
+	IdentityLifecycle_DeactivateUser_FullMethodName       = "/iam.identity.v1.IdentityLifecycle/DeactivateUser"
+	IdentityLifecycle_BlockUser_FullMethodName            = "/iam.identity.v1.IdentityLifecycle/BlockUser"
+	IdentityLifecycle_LinkExternalIdentity_FullMethodName = "/iam.identity.v1.IdentityLifecycle/LinkExternalIdentity"
+)
+
+// IdentityLifecycleClient is the client API for IdentityLifecycle service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type IdentityLifecycleClient interface {
+	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
+	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
+	DeactivateUser(ctx context.Context, in *ChangeUserStatusRequest, opts ...grpc.CallOption) (*UserOperationResponse, error)
+	BlockUser(ctx context.Context, in *ChangeUserStatusRequest, opts ...grpc.CallOption) (*UserOperationResponse, error)
+	LinkExternalIdentity(ctx context.Context, in *LinkExternalIdentityRequest, opts ...grpc.CallOption) (*LinkExternalIdentityResponse, error)
+}
+
+type identityLifecycleClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewIdentityLifecycleClient(cc grpc.ClientConnInterface) IdentityLifecycleClient {
+	return &identityLifecycleClient{cc}
+}
+
+func (c *identityLifecycleClient) CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateUserResponse)
+	err := c.cc.Invoke(ctx, IdentityLifecycle_CreateUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityLifecycleClient) UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserResponse)
+	err := c.cc.Invoke(ctx, IdentityLifecycle_UpdateUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityLifecycleClient) DeactivateUser(ctx context.Context, in *ChangeUserStatusRequest, opts ...grpc.CallOption) (*UserOperationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserOperationResponse)
+	err := c.cc.Invoke(ctx, IdentityLifecycle_DeactivateUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityLifecycleClient) BlockUser(ctx context.Context, in *ChangeUserStatusRequest, opts ...grpc.CallOption) (*UserOperationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserOperationResponse)
+	err := c.cc.Invoke(ctx, IdentityLifecycle_BlockUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityLifecycleClient) LinkExternalIdentity(ctx context.Context, in *LinkExternalIdentityRequest, opts ...grpc.CallOption) (*LinkExternalIdentityResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LinkExternalIdentityResponse)
+	err := c.cc.Invoke(ctx, IdentityLifecycle_LinkExternalIdentity_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// IdentityLifecycleServer is the server API for IdentityLifecycle service.
+// All implementations must embed UnimplementedIdentityLifecycleServer
+// for forward compatibility.
+type IdentityLifecycleServer interface {
+	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
+	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
+	DeactivateUser(context.Context, *ChangeUserStatusRequest) (*UserOperationResponse, error)
+	BlockUser(context.Context, *ChangeUserStatusRequest) (*UserOperationResponse, error)
+	LinkExternalIdentity(context.Context, *LinkExternalIdentityRequest) (*LinkExternalIdentityResponse, error)
+	mustEmbedUnimplementedIdentityLifecycleServer()
+}
+
+// UnimplementedIdentityLifecycleServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedIdentityLifecycleServer struct{}
+
+func (UnimplementedIdentityLifecycleServer) CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateUser not implemented")
+}
+func (UnimplementedIdentityLifecycleServer) UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUser not implemented")
+}
+func (UnimplementedIdentityLifecycleServer) DeactivateUser(context.Context, *ChangeUserStatusRequest) (*UserOperationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeactivateUser not implemented")
+}
+func (UnimplementedIdentityLifecycleServer) BlockUser(context.Context, *ChangeUserStatusRequest) (*UserOperationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BlockUser not implemented")
+}
+func (UnimplementedIdentityLifecycleServer) LinkExternalIdentity(context.Context, *LinkExternalIdentityRequest) (*LinkExternalIdentityResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LinkExternalIdentity not implemented")
+}
+func (UnimplementedIdentityLifecycleServer) mustEmbedUnimplementedIdentityLifecycleServer() {}
+func (UnimplementedIdentityLifecycleServer) testEmbeddedByValue()                           {}
+
+// UnsafeIdentityLifecycleServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to IdentityLifecycleServer will
+// result in compilation errors.
+type UnsafeIdentityLifecycleServer interface {
+	mustEmbedUnimplementedIdentityLifecycleServer()
+}
+
+func RegisterIdentityLifecycleServer(s grpc.ServiceRegistrar, srv IdentityLifecycleServer) {
+	// If the following call pancis, it indicates UnimplementedIdentityLifecycleServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&IdentityLifecycle_ServiceDesc, srv)
+}
+
+func _IdentityLifecycle_CreateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityLifecycleServer).CreateUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityLifecycle_CreateUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityLifecycleServer).CreateUser(ctx, req.(*CreateUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityLifecycle_UpdateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityLifecycleServer).UpdateUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityLifecycle_UpdateUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityLifecycleServer).UpdateUser(ctx, req.(*UpdateUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityLifecycle_DeactivateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangeUserStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityLifecycleServer).DeactivateUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityLifecycle_DeactivateUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityLifecycleServer).DeactivateUser(ctx, req.(*ChangeUserStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityLifecycle_BlockUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangeUserStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityLifecycleServer).BlockUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityLifecycle_BlockUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityLifecycleServer).BlockUser(ctx, req.(*ChangeUserStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityLifecycle_LinkExternalIdentity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LinkExternalIdentityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityLifecycleServer).LinkExternalIdentity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityLifecycle_LinkExternalIdentity_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityLifecycleServer).LinkExternalIdentity(ctx, req.(*LinkExternalIdentityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// IdentityLifecycle_ServiceDesc is the grpc.ServiceDesc for IdentityLifecycle service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var IdentityLifecycle_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "iam.identity.v1.IdentityLifecycle",
+	HandlerType: (*IdentityLifecycleServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateUser",
+			Handler:    _IdentityLifecycle_CreateUser_Handler,
+		},
+		{
+			MethodName: "UpdateUser",
+			Handler:    _IdentityLifecycle_UpdateUser_Handler,
+		},
+		{
+			MethodName: "DeactivateUser",
+			Handler:    _IdentityLifecycle_DeactivateUser_Handler,
+		},
+		{
+			MethodName: "BlockUser",
+			Handler:    _IdentityLifecycle_BlockUser_Handler,
+		},
+		{
+			MethodName: "LinkExternalIdentity",
+			Handler:    _IdentityLifecycle_LinkExternalIdentity_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "iam/identity/v1/identity.proto",
+}
+
+const (
+	IdentityStream_SubscribeUserEvents_FullMethodName         = "/iam.identity.v1.IdentityStream/SubscribeUserEvents"
+	IdentityStream_SubscribeGuardianshipEvents_FullMethodName = "/iam.identity.v1.IdentityStream/SubscribeGuardianshipEvents"
+)
+
+// IdentityStreamClient is the client API for IdentityStream service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type IdentityStreamClient interface {
+	SubscribeUserEvents(ctx context.Context, in *SubscribeUserEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[UserEvent], error)
+	SubscribeGuardianshipEvents(ctx context.Context, in *SubscribeGuardianshipEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GuardianshipEvent], error)
+}
+
+type identityStreamClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewIdentityStreamClient(cc grpc.ClientConnInterface) IdentityStreamClient {
+	return &identityStreamClient{cc}
+}
+
+func (c *identityStreamClient) SubscribeUserEvents(ctx context.Context, in *SubscribeUserEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[UserEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &IdentityStream_ServiceDesc.Streams[0], IdentityStream_SubscribeUserEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SubscribeUserEventsRequest, UserEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type IdentityStream_SubscribeUserEventsClient = grpc.ServerStreamingClient[UserEvent]
+
+func (c *identityStreamClient) SubscribeGuardianshipEvents(ctx context.Context, in *SubscribeGuardianshipEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GuardianshipEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &IdentityStream_ServiceDesc.Streams[1], IdentityStream_SubscribeGuardianshipEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SubscribeGuardianshipEventsRequest, GuardianshipEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type IdentityStream_SubscribeGuardianshipEventsClient = grpc.ServerStreamingClient[GuardianshipEvent]
+
+// IdentityStreamServer is the server API for IdentityStream service.
+// All implementations must embed UnimplementedIdentityStreamServer
+// for forward compatibility.
+type IdentityStreamServer interface {
+	SubscribeUserEvents(*SubscribeUserEventsRequest, grpc.ServerStreamingServer[UserEvent]) error
+	SubscribeGuardianshipEvents(*SubscribeGuardianshipEventsRequest, grpc.ServerStreamingServer[GuardianshipEvent]) error
+	mustEmbedUnimplementedIdentityStreamServer()
+}
+
+// UnimplementedIdentityStreamServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedIdentityStreamServer struct{}
+
+func (UnimplementedIdentityStreamServer) SubscribeUserEvents(*SubscribeUserEventsRequest, grpc.ServerStreamingServer[UserEvent]) error {
+	return status.Errorf(codes.Unimplemented, "method SubscribeUserEvents not implemented")
+}
+func (UnimplementedIdentityStreamServer) SubscribeGuardianshipEvents(*SubscribeGuardianshipEventsRequest, grpc.ServerStreamingServer[GuardianshipEvent]) error {
+	return status.Errorf(codes.Unimplemented, "method SubscribeGuardianshipEvents not implemented")
+}
+func (UnimplementedIdentityStreamServer) mustEmbedUnimplementedIdentityStreamServer() {}
+func (UnimplementedIdentityStreamServer) testEmbeddedByValue()                        {}
+
+// UnsafeIdentityStreamServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to IdentityStreamServer will
+// result in compilation errors.
+type UnsafeIdentityStreamServer interface {
+	mustEmbedUnimplementedIdentityStreamServer()
+}
+
+func RegisterIdentityStreamServer(s grpc.ServiceRegistrar, srv IdentityStreamServer) {
+	// If the following call pancis, it indicates UnimplementedIdentityStreamServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&IdentityStream_ServiceDesc, srv)
+}
+
+func _IdentityStream_SubscribeUserEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeUserEventsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(IdentityStreamServer).SubscribeUserEvents(m, &grpc.GenericServerStream[SubscribeUserEventsRequest, UserEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type IdentityStream_SubscribeUserEventsServer = grpc.ServerStreamingServer[UserEvent]
+
+func _IdentityStream_SubscribeGuardianshipEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeGuardianshipEventsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(IdentityStreamServer).SubscribeGuardianshipEvents(m, &grpc.GenericServerStream[SubscribeGuardianshipEventsRequest, GuardianshipEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type IdentityStream_SubscribeGuardianshipEventsServer = grpc.ServerStreamingServer[GuardianshipEvent]
+
+// IdentityStream_ServiceDesc is the grpc.ServiceDesc for IdentityStream service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var IdentityStream_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "iam.identity.v1.IdentityStream",
+	HandlerType: (*IdentityStreamServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SubscribeUserEvents",
+			Handler:       _IdentityStream_SubscribeUserEvents_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "SubscribeGuardianshipEvents",
+			Handler:       _IdentityStream_SubscribeGuardianshipEvents_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "iam/identity/v1/identity.proto",
 }

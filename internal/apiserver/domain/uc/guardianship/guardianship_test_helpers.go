@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -17,7 +16,7 @@ type stubGuardianshipRepo struct {
 }
 
 func (s *stubGuardianshipRepo) Create(context.Context, *Guardianship) error { return nil }
-func (s *stubGuardianshipRepo) FindByID(context.Context, idutil.ID) (*Guardianship, error) {
+func (s *stubGuardianshipRepo) FindByID(context.Context, meta.ID) (*Guardianship, error) {
 	return nil, nil
 }
 func (s *stubGuardianshipRepo) FindByChildID(ctx context.Context, id meta.ID) ([]*Guardianship, error) {
@@ -48,8 +47,8 @@ type seqGuardRepo struct {
 	responses [][]*Guardianship
 }
 
-func (s *seqGuardRepo) Create(context.Context, *Guardianship) error                { return nil }
-func (s *seqGuardRepo) FindByID(context.Context, idutil.ID) (*Guardianship, error) { return nil, nil }
+func (s *seqGuardRepo) Create(context.Context, *Guardianship) error              { return nil }
+func (s *seqGuardRepo) FindByID(context.Context, meta.ID) (*Guardianship, error) { return nil, nil }
 func (s *seqGuardRepo) FindByChildID(ctx context.Context, id meta.ID) ([]*Guardianship, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

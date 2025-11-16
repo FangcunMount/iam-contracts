@@ -32,6 +32,7 @@ import (
 	redisInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/redis"
 	schedulerInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/scheduler"
 	wechatInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/wechat"
+	authngrpc "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/grpc"
 	authhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful/handler"
 )
 
@@ -52,6 +53,9 @@ type AuthnModule struct {
 	AccountHandler *authhandler.AccountHandler
 	AuthHandler    *authhandler.AuthHandler
 	JWKSHandler    *authhandler.JWKSHandler
+
+	// gRPC 服务
+	GRPCService *authngrpc.Service
 
 	// 调度器
 	RotationScheduler interface {
@@ -349,6 +353,11 @@ func (m *AuthnModule) initializeInterface() {
 
 	m.JWKSHandler = authhandler.NewJWKSHandler(
 		m.KeyManagementApp,
+		m.KeyPublishApp,
+	)
+
+	m.GRPCService = authngrpc.NewService(
+		m.TokenService,
 		m.KeyPublishApp,
 	)
 }
