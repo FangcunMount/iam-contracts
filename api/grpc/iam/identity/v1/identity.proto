@@ -1,0 +1,375 @@
+syntax = "proto3";
+
+package iam.identity.v1;
+
+option go_package = "github.com/FangcunMount/iam-contracts/api/grpc/iam/identity/v1;identityv1";
+
+import "google/protobuf/timestamp.proto";
+
+// ============= Enums =============
+
+// 用户状态
+enum UserStatus {
+  USER_STATUS_UNSPECIFIED = 0;
+  USER_STATUS_ACTIVE = 1;
+  USER_STATUS_INACTIVE = 2;
+  USER_STATUS_BLOCKED = 3;
+}
+
+// 联系方式类型
+enum ContactType {
+  CONTACT_TYPE_UNSPECIFIED = 0;
+  CONTACT_TYPE_PHONE = 1;
+  CONTACT_TYPE_EMAIL = 2;
+  CONTACT_TYPE_WECHAT = 3;
+  CONTACT_TYPE_CUSTOM = 4;
+}
+
+// 儿童性别
+enum Gender {
+  GENDER_UNSPECIFIED = 0;
+  GENDER_MALE = 1;
+  GENDER_FEMALE = 2;
+  GENDER_OTHER = 3;
+}
+
+// 监护关系类型
+enum GuardianshipRelation {
+  GUARDIANSHIP_RELATION_UNSPECIFIED = 0;
+  GUARDIANSHIP_RELATION_SELF = 1;
+  GUARDIANSHIP_RELATION_PARENT = 2;
+  GUARDIANSHIP_RELATION_GRANDPARENT = 3;
+  GUARDIANSHIP_RELATION_OTHER = 10;
+}
+
+// 用户事件类型
+enum UserEventType {
+  USER_EVENT_TYPE_UNSPECIFIED = 0;
+  USER_EVENT_TYPE_CREATED = 1;
+  USER_EVENT_TYPE_UPDATED = 2;
+  USER_EVENT_TYPE_STATUS_CHANGED = 3;
+  USER_EVENT_TYPE_EXTERNAL_LINKED = 4;
+}
+
+// 监护关系事件类型
+enum GuardianshipEventType {
+  GUARDIANSHIP_EVENT_TYPE_UNSPECIFIED = 0;
+  GUARDIANSHIP_EVENT_TYPE_CREATED = 1;
+  GUARDIANSHIP_EVENT_TYPE_UPDATED = 2;
+  GUARDIANSHIP_EVENT_TYPE_REVOKED = 3;
+}
+
+// ============= Value Objects =============
+
+// 经校验的联系方式
+message VerifiedContact {
+  ContactType type = 1;
+  string value = 2; // 已脱敏展示值
+  google.protobuf.Timestamp verified_at = 3;
+}
+
+// 身份证件
+message IdentityDocument {
+  string type = 1;          // 例如 id_card/passport
+  string masked_number = 2; // 已脱敏编号
+}
+
+// 身体指标
+message PhysicalStats {
+  int32 height_cm = 1;
+  string weight_kg = 2; // 字符串保持小数精度
+}
+
+// 外部身份（第三方账号）
+message ExternalIdentity {
+  string provider = 1;     // 例如 sso、crm
+  string external_id = 2;  // 提供方的 ID
+  string display_name = 3; // 可选展示名
+}
+
+// 操作人上下文（写接口必填）
+message OperatorContext {
+  string operator_id = 1;
+  string operator_name = 2;
+  string channel = 3; // 例如 "oa" / "ops_console"
+  string reason = 4;
+  map<string, string> extra = 10;
+}
+
+// 偏移分页
+message OffsetPagination {
+  uint32 limit = 1;
+  uint32 offset = 2;
+}
+
+// ============= Aggregates =============
+
+message User {
+  string id = 1; // 十进制字符串
+  UserStatus status = 2;
+  string nickname = 3;
+  string avatar_url = 4;
+  repeated VerifiedContact contacts = 5;
+  repeated ExternalIdentity external_identities = 6;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message Child {
+  string id = 1;
+  string legal_name = 2;
+  Gender gender = 3;
+  string dob = 4; // YYYY-MM-DD
+  IdentityDocument identity = 5;
+  PhysicalStats stats = 6;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message Guardianship {
+  string id = 1;
+  string user_id = 2;
+  string child_id = 3;
+  GuardianshipRelation relation = 4;
+  google.protobuf.Timestamp since = 5;
+  google.protobuf.Timestamp revoked_at = 6;
+}
+
+message ChildEdge {
+  Child child = 1;
+  Guardianship guardianship = 2;
+}
+
+message GuardianshipEdge {
+  Guardianship guardianship = 1;
+  User guardian = 2;
+}
+
+// 用于 (user_id, child_id) 唯一定位一条关系
+message GuardianshipKey {
+  string user_id = 1;
+  string child_id = 2;
+}
+
+message GuardianshipSelector {
+  oneof selector {
+    string guardianship_id = 1;
+    GuardianshipKey key = 2;
+  }
+}
+
+// ============= Read Models =============
+
+message GetUserRequest { string user_id = 1; }
+message GetUserResponse { User user = 1; }
+
+message BatchGetUsersRequest { repeated string user_ids = 1; }
+message BatchGetUsersResponse {
+  repeated User users = 1;
+  repeated string not_found_ids = 2;
+}
+
+message SearchUsersRequest {
+  string keyword = 1;              // 模糊匹配昵称/邮箱/手机号
+  repeated string phones = 2;      // 精确匹配
+  repeated string emails = 3;      // 精确匹配
+  OffsetPagination page = 10;
+}
+message SearchUsersResponse {
+  int32 total = 1;
+  OffsetPagination page = 2;
+  repeated User users = 3;
+}
+
+message GetChildRequest { string child_id = 1; }
+message GetChildResponse { Child child = 1; }
+
+message BatchGetChildrenRequest { repeated string child_ids = 1; }
+message BatchGetChildrenResponse {
+  repeated Child children = 1;
+  repeated string not_found_ids = 2;
+}
+
+message ListChildrenRequest {
+  string user_id = 1;
+  OffsetPagination page = 2;
+}
+message ListChildrenResponse {
+  int32 total = 1;
+  OffsetPagination page = 2;
+  repeated ChildEdge items = 3;
+}
+
+message ListGuardiansRequest { string child_id = 1; }
+message ListGuardiansResponse {
+  int32 total = 1;
+  repeated GuardianshipEdge items = 2;
+}
+
+message IsGuardianRequest {
+  string user_id = 1;
+  string child_id = 2;
+}
+message IsGuardianResponse {
+  bool is_guardian = 1;
+  Guardianship guardianship = 2;
+}
+
+// ============= Command Models =============
+
+message AddGuardianRequest {
+  string user_id = 1;
+  string child_id = 2;
+  GuardianshipRelation relation = 3;
+  OperatorContext operator = 10;
+}
+message AddGuardianResponse { Guardianship guardianship = 1; }
+
+message UpdateGuardianRelationRequest {
+  string guardianship_id = 1;
+  GuardianshipRelation relation = 2;
+  OperatorContext operator = 10;
+}
+message UpdateGuardianRelationResponse { Guardianship guardianship = 1; }
+
+message RevokeGuardianRequest {
+  GuardianshipSelector target = 1;
+  string reason = 2;
+  OperatorContext operator = 10;
+}
+message RevokeGuardianResponse { Guardianship guardianship = 1; }
+
+message BatchRevokeGuardiansRequest {
+  repeated GuardianshipSelector targets = 1;
+  string reason = 2;
+  OperatorContext operator = 10;
+}
+message BatchRevokeGuardiansResponse {
+  repeated Guardianship revoked = 1;
+  repeated FailedGuardianshipFailure failures = 2;
+}
+
+message FailedGuardianshipFailure {
+  GuardianshipSelector target = 1;
+  string error = 2;
+}
+
+message ImportGuardianRecord {
+  string user_id = 1;
+  string child_id = 2;
+  GuardianshipRelation relation = 3;
+}
+message ImportGuardiansRequest {
+  repeated ImportGuardianRecord records = 1;
+  OperatorContext operator = 10;
+}
+message ImportGuardiansResponse {
+  repeated Guardianship created = 1;
+  repeated FailedImportGuardian failures = 2;
+}
+message FailedImportGuardian {
+  ImportGuardianRecord record = 1;
+  string error = 2;
+}
+
+// ============= Identity lifecycle =============
+
+message CreateUserRequest {
+  string nickname = 1;
+  string phone = 2;
+  string email = 3;
+  string avatar_url = 4;
+  repeated VerifiedContact contacts = 5;
+  repeated ExternalIdentity external_identities = 6;
+  OperatorContext operator = 10;
+}
+message CreateUserResponse { User user = 1; }
+
+message UpdateUserRequest {
+  string user_id = 1;
+  string nickname = 2;
+  string phone = 3;
+  string email = 4;
+  string avatar_url = 5;
+  repeated VerifiedContact contacts = 6;
+  repeated ExternalIdentity external_identities = 7;
+  OperatorContext operator = 10;
+}
+message UpdateUserResponse { User user = 1; }
+
+message ChangeUserStatusRequest {
+  string user_id = 1;
+  string reason = 2;
+  OperatorContext operator = 10;
+}
+message UserOperationResponse { User user = 1; }
+
+message LinkExternalIdentityRequest {
+  string user_id = 1;
+  ExternalIdentity external_identity = 2;
+  OperatorContext operator = 10;
+}
+message LinkExternalIdentityResponse { User user = 1; }
+
+// ============= Event streaming =============
+
+message SubscribeUserEventsRequest {
+  repeated UserEventType types = 1;
+  string from_event_id = 2; // 可选：从某个事件游标续传
+}
+message UserEvent {
+  string event_id = 1;
+  UserEventType type = 2;
+  User user = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+  string trace_id = 5;
+}
+
+message SubscribeGuardianshipEventsRequest {
+  repeated GuardianshipEventType types = 1;
+  string from_event_id = 2;
+}
+message GuardianshipEvent {
+  string event_id = 1;
+  GuardianshipEventType type = 2;
+  Guardianship guardianship = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+  string trace_id = 5;
+}
+
+// ============= Services =============
+
+service IdentityRead {
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc BatchGetUsers(BatchGetUsersRequest) returns (BatchGetUsersResponse);
+  rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
+  rpc GetChild(GetChildRequest) returns (GetChildResponse);
+  rpc BatchGetChildren(BatchGetChildrenRequest) returns (BatchGetChildrenResponse);
+}
+
+service GuardianshipQuery {
+  rpc IsGuardian(IsGuardianRequest) returns (IsGuardianResponse);
+  rpc ListChildren(ListChildrenRequest) returns (ListChildrenResponse);
+  rpc ListGuardians(ListGuardiansRequest) returns (ListGuardiansResponse);
+}
+
+service GuardianshipCommand {
+  rpc AddGuardian(AddGuardianRequest) returns (AddGuardianResponse);
+  rpc UpdateGuardianRelation(UpdateGuardianRelationRequest) returns (UpdateGuardianRelationResponse);
+  rpc RevokeGuardian(RevokeGuardianRequest) returns (RevokeGuardianResponse);
+  rpc BatchRevokeGuardians(BatchRevokeGuardiansRequest) returns (BatchRevokeGuardiansResponse);
+  rpc ImportGuardians(ImportGuardiansRequest) returns (ImportGuardiansResponse);
+}
+
+service IdentityLifecycle {
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+  rpc DeactivateUser(ChangeUserStatusRequest) returns (UserOperationResponse);
+  rpc BlockUser(ChangeUserStatusRequest) returns (UserOperationResponse);
+  rpc LinkExternalIdentity(LinkExternalIdentityRequest) returns (LinkExternalIdentityResponse);
+}
+
+service IdentityStream {
+  rpc SubscribeUserEvents(SubscribeUserEventsRequest) returns (stream UserEvent);
+  rpc SubscribeGuardianshipEvents(SubscribeGuardianshipEventsRequest) returns (stream GuardianshipEvent);
+}
