@@ -102,15 +102,17 @@ Infrastructure (基础设施)
 ### 3.3 API 设计
 
 **RESTful API**:
-- `POST /users` - 注册用户
-- `GET /users/:id` - 查询用户
-- `POST /children` - 注册儿童
-- `POST /guardianships` - 授予监护权
+- `GET /me` - 获取当前用户资料
+- `PATCH /me` - 更新用户资料
+- `POST /children/register` - 注册儿童（自动建立监护关系）
+- `GET /me/children` - 查询当前用户的所有儿童
+- `POST /guardians/grant` - 授予监护权
 
 **gRPC API**:
-- `CreateUser` - 创建用户
 - `GetUser` - 获取用户信息
-- `ListUserChildren` - 查询用户的所有儿童
+- `GetChild` - 获取儿童信息
+- `IsGuardian` - 判断监护关系
+- `ListChildrenByUserID` - 查询用户的所有儿童
 
 详见：[API 设计文档](./API_DESIGN.md)
 
@@ -120,44 +122,52 @@ Infrastructure (基础设施)
 
 ### 4.1 注册用户
 
+> **注意**: 用户注册通过认证中心（Authn）模块完成，包含账号创建、密码设置等功能。
+> UC 模块专注于用户资料管理，不直接提供注册端点。
+
 ```bash
-curl -X POST http://localhost:8080/api/v1/users \
+# 通过认证中心注册（创建账号 + 用户资料）
+curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "张三",
     "phone": "13800138000",
-    "email": "zhangsan@example.com"
+    "email": "zhangsan@example.com",
+    "password": "your_password"
   }'
 ```
 
 ### 4.2 注册儿童
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/children \
+# 注册儿童并自动建立监护关系
+curl -X POST http://localhost:8080/api/v1/children/register \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer {token}" \
   -d '{
     "name": "张小明",
-    "gender": "male",
-    "birthday": "2018-05-20"
+    "gender": 1,
+    "dob": "2018-05-20"
   }'
 ```
 
 ### 4.3 授予监护权
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/guardianships \
+curl -X POST http://localhost:8080/api/v1/guardians/grant \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer {token}" \
   -d '{
-    "user_id": "usr_123",
     "child_id": "chd_456",
-    "relation": "father"
+    "relation": "parent"
   }'
 ```
 
 ### 4.4 查询用户的所有儿童
 
 ```bash
-curl http://localhost:8080/api/v1/users/usr_123/children
+curl -H "Authorization: Bearer {token}" \
+  http://localhost:8080/api/v1/me/children
 ```
 
 ---
@@ -214,5 +224,5 @@ curl http://localhost:8080/api/v1/users/usr_123/children
 
 ---
 
-**最后更新**: 2025-10-18  
+**最后更新**: 2025-11-20  
 **维护团队**: IAM Team

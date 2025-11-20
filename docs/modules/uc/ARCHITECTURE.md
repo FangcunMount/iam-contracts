@@ -18,26 +18,25 @@
 │  RESTful API                        gRPC API                     │
 │  ┌────────────────────┐            ┌────────────────────┐       │
 │  │  UserHandler       │            │  IdentityService   │       │
-│  │  - CreateUser()    │            │  - GetUser()       │       │
-│  │  - GetUser()       │            │  - GetChild()      │       │
-│  │  - PatchUser()     │            │  - IsGuardian()    │       │
-│  │  - GetProfile()    │            │  - ListChildren()  │       │
+│  │  - GetUserProfile()│            │  - GetUser()       │       │
+│  │  - PatchUser()     │            │  - GetChild()      │       │
+│  │  (用户通过认证中心  │            │  - BatchGetChildren│       │
+│  │   注册创建)         │            │  - CreateUser()    │       │
 │  └────────────────────┘            └────────────────────┘       │
 │                                                                   │
 │  ┌────────────────────┐            ┌────────────────────┐       │
-│  │  ChildHandler      │            │  Request/Response  │       │
-│  │  - RegisterChild() │            │  DTOs              │       │
-│  │  - GetChild()      │            └────────────────────┘       │
-│  │  - PatchChild()    │                                         │
-│  │  - ListMyChildren()│                                         │
-│  │  - SearchChildren()│                                         │
-│  └────────────────────┘                                         │
-│                                                                   │
+│  │  ChildHandler      │            │ GuardianshipSvc    │       │
+│  │  - RegisterChild() │            │  - IsGuardian()    │       │
+│  │  - GetChild()      │            │  - ListChildren    │       │
+│  │  - PatchChild()    │            │    ByUserID()      │       │
+│  │  - ListMyChildren()│            │  - ListGuardians   │       │
+│  │  - SearchChildren()│            │    ByChildID()     │       │
+│  └────────────────────┘            │  - GrantGuardian() │       │
+│                                     └────────────────────┘       │
 │  ┌────────────────────┐                                         │
 │  │ GuardianshipHandler│                                         │
 │  │  - Grant()         │                                         │
-│  │  - Revoke()        │                                         │
-│  │  - List()          │                                         │
+│  │  (撤销功能待实现)    │                                         │
 │  └────────────────────┘                                         │
 │                                                                   │
 └───────────────────────┬──────────────────────────────────────────┘

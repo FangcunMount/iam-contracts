@@ -12,30 +12,12 @@
 
 #### 6.1.1 用户管理 API
 
+> **注意**: 用户注册通过认证中心（Authn）模块完成，请参考 `/api/v1/auth/register` 端点。
+
 ```http
-# 创建用户
-POST /api/v1/users
-Content-Type: application/json
-
-{
-  "nickname": "张三",
-  "contacts": [
-    {"type": "phone", "value": "13800138000"},
-    {"type": "email", "value": "zhangsan@example.com"}
-  ]
-}
-
-Response: 201 Created
-{
-  "id": "usr_1234567890",
-  "name": "张三",
-  "phone": "13800138000",
-  "email": "zhangsan@example.com",
-  "status": 1
-}
-
-# 查询用户
-GET /api/v1/users/{userId}
+# 获取当前用户资料
+GET /api/v1/me
+Authorization: Bearer {token}
 
 Response: 200 OK
 {
@@ -47,14 +29,16 @@ Response: 200 OK
   "status": 1
 }
 
-# 更新用户资料
-PATCH /api/v1/users/{userId}
+# 更新当前用户资料
+PATCH /api/v1/me
+Authorization: Bearer {token}
 Content-Type: application/json
 
 {
   "nickname": "张三丰",
   "contacts": [
-    {"type": "phone", "value": "13900139000"}
+    {"type": "phone", "value": "13900139000"},
+    {"type": "email", "value": "zhangsan@newdomain.com"}
   ]
 }
 
@@ -63,17 +47,7 @@ Response: 200 OK
   "id": "usr_1234567890",
   "name": "张三丰",
   "phone": "13900139000",
-  ...
-}
-
-# 获取当前用户资料
-GET /api/v1/profile
-Authorization: Bearer {token}
-
-Response: 200 OK
-{
-  "id": "usr_1234567890",
-  "name": "张三",
+  "email": "zhangsan@newdomain.com",
   ...
 }
 ```
@@ -81,7 +55,7 @@ Response: 200 OK
 #### 6.1.2 儿童档案 API
 
 ```http
-# 注册儿童（带监护关系）
+# 注册儿童（自动建立监护关系）
 POST /api/v1/children/register
 Authorization: Bearer {token}
 Content-Type: application/json
@@ -99,33 +73,21 @@ Response: 201 Created
 {
   "id": "chd_9876543210",
   "name": "小明",
-  "gender": "male",
+  "gender": 1,
   "dob": "2020-05-15",
   "height_cm": 105,
   "weight_kg": 18.5
 }
 
-# 创建儿童档案（不建立监护关系）
-POST /api/v1/children
-Content-Type: application/json
-
-{
-  "name": "小红",
-  "gender": 2,
-  "dob": "2021-03-20"
-}
-
-Response: 201 Created
-{...}
-
 # 查询儿童档案
-GET /api/v1/children/{childId}
+GET /api/v1/children/{id}
+Authorization: Bearer {token}
 
 Response: 200 OK
 {
   "id": "chd_9876543210",
   "name": "小明",
-  "gender": "male",
+  "gender": 1,
   "dob": "2020-05-15",
   "id_card": "110***********5678",
   "height_cm": 105,
@@ -133,21 +95,27 @@ Response: 200 OK
 }
 
 # 更新儿童档案
-PATCH /api/v1/children/{childId}
+PATCH /api/v1/children/{id}
+Authorization: Bearer {token}
 Content-Type: application/json
 
 {
-  "gender": 1,
-  "dob": "2020-05-15",
-  "height_cm": 110,
-  "weight_kg": 20
+  "nickname": "小明明",
+  "profile": {
+    "gender": 1,
+    "dob": "2020-05-15"
+  },
+  "height_weight": {
+    "height_cm": 110,
+    "weight_kg": 20
+  }
 }
 
 Response: 200 OK
 {...}
 
-# 获取我的儿童列表
-GET /api/v1/children/me?offset=0&limit=20
+# 获取当前用户的儿童列表
+GET /api/v1/me/children?offset=0&limit=20
 Authorization: Bearer {token}
 
 Response: 200 OK
@@ -163,6 +131,7 @@ Response: 200 OK
 
 # 搜索相似儿童（查重）
 GET /api/v1/children/search?name=小明&dob=2020-05-15
+Authorization: Bearer {token}
 
 Response: 200 OK
 {
@@ -177,7 +146,7 @@ Response: 200 OK
 
 ```http
 # 授予监护权
-POST /api/v1/guardianships
+POST /api/v1/guardians/grant
 Authorization: Bearer {token}
 Content-Type: application/json
 
@@ -195,28 +164,8 @@ Response: 201 Created
   "granted_at": "2025-10-17T10:30:00Z"
 }
 
-# 撤销监护权
-DELETE /api/v1/guardianships/{guardianshipId}
-Authorization: Bearer {token}
+# 注意：撤销监护权功能尚未实现
 
-Response: 204 No Content
-
-# 查询监护关系
-GET /api/v1/guardianships?user_id={userId}&child_id={childId}
-
-Response: 200 OK
-{
-  "total": 1,
-  "items": [
-    {
-      "id": "gua_111222333",
-      "user": {"id": "usr_1234567890", "name": "张三"},
-      "child": {"id": "chd_9876543210", "name": "小明"},
-      "relation": "parent",
-      "granted_at": "2025-10-17T10:30:00Z"
-    }
-  ]
-}
 ```
 
 ### 6.2 gRPC API
