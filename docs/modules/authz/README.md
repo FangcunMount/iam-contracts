@@ -1,8 +1,23 @@
-# AuthZ 模块架构文档 (V1)
+# 授权中心 (AuthZ) 架构文档
 
-## 概述
+> 负责基于 RBAC 的权限控制、策略管理、权限判定等核心能力
 
-AuthZ 模块基于 RBAC 模型实现域对象级权限控制，采用 Casbin 作为策略引擎，遵循 PAP-PRP-PDP-PEP 架构模式。
+---
+
+## 📚 文档导航
+
+| 文档 | 说明 | 内容 |
+|------|------|------|
+| **本文档** | 架构概述 | 设计目标、核心职责、技术特性 |
+| **[领域模型](./DOMAIN_MODELS.md)** | 领域设计 | 聚合根、实体、值对象、领域服务 |
+| [架构图解](./ARCHITECTURE_DIAGRAMS.md) | 架构可视化 | PAP-PRP-PDP-PEP 架构、流程图 |
+| [Redis 通知](./REDIS_PUBSUB_GUIDE.md) | 缓存失效 | 策略版本管理、Redis Pub/Sub |
+
+---
+
+## 1. 模块概述
+
+授权中心（Authorization Center, AuthZ）是 IAM 平台的核心模块，基于 RBAC 模型实现域对象级权限控制，采用 Casbin 作为策略引擎，遵循 PAP-PRP-PDP-PEP 架构模式。
 
 ## 整体架构
 
@@ -54,26 +69,26 @@ AuthZ 模块基于 RBAC 模型实现域对象级权限控制，采用 Casbin 作
            └─────────────────────────────────────────────┘
 ```
 
-### 组件职责
+### 2.2 组件职责
 
 #### PAP (Policy Administration Point) - 策略管理面
 
 - **职责**: 维护角色、赋权、资源目录，生成和校验策略
 - **接口**:
-  - `POST /authz/roles` - 创建/更新角色
-  - `POST /authz/assignments` - 用户/组 ↔ 角色赋权
-  - `POST /authz/policies` - 添加策略规则（p 规则）
-  - `GET /authz/resources` - 获取资源目录
+  - `POST /api/v1/authz/roles` - 创建角色
+  - `POST /api/v1/authz/assignments/grant` - 授予角色
+  - `POST /api/v1/authz/policies` - 添加策略规则（p 规则）
+  - `GET /api/v1/authz/resources` - 获取资源目录
 - **约束**: 所有 obj/act 必须来自资源目录
 
 #### PRP (Policy Retrieval Point) - 策略存储
 
-- **Casbin GORM Adapter**: 存储在 `casbin_rule` 表
+- **Casbin GORM Adapter**: 存储在 `iam_casbin_rule` 表
 - **领域表** (便于审计与管理):
-  - `authz_roles`: 角色定义
-  - `authz_assignments`: 赋权记录
-  - `authz_resources`: 域对象资源目录
-  - `authz_policy_versions`: 策略版本
+  - `iam_authz_roles`: 角色定义
+  - `iam_authz_assignments`: 赋权记录
+  - `iam_authz_resources`: 域对象资源目录
+  - `iam_authz_policy_versions`: 策略版本
 
 #### PDP (Policy Decision Point) - 决策点
 
@@ -99,12 +114,29 @@ AuthZ 模块基于 RBAC 模型实现域对象级权限控制，采用 Casbin 作
   return ErrForbidden
   ```
 
-### 版本管理与缓存刷新
+### 1.1 设计目标
 
-1. **策略变更**: PAP 操作后 → `policy_version++`
-2. **广播通知**: 通过 Redis Pub/Sub 发送 `authz:policy_changed` 消息
-3. **缓存失效**: 各业务服务的 Enforcer 收到消息后调用 `InvalidateCache()`
-4. **本地缓存**: Enforcer 使用 LRU + 短 TTL 决策缓存（可选）
+- ✅ **RBAC 模型**: 基于角色的访问控制
+- ✅ **多租户隔离**: 租户间权限完全隔离
+- ✅ **域对象级权限**: 细粒度权限控制（read_all/read_own）
+- ✅ **策略引擎**: Casbin 提供灵活的策略判定
+- ✅ **缓存失效**: Redis Pub/Sub 实现分布式缓存同步
+
+### 1.2 技术特性
+
+| 特性 | 实现方式 |
+|------|----------|
+| **权限模型** | RBAC with Domain (Casbin) |
+| **策略存储** | MySQL (iam_casbin_rule 表) |
+| **缓存机制** | Casbin Enforcer + Redis 版本通知 |
+| **两段式判定** | `*_all` → `*_own` (先全局再自己) |
+| **资源约束** | 资源目录验证，防止无效策略 |
+
+---
+
+## 2. 整体架构
+
+### 2.1 架构图
 
 ## 目录结构
 
@@ -568,7 +600,134 @@ subscriber.Subscribe(ctx, func(tenantID string, version int64) {
 })
 ```
 
-## V2 规划
+---
+
+## 4. 快速开始
+
+### 4.1 创建角色
+
+```bash
+curl -X POST https://api.example.com/api/v1/authz/roles \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGci..." \
+  -d '{
+    "name": "therapist",
+    "display_name": "治疗师",
+    "tenant_id": "org001",
+    "description": "负责量表填写和数据录入"
+  }'
+```
+
+### 4.2 创建资源
+
+```bash
+curl -X POST https://api.example.com/api/v1/authz/resources \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGci..." \
+  -d '{
+    "key": "scale:form:*",
+    "display_name": "量表表单",
+    "app_name": "scale",
+    "domain": "form",
+    "type": "form",
+    "actions": ["create", "read_all", "read_own", "update_own"],
+    "description": "量表表单资源"
+  }'
+```
+
+### 4.3 添加策略规则
+
+```bash
+curl -X POST https://api.example.com/api/v1/authz/policies \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGci..." \
+  -d '{
+    "sub": "role:therapist",
+    "dom": "org001",
+    "obj": "scale:form:*",
+    "act": "read_own"
+  }'
+```
+
+### 4.4 授予角色
+
+```bash
+curl -X POST https://api.example.com/api/v1/authz/assignments/grant \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGci..." \
+  -d '{
+    "subject_type": "user",
+    "subject_id": "1234567890",
+    "role_id": 5678901234,
+    "tenant_id": "org001"
+  }'
+```
+
+### 4.5 查询当前策略版本
+
+```bash
+curl -X GET https://api.example.com/api/v1/authz/policies/version?tenant_id=org001 \
+  -H "Authorization: Bearer eyJhbGci..."
+```
+
+---
+
+## 5. API 端点总览
+
+### 5.1 角色管理
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/authz/roles` | 创建角色 |
+| PUT | `/api/v1/authz/roles/:id` | 更新角色 |
+| DELETE | `/api/v1/authz/roles/:id` | 删除角色 |
+| GET | `/api/v1/authz/roles/:id` | 获取角色详情 |
+| GET | `/api/v1/authz/roles` | 列出角色 |
+| GET | `/api/v1/authz/roles/:id/assignments` | 列出角色的分配记录 |
+| GET | `/api/v1/authz/roles/:id/policies` | 获取角色的策略列表 |
+
+### 5.2 角色分配
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/authz/assignments/grant` | 授予角色 |
+| POST | `/api/v1/authz/assignments/revoke` | 撤销角色 |
+| DELETE | `/api/v1/authz/assignments/:id` | 根据ID撤销 |
+| GET | `/api/v1/authz/assignments/subject` | 列出主体的分配 |
+
+### 5.3 策略管理
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/authz/policies` | 添加策略规则 |
+| DELETE | `/api/v1/authz/policies` | 移除策略规则 |
+| GET | `/api/v1/authz/policies/version` | 获取当前策略版本 |
+
+### 5.4 资源管理
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/authz/resources` | 创建资源 |
+| PUT | `/api/v1/authz/resources/:id` | 更新资源 |
+| DELETE | `/api/v1/authz/resources/:id` | 删除资源 |
+| GET | `/api/v1/authz/resources/:id` | 获取资源详情 |
+| GET | `/api/v1/authz/resources/key/:key` | 根据键获取资源 |
+| GET | `/api/v1/authz/resources` | 列出资源 |
+| POST | `/api/v1/authz/resources/validate-action` | 验证资源动作 |
+
+---
+
+## 6. 核心优势
+
+1. **RBAC 标准**: 基于成熟的 RBAC 模型，易于理解和维护
+2. **多租户隔离**: 租户间权限完全隔离，安全可靠
+3. **细粒度控制**: 支持域对象级权限，区分全局和自己
+4. **高性能**: Casbin 本地决策，毫秒级响应
+5. **分布式缓存**: Redis Pub/Sub 实现策略同步
+
+---
+
+## 7. V2 规划
 
 V1 之后可以考虑的增强功能：
 
@@ -580,17 +739,18 @@ V1 之后可以考虑的增强功能：
 6. **策略冲突检测**: 自动检测冲突或冗余策略
 7. **数据权限**: 支持字段级、行级数据过滤
 
-## 注意事项
+---
 
-1. **性能优化**:
-   - 使用 CachedEnforcer 减少数据库查询
-   - 合理设置缓存 TTL 和 LRU 大小
-   - 监控决策延迟
+## 8. 下一步
 
-2. **安全考虑**:
-   - 所有策略变更需记录审计日志
-   - 敏感操作需要二次确认
-   - 定期审查权限分配
+- 📖 阅读 **[领域模型](./DOMAIN_MODELS.md)** 深入理解业务逻辑
+- 📊 阅读 [架构图解](./ARCHITECTURE_DIAGRAMS.md) 可视化理解架构
+- 🔔 阅读 [Redis 通知](./REDIS_PUBSUB_GUIDE.md) 了解缓存失效机制
+
+---
+
+**最后更新**: 2025-11-20
+**维护团队**: AuthZ Team
 
 3. **测试策略**:
    - 单元测试覆盖领域逻辑
