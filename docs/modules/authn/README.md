@@ -9,6 +9,7 @@
 | 文档 | 说明 | 内容 |
 |------|------|------|
 | **本文档** | 架构概述 | 设计目标、核心职责、技术特性 |
+| **[领域模型](./DOMAIN_MODELS.md)** | 领域设计 | 聚合根、实体、值对象、领域服务 |
 | [目录结构](./DIRECTORY_STRUCTURE.md) | 代码组织 | 分层架构、端口适配器、设计模式 |
 | [认证流程](./AUTHENTICATION_FLOWS.md) | 流程详解 | 微信登录、Token刷新、验证流程 |
 | [Token 管理](./TOKEN_MANAGEMENT.md) | Token 生命周期 | 签发、刷新、撤销、密钥轮换 |
@@ -142,16 +143,47 @@
 
 ## 5. 快速开始
 
-### 5.1 微信小程序登录
+### 5.1 注册账户（微信小程序）
 
 ```bash
 # 1. 获取微信 code
-# 2. 调用登录接口
-curl -X POST https://api.example.com/api/v1/auth/wechat:login \
+# 2. 调用注册接口
+curl -X POST https://api.example.com/api/v1/accounts/wechat/register \
   -H "Content-Type: application/json" \
   -d '{
-    "code": "051Ab2ll2QMRCH05o2nl2vhOX64Ab2lx",
-    "device_id": "iPhone13_iOS16"
+    "js_code": "051Ab2ll2QMRCH05o2nl2vhOX64Ab2lx",
+    "app_id": "wx1234567890abcdef",
+    "account_type": "wc-minip"
+  }'
+
+# 响应
+{
+  "account_id": "1234567890123456789",
+  "user_id": "9876543210987654321",
+  "open_id": "oX1234567890abcdefgh",
+  "union_id": "oU0987654321zyxwvutsr"
+}
+```
+
+### 5.2 统一登录
+
+```bash
+# 微信登录
+curl -X POST https://api.example.com/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scenario": "wx_minip",
+    "app_id": "wx1234567890abcdef",
+    "js_code": "051Ab2ll2QMRCH05o2nl2vhOX64Ab2lx"
+  }'
+
+# 密码登录
+curl -X POST https://api.example.com/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scenario": "password",
+    "username": "user@example.com",
+    "password": "SecurePass123!"
   }'
 
 # 响应
@@ -163,21 +195,38 @@ curl -X POST https://api.example.com/api/v1/auth/wechat:login \
 }
 ```
 
-### 5.2 使用 Token 访问 API
+### 5.3 使用 Token 访问 API
 
 ```bash
-curl -X GET https://api.example.com/api/v1/users/me \
+curl -X GET https://api.example.com/api/v1/me \
   -H "Authorization: Bearer eyJhbGci..."
 ```
 
-### 5.3 刷新 Token
+### 5.4 刷新 Token
 
 ```bash
-curl -X POST https://api.example.com/api/v1/auth/token:refresh \
+curl -X POST https://api.example.com/api/v1/auth/refresh_token \
   -H "Content-Type: application/json" \
   -d '{
     "refresh_token": "eyJhbGci..."
   }'
+```
+
+### 5.5 验证 Token
+
+```bash
+curl -X POST https://api.example.com/api/v1/auth/verify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "access_token": "eyJhbGci..."
+  }'
+```
+
+### 5.6 登出
+
+```bash
+curl -X POST https://api.example.com/api/v1/auth/logout \
+  -H "Authorization: Bearer eyJhbGci..."
 ```
 
 ---
@@ -192,12 +241,48 @@ curl -X POST https://api.example.com/api/v1/auth/token:refresh \
 
 ---
 
-## 7. 下一步
+## 7. API 端点总览
 
-- 📖 阅读 [目录结构](./DIRECTORY_STRUCTURE.md) 了解代码组织
+### 7.1 认证端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/auth/login` | 统一登录（支持多场景） |
+| POST | `/api/v1/auth/refresh_token` | 刷新访问令牌 |
+| POST | `/api/v1/auth/logout` | 登出（撤销令牌） |
+| POST | `/api/v1/auth/verify` | 验证令牌有效性 |
+
+### 7.2 账户管理端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/accounts/wechat/register` | 微信账户注册 |
+| GET | `/api/v1/accounts/:accountId` | 获取账户信息 |
+| PUT | `/api/v1/accounts/:accountId/profile` | 更新账户资料 |
+
+### 7.3 JWKS 端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/.well-known/jwks.json` | 获取公钥集（公开） |
+| POST | `/api/v1/admin/jwks/keys` | 创建新密钥（管理员） |
+| GET | `/api/v1/admin/jwks/keys` | 列出所有密钥（管理员） |
+| POST | `/api/v1/admin/jwks/keys/:kid/retire` | 退役密钥（管理员） |
+
+---
+
+## 8. 下一步
+
+- 📖 阅读 **[领域模型](./DOMAIN_MODELS.md)** 深入理解业务逻辑
+- 📂 阅读 [目录结构](./DIRECTORY_STRUCTURE.md) 了解代码组织
 - 🔄 阅读 [认证流程](./AUTHENTICATION_FLOWS.md) 理解业务流程
 - 🔐 阅读 [Token 管理](./TOKEN_MANAGEMENT.md) 掌握 Token 生命周期
 - 🛡️ 阅读 [安全设计](./SECURITY_DESIGN.md) 了解安全机制
+
+---
+
+**最后更新**: 2025-11-20
+**维护团队**: Authn Team
 - 🔌 阅读 [API 参考](./API_REFERENCE.md) 集成到业务系统
 
 ---
