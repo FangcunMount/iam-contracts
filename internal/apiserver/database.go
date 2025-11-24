@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/FangcunMount/component-base/pkg/database"
-	"github.com/FangcunMount/component-base/pkg/database/connecter"
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/config"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/logger"
@@ -23,10 +22,6 @@ import (
 type DatabaseManager struct {
 	config   *config.Config
 	registry *database.Registry
-
-	// 双 Redis 客户端
-	cacheRedisClient *redis.Client // 缓存 Redis（临时数据、会话等）
-	storeRedisClient *redis.Client // 存储 Redis（持久化数据、Token等）
 }
 
 // NewDatabaseManager 创建数据库管理器
@@ -184,7 +179,7 @@ func (dm *DatabaseManager) initMySQL() error {
 	// 打印日志配置信息，便于调试
 	log.Infof("Initializing MySQL with log level: %d", dm.config.MySQLOptions.LogLevel)
 
-	mysqlConfig := &connecter.MySQLConfig{
+	mysqlConfig := &database.MySQLConfig{
 		Host:                  dm.config.MySQLOptions.Host,
 		Username:              dm.config.MySQLOptions.Username,
 		Password:              dm.config.MySQLOptions.Password,
@@ -201,50 +196,40 @@ func (dm *DatabaseManager) initMySQL() error {
 		return nil
 	}
 
-	mysqlConn := connecter.NewMySQLConnection(mysqlConfig)
-	return dm.registry.Register(connecter.MySQL, mysqlConfig, mysqlConn)
+	mysqlConn := database.NewMySQLConnection(mysqlConfig)
+	return dm.registry.Register(database.MySQL, mysqlConfig, mysqlConn)
 }
 
 // initRedisClients 初始化双 Redis 客户端（Cache + Store）
 func (dm *DatabaseManager) initRedisClients() error {
-	var err error
-
 	// 初始化 Cache Redis
-	dm.cacheRedisClient, err = dm.initSingleRedis("cache", dm.config.RedisOptions.Cache)
-	if err != nil {
+	if err := dm.initSingleRedis("cache", database.DatabaseType("redis-cache"), dm.config.RedisOptions.Cache); err != nil {
 		log.Warnf("Failed to initialize Cache Redis: %v", err)
 	}
 
 	// 初始化 Store Redis
-	dm.storeRedisClient, err = dm.initSingleRedis("store", dm.config.RedisOptions.Store)
-	if err != nil {
+	if err := dm.initSingleRedis("store", database.DatabaseType("redis-store"), dm.config.RedisOptions.Store); err != nil {
 		log.Warnf("Failed to initialize Store Redis: %v", err)
-	}
-
-	// 至少有一个 Redis 连接成功即可
-	if dm.cacheRedisClient == nil && dm.storeRedisClient == nil {
-		return fmt.Errorf("both cache and store Redis initialization failed")
 	}
 
 	return nil
 }
 
 // initSingleRedis 初始化单个 Redis 客户端
-func (dm *DatabaseManager) initSingleRedis(instanceName string, opts *options.SingleRedisOptions) (*redis.Client, error) {
+func (dm *DatabaseManager) initSingleRedis(instanceName string, dbType database.DatabaseType, opts *options.SingleRedisOptions) error {
 	if opts == nil {
-		return nil, fmt.Errorf("%s redis options is nil", instanceName)
+		return fmt.Errorf("%s redis options is nil", instanceName)
 	}
 
 	if opts.Host == "" {
 		log.Infof("Redis %s host not configured, skipping initialization", instanceName)
-		return nil, nil
+		return nil
 	}
 
-	// 构建地址
-	addr := fmt.Sprintf("%s:%d", opts.Host, opts.Port)
-
-	log.Infof("Initializing Redis %s connection to %s (username: %q, password: %s, db: %d, log_enabled: %v)",
-		instanceName, addr,
+	log.Infof("Initializing Redis %s connection to %s:%d (username: %q, password: %s, db: %d, log_enabled: %v)",
+		instanceName,
+		opts.Host,
+		opts.Port,
 		opts.Username,
 		func() string {
 			if opts.Password == "" {
@@ -256,63 +241,70 @@ func (dm *DatabaseManager) initSingleRedis(instanceName string, opts *options.Si
 		opts.EnableLogging,
 	)
 
-	// 创建 Redis 客户端配置
-	redisOpts := &redis.Options{
-		Addr:            addr,
-		Password:        opts.Password,
-		DB:              opts.Database,
-		MaxRetries:      3,
-		MinRetryBackoff: 8 * time.Millisecond,
-		MaxRetryBackoff: 512 * time.Millisecond,
+	// 创建 Redis 配置
+	redisConfig := &database.RedisConfig{
+		Host:          opts.Host,
+		Port:          opts.Port,
+		Addrs:         opts.Addrs,
+		Username:      opts.Username,
+		Password:      opts.Password,
+		Database:      opts.Database,
+		MaxIdle:       opts.MaxIdle,
+		MaxActive:     opts.MaxActive,
+		Timeout:       opts.Timeout,
+		EnableCluster: opts.EnableCluster,
+		UseSSL:        opts.UseSSL,
 	}
 
-	// 只有当 username 不为空时才设置
-	if opts.Username != "" {
-		redisOpts.Username = opts.Username
+	// 创建 Redis 连接
+	redisConn := database.NewRedisConnection(redisConfig)
+
+	// 注册到 Registry（这里会调用 Connect() 方法）
+	if err := dm.registry.Register(dbType, redisConfig, redisConn); err != nil {
+		return fmt.Errorf("failed to register Redis %s: %w", instanceName, err)
 	}
 
-	// 设置超时时间
-	if opts.Timeout > 0 {
-		timeout := time.Duration(opts.Timeout) * time.Second
-		redisOpts.DialTimeout = timeout
-		redisOpts.ReadTimeout = timeout
-		redisOpts.WriteTimeout = timeout
-	}
-
-	// 设置连接池参数
-	if opts.MaxIdle > 0 {
-		redisOpts.MinIdleConns = opts.MaxIdle
-	}
-	if opts.MaxActive > 0 {
-		redisOpts.PoolSize = opts.MaxActive
-	}
-
-	// 创建 Redis 客户端
-	client := redis.NewClient(redisOpts)
-
-	// 添加 Redis Hook 日志记录
+	// 获取连接的客户端并添加日志钩子
 	if opts.EnableLogging {
-		log.Infof("Enabling Redis %s command logging (slow threshold: 200ms)", instanceName)
-		redisHook := logger.NewRedisHook(true, 200*time.Millisecond)
-		client.AddHook(redisHook)
+		client, err := dm.getRedisClientFromRegistry(dbType)
+		if err != nil {
+			log.Warnf("Failed to get Redis %s client for logging hook: %v", instanceName, err)
+		} else {
+			log.Infof("Enabling Redis %s command logging (slow threshold: 200ms)", instanceName)
+			redisHook := logger.NewRedisHook(true, 200*time.Millisecond)
+			client.AddHook(redisHook)
+		}
 	}
 
-	// 测试连接(使用较长的超时时间)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	log.Infof("✅ Redis %s connected successfully: %s:%d (db: %d)", instanceName, opts.Host, opts.Port, opts.Database)
+	return nil
+}
 
-	log.Infof("Testing Redis %s connection with PING...", instanceName)
-	if err := client.Ping(ctx).Err(); err != nil {
-		log.Errorf("Redis %s PING failed: %v (addr: %s, username: %q, db: %d)",
-			instanceName, err, addr, opts.Username, opts.Database)
-		return nil, fmt.Errorf("failed to connect to Redis %s (%s): %w", instanceName, addr, err)
+// getRedisClientFromRegistry 从 Registry 获取 Redis 客户端
+func (dm *DatabaseManager) getRedisClientFromRegistry(dbType database.DatabaseType) (*redis.Client, error) {
+	client, err := dm.registry.GetClient(dbType)
+	if err != nil {
+		return nil, err
 	}
 
-	log.Infof("✅ Redis %s connected successfully: %s (db: %d)", instanceName, addr, opts.Database)
-	return client, nil
-} // GetMySQLDB 获取MySQL数据库连接
+	// component-base 返回的是 redis.UniversalClient，需要转换为 *redis.Client
+	switch c := client.(type) {
+	case *redis.Client:
+		return c, nil
+	case redis.UniversalClient:
+		// 尝试转换为 *redis.Client
+		if redisClient, ok := c.(*redis.Client); ok {
+			return redisClient, nil
+		}
+		return nil, fmt.Errorf("redis client is UniversalClient but not *redis.Client")
+	default:
+		return nil, fmt.Errorf("invalid redis client type: %T", client)
+	}
+}
+
+// GetMySQLDB 获取MySQL数据库连接
 func (dm *DatabaseManager) GetMySQLDB() (*gorm.DB, error) {
-	client, err := dm.registry.GetClient(connecter.MySQL)
+	client, err := dm.registry.GetClient(database.MySQL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get MySQL client: %w", err)
 	}
@@ -328,19 +320,13 @@ func (dm *DatabaseManager) GetMySQLDB() (*gorm.DB, error) {
 // GetCacheRedisClient 获取缓存 Redis 客户端
 // 用于缓存、会话、限流等临时数据
 func (dm *DatabaseManager) GetCacheRedisClient() (*redis.Client, error) {
-	if dm.cacheRedisClient == nil {
-		return nil, fmt.Errorf("cache redis client is not initialized")
-	}
-	return dm.cacheRedisClient, nil
+	return dm.getRedisClientFromRegistry(database.DatabaseType("redis-cache"))
 }
 
 // GetStoreRedisClient 获取存储 Redis 客户端
 // 用于持久化存储、队列、发布订阅等
 func (dm *DatabaseManager) GetStoreRedisClient() (*redis.Client, error) {
-	if dm.storeRedisClient == nil {
-		return nil, fmt.Errorf("store redis client is not initialized")
-	}
-	return dm.storeRedisClient, nil
+	return dm.getRedisClientFromRegistry(database.DatabaseType("redis-store"))
 }
 
 // Close 关闭所有数据库连接
