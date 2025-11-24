@@ -9,7 +9,7 @@
 快速指南
 
 - 请向 infra 团队申请或确认 MySQL 与 Redis 服务的连接信息（主机、端口、用户名、密码等）。
-- 将连接信息放入 `configs/env/config.env`（或由环境注入）以供本项目使用。不要在仓库中保存明文密码。
+- 将连接信息放入 `configs/env/config.dev.env` 或 `configs/env/config.prod.env`（或由环境注入）以供本项目使用。不要在仓库中保存明文密码。
 
 示例（在运行时注入，切勿提交到仓库）
 

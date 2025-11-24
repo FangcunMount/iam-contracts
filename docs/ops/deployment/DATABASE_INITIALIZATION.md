@@ -718,9 +718,9 @@ mysqlcheck -u root -p             # 检查
 
 数据库配置文件位置：
 
-- 应用配置: `configs/apiserver.yaml`
+- 应用配置: `configs/apiserver.prod.yaml`
 - MySQL 配置: `configs/mysql/my.cnf`
-- 环境变量: `configs/env/config.env`
+- 环境变量: `configs/env/config.prod.env`
 
 ### 下一步
 

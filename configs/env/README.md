@@ -6,7 +6,7 @@
 
 项目包含以下环境配置文件：
 
-- `config.env` - 开发环境配置
+- `config.dev.env` - 开发环境配置
 - `config.prod.env` - 生产环境配置
 
 ## 配置项说明
@@ -47,7 +47,7 @@
 1. 复制配置文件：
 
 ```bash
-cp config.env config.local.env
+cp config.dev.env config.local.env
 ```
 
 2.根据需要修改配置项
@@ -55,10 +55,7 @@ cp config.env config.local.env
 3.启动服务时使用配置文件：
 
 ```bash
-docker-compose --env-file config.env up -d
-```
-
-```bash
+docker-compose --env-file config.dev.env up -d
 docker-compose --env-file config.local.env up -d
 ```
 

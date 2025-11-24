@@ -44,8 +44,8 @@ COVERAGE_DIR := coverage
 
 # 服务配置
 APISERVER_BIN := $(BIN_DIR)/apiserver
-APISERVER_CONFIG := configs/apiserver.yaml
-APISERVER_DEV_CONFIG := configs/apiserver-dev.yaml
+APISERVER_CONFIG := configs/apiserver.prod.yaml
+APISERVER_DEV_CONFIG := configs/apiserver.dev.yaml
 APISERVER_PORT := 8080
 APISERVER_SSL_PORT := 8443
 
@@ -658,22 +658,22 @@ docker-push: ## 推送 Docker 镜像到仓库
 
 docker-compose-up: ## 使用 docker-compose 启动所有服务
 	@echo "$(COLOR_BLUE)🐳 启动 Docker Compose 服务...$(COLOR_RESET)"
-	@docker-compose -f build/docker/docker-compose.yml up -d
+	@docker-compose -f build/docker/docker-compose.prod.yml up -d
 	@echo "$(COLOR_GREEN)✅ 服务已启动$(COLOR_RESET)"
-	@docker-compose -f build/docker/docker-compose.yml ps
+	@docker-compose -f build/docker/docker-compose.prod.yml ps
 
 docker-compose-down: ## 停止 docker-compose 服务
 	@echo "$(COLOR_YELLOW)⏹️  停止 Docker Compose 服务...$(COLOR_RESET)"
-	@docker-compose -f build/docker/docker-compose.yml down
+	@docker-compose -f build/docker/docker-compose.prod.yml down
 	@echo "$(COLOR_GREEN)✅ 服务已停止$(COLOR_RESET)"
 
 docker-compose-restart: ## 重启 docker-compose 服务
 	@echo "$(COLOR_BLUE)🔄 重启 Docker Compose 服务...$(COLOR_RESET)"
-	@docker-compose -f build/docker/docker-compose.yml restart
+	@docker-compose -f build/docker/docker-compose.prod.yml restart
 	@echo "$(COLOR_GREEN)✅ 服务已重启$(COLOR_RESET)"
 
 docker-compose-logs: ## 查看 docker-compose 日志
-	@docker-compose -f build/docker/docker-compose.yml logs -f
+	@docker-compose -f build/docker/docker-compose.prod.yml logs -f
 
 # ============================================================================
 # Docker 开发环境管理
@@ -681,11 +681,11 @@ docker-compose-logs: ## 查看 docker-compose 日志
 
 docker-dev-up: cert-gen ## 启动 Docker 开发环境
 	@echo "$(COLOR_BLUE)🐳 启动 Docker 开发环境...$(COLOR_RESET)"
-	@docker-compose -f build/docker/docker-compose-dev.yml up -d
+	@docker-compose -f build/docker/docker-compose.dev.yml up -d
 	@echo "$(COLOR_GREEN)✅ 开发环境已启动$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_CYAN)📊 服务状态:$(COLOR_RESET)"
-	@docker-compose -f build/docker/docker-compose-dev.yml ps
+	@docker-compose -f build/docker/docker-compose.dev.yml ps
 	@echo ""
 	@echo "$(COLOR_YELLOW)💡 提示:$(COLOR_RESET)"
 	@echo "  查看日志: make docker-dev-logs"
@@ -694,20 +694,20 @@ docker-dev-up: cert-gen ## 启动 Docker 开发环境
 
 docker-dev-down: ## 停止 Docker 开发环境
 	@echo "$(COLOR_YELLOW)⏹️  停止 Docker 开发环境...$(COLOR_RESET)"
-	@docker-compose -f build/docker/docker-compose-dev.yml down
+	@docker-compose -f build/docker/docker-compose.dev.yml down
 	@echo "$(COLOR_GREEN)✅ 开发环境已停止$(COLOR_RESET)"
 
 docker-dev-restart: ## 重启 Docker 开发环境
 	@echo "$(COLOR_BLUE)🔄 重启 Docker 开发环境...$(COLOR_RESET)"
-	@docker-compose -f build/docker/docker-compose-dev.yml restart
+	@docker-compose -f build/docker/docker-compose.dev.yml restart
 	@echo "$(COLOR_GREEN)✅ 开发环境已重启$(COLOR_RESET)"
 
 docker-dev-logs: ## 查看 Docker 开发环境日志
-	@docker-compose -f build/docker/docker-compose-dev.yml logs -f
+	@docker-compose -f build/docker/docker-compose.dev.yml logs -f
 
 docker-dev-clean: ## 清理 Docker 开发环境（包括数据卷）
 	@echo "$(COLOR_RED)⚠️  清理 Docker 开发环境...$(COLOR_RESET)"
-	@docker-compose -f build/docker/docker-compose-dev.yml down -v
+	@docker-compose -f build/docker/docker-compose.dev.yml down -v
 	@echo "$(COLOR_GREEN)✅ 开发环境已清理$(COLOR_RESET)"
 
 # ============================================================================

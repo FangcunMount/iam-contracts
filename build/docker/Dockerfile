@@ -87,4 +87,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 
 # 启动命令
 ENTRYPOINT ["/app/apiserver"]
-CMD ["--config=/app/configs/apiserver.yaml"]
+CMD ["--config=/app/configs/apiserver.prod.yaml"]

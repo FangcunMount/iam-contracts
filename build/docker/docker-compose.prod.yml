@@ -14,9 +14,10 @@ services:
     image: iam-contracts:latest
     user: "${WWW_UID:-1000}:${WWW_GID:-1000}"
     env_file:
-      - ../../configs/env/config.env
+      - ../../configs/env/config.prod.env
     ports:
       - "8080:8080"
+      - "9090:9090"
     volumes:
       # 挂载配置文件（可以覆盖镜像中的配置）
       - ../../configs:/app/configs:ro

@@ -7,8 +7,8 @@ app:
 server:
   name: "iam"
   address: "0.0.0.0"
-  port: 8080  # 标准端口
-  port-ssl: 8443  # HTTPS 端口
+  port: 18081  # 标准端口
+  port-ssl: 18441  # HTTPS 端口
   read-timeout: 60    # 秒
   write-timeout: 60   # 秒
   run-mode: "debug"   # Gin 开发模式: debug, release, test
@@ -126,11 +126,16 @@ tls:
 
 insecure:
   bind-address: 0.0.0.0
-  bind-port: 8080
+  bind-port: 18081
 
 secure:
   bind-address: 0.0.0.0
-  bind-port: 8443
+  bind-port: 18441
   tls:
     cert-file: configs/cert/web-apiserver.crt
     private-key-file: configs/cert/web-apiserver.key
+
+grpc:
+  bind-address: 0.0.0.0
+  bind-port: 19091
+  healthz-port: 19092

@@ -5,7 +5,7 @@
 ## 主要要点
 
 - 默认开发位置（示例）：`configs/keys`
-- 运行时由配置项 `jwks.keys_dir` 指定（`apiserver.yaml`/`apiserver-dev.yaml`）。
+- 运行时由配置项 `jwks.keys_dir` 指定（`apiserver.prod.yaml`/`apiserver.dev.yaml`）。
 - 服务启动时可通过配置 `jwks.auto_init: true` 自动创建第一个活跃密钥（仅在开发或 autoseed 场景推荐）。
 - 私钥文件格式：PKCS#8 PEM（未加密或加密均可，但代码期望可直接读取并解析为 RSA 私钥）。
 - 支持的文件名：`{kid}.pem` 或 `key-{kid}.pem`（解析器会尝试这两种命名以兼容历史）。
@@ -13,7 +13,7 @@
 
 ## 配置示例
 
-在 `configs/apiserver-dev.yaml` 中确保包含：
+在 `configs/apiserver.dev.yaml` 中确保包含：
 
 ```yaml
 jwks:
@@ -108,5 +108,5 @@ chmod 600 key-<kid>.pem
 openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in rsa_priv.pem -out key-<kid>.pem
 
 # 启动服务（示例）
-go run ./cmd/apiserver -c ./configs/apiserver-dev.yaml
+go run ./cmd/apiserver -c ./configs/apiserver.dev.yaml
 ```

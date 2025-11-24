@@ -245,7 +245,7 @@ Makefile 使用以下变量，可以通过环境变量覆盖：
 
 ```bash
 # 使用不同的配置文件
-make run APISERVER_CONFIG=configs/apiserver.yaml
+make run APISERVER_CONFIG=configs/apiserver.prod.yaml
 
 # 使用不同的端口
 make run APISERVER_PORT=9090

@@ -146,7 +146,7 @@ go build -o tmp/apiserver ./cmd/apiserver
 #### 步骤 6：启动应用（自动迁移）
 
 ```bash
-./tmp/apiserver --config configs/apiserver-dev.yaml
+./tmp/apiserver --config configs/apiserver.dev.yaml
 ```
 
 **日志输出**：
@@ -239,7 +239,7 @@ EOF
 
 ```bash
 go build -o tmp/apiserver ./cmd/apiserver
-./tmp/apiserver --config configs/apiserver-dev.yaml
+./tmp/apiserver --config configs/apiserver.dev.yaml
 ```
 
 **结果**：
@@ -381,7 +381,7 @@ vim internal/pkg/migration/migrations/000002_add_feature.down.sql
 go build -o tmp/apiserver ./cmd/apiserver
 
 # 5. 启动应用（自动执行迁移）
-./tmp/apiserver --config configs/apiserver-dev.yaml
+./tmp/apiserver --config configs/apiserver.dev.yaml
 
 # 6. 验证迁移结果
 mysql> SELECT * FROM schema_migrations;

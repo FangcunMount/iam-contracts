@@ -551,7 +551,8 @@ iam-contracts/
 ├── cmd/                        # 可执行程序入口
 │   └── apiserver/              # API Server 主程序
 ├── configs/                    # 配置文件
-│   ├── apiserver.yaml          # 主配置文件
+│   ├── apiserver.dev.yaml      # 开发环境主配置
+│   ├── apiserver.prod.yaml     # 生产环境主配置
 │   ├── casbin_model.conf       # Casbin 权限模型
 │   └── env/                    # 环境变量配置
 ├── internal/                   # 内部应用代码（不对外暴露）

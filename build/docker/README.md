@@ -14,7 +14,7 @@
   - 时区设置（Asia/Shanghai）
   - 多架构支持（linux/amd64）
 
-### docker-compose.yml
+### docker-compose.prod.yml
 Docker Compose 编排配置，包含：
 - **iam-apiserver**：IAM API 服务器
 - **mysql**：MySQL 8.0 数据库（可选，如果 infra 项目未提供）
@@ -85,19 +85,19 @@ docker rm iam-apiserver
 
 ```bash
 # 启动所有服务
-docker-compose -f build/docker/docker-compose.yml up -d
+docker-compose -f build/docker/docker-compose.prod.yml up -d
 
 # 查看状态
-docker-compose -f build/docker/docker-compose.yml ps
+docker-compose -f build/docker/docker-compose.prod.yml ps
 
 # 查看日志
-docker-compose -f build/docker/docker-compose.yml logs -f iam-apiserver
+docker-compose -f build/docker/docker-compose.prod.yml logs -f iam-apiserver
 
 # 停止服务
-docker-compose -f build/docker/docker-compose.yml down
+docker-compose -f build/docker/docker-compose.prod.yml down
 
 # 重启服务
-docker-compose -f build/docker/docker-compose.yml restart iam-apiserver
+docker-compose -f build/docker/docker-compose.prod.yml restart iam-apiserver
 ```
 
 ## 环境变量配置
@@ -126,7 +126,7 @@ REDIS_PORT=6379
 EOF
 
 # 启动（自动读取 .env 文件）
-docker-compose -f build/docker/docker-compose.yml up -d
+docker-compose -f build/docker/docker-compose.prod.yml up -d
 ```
 
 ## 健康检查
@@ -209,7 +209,7 @@ docker run -d \
   iam-contracts:latest
 ```
 
-Docker Compose 会自动创建网络（已在 docker-compose.yml 中配置）。
+Docker Compose 会自动创建网络（已在 docker-compose.prod.yml 中配置）。
 
 ## 故障排查
 
@@ -245,10 +245,10 @@ docker run -d -p 8081:8080 iam-contracts:latest
 docker exec iam-apiserver ls -la /app/configs
 
 # 查看配置文件内容
-docker exec iam-apiserver cat /app/configs/apiserver.yaml
+docker exec iam-apiserver cat /app/configs/apiserver.prod.yaml
 
 # 手动测试启动
-docker exec -it iam-apiserver /app/apiserver --config=/app/configs/apiserver.yaml
+docker exec -it iam-apiserver /app/apiserver --config=/app/configs/apiserver.prod.yaml
 ```
 
 ## 生产环境注意事项

@@ -119,6 +119,11 @@ tls:
   key: /etc/iam-contracts/ssl/yangshujie.com.key
   strict: false
 
+grpc:
+  bind-address: 0.0.0.0
+  bind-port: 9090
+  healthz-port: 9091
+
 # IDP 模块配置
 idp:
   encryption-key: "CHANGE_ME_WITH_32_BYTE_BASE64_SECRET"  # 占位符，请通过安全渠道注入32字节密钥

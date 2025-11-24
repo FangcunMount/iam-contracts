@@ -25,12 +25,12 @@ fi
 
 # 2. 检查开发配置文件
 echo -e "\n${YELLOW}[2/4]${NC} 检查开发配置文件..."
-if [ -f "configs/apiserver-dev.yaml" ]; then
+if [ -f "configs/apiserver.dev.yaml" ]; then
     echo -e "${GREEN}✓ 开发配置文件存在${NC}"
     
     # 验证证书路径
-    CERT_PATH=$(grep "cert:" configs/apiserver-dev.yaml | head -1 | awk '{print $2}')
-    KEY_PATH=$(grep "key:" configs/apiserver-dev.yaml | head -1 | awk '{print $2}')
+    CERT_PATH=$(grep "cert:" configs/apiserver.dev.yaml | head -1 | awk '{print $2}')
+    KEY_PATH=$(grep "key:" configs/apiserver.dev.yaml | head -1 | awk '{print $2}')
     
     echo -e "${BLUE}   证书路径: $CERT_PATH${NC}"
     echo -e "${BLUE}   私钥路径: $KEY_PATH${NC}"
@@ -55,7 +55,7 @@ if [ -f ".air-apiserver.toml" ]; then
     AIR_CONFIG=$(grep "args_bin\|full_bin" .air-apiserver.toml | grep "apiserver" | head -1)
     echo -e "${BLUE}   Air 配置: $AIR_CONFIG${NC}"
     
-    if [[ "$AIR_CONFIG" == *"apiserver-dev.yaml"* ]]; then
+    if [[ "$AIR_CONFIG" == *"apiserver.dev.yaml"* ]]; then
         echo -e "${GREEN}   ✓ 使用开发环境配置${NC}"
     else
         echo -e "${RED}   ✗ 未使用开发环境配置${NC}"
@@ -72,7 +72,7 @@ if go build -o ./tmp/apiserver ./cmd/apiserver/apiserver.go 2>&1; then
     
     # 测试配置文件读取
     echo -e "\n${BLUE}测试配置文件读取...${NC}"
-    ./tmp/apiserver -c configs/apiserver-dev.yaml 2>&1 | head -10 &
+    ./tmp/apiserver -c configs/apiserver.dev.yaml 2>&1 | head -10 &
     PID=$!
     sleep 2
     kill $PID 2>/dev/null || true

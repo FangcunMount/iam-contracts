@@ -14,10 +14,10 @@ tmp_dir = "tmp"
   
   # 传递给二进制文件的参数
   # 使用开发环境配置文件
-  args_bin = ["-c", "configs/apiserver-dev.yaml"]
+  args_bin = ["-c", "configs/apiserver.dev.yaml"]
   
   # 自定义二进制文件（完整命令）
-  full_bin = "./tmp/apiserver -c configs/apiserver-dev.yaml"
+  full_bin = "./tmp/apiserver -c configs/apiserver.dev.yaml"
   
   # 监视以下文件扩展名的文件
   include_ext = ["go", "yaml", "yml", "toml", "json"]

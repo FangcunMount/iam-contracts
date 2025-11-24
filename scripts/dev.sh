@@ -12,8 +12,8 @@ if ! command -v air &> /dev/null; then
 fi
 
 # 检查必要的配置文件
-if [ ! -f "configs/apiserver.yaml" ]; then
-    echo "❌ 配置文件 configs/apiserver.yaml 不存在"
+if [ ! -f "configs/apiserver.dev.yaml" ]; then
+    echo "❌ 配置文件 configs/apiserver.dev.yaml 不存在"
     exit 1
 fi
 

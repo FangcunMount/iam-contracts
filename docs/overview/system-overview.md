@@ -329,7 +329,8 @@ iam-contracts/
 │   ├── util/                     # 工具函数
 │   └── version/                  # 版本信息
 ├── configs/                      # 配置文件
-│   ├── apiserver.yaml            # API Server 配置
+│   ├── apiserver.dev.yaml        # API Server 开发环境配置
+│   ├── apiserver.prod.yaml       # API Server 生产环境配置
 │   ├── cert/                     # TLS 证书
 │   └── env/                      # 环境变量
 ├── build/                        # 构建相关
@@ -681,7 +682,7 @@ log.Errorw("Failed to create user",
 ### 10.3 配置管理
 
 ```yaml
-# configs/apiserver.yaml
+# configs/apiserver.prod.yaml
 server:
   mode: debug
   host: 0.0.0.0

@@ -185,7 +185,7 @@ fi
 
 print_header "步骤 6/7: 检查配置文件"
 
-CONFIG_FILE="configs/apiserver-dev.yaml"
+CONFIG_FILE="configs/apiserver.dev.yaml"
 
 if [ ! -f "$CONFIG_FILE" ]; then
     print_error "配置文件不存在: $CONFIG_FILE"
@@ -194,8 +194,8 @@ fi
 
 print_info "配置文件信息:"
 echo "  - 配置文件: $CONFIG_FILE"
-echo "  - HTTP 端口: 8080"
-echo "  - HTTPS 端口: 8443"
+echo "  - HTTP 端口: 18081"
+echo "  - HTTPS 端口: 18441"
 echo "  - MySQL: 127.0.0.1:3306"
 echo "  - Redis: 127.0.0.1:6379"
 echo "  - 数据库: iam_contracts"
@@ -236,10 +236,10 @@ echo "  4. 加载种子数据（可选）:"
 echo -e "     ${GREEN}make db-seed${NC}"
 echo ""
 echo "  5. 健康检查:"
-echo -e "     ${GREEN}curl http://localhost:8080/healthz${NC}"
+echo -e "     ${GREEN}curl http://localhost:18081/healthz${NC}"
 echo ""
 echo "  6. API 文档:"
-echo -e "     ${GREEN}http://localhost:8080/swagger/index.html${NC}"
+echo -e "     ${GREEN}http://localhost:18081/swagger/index.html${NC}"
 echo ""
 print_info "提示: 第一次启动时，应用会自动创建数据库表结构"
 print_info "如果配置了 migration.autoseed: true，也会自动加载种子数据"

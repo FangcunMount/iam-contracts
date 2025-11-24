@@ -153,7 +153,7 @@ docker pull <你的用户名>/iam-contracts:a1b2c3d456e789f0123456789abcdef01234
 如果 GHCR 不可用，可以切换到 Docker Hub：
 
 ```bash
-# 修改部署脚本或 docker-compose.yml
+# 修改部署脚本或 docker-compose.prod.yml
 # 从：ghcr.io/fangcunmount/iam-contracts:latest
 # 改为：<你的用户名>/iam-contracts:latest
 
