@@ -5,8 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	openapiFS "github.com/FangcunMount/iam-contracts/api"
@@ -16,6 +14,7 @@ import (
 	idphttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/idp/restful"
 	userhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful"
 	authnMiddleware "github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
+	swaggerui "github.com/FangcunMount/iam-contracts/web/swagger-ui"
 )
 
 // Router 集中的路由管理器
@@ -127,11 +126,7 @@ func (r *Router) registerBaseRoutes(engine *gin.Engine) {
 	// Swagger UI 路由（默认在开发环境可用）
 	// 生产环境建议通过配置控制是否启用
 	engine.StaticFS("/openapi", http.FS(openapiFS.RestFS))
-	engine.GET("/swagger/*any", ginSwagger.WrapHandler(
-		swaggerFiles.Handler,
-		// 默认加载 authn 规范，可在 UI “Explore” 输入其它 YAML
-		ginSwagger.URL("/openapi/authn.v1.yaml"),
-	))
+	engine.StaticFS("/swagger", http.FS(swaggerui.DistFS)) // 新版 Swagger UI
 
 	publicAPI := engine.Group("/api/v1/public")
 	{
