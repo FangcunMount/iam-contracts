@@ -41,6 +41,7 @@ TMP_DIR := tmp
 PID_DIR := $(TMP_DIR)/pids
 LOG_DIR := logs
 COVERAGE_DIR := coverage
+SPECTRAL_IMAGE ?= stoplight/spectral:latest
 
 # 服务配置
 APISERVER_BIN := $(BIN_DIR)/apiserver
@@ -73,6 +74,7 @@ COLOR_RED := \033[31m
 .PHONY: proto proto-gen
 .PHONY: install install-tools create-dirs
 .PHONY: up down re st log
+.PHONY: api-validate
 .PHONY: db-seed db-connect db-status db-backup
 .PHONY: docker-mysql-up docker-mysql-down docker-mysql-clean docker-mysql-logs
 .PHONY: cert-gen cert-test cert-verify test-dev-config
@@ -101,7 +103,7 @@ help: ## 显示帮助信息
 	@grep -E '^(run|start|stop|restart|status|logs|health).*:.*?## .*$$' $(MAKEFILE_LIST) | grep -v "dev" | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(COLOR_BOLD)🛠️  开发工具:$(COLOR_RESET)"
-	@grep -E '^(dev|test|lint|fmt|cert).*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
+	@grep -E '^(dev|test|lint|fmt|cert|api-validate).*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(COLOR_BOLD)🗄️  数据库管理:$(COLOR_RESET)"
 	@grep -E '^(db-|docker-mysql-).*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
@@ -115,6 +117,9 @@ help: ## 显示帮助信息
 	@echo "$(COLOR_BOLD)📚 其他命令:$(COLOR_RESET)"
 	@grep -E '^(deps|proto|install|clean|version|debug|up|down|st).*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_CYAN)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
 	@echo ""
+
+api-validate: ## Lint OpenAPI (spectral) + compare swagger vs api/rest
+	./scripts/validate-openapi.sh
 
 version: ## 显示版本信息
 	@echo "$(COLOR_BOLD)版本信息:$(COLOR_RESET)"

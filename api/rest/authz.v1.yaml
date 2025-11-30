@@ -2,34 +2,16 @@ openapi: 3.1.0
 info:
   title: IAM Authorization API
   version: 1.0.0
-  description: |
-    IAM 授权模块 REST API 规范
-    
-    ## 功能概述
-    
-    - **角色管理**: 创建、更新、删除、查询角色
-    - **角色分配**: 将角色授予用户或组，撤销角色
-    - **策略管理**: 添加/移除 RBAC 策略规则
-    - **资源管理**: 管理受保护的资源和动作
-    
-    ## 授权模型
-    
-    采用 **RBAC (Role-Based Access Control)** 模型:
-    
-    ```
-    Subject (用户/组) --[Assignment]--> Role --[Policy]--> Resource + Action
-    ```
-    
-    ## 基础路径
-    
-    所有授权 API 的基础路径为 `/api/v1/authz`
-
+  description: 授权、角色、资源与策略管理 REST API
+  contact:
+    name: API Support
+    email: support@yangshujie.com
+    url: https://github.com/FangcunMount/iam-contracts
 servers:
   - url: https://iam.yangshujie.com/api/v1/authz
     description: 生产环境
   - url: http://localhost:8080/api/v1/authz
     description: 本地开发
-
 tags:
   - name: Health
     description: 健康检查
@@ -38,33 +20,33 @@ tags:
   - name: Authorization-Assignments
     description: 角色分配管理
   - name: Authorization-Policies
-    description: 策略规则管理
+    description: 策略管理
   - name: Authorization-Resources
     description: 资源管理
 
 paths:
-  # ============ 健康检查 ============
   /health:
     get:
       tags: [Health]
       summary: 授权模块健康检查
-      operationId: GetAuthzHealth
+      description: 授权服务健康检查。
+      operationId: AuthzHealth
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status: { type: string, example: ok }
-                  module: { type: string, example: authz }
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { status: { type: string }, module: { type: string }}}}}}
 
-  # ============ 角色管理 ============
   /roles:
+    get:
+      tags: [Authorization-Roles]
+      summary: 列出角色
+      description: 分页列出角色。
+      operationId: ListRoles
+      parameters: [ { $ref: '#/components/parameters/Offset' }, { $ref: '#/components/parameters/Limit' } ]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/RolePage' }}}}
     post:
       tags: [Authorization-Roles]
       summary: 创建角色
+      description: 创建一个新角色。
       operationId: CreateRole
       requestBody:
         required: true
@@ -72,231 +54,120 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/CreateRoleRequest' }
       responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/RoleResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '409': { $ref: '#/components/responses/Conflict' }
-
-    get:
-      tags: [Authorization-Roles]
-      summary: 列出角色
-      operationId: ListRoles
-      parameters:
-        - { $ref: '#/components/parameters/Offset' }
-        - { $ref: '#/components/parameters/Limit' }
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/RoleResponse' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Role' }}}}
 
   /roles/{id}:
+    parameters: [ { $ref: '#/components/parameters/RoleId' } ]
     get:
       tags: [Authorization-Roles]
       summary: 获取角色详情
+      description: 按 ID 查询角色详情。
       operationId: GetRole
-      parameters:
-        - { $ref: '#/components/parameters/RoleID' }
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/RoleResponse' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Role' }}}}
         '404': { $ref: '#/components/responses/NotFound' }
-
     put:
       tags: [Authorization-Roles]
       summary: 更新角色
+      description: 更新角色的显示名或描述。
       operationId: UpdateRole
-      parameters:
-        - { $ref: '#/components/parameters/RoleID' }
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/UpdateRoleRequest' }
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/RoleResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
-
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Role' }}}}
     delete:
       tags: [Authorization-Roles]
       summary: 删除角色
+      description: 删除指定角色。
       operationId: DeleteRole
-      parameters:
-        - { $ref: '#/components/parameters/RoleID' }
       responses:
-        '204':
-          description: No Content
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409':
-          description: Conflict - 角色仍有分配记录
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
 
   /roles/{id}/assignments:
+    parameters: [ { $ref: '#/components/parameters/RoleId' } ]
     get:
       tags: [Authorization-Roles]
       summary: 列出角色的分配记录
+      description: 按角色分页查询分配记录。
       operationId: ListAssignmentsByRole
-      parameters:
-        - { $ref: '#/components/parameters/RoleID' }
+      parameters: [ { $ref: '#/components/parameters/Offset' }, { $ref: '#/components/parameters/Limit' } ]
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/AssignmentResponse' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AssignmentPage' }}}}
 
   /roles/{id}/policies:
+    parameters: [ { $ref: '#/components/parameters/RoleId' } ]
     get:
       tags: [Authorization-Roles]
-      summary: 获取角色的策略列表
+      summary: 获取角色策略
+      description: 按角色获取策略列表。
       operationId: GetPoliciesByRole
-      parameters:
-        - { $ref: '#/components/parameters/RoleID' }
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/PolicyRuleResponse' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PolicyRuleList' }}}}
 
-  # ============ 角色分配 ============
   /assignments/grant:
     post:
       tags: [Authorization-Assignments]
       summary: 授予角色
-      description: 将角色授予用户或组
-      operationId: GrantRole
+      description: 将角色授予用户或组。
+      operationId: GrantAssignment
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/GrantRequest' }
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/AssignmentResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404':
-          description: Not Found - 角色不存在
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-        '409':
-          description: Conflict - 已存在相同的分配
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Assignment' }}}}
 
   /assignments/revoke:
     post:
       tags: [Authorization-Assignments]
       summary: 撤销角色
-      description: 撤销用户或组的角色
-      operationId: RevokeRole
+      description: 撤销主体的角色分配。
+      operationId: RevokeAssignment
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/RevokeRequest' }
       responses:
-        '204':
-          description: No Content
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404':
-          description: Not Found - 分配记录不存在
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
 
   /assignments/{id}:
+    parameters: [ { $ref: '#/components/parameters/AssignmentId' } ]
     delete:
       tags: [Authorization-Assignments]
-      summary: 根据 ID 撤销分配
-      operationId: RevokeRoleByID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer, format: int64 }
-          description: 分配记录 ID
+      summary: 根据分配ID撤销角色
+      description: 通过分配 ID 撤销角色。
+      operationId: RevokeAssignmentById
       responses:
-        '204':
-          description: No Content
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
 
   /assignments/subject:
     get:
       tags: [Authorization-Assignments]
-      summary: 列出主体的分配
-      description: 查询用户或组的所有角色分配
+      summary: 列出主体的角色分配
+      description: 按主体类型与 ID 查询角色分配。
       operationId: ListAssignmentsBySubject
       parameters:
-        - name: subject_type
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [user, group]
-          description: 主体类型
-        - name: subject_id
-          in: query
-          required: true
+        - in: query
+          name: subject_type
           schema: { type: string }
-          description: 主体 ID
+        - in: query
+          name: subject_id
+          schema: { type: string }
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/AssignmentResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AssignmentPage' }}}}
 
-  # ============ 策略管理 ============
   /policies:
     post:
       tags: [Authorization-Policies]
       summary: 添加策略规则
-      description: |
-        为角色添加策略规则 (Role -> Resource + Action)
-        
-        策略规则格式: `role:{roleId}, {domain}, resource:{resourceId}, {action}`
+      description: 为角色添加资源动作策略。
       operationId: AddPolicyRule
       requestBody:
         required: true
@@ -304,28 +175,11 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/AddPolicyRequest' }
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/PolicyRuleResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404':
-          description: Not Found - 角色或资源不存在
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-        '409':
-          description: Conflict - 策略规则已存在
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
     delete:
       tags: [Authorization-Policies]
       summary: 移除策略规则
-      description: 从角色中移除策略规则
+      description: 移除角色的资源动作策略。
       operationId: RemovePolicyRule
       requestBody:
         required: true
@@ -333,35 +187,41 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/RemovePolicyRequest' }
       responses:
-        '204':
-          description: No Content
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404':
-          description: Not Found - 策略规则不存在
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
 
   /policies/version:
     get:
       tags: [Authorization-Policies]
       summary: 获取当前策略版本
-      description: 获取租户的当前策略版本信息（用于缓存失效）
-      operationId: GetCurrentVersion
+      description: 查询当前策略版本号。
+      operationId: GetPolicyVersion
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/PolicyVersionResponse' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { version: { type: string }}}}}}
 
-  # ============ 资源管理 ============
   /resources:
+    get:
+      tags: [Authorization-Resources]
+      summary: 列出资源
+      description: 按条件分页列出资源。
+      operationId: ListResources
+      parameters:
+        - in: query
+          name: app_name
+          schema: { type: string }
+        - in: query
+          name: domain
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { type: string }
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ResourcePage' }}}}
     post:
       tags: [Authorization-Resources]
       summary: 创建资源
+      description: 创建受控资源及其动作列表。
       operationId: CreateResource
       requestBody:
         required: true
@@ -369,523 +229,250 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/CreateResourceRequest' }
       responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ResourceResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '409':
-          description: Conflict - 资源键已存在
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-
-    get:
-      tags: [Authorization-Resources]
-      summary: 列出资源
-      operationId: ListResources
-      parameters:
-        - { $ref: '#/components/parameters/Offset' }
-        - { $ref: '#/components/parameters/Limit' }
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/ResourceResponse' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Resource' }}}}
 
   /resources/{id}:
+    parameters: [ { $ref: '#/components/parameters/ResourceId' } ]
     get:
       tags: [Authorization-Resources]
       summary: 获取资源详情
+      description: 按资源 ID 查询详情。
       operationId: GetResource
-      parameters:
-        - { $ref: '#/components/parameters/ResourceID' }
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ResourceResponse' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Resource' }}}}
         '404': { $ref: '#/components/responses/NotFound' }
-
     put:
       tags: [Authorization-Resources]
       summary: 更新资源
+      description: 更新资源的基本信息与动作。
       operationId: UpdateResource
-      parameters:
-        - { $ref: '#/components/parameters/ResourceID' }
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/UpdateResourceRequest' }
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ResourceResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
-
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Resource' }}}}
     delete:
       tags: [Authorization-Resources]
       summary: 删除资源
+      description: 删除指定资源。
       operationId: DeleteResource
-      parameters:
-        - { $ref: '#/components/parameters/ResourceID' }
       responses:
-        '204':
-          description: No Content
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409':
-          description: Conflict - 资源仍在策略中使用
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
 
   /resources/key/{key}:
+    parameters: [ { in: path, name: key, required: true, schema: { type: string } } ]
     get:
       tags: [Authorization-Resources]
       summary: 根据键获取资源
+      description: 通过资源键查询资源详情。
       operationId: GetResourceByKey
-      parameters:
-        - name: key
-          in: path
-          required: true
-          schema: { type: string }
-          description: 资源键（唯一标识）
-          example: user.profile.read
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ResourceResponse' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Resource' }}}}
         '404': { $ref: '#/components/responses/NotFound' }
 
   /resources/validate-action:
     post:
       tags: [Authorization-Resources]
       summary: 验证资源动作
-      description: 验证给定的动作是否在资源的允许动作列表中
-      operationId: ValidateAction
+      description: 校验资源动作是否合法。
+      operationId: ValidateResourceAction
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/ValidateActionRequest' }
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ValidateActionResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404':
-          description: Not Found - 资源不存在
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ValidateActionResponse' }}}}
 
-# ============ Components ============
 components:
   parameters:
-    RoleID:
-      name: id
-      in: path
-      required: true
-      schema: { type: integer, format: int64 }
-      description: 角色 ID
-
-    ResourceID:
-      name: id
-      in: path
-      required: true
-      schema: { type: integer, format: int64 }
-      description: 资源 ID
-
-    Offset:
-      name: offset
-      in: query
-      schema: { type: integer, default: 0, minimum: 0 }
-      description: 偏移量
-
-    Limit:
-      name: limit
-      in: query
-      schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
-      description: 每页数量
-
+    Offset: { in: query, name: offset, schema: { type: integer, minimum: 0, default: 0 } }
+    Limit: { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+    RoleId: { in: path, name: id, required: true, schema: { type: integer, format: int64 } }
+    AssignmentId: { in: path, name: id, required: true, schema: { type: integer, format: int64 } }
+    ResourceId: { in: path, name: id, required: true, schema: { type: integer, format: int64 } }
+  responses:
+    NotFound: { description: 不存在, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
   schemas:
-    # ============ 角色 Schemas ============
+    Message:
+      type: object
+      properties:
+        message: { type: string }
+
+    Role:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        display_name: { type: string }
+        description: { type: string }
+        tenant_id: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, name, display_name]
+
+    RolePage:
+      type: object
+      properties:
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Role' }
+
     CreateRoleRequest:
       type: object
-      required: [name, display_name]
       properties:
-        name:
-          type: string
-          description: 角色名称（唯一标识，建议使用下划线命名）
-          example: super_admin
-        display_name:
-          type: string
-          description: 显示名称
-          example: 超级管理员
-        description:
-          type: string
-          description: 角色描述
-          example: 拥有系统所有权限的超级管理员
+        name: { type: string }
+        display_name: { type: string }
+        description: { type: string }
+      required: [name, display_name]
 
     UpdateRoleRequest:
       type: object
       properties:
-        display_name:
-          type: string
-          description: 显示名称
-        description:
-          type: string
-          description: 角色描述
+        display_name: { type: string }
+        description: { type: string }
 
-    RoleResponse:
+    Assignment:
       type: object
       properties:
-        id:
-          type: integer
-          format: int64
-          example: 1
-        name:
-          type: string
-          example: super_admin
-        display_name:
-          type: string
-          example: 超级管理员
-        tenant_id:
-          type: string
-          example: default
-        description:
-          type: string
-          example: 拥有系统所有权限的超级管理员
+        id: { type: integer }
+        subject_type: { type: string, enum: [user, group] }
+        subject_id: { type: string }
+        role_id: { type: integer }
+        granted_by: { type: string }
+        tenant_id: { type: string }
 
-    # ============ 角色分配 Schemas ============
+    AssignmentPage:
+      type: object
+      properties:
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Assignment' }
+
     GrantRequest:
       type: object
-      required: [subject_type, subject_id, role_id, granted_by]
       properties:
         subject_type:
           type: string
           enum: [user, group]
-          description: 主体类型
-          example: user
-        subject_id:
-          type: string
-          description: 主体 ID（用户 ID 或组 ID）
-          example: "10001"
-        role_id:
-          type: integer
-          format: int64
-          description: 角色 ID
-          example: 1
-        granted_by:
-          type: string
-          description: 授权人 ID
-          example: "10000"
+        subject_id: { type: string }
+        role_id: { type: integer }
+        granted_by: { type: string }
+      required: [subject_type, subject_id, role_id, granted_by]
 
     RevokeRequest:
       type: object
-      required: [subject_type, subject_id, role_id]
       properties:
-        subject_type:
-          type: string
-          enum: [user, group]
-          description: 主体类型
-          example: user
-        subject_id:
-          type: string
-          description: 主体 ID
-          example: "10001"
-        role_id:
-          type: integer
-          format: int64
-          description: 角色 ID
-          example: 1
+        subject_type: { type: string, enum: [user, group] }
+        subject_id: { type: string }
+        role_id: { type: integer }
+      required: [subject_type, subject_id, role_id]
 
-    AssignmentResponse:
+    PolicyRule:
       type: object
       properties:
-        id:
-          type: integer
-          format: int64
-          example: 1
-        subject_type:
-          type: string
-          enum: [user, group]
-          example: user
-        subject_id:
-          type: string
-          example: "10001"
-        role_id:
-          type: integer
-          format: int64
-          example: 1
-        tenant_id:
-          type: string
-          example: default
-        granted_by:
-          type: string
-          example: "10000"
+        role_id: { type: integer }
+        resource_id: { type: integer }
+        action: { type: string }
 
-    # ============ 策略 Schemas ============
+    PolicyRuleList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/PolicyRule' }
+
     AddPolicyRequest:
       type: object
-      required: [role_id, resource_id, action, changed_by]
       properties:
-        role_id:
-          type: integer
-          format: int64
-          description: 角色 ID
-          example: 1
-        resource_id:
-          type: integer
-          format: int64
-          description: 资源 ID
-          example: 1
-        action:
-          type: string
-          description: 动作
-          example: read
-        changed_by:
-          type: string
-          description: 操作人 ID
-          example: "10000"
-        reason:
-          type: string
-          description: 变更原因
-          example: 授予用户管理权限
+        role_id: { type: integer }
+        resource_id: { type: integer }
+        action: { type: string }
+        changed_by: { type: string }
+        reason: { type: string }
+      required: [role_id, resource_id, action, changed_by]
 
     RemovePolicyRequest:
       type: object
+      properties:
+        role_id: { type: integer }
+        resource_id: { type: integer }
+        action: { type: string }
+        changed_by: { type: string }
+        reason: { type: string }
       required: [role_id, resource_id, action, changed_by]
-      properties:
-        role_id:
-          type: integer
-          format: int64
-          description: 角色 ID
-          example: 1
-        resource_id:
-          type: integer
-          format: int64
-          description: 资源 ID
-          example: 1
-        action:
-          type: string
-          description: 动作
-          example: read
-        changed_by:
-          type: string
-          description: 操作人 ID
-          example: "10000"
-        reason:
-          type: string
-          description: 变更原因
-          example: 撤销权限
 
-    PolicyRuleResponse:
+    Resource:
       type: object
       properties:
-        subject:
-          type: string
-          description: 主体（角色标识）
-          example: role:1
-        domain:
-          type: string
-          description: 域
-          example: user_center
-        object:
-          type: string
-          description: 对象（资源标识）
-          example: resource:1
-        action:
-          type: string
-          description: 动作
-          example: read
-
-    PolicyVersionResponse:
-      type: object
-      properties:
-        tenant_id:
-          type: string
-          example: default
-        version:
-          type: integer
-          format: int64
-          description: 策略版本号（时间戳）
-          example: 1698765432
-        changed_by:
-          type: string
-          example: "10000"
-        reason:
-          type: string
-          example: 添加新策略规则
-
-    # ============ 资源 Schemas ============
-    CreateResourceRequest:
-      type: object
-      required: [key, display_name, app_name, domain, type, actions]
-      properties:
-        key:
-          type: string
-          description: 资源键（唯一标识，建议使用点分命名）
-          example: user.profile.read
-        display_name:
-          type: string
-          description: 显示名称
-          example: 用户资料读取
-        app_name:
-          type: string
-          description: 所属应用
-          example: user_center
-        domain:
-          type: string
-          description: 所属域
-          example: user_center
-        type:
-          type: string
-          description: 资源类型
-          example: api
+        id: { type: integer }
+        key: { type: string }
+        domain: { type: string }
+        app_name: { type: string }
+        type: { type: string }
         actions:
           type: array
           items: { type: string }
-          description: 允许的动作列表
-          example: [read, write, delete]
-        description:
-          type: string
-          description: 资源描述
-          example: 用户资料的读取权限
+        createdAt: { type: string, format: date-time }
+        display_name: { type: string }
+        description: { type: string }
+
+    ResourcePage:
+      type: object
+      properties:
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Resource' }
+
+    CreateResourceRequest:
+      type: object
+      properties:
+        key: { type: string }
+        domain: { type: string }
+        app_name: { type: string }
+        type: { type: string }
+        actions:
+          type: array
+          items: { type: string }
+          minItems: 1
+        display_name: { type: string }
+        description: { type: string }
+      required: [key, domain, type, actions, app_name, display_name]
 
     UpdateResourceRequest:
       type: object
       properties:
-        display_name:
-          type: string
-          description: 显示名称
         actions:
           type: array
           items: { type: string }
-          description: 允许的动作列表
           minItems: 1
-        description:
-          type: string
-          description: 资源描述
-
-    ResourceResponse:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-          example: 1
-        key:
-          type: string
-          example: user.profile.read
-        display_name:
-          type: string
-          example: 用户资料读取
-        app_name:
-          type: string
-          example: user_center
-        domain:
-          type: string
-          example: user_center
-        type:
-          type: string
-          example: api
-        actions:
-          type: array
-          items: { type: string }
-          example: [read, write, delete]
-        description:
-          type: string
-          example: 用户资料的读取权限
+        display_name: { type: string }
+        description: { type: string }
 
     ValidateActionRequest:
       type: object
-      required: [resource_key, action]
       properties:
-        resource_key:
-          type: string
-          description: 资源键
-          example: user.profile.read
-        action:
-          type: string
-          description: 待验证的动作
-          example: read
+        resource_key: { type: string }
+        action: { type: string }
+      required: [resource_key, action]
 
     ValidateActionResponse:
       type: object
       properties:
-        valid:
-          type: boolean
-          description: 是否有效
-          example: true
+        valid: { type: boolean }
 
-    # ============ 通用 Schemas ============
     Error:
       type: object
       properties:
-        code:
-          type: integer
-          description: 业务错误码
-        message:
-          type: string
-          description: 错误消息
-
-  responses:
-    BadRequest:
-      description: Bad Request - 请求参数错误
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/Error' }
-
-    Unauthorized:
-      description: Unauthorized - 未授权
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/Error' }
-
-    Forbidden:
-      description: Forbidden - 无权限
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/Error' }
-
-    NotFound:
-      description: Not Found - 资源不存在
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/Error' }
-
-    Conflict:
-      description: Conflict - 资源冲突
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/Error' }
-
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
-security:
-  - BearerAuth: []
+        code: { type: string }
+        message: { type: string }

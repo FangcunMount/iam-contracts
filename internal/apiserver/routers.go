@@ -125,9 +125,11 @@ func (r *Router) registerBaseRoutes(engine *gin.Engine) {
 
 	// Swagger UI 路由（默认在开发环境可用）
 	// 生产环境建议通过配置控制是否启用
+	engine.Static("/openapi", "./api/rest")
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(
 		swaggerFiles.Handler,
-		ginSwagger.URL("/swagger/doc.json"),
+		// 使用 OpenAPI 3.1 规范（api/rest）作为数据源
+		ginSwagger.URL("/openapi/authn.v1.yaml"),
 	))
 
 	publicAPI := engine.Group("/api/v1/public")

@@ -2,6 +2,11 @@ openapi: 3.1.0
 info:
   title: IAM · Identity API
   version: 1.0.0
+  description: 用户、儿童档案与监护关系 REST API
+  contact:
+    name: API Support
+    email: support@yangshujie.com
+    url: https://github.com/FangcunMount/iam-contracts
 servers:
   - url: https://api.example.com/api
     description: Production
@@ -19,6 +24,7 @@ paths:
     get:
       tags: [Identity-Users]
       summary: 获取当前用户信息
+      description: 获取当前登录用户的基本资料（昵称、头像、联系方式、状态）
       operationId: GetMe
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' }}}}
@@ -27,6 +33,7 @@ paths:
     patch:
       tags: [Identity-Users]
       summary: 更新当前用户信息
+      description: 部分更新当前登录用户的资料
       operationId: PatchMe
       requestBody:
         required: true
@@ -42,17 +49,20 @@ paths:
   /v1/me/children:
     get:
       tags: [Identity-Children]
-      summary: 我的孩子
+      summary: 获取当前用户的儿童档案列表
+      description: 获取当前登录用户监护的儿童列表。
       operationId: ListMyChildren
-      parameters: [ { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Offset' } ]
+      parameters: [ { $ref: '#/components/parameters/Offset' }, { $ref: '#/components/parameters/Limit' } ]
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChildPage' }}}}
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
 
   /v1/children/register:
     post:
       tags: [Identity-Children]
       summary: 注册孩子（建档+授当前用户为监护人）
+      description: 创建儿童档案并自动将当前用户设置为监护人
       operationId: RegisterChild
       parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
       requestBody:
@@ -66,33 +76,66 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
 
   /v1/children/search:
     get:
       tags: [Identity-Children]
-      summary: 查询孩子（根据姓名、性别、生日）
+      summary: 搜索儿童
+      description: 根据姓名、生日等信息搜索相似的儿童档案
       operationId: SearchChildren
       parameters:
         - in: query
           name: name
-          required: true
           schema: { type: string }
         - in: query
-          name: gender
-          schema: { type: integer }
-        - in: query
           name: dob
-          required: true
           schema: { type: string, format: date }
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChildPage' }}}}
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+
+  /v1/children/{childId}:
+    parameters: [ { $ref: '#/components/parameters/ChildId' } ]
+    get:
+      tags: [Identity-Children]
+      summary: 查询儿童档案（仅限自己监护的孩子）
+      description: 根据儿童 ID 查询儿童档案，需具备监护关系。
+      operationId: GetChild
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Child' }}}}
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    patch:
+      tags: [Identity-Children]
+      summary: 更新儿童档案（仅限自己监护的孩子）
+      description: 部分更新指定儿童档案，需具备监护关系。
+      operationId: PatchChild
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChildUpdateReq' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Child' }}}}
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
 
   /v1/guardians/grant:
     post:
       tags: [Identity-Guardianship]
       summary: 授予监护（为已存在的孩子添加监护人）
+      description: 为儿童添加监护人。
       operationId: GrantGuardian
       requestBody:
         required: true
@@ -105,12 +148,39 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+
+  /v1/guardians:
+    get:
+      tags: [Identity-Guardianship]
+      summary: 查询监护关系
+      description: 根据用户或儿童查询监护关系列表。
+      operationId: ListGuardianships
+      parameters:
+        - in: query
+          name: user_id
+          schema: { type: string }
+          description: 根据用户 ID 查询其监护的儿童
+        - in: query
+          name: child_id
+          schema: { type: string }
+          description: 根据儿童 ID 查询其监护人
+        - in: query
+          name: active
+          schema: { type: boolean }
+          description: 是否仅返回有效监护关系
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/GuardianshipPage' }}}}
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
 
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
   parameters:
-    UserId:   { in: path, name: userId, required: true, schema: { type: string } }
     ChildId:  { in: path, name: childId, required: true, schema: { type: string } }
     Limit:    { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
     Offset:   { in: query, name: offset, schema: { type: integer, minimum: 0, default: 0 } }
@@ -188,6 +258,16 @@ components:
         heightCm: { type: integer, nullable: true }
         weightKg: { type: string, nullable: true }
       required: [legalName, gender, dob, idType, idNo]
+
+    ChildUpdateReq:
+      type: object
+      properties:
+        legalName: { type: string }
+        gender: { type: integer }
+        dob: { type: string, format: date }
+        heightCm: { type: integer, nullable: true }
+        weightKg: { type: string, nullable: true }
+
     ChildRegisterReq:
       allOf:
         - $ref: '#/components/schemas/ChildCreateReq'
@@ -197,11 +277,14 @@ components:
               type: string
               enum: [self, parent, guardian]
               default: parent
+          required: [relation]
+
     ChildRegisterResp:
       type: object
       properties:
         child: { $ref: '#/components/schemas/Child' }
         guardianship: { $ref: '#/components/schemas/Guardianship' }
+
     ChildPage:
       type: object
       properties:
@@ -222,6 +305,7 @@ components:
         since: { type: string, format: date-time }
         revokedAt: { type: string, format: date-time, nullable: true }
       required: [id, userId, childId, relation, since]
+
     GuardianGrantReq:
       type: object
       properties:
@@ -230,13 +314,19 @@ components:
         relation: { type: string, enum: [self, parent, guardian] }
       required: [userId, childId, relation]
 
+    GuardianshipPage:
+      type: object
+      properties:
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Guardianship' }
+
     Error:
       type: object
       properties:
         code: { type: string }
         message: { type: string }
         requestId: { type: string }
-
-components:
-  securitySchemes:
-    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }

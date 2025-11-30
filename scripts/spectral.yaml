@@ -1,0 +1,4 @@
+extends: "spectral:oas"
+formats:
+  - oas3_1
+  - oas3
