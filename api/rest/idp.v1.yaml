@@ -5,12 +5,12 @@ info:
   description: 微信应用管理及第三方身份提供能力（登录由 authn 模块统一提供）。
   contact:
     name: API Support
-    email: support@yangshujie.com
+    email: yshujie@163.com
     url: https://github.com/FangcunMount/iam-contracts
 servers:
-  - url: https://iam.yangshujie.com/api/v1/idp
+  - url: https://iam.yangshujie.com/api/v1
     description: 生产环境
-  - url: http://localhost:8080/api/v1/idp
+  - url: http://localhost:18081/api/v1
     description: 本地开发
 tags:
   - name: IDP-WeChat
@@ -19,7 +19,7 @@ tags:
     description: 健康检查
 
 paths:
-  /health:
+  /idp/health:
     get:
       tags: [Health]
       summary: IDP 健康检查
@@ -28,7 +28,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { type: object, properties: { status: { type: string }, module: { type: string }}}}}}
 
-  /wechat-apps:
+  /idp/wechat-apps:
     post:
       tags: [IDP-WeChat]
       summary: 创建微信应用
@@ -42,7 +42,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/WechatApp' }}}}
 
-  /wechat-apps/{app_id}:
+  /idp/wechat-apps/{app_id}:
     parameters: [ { in: path, name: app_id, required: true, schema: { type: string } } ]
     get:
       tags: [IDP-WeChat]
@@ -53,7 +53,7 @@ paths:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/WechatApp' }}}}
         '404': { $ref: '#/components/responses/NotFound' }
 
-  /wechat-apps/{app_id}/access-token:
+  /idp/wechat-apps/{app_id}/access-token:
     parameters: [ { in: path, name: app_id, required: true, schema: { type: string } } ]
     get:
       tags: [IDP-WeChat]
@@ -64,7 +64,7 @@ paths:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AccessTokenResponse' }}}}
         '404': { $ref: '#/components/responses/NotFound' }
 
-  /wechat-apps/rotate-auth-secret:
+  /idp/wechat-apps/rotate-auth-secret:
     post:
       tags: [IDP-WeChat]
       summary: 轮换认证密钥
@@ -78,7 +78,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
 
-  /wechat-apps/rotate-msg-secret:
+  /idp/wechat-apps/rotate-msg-secret:
     post:
       tags: [IDP-WeChat]
       summary: 轮换消息密钥
@@ -92,7 +92,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
 
-  /wechat-apps/refresh-access-token:
+  /idp/wechat-apps/refresh-access-token:
     post:
       tags: [IDP-WeChat]
       summary: 刷新访问令牌

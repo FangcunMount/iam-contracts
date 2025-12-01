@@ -26,19 +26,19 @@ func Register(engine *gin.Engine) {
 		return
 	}
 
-	api := engine.Group("/api")
+	api := engine.Group("/api/v1/authn")
 
 	// 注册符合 API 文档的认证端点
-	registerAuthEndpointsV2(api.Group("/v1/auth"), deps.AuthHandler)
+	registerAuthEndpointsV2(api.Group(""), deps.AuthHandler)
 
 	// 注册账户管理端点
-	registerAccountEndpoints(api.Group("/v1"), deps.AccountHandler)
+	registerAccountEndpoints(api.Group(""), deps.AccountHandler)
 
 	// 注册 JWKS 端点（公开端点）
 	registerJWKSPublicEndpoints(engine, deps.JWKSHandler)
 
 	// 注册 JWKS 管理端点（管理员接口）
-	registerJWKSAdminEndpoints(api.Group("/v1/admin"), deps.JWKSHandler)
+	registerJWKSAdminEndpoints(api.Group("/admin"), deps.JWKSHandler)
 }
 
 // registerAuthEndpointsV2 注册符合 API 文档的认证端点
@@ -62,6 +62,7 @@ func registerJWKSPublicEndpoints(engine *gin.Engine, handler *authhandler.JWKSHa
 
 	// JWKS 公开端点（无需认证）
 	engine.GET("/.well-known/jwks.json", handler.GetJWKS)
+	engine.GET("/api/v1/.well-known/jwks.json", handler.GetJWKS)
 }
 
 // registerJWKSAdminEndpoints 注册 JWKS 管理端点

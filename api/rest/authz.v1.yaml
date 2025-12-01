@@ -5,12 +5,12 @@ info:
   description: 授权、角色、资源与策略管理 REST API
   contact:
     name: API Support
-    email: support@yangshujie.com
+    email: yshujie@163.com
     url: https://github.com/FangcunMount/iam-contracts
 servers:
-  - url: https://iam.yangshujie.com/api/v1/authz
+  - url: https://iam.yangshujie.com/api/v1
     description: 生产环境
-  - url: http://localhost:8080/api/v1/authz
+  - url: http://localhost:18081/api/v1
     description: 本地开发
 tags:
   - name: Health
@@ -25,7 +25,7 @@ tags:
     description: 资源管理
 
 paths:
-  /health:
+  /authz/health:
     get:
       tags: [Health]
       summary: 授权模块健康检查
@@ -34,7 +34,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { type: object, properties: { status: { type: string }, module: { type: string }}}}}}
 
-  /roles:
+  /authz/roles:
     get:
       tags: [Authorization-Roles]
       summary: 列出角色
@@ -56,7 +56,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Role' }}}}
 
-  /roles/{id}:
+  /authz/roles/{id}:
     parameters: [ { $ref: '#/components/parameters/RoleId' } ]
     get:
       tags: [Authorization-Roles]
@@ -86,7 +86,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
 
-  /roles/{id}/assignments:
+  /authz/roles/{id}/assignments:
     parameters: [ { $ref: '#/components/parameters/RoleId' } ]
     get:
       tags: [Authorization-Roles]
@@ -97,7 +97,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AssignmentPage' }}}}
 
-  /roles/{id}/policies:
+  /authz/roles/{id}/policies:
     parameters: [ { $ref: '#/components/parameters/RoleId' } ]
     get:
       tags: [Authorization-Roles]
@@ -107,7 +107,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PolicyRuleList' }}}}
 
-  /assignments/grant:
+  /authz/assignments/grant:
     post:
       tags: [Authorization-Assignments]
       summary: 授予角色
@@ -121,7 +121,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Assignment' }}}}
 
-  /assignments/revoke:
+  /authz/assignments/revoke:
     post:
       tags: [Authorization-Assignments]
       summary: 撤销角色
@@ -135,7 +135,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
 
-  /assignments/{id}:
+  /authz/assignments/{id}:
     parameters: [ { $ref: '#/components/parameters/AssignmentId' } ]
     delete:
       tags: [Authorization-Assignments]
@@ -145,7 +145,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
 
-  /assignments/subject:
+  /authz/assignments/subject:
     get:
       tags: [Authorization-Assignments]
       summary: 列出主体的角色分配
@@ -163,7 +163,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AssignmentPage' }}}}
 
-  /policies:
+  /authz/policies:
     post:
       tags: [Authorization-Policies]
       summary: 添加策略规则
@@ -189,7 +189,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
 
-  /policies/version:
+  /authz/policies/version:
     get:
       tags: [Authorization-Policies]
       summary: 获取当前策略版本
@@ -198,7 +198,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { type: object, properties: { version: { type: string }}}}}}
 
-  /resources:
+  /authz/resources:
     get:
       tags: [Authorization-Resources]
       summary: 列出资源
@@ -231,7 +231,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Resource' }}}}
 
-  /resources/{id}:
+  /authz/resources/{id}:
     parameters: [ { $ref: '#/components/parameters/ResourceId' } ]
     get:
       tags: [Authorization-Resources]
@@ -261,7 +261,7 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
 
-  /resources/key/{key}:
+  /authz/resources/key/{key}:
     parameters: [ { in: path, name: key, required: true, schema: { type: string } } ]
     get:
       tags: [Authorization-Resources]
@@ -272,7 +272,7 @@ paths:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Resource' }}}}
         '404': { $ref: '#/components/responses/NotFound' }
 
-  /resources/validate-action:
+  /authz/resources/validate-action:
     post:
       tags: [Authorization-Resources]
       summary: 验证资源动作

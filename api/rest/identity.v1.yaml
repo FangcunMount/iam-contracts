@@ -5,12 +5,12 @@ info:
   description: 用户、儿童档案与监护关系 REST API
   contact:
     name: API Support
-    email: support@yangshujie.com
+    email: yshujie@163.com
     url: https://github.com/FangcunMount/iam-contracts
 servers:
-  - url: https://api.example.com/api
+  - url: https://iam.yangshujie.com/api/v1
     description: Production
-  - url: http://localhost:8080/api
+  - url: http://localhost:18081/api/v1
     description: Local Dev
 security:
   - bearerAuth: []
@@ -20,7 +20,7 @@ tags:
   - name: Identity-Guardianship
 
 paths:
-  /v1/me:
+  /identity/me:
     get:
       tags: [Identity-Users]
       summary: 获取当前用户信息
@@ -46,7 +46,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '500': { $ref: '#/components/responses/InternalServerError' }
 
-  /v1/me/children:
+  /identity/me/children:
     get:
       tags: [Identity-Children]
       summary: 获取当前用户的儿童档案列表
@@ -58,7 +58,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '500': { $ref: '#/components/responses/InternalServerError' }
 
-  /v1/children/register:
+  /identity/children/register:
     post:
       tags: [Identity-Children]
       summary: 注册孩子（建档+授当前用户为监护人）
@@ -78,7 +78,7 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '500': { $ref: '#/components/responses/InternalServerError' }
 
-  /v1/children/search:
+  /identity/children/search:
     get:
       tags: [Identity-Children]
       summary: 搜索儿童
@@ -99,7 +99,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '500': { $ref: '#/components/responses/InternalServerError' }
 
-  /v1/children/{childId}:
+  /identity/children/{childId}:
     parameters: [ { $ref: '#/components/parameters/ChildId' } ]
     get:
       tags: [Identity-Children]
@@ -131,7 +131,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/InternalServerError' }
 
-  /v1/guardians/grant:
+  /identity/guardians/grant:
     post:
       tags: [Identity-Guardianship]
       summary: 授予监护（为已存在的孩子添加监护人）
@@ -150,7 +150,7 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '500': { $ref: '#/components/responses/InternalServerError' }
 
-  /v1/guardians:
+  /identity/guardians:
     get:
       tags: [Identity-Guardianship]
       summary: 查询监护关系

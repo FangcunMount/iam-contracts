@@ -25,7 +25,7 @@ func Register(engine *gin.Engine) {
 		return
 	}
 
-	api := engine.Group("/api/v1")
+	api := engine.Group("/api/v1/identity")
 
 	// 受保护的端点（需要认证）
 	if deps.AuthMiddleware != nil {

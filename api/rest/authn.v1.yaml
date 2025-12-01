@@ -5,12 +5,12 @@ info:
   description: 身份认证、令牌生命周期与账户管理 REST API
   contact:
     name: API Support
-    email: support@yangshujie.com
+    email: yshujie@163.com
     url: https://github.com/FangcunMount/iam-contracts
 servers:
-  - url: https://api.example.com/api
+  - url: https://iam.yangshujie.com/api/v1
     description: Production
-  - url: http://localhost:8080/api
+  - url: http://localhost:18081/api/v1
     description: Local Dev
 security:
   - bearerAuth: []
@@ -23,7 +23,7 @@ tags:
     description: 公钥集管理
 
 paths:
-  /v1/auth/login:
+  /authn/login:
     post:
       tags: [Authentication-Auth]
       summary: 用户登录
@@ -39,7 +39,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { description: 认证失败, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
 
-  /v1/auth/refresh_token:
+  /authn/refresh_token:
     post:
       tags: [Authentication-Auth]
       summary: 刷新访问令牌
@@ -55,7 +55,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { description: 刷新令牌无效或过期, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
 
-  /v1/auth/logout:
+  /authn/logout:
     post:
       tags: [Authentication-Auth]
       summary: 用户登出
@@ -70,7 +70,7 @@ paths:
         '200': { description: 登出成功, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' }}}}
         '400': { $ref: '#/components/responses/BadRequest' }
 
-  /v1/auth/verify:
+  /authn/verify:
     post:
       tags: [Authentication-Auth]
       summary: 验证访问令牌
@@ -96,7 +96,7 @@ paths:
         '200': { description: JWKS, content: { application/json: { schema: { $ref: '#/components/schemas/JWKSet' }}}}
         '500': { $ref: '#/components/responses/InternalServerError' }
 
-  /v1/admin/jwks/keys:
+  /authn/admin/jwks/keys:
     get:
       tags: [Authentication-JWKS]
       summary: 列出密钥
@@ -133,7 +133,7 @@ paths:
         '500': { $ref: '#/components/responses/InternalServerError' }
       security: [ { bearerAuth: [] } ]
 
-  /v1/admin/jwks/keys/{kid}:
+  /authn/admin/jwks/keys/{kid}:
     parameters: [ { $ref: '#/components/parameters/KeyId' } ]
     get:
       tags: [Authentication-JWKS]
@@ -148,7 +148,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
       security: [ { bearerAuth: [] } ]
 
-  /v1/admin/jwks/keys/{kid}/retire:
+  /authn/admin/jwks/keys/{kid}/retire:
     post:
       tags: [Authentication-JWKS]
       summary: 退役密钥
@@ -163,7 +163,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
       security: [ { bearerAuth: [] } ]
 
-  /v1/admin/jwks/keys/{kid}/force-retire:
+  /authn/admin/jwks/keys/{kid}/force-retire:
     post:
       tags: [Authentication-JWKS]
       summary: 强制退役密钥
@@ -178,7 +178,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
       security: [ { bearerAuth: [] } ]
 
-  /v1/admin/jwks/keys/{kid}/grace:
+  /authn/admin/jwks/keys/{kid}/grace:
     post:
       tags: [Authentication-JWKS]
       summary: 密钥进入宽限期
@@ -193,7 +193,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
       security: [ { bearerAuth: [] } ]
 
-  /v1/admin/jwks/keys/cleanup:
+  /authn/admin/jwks/keys/cleanup:
     post:
       tags: [Authentication-JWKS]
       summary: 清理过期密钥
@@ -206,7 +206,7 @@ paths:
         '500': { $ref: '#/components/responses/InternalServerError' }
       security: [ { bearerAuth: [] } ]
 
-  /v1/admin/jwks/keys/publishable:
+  /authn/admin/jwks/keys/publishable:
     get:
       tags: [Authentication-JWKS]
       summary: 获取可发布密钥
@@ -219,7 +219,7 @@ paths:
         '500': { $ref: '#/components/responses/InternalServerError' }
       security: [ { bearerAuth: [] } ]
 
-  /v1/accounts/wechat/register:
+  /authn/accounts/wechat/register:
     post:
       tags: [Authentication-Accounts]
       summary: 微信用户注册
@@ -235,7 +235,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '409': { $ref: '#/components/responses/Conflict' }
 
-  /v1/accounts/{accountId}:
+  /authn/accounts/{accountId}:
     parameters: [ { $ref: '#/components/parameters/AccountId' } ]
     get:
       tags: [Authentication-Accounts]
@@ -247,7 +247,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  /v1/accounts/{accountId}/profile:
+  /authn/accounts/{accountId}/profile:
     put:
       tags: [Authentication-Accounts]
       summary: 更新账户资料
@@ -264,7 +264,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  /v1/accounts/{accountId}/unionid:
+  /authn/accounts/{accountId}/unionid:
     put:
       tags: [Authentication-Accounts]
       summary: 设置账户 UnionID
@@ -281,7 +281,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  /v1/accounts/{accountId}/enable:
+  /authn/accounts/{accountId}/enable:
     post:
       tags: [Authentication-Accounts]
       summary: 启用账户
@@ -293,7 +293,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  /v1/accounts/{accountId}/disable:
+  /authn/accounts/{accountId}/disable:
     post:
       tags: [Authentication-Accounts]
       summary: 禁用账户
