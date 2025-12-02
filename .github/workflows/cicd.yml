@@ -118,8 +118,8 @@ jobs:
                 REDIS_CACHE_PASSWORD)
                   echo "⚠️ $SECRET_NAME is not set (Redis cache auth disabled)"
                   ;;
-                REDIS_STORE_PORT)
-                  echo "⚠️ $SECRET_NAME is not set (defaults to 6379)"
+          REDIS_STORE_PORT)
+                  echo "⚠️ $SECRET_NAME is not set (defaults to 6380)"
                   ;;
                 REDIS_STORE_DB)
                   echo "⚠️ $SECRET_NAME is not set (defaults to DB 1)"
@@ -304,7 +304,7 @@ jobs:
           REDIS_CACHE_USERNAME: ${{ secrets.REDIS_CACHE_USERNAME }}
           REDIS_CACHE_PASSWORD: ${{ secrets.REDIS_CACHE_PASSWORD }}
           REDIS_STORE_HOST: ${{ secrets.REDIS_STORE_HOST }}
-          REDIS_STORE_PORT: ${{ secrets.REDIS_STORE_PORT || 6379 }}
+          REDIS_STORE_PORT: ${{ secrets.REDIS_STORE_PORT || 6380 }}
           REDIS_STORE_DB: ${{ secrets.REDIS_STORE_DB || 1 }}
           REDIS_STORE_USERNAME: ${{ secrets.REDIS_STORE_USERNAME }}
           REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}

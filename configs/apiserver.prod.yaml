@@ -52,7 +52,7 @@ redis:
   store:
     # 云 Redis-Store 内网地址（持久化）
     host: "your-redis.redis.rds.aliyuncs.com"
-    port: 6379
+    port: 6380
     username: ""  # Redis 6.0+ ACL 用户名，留空表示使用 default 用户
     password: ""
     database: 1  # 存储使用 DB 1
