@@ -1,29 +1,22 @@
 version: '3.8'
 
 services:
-  # IAM Contracts API Server
+  # IAM Contracts API Server (production)
   iam-apiserver:
-    build:
-      context: ../..
-      dockerfile: build/docker/Dockerfile
-      args:
-        VERSION: ${VERSION:-dev}
-        BUILD_TIME: ${BUILD_TIME:-$(date -u '+%Y-%m-%d_%H:%M:%S')}
-        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    image: ${DOCKER_REGISTRY:-ghcr.io}/${IMAGE_NAME:-fangcunmount/iam-contracts}:${IMAGE_TAG:-latest}
     container_name: iam-apiserver
-    image: iam-contracts:latest
     user: "${WWW_UID:-1000}:${WWW_GID:-1000}"
     env_file:
       - ../../configs/env/config.prod.env
-    ports:
-      - "8080:8080"
-      - "9090:9090"
+    expose:
+      - "8080"
+      - "9090"
     volumes:
       # 挂载配置文件（可以覆盖镜像中的配置）
       - ../../configs:/app/configs:ro
       # 挂载日志目录
       - /data/logs/iam:/var/log/iam-contracts
-      # 挂载 TLS 证书（需要提前放置好文件）
+      # 挂载 TLS 证书（ServerA: /data/ssl/*）
       - /data/ssl/certs/yangshujie.com.crt:/etc/iam-contracts/ssl/yangshujie.com.crt:ro
       - /data/ssl/private/yangshujie.com.key:/etc/iam-contracts/ssl/yangshujie.com.key:ro
       # 挂载 JWKS 密钥目录（与镜像内部 /app/data/keys 映射，用于持久化私钥）
@@ -32,11 +25,19 @@ services:
       - TZ=Asia/Shanghai
       - GO_ENV=production
     networks:
-      - iam-network
+      - infra-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 384M
+        reservations:
+          cpus: "0.10"
+          memory: 128M
+      placement:
+        constraints:
+          - node.hostname == serverA
     restart: unless-stopped
-    depends_on:
-      - mysql
-      - redis
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
       interval: 30s
@@ -49,92 +50,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # MySQL 数据库（如果 infra 项目没有提供，可以临时使用）
-  mysql:
-    image: mysql:8.0
-    container_name: iam-mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-iam_contracts}
-      MYSQL_USER: ${MYSQL_USER:-iam}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-2gy0dCwG}
-      TZ: Asia/Shanghai
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
-      # 注意: 数据库初始化现在通过应用程序的迁移功能完成
-      # 参见: internal/pkg/migration/migrations/
-      - ../../configs/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
-      - --default-authentication-plugin=mysql_native_password
-    networks:
-      - iam-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Redis 缓存（如果 infra 项目没有提供，可以临时使用）
-  redis:
-    image: redis:7-alpine
-    container_name: iam-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-      - ../../configs/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
-    command: redis-server /usr/local/etc/redis/redis.conf
-    networks:
-      - iam-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Nginx 反向代理
-  nginx:
-    image: nginx:alpine
-    container_name: iam-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      # Nginx 配置
-      - ../../configs/nginx/conf.d:/etc/nginx/conf.d:ro
-      # SSL 证书（需要手动放置到宿主机）
-      - /data/ssl:/etc/nginx/ssl:ro
-      # Let's Encrypt ACME 验证目录
-      - /var/www/certbot:/var/www/certbot:ro
-    networks:
-      - iam-network
-    depends_on:
-      - iam-apiserver
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "nginx", "-t"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
 networks:
-  iam-network:
-    driver: bridge
-    name: iam-network
-
-volumes:
-  mysql-data:
-    name: iam-mysql-data
-  redis-data:
-    name: iam-redis-data
+  infra-network:
+    external: true
+    name: infra-network

@@ -2,19 +2,20 @@
 
 汇总当前项目在开发/生产环境下主要服务的端口分配及来源。
 
-## 生产环境（Docker / 容器内）
+## 生产环境（Swarm / Overlay）
 
 | 服务 | 容器端口 | 宿主机映射 | 配置来源 |
 | --- | --- | --- | --- |
-| HTTP | 8080 | 8080 | configs/apiserver.prod.yaml (`server.port`); build/docker/docker-compose.prod.yml |
-| HTTPS | 8443 | 8443（经 nginx 反代） | configs/apiserver.prod.yaml (`server.port-ssl`); nginx 暴露 443 |
-| gRPC | 9090 | 9090 | configs/apiserver.prod.yaml (`grpc.bind-port`); build/docker/docker-compose.prod.yml |
-| gRPC Health | 9091 | 9091（同容器内） | configs/apiserver.prod.yaml (`grpc.healthz-port`) |
-| MySQL | 3306 | 3306 | build/docker/docker-compose.prod.yml（临时内置 MySQL） |
-| Redis | 6379 | 6379 | build/docker/docker-compose.prod.yml（临时内置 Redis） |
-| Nginx | 80 / 443 | 80 / 443 | build/docker/docker-compose.prod.yml |
+| HTTP | 8080 | 不暴露，ServerA 网关容器通过 overlay 访问 | configs/apiserver.prod.yaml (`server.port`); build/docker/docker-compose.prod.yml（expose） |
+| HTTPS | 8443 | 不暴露，TLS 由网关终结 | configs/apiserver.prod.yaml (`server.port-ssl`) |
+| gRPC | 9090 | 不暴露，内部调用 | configs/apiserver.prod.yaml (`grpc.bind-port`); build/docker/docker-compose.prod.yml（expose） |
+| gRPC Health | 9091 | 同容器内 | configs/apiserver.prod.yaml (`grpc.healthz-port`) |
+| Nginx 网关 | 80 / 443 | 80 / 443（ServerA 公网） | 由基础设施网关栈提供 |
+| MySQL (RDS) | 3306 | 云 RDS 内网地址 | 阿里云 RDS |
+| Redis Cache | 6379 | `redis-cache`（ServerA 容器名） | 基础设施缓存实例 |
+| Redis Store | 6379 | 云 Redis 内网地址 | 阿里云 Redis-Store |
 
-说明：gRPC 端口在配置中默认开放，Compose 已映射到宿主机；HTTPS 由容器内 TLS 或 nginx 终结。
+说明：生产环境不再在 Compose 内启动 MySQL/Redis/Nginx；IAM 仅加入 `infra-network`，由外部网关代理到容器端口。
 
 ## 开发环境
 

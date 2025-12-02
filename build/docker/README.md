@@ -16,11 +16,9 @@
 
 ### docker-compose.prod.yml
 Docker Compose 编排配置，包含：
-- **iam-apiserver**：IAM API 服务器
-- **mysql**：MySQL 8.0 数据库（可选，如果 infra 项目未提供）
-- **redis**：Redis 7 缓存（可选，如果 infra 项目未提供）
+- **iam-apiserver**：IAM API 服务器（加入外部 `infra-network`，依赖云 RDS / Redis-Store 和网关；`image` 使用外部仓库，生产不在目标机构建）
 
-适合本地开发和测试环境使用。
+适合生产部署或接入现有基础设施（不再内置 MySQL/Redis/Nginx）。
 
 ### .dockerignore
 Docker 构建忽略文件，减小构建上下文大小：
@@ -68,7 +66,8 @@ docker build \
 # 运行容器
 docker run -d \
   --name iam-apiserver \
-  -p 8080:8080 \
+  --network infra-network \
+  -p 8080:8080 \  # 如需宿主机直接访问可保留端口映射；生产通过网关无需暴露
   -v $(pwd)/configs:/app/configs:ro \
   -v $(pwd)/logs:/app/logs \
   iam-contracts:latest
@@ -109,20 +108,24 @@ docker-compose -f build/docker/docker-compose.prod.yml restart iam-apiserver
 docker run -d \
   -e MYSQL_HOST=your-db-host \
   -e MYSQL_PORT=3306 \
-  -e REDIS_HOST=your-redis-host \
-  -e REDIS_PORT=6379 \
+  -e REDIS_CACHE_HOST=redis-cache \
+  -e REDIS_CACHE_PORT=6379 \
+  -e REDIS_STORE_HOST=your-redis.redis.rds.aliyuncs.com \
+  -e REDIS_STORE_PORT=6379 \
   iam-contracts:latest
 
 # 方式 2：使用 .env 文件（Docker Compose）
 # 创建 .env 文件
 cat > .env <<EOF
-MYSQL_HOST=mysql
+MYSQL_HOST=your-rds.mysql.rds.aliyuncs.com
 MYSQL_PORT=3306
-MYSQL_DATABASE=iam
+MYSQL_DATABASE=iam_contracts
 MYSQL_USER=iam
-MYSQL_PASSWORD=iam123
-REDIS_HOST=redis
-REDIS_PORT=6379
+MYSQL_PASSWORD=PLEASE_CHANGE_ME
+REDIS_CACHE_HOST=redis-cache
+REDIS_CACHE_PORT=6379
+REDIS_STORE_HOST=your-redis.redis.rds.aliyuncs.com
+REDIS_STORE_PORT=6379
 EOF
 
 # 启动（自动读取 .env 文件）
@@ -198,18 +201,17 @@ docker run -d \
 ### 使用自定义网络
 
 ```bash
-# 创建网络
-docker network create iam-network
+# 创建 overlay 网络（需先 init swarm）
+docker network create --driver overlay --attachable infra-network
 
 # 运行容器并连接到网络
 docker run -d \
   --name iam-apiserver \
-  --network iam-network \
-  -p 8080:8080 \
+  --network infra-network \
   iam-contracts:latest
 ```
 
-Docker Compose 会自动创建网络（已在 docker-compose.prod.yml 中配置）。
+Docker Compose 使用外部的 `infra-network`（需预先创建，不会自动创建）。
 
 ## 故障排查
 

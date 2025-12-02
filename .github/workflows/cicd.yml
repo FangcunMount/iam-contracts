@@ -1,6 +1,18 @@
 name: CI/CD Pipeline
 
-# 必需的 Secrets 配置同原版，未改动（见你文件顶部注释）
+# 必需/可选 Secrets 说明：
+# 必需（部署 main 分支时强制校验）：
+#   SVRA_HOST, SVRA_USERNAME, SVRA_SSH_KEY
+#   MYSQL_HOST, MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DBNAME
+#   REDIS_CACHE_HOST, REDIS_STORE_HOST
+#   JWT_SECRET, IPD_ENCRYPTION_KEY
+#   DOCKERHUB_USERNAME, DOCKERHUB_TOKEN
+# 可选（缺失时使用默认或跳过）：
+#   SVRA_SSH_PORT, SVRA_SUDO_PASSWORD
+#   MYSQL_PORT
+#   REDIS_CACHE_PORT, REDIS_CACHE_DB, REDIS_CACHE_USERNAME, REDIS_CACHE_PASSWORD
+#   REDIS_STORE_PORT, REDIS_STORE_DB, REDIS_STORE_USERNAME, REDIS_STORE_PASSWORD
+#   WWW_UID, WWW_GID
 
 on:
   push:
@@ -31,11 +43,11 @@ jobs:
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
           MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
-          REDIS_CATCH_HOST: ${{ secrets.REDIS_CATCH_HOST }}
-          REDIS_CATCH_PORT: ${{ secrets.REDIS_CATCH_PORT }}
-          REDIS_CATCH_DB: ${{ secrets.REDIS_CATCH_DB }}
-          REDIS_CATCH_USERNAME: ${{ secrets.REDIS_CATCH_USERNAME }}
-          REDIS_CATCH_PASSWORD: ${{ secrets.REDIS_CATCH_PASSWORD }}
+          REDIS_CACHE_HOST: ${{ secrets.REDIS_CACHE_HOST }}
+          REDIS_CACHE_PORT: ${{ secrets.REDIS_CACHE_PORT }}
+          REDIS_CACHE_DB: ${{ secrets.REDIS_CACHE_DB }}
+          REDIS_CACHE_USERNAME: ${{ secrets.REDIS_CACHE_USERNAME }}
+          REDIS_CACHE_PASSWORD: ${{ secrets.REDIS_CACHE_PASSWORD }}
           REDIS_STORE_HOST: ${{ secrets.REDIS_STORE_HOST }}
           REDIS_STORE_PORT: ${{ secrets.REDIS_STORE_PORT }}
           REDIS_STORE_DB: ${{ secrets.REDIS_STORE_DB }}
@@ -58,8 +70,8 @@ jobs:
             echo "ℹ️ Not on main branch – required secrets reported for awareness only."
           fi
 
-          REQUIRED_SECRETS=(SVRA_HOST SVRA_USERNAME SVRA_SSH_KEY MYSQL_HOST MYSQL_USERNAME MYSQL_PASSWORD MYSQL_DBNAME REDIS_CATCH_HOST REDIS_STORE_HOST JWT_SECRET DOCKERHUB_USERNAME DOCKERHUB_TOKEN)
-          OPTIONAL_SECRETS=(SVRA_SSH_PORT SVRA_SUDO_PASSWORD MYSQL_PORT REDIS_CATCH_PORT REDIS_CATCH_DB REDIS_CATCH_USERNAME REDIS_CATCH_PASSWORD REDIS_STORE_PORT REDIS_STORE_DB REDIS_STORE_USERNAME REDIS_STORE_PASSWORD WWW_UID WWW_GID)
+          REQUIRED_SECRETS=(SVRA_HOST SVRA_USERNAME SVRA_SSH_KEY MYSQL_HOST MYSQL_USERNAME MYSQL_PASSWORD MYSQL_DBNAME REDIS_CACHE_HOST REDIS_STORE_HOST JWT_SECRET DOCKERHUB_USERNAME DOCKERHUB_TOKEN)
+          OPTIONAL_SECRETS=(SVRA_SSH_PORT SVRA_SUDO_PASSWORD MYSQL_PORT REDIS_CACHE_PORT REDIS_CACHE_DB REDIS_CACHE_USERNAME REDIS_CACHE_PASSWORD REDIS_STORE_PORT REDIS_STORE_DB REDIS_STORE_USERNAME REDIS_STORE_PASSWORD WWW_UID WWW_GID)
 
           REQUIRED_SECRETS+=(IPD_ENCRYPTION_KEY)
 
@@ -94,20 +106,20 @@ jobs:
                 MYSQL_PORT)
                   echo "⚠️ $SECRET_NAME is not set (defaults to 3306)"
                   ;;
-                REDIS_CATCH_PORT)
+                REDIS_CACHE_PORT)
                   echo "⚠️ $SECRET_NAME is not set (defaults to 6379)"
                   ;;
-                REDIS_CATCH_DB)
+                REDIS_CACHE_DB)
                   echo "⚠️ $SECRET_NAME is not set (defaults to DB 0)"
                   ;;
-                REDIS_CATCH_USERNAME)
+                REDIS_CACHE_USERNAME)
                   echo "⚠️ $SECRET_NAME is not set (uses default Redis user)"
                   ;;
-                REDIS_CATCH_PASSWORD)
+                REDIS_CACHE_PASSWORD)
                   echo "⚠️ $SECRET_NAME is not set (Redis cache auth disabled)"
                   ;;
                 REDIS_STORE_PORT)
-                  echo "⚠️ $SECRET_NAME is not set (defaults to 6380)"
+                  echo "⚠️ $SECRET_NAME is not set (defaults to 6379)"
                   ;;
                 REDIS_STORE_DB)
                   echo "⚠️ $SECRET_NAME is not set (defaults to DB 1)"
@@ -237,17 +249,19 @@ jobs:
         env:
           DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
           DOCKER_REPOSITORY: fangcunmount
-          DOCKER_TAG: latest
+          VERSION: ${{ github.sha }}
+          DOCKER_TAG: ${{ github.sha }}
       - name: Push to GitHub Container Registry
         run: |
           make docker-push
         env:
           DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
           DOCKER_REPOSITORY: fangcunmount
+          VERSION: ${{ github.sha }}
       - name: Tag and Push to Docker Hub
         run: |
-          docker tag ghcr.io/fangcunmount/iam-contracts:latest ${{ secrets.DOCKERHUB_USERNAME }}/iam-contracts:latest
-          docker tag ghcr.io/fangcunmount/iam-contracts:latest ${{ secrets.DOCKERHUB_USERNAME }}/iam-contracts:${{ github.sha }}
+          docker tag ghcr.io/fangcunmount/iam-contracts:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/iam-contracts:latest
+          docker tag ghcr.io/fangcunmount/iam-contracts:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/iam-contracts:${{ github.sha }}
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/iam-contracts:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/iam-contracts:${{ github.sha }}
           echo "✅ 镜像已推送到 Docker Hub:"
@@ -265,6 +279,7 @@ jobs:
     env:
       WWW_UID: ${{ secrets.WWW_UID || '999' }}
       WWW_GID: ${{ secrets.WWW_GID || '988' }}
+      IMAGE_TAG: ${{ github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -283,13 +298,13 @@ jobs:
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
-          REDIS_CATCH_HOST: ${{ secrets.REDIS_CATCH_HOST }}
-          REDIS_CATCH_PORT: ${{ secrets.REDIS_CATCH_PORT || 6379 }}
-          REDIS_CATCH_DB: ${{ secrets.REDIS_CATCH_DB || 0 }}
-          REDIS_CATCH_USERNAME: ${{ secrets.REDIS_CATCH_USERNAME }}
-          REDIS_CATCH_PASSWORD: ${{ secrets.REDIS_CATCH_PASSWORD }}
+          REDIS_CACHE_HOST: ${{ secrets.REDIS_CACHE_HOST }}
+          REDIS_CACHE_PORT: ${{ secrets.REDIS_CACHE_PORT || 6379 }}
+          REDIS_CACHE_DB: ${{ secrets.REDIS_CACHE_DB || 0 }}
+          REDIS_CACHE_USERNAME: ${{ secrets.REDIS_CACHE_USERNAME }}
+          REDIS_CACHE_PASSWORD: ${{ secrets.REDIS_CACHE_PASSWORD }}
           REDIS_STORE_HOST: ${{ secrets.REDIS_STORE_HOST }}
-          REDIS_STORE_PORT: ${{ secrets.REDIS_STORE_PORT || 6380 }}
+          REDIS_STORE_PORT: ${{ secrets.REDIS_STORE_PORT || 6379 }}
           REDIS_STORE_DB: ${{ secrets.REDIS_STORE_DB || 1 }}
           REDIS_STORE_USERNAME: ${{ secrets.REDIS_STORE_USERNAME }}
           REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}
@@ -301,10 +316,12 @@ jobs:
           chmod +x ./artifacts/iam-apiserver
 
           mkdir -p deploy-package/configs/env
+          mkdir -p deploy-package/build/docker
           cp ./artifacts/iam-apiserver deploy-package/
 
-          # 拷贝仓库配置
+          # 拷贝仓库配置和编排文件
           cp -r configs deploy-package/
+          cp build/docker/docker-compose.prod.yml deploy-package/build/docker/docker-compose.prod.yml
 
           # 生成生产环境 env(本地生成,随包上传)
           cat > deploy-package/configs/env/config.prod.env <<EOF
@@ -315,11 +332,11 @@ jobs:
           IAM_APISERVER_MYSQL_DATABASE=${MYSQL_DBNAME}
           
           # Redis Cache (缓存实例 - ServerA 本地 Redis)
-          IAM_APISERVER_REDIS_CACHE_HOST=${REDIS_CATCH_HOST}
-          IAM_APISERVER_REDIS_CACHE_PORT=${REDIS_CATCH_PORT}
-          IAM_APISERVER_REDIS_CACHE_USERNAME=${REDIS_CATCH_USERNAME}
-          IAM_APISERVER_REDIS_CACHE_PASSWORD=${REDIS_CATCH_PASSWORD}
-          IAM_APISERVER_REDIS_CACHE_DATABASE=${REDIS_CATCH_DB}
+          IAM_APISERVER_REDIS_CACHE_HOST=${REDIS_CACHE_HOST}
+          IAM_APISERVER_REDIS_CACHE_PORT=${REDIS_CACHE_PORT}
+          IAM_APISERVER_REDIS_CACHE_USERNAME=${REDIS_CACHE_USERNAME}
+          IAM_APISERVER_REDIS_CACHE_PASSWORD=${REDIS_CACHE_PASSWORD}
+          IAM_APISERVER_REDIS_CACHE_DATABASE=${REDIS_CACHE_DB}
           
           # Redis Store (持久化存储实例 - 阿里云 RDS Redis)
           IAM_APISERVER_REDIS_STORE_HOST=${REDIS_STORE_HOST}
@@ -356,6 +373,7 @@ jobs:
         env:
           DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SUDO_PASSWORD: ${{ secrets.SVRA_SUDO_PASSWORD }}
@@ -366,7 +384,7 @@ jobs:
           username: ${{ secrets.SVRA_USERNAME }}
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
-          envs: DOCKER_REGISTRY,IMAGE_NAME,GHCR_USERNAME,GHCR_TOKEN,SUDO_PASSWORD,WWW_UID,WWW_GID
+          envs: DOCKER_REGISTRY,IMAGE_NAME,IMAGE_TAG,GHCR_USERNAME,GHCR_TOKEN,SUDO_PASSWORD,WWW_UID,WWW_GID
           script: |
             set -Eeuo pipefail
 
@@ -414,29 +432,11 @@ jobs:
             mkdir -p "$DEPLOY_TMP"
             tar -xzf /tmp/deploy-package.tar.gz -C "$DEPLOY_TMP"
 
-            $SUDO rsync -a "$DEPLOY_TMP/configs/" /opt/iam/configs/
-            $SUDO rsync -a "$DEPLOY_TMP/iam-apiserver" /opt/iam/bin/iam-apiserver
-            $SUDO chmod 0755 /opt/iam/bin/iam-apiserver
-            $SUDO chown -R "$APP_UID:$APP_GID" /opt/iam/configs
-
-            LOG_DIR_HOST="/data/logs/iam"
-            $SUDO mkdir -p "$LOG_DIR_HOST"
-            $SUDO chown -R "$APP_UID:$APP_GID" "$LOG_DIR_HOST"
-
-            # JWKS 私钥持久化目录（与 apiserver.yaml 中的 /app/data/keys 对应）
-            KEY_DIR_HOST="/data/ops/iam-keys"
-            $SUDO mkdir -p "$KEY_DIR_HOST"
-            $SUDO chown -R "$APP_UID:$APP_GID" "$KEY_DIR_HOST"
-            $SUDO chmod 0750 "$KEY_DIR_HOST"
-
-            # 清理临时目录与上传包
-            rm -rf "$DEPLOY_TMP"
-            rm -f /tmp/deploy-package.tar.gz
-
             # 网络
-            if ! $SUDO docker network ls --format '{{.Name}}' | grep -w iam-network > /dev/null 2>&1; then
-              echo "Creating Docker network iam-network..."
-              $SUDO docker network create iam-network
+            if ! $SUDO docker network ls --format '{{.Name}}' | grep -w infra-network > /dev/null 2>&1; then
+              echo "Creating Docker network infra-network (overlay attachable)..."
+              $SUDO docker network create --driver overlay --attachable infra-network || {
+                echo "❌ Failed to create overlay network. Ensure Docker Swarm is initialized."; exit 1; }
             fi
 
             # ======== 固定使用 /etc/iam-contracts/ssl 作为容器内证书目录 ========
@@ -467,44 +467,55 @@ jobs:
               echo "$GHCR_TOKEN" | $SUDO docker login "$DOCKER_REGISTRY" -u "$GHCR_USERNAME" --password-stdin >/dev/null || true
             fi
 
-            # 拉取镜像
-            echo "Pulling latest Docker image..."
-            if ! $SUDO docker pull "$DOCKER_REGISTRY/$IMAGE_NAME:latest"; then
-              echo "⚠️ Pull with auth failed, trying anonymous..."
-              $SUDO docker pull "$DOCKER_REGISTRY/$IMAGE_NAME:latest" || true
+            # 确保 docker compose 可用
+            if ! $SUDO docker compose version >/dev/null 2>&1; then
+              echo "❌ docker compose is not available on target host."; exit 1;
             fi
 
-            # 停旧容器
-            if $SUDO docker ps -a --format '{{.Names}}' | grep -w iam-apiserver > /dev/null 2>&1; then
-              echo "Stopping existing Docker container..."
-              $SUDO docker stop iam-apiserver || true
-              $SUDO docker rm iam-apiserver || true
+            # 确保基础设施网络存在（已由运维预置，但仍校验）
+            if ! $SUDO docker network ls --format '{{.Name}}' | grep -w infra-network >/dev/null 2>&1; then
+              echo "❌ Required network infra-network not found. Please create it first."; exit 1;
             fi
 
-            # 启动（挂载 /opt/iam/configs 到 /app/configs，并额外挂载证书文件到 /etc/iam-contracts/ssl）
-            DOCKER_OPTIONS="--name iam-apiserver \
-              --restart unless-stopped \
-              --network iam-network \
-              --user ${APP_UID}:${APP_GID} \
-              -p 8080:9080 \
-              -p 9444:9444 \
-              -v /opt/iam/configs:/app/configs \
-              -v $KEY_DIR_HOST:/app/data/keys \
-              -v $LOG_DIR_HOST:/var/log/iam-contracts \
-              --env-file /opt/iam/configs/env/config.prod.env \
-              $TLS_MOUNTS"
+            # 将部署包放置到 /opt/iam
+            $SUDO mkdir -p /opt/iam/build/docker
+            $SUDO rsync -a /tmp/iam-deploy-*/build/docker/docker-compose.prod.yml /opt/iam/build/docker/docker-compose.prod.yml
 
-            echo "Starting IAM service with Docker..."
-            $SUDO docker run -d $DOCKER_OPTIONS \
-              "$DOCKER_REGISTRY/$IMAGE_NAME:latest" \
-              --config=/app/configs/apiserver.yaml
+            # 覆盖配置与二进制
+            $SUDO rsync -a /tmp/iam-deploy-*/configs/ /opt/iam/configs/
+            $SUDO rsync -a /tmp/iam-deploy-*/iam-apiserver /opt/iam/bin/iam-apiserver
+            $SUDO chmod 0755 /opt/iam/bin/iam-apiserver
+            $SUDO chown -R "$APP_UID:$APP_GID" /opt/iam/configs
+
+            # 准备日志/密钥目录
+            LOG_DIR_HOST="/data/logs/iam"
+            $SUDO mkdir -p "$LOG_DIR_HOST"
+            $SUDO chown -R "$APP_UID:$APP_GID" "$LOG_DIR_HOST"
+
+            KEY_DIR_HOST="/data/ops/iam-keys"
+            $SUDO mkdir -p "$KEY_DIR_HOST"
+            $SUDO chown -R "$APP_UID:$APP_GID" "$KEY_DIR_HOST"
+            $SUDO chmod 0750 "$KEY_DIR_HOST"
+
+            # 导出运行所需环境变量（供 compose 内插值）
+            export DOCKER_REGISTRY IMAGE_NAME IMAGE_TAG
+            export WWW_UID="$APP_UID" WWW_GID="$APP_GID"
+
+            # 使用 docker compose 部署（仅 iam-apiserver 服务，强制重建并拉取最新镜像）
+            COMPOSE_FILE="/opt/iam/build/docker/docker-compose.prod.yml"
+            (cd /opt/iam && $SUDO docker compose -f "$COMPOSE_FILE" pull iam-apiserver)
+            (cd /opt/iam && $SUDO docker compose -f "$COMPOSE_FILE" up -d --force-recreate --remove-orphans iam-apiserver)
+
+            # 清理临时目录与上传包
+            rm -rf "$DEPLOY_TMP"
+            rm -f /tmp/deploy-package.tar.gz
 
             # 健康检查
             echo "Waiting for service to be ready..."
             ATTEMPTS=0
             MAX_ATTEMPTS=30
             while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
-              if curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
+              if $SUDO docker exec iam-apiserver curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
                 echo "✅ API health check passed (attempt $ATTEMPTS)"
                 $SUDO docker ps --filter "name=iam-apiserver" --format "table {{.Names}}\t{{.Status}}"
                 break
@@ -569,7 +580,7 @@ jobs:
               exit 1
             fi
 
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/healthz || echo "000")
+            RESPONSE=$($SUDO docker exec iam-apiserver curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/healthz || echo "000")
             if [ "$RESPONSE" = "200" ]; then
               echo "✅ API is responding correctly"
             else

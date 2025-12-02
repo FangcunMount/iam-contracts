@@ -28,6 +28,7 @@ TLS_CERT_HOST ?= /data/ssl/certs/yangshujie.com.crt
 TLS_KEY_HOST ?= /data/ssl/private/yangshujie.com.key
 TLS_CERT_DEST ?= /etc/iam-contracts/ssl/yangshujie.com.crt
 TLS_KEY_DEST ?= /etc/iam-contracts/ssl/yangshujie.com.key
+DOCKER_NETWORK ?= infra-network
 
 # Go 相关
 GO := env -u GOROOT go
@@ -619,7 +620,16 @@ docker-build: ## 构建 Docker 镜像
 
 docker-run: ## 运行 Docker 容器
 	@echo "$(COLOR_BLUE)🐳 运行 Docker 容器...$(COLOR_RESET)"
-	@docker network ls --format '{{.Name}}' | grep -w iam-network >/dev/null 2>&1 || docker network create iam-network
+	@# 确保存在基础设施网络（优先 overlay attachable，不可用则退回 bridge）
+	@if ! docker network ls --format '{{.Name}}' | grep -w $(DOCKER_NETWORK) >/dev/null 2>&1; then \
+		if docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null | grep -Eq '(active|pending)'; then \
+			echo "Creating overlay network $(DOCKER_NETWORK)..."; \
+			docker network create --driver overlay --attachable $(DOCKER_NETWORK); \
+		else \
+			echo "Creating bridge network $(DOCKER_NETWORK) (Swarm not initialized)..."; \
+			docker network create $(DOCKER_NETWORK); \
+		fi; \
+	fi
 	@mkdir -p $(LOG_DIR_HOST) >/dev/null 2>&1 || true
 	@TLS_MOUNTS=""; \
 	if [ -f "$(TLS_CERT_HOST)" ]; then \
@@ -634,8 +644,9 @@ docker-run: ## 运行 Docker 容器
 	fi; \
 	docker run -d \
 		--name $(PROJECT_NAME) \
-		--network iam-network \
-		-p 8080:8080 \
+		--network $(DOCKER_NETWORK) \
+		--cpus 0.25 \
+		--memory 384m --memory-swap 384m \
 		-v $(PWD)/configs:/app/configs:ro \
 		-v $(LOG_DIR_HOST):/var/log/iam-contracts \
 		$$TLS_MOUNTS \

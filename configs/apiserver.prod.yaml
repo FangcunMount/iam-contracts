@@ -15,7 +15,8 @@ server:
 
 # MySQL 配置
 mysql:
-  host: "127.0.0.1:3306"
+  # 生产环境使用云 RDS 内网地址
+  host: "your-rds.mysql.rds.aliyuncs.com:3306"
   username: "iam"
   password: "iam_contracts_pass123"
   database: "iam_contracts"
@@ -34,7 +35,8 @@ migration:
 redis:
   # Cache Redis - 用于缓存、会话、限流等临时数据
   cache:
-    host: "127.0.0.1"
+    # ServerA 本地缓存实例（Swarm 容器名）
+    host: "redis-cache"
     port: 6379
     username: ""  # Redis 6.0+ ACL 用户名，留空表示使用 default 用户
     password: ""
@@ -44,12 +46,13 @@ redis:
     timeout: 5
     enable-cluster: false
     use-ssl: false
-    enable-logging: true  # 开启 Redis 命令日志（用于调试，生产环境建议关闭）
-  
+    enable-logging: false  # 生产环境关闭命令日志
+
   # Store Redis - 用于持久化存储、队列、发布订阅等
   store:
-    host: "127.0.0.1"
-    port: 6380
+    # 云 Redis-Store 内网地址（持久化）
+    host: "your-redis.redis.rds.aliyuncs.com"
+    port: 6379
     username: ""  # Redis 6.0+ ACL 用户名，留空表示使用 default 用户
     password: ""
     database: 1  # 存储使用 DB 1
@@ -58,7 +61,7 @@ redis:
     timeout: 5
     enable-cluster: false
     use-ssl: false
-    enable-logging: true  # 开启 Redis 命令日志（用于调试，生产环境建议关闭）
+    enable-logging: false  # 生产环境关闭命令日志
 
 # 日志配置（生产环境 - 使用 component-base v0.2.9 duplicate 模式）
 log:
