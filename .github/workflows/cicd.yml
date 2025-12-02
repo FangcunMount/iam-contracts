@@ -515,7 +515,7 @@ jobs:
             ATTEMPTS=0
             MAX_ATTEMPTS=30
             while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
-              if $SUDO docker exec iam-apiserver curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
+              if $SUDO docker exec iam-apiserver curl -sf http://127.0.0.1:9080/healthz > /dev/null 2>&1; then
                 echo "✅ API health check passed (attempt $ATTEMPTS)"
                 $SUDO docker ps --filter "name=iam-apiserver" --format "table {{.Names}}\t{{.Status}}"
                 break
@@ -580,7 +580,7 @@ jobs:
               exit 1
             fi
 
-            RESPONSE=$($SUDO docker exec iam-apiserver curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/healthz || echo "000")
+            RESPONSE=$($SUDO docker exec iam-apiserver curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:9080/healthz || echo "000")
             if [ "$RESPONSE" = "200" ]; then
               echo "✅ API is responding correctly"
             else
