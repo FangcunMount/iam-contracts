@@ -24,7 +24,7 @@ func TestAssignmentRepository_Create_ConcurrentDuplicateDetection(t *testing.T) 
 
 	// 为测试环境显式创建唯一索引，避免在 PO tag 中改动生产 schema
 	// 复合唯一键: subject_type, subject_id, role_id, tenant_id
-	_ = db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS uk_assignment ON iam_authz_assignments(subject_type, subject_id, role_id, tenant_id)")
+	_ = db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS uk_assignment ON authz_assignments(subject_type, subject_id, role_id, tenant_id)")
 
 	repo := NewAssignmentRepository(db)
 	ctx := context.Background()
