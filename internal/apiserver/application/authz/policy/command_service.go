@@ -67,10 +67,12 @@ func (s *PolicyCommandService) AddPolicyRule(
 		return err
 	}
 
-	// 5. 发送版本变更通知（version.Version 是字段，不是方法）
-	if err := s.versionNotifier.Publish(ctx, cmd.TenantID, version.Version); err != nil {
-		// 日志记录错误，但不影响主流程
-		// TODO: 添加日志
+	// 5. 发送版本变更通知（如果启用了消息队列）
+	if s.versionNotifier != nil {
+		if err := s.versionNotifier.Publish(ctx, cmd.TenantID, version.Version); err != nil {
+			// 日志记录错误，但不影响主流程
+			// TODO: 添加日志
+		}
 	}
 
 	return nil
@@ -107,10 +109,12 @@ func (s *PolicyCommandService) RemovePolicyRule(
 		return err
 	}
 
-	// 5. 发送版本变更通知（version.Version 是字段，不是方法）
-	if err := s.versionNotifier.Publish(ctx, cmd.TenantID, version.Version); err != nil {
-		// 日志记录错误，但不影响主流程
-		// TODO: 添加日志
+	// 5. 发送版本变更通知（如果启用了消息队列）
+	if s.versionNotifier != nil {
+		if err := s.versionNotifier.Publish(ctx, cmd.TenantID, version.Version); err != nil {
+			// 日志记录错误，但不影响主流程
+			// TODO: 添加日志
+		}
 	}
 
 	return nil

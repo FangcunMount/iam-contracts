@@ -13,6 +13,7 @@ name: CI/CD Pipeline
 #   REDIS_CACHE_PORT, REDIS_CACHE_DB, REDIS_CACHE_USERNAME, REDIS_CACHE_PASSWORD
 #   REDIS_STORE_PORT, REDIS_STORE_DB, REDIS_STORE_USERNAME, REDIS_STORE_PASSWORD
 #   WWW_UID, WWW_GID
+#   NSQ_LOOKUPD_HOST, NSQ_LOOKUPD_PORT, NSQ_NSQD_HOST, NSQ_NSQD_PORT (事件驱动消息)
 # 注意：JWT 签名使用 JWKS (RS256) 非对称密钥，密钥在运行时自动生成并持久化到 /app/data/keys
 
 on:
@@ -59,6 +60,10 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           WWW_UID: ${{ secrets.WWW_UID }}
           WWW_GID: ${{ secrets.WWW_GID }}
+          NSQ_LOOKUPD_HOST: ${{ secrets.NSQ_LOOKUPD_HOST }}
+          NSQ_LOOKUPD_PORT: ${{ secrets.NSQ_LOOKUPD_PORT }}
+          NSQ_NSQD_HOST: ${{ secrets.NSQ_NSQD_HOST }}
+          NSQ_NSQD_PORT: ${{ secrets.NSQ_NSQD_PORT }}
         run: |
           echo "🔍 Validating GitHub Action secrets..."
           VALIDATION_FAILED=0
@@ -71,7 +76,7 @@ jobs:
           fi
 
           REQUIRED_SECRETS=(SVRA_HOST SVRA_USERNAME SVRA_SSH_KEY MYSQL_HOST MYSQL_USERNAME MYSQL_PASSWORD MYSQL_DBNAME REDIS_CACHE_HOST REDIS_STORE_HOST DOCKERHUB_USERNAME DOCKERHUB_TOKEN)
-          OPTIONAL_SECRETS=(SVRA_SSH_PORT SVRA_SUDO_PASSWORD MYSQL_PORT REDIS_CACHE_PORT REDIS_CACHE_DB REDIS_CACHE_USERNAME REDIS_CACHE_PASSWORD REDIS_STORE_PORT REDIS_STORE_DB REDIS_STORE_USERNAME REDIS_STORE_PASSWORD WWW_UID WWW_GID)
+          OPTIONAL_SECRETS=(SVRA_SSH_PORT SVRA_SUDO_PASSWORD MYSQL_PORT REDIS_CACHE_PORT REDIS_CACHE_DB REDIS_CACHE_USERNAME REDIS_CACHE_PASSWORD REDIS_STORE_PORT REDIS_STORE_DB REDIS_STORE_USERNAME REDIS_STORE_PASSWORD WWW_UID WWW_GID NSQ_LOOKUPD_HOST NSQ_LOOKUPD_PORT NSQ_NSQD_HOST NSQ_NSQD_PORT)
 
           REQUIRED_SECRETS+=(IPD_ENCRYPTION_KEY)
 
@@ -309,6 +314,10 @@ jobs:
           REDIS_STORE_USERNAME: ${{ secrets.REDIS_STORE_USERNAME }}
           REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}
           IPD_ENCRYPTION_KEY: ${{ secrets.IPD_ENCRYPTION_KEY }}
+          NSQ_LOOKUPD_HOST: ${{ secrets.NSQ_LOOKUPD_HOST }}
+          NSQ_LOOKUPD_PORT: ${{ secrets.NSQ_LOOKUPD_PORT || 4161 }}
+          NSQ_NSQD_HOST: ${{ secrets.NSQ_NSQD_HOST }}
+          NSQ_NSQD_PORT: ${{ secrets.NSQ_NSQD_PORT || 4150 }}
         run: |
           # artifact 文件名是 apiserver，需要重命名为 iam-apiserver
           mv ./artifacts/apiserver ./artifacts/iam-apiserver
@@ -345,6 +354,11 @@ jobs:
           IAM_APISERVER_REDIS_STORE_DATABASE=${REDIS_STORE_DB}
           
           IAM_APISERVER_IDP_ENCRYPTION_KEY=${IPD_ENCRYPTION_KEY}
+          
+          # NSQ Configuration (Event-driven messaging)
+          IAM_APISERVER_NSQ_ENABLED=${NSQ_LOOKUPD_HOST:+true}
+          IAM_APISERVER_NSQ_LOOKUPD_ADDRS=${NSQ_LOOKUPD_HOST}:${NSQ_LOOKUPD_PORT}
+          IAM_APISERVER_NSQ_NSQD_ADDR=${NSQ_NSQD_HOST}:${NSQ_NSQD_PORT}
           EOF
 
           echo "=========================================="

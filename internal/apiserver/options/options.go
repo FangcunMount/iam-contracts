@@ -17,6 +17,7 @@ type Options struct {
 	SecureServing           *genericoptions.SecureServingOptions   `json:"secure" mapstructure:"secure"`
 	MySQLOptions            *genericoptions.MySQLOptions           `json:"mysql"    mapstructure:"mysql"`
 	RedisOptions            *genericoptions.RedisOptions           `json:"redis"    mapstructure:"redis"`
+	NSQOptions              *genericoptions.NSQOptions             `json:"nsq"      mapstructure:"nsq"`
 	MigrationOptions        *genericoptions.MigrationOptions       `json:"migration" mapstructure:"migration"`
 }
 
@@ -30,6 +31,7 @@ func NewOptions() *Options {
 		SecureServing:           genericoptions.NewSecureServingOptions(),
 		MySQLOptions:            genericoptions.NewMySQLOptions(),
 		RedisOptions:            genericoptions.NewRedisOptions(),
+		NSQOptions:              genericoptions.NewNSQOptions(),
 		MigrationOptions:        genericoptions.NewMigrationOptions(),
 	}
 }
@@ -43,6 +45,7 @@ func (o *Options) Flags() (fss cliflag.NamedFlagSets) {
 	o.SecureServing.AddFlags(fss.FlagSet("secure"))
 	o.MySQLOptions.AddFlags(fss.FlagSet("mysql"))
 	o.RedisOptions.AddFlags(fss.FlagSet("redis"))
+	o.NSQOptions.AddFlags(fss.FlagSet("nsq"))
 	o.MigrationOptions.AddFlags(fss.FlagSet("migration"))
 
 	return fss

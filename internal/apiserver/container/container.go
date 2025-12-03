@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/FangcunMount/component-base/pkg/log"
+	"github.com/FangcunMount/component-base/pkg/messaging"
 	redis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container/assembler"
+	policyDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
+	messagingInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/messaging"
 )
 
 // Container 容器
@@ -18,6 +21,9 @@ type Container struct {
 	mysqlDB          *gorm.DB
 	cacheRedisClient *redis.Client // 缓存 Redis（临时数据、会话等）
 	storeRedisClient *redis.Client // 存储 Redis（持久化数据、Token等）
+
+	// 消息总线（可选）
+	eventBus messaging.EventBus
 
 	// 业务模块
 	AuthnModule *assembler.AuthnModule
@@ -35,8 +41,9 @@ type Container struct {
 // NewContainer 创建容器
 // cacheRedisClient: 缓存 Redis 客户端（用于缓存、会话、限流等临时数据）
 // storeRedisClient: 存储 Redis 客户端（用于持久化存储、队列、发布订阅等）
+// eventBus: 消息总线（可选，用于事件驱动，传 nil 则不使用消息队列）
 // encryptionKey: IDP 模块使用的加密密钥（32 字节 AES-256），传 nil 则使用默认密钥
-func NewContainer(mysqlDB *gorm.DB, cacheRedisClient, storeRedisClient *redis.Client, encryptionKey []byte) *Container {
+func NewContainer(mysqlDB *gorm.DB, cacheRedisClient, storeRedisClient *redis.Client, eventBus messaging.EventBus, encryptionKey []byte) *Container {
 	// 如果未提供加密密钥，使用默认密钥（仅用于开发环境）
 	if encryptionKey == nil {
 		// 默认密钥：32 字节（仅供开发使用，生产环境必须提供真实密钥）
@@ -47,6 +54,7 @@ func NewContainer(mysqlDB *gorm.DB, cacheRedisClient, storeRedisClient *redis.Cl
 		mysqlDB:          mysqlDB,
 		cacheRedisClient: cacheRedisClient,
 		storeRedisClient: storeRedisClient,
+		eventBus:         eventBus,
 		idpEncryptionKey: encryptionKey,
 	}
 }
@@ -139,11 +147,22 @@ func (c *Container) initUserModule() error {
 }
 
 // initAuthzModule 初始化授权模块
-// 授权模块可能使用 Cache Redis 缓存权限策略
+// 授权模块使用 EventBus 发布策略版本变更通知
 func (c *Container) initAuthzModule() error {
 	authzModule := assembler.NewAuthzModule()
-	// 传递 Cache Redis（用于权限策略缓存）
-	if err := authzModule.Initialize(c.mysqlDB, c.cacheRedisClient); err != nil {
+
+	// 创建策略版本通知器
+	var versionNotifier policyDomain.VersionNotifier
+	if c.eventBus != nil {
+		// 使用 NSQ EventBus
+		versionNotifier = messagingInfra.NewVersionNotifier(c.eventBus)
+		log.Info("   📨 Policy version notifier: NSQ EventBus")
+	} else {
+		// 没有消息队列时，不发送通知
+		log.Warn("   ⚠️  Policy version notifier: disabled (no EventBus)")
+	}
+
+	if err := authzModule.Initialize(c.mysqlDB, versionNotifier); err != nil {
 		return fmt.Errorf("failed to initialize authz module: %w", err)
 	}
 	c.AuthzModule = authzModule

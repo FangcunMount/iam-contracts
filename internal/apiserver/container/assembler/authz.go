@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	casbin2 "github.com/casbin/casbin/v2"
-	goredis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	assignmentApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/assignment"
@@ -20,7 +19,6 @@ import (
 	policyInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/policy"
 	resourceInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/resource"
 	roleInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/role"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/redis"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/handler"
 )
 
@@ -42,16 +40,13 @@ func NewAuthzModule() *AuthzModule {
 }
 
 // Initialize 初始化授权模块
-func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *goredis.Client) error {
+// versionNotifier: 策略版本通知器（可选，传 nil 则不发送通知）
+func (m *AuthzModule) Initialize(db *gorm.DB, versionNotifier policyDomain.VersionNotifier) error {
 	if db == nil {
 		return fmt.Errorf("mysql db is required")
 	}
-	if redisClient == nil {
-		return fmt.Errorf("redis client is required")
-	}
 
 	// 1. 初始化 Casbin Enforcer
-	// TODO: 配置 Casbin 模型文件路径
 	modelPath := "configs/casbin_model.conf"
 	casbinAdapter, err := casbinInfra.NewCasbinAdapter(db, modelPath)
 	if err != nil {
@@ -64,10 +59,7 @@ func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *goredis.Client) error
 	resourceRepository := resourceInfra.NewResourceRepository(db)
 	policyVersionRepository := policyInfra.NewPolicyVersionRepository(db)
 
-	// 3. 初始化版本通知器
-	versionNotifier := redis.NewVersionNotifier(redisClient, "authz:policy_changed")
-
-	// 4. 初始化领域服务
+	// 3. 初始化领域服务
 	// Resource 模块
 	resourceManager := resourceDomain.NewValidator(resourceRepository)
 	// Role 模块
@@ -77,7 +69,7 @@ func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *goredis.Client) error
 	// Assignment 模块
 	assignmentManager := assignmentDomain.NewValidator(assignmentRepository, roleRepository)
 
-	// 5. 初始化应用服务 - CQRS 分离
+	// 4. 初始化应用服务 - CQRS 分离
 	// Resource 模块
 	resourceCommander := resourceApp.NewResourceCommandService(resourceManager, resourceRepository)
 	resourceQueryer := resourceApp.NewResourceQueryService(resourceRepository)
@@ -91,7 +83,7 @@ func (m *AuthzModule) Initialize(db *gorm.DB, redisClient *goredis.Client) error
 	assignmentCommander := assignmentApp.NewAssignmentCommandService(assignmentManager, assignmentRepository, roleRepository, casbinAdapter)
 	assignmentQueryer := assignmentApp.NewAssignmentQueryService(assignmentManager, assignmentRepository)
 
-	// 6. 初始化 HTTP 处理器 - 依赖 driving 接口（CQRS）
+	// 5. 初始化 HTTP 处理器 - 依赖 driving 接口（CQRS）
 	// Resource Handler
 	m.ResourceHandler = handler.NewResourceHandler(resourceCommander, resourceQueryer)
 	// Role Handler

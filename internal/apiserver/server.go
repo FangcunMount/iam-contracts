@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/FangcunMount/component-base/pkg/log"
+	"github.com/FangcunMount/component-base/pkg/messaging"
+	_ "github.com/FangcunMount/component-base/pkg/messaging/nsq" // 注册 NSQ Provider
 	"github.com/FangcunMount/component-base/pkg/shutdown"
 	"github.com/FangcunMount/component-base/pkg/shutdown/shutdownmanagers/posixsignal"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/config"
@@ -103,8 +105,15 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 		log.Warnf("Failed to parse IDP encryption key: %v", err)
 	}
 
-	// 创建六边形架构容器（传入 MySQL、双 Redis 和 IDP 加密密钥）
-	s.container = container.NewContainer(mysqlDB, cacheClient, storeClient, idpEncryptionKey)
+	// 创建 EventBus（如果配置启用了 NSQ）
+	eventBus, err := s.createEventBus()
+	if err != nil {
+		log.Warnf("Failed to create EventBus: %v", err)
+		eventBus = nil // 允许在没有 EventBus 的情况下运行
+	}
+
+	// 创建六边形架构容器（传入 MySQL、双 Redis、EventBus 和 IDP 加密密钥）
+	s.container = container.NewContainer(mysqlDB, cacheClient, storeClient, eventBus, idpEncryptionKey)
 
 	// 初始化容器中的所有组件
 	if err := s.container.Initialize(); err != nil {
@@ -335,4 +344,52 @@ func applyGRPCOptions(cfg *config.Config, grpcConfig *grpcserver.Config) error {
 	}
 
 	return nil
+}
+
+// createEventBus 创建消息总线（如果配置启用了 NSQ）
+func (s *apiServer) createEventBus() (messaging.EventBus, error) {
+	// 从 viper 读取 NSQ 配置
+	enabled := viper.GetBool("nsq.enabled")
+	if !enabled {
+		log.Info("📨 NSQ EventBus: disabled")
+		return nil, nil
+	}
+
+	// 构建 NSQ 配置
+	cfg := &messaging.Config{
+		Provider: messaging.ProviderNSQ,
+		NSQ: messaging.NSQConfig{
+			LookupdAddrs: viper.GetStringSlice("nsq.lookupd-addrs"),
+			NSQdAddr:     viper.GetString("nsq.nsqd-addr"),
+			MaxAttempts:  uint16(viper.GetInt("nsq.max-attempts")),
+			MaxInFlight:  viper.GetInt("nsq.max-in-flight"),
+		},
+	}
+
+	// 设置默认值
+	if len(cfg.NSQ.LookupdAddrs) == 0 {
+		cfg.NSQ.LookupdAddrs = []string{"127.0.0.1:4161"}
+	}
+	if cfg.NSQ.NSQdAddr == "" {
+		cfg.NSQ.NSQdAddr = "127.0.0.1:4150"
+	}
+	if cfg.NSQ.MaxAttempts == 0 {
+		cfg.NSQ.MaxAttempts = 5
+	}
+	if cfg.NSQ.MaxInFlight == 0 {
+		cfg.NSQ.MaxInFlight = 200
+	}
+
+	// 创建 EventBus
+	eventBus, err := messaging.NewEventBus(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create NSQ EventBus: %w", err)
+	}
+
+	log.Info("📨 NSQ EventBus: enabled",
+		log.Strings("lookupd_addrs", cfg.NSQ.LookupdAddrs),
+		log.String("nsqd_addr", cfg.NSQ.NSQdAddr),
+	)
+
+	return eventBus, nil
 }
