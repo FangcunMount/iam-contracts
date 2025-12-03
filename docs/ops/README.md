@@ -1,9 +1,28 @@
 # Operations & Delivery
 
-集中管理部署、基础设施、迁移和运维手册：
+> 🚀 运维与部署手册
 
-- `deployment/`：环境初始化、Makefile 指南、sudoers、安全基线等。
-- `docker-hub-setup.md`：镜像仓库与凭据配置。
-- `migration-version-guide.md`：数据库迁移版本命名与执行规范。
+---
 
-> TODO: 后续补充 CI/CD、监控、告警等专题文档，并将现有脚本引用逐步链接至本目录。
+## 📁 文档目录
+
+| 文档 | 说明 |
+|------|------|
+| [Makefile 指南](./deployment/MAKEFILE_GUIDE.md) | 构建、运行、测试命令 |
+| [迁移版本管理](./migration-version-guide.md) | 数据库迁移版本命名与执行规范 |
+
+---
+
+## 🔧 快速命令
+
+```bash
+# 构建与运行
+make build          # 构建项目
+make dev            # 开发模式（热更新）
+make run            # 生产模式运行
+
+# 测试
+make test           # 运行测试
+make lint           # 代码检查
+```
+```
