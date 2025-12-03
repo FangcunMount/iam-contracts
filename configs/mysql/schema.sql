@@ -1,7 +1,7 @@
 -- ============================================================================
 -- IAM Contracts - Database Schema
 -- Notes:
---   * All tables use `iam_` prefix
+--   * All tables use `` prefix
 --   * utf8mb4 / InnoDB
 --   * Soft delete fields kept where applicable
 --   * Added missing columns to match seed data (e.g., is_system in roles)
@@ -10,21 +10,22 @@
 -- ============================================================================
 
 -- Create database
-CREATE DATABASE IF NOT EXISTS `iam_contracts`
+CREATE DATABASE IF NOT EXISTS `contracts`
     DEFAULT CHARACTER SET utf8mb4
     DEFAULT COLLATE utf8mb4_unicode_ci;
 
-USE `iam_contracts`;
+USE `contracts`;
 
 -- ============================================================================
 -- Module 1: User Center (UC) 用户中心
 -- ============================================================================
 
 -- 1.1 用户表
-CREATE TABLE IF NOT EXISTS `iam_users`
+CREATE TABLE IF NOT EXISTS `users`
 (
     `id`         BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '用户ID',
     `name`       VARCHAR(64)     NOT NULL COMMENT '用户名称',
+    `nickname`   VARCHAR(64)              DEFAULT '' COMMENT '用户昵称',
     `phone`      VARCHAR(20)     NOT NULL COMMENT '手机号',
     `email`      VARCHAR(100)    NOT NULL COMMENT '邮箱',
     `id_card`    VARCHAR(20)     NOT NULL COMMENT '身份证号',
@@ -44,7 +45,7 @@ CREATE TABLE IF NOT EXISTS `iam_users`
   COLLATE = utf8mb4_unicode_ci COMMENT ='用户表';
 
 -- 1.2 儿童档案表
-CREATE TABLE IF NOT EXISTS `iam_children`
+CREATE TABLE IF NOT EXISTS `children`
 (
     `id`         BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '儿童ID',
     `name`       VARCHAR(64)     NOT NULL COMMENT '儿童姓名',
@@ -68,7 +69,7 @@ CREATE TABLE IF NOT EXISTS `iam_children`
   COLLATE = utf8mb4_unicode_ci COMMENT ='儿童档案表';
 
 -- 1.3 监护关系表
-CREATE TABLE IF NOT EXISTS `iam_guardianships`
+CREATE TABLE IF NOT EXISTS `guardianships`
 (
     `id`             BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '监护关系ID',
     `user_id`        BIGINT UNSIGNED NOT NULL COMMENT '监护人ID (用户ID)',
@@ -83,7 +84,7 @@ CREATE TABLE IF NOT EXISTS `iam_guardianships`
     `updated_by`     BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
     `deleted_by`     BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '删除人ID',
     `version`        INT UNSIGNED    NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
-    KEY `idx_user_child_ref` (`user_id`, `child_id`),
+    UNIQUE KEY `uk_user_child_ref` (`user_id`, `child_id`),
     KEY `idx_deleted_at` (`deleted_at`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
@@ -94,7 +95,7 @@ CREATE TABLE IF NOT EXISTS `iam_guardianships`
 -- ============================================================================
 
 -- 2.1 认证账号表
-CREATE TABLE IF NOT EXISTS `iam_auth_accounts`
+CREATE TABLE IF NOT EXISTS `auth_accounts`
 (
     `id`          BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '账号ID',
     `user_id`     BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
@@ -117,7 +118,7 @@ CREATE TABLE IF NOT EXISTS `iam_auth_accounts`
   COLLATE = utf8mb4_unicode_ci COMMENT ='认证账号表';
 
 -- 2.2 微信账号扩展信息表
-CREATE TABLE IF NOT EXISTS `iam_auth_wechat_accounts`
+CREATE TABLE IF NOT EXISTS `auth_wechat_accounts`
 (
     `id`         BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '记录ID',
     `account_id` BIGINT UNSIGNED NOT NULL COMMENT '账号ID (关联 iam_auth_accounts.id)',
@@ -142,7 +143,7 @@ CREATE TABLE IF NOT EXISTS `iam_auth_wechat_accounts`
   COLLATE = utf8mb4_unicode_ci COMMENT ='微信账号扩展信息表';
 
 -- 2.3 运营后台账号凭证表
-CREATE TABLE IF NOT EXISTS `iam_auth_operation_accounts`
+CREATE TABLE IF NOT EXISTS `auth_operation_accounts`
 (
     `id`              BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '记录ID',
     `account_id`      BIGINT UNSIGNED NOT NULL COMMENT '账号ID (关联 iam_auth_accounts.id)',
@@ -168,7 +169,7 @@ CREATE TABLE IF NOT EXISTS `iam_auth_operation_accounts`
   COLLATE = utf8mb4_unicode_ci COMMENT ='运营后台账号凭证表';
 
 -- 2.4 JWKS 密钥表
-CREATE TABLE IF NOT EXISTS `iam_jwks_keys`
+CREATE TABLE IF NOT EXISTS `jwks_keys`
 (
     `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT '密钥ID',
     `kid`        VARCHAR(64)     NOT NULL COMMENT 'Key ID',
@@ -190,7 +191,7 @@ CREATE TABLE IF NOT EXISTS `iam_jwks_keys`
   COLLATE = utf8mb4_unicode_ci COMMENT ='JWKS 密钥表';
 
 -- 2.5 会话表
-CREATE TABLE IF NOT EXISTS `iam_auth_sessions`
+CREATE TABLE IF NOT EXISTS `auth_sessions`
 (
     `id`              BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '会话ID (Snowflake)',
     `user_id`         BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
@@ -213,7 +214,7 @@ CREATE TABLE IF NOT EXISTS `iam_auth_sessions`
   COLLATE = utf8mb4_unicode_ci COMMENT ='会话表';
 
 -- 2.6 Token 黑名单表
-CREATE TABLE IF NOT EXISTS `iam_auth_token_blacklist`
+CREATE TABLE IF NOT EXISTS `auth_token_blacklist`
 (
     `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
     `token_id`   VARCHAR(64)     NOT NULL COMMENT 'Token ID (jti)',
@@ -234,7 +235,7 @@ CREATE TABLE IF NOT EXISTS `iam_auth_token_blacklist`
 -- ============================================================================
 
 -- 3.1 资源表
-CREATE TABLE IF NOT EXISTS `iam_authz_resources`
+CREATE TABLE IF NOT EXISTS `authz_resources`
 (
     `id`           BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '资源ID',
     `key`          VARCHAR(128)    NOT NULL COMMENT '资源唯一标识键',
@@ -261,7 +262,7 @@ CREATE TABLE IF NOT EXISTS `iam_authz_resources`
   COLLATE = utf8mb4_unicode_ci COMMENT ='资源表';
 
 -- 3.2 角色表
-CREATE TABLE IF NOT EXISTS `iam_authz_roles`
+CREATE TABLE IF NOT EXISTS `authz_roles`
 (
     `id`           BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '角色ID',
     `name`         VARCHAR(64)     NOT NULL COMMENT '角色名称 (标识符)',
@@ -284,7 +285,7 @@ CREATE TABLE IF NOT EXISTS `iam_authz_roles`
   COLLATE = utf8mb4_unicode_ci COMMENT ='角色表';
 
 -- 3.3 赋权表 (角色分配)
-CREATE TABLE IF NOT EXISTS `iam_authz_assignments`
+CREATE TABLE IF NOT EXISTS `authz_assignments`
 (
     `id`           BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '赋权记录ID',
     `subject_type` VARCHAR(16)     NOT NULL COMMENT '主体类型: user/group',
@@ -309,7 +310,7 @@ CREATE TABLE IF NOT EXISTS `iam_authz_assignments`
   COLLATE = utf8mb4_unicode_ci COMMENT ='角色赋权表';
 
 -- 3.4 策略版本表
-CREATE TABLE IF NOT EXISTS `iam_authz_policy_versions`
+CREATE TABLE IF NOT EXISTS `authz_policy_versions`
 (
     `id`             BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '版本记录ID',
     `tenant_id`      VARCHAR(64)     NOT NULL COMMENT '租户ID',
@@ -330,7 +331,7 @@ CREATE TABLE IF NOT EXISTS `iam_authz_policy_versions`
   COLLATE = utf8mb4_unicode_ci COMMENT ='策略版本表';
 
 -- 3.5 Casbin 策略规则表
-CREATE TABLE IF NOT EXISTS `iam_casbin_rule`
+CREATE TABLE IF NOT EXISTS `casbin_rule`
 (
     `id`    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
     `ptype` VARCHAR(100)    NOT NULL COMMENT '策略类型 (p/g)',
@@ -341,7 +342,7 @@ CREATE TABLE IF NOT EXISTS `iam_casbin_rule`
     `v4`    VARCHAR(100) DEFAULT NULL COMMENT '值4 (扩展)',
     `v5`    VARCHAR(100) DEFAULT NULL COMMENT '值5 (扩展)',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_iam_casbin_rule` (`ptype`, `v0`, `v1`, `v2`, `v3`, `v4`, `v5`)
+    UNIQUE KEY `uk_casbin_rule` (`ptype`, `v0`, `v1`, `v2`, `v3`, `v4`, `v5`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='Casbin 策略规则表 - 存储 RBAC 策略规则';
@@ -351,7 +352,7 @@ CREATE TABLE IF NOT EXISTS `iam_casbin_rule`
 -- ============================================================================
 
 -- 4.1 微信应用表
-CREATE TABLE IF NOT EXISTS `iam_idp_wechat_apps`
+CREATE TABLE IF NOT EXISTS `idp_wechat_apps`
 (
     `id`                     BIGINT UNSIGNED NOT NULL COMMENT '主键 ID (Snowflake)',
     `app_id`                 VARCHAR(64)     NOT NULL COMMENT '微信应用 ID (AppID)',
@@ -383,7 +384,7 @@ CREATE TABLE IF NOT EXISTS `iam_idp_wechat_apps`
 -- ============================================================================
 
 -- 5.1 租户表
-CREATE TABLE IF NOT EXISTS `iam_tenants`
+CREATE TABLE IF NOT EXISTS `tenants`
 (
     `id`            VARCHAR(64)  NOT NULL COMMENT '租户ID',
     `name`          VARCHAR(100) NOT NULL COMMENT '租户名称',
@@ -407,7 +408,7 @@ CREATE TABLE IF NOT EXISTS `iam_tenants`
 
 
 -- 5.3 操作日志表
-CREATE TABLE IF NOT EXISTS `iam_operation_logs`
+CREATE TABLE IF NOT EXISTS `operation_logs`
 (
     `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
     `user_id`        BIGINT UNSIGNED          DEFAULT NULL COMMENT '操作用户ID',
@@ -435,7 +436,7 @@ CREATE TABLE IF NOT EXISTS `iam_operation_logs`
   COLLATE = utf8mb4_unicode_ci COMMENT ='操作日志表 - 记录所有重要操作';
 
 -- 5.4 审计日志表
-CREATE TABLE IF NOT EXISTS `iam_audit_logs`
+CREATE TABLE IF NOT EXISTS `audit_logs`
 (
     `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
     `event_id`       VARCHAR(64)     NOT NULL COMMENT '事件ID (UUID)',
@@ -461,7 +462,7 @@ CREATE TABLE IF NOT EXISTS `iam_audit_logs`
   COLLATE = utf8mb4_unicode_ci COMMENT ='审计日志表 - 用于安全合规审计';
 
 -- 5.5 数据字典表
-CREATE TABLE IF NOT EXISTS `iam_data_dictionary`
+CREATE TABLE IF NOT EXISTS `data_dictionary`
 (
     `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
     `dict_type`  VARCHAR(50)     NOT NULL COMMENT '字典类型 (user_status/gender/relation_type)',
@@ -485,7 +486,7 @@ CREATE TABLE IF NOT EXISTS `iam_data_dictionary`
 -- ============================================================================
 -- Schema 版本管理
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS `iam_schema_version`
+CREATE TABLE IF NOT EXISTS `schema_version`
 (
     `id`          INT         NOT NULL AUTO_INCREMENT COMMENT 'ID',
     `version`     VARCHAR(20) NOT NULL COMMENT 'Schema版本号',
@@ -501,13 +502,13 @@ CREATE TABLE IF NOT EXISTS `iam_schema_version`
 -- ============================================================================
 
 -- 默认租户
-INSERT INTO `iam_tenants` (`id`, `name`, `code`, `status`)
+INSERT INTO `tenants` (`id`, `name`, `code`, `status`)
 VALUES ('default', '默认租户', 'DEFAULT', 'active')
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`),
                         `status`=VALUES(`status`);
 
 -- 系统默认角色
-INSERT INTO `iam_authz_roles` (`id`, `name`, `display_name`, `tenant_id`, `is_system`, `description`, `created_at`,
+INSERT INTO `authz_roles` (`id`, `name`, `display_name`, `tenant_id`, `is_system`, `description`, `created_at`,
                                `updated_at`, `created_by`, `updated_by`, `deleted_by`, `version`)
 VALUES (1, 'super_admin', '超级管理员', 'default', 1, '拥有所有权限', NOW(), NOW(), 0, 0, 0, 1),
        (2, 'tenant_admin', '租户管理员', 'default', 1, '管理本租户内的所有资源', NOW(), NOW(), 0, 0, 0, 1),
@@ -516,21 +517,21 @@ ON DUPLICATE KEY UPDATE `display_name`=VALUES(`display_name`),
                         `description`=VALUES(`description`);
 
 -- 数据字典 - 性别
-INSERT INTO `iam_data_dictionary` (`dict_type`, `dict_code`, `dict_value`, `dict_label`, `sort_order`, `is_default`)
+INSERT INTO `data_dictionary` (`dict_type`, `dict_code`, `dict_value`, `dict_label`, `sort_order`, `is_default`)
 VALUES ('gender', '0', '0', '未知', 1, 1),
        ('gender', '1', '1', '男', 2, 0),
        ('gender', '2', '2', '女', 3, 0)
 ON DUPLICATE KEY UPDATE `dict_label`=VALUES(`dict_label`);
 
 -- 数据字典 - 用户状态
-INSERT INTO `iam_data_dictionary` (`dict_type`, `dict_code`, `dict_value`, `dict_label`, `sort_order`, `is_default`)
+INSERT INTO `data_dictionary` (`dict_type`, `dict_code`, `dict_value`, `dict_label`, `sort_order`, `is_default`)
 VALUES ('user_status', '1', '1', '正常', 1, 1),
        ('user_status', '2', '2', '禁用', 2, 0),
        ('user_status', '3', '3', '删除', 3, 0)
 ON DUPLICATE KEY UPDATE `dict_label`=VALUES(`dict_label`);
 
 -- 数据字典 - 监护关系
-INSERT INTO `iam_data_dictionary` (`dict_type`, `dict_code`, `dict_value`, `dict_label`, `sort_order`)
+INSERT INTO `data_dictionary` (`dict_type`, `dict_code`, `dict_value`, `dict_label`, `sort_order`)
 VALUES ('relation_type', 'father', 'father', '父亲', 1),
        ('relation_type', 'mother', 'mother', '母亲', 2),
        ('relation_type', 'grandfather', 'grandfather', '祖父/外祖父', 3),
@@ -539,6 +540,6 @@ VALUES ('relation_type', 'father', 'father', '父亲', 1),
 ON DUPLICATE KEY UPDATE `dict_label`=VALUES(`dict_label`);
 
 -- 记录 Schema 版本
-INSERT INTO `iam_schema_version` (`version`, `description`)
+INSERT INTO `schema_version` (`version`, `description`)
 VALUES ('2.0', '2025-10-31 - 完整的模块化 Schema 定义 (修订版)')
 ON DUPLICATE KEY UPDATE `description`=VALUES(`description`);

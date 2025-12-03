@@ -39,7 +39,7 @@ type rolePO struct {
 
 // TableName 指定表名
 func (rolePO) TableName() string {
-	return "iam_authz_roles"
+	return "authz_roles"
 }
 
 // ==================== 角色 Seed 函数 ====================

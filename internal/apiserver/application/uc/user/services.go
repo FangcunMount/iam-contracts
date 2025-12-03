@@ -18,6 +18,8 @@ type UserApplicationService interface {
 type UserProfileApplicationService interface {
 	// Rename 修改用户名称
 	Rename(ctx context.Context, userID string, newName string) error
+	// Renickname 修改用户昵称
+	Renickname(ctx context.Context, userID string, newNickname string) error
 	// UpdateContact 更新联系方式
 	UpdateContact(ctx context.Context, dto UpdateContactDTO) error
 	// UpdateIDCard 更新身份证

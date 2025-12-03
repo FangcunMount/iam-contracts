@@ -35,7 +35,7 @@ type PO struct {
 
 // TableName 指定凭据表名。
 func (PO) TableName() string {
-	return "iam_auth_credentials"
+	return "auth_credentials"
 }
 
 // BeforeCreate 在创建前设置信息。

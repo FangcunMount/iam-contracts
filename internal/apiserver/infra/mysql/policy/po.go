@@ -20,7 +20,7 @@ type PolicyVersionPO struct {
 
 // TableName 指定表名
 func (PolicyVersionPO) TableName() string {
-	return "iam_authz_policy_versions"
+	return "authz_policy_versions"
 }
 
 // BeforeCreate 在创建前设置信息

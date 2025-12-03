@@ -24,7 +24,7 @@ type AccountPO struct {
 
 // TableName 指定账号表名。
 func (AccountPO) TableName() string {
-	return "iam_auth_accounts"
+	return "auth_accounts"
 }
 
 // BeforeCreate 在创建前设置信息。

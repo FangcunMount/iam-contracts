@@ -1,30 +1,38 @@
--- 回滚初始化 Schema
--- 按照依赖关系倒序删除所有表
+-- ============================================================================
+-- IAM Contracts - Database Schema Rollback
+-- Version: 1.0 (Consolidated)
+-- Description: Drop all tables
+-- Date: 2025-12-03
+-- ============================================================================
 
-USE `iam_contracts`;
+-- Drop tables in reverse order of dependencies
 
--- 删除所有表
-DROP TABLE IF EXISTS `iam_operation_logs`;
-DROP TABLE IF EXISTS `iam_audit_logs`;
-DROP TABLE IF EXISTS `iam_data_dictionary`;
-DROP TABLE IF EXISTS `iam_schema_version`;
-DROP TABLE IF EXISTS `iam_tenants`;
+-- Schema version
+DROP TABLE IF EXISTS `schema_version`;
 
-DROP TABLE IF EXISTS `iam_idp_wechat_apps`;
+-- System / Platform module
+DROP TABLE IF EXISTS `data_dictionary`;
+DROP TABLE IF EXISTS `audit_logs`;
+DROP TABLE IF EXISTS `operation_logs`;
+DROP TABLE IF EXISTS `tenants`;
 
-DROP TABLE IF EXISTS `iam_casbin_rule`;
-DROP TABLE IF EXISTS `iam_authz_policy_versions`;
-DROP TABLE IF EXISTS `iam_authz_assignments`;
-DROP TABLE IF EXISTS `iam_authz_roles`;
-DROP TABLE IF EXISTS `iam_authz_resources`;
+-- IDP module
+DROP TABLE IF EXISTS `idp_wechat_apps`;
 
-DROP TABLE IF EXISTS `iam_auth_token_blacklist`;
-DROP TABLE IF EXISTS `iam_auth_sessions`;
-DROP TABLE IF EXISTS `iam_jwks_keys`;
-DROP TABLE IF EXISTS `iam_auth_operation_accounts`;
-DROP TABLE IF EXISTS `iam_auth_wechat_accounts`;
-DROP TABLE IF EXISTS `iam_auth_accounts`;
+-- Authz module
+DROP TABLE IF EXISTS `casbin_rule`;
+DROP TABLE IF EXISTS `authz_policy_versions`;
+DROP TABLE IF EXISTS `authz_assignments`;
+DROP TABLE IF EXISTS `authz_roles`;
+DROP TABLE IF EXISTS `authz_resources`;
 
-DROP TABLE IF EXISTS `iam_guardianships`;
-DROP TABLE IF EXISTS `iam_children`;
-DROP TABLE IF EXISTS `iam_users`;
+-- Authn module
+DROP TABLE IF EXISTS `jwks_keys`;
+DROP TABLE IF EXISTS `auth_token_audit`;
+DROP TABLE IF EXISTS `auth_credentials`;
+DROP TABLE IF EXISTS `auth_accounts`;
+
+-- UC module
+DROP TABLE IF EXISTS `guardianships`;
+DROP TABLE IF EXISTS `children`;
+DROP TABLE IF EXISTS `users`;

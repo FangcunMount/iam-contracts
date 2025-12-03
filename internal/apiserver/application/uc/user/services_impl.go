@@ -111,6 +111,30 @@ func (s *userProfileApplicationService) Rename(ctx context.Context, userID strin
 	})
 }
 
+// Renickname 修改用户昵称
+func (s *userProfileApplicationService) Renickname(ctx context.Context, userID string, newNickname string) error {
+	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+		// 创建领域服务
+		validator := user.NewValidator(tx.Users)
+		profileEditor := user.NewProfileEditor(tx.Users, validator)
+
+		// 转换 ID
+		id, err := parseUserID(userID)
+		if err != nil {
+			return err
+		}
+
+		// 调用领域服务修改昵称
+		modifiedUser, err := profileEditor.Renickname(ctx, id, newNickname)
+		if err != nil {
+			return err
+		}
+
+		// 持久化修改
+		return tx.Users.Update(ctx, modifiedUser)
+	})
+}
+
 // UpdateContact 更新联系方式
 func (s *userProfileApplicationService) UpdateContact(ctx context.Context, dto UpdateContactDTO) error {
 	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {

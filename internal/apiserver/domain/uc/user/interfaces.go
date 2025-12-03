@@ -31,6 +31,9 @@ type ProfileEditor interface {
 	// Rename 修改用户名称
 	Rename(ctx context.Context, id meta.ID, newName string) (*User, error)
 
+	// Renickname 修改用户昵称
+	Renickname(ctx context.Context, id meta.ID, newNickname string) (*User, error)
+
 	// UpdateContact 更新联系方式
 	UpdateContact(ctx context.Context, id meta.ID, phone meta.Phone, email meta.Email) (*User, error)
 

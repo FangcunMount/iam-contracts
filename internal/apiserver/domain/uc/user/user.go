@@ -8,12 +8,13 @@ import (
 
 // User 基础用户（身份锚点）
 type User struct {
-	ID     meta.ID
-	Name   string
-	Phone  meta.Phone
-	Email  meta.Email
-	IDCard meta.IDCard
-	Status UserStatus
+	ID       meta.ID
+	Name     string
+	Nickname string
+	Phone    meta.Phone
+	Email    meta.Email
+	IDCard   meta.IDCard
+	Status   UserStatus
 }
 
 // NewUser 创建新用户（完整信息）
@@ -42,6 +43,7 @@ type UserOption func(*User)
 
 // With*** 用户选项函数
 func WithID(id meta.ID) UserOption             { return func(u *User) { u.ID = id } }
+func WithNickname(nickname string) UserOption  { return func(u *User) { u.Nickname = nickname } }
 func WithEmail(email meta.Email) UserOption    { return func(u *User) { u.Email = email } }
 func WithIDCard(idCard meta.IDCard) UserOption { return func(u *User) { u.IDCard = idCard } }
 func WithStatus(status UserStatus) UserOption  { return func(u *User) { u.Status = status } }
@@ -58,6 +60,9 @@ func (u *User) IsInactive() bool { return u.Status == UserInactive }
 
 // Rename 更新用户名
 func (u *User) Rename(name string) { u.Name = name }
+
+// UpdateNickname 更新昵称
+func (u *User) UpdateNickname(nickname string) { u.Nickname = nickname }
 
 // UpdatePhone 修改电话
 func (u *User) UpdatePhone(phone meta.Phone) {

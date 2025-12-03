@@ -23,5 +23,5 @@ type KeyPO struct {
 
 // TableName 指定表名
 func (KeyPO) TableName() string {
-	return "iam_jwks_keys"
+	return "jwks_keys"
 }

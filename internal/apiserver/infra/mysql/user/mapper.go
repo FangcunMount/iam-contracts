@@ -20,11 +20,12 @@ func (m *UserMapper) ToPO(uBO *domain.User) *UserPO {
 	}
 
 	po := &UserPO{
-		Name:   uBO.Name,
-		Phone:  uBO.Phone,
-		Email:  uBO.Email,
-		IDCard: uBO.IDCard,
-		Status: uBO.Status.Value(),
+		Name:     uBO.Name,
+		Nickname: uBO.Nickname,
+		Phone:    uBO.Phone,
+		Email:    uBO.Email,
+		IDCard:   uBO.IDCard,
+		Status:   uBO.Status.Value(),
 	}
 
 	// 设置嵌入字段的成员
@@ -43,6 +44,7 @@ func (m *UserMapper) ToBO(po *UserPO) *domain.User {
 		po.Name,
 		po.Phone,
 		domain.WithID(po.ID),
+		domain.WithNickname(po.Nickname),
 		domain.WithEmail(po.Email),
 		domain.WithIDCard(po.IDCard),
 		domain.WithStatus(domain.UserStatus(po.Status)),

@@ -39,6 +39,20 @@ func (s *profileEditor) Rename(ctx context.Context, id meta.ID, newName string) 
 	return user, nil
 }
 
+// Renickname 修改用户昵称
+func (s *profileEditor) Renickname(ctx context.Context, id meta.ID, newNickname string) (*User, error) {
+	// 查找用户
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// 修改昵称
+	user.UpdateNickname(newNickname)
+
+	return user, nil
+}
+
 // UpdateContact 更新联系方式
 func (s *profileEditor) UpdateContact(ctx context.Context, id meta.ID, phone meta.Phone, email meta.Email) (*User, error) {
 	// 查找用户

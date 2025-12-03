@@ -24,7 +24,7 @@ type ChildPO struct {
 
 // TableName 指定表名
 func (ChildPO) TableName() string {
-	return "iam_children"
+	return "children"
 }
 
 // BeforeCreate 在创建前设置信息

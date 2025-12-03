@@ -27,7 +27,7 @@ type tenantPO struct {
 
 // TableName 指定表名
 func (tenantPO) TableName() string {
-	return "iam_tenants"
+	return "tenants"
 }
 
 // ==================== 租户 Seed 函数 ====================

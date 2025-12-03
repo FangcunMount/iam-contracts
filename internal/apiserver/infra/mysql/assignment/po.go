@@ -22,7 +22,7 @@ type AssignmentPO struct {
 
 // TableName 指定表名
 func (AssignmentPO) TableName() string {
-	return "iam_authz_assignments"
+	return "authz_assignments"
 }
 
 // BeforeCreate 在创建前设置信息
