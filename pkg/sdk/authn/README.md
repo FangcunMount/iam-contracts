@@ -227,7 +227,7 @@ type Config struct {
 
 ### 密钥查找逻辑
 
-```
+```text
 1. 从缓存查找 kid
    ├─ 找到 → 返回密钥
    └─ 未找到 → 刷新 JWKS → 重试查找
@@ -295,7 +295,7 @@ SDK 使用项目统一的日志库，所有日志都带有 `[AuthN SDK]` 前缀�
 
 ### 日志示例
 
-```
+```text
 INFO  [AuthN SDK] Connecting to IAM authn gRPC endpoint: localhost:8081
 INFO  [AuthN SDK] Successfully connected to IAM authn gRPC endpoint
 INFO  [AuthN SDK] Initializing JWKS manager with URL: https://iam.example.com/.well-known/jwks.json, refresh interval: 5m0s

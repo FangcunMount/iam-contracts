@@ -26,6 +26,8 @@ services:
       - ./logs:/var/log/iam-contracts
       # 挂载开发证书（使用自签名证书）
       - ../../configs/cert:/etc/iam-contracts/ssl:ro
+      # 挂载 JWKS 密钥目录（用于 JWT 非对称签名密钥持久化）
+      - ./data/iam-keys:/app/data/keys:rw
     environment:
       - TZ=Asia/Shanghai
       - GO_ENV=development
