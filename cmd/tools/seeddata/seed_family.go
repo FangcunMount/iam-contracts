@@ -1,0 +1,631 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"math/rand"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	gofaker "github.com/guchengxi1994/go_faker"
+	"github.com/mozillazg/go-pinyin"
+
+	childApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/child"
+	guardApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
+	ucUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
+	userApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
+)
+
+// ==================== 配置常量 ====================
+
+const (
+	// defaultFamilyCount 默认生成的家庭数量
+	defaultFamilyCount = 1000
+	// defaultWorkerCount 默认并发 worker 数量
+	defaultWorkerCount = 20
+	// maxPhoneRetry 生成唯一手机号最大重试次数
+	maxPhoneRetry = 10
+	// maxDBRetry 数据库操作最大重试次数（遇到 duplicate key 时）
+	maxDBRetry = 3
+)
+
+// ==================== 用户中心相关类型定义 ====================
+
+// parentSeed 父/母种子数据
+type parentSeed struct {
+	Alias    string // 别名，用于后续引用（姓名全拼 + 手机号后4位）
+	Name     string // 真实姓名
+	Nickname string // 昵称
+	Phone    string
+	Gender   string // male/female
+}
+
+// childrenSeed 儿童种子数据
+type childrenSeed struct {
+	Alias    string // 别名，用于后续引用
+	Name     string
+	IDCard   string
+	Gender   string
+	Birthday string
+	Height   uint32 // 厘米
+	Weight   uint32 // 克
+}
+
+// familySeed 家庭种子数据
+type familySeed struct {
+	Index    int
+	Father   *parentSeed
+	Mother   *parentSeed
+	Children []childrenSeed
+}
+
+// ==================== PhoneSet 线程安全的手机号集合 ====================
+
+// PhoneSet 线程安全的手机号去重集合
+type PhoneSet struct {
+	mu     sync.Mutex
+	phones map[string]struct{}
+}
+
+// newPhoneSet 创建新的 PhoneSet
+func newPhoneSet() *PhoneSet {
+	return &PhoneSet{
+		phones: make(map[string]struct{}, 100000),
+	}
+}
+
+// Add 添加手机号，返回是否添加成功（false 表示已存在）
+func (s *PhoneSet) Add(phone string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, exists := s.phones[phone]; exists {
+		return false
+	}
+	s.phones[phone] = struct{}{}
+	return true
+}
+
+// GenerateUniquePhone 生成唯一的手机号
+func (s *PhoneSet) GenerateUniquePhone() (string, error) {
+	for i := 0; i < maxPhoneRetry; i++ {
+		phone := generateFakePhone()
+		if s.Add(phone) {
+			return phone, nil
+		}
+	}
+	return "", fmt.Errorf("GenerateUniquePhone: too many conflicts after %d attempts", maxPhoneRetry)
+}
+
+// ==================== Faker 辅助函数 ====================
+
+// generateFakePhone 生成假手机号（中国格式）
+func generateFakePhone() string {
+	// 中国手机号前缀
+	prefixes := []string{"130", "131", "132", "133", "134", "135", "136", "137", "138", "139",
+		"150", "151", "152", "153", "155", "156", "157", "158", "159",
+		"170", "171", "172", "173", "175", "176", "177", "178",
+		"180", "181", "182", "183", "184", "185", "186", "187", "188", "189",
+		"191", "198", "199"}
+	prefix := prefixes[rand.Intn(len(prefixes))]
+	// 生成后8位
+	suffix := fmt.Sprintf("%08d", rand.Intn(100000000))
+	return prefix + suffix
+}
+
+// generateFakeName 生成假中文姓名
+func generateFakeName() string {
+	f := gofaker.Faker{
+		Locale: "zh_CN",
+	}
+	fullName := f.PersonName()
+	// PersonName() 返回格式: "中文名, 英文名"，只保留中文部分
+	if idx := strings.Index(fullName, ","); idx != -1 {
+		return strings.TrimSpace(fullName[:idx])
+	}
+	return fullName
+}
+
+// 中国身份证号地区码（部分常用）
+var areaCodes = []string{
+	"110101", "110102", "110105", "110106", "110107", "110108", "110109", "110111", // 北京
+	"310101", "310104", "310105", "310106", "310107", "310109", "310110", "310112", // 上海
+	"440103", "440104", "440105", "440106", "440111", "440112", "440113", "440114", // 广州
+	"440303", "440304", "440305", "440306", "440307", "440308", "440309", "440310", // 深圳
+	"330102", "330103", "330104", "330105", "330106", "330108", "330109", "330110", // 杭州
+	"320102", "320104", "320105", "320106", "320111", "320113", "320114", "320115", // 南京
+	"510104", "510105", "510106", "510107", "510108", "510112", "510113", "510114", // 成都
+	"420102", "420103", "420104", "420105", "420106", "420107", "420111", "420112", // 武汉
+	"500101", "500102", "500103", "500104", "500105", "500106", "500107", "500108", // 重庆
+	"610102", "610103", "610104", "610111", "610112", "610113", "610114", "610115", // 西安
+}
+
+// 身份证校验码权重
+var idCardWeights = []int{7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2}
+
+// 身份证校验码对应值
+var idCardCheckCodes = []byte{'1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'}
+
+// generateFakeIDCard 生成合法的18位身份证号
+// 格式：6位地区码 + 8位出生日期 + 3位顺序码 + 1位校验码
+func generateFakeIDCard() string {
+	// 1. 随机选择地区码
+	areaCode := areaCodes[rand.Intn(len(areaCodes))]
+
+	// 2. 生成出生日期（3-15岁的儿童）
+	now := time.Now()
+	ageYears := 3 + rand.Intn(13) // 3-15岁
+	ageDays := rand.Intn(365)
+	birthDate := now.AddDate(-ageYears, 0, -ageDays)
+	birthStr := birthDate.Format("20060102")
+
+	// 3. 生成3位顺序码（奇数为男，偶数为女，这里随机）
+	seqCode := fmt.Sprintf("%03d", rand.Intn(1000))
+
+	// 4. 计算校验码
+	first17 := areaCode + birthStr + seqCode
+	checkCode := calculateIDCardCheckCode(first17)
+
+	return first17 + string(checkCode)
+}
+
+// calculateIDCardCheckCode 计算身份证校验码
+func calculateIDCardCheckCode(first17 string) byte {
+	if len(first17) != 17 {
+		return '0'
+	}
+	sum := 0
+	for i := 0; i < 17; i++ {
+		digit := int(first17[i] - '0')
+		sum += digit * idCardWeights[i]
+	}
+	return idCardCheckCodes[sum%11]
+}
+
+// nameToPinyin 将中文名转换为拼音
+func nameToPinyin(name string) string {
+	args := pinyin.NewArgs()
+	args.Style = pinyin.Normal
+	result := pinyin.Pinyin(name, args)
+	var builder strings.Builder
+	for _, py := range result {
+		if len(py) > 0 {
+			builder.WriteString(py[0])
+		}
+	}
+	return builder.String()
+}
+
+// generateAlias 生成别名：姓名全拼 + 手机号后4位
+func generateAlias(name, phone string) string {
+	py := nameToPinyin(name)
+	suffix := ""
+	if len(phone) >= 4 {
+		suffix = phone[len(phone)-4:]
+	}
+	return py + suffix
+}
+
+// ==================== 儿童数据生成函数 ====================
+
+// generateChildBirthday 生成儿童生日（3-12岁）
+func generateChildBirthday() string {
+	now := time.Now()
+	// 生成 3-12 岁的儿童
+	ageYears := 3 + rand.Intn(10) // 3-12岁
+	ageDays := rand.Intn(365)
+	birthDate := now.AddDate(-ageYears, 0, -ageDays)
+	return birthDate.Format("2006-01-02")
+}
+
+// generateChildHeight 根据年龄生成身高（厘米）
+func generateChildHeight(birthday string) uint32 {
+	age := calculateAge(birthday)
+	// 基础身高 + 年龄增量 + 随机波动
+	baseHeight := 80 + age*6 // 粗略估算：3岁约98cm，每年增长6cm
+	variation := rand.Intn(15) - 7
+	height := baseHeight + variation
+	if height < 80 {
+		height = 80
+	}
+	if height > 180 {
+		height = 180
+	}
+	return uint32(height)
+}
+
+// generateChildWeight 根据年龄生成体重（克）
+func generateChildWeight(birthday string) uint32 {
+	age := calculateAge(birthday)
+	// 基础体重 + 年龄增量 + 随机波动
+	baseWeight := 12 + age*2 // 粗略估算：3岁约18kg，每年增长2kg
+	variation := rand.Intn(6) - 3
+	weight := baseWeight + variation
+	if weight < 10 {
+		weight = 10
+	}
+	if weight > 80 {
+		weight = 80
+	}
+	return uint32(weight * 1000) // 转换为克
+}
+
+// calculateAge 根据生日计算年龄
+func calculateAge(birthday string) int {
+	birthDate, err := time.Parse("2006-01-02", birthday)
+	if err != nil {
+		return 5 // 默认5岁
+	}
+	now := time.Now()
+	age := now.Year() - birthDate.Year()
+	if now.YearDay() < birthDate.YearDay() {
+		age--
+	}
+	return age
+}
+
+// generateChildGender 随机生成性别
+func generateChildGender() string {
+	if rand.Float32() < 0.5 {
+		return "male"
+	}
+	return "female"
+}
+
+// ==================== 家庭数据生成函数 ====================
+
+// generateFamily 生成一个家庭的种子数据
+// 规则：
+// - 50% 只有母亲, 15% 只有父亲, 35% 有父亲和母亲
+// - 70% 有1个孩子, 25% 有2个孩子, 5% 有3个孩子
+func generateFamily(index int, phoneSet *PhoneSet) (*familySeed, error) {
+	family := &familySeed{
+		Index: index,
+	}
+
+	// 决定家长组成
+	r := rand.Float32()
+	hasFather := r >= 0.50             // 50% 以上有父亲
+	hasMother := r < 0.50 || r >= 0.65 // 小于65% 有母亲（即50%只有母亲 + 35%有双亲）
+
+	if hasFather {
+		phone, err := phoneSet.GenerateUniquePhone()
+		if err != nil {
+			return nil, fmt.Errorf("generate father phone: %w", err)
+		}
+		name := generateFakeName()
+		alias := generateAlias(name, phone)
+		family.Father = &parentSeed{
+			Name:     name,
+			Nickname: alias, // 昵称 = 姓名全拼 + 手机号后4位
+			Phone:    phone,
+			Gender:   "male",
+			Alias:    alias,
+		}
+	}
+
+	if hasMother {
+		phone, err := phoneSet.GenerateUniquePhone()
+		if err != nil {
+			return nil, fmt.Errorf("generate mother phone: %w", err)
+		}
+		name := generateFakeName()
+		alias := generateAlias(name, phone)
+		family.Mother = &parentSeed{
+			Name:     name,
+			Nickname: alias, // 昵称 = 姓名全拼 + 手机号后4位
+			Phone:    phone,
+			Gender:   "female",
+			Alias:    alias,
+		}
+	}
+
+	// 决定孩子数量
+	r = rand.Float32()
+	var childCount int
+	switch {
+	case r < 0.70:
+		childCount = 1
+	case r < 0.95:
+		childCount = 2
+	default:
+		childCount = 3
+	}
+
+	family.Children = make([]childrenSeed, 0, childCount)
+	for i := 0; i < childCount; i++ {
+		birthday := generateChildBirthday()
+		gender := generateChildGender()
+		name := generateFakeName()
+		idCard := generateFakeIDCard()
+
+		child := childrenSeed{
+			Alias:    fmt.Sprintf("child_%d_%d", index, i),
+			Name:     name,
+			IDCard:   idCard,
+			Gender:   gender,
+			Birthday: birthday,
+			Height:   generateChildHeight(birthday),
+			Weight:   generateChildWeight(birthday),
+		}
+		family.Children = append(family.Children, child)
+	}
+
+	return family, nil
+}
+
+// ==================== FamilySeedTask 任务定义 ====================
+
+// familySeedTask 家庭 seed 任务
+type familySeedTask struct {
+	Index int
+}
+
+// familyServices 家庭相关的应用服务集合
+type familyServices struct {
+	UserAppSrv     userApp.UserApplicationService
+	UserProfileSrv userApp.UserProfileApplicationService
+	ChildAppSrv    childApp.ChildApplicationService
+	GuardAppSrv    guardApp.GuardianshipApplicationService
+	GuardQuerySrv  guardApp.GuardianshipQueryApplicationService
+}
+
+// Run 执行家庭 seed 任务
+func (t *familySeedTask) Run(
+	ctx context.Context,
+	services *familyServices,
+	phoneSet *PhoneSet,
+) error {
+	// 1. 生成家庭数据
+	family, err := generateFamily(t.Index, phoneSet)
+	if err != nil {
+		return fmt.Errorf("task %d: generate family: %w", t.Index, err)
+	}
+
+	// 2. 创建父亲（如果存在）
+	var fatherID string
+	if family.Father != nil {
+		fatherID, err = createParentWithRetry(ctx, services.UserAppSrv, services.UserProfileSrv, family.Father, phoneSet)
+		if err != nil {
+			return fmt.Errorf("task %d: create father: %w", t.Index, err)
+		}
+	}
+
+	// 3. 创建母亲（如果存在）
+	var motherID string
+	if family.Mother != nil {
+		motherID, err = createParentWithRetry(ctx, services.UserAppSrv, services.UserProfileSrv, family.Mother, phoneSet)
+		if err != nil {
+			return fmt.Errorf("task %d: create mother: %w", t.Index, err)
+		}
+	}
+
+	// 4. 创建孩子并建立监护关系
+	for i, child := range family.Children {
+		childID, err := createChild(ctx, services.ChildAppSrv, &child)
+		if err != nil {
+			return fmt.Errorf("task %d: create child %d: %w", t.Index, i, err)
+		}
+
+		// 建立监护关系
+		if fatherID != "" {
+			if err := createGuardianship(ctx, services.GuardAppSrv, services.GuardQuerySrv, fatherID, childID, "parent"); err != nil {
+				return fmt.Errorf("task %d: create father guardianship for child %d: %w", t.Index, i, err)
+			}
+		}
+		if motherID != "" {
+			if err := createGuardianship(ctx, services.GuardAppSrv, services.GuardQuerySrv, motherID, childID, "parent"); err != nil {
+				return fmt.Errorf("task %d: create mother guardianship for child %d: %w", t.Index, i, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// ==================== 数据库操作函数 ====================
+
+// createParentWithRetry 创建父/母用户，遇到 duplicate key 时重试
+func createParentWithRetry(
+	ctx context.Context,
+	userAppSrv userApp.UserApplicationService,
+	userProfileSrv userApp.UserProfileApplicationService,
+	parent *parentSeed,
+	phoneSet *PhoneSet,
+) (string, error) {
+	var lastErr error
+	for retry := 0; retry < maxDBRetry; retry++ {
+		result, err := userAppSrv.Register(ctx, userApp.RegisterUserDTO{
+			Name:  parent.Name,
+			Phone: parent.Phone,
+		})
+		if err == nil {
+			// 注册成功后设置昵称
+			if parent.Nickname != "" {
+				_ = userProfileSrv.Renickname(ctx, result.ID, parent.Nickname)
+			}
+			return result.ID, nil
+		}
+
+		// 检查是否是 duplicate key 错误
+		if isDuplicateKeyError(err) {
+			// 生成新的手机号重试
+			newPhone, phoneErr := phoneSet.GenerateUniquePhone()
+			if phoneErr != nil {
+				return "", fmt.Errorf("retry %d: %w", retry, phoneErr)
+			}
+			parent.Phone = newPhone
+			newAlias := generateAlias(parent.Name, newPhone)
+			parent.Alias = newAlias
+			parent.Nickname = newAlias // 昵称也同步更新
+			lastErr = err
+			continue
+		}
+
+		return "", err
+	}
+	return "", fmt.Errorf("max retries exceeded: %w", lastErr)
+}
+
+// createChild 创建儿童
+func createChild(
+	ctx context.Context,
+	childAppSrv childApp.ChildApplicationService,
+	child *childrenSeed,
+) (string, error) {
+	height := child.Height
+	weight := child.Weight
+	result, err := childAppSrv.Register(ctx, childApp.RegisterChildDTO{
+		Name:     child.Name,
+		Gender:   child.Gender,
+		Birthday: child.Birthday,
+		IDCard:   child.IDCard,
+		Height:   &height,
+		Weight:   &weight,
+	})
+	if err != nil {
+		return "", err
+	}
+	return result.ID, nil
+}
+
+// createGuardianship 创建监护关系
+func createGuardianship(
+	ctx context.Context,
+	guardAppSrv guardApp.GuardianshipApplicationService,
+	guardQuerySrv guardApp.GuardianshipQueryApplicationService,
+	userID, childID, relation string,
+) error {
+	// 先检查是否已存在
+	isGuardian, err := guardQuerySrv.IsGuardian(ctx, userID, childID)
+	if err != nil {
+		return fmt.Errorf("check guardian: %w", err)
+	}
+	if isGuardian {
+		return nil // 已存在，跳过
+	}
+
+	err = guardAppSrv.AddGuardian(ctx, guardApp.AddGuardianDTO{
+		UserID:   userID,
+		ChildID:  childID,
+		Relation: relation,
+	})
+	if err != nil && !isDuplicateGuardianError(err) {
+		return err
+	}
+	return nil
+}
+
+// isDuplicateKeyError 检查是否是 duplicate key 错误
+func isDuplicateKeyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := strings.ToLower(err.Error())
+	return strings.Contains(errStr, "duplicate") ||
+		strings.Contains(errStr, "unique constraint") ||
+		strings.Contains(errStr, "already exists")
+}
+
+// isDuplicateGuardianError 检查是否是重复监护关系错误
+func isDuplicateGuardianError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "already exists")
+}
+
+// ==================== Worker Pool 实现 ====================
+
+// seedFamilyCenter 使用 worker pool 模式创建家庭数据
+//
+// 设计说明：
+// 1. 主 goroutine 只推送任务索引到 channel
+// 2. 固定数量的 worker 从 channel 获取任务并执行完整业务逻辑
+// 3. 手机号唯一性通过 PhoneSet 在内存中去重，数据库唯一索引兜底
+// 4. 遇到 duplicate key error 时自动重试
+func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, workerCount int) error {
+	if familyCount <= 0 {
+		familyCount = defaultFamilyCount
+	}
+	if workerCount <= 0 {
+		workerCount = defaultWorkerCount
+	}
+
+	deps.Logger.Infow("🏠 开始创建家庭数据",
+		"family_count", familyCount,
+		"worker_count", workerCount,
+	)
+
+	// 初始化应用服务
+	uow := ucUOW.NewUnitOfWork(deps.DB)
+	services := &familyServices{
+		UserAppSrv:     userApp.NewUserApplicationService(uow),
+		UserProfileSrv: userApp.NewUserProfileApplicationService(uow),
+		ChildAppSrv:    childApp.NewChildApplicationService(uow),
+		GuardAppSrv:    guardApp.NewGuardianshipApplicationService(uow),
+		GuardQuerySrv:  guardApp.NewGuardianshipQueryApplicationService(uow),
+	}
+
+	// 创建手机号去重集合
+	phoneSet := newPhoneSet()
+
+	// 创建任务 channel
+	taskCh := make(chan *familySeedTask, workerCount*2)
+
+	// 统计
+	var successCount, failCount int64
+	var wg sync.WaitGroup
+
+	// 启动 workers
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+			for task := range taskCh {
+				if err := task.Run(ctx, services, phoneSet); err != nil {
+					atomic.AddInt64(&failCount, 1)
+					deps.Logger.Warnw("家庭创建失败",
+						"worker", workerID,
+						"task_index", task.Index,
+						"error", err,
+					)
+				} else {
+					count := atomic.AddInt64(&successCount, 1)
+					// 每 100 个打印一次进度
+					if count%100 == 0 {
+						deps.Logger.Infow("家庭创建进度",
+							"completed", count,
+							"total", familyCount,
+						)
+					}
+				}
+			}
+		}(i)
+	}
+
+	// 主 goroutine 推送任务
+	for i := 0; i < familyCount; i++ {
+		select {
+		case <-ctx.Done():
+			close(taskCh)
+			wg.Wait()
+			return ctx.Err()
+		case taskCh <- &familySeedTask{Index: i}:
+		}
+	}
+	close(taskCh)
+
+	// 等待所有 worker 完成
+	wg.Wait()
+
+	deps.Logger.Infow("✅ 家庭数据创建完成",
+		"success", atomic.LoadInt64(&successCount),
+		"failed", atomic.LoadInt64(&failCount),
+		"total", familyCount,
+	)
+
+	if failCount > 0 {
+		return fmt.Errorf("部分家庭创建失败: %d/%d", failCount, familyCount)
+	}
+	return nil
+}

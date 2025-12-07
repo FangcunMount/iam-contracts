@@ -50,6 +50,7 @@ type seedStep string
 const (
 	stepTenants     seedStep = "tenants"     // 创建租户数据
 	stepUserCenter  seedStep = "user"        // 创建用户、儿童、监护关系
+	stepFamily      seedStep = "family"      // 批量创建家庭数据（faker生成）
 	stepAuthn       seedStep = "authn"       // 创建认证账号和凭证
 	stepRoles       seedStep = "roles"       // 创建基础角色
 	stepResources   seedStep = "resources"   // 创建授权资源
@@ -61,15 +62,7 @@ const (
 
 // defaultSteps defines the default execution order of all seed steps.
 var defaultSteps = []seedStep{
-	stepTenants,
-	stepUserCenter,
-	stepAuthn,
-	stepRoles,
-	stepResources,
-	stepAssignments,
-	stepCasbin,
-	stepJWKS,
-	stepWechatApp,
+	stepFamily,
 }
 
 // dependencies holds all external dependencies required by seed functions.
@@ -116,7 +109,9 @@ func main() {
 	keysDirFlag := flag.String("keys-dir", "./tmp/keys", "Directory to store generated JWKS private keys")
 	casbinModelFlag := flag.String("casbin-model", "configs/casbin_model.conf", "Path to casbin model configuration file")
 	configFileFlag := flag.String("config", "configs/seeddata.yaml", "Path to seed data configuration file")
-	stepsFlag := flag.String("steps", strings.Join(stepListToStrings(defaultSteps), ","), "Comma separated seed steps (tenants,user,authn,resources,assignments,casbin,jwks)")
+	stepsFlag := flag.String("steps", strings.Join(stepListToStrings(defaultSteps), ","), "Comma separated seed steps (tenants,user,family,authn,resources,assignments,casbin,jwks)")
+	familyCountFlag := flag.Int("family-count", 100000, "Number of families to generate in family seed step")
+	workerCountFlag := flag.Int("worker-count", 200, "Number of concurrent workers for family seed step")
 	flag.Parse()
 
 	// 初始化日志
@@ -189,6 +184,10 @@ func main() {
 		case stepUserCenter:
 			if err := seedUserCenter(ctx, deps, state); err != nil {
 				logger.Fatalw("❌ 用户中心数据创建失败", "error", err)
+			}
+		case stepFamily:
+			if err := seedFamilyCenter(ctx, deps, *familyCountFlag, *workerCountFlag); err != nil {
+				logger.Fatalw("❌ 家庭数据批量创建失败", "error", err)
 			}
 		case stepAuthn:
 			if err := seedAuthn(ctx, deps, state); err != nil {
