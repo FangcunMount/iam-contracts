@@ -521,8 +521,7 @@ jobs:
                 exit 1
               fi
             done
-            $SUDO find "$GRPC_DIR_HOST" -type d -exec chmod 0750 {} \;
-            $SUDO find "$GRPC_DIR_HOST" -type f -exec chmod 0640 {} \;
+            echo "✅ gRPC certs found under $GRPC_DIR_HOST (permissions kept as-is; adjust manually if needed)"
 
             # 导出运行所需环境变量（供 compose 内插值）
             export DOCKER_REGISTRY IMAGE_NAME IMAGE_TAG
