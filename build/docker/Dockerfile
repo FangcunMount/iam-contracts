@@ -72,8 +72,8 @@ RUN mkdir -p /app/logs /app/data/keys /var/log/iam-contracts && \
     chown -R app:app /app /var/log/iam-contracts
 
 # 预创建 TLS 目录，避免按文件挂载失败
-RUN mkdir -p /etc/iam-contracts/ssl && \
-    chmod 755 /etc/iam-contracts /etc/iam-contracts/ssl
+RUN mkdir -p /etc/iam-contracts/ssl /etc/iam-contracts/grpc/ca /etc/iam-contracts/grpc/server && \
+    chmod 755 /etc/iam-contracts /etc/iam-contracts/ssl /etc/iam-contracts/grpc /etc/iam-contracts/grpc/ca /etc/iam-contracts/grpc/server
 
 # 切换到非 root 用户
 USER app

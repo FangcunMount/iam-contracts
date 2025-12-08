@@ -314,6 +314,68 @@ docker buildx build \
 - [Jenkins 部署](../../docs/JENKINS_QUICKSTART.md) - CI/CD 自动化部署
 - [主 README](../../README.md) - 项目概述
 
+## 生产环境部署清单
+
+部署前请确保在目标服务器上创建以下目录和文件：
+
+### 1. TLS/SSL 证书
+
+```bash
+# Web HTTPS 证书
+/data/ssl/certs/yangshujie.com.crt
+/data/ssl/private/yangshujie.com.key
+```
+
+### 2. gRPC mTLS 证书
+
+```bash
+# CA 证书链
+/data/ssl/iam-contracts/grpc/ca/ca-chain.crt
+
+# 服务端证书
+/data/ssl/iam-contracts/grpc/server/iam-grpc.crt
+/data/ssl/iam-contracts/grpc/server/iam-grpc.key
+```
+
+### 3. 其他目录
+
+```bash
+# 日志目录
+mkdir -p /data/logs/iam
+
+# JWKS 密钥目录
+mkdir -p /data/ops/iam-keys
+```
+
+> **注意**：gRPC ACL 配置文件 (`grpc_acl.yaml`) 已包含在项目 `configs/` 目录中，
+> 通过 docker-compose 挂载到容器的 `/app/configs/` 路径，无需单独部署。
+
+### 完整初始化脚本
+
+```bash
+#!/bin/bash
+# 生产环境初始化脚本
+
+# 创建目录结构
+mkdir -p /data/ssl/certs
+mkdir -p /data/ssl/private
+mkdir -p /data/ssl/iam-contracts/grpc/ca
+mkdir -p /data/ssl/iam-contracts/grpc/server
+mkdir -p /data/ops/iam-keys
+mkdir -p /data/logs/iam
+
+# 设置权限
+chmod 755 /data/ssl /data/ops /data/logs
+chmod 700 /data/ssl/private
+chmod 700 /data/ssl/iam-contracts/grpc/server
+
+# 提示：需要手动复制以下文件
+echo "请手动复制以下文件："
+echo "  - TLS 证书到 /data/ssl/certs/ 和 /data/ssl/private/"
+echo "  - gRPC CA 证书到 /data/ssl/iam-contracts/grpc/ca/"
+echo "  - gRPC 服务端证书到 /data/ssl/iam-contracts/grpc/server/"
+```
+
 ## 技术支持
 
 如有问题，请参考：

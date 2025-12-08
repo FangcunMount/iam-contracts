@@ -147,7 +147,7 @@ grpc:
     require-identity-match: true
   acl:
     enabled: true
-    config-file: "/etc/iam-contracts/grpc/grpc_acl.yaml"
+    config-file: "/app/configs/grpc_acl.yaml"
   audit:
     enabled: true
 
