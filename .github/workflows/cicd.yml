@@ -57,9 +57,6 @@ jobs:
           REDIS_STORE_USERNAME: ${{ secrets.REDIS_STORE_USERNAME }}
           REDIS_STORE_PASSWORD: ${{ secrets.REDIS_STORE_PASSWORD }}
           IPD_ENCRYPTION_KEY: ${{ secrets.IPD_ENCRYPTION_KEY }}
-          GRPC_CA_CHAIN: ${{ secrets.GRPC_CA_CHAIN }}
-          GRPC_SERVER_CRT: ${{ secrets.GRPC_SERVER_CRT }}
-          GRPC_SERVER_KEY: ${{ secrets.GRPC_SERVER_KEY }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           WWW_UID: ${{ secrets.WWW_UID }}
@@ -83,7 +80,6 @@ jobs:
           OPTIONAL_SECRETS=(SVRA_SSH_PORT SVRA_SUDO_PASSWORD MYSQL_PORT REDIS_CACHE_PORT REDIS_CACHE_DB REDIS_CACHE_USERNAME REDIS_CACHE_PASSWORD REDIS_STORE_PORT REDIS_STORE_DB REDIS_STORE_USERNAME REDIS_STORE_PASSWORD WWW_UID WWW_GID NSQ_LOOKUPD_HOST NSQ_LOOKUPD_PORT NSQ_NSQD_HOST NSQ_NSQD_PORT)
 
           REQUIRED_SECRETS+=(IPD_ENCRYPTION_KEY)
-          REQUIRED_SECRETS+=(GRPC_CA_CHAIN GRPC_SERVER_CRT GRPC_SERVER_KEY)
 
           for SECRET_NAME in "${REQUIRED_SECRETS[@]}"; do
             VALUE=${!SECRET_NAME}
@@ -323,9 +319,6 @@ jobs:
           NSQ_LOOKUPD_PORT: ${{ secrets.NSQ_LOOKUPD_PORT || 4161 }}
           NSQ_NSQD_HOST: ${{ secrets.NSQ_NSQD_HOST }}
           NSQ_NSQD_PORT: ${{ secrets.NSQ_NSQD_PORT || 4150 }}
-          GRPC_CA_CHAIN: ${{ secrets.GRPC_CA_CHAIN }}
-          GRPC_SERVER_CRT: ${{ secrets.GRPC_SERVER_CRT }}
-          GRPC_SERVER_KEY: ${{ secrets.GRPC_SERVER_KEY }}
         run: |
           # artifact 文件名是 apiserver，需要重命名为 iam-apiserver
           mv ./artifacts/apiserver ./artifacts/iam-apiserver
@@ -396,9 +389,6 @@ jobs:
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GRPC_CA_CHAIN: ${{ secrets.GRPC_CA_CHAIN }}
-          GRPC_SERVER_CRT: ${{ secrets.GRPC_SERVER_CRT }}
-          GRPC_SERVER_KEY: ${{ secrets.GRPC_SERVER_KEY }}
           SUDO_PASSWORD: ${{ secrets.SVRA_SUDO_PASSWORD }}
           WWW_UID: ${{ env.WWW_UID }}
           WWW_GID: ${{ env.WWW_GID }}
@@ -407,7 +397,7 @@ jobs:
           username: ${{ secrets.SVRA_USERNAME }}
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
-          envs: DOCKER_REGISTRY,IMAGE_NAME,IMAGE_TAG,GHCR_USERNAME,GHCR_TOKEN,SUDO_PASSWORD,WWW_UID,WWW_GID,GRPC_CA_CHAIN,GRPC_SERVER_CRT,GRPC_SERVER_KEY
+          envs: DOCKER_REGISTRY,IMAGE_NAME,IMAGE_TAG,GHCR_USERNAME,GHCR_TOKEN,SUDO_PASSWORD,WWW_UID,WWW_GID
           script: |
             set -Eeuo pipefail
 
@@ -520,27 +510,19 @@ jobs:
             $SUDO chown -R "$APP_UID:$APP_GID" "$KEY_DIR_HOST"
             $SUDO chmod 0750 "$KEY_DIR_HOST"
 
-            # 准备 gRPC mTLS 证书目录并写入 Secrets
-            GRPC_DIR_HOST="/data/iam-contracts/grpc"
-            if [ -z "${GRPC_CA_CHAIN:-}" ] || [ -z "${GRPC_SERVER_CRT:-}" ] || [ -z "${GRPC_SERVER_KEY:-}" ]; then
-              echo "❌ GRPC_CA_CHAIN / GRPC_SERVER_CRT / GRPC_SERVER_KEY must be provided via GitHub Secrets." >&2
-              exit 1
-            fi
-
-            write_secret_file() {
-              local path="$1"
-              local content="$2"
-              local mode="$3"
-              printf '%s\n' "$content" | $SUDO tee "$path" >/dev/null
-              $SUDO chmod "$mode" "$path"
-            }
-
-            $SUDO mkdir -p "$GRPC_DIR_HOST/ca" "$GRPC_DIR_HOST/server"
-            $SUDO chmod 0750 "$GRPC_DIR_HOST" "$GRPC_DIR_HOST/ca" "$GRPC_DIR_HOST/server"
-            write_secret_file "$GRPC_DIR_HOST/ca/ca-chain.crt" "$GRPC_CA_CHAIN" 0640
-            write_secret_file "$GRPC_DIR_HOST/server/iam-grpc.crt" "$GRPC_SERVER_CRT" 0640
-            write_secret_file "$GRPC_DIR_HOST/server/iam-grpc.key" "$GRPC_SERVER_KEY" 0640
-            $SUDO chown -R "$APP_UID:$APP_GID" "$GRPC_DIR_HOST"
+            # 检查 gRPC mTLS 证书是否存在（宿主机预置）
+            GRPC_DIR_HOST="/data/ssl/iam-contracts/grpc"
+            GRPC_CA="$GRPC_DIR_HOST/ca/ca-chain.crt"
+            GRPC_CRT="$GRPC_DIR_HOST/server/iam-grpc.crt"
+            GRPC_KEY="$GRPC_DIR_HOST/server/iam-grpc.key"
+            for f in "$GRPC_CA" "$GRPC_CRT" "$GRPC_KEY"; do
+              if ! $SUDO test -r "$f"; then
+                echo "❌ Missing or unreadable gRPC mTLS file: $f"
+                exit 1
+              fi
+            done
+            $SUDO find "$GRPC_DIR_HOST" -type d -exec chmod 0750 {} \;
+            $SUDO find "$GRPC_DIR_HOST" -type f -exec chmod 0640 {} \;
 
             # 导出运行所需环境变量（供 compose 内插值）
             export DOCKER_REGISTRY IMAGE_NAME IMAGE_TAG

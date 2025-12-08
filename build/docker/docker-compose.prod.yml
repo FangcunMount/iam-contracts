@@ -20,8 +20,8 @@ services:
       - /data/ssl/certs/yangshujie.com.crt:/etc/iam-contracts/ssl/yangshujie.com.crt:ro
       - /data/ssl/private/yangshujie.com.key:/etc/iam-contracts/ssl/yangshujie.com.key:ro
       # 挂载 gRPC mTLS 证书
-      - /data/iam-contracts/grpc/ca:/etc/iam-contracts/grpc/ca:ro
-      - /data/iam-contracts/grpc/server:/etc/iam-contracts/grpc/server:ro
+      - /data/ssl/iam-contracts/grpc/ca:/etc/iam-contracts/grpc/ca:ro
+      - /data/ssl/iam-contracts/grpc/server:/etc/iam-contracts/grpc/server:ro
       # 挂载 JWKS 密钥目录（与镜像内部 /app/data/keys 映射，用于持久化私钥）
       - /data/ops/iam-keys:/app/data/keys:rw
     environment:

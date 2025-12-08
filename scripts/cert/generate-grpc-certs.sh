@@ -7,7 +7,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# 默认输出到仓库内的开发证书目录，可通过环境变量 CERT_DIR 覆盖（例如生产机使用 /data/iam-contracts/grpc）
+# 默认输出到仓库内的开发证书目录，可通过环境变量 CERT_DIR 覆盖（例如生产机使用 /data/ssl/iam-contracts/grpc）
 CERT_DIR="${CERT_DIR:-$PROJECT_ROOT/configs/cert/grpc}"
 
 # 颜色输出
