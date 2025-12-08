@@ -510,8 +510,8 @@ jobs:
             $SUDO chown -R "$APP_UID:$APP_GID" "$KEY_DIR_HOST"
             $SUDO chmod 0750 "$KEY_DIR_HOST"
 
-            # 检查 gRPC mTLS 证书是否存在（宿主机预置）
-            GRPC_DIR_HOST="/data/ssl/iam-contracts/grpc"
+            # 检查 gRPC mTLS 证书是否存在（由 infra 项目统一管理）
+            GRPC_DIR_HOST="/data/infra/ssl/grpc"
             GRPC_CA="$GRPC_DIR_HOST/ca/ca-chain.crt"
             GRPC_CRT="$GRPC_DIR_HOST/server/iam-grpc.crt"
             GRPC_KEY="$GRPC_DIR_HOST/server/iam-grpc.key"

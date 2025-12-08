@@ -79,7 +79,7 @@ COLOR_RED := \033[31m
 .PHONY: db-seed db-connect db-status db-backup
 .PHONY: docker-mysql-up docker-mysql-down docker-mysql-clean docker-mysql-logs
 .PHONY: cert-gen cert-test cert-verify test-dev-config
-.PHONY: grpc-cert grpc-cert-force grpc-cert-verify grpc-cert-clean grpc-cert-info
+.PHONY: grpc-cert-verify grpc-cert-info
 .PHONY: docker-dev-up docker-dev-down docker-dev-restart docker-dev-logs docker-dev-clean
 .PHONY: docker-compose-build docker-compose-up docker-compose-down docker-compose-restart docker-compose-logs
 .PHONY: deploy deploy-local deploy-prod deploy-nginx deploy-systemd
@@ -319,30 +319,29 @@ cert-verify: ## 验证证书文件
 # gRPC mTLS 证书管理
 # =============================================================================
 
-grpc-cert: ## 生成 gRPC mTLS 证书（CA + 服务端 + 客户端）
-	@echo "$(COLOR_CYAN)🔐 生成 gRPC mTLS 证书...$(COLOR_RESET)"
-	@chmod +x scripts/cert/generate-grpc-certs.sh
-	@./scripts/cert/generate-grpc-certs.sh generate
-
-grpc-cert-force: ## 强制重新生成 gRPC mTLS 证书
-	@echo "$(COLOR_CYAN)🔐 强制重新生成 gRPC mTLS 证书...$(COLOR_RESET)"
-	@chmod +x scripts/cert/generate-grpc-certs.sh
-	@./scripts/cert/generate-grpc-certs.sh force
-
-grpc-cert-verify: ## 验证 gRPC mTLS 证书
+grpc-cert-verify: ## 验证 gRPC mTLS 证书（infra 统一管理）
 	@echo "$(COLOR_CYAN)🔍 验证 gRPC mTLS 证书...$(COLOR_RESET)"
-	@chmod +x scripts/cert/generate-grpc-certs.sh
-	@./scripts/cert/generate-grpc-certs.sh verify
+	@if [ ! -f /data/infra/ssl/grpc/ca/ca-chain.crt ]; then \
+		echo "$(COLOR_RED)❌ CA 证书不存在: /data/infra/ssl/grpc/ca/ca-chain.crt$(COLOR_RESET)"; \
+		echo "$(COLOR_YELLOW)请先在 infra 项目中运行: ./scripts/cert/generate-grpc-certs.sh generate-ca$(COLOR_RESET)"; \
+		exit 1; \
+	fi
+	@if [ ! -f /data/infra/ssl/grpc/server/iam-grpc.crt ]; then \
+		echo "$(COLOR_RED)❌ IAM 证书不存在: /data/infra/ssl/grpc/server/iam-grpc.crt$(COLOR_RESET)"; \
+		echo "$(COLOR_YELLOW)请先在 infra 项目中运行: ./scripts/cert/generate-grpc-certs.sh generate-server iam-grpc IAM$(COLOR_RESET)"; \
+		exit 1; \
+	fi
+	@openssl verify -CAfile /data/infra/ssl/grpc/ca/ca-chain.crt /data/infra/ssl/grpc/server/iam-grpc.crt
+	@echo "$(COLOR_GREEN)✅ 证书验证成功$(COLOR_RESET)"
 
 grpc-cert-info: ## 显示 gRPC 证书详细信息
 	@echo "$(COLOR_CYAN)📋 显示 gRPC 证书信息...$(COLOR_RESET)"
-	@chmod +x scripts/cert/generate-grpc-certs.sh
-	@./scripts/cert/generate-grpc-certs.sh info
-
-grpc-cert-clean: ## 清理 gRPC mTLS 证书
-	@echo "$(COLOR_YELLOW)🗑️  清理 gRPC mTLS 证书...$(COLOR_RESET)"
-	@chmod +x scripts/cert/generate-grpc-certs.sh
-	@./scripts/cert/generate-grpc-certs.sh clean
+	@if [ -f /data/infra/ssl/grpc/server/iam-grpc.crt ]; then \
+		openssl x509 -in /data/infra/ssl/grpc/server/iam-grpc.crt -noout -subject -issuer -dates -ext subjectAltName; \
+	else \
+		echo "$(COLOR_RED)❌ 证书不存在: /data/infra/ssl/grpc/server/iam-grpc.crt$(COLOR_RESET)"; \
+		exit 1; \
+	fi
 
 test-dev-config: ## 测试开发环境配置
 	@echo "$(COLOR_CYAN)🧪 测试开发环境配置...$(COLOR_RESET)"

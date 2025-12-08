@@ -129,10 +129,10 @@ nsq:
   msg-timeout: 60                             # 消息超时时间（秒）
   requeue-delay: 5                            # 重新入队延迟（秒）
 
-# HTTPS/TLS 配置（使用自签名证书）
+# HTTPS/TLS 配置（由 infra 项目统一管理）
 tls:
-  cert: configs/cert/web-apiserver.crt
-  key: configs/cert/web-apiserver.key
+  cert: /data/infra/ssl/web/iam-apiserver.crt
+  key: /data/infra/ssl/web/iam-apiserver.key
   strict: false  # 开发环境不严格验证
 
 insecure:
@@ -143,20 +143,20 @@ secure:
   bind-address: 0.0.0.0
   bind-port: 18441
   tls:
-    cert-file: configs/cert/web-apiserver.crt
-    private-key-file: configs/cert/web-apiserver.key
+    cert-file: /data/infra/ssl/web/iam-apiserver.crt
+    private-key-file: /data/infra/ssl/web/iam-apiserver.key
 
 grpc:
   bind-address: 0.0.0.0
   bind-port: 19091
   healthz-port: 19092
   
-  # mTLS 双向认证配置
+  # mTLS 双向认证配置（由 infra 项目统一管理）
   mtls:
-    enabled: true   # 开发环境开启 mTLS，覆盖证书路径为本地生成的自签名证书
-    cert-file: "./configs/cert/grpc/server/iam-grpc.crt"
-    key-file: "./configs/cert/grpc/server/iam-grpc.key"
-    ca-file: "./configs/cert/grpc/ca/ca-chain.crt"
+    enabled: true   # 开发环境开启 mTLS
+    cert-file: "/data/infra/ssl/grpc/server/iam-grpc.crt"
+    key-file: "/data/infra/ssl/grpc/server/iam-grpc.key"
+    ca-file: "/data/infra/ssl/grpc/ca/ca-chain.crt"
     require-client-cert: true
     # 允许的客户端证书 OU 列表
     allowed-ous:
