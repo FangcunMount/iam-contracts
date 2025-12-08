@@ -492,11 +492,11 @@ jobs:
 
             # 将部署包放置到 /opt/iam
             $SUDO mkdir -p /opt/iam/build/docker
-            $SUDO rsync -a /tmp/iam-deploy-*/build/docker/docker-compose.prod.yml /opt/iam/build/docker/docker-compose.prod.yml
+            $SUDO rsync -a "$DEPLOY_TMP/build/docker/docker-compose.prod.yml" /opt/iam/build/docker/docker-compose.prod.yml
 
             # 覆盖配置与二进制
-            $SUDO rsync -a /tmp/iam-deploy-*/configs/ /opt/iam/configs/
-            $SUDO rsync -a /tmp/iam-deploy-*/iam-apiserver /opt/iam/bin/iam-apiserver
+            $SUDO rsync -a "$DEPLOY_TMP/configs/" /opt/iam/configs/
+            $SUDO rsync -a "$DEPLOY_TMP/iam-apiserver" /opt/iam/bin/iam-apiserver
             $SUDO chmod 0755 /opt/iam/bin/iam-apiserver
             $SUDO chown -R "$APP_UID:$APP_GID" /opt/iam/configs
 
