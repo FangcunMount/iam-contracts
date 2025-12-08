@@ -55,6 +55,28 @@ func (c *Client) SearchUsers(ctx context.Context, req *identityv1.SearchUsersReq
 	return resp, nil
 }
 
+// GetChild 获取孩子信息
+func (c *Client) GetChild(ctx context.Context, childID string) (*identityv1.GetChildResponse, error) {
+	resp, err := c.readService.GetChild(ctx, &identityv1.GetChildRequest{
+		ChildId: childID,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err)
+	}
+	return resp, nil
+}
+
+// BatchGetChildren 批量获取孩子信息
+func (c *Client) BatchGetChildren(ctx context.Context, childIDs []string) (*identityv1.BatchGetChildrenResponse, error) {
+	resp, err := c.readService.BatchGetChildren(ctx, &identityv1.BatchGetChildrenRequest{
+		ChildIds: childIDs,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err)
+	}
+	return resp, nil
+}
+
 // ========== 生命周期操作 ==========
 
 // CreateUser 创建用户
@@ -87,6 +109,15 @@ func (c *Client) DeactivateUser(ctx context.Context, req *identityv1.ChangeUserS
 // BlockUser 封禁用户
 func (c *Client) BlockUser(ctx context.Context, req *identityv1.ChangeUserStatusRequest) (*identityv1.UserOperationResponse, error) {
 	resp, err := c.lifecycleService.BlockUser(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err)
+	}
+	return resp, nil
+}
+
+// LinkExternalIdentity 关联外部身份
+func (c *Client) LinkExternalIdentity(ctx context.Context, req *identityv1.LinkExternalIdentityRequest) (*identityv1.LinkExternalIdentityResponse, error) {
+	resp, err := c.lifecycleService.LinkExternalIdentity(ctx, req)
 	if err != nil {
 		return nil, errors.Wrap(err)
 	}

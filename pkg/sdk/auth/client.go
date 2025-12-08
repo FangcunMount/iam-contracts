@@ -49,6 +49,15 @@ func (c *Client) RevokeToken(ctx context.Context, req *authnv1.RevokeTokenReques
 	return resp, nil
 }
 
+// RevokeRefreshToken 撤销 Refresh Token
+func (c *Client) RevokeRefreshToken(ctx context.Context, req *authnv1.RevokeRefreshTokenRequest) (*authnv1.RevokeRefreshTokenResponse, error) {
+	resp, err := c.authService.RevokeRefreshToken(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err)
+	}
+	return resp, nil
+}
+
 // IssueServiceToken 签发服务 Token
 func (c *Client) IssueServiceToken(ctx context.Context, req *authnv1.IssueServiceTokenRequest) (*authnv1.IssueServiceTokenResponse, error) {
 	resp, err := c.authService.IssueServiceToken(ctx, req)

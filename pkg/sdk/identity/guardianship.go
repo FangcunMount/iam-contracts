@@ -73,6 +73,33 @@ func (c *GuardianshipClient) RevokeGuardian(ctx context.Context, req *identityv1
 	return resp, nil
 }
 
+// UpdateGuardianRelation 更新监护关系
+func (c *GuardianshipClient) UpdateGuardianRelation(ctx context.Context, req *identityv1.UpdateGuardianRelationRequest) (*identityv1.UpdateGuardianRelationResponse, error) {
+	resp, err := c.commandService.UpdateGuardianRelation(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err)
+	}
+	return resp, nil
+}
+
+// BatchRevokeGuardians 批量撤销监护关系
+func (c *GuardianshipClient) BatchRevokeGuardians(ctx context.Context, req *identityv1.BatchRevokeGuardiansRequest) (*identityv1.BatchRevokeGuardiansResponse, error) {
+	resp, err := c.commandService.BatchRevokeGuardians(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err)
+	}
+	return resp, nil
+}
+
+// ImportGuardians 批量导入监护关系
+func (c *GuardianshipClient) ImportGuardians(ctx context.Context, req *identityv1.ImportGuardiansRequest) (*identityv1.ImportGuardiansResponse, error) {
+	resp, err := c.commandService.ImportGuardians(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err)
+	}
+	return resp, nil
+}
+
 // ========== 原始客户端 ==========
 
 // QueryRaw 返回原始查询服务客户端
