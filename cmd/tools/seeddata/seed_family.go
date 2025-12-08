@@ -266,8 +266,88 @@ func calculateAge(birthday string) int {
 	return age
 }
 
-// generateChildGender 随机生成性别
-func generateChildGender() string {
+// 常见女性名字用字
+var femaleNameChars = map[rune]bool{
+	// 花草类
+	'花': true, '芳': true, '芬': true, '兰': true, '梅': true, '菊': true, '莲': true, '荷': true,
+	'蓉': true, '薇': true, '萍': true, '莉': true, '茹': true, '蕊': true, '芸': true, '蔓': true,
+	'苗': true, '芝': true, '菲': true, '蕾': true, '茜': true, '莎': true, '萱': true,
+	// 美丽/柔美类
+	'美': true, '丽': true, '娜': true, '婷': true, '雅': true, '静': true, '婉': true, '娟': true,
+	'娥': true, '姿': true, '妍': true, '姣': true, '婵': true, '媛': true, '妮': true, '娴': true,
+	'嫣': true, '姝': true, '妙': true, '婕': true, '娇': true, '媚': true, '姗': true, '嫦': true,
+	// 珍贵类
+	'珍': true, '珠': true, '琳': true, '瑶': true, '琴': true, '玲': true, '瑾': true, '璐': true,
+	'瑛': true, '珊': true, '琪': true, '璇': true, '珺': true, '琬': true, '瑜': true, '玥': true,
+	// 柔和/温婉类
+	'柔': true, '淑': true, '惠': true, '慧': true, '秀': true, '倩': true, '巧': true, '纤': true,
+	'素': true, '洁': true, '雯': true, '霞': true, '露': true, '月': true, '雪': true,
+	'冰': true, '虹': true, '彩': true, '凤': true, '燕': true, '莺': true, '蝶': true,
+	// 情感类
+	'爱': true, '怡': true, '悦': true, '欣': true, '馨': true, '思': true, '念': true,
+	// 颜色类（女性倾向）
+	'红': true, '粉': true, '紫': true, '黛': true, '碧': true, '翠': true,
+	// 其他常见女名用字
+	'颖': true, '敏': true, '晴': true, '岚': true, '影': true, '梦': true, '瑞': true,
+}
+
+// 常见男性名字用字
+var maleNameChars = map[rune]bool{
+	// 刚强类
+	'刚': true, '强': true, '勇': true, '猛': true, '威': true, '毅': true, '坚': true, '雄': true,
+	'壮': true, '健': true, '彪': true, '豪': true, '杰': true, '伟': true, '峰': true, '磊': true,
+	'力': true, '武': true, '军': true, '兵': true, '锋': true, '钢': true, '铁': true, '石': true,
+	// 志向类
+	'志': true, '鹏': true, '飞': true, '翔': true, '腾': true, '龙': true, '虎': true, '鹰': true,
+	'骏': true, '驰': true, '超': true, '越': true, '冠': true, '胜': true, '凯': true, '辉': true,
+	// 才德类
+	'才': true, '智': true, '博': true, '斌': true, '彬': true, '贤': true,
+	'德': true, '仁': true, '义': true, '礼': true, '信': true, '忠': true, '孝': true, '廉': true,
+	// 成就类
+	'成': true, '功': true, '业': true, '建': true, '立': true, '国': true, '邦': true, '振': true,
+	'兴': true, '昌': true, '盛': true, '荣': true, '富': true, '贵': true, '福': true, '禄': true,
+	// 自然（阳刚）类
+	'山': true, '海': true, '江': true, '河': true, '川': true, '林': true, '森': true, '松': true,
+	'柏': true, '杨': true, '天': true, '阳': true, '晨': true, '旭': true, '晖': true, '明': true,
+	'光': true, '耀': true, '雷': true, '霆': true, '风': true, '云': true,
+	// 其他常见男名字
+	'浩': true, '宏': true, '鸿': true, '涛': true, '波': true, '平': true, '安': true, '康': true,
+	'宁': true, '泽': true, '鑫': true, '亮': true, '达': true, '栋': true, '梁': true,
+	'华': true, '东': true, '南': true, '北': true, '西': true, '中': true,
+}
+
+// guessGenderByName 根据中文名字猜测性别
+// 返回 "male" 或 "female"
+func guessGenderByName(name string) string {
+	// 去掉姓氏，只看名字部分（假设姓是1个字）
+	runes := []rune(name)
+	var nameRunes []rune
+	if len(runes) > 1 {
+		nameRunes = runes[1:] // 去掉姓氏
+	} else {
+		nameRunes = runes
+	}
+
+	maleScore := 0
+	femaleScore := 0
+
+	for _, r := range nameRunes {
+		if maleNameChars[r] {
+			maleScore++
+		}
+		if femaleNameChars[r] {
+			femaleScore++
+		}
+	}
+
+	// 根据得分判断
+	if femaleScore > maleScore {
+		return "female"
+	} else if maleScore > femaleScore {
+		return "male"
+	}
+
+	// 平分或无法判断时随机
 	if rand.Float32() < 0.5 {
 		return "male"
 	}
@@ -337,8 +417,8 @@ func generateFamily(index int, phoneSet *PhoneSet) (*familySeed, error) {
 	family.Children = make([]childrenSeed, 0, childCount)
 	for i := 0; i < childCount; i++ {
 		birthday := generateChildBirthday()
-		gender := generateChildGender()
 		name := generateFakeName()
+		gender := guessGenderByName(name) // 根据名字推测性别
 		idCard := generateFakeIDCard()
 
 		child := childrenSeed{
