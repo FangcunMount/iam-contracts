@@ -46,9 +46,14 @@ func ResolveRedisAddr(explicit string) string {
 }
 
 // MustOpenGORM opens a GORM MySQL connection and verifies it.
-func MustOpenGORM(dsn string) *gorm.DB {
+// If verbose is true, SQL logs will be printed to stdout.
+func MustOpenGORM(dsn string, verbose bool) *gorm.DB {
+	logLevel := logger.Silent
+	if verbose {
+		logLevel = logger.Info // 打印所有 SQL 日志
+	}
 	cfg := &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
+		Logger: logger.Default.LogMode(logLevel),
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,
 		},

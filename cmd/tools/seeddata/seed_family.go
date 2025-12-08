@@ -651,6 +651,22 @@ func isDuplicateGuardianError(err error) bool {
 
 // ==================== Worker Pool 实现 ====================
 
+// printProgress 打印进度条
+func printProgress(current, total int64, failed int64) {
+	const barWidth = 40
+	percent := float64(current) / float64(total)
+	filled := int(percent * barWidth)
+
+	bar := strings.Repeat("█", filled) + strings.Repeat("░", barWidth-filled)
+
+	// \r 回到行首，覆盖之前的输出
+	if failed > 0 {
+		fmt.Printf("\r🏠 家庭数据: [%s] %d/%d (%.1f%%) ⚠️ 失败:%d", bar, current, total, percent*100, failed)
+	} else {
+		fmt.Printf("\r🏠 家庭数据: [%s] %d/%d (%.1f%%)", bar, current, total, percent*100)
+	}
+}
+
 // seedFamilyCenter 使用 worker pool 模式创建家庭数据
 //
 // 设计说明：
@@ -666,10 +682,7 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 		workerCount = defaultWorkerCount
 	}
 
-	deps.Logger.Infow("🏠 开始创建家庭数据",
-		"family_count", familyCount,
-		"worker_count", workerCount,
-	)
+	fmt.Printf("🏠 开始创建家庭数据 (总数: %d, 并发: %d)\n", familyCount, workerCount)
 
 	// 初始化应用服务
 	uow := ucUOW.NewUnitOfWork(deps.DB)
@@ -691,6 +704,9 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 	var successCount, failCount int64
 	var wg sync.WaitGroup
 
+	// 打印初始进度
+	printProgress(0, int64(familyCount), 0)
+
 	// 启动 workers
 	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
@@ -698,21 +714,13 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 			defer wg.Done()
 			for task := range taskCh {
 				if err := task.Run(ctx, services, phoneSet); err != nil {
-					atomic.AddInt64(&failCount, 1)
-					deps.Logger.Warnw("家庭创建失败",
-						"worker", workerID,
-						"task_index", task.Index,
-						"error", err,
-					)
+					failed := atomic.AddInt64(&failCount, 1)
+					success := atomic.LoadInt64(&successCount)
+					printProgress(success+failed, int64(familyCount), failed)
 				} else {
-					count := atomic.AddInt64(&successCount, 1)
-					// 每 100 个打印一次进度
-					if count%100 == 0 {
-						deps.Logger.Infow("家庭创建进度",
-							"completed", count,
-							"total", familyCount,
-						)
-					}
+					success := atomic.AddInt64(&successCount, 1)
+					failed := atomic.LoadInt64(&failCount)
+					printProgress(success+failed, int64(familyCount), failed)
 				}
 			}
 		}(i)
@@ -724,6 +732,7 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 		case <-ctx.Done():
 			close(taskCh)
 			wg.Wait()
+			fmt.Println() // 换行
 			return ctx.Err()
 		case taskCh <- &familySeedTask{Index: i}:
 		}
@@ -733,14 +742,12 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 	// 等待所有 worker 完成
 	wg.Wait()
 
-	deps.Logger.Infow("✅ 家庭数据创建完成",
-		"success", atomic.LoadInt64(&successCount),
-		"failed", atomic.LoadInt64(&failCount),
-		"total", familyCount,
-	)
-
+	// 完成后换行并打印结果
+	fmt.Println()
 	if failCount > 0 {
+		fmt.Printf("⚠️  家庭数据创建完成: 成功 %d, 失败 %d, 总计 %d\n", successCount, failCount, familyCount)
 		return fmt.Errorf("部分家庭创建失败: %d/%d", failCount, familyCount)
 	}
+	fmt.Printf("✅ 家庭数据创建完成: %d 个家庭\n", successCount)
 	return nil
 }

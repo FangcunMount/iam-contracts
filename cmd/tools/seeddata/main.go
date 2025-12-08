@@ -110,8 +110,9 @@ func main() {
 	casbinModelFlag := flag.String("casbin-model", "configs/casbin_model.conf", "Path to casbin model configuration file")
 	configFileFlag := flag.String("config", "configs/seeddata.yaml", "Path to seed data configuration file")
 	stepsFlag := flag.String("steps", strings.Join(stepListToStrings(defaultSteps), ","), "Comma separated seed steps (tenants,user,family,authn,resources,assignments,casbin,jwks)")
-	familyCountFlag := flag.Int("family-count", 100000, "Number of families to generate in family seed step")
-	workerCountFlag := flag.Int("worker-count", 200, "Number of concurrent workers for family seed step")
+	familyCountFlag := flag.Int("family-count", 200000, "Number of families to generate in family seed step")
+	workerCountFlag := flag.Int("worker-count", 500, "Number of concurrent workers for family seed step")
+	verboseFlag := flag.Bool("verbose", false, "Enable verbose output including SQL logs")
 	flag.Parse()
 
 	// 初始化日志
@@ -133,7 +134,7 @@ func main() {
 
 	// 连接数据库
 	dsn := common.ResolveDSN(*dsnFlag)
-	db := common.MustOpenGORM(dsn)
+	db := common.MustOpenGORM(dsn, *verboseFlag)
 	defer common.CloseGORM(db)
 
 	// 连接 Cache Redis（可选）
