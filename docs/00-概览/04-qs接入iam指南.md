@@ -108,27 +108,49 @@ flowchart TB
 
 ### 2.1 获取 mTLS 证书
 
-QS 作为 IAM gRPC 的客户端，需要以下证书文件：
+> **证书架构说明（与服务器现状对齐）**：
+>
+> - **CA 证书**：`/data/infra/ssl/grpc/ca/ca-chain.crt`（或 `intermediate-ca.crt`/`root-ca.crt`，链式验证时首选 `ca-chain.crt`）
+> - **IAM 服务端证书**：`/data/infra/ssl/grpc/server/iam-grpc.{crt,key}`，对外提供 gRPC 服务
+> - **QS 客户端证书**：按服务拆分，例如  
+>   - `qs-apiserver`：`/data/infra/ssl/grpc/server/qs-apiserver.{crt,key}`（或带链的 `qs-apiserver-fullchain.crt`）  
+>   - `qs-collection`：`/data/infra/ssl/grpc/server/qs-collection.{crt,key}`（或带链的 `qs-collection-fullchain.crt`）
+>
+> 每个调用方服务都有独立证书，共享同一 CA 链做双向认证。
 
-| 文件 | 说明 | 获取方式 |
+QS 作为 IAM gRPC 的客户端，需准备：
+
+| 文件 | 说明 | 存储位置 |
 |------|------|----------|
-| `ca-chain.crt` | CA 证书链 | IAM 团队提供 |
-| `qs.crt` | QS 客户端证书 | IAM 团队签发 |
-| `qs.key` | QS 客户端私钥 | 生成后妥善保管 |
+| `ca-chain.crt` | CA 证书链（验证 IAM 服务端） | `/data/infra/ssl/grpc/ca/ca-chain.crt` |
+| `qs-apiserver.crt` / `qs-apiserver.key` | QS API 网关/服务调用 IAM 时的客户端证书与私钥 | `/data/infra/ssl/grpc/server/qs-apiserver.{crt,key}` |
+| `qs-collection.crt` / `qs-collection.key` | （如采集侧单独调用 IAM）客户端证书与私钥 | `/data/infra/ssl/grpc/server/qs-collection.{crt,key}` |
+| `*-fullchain.crt` | 可选，包含中间证书链的版本 | 与对应 `.crt` 同目录 |
 
-**开发环境**：使用 IAM 项目生成的测试证书
+**开发环境**：在 infra 项目中生成测试证书
 
 ```bash
-# 在 IAM 项目目录执行
-make grpc-cert
+# 1. 首次运行：生成 CA 证书（如果已存在则跳过）
+cd /path/to/infra
+./scripts/cert/generate-grpc-certs.sh generate-ca
 
-# 证书位置
-configs/cert/grpc/ca/ca-chain.crt      # CA 证书链
-configs/cert/grpc/clients/qs.crt       # QS 客户端证书
-configs/cert/grpc/clients/qs.key       # QS 客户端私钥
+# 2. 为 QS 生成证书
+cd /path/to/infra
+./scripts/cert/generate-grpc-certs.sh generate-server qs QS qs.internal.example.com
+
+# 3. 验证证书
+./scripts/cert/generate-grpc-certs.sh verify
+
+# 证书存放位置：
+# /data/infra/ssl/grpc/
+# ├── ca/
+# │   └── ca-chain.crt      # CA 证书链
+# └── server/
+#     ├── qs.crt            # QS 证书
+#     └── qs.key            # QS 私钥
 ```
 
-**生产环境**：联系 IAM 团队申请正式证书
+**生产环境**：联系运维团队，他们会在 infra 项目中生成并配置证书
 
 ### 2.2 配置信息
 
@@ -143,11 +165,15 @@ iam:
     timeout: 5s
     retry_max: 3
     
-    # mTLS 证书路径
+    # mTLS 证书路径（引用 infra 项目统一管理的证书）
+    # 注意：根据实际服务选择对应证书
+    #   - qs-apiserver 服务使用: qs-apiserver.{crt,key}
+    #   - qs-collection 服务使用: qs-collection.{crt,key}
+    #   - 简化示例统一使用: qs.{crt,key}
     tls:
-      ca_file: "/etc/qs/certs/ca-chain.crt"
-      cert_file: "/etc/qs/certs/qs.crt"
-      key_file: "/etc/qs/certs/qs.key"
+      ca_file: "/data/infra/ssl/grpc/ca/ca-chain.crt"
+      cert_file: "/data/infra/ssl/grpc/server/qs.crt"          # 或 qs-apiserver.crt
+      key_file: "/data/infra/ssl/grpc/server/qs.key"           # 或 qs-apiserver.key
   
   # JWT 验证配置
   jwt:
@@ -215,9 +241,9 @@ func InitIAMClient(ctx context.Context) (*sdk.Client, error) {
         // mTLS 配置（SDK 自动处理证书加载）
         TLS: &sdk.TLSConfig{
             Enabled:  true,
-            CACert:   "/etc/qs/certs/ca-chain.crt",
-            CertFile: "/etc/qs/certs/qs.crt",
-            KeyFile:  "/etc/qs/certs/qs.key",
+            CACert:   "/data/infra/ssl/grpc/ca/ca-chain.crt",
+            CertFile: "/data/infra/ssl/grpc/server/qs.crt",
+            KeyFile:  "/data/infra/ssl/grpc/server/qs.key",
         },
         
         // 超时配置（可选，有默认值）
@@ -765,9 +791,9 @@ func main() {
         Endpoint: "iam.example.com:8081",
         TLS: &sdk.TLSConfig{
             Enabled:  true,
-            CACert:   "/etc/qs/certs/ca-chain.crt",
-            CertFile: "/etc/qs/certs/qs.crt",
-            KeyFile:  "/etc/qs/certs/qs.key",
+            CACert:   "/data/infra/ssl/grpc/ca/ca-chain.crt",
+            CertFile: "/data/infra/ssl/grpc/server/qs.crt",
+            KeyFile:  "/data/infra/ssl/grpc/server/qs.key",
         },
         Timeout: 5 * time.Second,
         EnableTracing: true,
