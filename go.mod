@@ -17,14 +17,14 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/swag v1.16.6
 	golang.org/x/crypto v0.43.0
-	golang.org/x/net v0.46.0
+	golang.org/x/net v0.46.1-0.20251013234738-63d1a5100f82
 	google.golang.org/protobuf v1.36.10
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.30.0
 )
 
-require google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
+require google.golang.org/genproto/googleapis/rpc v0.0.0-20251022142026-3a174f9686a8 // indirect
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
@@ -144,7 +144,7 @@ require (
 )
 
 require (
-	github.com/FangcunMount/component-base v0.3.7
+	github.com/FangcunMount/component-base v0.3.8
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/casbin/casbin/v2 v2.128.0
 	github.com/casbin/gorm-adapter/v3 v3.37.0
@@ -166,6 +166,6 @@ require (
 	github.com/zsais/go-gin-prometheus v0.1.0
 	golang.org/x/sync v0.17.0
 	golang.org/x/time v0.12.0
-	google.golang.org/grpc v1.73.0
+	google.golang.org/grpc v1.77.0
 	gorm.io/driver/mysql v1.6.0
 )

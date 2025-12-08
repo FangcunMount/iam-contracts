@@ -15,9 +15,9 @@ import (
 	"google.golang.org/grpc/reflection"
 	"gopkg.in/yaml.v3"
 
+	"github.com/FangcunMount/component-base/pkg/grpc/interceptors"
+	"github.com/FangcunMount/component-base/pkg/grpc/mtls"
 	"github.com/FangcunMount/component-base/pkg/log"
-	"github.com/FangcunMount/iam-contracts/pkg/grpc/interceptors"
-	"github.com/FangcunMount/iam-contracts/pkg/grpc/mtls"
 )
 
 // Server GRPC 服务器结构体

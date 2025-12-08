@@ -10,9 +10,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
+	"github.com/FangcunMount/component-base/pkg/grpc/interceptors"
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/FangcunMount/iam-contracts/pkg/grpc/interceptors"
 )
 
 // LoggingInterceptor 返回集成 component-base 日志的拦截器

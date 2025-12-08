@@ -450,7 +450,7 @@ func main() {
 
 ```go
 import (
-    "github.com/FangcunMount/iam-contracts/pkg/grpc/mtls"
+    "github.com/FangcunMount/component-base/pkg/grpc/mtls"
     "google.golang.org/grpc"
     "google.golang.org/grpc/metadata"
 )
