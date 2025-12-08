@@ -8,7 +8,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| [Makefile 指南](./deployment/MAKEFILE_GUIDE.md) | 构建、运行、测试命令 |
+| [Makefile 指南](./makefile-guide.md) | 构建、运行、测试命令 |
 | [迁移版本管理](./migration-version-guide.md) | 数据库迁移版本命名与执行规范 |
 
 ---

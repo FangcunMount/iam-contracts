@@ -150,3 +150,40 @@ grpc:
   bind-address: 0.0.0.0
   bind-port: 19091
   healthz-port: 19092
+  
+  # mTLS 双向认证配置
+  mtls:
+    enabled: false  # 开发环境默认禁用 mTLS，方便调试
+    cert-file: "./configs/cert/grpc/server/iam-grpc.crt"
+    key-file: "./configs/cert/grpc/server/iam-grpc.key"
+    ca-file: "./configs/cert/grpc/ca/ca-chain.crt"
+    require-client-cert: true
+    # 允许的客户端证书 OU 列表
+    allowed-ous:
+      - QS
+      - Admin
+      - Ops
+    # 证书自动重载
+    enable-auto-reload: true
+    reload-interval: 5m
+  
+  # 应用层凭证认证配置
+  auth:
+    enabled: false  # 开发环境默认禁用
+    # 支持的凭证类型
+    enable-bearer: true   # JWT Bearer Token
+    enable-hmac: true     # HMAC 签名
+    enable-api-key: true  # API Key
+    # HMAC 配置
+    hmac-timestamp-validity: 5m
+    # 是否要求 mTLS 身份与凭证身份一致
+    require-identity-match: true
+  
+  # 服务级 ACL 配置
+  acl:
+    enabled: false  # 开发环境默认禁用
+    config-file: "./configs/grpc_acl.yaml"
+  
+  # 审计日志配置
+  audit:
+    enabled: true  # 开发环境开启审计日志，便于调试

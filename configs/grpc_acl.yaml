@@ -1,0 +1,106 @@
+# gRPC 服务 ACL 配置
+# 定义每个服务允许调用的 gRPC 方法
+
+# 默认策略：deny（拒绝未配置的访问）或 allow（允许未配置的访问）
+default_policy: deny
+
+# 服务权限配置
+services:
+  # QS 服务 - 心理健康测评系统
+  - service_name: qs
+    enabled: true
+    description: "QS 服务 - 心理健康测评系统，仅允许读取用户和监护关系信息"
+    allowed_methods:
+      # Identity 读取服务
+      - /iam.identity.v1.IdentityService/GetUser
+      - /iam.identity.v1.IdentityService/GetUserProfile
+      - /iam.identity.v1.IdentityService/GetUserByExternalId
+      - /iam.identity.v1.IdentityService/ListChildren
+      - /iam.identity.v1.IdentityService/GetChild
+      - /iam.identity.v1.IdentityService/GetGuardianship
+      - /iam.identity.v1.IdentityService/ListGuardianships
+      - /iam.identity.v1.IdentityService/CheckGuardianship
+      # Authn 服务（Token 验证）
+      - /iam.authn.v1.AuthnService/ValidateToken
+      - /iam.authn.v1.AuthnService/IntrospectToken
+      - /iam.authn.v1.AuthnService/GetPublicKeys
+    denied_methods: []
+
+  # 内部管理工具
+  - service_name: admin
+    enabled: true
+    description: "内部管理工具，完全访问权限"
+    allowed_methods:
+      # 所有 Identity 服务方法
+      - /iam.identity.v1.IdentityService/*
+      # 所有 Authn 服务方法
+      - /iam.authn.v1.AuthnService/*
+
+  # 运维工具
+  - service_name: ops
+    enabled: true
+    description: "运维工具，用于密钥轮换、Token 撤销等运维操作"
+    allowed_methods:
+      # Authn 运维操作
+      - /iam.authn.v1.AuthnService/RotateKeys
+      - /iam.authn.v1.AuthnService/RevokeToken
+      - /iam.authn.v1.AuthnService/RevokeAllUserTokens
+      - /iam.authn.v1.AuthnService/GetKeyRotationStatus
+      # Identity 运维操作
+      - /iam.identity.v1.IdentityService/BlockUser
+      - /iam.identity.v1.IdentityService/UnblockUser
+      - /iam.identity.v1.IdentityService/DeleteUser
+      # 健康检查
+      - /grpc.health.v1.Health/Check
+
+  # 事件消费服务
+  - service_name: event-consumer
+    enabled: true
+    description: "事件消费服务，用于订阅用户和监护关系变更事件"
+    allowed_methods:
+      - /iam.identity.v1.IdentityService/WatchUserEvents
+      - /iam.identity.v1.IdentityService/WatchGuardianshipEvents
+
+  # 报表服务
+  - service_name: reporting
+    enabled: true
+    description: "报表服务，仅允许读取统计数据"
+    allowed_methods:
+      - /iam.identity.v1.IdentityService/GetUserStats
+      - /iam.identity.v1.IdentityService/GetGuardianshipStats
+      - /iam.authn.v1.AuthnService/GetTokenStats
+
+# 服务凭证配置（用于应用层鉴权）
+service_credentials:
+  # HMAC 凭证
+  hmac:
+    qs:
+      access_key: "qs_access_key_prod"
+      # secret_key 应通过环境变量或 Vault 注入，不要写在配置文件中
+      # secret_key: "${QS_HMAC_SECRET_KEY}"
+      
+    admin:
+      access_key: "admin_access_key_prod"
+      
+    ops:
+      access_key: "ops_access_key_prod"
+
+  # API Key（简单场景）
+  api_keys:
+    # 格式: api_key -> service_name
+    # 实际的 API Key 应通过安全方式管理
+    # "sk_prod_qs_xxxxx": qs
+    # "sk_prod_admin_xxxxx": admin
+
+# IP 白名单（可选，额外安全层）
+ip_whitelist:
+  enabled: false
+  rules:
+    qs:
+      - 10.0.0.0/8      # 内网网段
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+    admin:
+      - 10.0.1.0/24     # 管理网段
+    ops:
+      - 10.0.2.0/24     # 运维网段

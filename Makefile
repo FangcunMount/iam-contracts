@@ -79,6 +79,7 @@ COLOR_RED := \033[31m
 .PHONY: db-seed db-connect db-status db-backup
 .PHONY: docker-mysql-up docker-mysql-down docker-mysql-clean docker-mysql-logs
 .PHONY: cert-gen cert-test cert-verify test-dev-config
+.PHONY: grpc-cert grpc-cert-force grpc-cert-verify grpc-cert-clean grpc-cert-info
 .PHONY: docker-dev-up docker-dev-down docker-dev-restart docker-dev-logs docker-dev-clean
 .PHONY: docker-compose-build docker-compose-up docker-compose-down docker-compose-restart docker-compose-logs
 .PHONY: deploy deploy-local deploy-prod deploy-nginx deploy-systemd
@@ -313,6 +314,35 @@ cert-verify: ## 验证证书文件
 		echo "$(COLOR_RED)❌ 证书文件不存在，请运行: make cert-gen$(COLOR_RESET)"; \
 		exit 1; \
 	fi
+
+# =============================================================================
+# gRPC mTLS 证书管理
+# =============================================================================
+
+grpc-cert: ## 生成 gRPC mTLS 证书（CA + 服务端 + 客户端）
+	@echo "$(COLOR_CYAN)🔐 生成 gRPC mTLS 证书...$(COLOR_RESET)"
+	@chmod +x scripts/cert/generate-grpc-certs.sh
+	@./scripts/cert/generate-grpc-certs.sh generate
+
+grpc-cert-force: ## 强制重新生成 gRPC mTLS 证书
+	@echo "$(COLOR_CYAN)🔐 强制重新生成 gRPC mTLS 证书...$(COLOR_RESET)"
+	@chmod +x scripts/cert/generate-grpc-certs.sh
+	@./scripts/cert/generate-grpc-certs.sh force
+
+grpc-cert-verify: ## 验证 gRPC mTLS 证书
+	@echo "$(COLOR_CYAN)🔍 验证 gRPC mTLS 证书...$(COLOR_RESET)"
+	@chmod +x scripts/cert/generate-grpc-certs.sh
+	@./scripts/cert/generate-grpc-certs.sh verify
+
+grpc-cert-info: ## 显示 gRPC 证书详细信息
+	@echo "$(COLOR_CYAN)📋 显示 gRPC 证书信息...$(COLOR_RESET)"
+	@chmod +x scripts/cert/generate-grpc-certs.sh
+	@./scripts/cert/generate-grpc-certs.sh info
+
+grpc-cert-clean: ## 清理 gRPC mTLS 证书
+	@echo "$(COLOR_YELLOW)🗑️  清理 gRPC mTLS 证书...$(COLOR_RESET)"
+	@chmod +x scripts/cert/generate-grpc-certs.sh
+	@./scripts/cert/generate-grpc-certs.sh clean
 
 test-dev-config: ## 测试开发环境配置
 	@echo "$(COLOR_CYAN)🧪 测试开发环境配置...$(COLOR_RESET)"

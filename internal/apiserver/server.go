@@ -14,7 +14,7 @@ import (
 	"github.com/FangcunMount/component-base/pkg/shutdown/shutdownmanagers/posixsignal"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/config"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
-	"github.com/FangcunMount/iam-contracts/internal/pkg/grpcserver"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/grpc"
 	genericapiserver "github.com/FangcunMount/iam-contracts/internal/pkg/server"
 	"github.com/spf13/viper"
 )
@@ -26,7 +26,7 @@ type apiServer struct {
 	// 通用 API 服务器
 	genericAPIServer *genericapiserver.GenericAPIServer
 	// GRPC 服务器
-	grpcServer *grpcserver.Server
+	grpcServer *grpc.Server
 	// 数据库管理器
 	dbManager *DatabaseManager
 	// Container 主容器
@@ -318,9 +318,9 @@ func buildGenericConfig(cfg *config.Config) (genericConfig *genericapiserver.Con
 }
 
 // buildGRPCServer 构建 GRPC 服务器
-func buildGRPCServer(cfg *config.Config) (*grpcserver.Server, error) {
+func buildGRPCServer(cfg *config.Config) (*grpc.Server, error) {
 	// 创建 GRPC 配置
-	grpcConfig := grpcserver.NewConfig()
+	grpcConfig := grpc.NewConfig()
 
 	// 应用配置选项
 	if err := applyGRPCOptions(cfg, grpcConfig); err != nil {
@@ -332,7 +332,7 @@ func buildGRPCServer(cfg *config.Config) (*grpcserver.Server, error) {
 }
 
 // applyGRPCOptions 应用 GRPC 选项到配置
-func applyGRPCOptions(cfg *config.Config, grpcConfig *grpcserver.Config) error {
+func applyGRPCOptions(cfg *config.Config, grpcConfig *grpc.Config) error {
 	// 应用基本配置
 	grpcConfig.BindAddress = cfg.GRPCOptions.BindAddress
 	grpcConfig.BindPort = cfg.GRPCOptions.BindPort
