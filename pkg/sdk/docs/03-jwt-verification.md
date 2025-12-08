@@ -229,6 +229,15 @@ type TokenVerifyConfig struct {
     
     // ForceRemoteVerification 强制使用远程验证
     ForceRemoteVerification bool
+    
+    // RequiredClaims 必须存在的声明列表
+    // 例如: []string{"sub", "aud", "exp", "iat", "user_id"}
+    RequiredClaims []string
+    
+    // Algorithms 允许的签名算法列表
+    // 支持: RS256, RS384, RS512, ES256, ES384, ES512, PS256, PS384, PS512, EdDSA
+    // 如果为空，默认只允许 RS256
+    Algorithms []string
 }
 ```
 
@@ -241,6 +250,8 @@ type TokenVerifyConfig struct {
     ClockSkew:               time.Minute,
     RequireExpirationTime:   true,
     ForceRemoteVerification: false,
+    RequiredClaims:          []string{"sub", "user_id"},  // 必须包含这些声明
+    Algorithms:              []string{"RS256", "ES256"},  // 只允许这些算法
 }
 ```
 

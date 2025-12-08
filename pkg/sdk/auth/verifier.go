@@ -71,8 +71,16 @@ func (s *LocalVerifyStrategy) Verify(ctx context.Context, tokenString string, op
 	}
 
 	// 构建验证选项
-	verifyOpts := []jwt.ParseOption{
-		jwt.WithKeySet(keySet, jwa.RS256),
+	var verifyOpts []jwt.ParseOption
+
+	// 配置允许的签名算法
+	algorithms := s.getAllowedAlgorithms()
+	if len(algorithms) == 1 {
+		// 单个算法
+		verifyOpts = append(verifyOpts, jwt.WithKeySet(keySet, algorithms[0]))
+	} else {
+		// 多个算法，使用验证回调
+		verifyOpts = append(verifyOpts, jwt.WithKeySet(keySet))
 	}
 
 	// Audience 验证
@@ -96,6 +104,13 @@ func (s *LocalVerifyStrategy) Verify(ctx context.Context, tokenString string, op
 		verifyOpts = append(verifyOpts, jwt.WithAcceptableSkew(s.config.ClockSkew))
 	}
 
+	// 配置必需的声明
+	if s.config != nil && len(s.config.RequiredClaims) > 0 {
+		for _, claim := range s.config.RequiredClaims {
+			verifyOpts = append(verifyOpts, jwt.WithRequiredClaim(claim))
+		}
+	}
+
 	// 解析并验证
 	token, err := jwt.Parse([]byte(tokenString), verifyOpts...)
 	if err != nil {
@@ -112,6 +127,48 @@ func (s *LocalVerifyStrategy) Verify(ctx context.Context, tokenString string, op
 		Claims:   claims,
 		RawToken: token,
 	}, nil
+}
+
+// getAllowedAlgorithms 返回允许的签名算法列表
+// 如果未配置，默认返回 [RS256]（最常用的 RSA 算法）
+func (s *LocalVerifyStrategy) getAllowedAlgorithms() []jwa.SignatureAlgorithm {
+	if s.config == nil || len(s.config.Algorithms) == 0 {
+		// 默认只允许 RS256
+		return []jwa.SignatureAlgorithm{jwa.RS256}
+	}
+
+	algorithms := make([]jwa.SignatureAlgorithm, 0, len(s.config.Algorithms))
+	for _, alg := range s.config.Algorithms {
+		switch alg {
+		case "RS256":
+			algorithms = append(algorithms, jwa.RS256)
+		case "RS384":
+			algorithms = append(algorithms, jwa.RS384)
+		case "RS512":
+			algorithms = append(algorithms, jwa.RS512)
+		case "ES256":
+			algorithms = append(algorithms, jwa.ES256)
+		case "ES384":
+			algorithms = append(algorithms, jwa.ES384)
+		case "ES512":
+			algorithms = append(algorithms, jwa.ES512)
+		case "PS256":
+			algorithms = append(algorithms, jwa.PS256)
+		case "PS384":
+			algorithms = append(algorithms, jwa.PS384)
+		case "PS512":
+			algorithms = append(algorithms, jwa.PS512)
+		case "EdDSA":
+			algorithms = append(algorithms, jwa.EdDSA)
+		}
+	}
+
+	if len(algorithms) == 0 {
+		// 如果配置的算法都无效，回退到默认
+		return []jwa.SignatureAlgorithm{jwa.RS256}
+	}
+
+	return algorithms
 }
 
 // =============================================================================

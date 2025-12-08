@@ -152,6 +152,15 @@ type TokenVerifyConfig struct {
 
 	// ForceRemoteVerification 强制使用远程验证
 	ForceRemoteVerification bool
+
+	// RequiredClaims 必须存在的声明列表
+	// 例如: []string{"sub", "aud", "exp", "iat"}
+	RequiredClaims []string
+
+	// Algorithms 允许的签名算法列表
+	// 例如: []string{"RS256", "RS384", "RS512", "ES256", "ES384", "ES512"}
+	// 如果为空，默认允许 RS256, RS384, RS512, ES256, ES384, ES512
+	Algorithms []string
 }
 
 // CircuitBreakerConfig 熔断器配置
