@@ -153,7 +153,7 @@ grpc:
   
   # mTLS 双向认证配置
   mtls:
-    enabled: false  # 开发环境默认禁用 mTLS，方便调试
+    enabled: true   # 开发环境开启 mTLS，覆盖证书路径为本地生成的自签名证书
     cert-file: "./configs/cert/grpc/server/iam-grpc.crt"
     key-file: "./configs/cert/grpc/server/iam-grpc.key"
     ca-file: "./configs/cert/grpc/ca/ca-chain.crt"

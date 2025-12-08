@@ -16,6 +16,13 @@ type SecureServingConfig struct {
 type GRPCConfig struct {
 	Addr        string // 服务器地址
 	HealthzAddr string // 健康检查地址
+	MTLS        GRPCMTLSOptions
+	Auth        GRPCAuthOptions
+	ACL         GRPCAclOptions
+	Audit       GRPCAuditOptions
+	TLSCertFile string
+	TLSKeyFile  string
+	Insecure    bool
 }
 
 // ServerConfig 服务器配置

@@ -8,6 +8,7 @@ import (
 type Config struct {
 	BindAddress           string
 	BindPort              int
+	HealthzPort           int
 	MaxMsgSize            int
 	MaxConnectionAge      time.Duration
 	MaxConnectionAgeGrace time.Duration
@@ -76,6 +77,7 @@ func NewConfig() *Config {
 	return &Config{
 		BindAddress:           "0.0.0.0",
 		BindPort:              9090,
+		HealthzPort:           9091,
 		MaxMsgSize:            4 * 1024 * 1024,  // 4MB
 		MaxConnectionAge:      2 * time.Hour,    // 连接最大存活时间
 		MaxConnectionAgeGrace: 10 * time.Second, // 连接优雅终止等待时间
@@ -122,6 +124,9 @@ func (c *Config) Complete() CompletedConfig {
 	}
 	if c.BindPort == 0 {
 		c.BindPort = 8090
+	}
+	if c.HealthzPort == 0 {
+		c.HealthzPort = 9091
 	}
 	if c.MaxMsgSize == 0 {
 		c.MaxMsgSize = 4 * 1024 * 1024

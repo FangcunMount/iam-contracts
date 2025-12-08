@@ -66,6 +66,7 @@ configs/cert/*.pfx
 configs/cert/*.csr
 configs/cert/*.srl
 configs/cert/openssl.cnf
+configs/cert/grpc/**
 !configs/cert/README.md
 
 # Keys for JWT signing (except README)

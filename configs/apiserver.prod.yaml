@@ -126,6 +126,30 @@ grpc:
   bind-address: 0.0.0.0
   bind-port: 9090
   healthz-port: 9091
+  mtls:
+    enabled: true
+    cert-file: /etc/iam-contracts/grpc/server/iam-grpc.crt
+    key-file: /etc/iam-contracts/grpc/server/iam-grpc.key
+    ca-file: /etc/iam-contracts/grpc/ca/ca-chain.crt
+    require-client-cert: true
+    allowed-ous:
+      - QS
+      - Admin
+      - Ops
+    enable-auto-reload: true
+    reload-interval: 5m
+  auth:
+    enabled: true
+    enable-bearer: true
+    enable-hmac: true
+    enable-api-key: true
+    hmac-timestamp-validity: 5m
+    require-identity-match: true
+  acl:
+    enabled: true
+    config-file: "/etc/iam-contracts/grpc/grpc_acl.yaml"
+  audit:
+    enabled: true
 
 # IDP 模块配置
 idp:
