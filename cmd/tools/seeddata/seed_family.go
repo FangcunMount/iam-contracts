@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	gofaker "github.com/guchengxi1994/go_faker"
 	"github.com/mozillazg/go-pinyin"
 
 	childApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/child"
@@ -101,6 +100,35 @@ func (s *PhoneSet) GenerateUniquePhone() (string, error) {
 
 // ==================== Faker 辅助函数 ====================
 
+// 常见中国姓氏（按人口比例排序的前100个）
+var chineseSurnames = []string{
+	"王", "李", "张", "刘", "陈", "杨", "黄", "赵", "周", "吴",
+	"徐", "孙", "马", "胡", "朱", "郭", "何", "林", "罗", "高",
+	"郑", "梁", "谢", "宋", "唐", "许", "韩", "冯", "邓", "曹",
+	"彭", "曾", "萧", "田", "董", "潘", "袁", "蔡", "蒋", "余",
+	"于", "杜", "叶", "程", "魏", "苏", "吕", "丁", "任", "卢",
+	"姚", "沈", "钟", "姜", "崔", "谭", "陆", "范", "汪", "廖",
+	"石", "金", "韦", "贾", "夏", "付", "方", "邹", "熊", "白",
+	"孟", "秦", "邱", "侯", "江", "尹", "薛", "闫", "雷", "龙",
+	"史", "陶", "贺", "毛", "段", "郝", "顾", "龚", "邵", "万",
+	"钱", "严", "赖", "覃", "洪", "武", "莫", "孔", "向", "常",
+}
+
+// 常见名字用字（混合性别，单字和双字名都从这里取）
+var chineseGivenNameChars = []string{
+	// 中性/通用
+	"文", "华", "明", "国", "建", "平", "军", "海", "云", "林",
+	"英", "玉", "春", "秀", "兰", "桂", "芳", "红", "金", "银",
+	// 偏男性
+	"伟", "强", "刚", "勇", "杰", "磊", "涛", "斌", "鹏", "飞",
+	"辉", "超", "浩", "宏", "志", "威", "龙", "峰", "亮", "东",
+	"波", "健", "宁", "成", "凯", "兵", "毅", "俊", "帅", "锋",
+	// 偏女性
+	"丽", "芬", "娟", "敏", "静", "燕", "艳", "霞", "婷", "雪",
+	"梅", "莉", "琳", "倩", "颖", "萍", "慧", "娜", "蓉", "洁",
+	"珍", "琴", "瑶", "薇", "蕾", "欣", "怡", "雅", "馨", "露",
+}
+
 // generateFakePhone 生成假手机号（中国格式）
 func generateFakePhone() string {
 	// 中国手机号前缀
@@ -117,15 +145,22 @@ func generateFakePhone() string {
 
 // generateFakeName 生成假中文姓名
 func generateFakeName() string {
-	f := gofaker.Faker{
-		Locale: "zh_CN",
+	// 随机选择姓氏
+	surname := chineseSurnames[rand.Intn(len(chineseSurnames))]
+
+	// 随机决定名字长度（1-2个字，70%双字名，30%单字名）
+	var givenName string
+	if rand.Float32() < 0.7 {
+		// 双字名
+		char1 := chineseGivenNameChars[rand.Intn(len(chineseGivenNameChars))]
+		char2 := chineseGivenNameChars[rand.Intn(len(chineseGivenNameChars))]
+		givenName = char1 + char2
+	} else {
+		// 单字名
+		givenName = chineseGivenNameChars[rand.Intn(len(chineseGivenNameChars))]
 	}
-	fullName := f.PersonName()
-	// PersonName() 返回格式: "中文名, 英文名"，只保留中文部分
-	if idx := strings.Index(fullName, ","); idx != -1 {
-		return strings.TrimSpace(fullName[:idx])
-	}
-	return fullName
+
+	return surname + givenName
 }
 
 // 中国身份证号地区码（部分常用）
