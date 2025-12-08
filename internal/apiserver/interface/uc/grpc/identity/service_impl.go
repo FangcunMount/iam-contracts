@@ -8,9 +8,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	identityv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/identity/v1"
 	guardianshipApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
 	userApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
-	identityv1 "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/grpc/pb/iam/identity/v1"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 

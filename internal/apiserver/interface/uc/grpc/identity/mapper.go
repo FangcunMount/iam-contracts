@@ -8,13 +8,13 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
+	identityv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/identity/v1"
 	childApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/child"
 	guardianshipApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
 	userApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
 	childDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	guardianshipDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
-	identityv1 "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/grpc/pb/iam/identity/v1"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 

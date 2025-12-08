@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
+	authnv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/authn/v1"
 	jwksApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/jwks"
 	tokenApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
 	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
-	authnv1 "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/grpc/pb/iam/authn/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

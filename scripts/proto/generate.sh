@@ -7,9 +7,12 @@ set -e
 
 echo "🔧 生成Proto文件..."
 
-# 设置路径（按照新的 uc 模块目录）
+# 设置根目录
+ROOT_DIR=$(cd "$(dirname "$0")/../.." && pwd)
+cd "$ROOT_DIR"
+
+# Proto 源文件路径
 PROTO_PATH="api/grpc"
-OUTPUT_PATH="internal/apiserver/interface/uc/grpc"
 
 # 检查protoc是否安装
 if ! command -v protoc &> /dev/null; then
@@ -28,8 +31,39 @@ if ! command -v protoc-gen-go-grpc &> /dev/null; then
     go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 fi
 
-# 创建输出目录
-mkdir -p ${OUTPUT_PATH}
+# 查找所有 proto 文件
+PROTO_FILES=$(find ${PROTO_PATH} -name "*.proto")
+
+if [ -z "$PROTO_FILES" ]; then
+    echo "⚠️  未找到 proto 文件"
+    exit 0
+fi
+
+echo "📁 发现以下 proto 文件:"
+echo "$PROTO_FILES"
+
+# 生成 authn proto
+echo "🔄 生成 authn 服务..."
+protoc \
+    --proto_path=${PROTO_PATH} \
+    --go_out=${PROTO_PATH} \
+    --go_opt=paths=source_relative \
+    --go-grpc_out=${PROTO_PATH} \
+    --go-grpc_opt=paths=source_relative \
+    iam/authn/v1/authn.proto
+
+# 生成 identity proto
+echo "🔄 生成 identity 服务..."
+protoc \
+    --proto_path=${PROTO_PATH} \
+    --go_out=${PROTO_PATH} \
+    --go_opt=paths=source_relative \
+    --go-grpc_out=${PROTO_PATH} \
+    --go-grpc_opt=paths=source_relative \
+    iam/identity/v1/identity.proto
 
 echo "✅ Proto文件生成完成！"
-echo "📁 输出目录: ${OUTPUT_PATH}" 
+echo ""
+echo "📁 生成的文件:"
+find ${PROTO_PATH} -name "*.pb.go" -o -name "*_grpc.pb.go" | sort
+ 
