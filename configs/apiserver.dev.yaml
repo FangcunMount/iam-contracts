@@ -157,6 +157,7 @@ grpc:
     cert-file: "/data/infra/ssl/grpc/server/iam-grpc.crt"
     key-file: "/data/infra/ssl/grpc/server/iam-grpc.key"
     ca-file: "/data/infra/ssl/grpc/ca/ca-chain.crt"
+    # ca-dir: "/data/infra/ssl/grpc/ca/"  # 可选：CA 证书目录，支持多级 CA 信任链
     require-client-cert: true
     # 允许的客户端证书 OU 列表
     allowed-ous:

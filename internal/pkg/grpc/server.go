@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"time"
 
@@ -23,12 +24,14 @@ import (
 // Server GRPC 服务器结构体
 type Server struct {
 	*grpc.Server
-	config      *Config
-	services    []Service
-	secure      bool
-	mtlsEnabled bool
-	mtlsCreds   *mtls.ServerCredentials  // mTLS 凭证，用于证书自动重载
-	acl         *interceptors.ServiceACL // 服务级 ACL
+	config        *Config
+	services      []Service
+	secure        bool
+	mtlsEnabled   bool
+	mtlsCreds     *mtls.ServerCredentials  // mTLS 凭证，用于证书自动重载
+	acl           *interceptors.ServiceACL // 服务级 ACL
+	healthServer  *health.Server           // 健康检查服务器
+	healthzServer *http.Server             // 独立的 HTTP 健康检查服务器
 }
 
 // Service GRPC 服务接口
@@ -87,6 +90,7 @@ func NewServer(config *Config) (*Server, error) {
 			CertFile:          config.TLSCertFile,
 			KeyFile:           config.TLSKeyFile,
 			CAFile:            config.MTLS.CAFile,
+			CADir:             config.MTLS.CADir, // 支持 CA 证书目录（多级 CA 信任链）
 			RequireClientCert: true,
 			AllowedCNs:        config.MTLS.AllowedCNs,
 			AllowedOUs:        config.MTLS.AllowedOUs,
@@ -111,8 +115,13 @@ func NewServer(config *Config) (*Server, error) {
 			creds.StartAutoReload()
 		}
 
+		// 记录 CA 配置信息
+		caInfo := config.MTLS.CAFile
+		if config.MTLS.CADir != "" {
+			caInfo = fmt.Sprintf("%s (dir: %s)", caInfo, config.MTLS.CADir)
+		}
 		log.Infof("mTLS enabled with CA: %s, allowed CNs: %v, allowed OUs: %v",
-			config.MTLS.CAFile, config.MTLS.AllowedCNs, config.MTLS.AllowedOUs)
+			caInfo, config.MTLS.AllowedCNs, config.MTLS.AllowedOUs)
 
 	} else if !config.Insecure && config.TLSCertFile != "" && config.TLSKeyFile != "" {
 		// 使用单向 TLS
@@ -128,9 +137,10 @@ func NewServer(config *Config) (*Server, error) {
 	grpcServer := grpc.NewServer(serverOpts...)
 
 	// 注册健康检查服务
+	var healthSrv *health.Server
 	if config.EnableHealthCheck {
-		healthServer := health.NewServer()
-		healthpb.RegisterHealthServer(grpcServer, healthServer)
+		healthSrv = health.NewServer()
+		healthpb.RegisterHealthServer(grpcServer, healthSrv)
 	}
 
 	// 注册反射服务，用于服务发现
@@ -139,13 +149,14 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	return &Server{
-		Server:      grpcServer,
-		config:      config,
-		services:    make([]Service, 0),
-		secure:      secure,
-		mtlsEnabled: mtlsEnabled,
-		mtlsCreds:   mtlsCreds,
-		acl:         acl,
+		Server:       grpcServer,
+		config:       config,
+		services:     make([]Service, 0),
+		secure:       secure,
+		mtlsEnabled:  mtlsEnabled,
+		mtlsCreds:    mtlsCreds,
+		acl:          acl,
+		healthServer: healthSrv,
 	}, nil
 }
 
@@ -311,8 +322,136 @@ func (s *Server) RegisterService(service Service) {
 	s.services = append(s.services, service)
 }
 
+// SetServingStatus 设置指定服务的健康状态
+// service: 服务名称（如 "iam.authn.v1.AuthService"），空字符串表示整体服务
+// status: 健康状态（healthpb.HealthCheckResponse_SERVING, NOT_SERVING, UNKNOWN, SERVICE_UNKNOWN）
+func (s *Server) SetServingStatus(service string, status healthpb.HealthCheckResponse_ServingStatus) {
+	if s.healthServer != nil {
+		s.healthServer.SetServingStatus(service, status)
+		log.Infof("Set gRPC health status for '%s': %s", service, status.String())
+	}
+}
+
+// MarkAllServicesServing 将所有已注册的服务标记为 SERVING 状态
+// 应在所有服务注册完成后调用
+func (s *Server) MarkAllServicesServing() {
+	if s.healthServer == nil {
+		return
+	}
+
+	// 设置整体服务状态为 SERVING
+	s.healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
+
+	// 遍历所有已注册的 gRPC 服务，为每个服务设置健康状态
+	// 这样客户端可以按服务名称探测健康状态
+	serviceInfo := s.Server.GetServiceInfo()
+	serviceNames := make([]string, 0, len(serviceInfo))
+	for serviceName := range serviceInfo {
+		// 跳过内部健康检查服务本身
+		if serviceName == "grpc.health.v1.Health" {
+			continue
+		}
+		s.healthServer.SetServingStatus(serviceName, healthpb.HealthCheckResponse_SERVING)
+		serviceNames = append(serviceNames, serviceName)
+	}
+
+	if len(serviceNames) > 0 {
+		log.Infof("Marked %d gRPC services as SERVING: %v", len(serviceNames), serviceNames)
+	} else {
+		log.Info("Marked all gRPC services as SERVING (no specific services registered)")
+	}
+}
+
+// startHealthzServer 启动独立的 HTTP 健康检查服务器
+// 这个 HTTP 端点不需要 mTLS 认证，方便 K8s 和负载均衡器探测
+func (s *Server) startHealthzServer() error {
+	if !s.config.EnableHealthCheck || s.healthServer == nil {
+		return nil
+	}
+
+	if s.config.HealthzPort == 0 {
+		log.Info("Healthz port is 0, skipping HTTP health check server")
+		return nil
+	}
+
+	address := fmt.Sprintf("%s:%d", s.config.BindAddress, s.config.HealthzPort)
+
+	// 创建 HTTP 处理器
+	mux := http.NewServeMux()
+
+	// /healthz - 简单的健康检查端点
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if s.healthServer == nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("Health check not enabled"))
+			return
+		}
+
+		// 检查整体服务状态
+		resp, err := s.healthServer.Check(r.Context(), &healthpb.HealthCheckRequest{})
+		if err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(fmt.Sprintf("Health check failed: %v", err)))
+			return
+		}
+
+		if resp.Status == healthpb.HealthCheckResponse_SERVING {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("OK"))
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(fmt.Sprintf("Status: %s", resp.Status)))
+		}
+	})
+
+	// /livez - 存活探针
+	mux.HandleFunc("/livez", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK"))
+	})
+
+	// /readyz - 就绪探针
+	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		if s.healthServer == nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("Health check not enabled"))
+			return
+		}
+
+		resp, err := s.healthServer.Check(r.Context(), &healthpb.HealthCheckRequest{})
+		if err != nil || resp.Status != healthpb.HealthCheckResponse_SERVING {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("NOT_READY"))
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("READY"))
+	})
+
+	s.healthzServer = &http.Server{
+		Addr:    address,
+		Handler: mux,
+	}
+
+	// 在后台启动 HTTP 服务器
+	go func() {
+		log.Infof("Starting HTTP health check server on http://%s", address)
+		if err := s.healthzServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Errorf("HTTP health check server error: %v", err)
+		}
+	}()
+
+	return nil
+}
+
 // Run 启动 GRPC 服务器
 func (s *Server) Run() error {
+	// 启动独立的 HTTP 健康检查服务器
+	if err := s.startHealthzServer(); err != nil {
+		return fmt.Errorf("failed to start healthz server: %v", err)
+	}
+
 	address := fmt.Sprintf("%s:%d", s.config.BindAddress, s.config.BindPort)
 
 	// 创建 TCP 监听器
@@ -350,6 +489,34 @@ func (s *Server) RunWithContext(ctx context.Context) error {
 
 // Close 优雅关闭 GRPC 服务器
 func (s *Server) Close() {
+	// 标记所有服务为 NOT_SERVING 状态，拒绝新的健康检查
+	if s.healthServer != nil {
+		// 设置整体服务状态为 NOT_SERVING
+		s.healthServer.SetServingStatus("", healthpb.HealthCheckResponse_NOT_SERVING)
+
+		// 遍历所有已注册的 gRPC 服务，标记为 NOT_SERVING
+		serviceInfo := s.Server.GetServiceInfo()
+		for serviceName := range serviceInfo {
+			if serviceName == "grpc.health.v1.Health" {
+				continue
+			}
+			s.healthServer.SetServingStatus(serviceName, healthpb.HealthCheckResponse_NOT_SERVING)
+		}
+
+		log.Info("Marked all gRPC services as NOT_SERVING")
+	}
+
+	// 关闭 HTTP 健康检查服务器
+	if s.healthzServer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := s.healthzServer.Shutdown(ctx); err != nil {
+			log.Errorf("Failed to shutdown healthz server: %v", err)
+		} else {
+			log.Info("HTTP health check server stopped")
+		}
+	}
+
 	const timeout = 5 * time.Second
 	ch := make(chan struct{})
 

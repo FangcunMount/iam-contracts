@@ -131,6 +131,7 @@ grpc:
     cert-file: /etc/iam-contracts/grpc/server/iam-grpc.crt
     key-file: /etc/iam-contracts/grpc/server/iam-grpc.key
     ca-file: /etc/iam-contracts/grpc/ca/ca-chain.crt
+    # ca-dir: /etc/iam-contracts/grpc/ca/  # 可选：CA 证书目录，支持多级 CA 信任链
     require-client-cert: true
     allowed-ous:
       - QS

@@ -703,8 +703,10 @@ func NewServer(config *Config) (*Server, error) {
     grpcServer := grpc.NewServer(serverOpts...)
     
     // 6. 注册健康检查
+    var healthSrv *health.Server
     if config.EnableHealthCheck {
-        healthpb.RegisterHealthServer(grpcServer, health.NewServer())
+        healthSrv = health.NewServer()
+        healthpb.RegisterHealthServer(grpcServer, healthSrv)
     }
     
     // 7. 注册反射服务（开发环境）
@@ -713,10 +715,11 @@ func NewServer(config *Config) (*Server, error) {
     }
     
     return &Server{
-        Server:    grpcServer,
-        config:    config,
-        mtlsCreds: mtlsCreds,
-        acl:       acl,
+        Server:       grpcServer,
+        config:       config,
+        mtlsCreds:    mtlsCreds,
+        acl:          acl,
+        healthServer: healthSrv,  // 保存健康检查服务器引用
     }, nil
 }
 
@@ -766,6 +769,15 @@ func buildUnaryInterceptors(config *Config, acl *interceptors.ServiceACL) []grpc
 func (s *Server) RegisterService(svc Service) {
     s.services = append(s.services, svc)
     svc.RegisterService(s.Server)
+}
+
+// MarkAllServicesServing 标记所有服务为健康状态
+// 必须在所有服务注册完成后调用
+func (s *Server) MarkAllServicesServing() {
+    if s.healthServer != nil {
+        s.healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
+        log.Info("Marked all gRPC services as SERVING")
+    }
 }
 
 // Run 启动服务器
@@ -848,7 +860,10 @@ func main() {
     server.RegisterService(&AuthnServiceImpl{})
     server.RegisterService(&IdentityServiceImpl{})
     
-    // 4. 启动服务器
+    // 4. 标记所有服务为健康状态（重要！）
+    server.MarkAllServicesServing()
+    
+    // 5. 启动服务器
     if err := server.Run(); err != nil {
         log.Fatalf("Failed to run server: %v", err)
     }
@@ -980,13 +995,20 @@ grpc:
   tls_key_file: "/path/to/server.key"
   mtls:
     enabled: true
-    ca_file: "/path/to/ca.crt"
+    ca_file: "/path/to/ca.crt"              # 单个 CA 证书文件
+    ca_dir: "/path/to/ca-chain/"            # CA 证书目录（可选，支持多级 CA 信任链）
     require_client_cert: true
     allowed_cns: ["service-a", "service-b"]  # 允许的证书 CN
     allowed_ous: ["platform-team"]            # 允许的组织单元
     min_tls_version: "1.2"
     enable_auto_reload: true                  # 证书热重载
 ```
+
+**CA 证书配置说明：**
+
+- `ca_file`: 单个 CA 证书文件（如 `ca-chain.crt`）
+- `ca_dir`: CA 证书目录，支持加载目录中的所有 `.crt` 或 `.pem` 文件（用于多级 CA 信任链）
+- 可以同时配置 `ca_file` 和 `ca_dir`，系统会合并信任所有证书
 
 **证书白名单**：支持 CN、OU、DNS SAN 三种维度过滤。
 
@@ -1149,7 +1171,341 @@ grpc:
 
 ---
 
-## 6. 客户端接入指南
+## 6. 健康检查最佳实践
+
+### 6.1 为什么需要正确设置健康状态？
+
+gRPC 健康检查协议 ([grpc-health-checking](https://github.com/grpc/grpc/blob/master/doc/health-checking.md)) 定义了四种服务状态：
+
+| 状态 | 说明 | 使用场景 |
+|------|------|----------|
+| `SERVING` | 服务正常运行 | 所有服务就绪后设置 |
+| `NOT_SERVING` | 服务不可用 | 关闭服务前设置 |
+| `UNKNOWN` | 状态未知 | （已废弃，不推荐） |
+| `SERVICE_UNKNOWN` | 服务未注册 | **默认状态**，未调用 SetServingStatus 时 |
+
+**常见问题：**
+
+- ❌ 只注册了 `health.Server`，但没有调用 `SetServingStatus`
+- ❌ 结果：健康探针一直返回 `SERVICE_UNKNOWN`，Kubernetes 误判为不健康
+- ✅ 正确做法：服务注册后设置 `SERVING`，关闭时设置 `NOT_SERVING`
+
+### 6.2 正确的实现方式
+
+#### 服务端代码
+
+```go
+// 1. 创建服务器时保存 health.Server 引用
+type Server struct {
+    *grpc.Server
+    healthServer *health.Server
+    // ...
+}
+
+func NewServer(config *Config) (*Server, error) {
+    // ...
+    var healthSrv *health.Server
+    if config.EnableHealthCheck {
+        healthSrv = health.NewServer()
+        healthpb.RegisterHealthServer(grpcServer, healthSrv)
+    }
+    
+    return &Server{
+        Server:       grpcServer,
+        healthServer: healthSrv,
+        // ...
+    }, nil
+}
+
+// 2. 提供设置状态的方法
+func (s *Server) MarkAllServicesServing() {
+    if s.healthServer == nil {
+        return
+    }
+    
+    // 设置整体服务状态（空字符串表示整体）
+    s.healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
+    
+    // 遍历所有已注册的 gRPC 服务，为每个服务设置健康状态
+    // 这样客户端可以按服务名称探测健康状态
+    serviceInfo := s.Server.GetServiceInfo()
+    for serviceName := range serviceInfo {
+        // 跳过健康检查服务本身
+        if serviceName == "grpc.health.v1.Health" {
+            continue
+        }
+        s.healthServer.SetServingStatus(serviceName, healthpb.HealthCheckResponse_SERVING)
+    }
+}
+
+// 3. 关闭时标记 NOT_SERVING
+func (s *Server) Close() {
+    if s.healthServer != nil {
+        // 设置整体服务状态
+        s.healthServer.SetServingStatus("", healthpb.HealthCheckResponse_NOT_SERVING)
+        
+        // 遍历所有服务，标记为 NOT_SERVING
+        serviceInfo := s.Server.GetServiceInfo()
+        for serviceName := range serviceInfo {
+            if serviceName == "grpc.health.v1.Health" {
+                continue
+            }
+            s.healthServer.SetServingStatus(serviceName, healthpb.HealthCheckResponse_NOT_SERVING)
+        }
+    }
+    // ... 其他关闭逻辑
+}
+```
+
+#### 使用示例
+
+```go
+func main() {
+    // 1. 创建服务器
+    server, err := grpc.NewServer(config)
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    // 2. 注册所有业务服务
+    server.RegisterService(&AuthnServiceImpl{})
+    server.RegisterService(&IdentityServiceImpl{})
+    
+    // 3. 【关键】标记服务为健康状态
+    server.MarkAllServicesServing()
+    
+    // 4. 启动服务器
+    if err := server.Run(); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+### 6.3 独立的 HTTP 健康检查端口
+
+为了方便 Kubernetes 和负载均衡器进行健康检查，服务器会在独立的 HTTP 端口暴露健康检查端点（不需要 mTLS 认证）。
+
+**配置示例：**
+
+```yaml
+grpc:
+  bind_port: 9090        # gRPC 服务端口（需要 mTLS）
+  healthz_port: 9091     # HTTP 健康检查端口（不需要认证）
+  enable_health_check: true
+```
+
+**可用的 HTTP 端点：**
+
+| 端点 | 用途 | 返回值 |
+|------|------|--------|
+| `/healthz` | 通用健康检查 | 200 OK / 503 Service Unavailable |
+| `/livez` | 存活探针（进程是否存活） | 200 OK（总是返回成功） |
+| `/readyz` | 就绪探针（是否可接收流量） | 200 READY / 503 NOT_READY |
+
+### 6.4 Kubernetes 健康探针配置
+
+**方案 A：使用 HTTP 健康检查端点（推荐）**
+
+```yaml
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: iam-grpc
+    image: iam-contracts:latest
+    ports:
+    - containerPort: 9090
+      name: grpc
+    - containerPort: 9091
+      name: healthz
+    
+    # 存活探针：检查进程是否存活
+    livenessProbe:
+      httpGet:
+        path: /livez
+        port: 9091
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+    
+    # 就绪探针：检查服务是否准备好接收流量
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 9091
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 3
+      successThreshold: 1
+      failureThreshold: 3
+```
+
+**方案 B：使用 gRPC 健康检查（需要 grpc_health_probe）**
+
+```yaml
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: iam-grpc
+    image: iam-contracts:latest
+    ports:
+    - containerPort: 9090
+      name: grpc
+    
+    # 存活探针：检查服务是否还在运行
+    livenessProbe:
+      exec:
+        command: [
+          "/usr/local/bin/grpc_health_probe",
+          "-addr=:9090",
+          "-tls",
+          "-tls-ca-cert=/etc/iam-contracts/grpc/ca/ca-chain.crt",
+          "-tls-client-cert=/etc/iam-contracts/grpc/server/iam-grpc.crt",
+          "-tls-client-key=/etc/iam-contracts/grpc/server/iam-grpc.key"
+        ]
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+    
+    # 就绪探针：检查服务是否准备好接收流量
+    readinessProbe:
+      exec:
+        command: [
+          "/usr/local/bin/grpc_health_probe",
+          "-addr=:9090",
+          "-tls",
+          "-tls-ca-cert=/etc/iam-contracts/grpc/ca/ca-chain.crt",
+          "-tls-client-cert=/etc/iam-contracts/grpc/server/iam-grpc.crt",
+          "-tls-client-key=/etc/iam-contracts/grpc/server/iam-grpc.key"
+        ]
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 3
+      successThreshold: 1
+      failureThreshold: 3
+```
+
+**方案对比：**
+
+| 特性 | HTTP 端点（方案 A） | gRPC 探测（方案 B） |
+|-----|-------------------|-------------------|
+| **配置复杂度** | ✅ 简单 | ❌ 复杂（需要证书） |
+| **依赖** | ✅ 无需额外工具 | ❌ 需要 grpc_health_probe |
+| **性能** | ✅ 更快 | ⚠️ 稍慢（TLS 握手） |
+| **推荐场景** | K8s、云负载均衡器 | 需要验证 mTLS 的场景 |
+
+### 6.5 手动测试健康检查
+
+**测试 HTTP 健康检查端点（推荐）：**
+
+```bash
+# 测试通用健康检查
+curl http://localhost:9091/healthz
+# 期望输出: OK
+
+# 测试存活探针
+curl http://localhost:9091/livez
+# 期望输出: OK
+
+# 测试就绪探针
+curl http://localhost:9091/readyz
+# 期望输出: READY
+
+# 查看详细响应
+curl -v http://localhost:9091/healthz
+# HTTP/1.1 200 OK
+# OK
+```
+
+**测试 gRPC 健康检查（需要 mTLS）：**
+
+```bash
+# 安装 grpc_health_probe
+wget https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/v0.4.19/grpc_health_probe-linux-amd64
+chmod +x grpc_health_probe-linux-amd64
+sudo mv grpc_health_probe-linux-amd64 /usr/local/bin/grpc_health_probe
+
+# 测试整体服务健康检查（mTLS）
+grpc_health_probe \
+  -addr=localhost:9090 \
+  -tls \
+  -tls-ca-cert=/data/infra/ssl/grpc/ca/ca-chain.crt \
+  -tls-client-cert=/data/infra/ssl/grpc/server/qs.crt \
+  -tls-client-key=/data/infra/ssl/grpc/server/qs.key
+
+# 期望输出：
+# status: SERVING
+
+# 测试特定服务的健康状态
+grpc_health_probe \
+  -addr=localhost:9090 \
+  -service=iam.authn.v1.AuthService \
+  -tls \
+  -tls-ca-cert=/data/infra/ssl/grpc/ca/ca-chain.crt \
+  -tls-client-cert=/data/infra/ssl/grpc/server/qs.crt \
+  -tls-client-key=/data/infra/ssl/grpc/server/qs.key
+
+# 期望输出：
+# status: SERVING
+```
+
+### 6.6 按服务设置健康状态
+
+**自动设置（推荐）：**
+
+`MarkAllServicesServing()` 方法会自动为所有已注册的 gRPC 服务设置健康状态：
+
+```go
+// 调用 MarkAllServicesServing() 后，以下服务都会被标记为 SERVING：
+// - "" (整体服务)
+// - "iam.authn.v1.AuthService"
+// - "iam.authn.v1.JWKSService"
+// - "iam.identity.v1.IdentityRead"
+// - "iam.identity.v1.GuardianshipQuery"
+// - "iam.identity.v1.GuardianshipCommand"
+// - "iam.identity.v1.IdentityLifecycle"
+```
+
+**手动按服务探测：**
+
+```bash
+# 探测整体服务状态
+grpc_health_probe -addr=localhost:9090
+# status: SERVING
+
+# 探测特定服务
+grpc_health_probe -addr=localhost:9090 -service=iam.authn.v1.AuthService
+# status: SERVING
+
+grpc_health_probe -addr=localhost:9090 -service=iam.identity.v1.IdentityRead
+# status: SERVING
+```
+
+**手动设置（高级用法）：**
+
+如果需要单独控制某个服务的健康状态：
+
+```go
+// 标记特定服务为 NOT_SERVING（例如：依赖服务故障）
+server.SetServingStatus("iam.authn.v1.AuthService", healthpb.HealthCheckResponse_NOT_SERVING)
+
+// 稍后恢复
+server.SetServingStatus("iam.authn.v1.AuthService", healthpb.HealthCheckResponse_SERVING)
+```
+
+**使用场景：**
+
+- 依赖检查：数据库连接失败时，只标记特定服务为 `NOT_SERVING`
+- 灰度发布：逐步启用服务
+- 降级策略：部分服务不可用时，其他服务仍可用
+- 细粒度监控：为每个服务独立设置健康状态
+
+---
+
+## 7. 客户端接入指南
 
 ### 6.1 使用 IAM SDK（推荐）
 
@@ -1222,7 +1578,7 @@ func callWithHMAC(ctx context.Context, client MyServiceClient) {
 
 ---
 
-## 7. 扩展开发指南
+## 8. 扩展开发指南
 
 ### 7.1 自定义凭证验证器
 
@@ -1294,9 +1650,9 @@ interceptors.LoggingInterceptor(&ZapLogger{logger: myZapLogger})
 
 ---
 
-## 8. 生产环境最佳实践
+## 9. 生产环境最佳实践
 
-### 8.1 安全配置
+### 9.1 安全配置
 
 | 实践 | 说明 | 配置 |
 |-----|------|------|
@@ -1306,7 +1662,7 @@ interceptors.LoggingInterceptor(&ZapLogger{logger: myZapLogger})
 | **应用层认证** | mTLS 之上叠加 Token/HMAC | `Auth.Enabled: true` |
 | **审计日志** | 记录所有敏感操作 | `Audit.Enabled: true` |
 
-### 8.2 可靠性配置
+### 9.2 可靠性配置
 
 | 实践 | 说明 | 配置 |
 |-----|------|------|
@@ -1315,7 +1671,7 @@ interceptors.LoggingInterceptor(&ZapLogger{logger: myZapLogger})
 | **连接管理** | 防止连接泄漏 | `MaxConnectionAge: 30m` |
 | **健康检查** | 支持 K8s 探活 | `EnableHealthCheck: true` |
 
-### 8.3 可观测性
+### 9.3 可观测性
 
 | 实践 | 说明 |
 |-----|------|
@@ -1324,7 +1680,7 @@ interceptors.LoggingInterceptor(&ZapLogger{logger: myZapLogger})
 | **审计日志** | 记录谁在什么时间调用了什么方法 |
 | **指标采集** | 集成 Prometheus（可扩展） |
 
-### 8.4 开发环境配置
+### 9.4 开发环境配置
 
 ```yaml
 # 开发环境可以放宽限制，便于调试
@@ -1344,9 +1700,9 @@ grpc:
 
 ---
 
-## 9. 故障排查
+## 10. 故障排查
 
-### 9.1 常见错误
+### 10.1 常见错误
 
 | 错误 | 原因 | 解决方案 |
 |-----|------|---------|
@@ -1380,9 +1736,9 @@ tail -f /var/log/iam/grpc-audit.log
 
 ---
 
-## 10. 总结与参考
+## 11. 总结与参考
 
-### 10.1 核心价值
+### 11.1 核心价值
 
 | 价值 | 说明 |
 |-----|------|

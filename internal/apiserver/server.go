@@ -208,6 +208,9 @@ func (s *apiServer) registerGRPCServices() {
 	}
 
 	log.Info("✅ All gRPC services registered successfully")
+
+	// 标记所有服务为 SERVING 状态（健康检查）
+	s.grpcServer.MarkAllServicesServing()
 }
 
 // loadIDPEncryptionKey 解析 IDP 加密密钥，支持 base64、base64url、hex 或纯 32 字节字符串
