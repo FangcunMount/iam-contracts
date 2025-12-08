@@ -315,11 +315,3 @@ func (h *AccountHandler) EnableAccount(c *gin.Context) {
 
 	h.Success(c, resp.MessageResponse{Message: "Account enabled successfully"})
 }
-
-// ptrToString 将字符串指针转为字符串，nil 返回空字符串
-func ptrToString(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}

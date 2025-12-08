@@ -478,12 +478,6 @@ func (s *identityLifecycleServer) LinkExternalIdentity(ctx context.Context, req 
 
 // ============= 辅助函数 =============
 
-// parseID 解析 ID 字符串
-func parseID(raw string) uint64 {
-	id, _ := strconv.ParseUint(strings.TrimSpace(raw), 10, 64)
-	return id
-}
-
 // protoRelationToString 将 proto 枚举转换为字符串
 func protoRelationToString(relation identityv1.GuardianshipRelation) string {
 	switch relation {

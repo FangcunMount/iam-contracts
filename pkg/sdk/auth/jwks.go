@@ -322,7 +322,7 @@ func (f *HTTPFetcher) Fetch(ctx context.Context) (jwk.Set, error) {
 	if err != nil {
 		return f.tryNext(ctx, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return f.tryNext(ctx, fmt.Errorf("http: unexpected status %d", resp.StatusCode))
@@ -438,7 +438,6 @@ type GRPCEndpointFetcher struct {
 	next     KeyFetcher
 	stats    *FetcherStats
 
-	mu       sync.Mutex
 	initOnce sync.Once
 	initErr  error
 }
@@ -878,9 +877,9 @@ func (s *FetcherStats) Snapshot() FetcherStats {
 }
 
 // Attempts 返回尝试次数
-func (s FetcherStats) Attempts() int64  { return s.attempts }
-func (s FetcherStats) Successes() int64 { return s.successes }
-func (s FetcherStats) Failures() int64  { return s.failures }
+func (s *FetcherStats) Attempts() int64  { return s.attempts }
+func (s *FetcherStats) Successes() int64 { return s.successes }
+func (s *FetcherStats) Failures() int64  { return s.failures }
 
 // =============================================================================
 // JWKSStats（兼容旧接口）

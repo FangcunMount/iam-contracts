@@ -17,10 +17,6 @@ func redisInfo(ctx context.Context, msg string, fields ...log.Field) {
 	log.Redis(msg, redisFields(ctx, fields)...)
 }
 
-func redisDebug(ctx context.Context, msg string, fields ...log.Field) {
-	log.RedisDebug(msg, redisFields(ctx, fields)...)
-}
-
 func redisWarn(ctx context.Context, msg string, fields ...log.Field) {
 	log.RedisWarn(msg, redisFields(ctx, fields)...)
 }

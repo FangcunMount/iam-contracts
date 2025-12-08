@@ -258,7 +258,7 @@ func (h *ServiceAuthHelper) refreshLoop() {
 
 		select {
 		case <-time.After(nextRefresh):
-			h.refreshTokenWithRetry(context.Background())
+			_ = h.refreshTokenWithRetry(context.Background()) // 错误已在内部处理和记录
 		case <-h.stopCh:
 			return
 		}

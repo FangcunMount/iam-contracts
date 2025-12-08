@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 
@@ -329,26 +328,6 @@ func maskSensitiveJSON(jsonStr string) string {
 	}
 
 	return string(masked)
-}
-
-// maskSensitiveWithRegex 使用正则表达式对常见敏感信息进行脱敏
-func maskSensitiveWithRegex(text string) string {
-	// 密码字段: "password":"xxx" -> "password":"***"
-	re := regexp.MustCompile(`("password"\s*:\s*)"[^"]*"`)
-	text = re.ReplaceAllString(text, `$1"***"`)
-
-	// Token 字段
-	re = regexp.MustCompile(`("token"\s*:\s*)"[^"]*"`)
-	text = re.ReplaceAllString(text, `$1"***"`)
-
-	re = regexp.MustCompile(`("access_token"\s*:\s*)"[^"]*"`)
-	text = re.ReplaceAllString(text, `$1"***"`)
-
-	// API Key
-	re = regexp.MustCompile(`("api_key"\s*:\s*)"[^"]*"`)
-	text = re.ReplaceAllString(text, `$1"***"`)
-
-	return text
 }
 
 // maskSensitiveInData 递归处理数据结构中的敏感字段

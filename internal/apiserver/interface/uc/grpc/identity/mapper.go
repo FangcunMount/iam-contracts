@@ -12,10 +12,8 @@ import (
 	childApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/child"
 	guardianshipApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
 	userApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
-	childDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	guardianshipDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
-	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // ============= UserResult 转换 =============
@@ -66,38 +64,6 @@ func userStatusToProto(status userDomain.UserStatus) identityv1.UserStatus {
 	}
 }
 
-// userDomainToProto 将领域层 User 转换为 proto User
-func userDomainToProto(u *userDomain.User) *identityv1.User {
-	if u == nil {
-		return nil
-	}
-
-	contacts := make([]*identityv1.VerifiedContact, 0)
-	if !u.Phone.IsEmpty() {
-		contacts = append(contacts, &identityv1.VerifiedContact{
-			Type:  identityv1.ContactType_CONTACT_TYPE_PHONE,
-			Value: u.Phone.String(),
-		})
-	}
-	if !u.Email.IsEmpty() {
-		contacts = append(contacts, &identityv1.VerifiedContact{
-			Type:  identityv1.ContactType_CONTACT_TYPE_EMAIL,
-			Value: u.Email.String(),
-		})
-	}
-
-	return &identityv1.User{
-		Id:                 u.ID.String(),
-		Status:             userStatusToProto(u.Status),
-		Nickname:           u.Name,
-		AvatarUrl:          "",
-		Contacts:           contacts,
-		ExternalIdentities: []*identityv1.ExternalIdentity{},
-		CreatedAt:          nil,
-		UpdatedAt:          nil,
-	}
-}
-
 // ============= ChildResult 转换 =============
 
 // childResultToProto 将应用层 ChildResult 转换为 proto Child
@@ -139,42 +105,6 @@ func childResultToProtoFromGuardianship(result *guardianshipApp.GuardianshipResu
 		Stats:     nil,
 		CreatedAt: nil,
 		UpdatedAt: nil,
-	}
-}
-
-// childDomainToProto 将领域层 Child 转换为 proto Child
-func childDomainToProto(c *childDomain.Child) *identityv1.Child {
-	if c == nil {
-		return nil
-	}
-
-	return &identityv1.Child{
-		Id:        c.ID.String(),
-		LegalName: c.Name,
-		Gender:    genderMetaToProto(c.Gender),
-		Dob:       c.Birthday.String(),
-		Identity: &identityv1.IdentityDocument{
-			Type:         "id_card",
-			MaskedNumber: c.IDCard.String(),
-		},
-		Stats: &identityv1.PhysicalStats{
-			HeightCm: int32(c.Height.Tenths() / 10),
-			WeightKg: c.Weight.String(),
-		},
-		CreatedAt: nil,
-		UpdatedAt: nil,
-	}
-}
-
-// genderMetaToProto 将 meta.Gender 转换为 proto 枚举
-func genderMetaToProto(gender meta.Gender) identityv1.Gender {
-	switch gender {
-	case meta.GenderMale:
-		return identityv1.Gender_GENDER_MALE
-	case meta.GenderFemale:
-		return identityv1.Gender_GENDER_FEMALE
-	default:
-		return identityv1.Gender_GENDER_UNSPECIFIED
 	}
 }
 

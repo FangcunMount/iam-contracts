@@ -63,7 +63,7 @@ func (p *APIKeyProvider) GetMetadata(ctx context.Context) (map[string]string, er
 // generateNonce 生成随机 nonce
 func generateNonce() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	_, _ = rand.Read(b) // crypto/rand.Read 在 Linux/Unix 上不会失败
 	return hex.EncodeToString(b)
 }
 
