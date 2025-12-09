@@ -100,7 +100,7 @@ log:
 # JWKS 配置
 jwks:
   keys_dir: "/app/data/keys"
-  auto_init: false
+  auto_init: true  # 启用自动初始化，确保启动时至少有一个活跃密钥
 
 # cors 配置
 cors:
