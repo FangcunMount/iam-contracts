@@ -261,7 +261,7 @@ func (r *Repository) FindPhoneOTPCredential(ctx context.Context, phoneE164 strin
 
 	var results []Result
 	err = r.db.WithContext(ctx).
-		Table("iam_auth_credentials c").
+		Table("auth_credentials c").
 		Select("c.id as credential_id", "c.account_id", "a.user_id").
 		Joins("INNER JOIN iam_auth_accounts a ON c.account_id = a.id").
 		Where("c.type = ? AND c.idp = ? AND c.idp_identifier = ?", "phone_otp", "phone", phoneE164).
@@ -300,7 +300,7 @@ func (r *Repository) FindOAuthCredential(ctx context.Context, idpType, appID, id
 
 	var results []Result
 	query := r.db.WithContext(ctx).
-		Table("iam_auth_credentials c").
+		Table("auth_credentials c").
 		Select("c.id as credential_id", "c.account_id", "a.user_id").
 		Joins("INNER JOIN iam_auth_accounts a ON c.account_id = a.id").
 		Where("c.type = ? AND c.idp_identifier = ?", idpType, idpIdentifier)
