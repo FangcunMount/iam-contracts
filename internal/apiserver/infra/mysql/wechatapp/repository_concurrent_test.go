@@ -42,9 +42,9 @@ func TestWechatAppRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 		db, err = gorm.Open(gormmysql.Open(dsn), &gorm.Config{})
 		require.NoError(t, err)
 
-		// 确保表结构存在并清理测试数据
-		require.NoError(t, db.AutoMigrate(&WechatAppPO{}))
-		require.NoError(t, db.Exec("DELETE FROM iam_idp_wechat_apps WHERE app_id = ?", "app-dup").Error)
+	// 确保表结构存在并清理测试数据
+	require.NoError(t, db.AutoMigrate(&WechatAppPO{}))
+	require.NoError(t, db.Exec("DELETE FROM idp_wechat_apps WHERE app_id = ?", "app-dup").Error)
 	} else {
 		db = testhelpers.SetupTempSQLiteDB(t)
 		require.NoError(t, db.AutoMigrate(&WechatAppPO{}))
