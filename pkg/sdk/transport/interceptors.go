@@ -15,7 +15,12 @@ const (
 	MetadataKeySpanID    = "x-span-id"
 )
 
-// RequestIDInterceptor 自动注入 request-id 的拦截器
+// RequestIDInterceptor 自动注入 request-id 的拦截器。
+//
+// 如果请求上下文中没有 request-id，则自动生成 UUID。
+//
+// 返回：
+//   - grpc.UnaryClientInterceptor: gRPC 客户端拦截器
 func RequestIDInterceptor() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{},
 		cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
@@ -36,7 +41,15 @@ func RequestIDInterceptor() grpc.UnaryClientInterceptor {
 	}
 }
 
-// MetadataInterceptor 注入默认元数据的拦截器
+// MetadataInterceptor 注入默认元数据的拦截器。
+//
+// 将配置中的默认 metadata 注入到每个请求中，已存在的 key 不会被覆盖。
+//
+// 参数：
+//   - defaultMeta: 默认元数据键值对
+//
+// 返回：
+//   - grpc.UnaryClientInterceptor: gRPC 客户端拦截器
 func MetadataInterceptor(defaultMeta map[string]string) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{},
 		cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
@@ -78,7 +91,21 @@ const (
 	traceIDKey   contextKey = "trace_id"
 )
 
-// WithRequestID 设置 request-id
+// WithRequestID 设置请求 ID。
+//
+// 将 request-id 添加到 context 和 gRPC metadata 中。
+//
+// 参数：
+//   - ctx: 上下文
+//   - requestID: 请求 ID
+//
+// 返回：
+//   - context.Context: 包含 request-id 的新上下文
+//
+// 示例：
+//
+//	ctx := sdk.WithRequestID(ctx, "req-123456")
+//	resp, err := client.Auth().VerifyToken(ctx, req)
 func WithRequestID(ctx context.Context, requestID string) context.Context {
 	ctx = context.WithValue(ctx, requestIDKey, requestID)
 
@@ -92,7 +119,21 @@ func WithRequestID(ctx context.Context, requestID string) context.Context {
 	return metadata.NewOutgoingContext(ctx, md)
 }
 
-// WithTraceID 设置 trace-id
+// WithTraceID 设置追踪 ID。
+//
+// 将 trace-id 添加到 context 和 gRPC metadata 中，用于分布式追踪。
+//
+// 参数：
+//   - ctx: 上下文
+//   - traceID: 追踪 ID
+//
+// 返回：
+//   - context.Context: 包含 trace-id 的新上下文
+//
+// 示例：
+//
+//	ctx := sdk.WithTraceID(ctx, "trace-abc123")
+//	resp, err := client.Identity().GetUser(ctx, "user-123")
 func WithTraceID(ctx context.Context, traceID string) context.Context {
 	ctx = context.WithValue(ctx, traceIDKey, traceID)
 
@@ -106,7 +147,15 @@ func WithTraceID(ctx context.Context, traceID string) context.Context {
 	return metadata.NewOutgoingContext(ctx, md)
 }
 
-// GetRequestID 获取 request-id
+// GetRequestID 获取请求 ID。
+//
+// 从 context 或 gRPC metadata 中提取 request-id。
+//
+// 参数：
+//   - ctx: 上下文
+//
+// 返回：
+//   - string: 请求 ID，如果不存在则返回空字符串
 func GetRequestID(ctx context.Context) string {
 	if v := ctx.Value(requestIDKey); v != nil {
 		if s, ok := v.(string); ok {
@@ -123,7 +172,15 @@ func GetRequestID(ctx context.Context) string {
 	return ""
 }
 
-// GetTraceID 获取 trace-id
+// GetTraceID 获取追踪 ID。
+//
+// 从 context 或 gRPC metadata 中提取 trace-id。
+//
+// 参数：
+//   - ctx: 上下文
+//
+// 返回：
+//   - string: 追踪 ID，如果不存在则返回空字符串
 func GetTraceID(ctx context.Context) string {
 	if v := ctx.Value(traceIDKey); v != nil {
 		if s, ok := v.(string); ok {

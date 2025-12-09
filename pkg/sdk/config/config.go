@@ -7,7 +7,25 @@ import (
 	"time"
 )
 
-// Config 是 IAM SDK 的主配置结构
+// Config 是 IAM SDK 的主配置结构。
+//
+// 包含连接、认证、重试、负载均衡等所有 SDK 行为配置。
+//
+// 示例：
+//
+//	cfg := &sdk.Config{
+//	    Endpoint: "iam.example.com:8081",
+//	    Timeout:  30 * time.Second,
+//	    TLS: &sdk.TLSConfig{
+//	        Enabled:  true,
+//	        CACert:   "/path/to/ca.crt",
+//	    },
+//	    Retry: &sdk.RetryConfig{
+//	        Enabled:     true,
+//	        MaxAttempts: 3,
+//	    },
+//	}
+//	client, err := sdk.NewClient(ctx, cfg)
 type Config struct {
 	// Endpoint gRPC 服务地址，格式: host:port
 	Endpoint string
@@ -43,7 +61,27 @@ type Config struct {
 	Observability *ObservabilityConfig
 }
 
-// TLSConfig TLS/mTLS 配置
+// TLSConfig TLS/mTLS 配置。
+//
+// 支持单向 TLS 和双向 TLS（mTLS）认证。
+// 证书可以通过文件路径或 PEM 内容提供，PEM 内容优先级更高。
+//
+// 示例（单向 TLS）：
+//
+//	tlsCfg := &sdk.TLSConfig{
+//	    Enabled:    true,
+//	    CACert:     "/path/to/ca.crt",
+//	    ServerName: "iam.example.com",
+//	}
+//
+// 示例（mTLS）：
+//
+//	tlsCfg := &sdk.TLSConfig{
+//	    Enabled:    true,
+//	    CACert:     "/path/to/ca.crt",
+//	    ClientCert: "/path/to/client.crt",
+//	    ClientKey:  "/path/to/client.key",
+//	}
 type TLSConfig struct {
 	// Enabled 是否启用 TLS
 	Enabled bool
@@ -76,7 +114,14 @@ type TLSConfig struct {
 	MinVersion uint16
 }
 
-// KeepaliveConfig gRPC 连接保活配置
+// KeepaliveConfig gRPC 连接保活配置。
+//
+// 用于维持长连接和检测连接状态。
+//
+// 默认值：
+//   - Time: 30秒
+//   - Timeout: 10秒
+//   - PermitWithoutStream: true
 type KeepaliveConfig struct {
 	// Time 发送 keepalive ping 的间隔
 	Time time.Duration
@@ -88,7 +133,21 @@ type KeepaliveConfig struct {
 	PermitWithoutStream bool
 }
 
-// RetryConfig 重试配置
+// RetryConfig 重试配置。
+//
+// 支持指数退避策略，只重试特定的错误类型。
+//
+// 默认可重试的状态码：UNAVAILABLE、RESOURCE_EXHAUSTED、ABORTED
+//
+// 示例：
+//
+//	retry := &sdk.RetryConfig{
+//	    Enabled:           true,
+//	    MaxAttempts:       3,
+//	    InitialBackoff:    100 * time.Millisecond,
+//	    MaxBackoff:        10 * time.Second,
+//	    BackoffMultiplier: 2.0,
+//	}
 type RetryConfig struct {
 	// Enabled 是否启用重试
 	Enabled bool
@@ -109,7 +168,19 @@ type RetryConfig struct {
 	RetryableCodes []string
 }
 
-// JWKSConfig JWKS 配置
+// JWKSConfig JWKS（JSON Web Key Set）配置。
+//
+// 用于本地验证 JWT Token，支持 HTTP 和 gRPC 双协议降级。
+//
+// 示例：
+//
+//	jwksCfg := &sdk.JWKSConfig{
+//	    URL:             "https://iam.example.com/.well-known/jwks.json",
+//	    GRPCEndpoint:    "iam.example.com:8081",
+//	    RefreshInterval: 1 * time.Hour,
+//	    CacheTTL:        24 * time.Hour,
+//	    FallbackOnError: true,
+//	}
 type JWKSConfig struct {
 	// URL JWKS 端点 URL
 	URL string
@@ -136,7 +207,21 @@ type JWKSConfig struct {
 	FallbackOnError bool
 }
 
-// TokenVerifyConfig Token 验证配置
+// TokenVerifyConfig Token 验证配置。
+//
+// 定义 JWT Token 的验证规则，包括允许的 audience、issuer、签名算法等。
+//
+// 示例：
+//
+//	verifyCfg := &sdk.TokenVerifyConfig{
+//	    AllowedAudience:         []string{"mobile", "web"},
+//	    AllowedIssuer:           "https://iam.example.com",
+//	    ClockSkew:               5 * time.Minute,
+//	    RequireExpirationTime:   true,
+//	    RequiredClaims:          []string{"sub", "aud", "exp"},
+//	    Algorithms:              []string{"RS256", "RS384", "RS512"},
+//	    ForceRemoteVerification: false,
+//	}
 type TokenVerifyConfig struct {
 	// AllowedAudience 允许的 audience 列表
 	AllowedAudience []string
@@ -163,7 +248,20 @@ type TokenVerifyConfig struct {
 	Algorithms []string
 }
 
-// CircuitBreakerConfig 熔断器配置
+// CircuitBreakerConfig 熔断器配置。
+//
+// 实现服务降级和快速失败，防止雪崩效应。
+//
+// 状态转换：关闭 → 打开 → 半开 → 关闭
+//
+// 示例：
+//
+//	cbCfg := &sdk.CircuitBreakerConfig{
+//	    FailureThreshold: 5,
+//	    OpenDuration:     30 * time.Second,
+//	    HalfOpenRequests: 3,
+//	    SuccessThreshold: 2,
+//	}
 type CircuitBreakerConfig struct {
 	// FailureThreshold 触发熔断的连续失败次数
 	FailureThreshold int
@@ -215,7 +313,18 @@ func DefaultObservabilityConfig() *ObservabilityConfig {
 	}
 }
 
-// ServiceAuthConfig 服务间认证配置
+// ServiceAuthConfig 服务间认证配置。
+//
+// 用于服务之间的相互认证，支持自动签发和刷新 Token。
+//
+// 示例：
+//
+//	svcAuthCfg := &sdk.ServiceAuthConfig{
+//	    ServiceID:      "api-gateway",
+//	    TargetAudience: []string{"user-service", "order-service"},
+//	    TokenTTL:       1 * time.Hour,
+//	    RefreshBefore:  5 * time.Minute,
+//	}
 type ServiceAuthConfig struct {
 	// ServiceID 当前服务标识
 	ServiceID string
@@ -230,7 +339,17 @@ type ServiceAuthConfig struct {
 	RefreshBefore time.Duration
 }
 
-// DefaultConfig 返回默认配置
+// DefaultConfig 返回默认配置。
+//
+// 包含合理的默认值，适合大多数场景。
+//
+// 默认配置：
+//   - Timeout: 30秒
+//   - DialTimeout: 10秒
+//   - LoadBalancer: round_robin
+//   - TLS: 启用，最低 TLS 1.2
+//   - Retry: 启用，最多3次，指数退避
+//   - Keepalive: 30秒间隔，10秒超时
 func DefaultConfig() *Config {
 	return &Config{
 		Timeout:      30 * time.Second,
@@ -256,7 +375,12 @@ func DefaultConfig() *Config {
 	}
 }
 
-// Validate 验证配置有效性
+// Validate 验证配置有效性。
+//
+// 检查必需字段是否存在，参数是否合理。
+//
+// 返回：
+//   - error: 如果配置无效则返回错误信息
 func (c *Config) Validate() error {
 	if c.Endpoint == "" {
 		return ErrEndpointRequired
@@ -264,7 +388,12 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// WithDefaults 填充默认值
+// WithDefaults 填充默认值。
+//
+// 对于未设置的配置项，使用默认值填充。
+//
+// 返回：
+//   - *Config: 填充后的配置对象（原地修改）
 func (c *Config) WithDefaults() *Config {
 	defaults := DefaultConfig()
 

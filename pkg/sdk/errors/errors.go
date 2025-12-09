@@ -12,48 +12,68 @@ import (
 
 // ========== 标准错误类型 ==========
 
-// 预定义错误
+// 预定义的标准错误类型。
+//
+// 这些错误可以使用 errors.Is() 进行判断：
+//
+//	if errors.Is(err, sdk.ErrNotFound) {
+//	    // 处理资源不存在错误
+//	}
 var (
-	// ErrNotFound 资源不存在
+	// ErrNotFound 表示请求的资源不存在。
 	ErrNotFound = errors.New("not found")
 
-	// ErrUnauthorized 未认证
+	// ErrUnauthorized 表示用户未认证或 Token 无效。
 	ErrUnauthorized = errors.New("unauthorized")
 
-	// ErrPermissionDenied 权限不足
+	// ErrPermissionDenied 表示用户没有执行操作的权限。
 	ErrPermissionDenied = errors.New("permission denied")
 
-	// ErrInvalidArgument 参数无效
+	// ErrInvalidArgument 表示请求参数无效或缺失。
 	ErrInvalidArgument = errors.New("invalid argument")
 
-	// ErrAlreadyExists 资源已存在
+	// ErrAlreadyExists 表示要创建的资源已经存在。
 	ErrAlreadyExists = errors.New("already exists")
 
-	// ErrServiceUnavailable 服务不可用
+	// ErrServiceUnavailable 表示服务暂时不可用，可能需要重试。
 	ErrServiceUnavailable = errors.New("service unavailable")
 
-	// ErrInternal 内部错误
+	// ErrInternal 表示服务器内部错误。
 	ErrInternal = errors.New("internal error")
 
-	// ErrTokenExpired Token 已过期
+	// ErrTokenExpired 表示 Token 已过期，需要刷新。
 	ErrTokenExpired = errors.New("token expired")
 
-	// ErrTokenInvalid Token 无效
+	// ErrTokenInvalid 表示 Token 格式无效或签名验证失败。
 	ErrTokenInvalid = errors.New("token invalid")
 
-	// ErrTokenRevoked Token 已撤销
+	// ErrTokenRevoked 表示 Token 已被撤销，无法使用。
 	ErrTokenRevoked = errors.New("token revoked")
 
-	// ErrRateLimited 请求被限流
+	// ErrRateLimited 表示请求被限流，需要稍后重试。
 	ErrRateLimited = errors.New("rate limited")
 
-	// ErrTimeout 请求超时
+	// ErrTimeout 表示请求超时。
 	ErrTimeout = errors.New("timeout")
 )
 
 // ========== IAM 错误类型 ==========
 
-// IAMError IAM SDK 统一错误类型
+// IAMError IAM SDK 统一错误类型。
+//
+// 封装 gRPC 错误为结构化的错误对象，便于错误处理和日志记录。
+//
+// 实现了 error、errors.Unwrap 和 errors.Is 接口，支持错误链判断。
+//
+// 示例：
+//
+//	var iamErr *sdk.IAMError
+//	if errors.As(err, &iamErr) {
+//	    fmt.Printf("错误码: %s, 消息: %s\n", iamErr.Code, iamErr.Message)
+//	    if iamErr.GRPCCode == codes.NotFound {
+//	        // 处理资源不存在
+//	    }
+//	}
 type IAMError struct {
 	// Code 错误码
 	Code string
@@ -108,7 +128,16 @@ func (e *IAMError) Is(target error) bool {
 
 // ========== 错误包装函数 ==========
 
-// Wrap 包装 gRPC 错误为 IAMError
+// Wrap 将 gRPC 错误封装为 IAMError。
+//
+// 自动提取 gRPC 状态码和错误消息，转换为结构化错误。
+// SDK 内部自动调用，用户通常不需要手动调用。
+//
+// 参数：
+//   - err: 原始错误（通常是 gRPC 错误）
+//
+// 返回：
+//   - error: 封装后的 IAMError，如果 err 为 nil 则返回 nil
 func Wrap(err error) error {
 	if err == nil {
 		return nil
@@ -149,17 +178,46 @@ func WrapWithCode(err error, code string, message string) error {
 
 // ========== 错误检查函数 ==========
 
-// IsNotFound 检查是否为 NotFound 错误
+// IsNotFound 判断错误是否为“资源不存在”错误。
+//
+// 参数：
+//   - err: 要检查的错误
+//
+// 返回：
+//   - bool: 如果是 NotFound 错误则返回 true
+//
+// 示例：
+//
+//	_, err := client.Identity().GetUser(ctx, "user-123")
+//	if sdk.IsNotFound(err) {
+//	    fmt.Println("用户不存在")
+//	}
 func IsNotFound(err error) bool {
 	return errors.Is(err, ErrNotFound) || hasGRPCCode(err, codes.NotFound)
 }
 
-// IsUnauthorized 检查是否为未认证错误
+// IsUnauthorized 判断错误是否为“未认证”错误。
+//
+// 通常表示 Token 缺失、过期或无效。
+//
+// 参数：
+//   - err: 要检查的错误
+//
+// 返回：
+//   - bool: 如果是未认证错误则返回 true
 func IsUnauthorized(err error) bool {
 	return errors.Is(err, ErrUnauthorized) || hasGRPCCode(err, codes.Unauthenticated)
 }
 
-// IsPermissionDenied 检查是否为权限不足错误
+// IsPermissionDenied 判断错误是否为“权限不足”错误。
+//
+// 表示用户已认证但没有执行该操作的权限。
+//
+// 参数：
+//   - err: 要检查的错误
+//
+// 返回：
+//   - bool: 如果是权限不足错误则返回 true
 func IsPermissionDenied(err error) bool {
 	return errors.Is(err, ErrPermissionDenied) || hasGRPCCode(err, codes.PermissionDenied)
 }
@@ -179,7 +237,27 @@ func IsTimeout(err error) bool {
 	return errors.Is(err, ErrTimeout) || hasGRPCCode(err, codes.DeadlineExceeded)
 }
 
-// IsRetryable 检查错误是否可重试
+// IsRetryable 判断错误是否可以重试。
+//
+// 可重试的错误类型包括：
+//   - Unavailable: 服务不可用
+//   - ResourceExhausted: 资源耗尽（限流）
+//   - Aborted: 操作被中止
+//   - DeadlineExceeded: 超时
+//
+// 参数：
+//   - err: 要检查的错误
+//
+// 返回：
+//   - bool: 如果错误可重试则返回 true
+//
+// 示例：
+//
+//	if sdk.IsRetryable(err) {
+//	    // 稍后重试
+//	    time.Sleep(time.Second)
+//	    return retry()
+//	}
 func IsRetryable(err error) bool {
 	if hasGRPCCode(err, codes.Unavailable) ||
 		hasGRPCCode(err, codes.ResourceExhausted) ||
@@ -203,7 +281,13 @@ func hasGRPCCode(err error, code codes.Code) bool {
 
 // ========== 错误创建函数 ==========
 
-// NewNotFound 创建 NotFound 错误
+// NewNotFound 创建一个资源不存在错误。
+//
+// 参数：
+//   - resource: 资源名称（如 "user"、"child"）
+//
+// 返回：
+//   - error: IAMError 实例
 func NewNotFound(resource string) error {
 	return &IAMError{
 		Code:     "NOT_FOUND",
@@ -213,7 +297,14 @@ func NewNotFound(resource string) error {
 	}
 }
 
-// NewInvalidArgument 创建参数无效错误
+// NewInvalidArgument 创建一个参数无效错误。
+//
+// 参数：
+//   - field: 无效的字段名
+//   - reason: 原因描述
+//
+// 返回：
+//   - error: IAMError 实例
 func NewInvalidArgument(field, reason string) error {
 	return &IAMError{
 		Code:     "INVALID_ARGUMENT",
