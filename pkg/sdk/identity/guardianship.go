@@ -44,6 +44,17 @@ func (c *GuardianshipClient) ListChildren(ctx context.Context, req *identityv1.L
 	return resp, nil
 }
 
+// GetUserChildren 获取用户的监护孩子列表（便捷方法）
+func (c *GuardianshipClient) GetUserChildren(ctx context.Context, userID string) (*identityv1.ListChildrenResponse, error) {
+	resp, err := c.queryService.ListChildren(ctx, &identityv1.ListChildrenRequest{
+		UserId: userID,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err)
+	}
+	return resp, nil
+}
+
 // ListGuardians 列出儿童的所有监护人
 func (c *GuardianshipClient) ListGuardians(ctx context.Context, req *identityv1.ListGuardiansRequest) (*identityv1.ListGuardiansResponse, error) {
 	resp, err := c.queryService.ListGuardians(ctx, req)
