@@ -4,6 +4,7 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
@@ -48,23 +49,59 @@ func NewRegisterApplicationService(
 
 // Register 统一注册接口（使用领域层策略模式 + 凭据绑定分离）
 func (s *registerApplicationService) Register(ctx context.Context, req RegisterRequest) (*RegisterResult, error) {
+	l := logger.L(ctx)
 	var result *RegisterResult
+
+	l.Infow("开始用户注册流程",
+		"action", logger.ActionRegister,
+		"resource", logger.ResourceUser,
+		"account_type", string(req.AccountType),
+		"credential_type", string(req.CredentialType),
+		"phone", req.Phone.String(),
+	)
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// ========== 步骤1: 创建或获取 User ==========
+		l.Debugw("步骤1: 创建或获取用户",
+			"action", logger.ActionRegister,
+			"phone", req.Phone.String(),
+		)
+
 		userRepo := tx.Users
 		if userRepo == nil {
 			userRepo = s.userRepo
 		}
 		user, isNewUser, err := s.createOrGetUser(ctx, userRepo, req)
 		if err != nil {
+			l.Errorw("创建或获取用户失败",
+				"action", logger.ActionRegister,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
+		l.Debugw("用户处理完成",
+			"action", logger.ActionRegister,
+			"user_id", user.ID.String(),
+			"is_new_user", isNewUser,
+		)
+
 		// ========== 步骤2: 根据 AccountType 创建账户 ==========
+		l.Debugw("步骤2: 创建账户",
+			"action", logger.ActionRegister,
+			"account_type", string(req.AccountType),
+			"user_id", user.ID.String(),
+		)
+
 		// 构造领域层输入（包含查询 AppSecret）
 		domainInput, err := s.toDomainInput(ctx, req, user.ID)
 		if err != nil {
+			l.Errorw("构造领域输入失败",
+				"action", logger.ActionRegister,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
@@ -74,6 +111,11 @@ func (s *registerApplicationService) Register(ctx context.Context, req RegisterR
 		// 创建账户实体（不包含持久化）
 		account, creationParams, err := accountCreator.CreateAccount(ctx, domainInput)
 		if err != nil {
+			l.Errorw("创建账户实体失败",
+				"action", logger.ActionRegister,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
@@ -81,22 +123,61 @@ func (s *registerApplicationService) Register(ctx context.Context, req RegisterR
 		// 如果账户是新创建的（不是从数据库查到的），需要持久化
 		if account.ID.IsZero() {
 			if err := tx.Accounts.Create(ctx, account); err != nil {
+				l.Errorw("持久化账户失败",
+					"action", logger.ActionRegister,
+					"error", err.Error(),
+					"result", logger.ResultFailed,
+				)
 				return perrors.WithCode(code.ErrDatabase, "failed to save account: %v", err)
 			}
 			isNewAccount = true
 		}
 
+		l.Debugw("账户处理完成",
+			"action", logger.ActionRegister,
+			"account_id", account.ID.String(),
+			"account_type", string(account.Type),
+			"is_new_account", isNewAccount,
+		)
+
 		// ========== 步骤3: 根据 CredentialType 颁发凭据 ==========
+		l.Debugw("步骤3: 颁发凭据",
+			"action", logger.ActionRegister,
+			"credential_type", string(req.CredentialType),
+			"account_id", account.ID.String(),
+		)
+
 		credIssuer := credDomain.NewIssuer(s.hasher)
 		credential, err := s.issueCredential(ctx, credIssuer, account.ID, creationParams, req)
 		if err != nil {
+			l.Errorw("颁发凭据失败",
+				"action", logger.ActionRegister,
+				"credential_type", string(req.CredentialType),
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
 		// 持久化凭据
 		if err := tx.Credentials.Create(ctx, credential); err != nil {
+			l.Errorw("持久化凭据失败",
+				"action", logger.ActionRegister,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return perrors.WithCode(code.ErrDatabase, "failed to save credential: %v", err)
 		}
+
+		idpType := "password"
+		if credential.IDP != nil {
+			idpType = *credential.IDP
+		}
+		l.Debugw("凭据颁发完成",
+			"action", logger.ActionRegister,
+			"credential_id", credential.ID.String(),
+			"credential_type", idpType,
+		)
 
 		// ========== 步骤4: 构造返回结果 ==========
 		result = &RegisterResult{
@@ -122,7 +203,28 @@ func (s *registerApplicationService) Register(ctx context.Context, req RegisterR
 		return nil
 	})
 
-	return result, err
+	if err != nil {
+		l.Errorw("用户注册失败",
+			"action", logger.ActionRegister,
+			"resource", logger.ResourceUser,
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
+		return nil, err
+	}
+
+	l.Infow("用户注册成功",
+		"action", logger.ActionRegister,
+		"resource", logger.ResourceUser,
+		"user_id", result.UserID.String(),
+		"account_id", result.AccountID.String(),
+		"credential_id", result.CredentialID.String(),
+		"is_new_user", result.IsNewUser,
+		"is_new_account", result.IsNewAccount,
+		"result", logger.ResultSuccess,
+	)
+
+	return result, nil
 }
 
 // issueCredential 根据凭据类型颁发凭据

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
@@ -28,7 +29,15 @@ func NewUserApplicationService(uow uow.UnitOfWork) UserApplicationService {
 
 // Register 注册新用户
 func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserDTO) (*UserResult, error) {
+	l := logger.L(ctx)
 	var result *UserResult
+
+	l.Debugw("开始注册用户",
+		"action", logger.ActionRegister,
+		"resource", logger.ResourceUser,
+		"name", dto.Name,
+		"phone", dto.Phone,
+	)
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建验证器
@@ -37,17 +46,35 @@ func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserD
 		// 转换 DTO 为值对象
 		phone, err := meta.NewPhone(dto.Phone)
 		if err != nil {
+			l.Warnw("手机号格式验证失败",
+				"action", logger.ActionRegister,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
 		// 验证注册参数
 		if err := validator.ValidateRegister(ctx, dto.Name, phone); err != nil {
+			l.Warnw("用户注册参数验证失败",
+				"action", logger.ActionRegister,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
 		// 创建用户实体
 		newUser, err := user.NewUser(dto.Name, phone)
 		if err != nil {
+			l.Errorw("创建用户实体失败",
+				"action", logger.ActionRegister,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
@@ -55,6 +82,11 @@ func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserD
 		if dto.Email != "" {
 			email, err := meta.NewEmail(dto.Email)
 			if err != nil {
+				l.Warnw("邮箱格式验证失败",
+					"action", logger.ActionRegister,
+					"resource", logger.ResourceUser,
+					"error", err.Error(),
+				)
 				return err
 			}
 			newUser.UpdateEmail(email)
@@ -62,6 +94,12 @@ func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserD
 
 		// 持久化用户
 		if err := tx.Users.Create(ctx, newUser); err != nil {
+			l.Errorw("持久化用户失败",
+				"action", logger.ActionRegister,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
@@ -69,6 +107,15 @@ func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserD
 		result = toUserResult(newUser)
 		return nil
 	})
+
+	if err == nil {
+		l.Infow("用户注册成功",
+			"action", logger.ActionRegister,
+			"resource", logger.ResourceUser,
+			"user_id", result.ID,
+			"result", logger.ResultSuccess,
+		)
+	}
 
 	return result, err
 }
@@ -89,7 +136,15 @@ func NewUserProfileApplicationService(uow uow.UnitOfWork) UserProfileApplication
 
 // Rename 修改用户名称
 func (s *userProfileApplicationService) Rename(ctx context.Context, userID string, newName string) error {
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+	l := logger.L(ctx)
+	l.Debugw("修改用户名称",
+		"action", logger.ActionUpdate,
+		"resource", logger.ResourceUser,
+		"user_id", userID,
+		"new_name", newName,
+	)
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
 		validator := user.NewValidator(tx.Users)
 		profileEditor := user.NewProfileEditor(tx.Users, validator)
@@ -97,23 +152,53 @@ func (s *userProfileApplicationService) Rename(ctx context.Context, userID strin
 		// 转换 ID
 		id, err := parseUserID(userID)
 		if err != nil {
+			l.Warnw("用户ID格式错误",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		// 调用领域服务修改名称
 		modifiedUser, err := profileEditor.Rename(ctx, id, newName)
 		if err != nil {
+			l.Errorw("修改用户名称失败",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
 		// 持久化修改
 		return tx.Users.Update(ctx, modifiedUser)
 	})
+
+	if err == nil {
+		l.Infow("修改用户名称成功",
+			"action", logger.ActionUpdate,
+			"resource", logger.ResourceUser,
+			"user_id", userID,
+			"result", logger.ResultSuccess,
+		)
+	}
+
+	return err
 }
 
 // Renickname 修改用户昵称
 func (s *userProfileApplicationService) Renickname(ctx context.Context, userID string, newNickname string) error {
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+	l := logger.L(ctx)
+	l.Debugw("修改用户昵称",
+		"action", logger.ActionUpdate,
+		"resource", logger.ResourceUser,
+		"user_id", userID,
+		"new_nickname", newNickname,
+	)
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
 		validator := user.NewValidator(tx.Users)
 		profileEditor := user.NewProfileEditor(tx.Users, validator)
@@ -121,23 +206,54 @@ func (s *userProfileApplicationService) Renickname(ctx context.Context, userID s
 		// 转换 ID
 		id, err := parseUserID(userID)
 		if err != nil {
+			l.Warnw("用户ID格式错误",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		// 调用领域服务修改昵称
 		modifiedUser, err := profileEditor.Renickname(ctx, id, newNickname)
 		if err != nil {
+			l.Errorw("修改用户昵称失败",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
 		// 持久化修改
 		return tx.Users.Update(ctx, modifiedUser)
 	})
+
+	if err == nil {
+		l.Infow("修改用户昵称成功",
+			"action", logger.ActionUpdate,
+			"resource", logger.ResourceUser,
+			"user_id", userID,
+			"result", logger.ResultSuccess,
+		)
+	}
+
+	return err
 }
 
 // UpdateContact 更新联系方式
 func (s *userProfileApplicationService) UpdateContact(ctx context.Context, dto UpdateContactDTO) error {
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+	l := logger.L(ctx)
+	l.Debugw("更新用户联系方式",
+		"action", logger.ActionUpdate,
+		"resource", logger.ResourceUser,
+		"user_id", dto.UserID,
+		"phone", dto.Phone,
+		"email", dto.Email,
+	)
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
 		validator := user.NewValidator(tx.Users)
 		profileEditor := user.NewProfileEditor(tx.Users, validator)
@@ -145,33 +261,72 @@ func (s *userProfileApplicationService) UpdateContact(ctx context.Context, dto U
 		// 转换 ID
 		id, err := parseUserID(dto.UserID)
 		if err != nil {
+			l.Warnw("用户ID格式错误",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		// 转换值对象
 		phone, err := meta.NewPhone(dto.Phone)
 		if err != nil {
+			l.Warnw("手机号格式错误",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+			)
 			return err
 		}
 		email, err := meta.NewEmail(dto.Email)
 		if err != nil {
+			l.Warnw("邮箱格式错误",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		// 调用领域服务更新联系方式
 		modifiedUser, err := profileEditor.UpdateContact(ctx, id, phone, email)
 		if err != nil {
+			l.Errorw("更新联系方式失败",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
 		// 持久化修改
 		return tx.Users.Update(ctx, modifiedUser)
 	})
+
+	if err == nil {
+		l.Infow("更新联系方式成功",
+			"action", logger.ActionUpdate,
+			"resource", logger.ResourceUser,
+			"user_id", dto.UserID,
+			"result", logger.ResultSuccess,
+		)
+	}
+
+	return err
 }
 
 // UpdateIDCard 更新身份证
 func (s *userProfileApplicationService) UpdateIDCard(ctx context.Context, userID string, idCard string) error {
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+	l := logger.L(ctx)
+	l.Debugw("更新用户身份证",
+		"action", logger.ActionUpdate,
+		"resource", logger.ResourceUser,
+		"user_id", userID,
+	)
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
 		validator := user.NewValidator(tx.Users)
 		profileEditor := user.NewProfileEditor(tx.Users, validator)
@@ -179,24 +334,51 @@ func (s *userProfileApplicationService) UpdateIDCard(ctx context.Context, userID
 		// 转换 ID
 		id, err := parseUserID(userID)
 		if err != nil {
+			l.Warnw("用户ID格式错误",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		// 转换身份证 (NewIDCard 需要name和number两个参数，这里我们只传number，name留空)
 		idCardVO, err := meta.NewIDCard("", idCard)
 		if err != nil {
+			l.Warnw("身份证格式错误",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		// 调用领域服务更新身份证
 		modifiedUser, err := profileEditor.UpdateIDCard(ctx, id, idCardVO)
 		if err != nil {
+			l.Errorw("更新身份证失败",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
 		// 持久化修改
 		return tx.Users.Update(ctx, modifiedUser)
 	})
+
+	if err == nil {
+		l.Infow("更新身份证成功",
+			"action", logger.ActionUpdate,
+			"resource", logger.ResourceUser,
+			"user_id", userID,
+			"result", logger.ResultSuccess,
+		)
+	}
+
+	return err
 }
 
 // ===========================================
@@ -215,71 +397,158 @@ func NewUserStatusApplicationService(uow uow.UnitOfWork) UserStatusApplicationSe
 
 // Activate 激活用户
 func (s *userStatusApplicationService) Activate(ctx context.Context, userID string) error {
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+	l := logger.L(ctx)
+	l.Debugw("激活用户",
+		"action", logger.ActionUpdate,
+		"resource", logger.ResourceUser,
+		"user_id", userID,
+	)
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
 		lifecycler := user.NewLifecycler(tx.Users)
 
 		// 转换 ID
 		id, err := parseUserID(userID)
 		if err != nil {
+			l.Warnw("用户ID格式错误",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		// 调用领域服务激活用户
 		modifiedUser, err := lifecycler.Activate(ctx, id)
 		if err != nil {
+			l.Errorw("激活用户失败",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
 		// 持久化修改
 		return tx.Users.Update(ctx, modifiedUser)
 	})
+
+	if err == nil {
+		l.Infow("激活用户成功",
+			"action", logger.ActionUpdate,
+			"resource", logger.ResourceUser,
+			"user_id", userID,
+			"result", logger.ResultSuccess,
+		)
+	}
+
+	return err
 }
 
 // Deactivate 停用用户
 func (s *userStatusApplicationService) Deactivate(ctx context.Context, userID string) error {
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+	l := logger.L(ctx)
+	l.Debugw("停用用户",
+		"action", logger.ActionUpdate,
+		"resource", logger.ResourceUser,
+		"user_id", userID,
+	)
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
 		lifecycler := user.NewLifecycler(tx.Users)
 
 		// 转换 ID
 		id, err := parseUserID(userID)
 		if err != nil {
+			l.Warnw("用户ID格式错误",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		// 调用领域服务停用用户
 		modifiedUser, err := lifecycler.Deactivate(ctx, id)
 		if err != nil {
+			l.Errorw("停用用户失败",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
 		// 持久化修改
 		return tx.Users.Update(ctx, modifiedUser)
 	})
+
+	if err == nil {
+		l.Infow("停用用户成功",
+			"action", logger.ActionUpdate,
+			"resource", logger.ResourceUser,
+			"user_id", userID,
+			"result", logger.ResultSuccess,
+		)
+	}
+
+	return err
 }
 
 // Block 封禁用户
 func (s *userStatusApplicationService) Block(ctx context.Context, userID string) error {
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+	l := logger.L(ctx)
+	l.Debugw("封禁用户",
+		"action", logger.ActionUpdate,
+		"resource", logger.ResourceUser,
+		"user_id", userID,
+	)
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
 		lifecycler := user.NewLifecycler(tx.Users)
 
 		// 转换 ID
 		id, err := parseUserID(userID)
 		if err != nil {
+			l.Warnw("用户ID格式错误",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		// 调用领域服务封禁用户
 		modifiedUser, err := lifecycler.Block(ctx, id)
 		if err != nil {
+			l.Errorw("封禁用户失败",
+				"action", logger.ActionUpdate,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
 		// 持久化修改
 		return tx.Users.Update(ctx, modifiedUser)
 	})
+
+	if err == nil {
+		l.Infow("封禁用户成功",
+			"action", logger.ActionUpdate,
+			"resource", logger.ResourceUser,
+			"user_id", userID,
+			"result", logger.ResultSuccess,
+		)
+	}
+
+	return err
 }
 
 // ===========================================
@@ -298,6 +567,13 @@ func NewUserQueryApplicationService(uow uow.UnitOfWork) UserQueryApplicationServ
 
 // GetByID 根据 ID 查询用户
 func (s *userQueryApplicationService) GetByID(ctx context.Context, userID string) (*UserResult, error) {
+	l := logger.L(ctx)
+	l.Debugw("查询用户信息",
+		"action", logger.ActionRead,
+		"resource", logger.ResourceUser,
+		"user_id", userID,
+	)
+
 	var result *UserResult
 
 	// 查询操作也通过 UoW，但不需要写操作，可以直接使用只读事务
@@ -305,17 +581,36 @@ func (s *userQueryApplicationService) GetByID(ctx context.Context, userID string
 
 		userIDObj, err := parseUserID(userID)
 		if err != nil {
+			l.Warnw("用户ID格式错误",
+				"action", logger.ActionRead,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		user, err := tx.Users.FindByID(ctx, userIDObj)
 		if err != nil {
+			l.Warnw("用户不存在",
+				"action", logger.ActionRead,
+				"resource", logger.ResourceUser,
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		result = toUserResult(user)
 		return nil
 	})
+
+	if err == nil {
+		l.Debugw("查询用户成功",
+			"action", logger.ActionRead,
+			"resource", logger.ResourceUser,
+			"user_id", result.ID,
+			"result", logger.ResultSuccess,
+		)
+	}
 
 	return result, err
 }

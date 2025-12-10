@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
@@ -37,9 +38,24 @@ func NewWechatAppApplicationService(
 
 // CreateApp 创建微信应用
 func (s *wechatAppApplicationService) CreateApp(ctx context.Context, dto CreateWechatAppDTO) (*WechatAppResult, error) {
+	l := logger.L(ctx)
+	l.Infow("创建微信应用",
+		"action", logger.ActionCreate,
+		"resource", "wechat_app",
+		"app_id", dto.AppID,
+		"name", dto.Name,
+		"type", dto.Type,
+	)
+
 	// 调用领域服务创建微信应用实体
 	app, err := s.creator.Create(ctx, dto.AppID, dto.Name, dto.Type)
 	if err != nil {
+		l.Errorw("创建微信应用实体失败",
+			"action", logger.ActionCreate,
+			"resource", "wechat_app",
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
 		return nil, fmt.Errorf("failed to create wechat app: %w", err)
 	}
 
@@ -53,14 +69,34 @@ func (s *wechatAppApplicationService) CreateApp(ctx context.Context, dto CreateW
 	// 如果提供了 AppSecret，设置认证密钥
 	if dto.AppSecret != "" {
 		if err := s.rotater.RotateAuthSecret(ctx, app, dto.AppSecret); err != nil {
+			l.Errorw("设置认证密钥失败",
+				"action", logger.ActionCreate,
+				"resource", "wechat_app",
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return nil, fmt.Errorf("failed to set auth secret: %w", err)
 		}
 	}
 
 	// 持久化
 	if err := s.repo.Create(ctx, app); err != nil {
+		l.Errorw("持久化微信应用失败",
+			"action", logger.ActionCreate,
+			"resource", "wechat_app",
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
 		return nil, fmt.Errorf("failed to persist wechat app: %w", err)
 	}
+
+	l.Infow("创建微信应用成功",
+		"action", logger.ActionCreate,
+		"resource", "wechat_app",
+		"app_id", dto.AppID,
+		"internal_id", app.ID.String(),
+		"result", logger.ResultSuccess,
+	)
 
 	// 转换为结果 DTO
 	return toWechatAppResult(app), nil
@@ -68,14 +104,39 @@ func (s *wechatAppApplicationService) CreateApp(ctx context.Context, dto CreateW
 
 // GetApp 查询微信应用
 func (s *wechatAppApplicationService) GetApp(ctx context.Context, appID string) (*WechatAppResult, error) {
+	l := logger.L(ctx)
+	l.Debugw("查询微信应用",
+		"action", logger.ActionRead,
+		"resource", "wechat_app",
+		"app_id", appID,
+	)
+
 	app, err := s.repo.GetByAppID(ctx, appID)
 	if err != nil {
+		l.Errorw("查询微信应用失败",
+			"action", logger.ActionRead,
+			"resource", "wechat_app",
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
 		return nil, fmt.Errorf("failed to query wechat app: %w", err)
 	}
 
 	if app == nil {
+		l.Warnw("微信应用不存在",
+			"action", logger.ActionRead,
+			"resource", "wechat_app",
+			"app_id", appID,
+		)
 		return nil, fmt.Errorf("wechat app not found: %s", appID)
 	}
+
+	l.Debugw("查询微信应用成功",
+		"action", logger.ActionRead,
+		"resource", "wechat_app",
+		"app_id", appID,
+		"result", logger.ResultSuccess,
+	)
 
 	return toWechatAppResult(app), nil
 }
@@ -102,12 +163,30 @@ func NewWechatAppCredentialApplicationService(
 
 // RotateAuthSecret 轮换认证密钥（AppSecret）
 func (s *wechatAppCredentialApplicationService) RotateAuthSecret(ctx context.Context, appID string, newSecret string) error {
+	l := logger.L(ctx)
+	l.Infow("轮换认证密钥",
+		"action", logger.ActionUpdate,
+		"resource", "wechat_app_credential",
+		"app_id", appID,
+	)
+
 	// 查询应用
 	app, err := s.repo.GetByAppID(ctx, appID)
 	if err != nil {
+		l.Errorw("查询微信应用失败",
+			"action", logger.ActionUpdate,
+			"resource", "wechat_app_credential",
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
 		return fmt.Errorf("failed to query wechat app: %w", err)
 	}
 	if app == nil {
+		l.Warnw("微信应用不存在",
+			"action", logger.ActionUpdate,
+			"resource", "wechat_app_credential",
+			"app_id", appID,
+		)
 		return fmt.Errorf("wechat app not found: %s", appID)
 	}
 
@@ -118,25 +197,62 @@ func (s *wechatAppCredentialApplicationService) RotateAuthSecret(ctx context.Con
 
 	// 调用领域服务轮换密钥
 	if err := s.rotater.RotateAuthSecret(ctx, app, newSecret); err != nil {
+		l.Errorw("轮换认证密钥失败",
+			"action", logger.ActionUpdate,
+			"resource", "wechat_app_credential",
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
 		return fmt.Errorf("failed to rotate auth secret: %w", err)
 	}
 
 	// 持久化
 	if err := s.repo.Update(ctx, app); err != nil {
+		l.Errorw("持久化微信应用失败",
+			"action", logger.ActionUpdate,
+			"resource", "wechat_app_credential",
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
 		return fmt.Errorf("failed to update wechat app: %w", err)
 	}
+
+	l.Infow("轮换认证密钥成功",
+		"action", logger.ActionUpdate,
+		"resource", "wechat_app_credential",
+		"app_id", appID,
+		"result", logger.ResultSuccess,
+	)
 
 	return nil
 }
 
 // RotateMsgSecret 轮换消息加解密密钥
 func (s *wechatAppCredentialApplicationService) RotateMsgSecret(ctx context.Context, appID string, callbackToken string, encodingAESKey string) error {
+	l := logger.L(ctx)
+	l.Infow("轮换消息加解密密钥",
+		"action", logger.ActionUpdate,
+		"resource", "wechat_app_credential",
+		"app_id", appID,
+	)
+
 	// 查询应用
 	app, err := s.repo.GetByAppID(ctx, appID)
 	if err != nil {
+		l.Errorw("查询微信应用失败",
+			"action", logger.ActionUpdate,
+			"resource", "wechat_app_credential",
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
 		return fmt.Errorf("failed to query wechat app: %w", err)
 	}
 	if app == nil {
+		l.Warnw("微信应用不存在",
+			"action", logger.ActionUpdate,
+			"resource", "wechat_app_credential",
+			"app_id", appID,
+		)
 		return fmt.Errorf("wechat app not found: %s", appID)
 	}
 
@@ -147,13 +263,32 @@ func (s *wechatAppCredentialApplicationService) RotateMsgSecret(ctx context.Cont
 
 	// 调用领域服务轮换密钥
 	if err := s.rotater.RotateMsgAESKey(ctx, app, callbackToken, encodingAESKey); err != nil {
+		l.Errorw("轮换消息密钥失败",
+			"action", logger.ActionUpdate,
+			"resource", "wechat_app_credential",
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
 		return fmt.Errorf("failed to rotate msg secret: %w", err)
 	}
 
 	// 持久化
 	if err := s.repo.Update(ctx, app); err != nil {
+		l.Errorw("持久化微信应用失败",
+			"action", logger.ActionUpdate,
+			"resource", "wechat_app_credential",
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
 		return fmt.Errorf("failed to update wechat app: %w", err)
 	}
+
+	l.Infow("轮换消息加解密密钥成功",
+		"action", logger.ActionUpdate,
+		"resource", "wechat_app_credential",
+		"app_id", appID,
+		"result", logger.ResultSuccess,
+	)
 
 	return nil
 }

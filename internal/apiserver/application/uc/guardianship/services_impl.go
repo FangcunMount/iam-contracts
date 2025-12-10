@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	childdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
@@ -28,17 +29,36 @@ func NewGuardianshipApplicationService(uow uow.UnitOfWork) GuardianshipApplicati
 
 // AddGuardian 添加监护人
 func (s *guardianshipApplicationService) AddGuardian(ctx context.Context, dto AddGuardianDTO) error {
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+	l := logger.L(ctx)
+	l.Infow("添加监护人",
+		"action", logger.ActionCreate,
+		"resource", "guardianship",
+		"user_id", dto.UserID,
+		"child_id", dto.ChildID,
+		"relation", dto.Relation,
+	)
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
 		managerService := guardianship.NewManagerService(tx.Guardianships, tx.Children, tx.Users)
 
 		// 转换 ID
 		userID, err := parseUserID(dto.UserID)
 		if err != nil {
+			l.Warnw("用户ID格式错误",
+				"action", logger.ActionCreate,
+				"resource", "guardianship",
+				"error", err.Error(),
+			)
 			return err
 		}
 		childID, err := parseChildID(dto.ChildID)
 		if err != nil {
+			l.Warnw("儿童ID格式错误",
+				"action", logger.ActionCreate,
+				"resource", "guardianship",
+				"error", err.Error(),
+			)
 			return err
 		}
 
@@ -48,39 +68,93 @@ func (s *guardianshipApplicationService) AddGuardian(ctx context.Context, dto Ad
 		// 调用领域服务添加监护人
 		guardianship, err := managerService.AddGuardian(ctx, userID, childID, relation)
 		if err != nil {
+			l.Errorw("添加监护人失败",
+				"action", logger.ActionCreate,
+				"resource", "guardianship",
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
 		// 持久化监护关系
 		return tx.Guardianships.Create(ctx, guardianship)
 	})
+
+	if err == nil {
+		l.Infow("添加监护人成功",
+			"action", logger.ActionCreate,
+			"resource", "guardianship",
+			"user_id", dto.UserID,
+			"child_id", dto.ChildID,
+			"result", logger.ResultSuccess,
+		)
+	}
+
+	return err
 }
 
 // RemoveGuardian 移除监护人
 func (s *guardianshipApplicationService) RemoveGuardian(ctx context.Context, dto RemoveGuardianDTO) error {
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+	l := logger.L(ctx)
+	l.Infow("移除监护人",
+		"action", logger.ActionDelete,
+		"resource", "guardianship",
+		"user_id", dto.UserID,
+		"child_id", dto.ChildID,
+	)
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
 		managerService := guardianship.NewManagerService(tx.Guardianships, tx.Children, tx.Users)
 
 		// 转换 ID
 		userID, err := parseUserID(dto.UserID)
 		if err != nil {
+			l.Warnw("用户ID格式错误",
+				"action", logger.ActionDelete,
+				"resource", "guardianship",
+				"error", err.Error(),
+			)
 			return err
 		}
 		childID, err := parseChildID(dto.ChildID)
 		if err != nil {
+			l.Warnw("儿童ID格式错误",
+				"action", logger.ActionDelete,
+				"resource", "guardianship",
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		// 调用领域服务移除监护人
 		guardianship, err := managerService.RemoveGuardian(ctx, userID, childID)
 		if err != nil {
+			l.Errorw("移除监护人失败",
+				"action", logger.ActionDelete,
+				"resource", "guardianship",
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 
 		// 持久化修改
 		return tx.Guardianships.Update(ctx, guardianship)
 	})
+
+	if err == nil {
+		l.Infow("移除监护人成功",
+			"action", logger.ActionDelete,
+			"resource", "guardianship",
+			"user_id", dto.UserID,
+			"child_id", dto.ChildID,
+			"result", logger.ResultSuccess,
+		)
+	}
+
+	return err
 }
 
 // ===========================================
@@ -89,6 +163,14 @@ func (s *guardianshipApplicationService) RemoveGuardian(ctx context.Context, dto
 
 // GetByUserIDAndChildID 查询监护关系
 func (s *guardianshipApplicationService) GetByUserIDAndChildID(ctx context.Context, userID string, childID string) (*GuardianshipResult, error) {
+	l := logger.L(ctx)
+	l.Debugw("查询监护关系",
+		"action", logger.ActionRead,
+		"resource", "guardianship",
+		"user_id", userID,
+		"child_id", childID,
+	)
+
 	var result *GuardianshipResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
@@ -97,22 +179,42 @@ func (s *guardianshipApplicationService) GetByUserIDAndChildID(ctx context.Conte
 		// 转换 ID
 		uid, err := parseUserID(userID)
 		if err != nil {
+			l.Warnw("用户ID格式错误",
+				"action", logger.ActionRead,
+				"resource", "guardianship",
+				"error", err.Error(),
+			)
 			return err
 		}
 		cid, err := parseChildID(childID)
 		if err != nil {
+			l.Warnw("儿童ID格式错误",
+				"action", logger.ActionRead,
+				"resource", "guardianship",
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		// 调用领域服务查询
 		guardianship, err := tx.Guardianships.FindByUserIDAndChildID(ctx, uid, cid)
 		if err != nil {
+			l.Warnw("监护关系不存在",
+				"action", logger.ActionRead,
+				"resource", "guardianship",
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		// 查询儿童信息
 		child, err := tx.Children.FindByID(ctx, guardianship.Child)
 		if err != nil {
+			l.Errorw("查询儿童信息失败",
+				"action", logger.ActionRead,
+				"resource", "guardianship",
+				"error", err.Error(),
+			)
 			return err
 		}
 
@@ -121,11 +223,26 @@ func (s *guardianshipApplicationService) GetByUserIDAndChildID(ctx context.Conte
 		return nil
 	})
 
+	if err == nil {
+		l.Debugw("查询监护关系成功",
+			"action", logger.ActionRead,
+			"resource", "guardianship",
+			"result", logger.ResultSuccess,
+		)
+	}
+
 	return result, err
 }
 
 // ListChildrenByUserID 列出用户监护的所有儿童
 func (s *guardianshipApplicationService) ListChildrenByUserID(ctx context.Context, userID string) ([]*GuardianshipResult, error) {
+	l := logger.L(ctx)
+	l.Debugw("查询用户监护的儿童列表",
+		"action", logger.ActionRead,
+		"resource", "guardianship",
+		"user_id", userID,
+	)
+
 	var results []*GuardianshipResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
@@ -134,12 +251,22 @@ func (s *guardianshipApplicationService) ListChildrenByUserID(ctx context.Contex
 		// 转换 ID
 		uid, err := parseUserID(userID)
 		if err != nil {
+			l.Warnw("用户ID格式错误",
+				"action", logger.ActionRead,
+				"resource", "guardianship",
+				"error", err.Error(),
+			)
 			return err
 		}
 
 		// 调用领域服务查询
 		guardianships, err := tx.Guardianships.FindByUserID(ctx, uid)
 		if err != nil {
+			l.Errorw("查询监护关系失败",
+				"action", logger.ActionRead,
+				"resource", "guardianship",
+				"error", err.Error(),
+			)
 			return err
 		}
 
@@ -147,6 +274,12 @@ func (s *guardianshipApplicationService) ListChildrenByUserID(ctx context.Contex
 		for _, g := range guardianships {
 			child, err := tx.Children.FindByID(ctx, g.Child)
 			if err != nil {
+				l.Warnw("查询儿童信息失败，跳过",
+					"action", logger.ActionRead,
+					"resource", "guardianship",
+					"child_id", g.Child.String(),
+					"error", err.Error(),
+				)
 				continue
 			}
 			results = append(results, toGuardianshipResult(g, child))

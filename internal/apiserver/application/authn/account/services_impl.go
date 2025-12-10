@@ -4,6 +4,7 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
@@ -28,13 +29,34 @@ func NewAccountApplicationService(uow uow.UnitOfWork) AccountApplicationService 
 
 // GetAccountByID 根据ID获取账户
 func (s *accountApplicationService) GetAccountByID(ctx context.Context, accountID meta.ID) (*AccountResult, error) {
+	l := logger.L(ctx)
 	var result *AccountResult
+
+	l.Debugw("查询账户",
+		"action", logger.ActionRead,
+		"resource", "account",
+		"account_id", accountID.String(),
+	)
+
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		account, err := tx.Accounts.GetByID(ctx, accountID)
 		if err != nil {
 			if perrors.Is(err, gorm.ErrRecordNotFound) {
+				l.Warnw("账户不存在",
+					"action", logger.ActionRead,
+					"resource", "account",
+					"account_id", accountID.String(),
+					"result", logger.ResultFailed,
+				)
 				return perrors.WithCode(code.ErrCredentialNotFound, "account not found")
 			}
+			l.Errorw("查询账户失败",
+				"action", logger.ActionRead,
+				"resource", "account",
+				"account_id", accountID.String(),
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return err
 		}
 		result = toAccountResult(account)
@@ -81,19 +103,76 @@ func (s *accountApplicationService) FindByUniqueID(ctx context.Context, uniqueID
 }
 
 func (s *accountApplicationService) SetUniqueID(ctx context.Context, accountID meta.ID, uniqueID domain.UnionID) error {
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+	l := logger.L(ctx)
+
+	l.Debugw("设置账户唯一ID",
+		"action", logger.ActionUpdate,
+		"resource", "account",
+		"account_id", accountID.String(),
+		"unique_id", string(uniqueID),
+	)
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		editor := domain.NewEditor(tx.Accounts)
 		_, err := editor.SetUniqueID(ctx, accountID, uniqueID)
+		if err != nil {
+			l.Errorw("设置账户唯一ID失败",
+				"action", logger.ActionUpdate,
+				"resource", "account",
+				"account_id", accountID.String(),
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
+		}
 		return err
 	})
+
+	if err == nil {
+		l.Infow("账户唯一ID设置成功",
+			"action", logger.ActionUpdate,
+			"resource", "account",
+			"account_id", accountID.String(),
+			"result", logger.ResultSuccess,
+		)
+	}
+
+	return err
 }
 
 func (s *accountApplicationService) UpdateProfile(ctx context.Context, accountID meta.ID, profile map[string]string) error {
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+	l := logger.L(ctx)
+
+	l.Debugw("更新账户资料",
+		"action", logger.ActionUpdate,
+		"resource", "account",
+		"account_id", accountID.String(),
+	)
+
+	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		editor := domain.NewEditor(tx.Accounts)
 		_, err := editor.UpdateProfile(ctx, accountID, profile)
+		if err != nil {
+			l.Errorw("更新账户资料失败",
+				"action", logger.ActionUpdate,
+				"resource", "account",
+				"account_id", accountID.String(),
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
+		}
 		return err
 	})
+
+	if err == nil {
+		l.Infow("账户资料更新成功",
+			"action", logger.ActionUpdate,
+			"resource", "account",
+			"account_id", accountID.String(),
+			"result", logger.ResultSuccess,
+		)
+	}
+
+	return err
 }
 
 func (s *accountApplicationService) UpdateMeta(ctx context.Context, accountID meta.ID, meta map[string]string) error {
