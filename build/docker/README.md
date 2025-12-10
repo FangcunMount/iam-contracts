@@ -67,7 +67,8 @@ docker build \
 docker run -d \
   --name iam-apiserver \
   --network infra-network \
-  -p 8080:8080 \  # 如需宿主机直接访问可保留端口映射；生产通过网关无需暴露
+  -p 9080:9080 \  # HTTP REST API (内网)
+  -p 9444:9444 \  # HTTPS REST API (外网)
   -v $(pwd)/configs:/app/configs:ro \
   -v $(pwd)/logs:/app/logs \
   iam-contracts:latest
@@ -141,7 +142,7 @@ docker-compose -f build/docker/docker-compose.prod.yml up -d
 docker inspect --format='{{.State.Health.Status}}' iam-apiserver
 
 # 手动执行健康检查
-docker exec iam-apiserver curl -f http://localhost:8080/healthz
+docker exec iam-apiserver curl -f http://localhost:9080/healthz
 ```
 
 ## 日志管理
@@ -232,12 +233,12 @@ docker exec -it iam-apiserver sh
 
 ```bash
 # 检查端口占用
-lsof -i :8080
+lsof -i :9080
 # 或
-netstat -tlnp | grep 8080
+netstat -tlnp | grep 9080
 
 # 使用不同端口
-docker run -d -p 8081:8080 iam-contracts:latest
+docker run -d -p 9180:9080 iam-contracts:latest
 ```
 
 ### 配置文件问题

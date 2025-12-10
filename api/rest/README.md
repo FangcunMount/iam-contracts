@@ -388,7 +388,7 @@ curl -X GET https://api.example.com/api/v1/users/usr_123 \
 ### 3. HTTPS 强制
 
 - 生产环境必须使用 HTTPS
-- 本地开发可使用 HTTP (<http://localhost:8080>)
+- 本地开发可使用 HTTP (<http://localhost:9080>)
 
 ### 4. 令牌存储
 

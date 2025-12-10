@@ -145,16 +145,16 @@ make status
 
 ```bash
 # 健康检查
-curl http://localhost:8080/healthz
+curl http://localhost:9080/healthz
 # 输出: {"status":"ok"}
 
 # 测试登录（使用默认账户）
-curl -X POST http://localhost:8080/api/v1/auth/login \
+curl -X POST http://localhost:9080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
 
 # 获取 JWKS 公钥
-curl http://localhost:8080/.well-known/jwks.json
+curl http://localhost:9080/.well-known/jwks.json
 ```
 
 ### 使用 Makefile
