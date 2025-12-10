@@ -14,9 +14,29 @@ default_policy: deny
 # ============================================================================
 services:
   # QS 服务 - 心理健康测评系统
-  - service_name: qs
+  - service_name: qs-apiserver.svc  # 匹配证书 CN
     enabled: true
-    description: "QS 服务 - 心理健康测评系统，仅允许读取用户和监护关系信息"
+    description: "QS API SERVER - 心理健康测评系统，仅允许读取用户和监护关系信息"
+    allowed_methods:
+      # Identity 读取服务
+      - /iam.identity.v1.IdentityService/GetUser
+      - /iam.identity.v1.IdentityService/GetUserProfile
+      - /iam.identity.v1.IdentityService/GetUserByExternalId
+      - /iam.identity.v1.IdentityService/ListChildren
+      - /iam.identity.v1.IdentityService/GetChild
+      - /iam.identity.v1.IdentityService/GetGuardianship
+      - /iam.identity.v1.IdentityService/ListGuardianships
+      - /iam.identity.v1.IdentityService/CheckGuardianship
+      # Authn 服务（Token 验证）
+      - /iam.authn.v1.AuthnService/ValidateToken
+      - /iam.authn.v1.AuthnService/IntrospectToken
+      - /iam.authn.v1.AuthnService/GetPublicKeys
+    denied_methods: []
+
+  # QS Collection Server - 数据收集服务
+  - service_name: qs-collection-server.svc  # 匹配证书 CN
+    enabled: true
+    description: "QS Collection Server - 数据收集服务，调用 IAM 进行身份验证"
     allowed_methods:
       # Identity 读取服务
       - /iam.identity.v1.IdentityService/GetUser
