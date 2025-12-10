@@ -18,7 +18,7 @@ services:
     enabled: true
     description: "QS API SERVER - 心理健康测评系统，仅允许读取用户和监护关系信息"
     allowed_methods:
-      # Identity 读取服务
+       # Identity 读取服务
       - /iam.identity.v1.IdentityService/GetUser
       - /iam.identity.v1.IdentityService/GetUserProfile
       - /iam.identity.v1.IdentityService/GetUserByExternalId
@@ -31,6 +31,9 @@ services:
       - /iam.authn.v1.AuthnService/ValidateToken
       - /iam.authn.v1.AuthnService/IntrospectToken
       - /iam.authn.v1.AuthnService/GetPublicKeys
+      - /iam.authn.v1.AuthService/IssueServiceToken 
+      # JWKS 服务
+      - /iam.authn.v1.JWKSService/GetJWKS   
     denied_methods: []
 
   # QS Collection Server - 数据收集服务
@@ -38,7 +41,7 @@ services:
     enabled: true
     description: "QS Collection Server - 数据收集服务，调用 IAM 进行身份验证"
     allowed_methods:
-      # Identity 读取服务
+       # Identity 读取服务
       - /iam.identity.v1.IdentityService/GetUser
       - /iam.identity.v1.IdentityService/GetUserProfile
       - /iam.identity.v1.IdentityService/GetUserByExternalId
@@ -51,6 +54,9 @@ services:
       - /iam.authn.v1.AuthnService/ValidateToken
       - /iam.authn.v1.AuthnService/IntrospectToken
       - /iam.authn.v1.AuthnService/GetPublicKeys
+      - /iam.authn.v1.AuthService/IssueServiceToken
+      # JWKS 服务
+      - /iam.authn.v1.JWKSService/GetJWKS   
     denied_methods: []
 
   # 内部管理工具
