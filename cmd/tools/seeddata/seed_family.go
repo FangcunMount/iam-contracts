@@ -594,7 +594,7 @@ func createChild(
 	weight := child.Weight
 	result, err := childAppSrv.Register(ctx, childApp.RegisterChildDTO{
 		Name:     child.Name,
-		Gender:   child.Gender,
+		Gender:   genderStringToUint8(child.Gender),
 		Birthday: child.Birthday,
 		IDCard:   child.IDCard,
 		Height:   &height,

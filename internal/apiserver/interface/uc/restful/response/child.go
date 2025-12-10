@@ -6,7 +6,7 @@ import "time"
 type ChildResponse struct {
 	ID        string     `json:"id"`
 	LegalName string     `json:"legalName"`
-	Gender    *int       `json:"gender,omitempty"`
+	Gender    *uint8     `json:"gender,omitempty"`
 	DOB       string     `json:"dob,omitempty"`
 	IDType    string     `json:"idType,omitempty"`
 	IDMasked  string     `json:"idMasked,omitempty"`

@@ -31,7 +31,7 @@ type ChildQueryApplicationService interface {
 	// GetByIDCard 根据身份证查询儿童
 	GetByIDCard(ctx context.Context, idCard string) (*ChildResult, error)
 	// FindSimilar 查找相似儿童（姓名、性别、生日）
-	FindSimilar(ctx context.Context, name string, gender string, birthday string) ([]*ChildResult, error)
+	FindSimilar(ctx context.Context, name string, gender uint8, birthday string) ([]*ChildResult, error)
 }
 
 // ============= DTOs =============
@@ -39,7 +39,7 @@ type ChildQueryApplicationService interface {
 // RegisterChildDTO 注册儿童 DTO
 type RegisterChildDTO struct {
 	Name     string  // 姓名（必填）
-	Gender   string  // 性别（可选：male/female）
+	Gender   uint8   // 性别（0=其他，1=男，2=女）
 	Birthday string  // 生日（格式：YYYY-MM-DD）
 	IDCard   string  // 身份证号（可选）
 	Height   *uint32 // 身高（厘米，可选）
@@ -49,7 +49,7 @@ type RegisterChildDTO struct {
 // UpdateChildProfileDTO 更新儿童资料 DTO
 type UpdateChildProfileDTO struct {
 	ChildID  string // 儿童 ID
-	Gender   string // 性别
+	Gender   uint8  // 性别（0=其他，1=男，2=女）
 	Birthday string // 生日
 }
 
@@ -65,7 +65,7 @@ type ChildResult struct {
 	ID       string // 儿童 ID
 	Name     string // 姓名
 	IDCard   string // 身份证号
-	Gender   string // 性别
+	Gender   uint8  // 性别（0=其他，1=男，2=女）
 	Birthday string // 生日
 	Height   uint32 // 身高（厘米）
 	Weight   uint32 // 体重（克）

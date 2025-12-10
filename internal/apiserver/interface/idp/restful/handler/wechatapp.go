@@ -75,7 +75,7 @@ func (h *WechatAppHandler) CreateWechatApp(c *gin.Context) {
 		Status: string(result.Status),
 	}
 
-	h.Created(c, resp)
+	h.Success(c, resp)
 }
 
 // GetWechatApp 查询微信应用

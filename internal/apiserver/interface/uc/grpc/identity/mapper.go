@@ -75,7 +75,7 @@ func childResultToProto(result *childApp.ChildResult) *identityv1.Child {
 	return &identityv1.Child{
 		Id:        result.ID,
 		LegalName: result.Name,
-		Gender:    genderStringToProto(result.Gender),
+		Gender:    genderUint8ToProto(result.Gender),
 		Dob:       result.Birthday,
 		Identity: &identityv1.IdentityDocument{
 			Type:         "id_card",
@@ -99,7 +99,7 @@ func childResultToProtoFromGuardianship(result *guardianshipApp.GuardianshipResu
 	return &identityv1.Child{
 		Id:        result.ChildID,
 		LegalName: result.ChildName,
-		Gender:    genderStringToProto(result.ChildGender),
+		Gender:    genderUint8ToProto(result.ChildGender),
 		Dob:       result.ChildBirthday,
 		Identity:  nil,
 		Stats:     nil,
@@ -108,13 +108,15 @@ func childResultToProtoFromGuardianship(result *guardianshipApp.GuardianshipResu
 	}
 }
 
-// genderStringToProto 将字符串性别转换为 proto 枚举
-func genderStringToProto(gender string) identityv1.Gender {
+// genderUint8ToProto 将 uint8 性别转换为 proto 枚举
+func genderUint8ToProto(gender uint8) identityv1.Gender {
 	switch gender {
-	case "male":
+	case 1:
 		return identityv1.Gender_GENDER_MALE
-	case "female":
+	case 2:
 		return identityv1.Gender_GENDER_FEMALE
+	case 0:
+		return identityv1.Gender_GENDER_OTHER
 	default:
 		return identityv1.Gender_GENDER_UNSPECIFIED
 	}

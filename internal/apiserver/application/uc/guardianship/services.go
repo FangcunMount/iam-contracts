@@ -50,6 +50,6 @@ type GuardianshipResult struct {
 	EstablishedAt string // 建立时间
 	// 可选：包含儿童信息
 	ChildName     string // 儿童姓名
-	ChildGender   string // 儿童性别
+	ChildGender   uint8  // 儿童性别（0=其他，1=男，2=女）
 	ChildBirthday string // 儿童生日
 }

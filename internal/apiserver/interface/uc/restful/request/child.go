@@ -3,7 +3,7 @@ package request
 // ChildCreateRequest 创建儿童档案请求
 type ChildCreateRequest struct {
 	LegalName string `json:"legalName" binding:"required"`
-	Gender    *int   `json:"gender" binding:"required"`
+	Gender    *uint8 `json:"gender" binding:"required"`
 	DOB       string `json:"dob" binding:"required"`
 	IDType    string `json:"idType" binding:"required"`
 	IDNo      string `json:"idNo" binding:"required"`
@@ -20,7 +20,7 @@ type ChildRegisterRequest struct {
 // ChildUpdateRequest 更新儿童档案请求
 type ChildUpdateRequest struct {
 	LegalName *string `json:"legalName,omitempty"`
-	Gender    *int    `json:"gender,omitempty"`
+	Gender    *uint8  `json:"gender,omitempty"`
 	DOB       *string `json:"dob,omitempty"`
 	HeightCm  *int    `json:"heightCm,omitempty"`
 	WeightKg  *string `json:"weightKg,omitempty"`

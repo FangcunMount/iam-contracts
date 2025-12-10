@@ -131,9 +131,13 @@ func (h *ChildHandler) RegisterChild(c *gin.Context) {
 	}
 
 	// 1. 先注册儿童
+	gender := uint8(0)
+	if req.Gender != nil {
+		gender = *req.Gender
+	}
 	childDTO := appchild.RegisterChildDTO{
 		Name:     strings.TrimSpace(req.LegalName),
-		Gender:   genderIntToString(req.Gender),
+		Gender:   gender,
 		Birthday: strings.TrimSpace(req.DOB),
 		IDCard:   strings.TrimSpace(req.IDNo),
 		Height:   parseHeightCm(req.HeightCm),
@@ -169,7 +173,7 @@ func (h *ChildHandler) RegisterChild(c *gin.Context) {
 	childResp := responsedto.ChildResponse{
 		ID:        childResult.ID,
 		LegalName: childResult.Name,
-		Gender:    stringGenderToInt(childResult.Gender),
+		Gender:    &childResult.Gender,
 		DOB:       childResult.Birthday,
 		IDType:    req.IDType,
 		IDMasked:  maskIDCard(childResult.IDCard),
@@ -183,7 +187,7 @@ func (h *ChildHandler) RegisterChild(c *gin.Context) {
 		Since:    parseTime(guardResult.EstablishedAt),
 	}
 
-	h.Created(c, responsedto.ChildRegisterResponse{
+	h.Success(c, responsedto.ChildRegisterResponse{
 		Child:        childResp,
 		Guardianship: guardResp,
 	})
@@ -308,7 +312,7 @@ func (h *ChildHandler) PatchChild(c *gin.Context) {
 			ChildID: childID,
 		}
 		if req.Gender != nil {
-			dto.Gender = genderIntToString(req.Gender)
+			dto.Gender = *req.Gender
 		}
 		if req.DOB != nil {
 			dto.Birthday = strings.TrimSpace(*req.DOB)
@@ -382,8 +386,8 @@ func (h *ChildHandler) SearchChildren(c *gin.Context) {
 		birthday = strings.TrimSpace(*query.DOB)
 	}
 
-	// SearchQuery 中没有 Gender，这里使用空字符串
-	children, err := h.childQuery.FindSimilar(c.Request.Context(), name, "", birthday)
+	// SearchQuery 中没有 Gender，这里使用 0 作为默认值（表示不过滤）
+	children, err := h.childQuery.FindSimilar(c.Request.Context(), name, 0, birthday)
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -423,10 +427,7 @@ func childResultToResponse(result *appchild.ChildResult) responsedto.ChildRespon
 	}
 
 	// 性别转换
-	if result.Gender != "" {
-		gender := stringGenderToInt(result.Gender)
-		resp.Gender = gender
-	}
+	resp.Gender = &result.Gender
 
 	// 身高（厘米）
 	if result.Height > 0 {
@@ -442,35 +443,6 @@ func childResultToResponse(result *appchild.ChildResult) responsedto.ChildRespon
 	}
 
 	return resp
-}
-
-// genderIntToString 将前端的整数性别转换为字符串
-func genderIntToString(gender *int) string {
-	if gender == nil {
-		return ""
-	}
-	switch *gender {
-	case 1:
-		return "male"
-	case 2:
-		return "female"
-	default:
-		return ""
-	}
-}
-
-// stringGenderToInt 将字符串性别转换为整数指针
-func stringGenderToInt(gender string) *int {
-	var g int
-	switch strings.ToLower(gender) {
-	case "male":
-		g = 1
-	case "female":
-		g = 2
-	default:
-		return nil
-	}
-	return &g
 }
 
 // parseHeightCm 解析身高（厘米）

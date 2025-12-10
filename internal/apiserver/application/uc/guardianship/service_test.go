@@ -35,7 +35,7 @@ func TestGuardianshipApplicationService_AddGuardian_Success(t *testing.T) {
 	childService := child.NewChildApplicationService(unitOfWork)
 	childResult, err := childService.Register(ctx, child.RegisterChildDTO{
 		Name:     "小明",
-		Gender:   "male",
+		Gender:   1,
 		Birthday: "2020-01-15",
 	})
 	require.NoError(t, err)
@@ -78,7 +78,7 @@ func TestGuardianshipApplicationService_AddGuardian_DuplicateGuardian(t *testing
 	childService := child.NewChildApplicationService(unitOfWork)
 	childResult, err := childService.Register(ctx, child.RegisterChildDTO{
 		Name:     "小红",
-		Gender:   "female",
+		Gender:   2,
 		Birthday: "2019-05-20",
 	})
 	require.NoError(t, err)
@@ -119,7 +119,7 @@ func TestGuardianshipApplicationService_RemoveGuardian_Success(t *testing.T) {
 	childService := child.NewChildApplicationService(unitOfWork)
 	childResult, err := childService.Register(ctx, child.RegisterChildDTO{
 		Name:     "小强",
-		Gender:   "male",
+		Gender:   1,
 		Birthday: "2021-03-10",
 	})
 	require.NoError(t, err)
@@ -186,7 +186,7 @@ func TestGuardianshipQueryApplicationService_IsGuardian_True(t *testing.T) {
 	childService := child.NewChildApplicationService(unitOfWork)
 	childResult, err := childService.Register(ctx, child.RegisterChildDTO{
 		Name:     "小虎",
-		Gender:   "male",
+		Gender:   1,
 		Birthday: "2020-08-20",
 	})
 	require.NoError(t, err)
@@ -242,7 +242,7 @@ func TestGuardianshipQueryApplicationService_GetByUserIDAndChildID_Success(t *te
 	childService := child.NewChildApplicationService(unitOfWork)
 	childResult, err := childService.Register(ctx, child.RegisterChildDTO{
 		Name:     "小龙",
-		Gender:   "male",
+		Gender:   1,
 		Birthday: "2019-12-25",
 	})
 	require.NoError(t, err)
@@ -302,7 +302,7 @@ func TestGuardianshipQueryApplicationService_ListChildrenByUserID_Success(t *tes
 	childService := child.NewChildApplicationService(unitOfWork)
 	child1, err := childService.Register(ctx, child.RegisterChildDTO{
 		Name:     "大宝",
-		Gender:   "male",
+		Gender:   1,
 		Birthday: "2018-01-01",
 		IDCard:   "110101201801011112",
 	})
@@ -310,7 +310,7 @@ func TestGuardianshipQueryApplicationService_ListChildrenByUserID_Success(t *tes
 
 	child2, err := childService.Register(ctx, child.RegisterChildDTO{
 		Name:     "二宝",
-		Gender:   "female",
+		Gender:   2,
 		Birthday: "2020-06-01",
 		IDCard:   "110101202006012225",
 	})
@@ -377,7 +377,7 @@ func TestGuardianshipQueryApplicationService_ListGuardiansByChildID_Success(t *t
 	childService := child.NewChildApplicationService(unitOfWork)
 	childResult, err := childService.Register(ctx, child.RegisterChildDTO{
 		Name:     "宝宝",
-		Gender:   "female",
+		Gender:   2,
 		Birthday: "2021-01-01",
 	})
 	require.NoError(t, err)
@@ -426,7 +426,7 @@ func TestGuardianshipApplicationService_AddGuardian_ConcurrentPersistence_10(t *
 	childService := child.NewChildApplicationService(unitOfWork)
 	childResult, err := childService.Register(ctx, child.RegisterChildDTO{
 		Name:     "并发孩子",
-		Gender:   "male",
+		Gender:   1,
 		Birthday: "2020-02-02",
 	})
 	require.NoError(t, err)

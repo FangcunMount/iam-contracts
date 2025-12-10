@@ -260,7 +260,7 @@ func ensureChild(
 
 	dto := childApp.RegisterChildDTO{
 		Name:     seed.Name,
-		Gender:   seed.Gender,
+		Gender:   genderStringToUint8(seed.Gender),
 		Birthday: seed.Birthday,
 		IDCard:   seed.IDCard,
 		Height:   &heightCM,
@@ -278,4 +278,16 @@ func ensureChild(
 // duplicateGuardian 检查是否是重复的监护关系错误
 func duplicateGuardian(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "already exists")
+}
+
+// genderStringToUint8 将字符串性别转换为 uint8
+func genderStringToUint8(gender string) uint8 {
+	switch gender {
+	case "male":
+		return 1
+	case "female":
+		return 2
+	default:
+		return 0
+	}
 }

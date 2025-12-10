@@ -387,7 +387,7 @@ func toGuardianshipResult(guardianship *domain.Guardianship, child *childdomain.
 	// 添加儿童信息
 	if child != nil {
 		result.ChildName = child.Name
-		result.ChildGender = child.Gender.String()
+		result.ChildGender = child.Gender.Value()
 		result.ChildBirthday = child.Birthday.String()
 	}
 

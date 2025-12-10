@@ -237,7 +237,7 @@ components:
       properties:
         id: { type: string }
         legalName: { type: string }
-        gender: { type: integer }
+        gender: { type: integer, format: int8, description: '性别：0=其他，1=男，2=女' }
         dob: { type: string, format: date }
         idType: { type: string }
         idMasked: { type: string }
@@ -251,7 +251,7 @@ components:
       type: object
       properties:
         legalName: { type: string }
-        gender: { type: integer }
+        gender: { type: integer, format: int8, description: '性别：0=其他，1=男，2=女' }
         dob: { type: string, format: date }
         idType: { type: string }
         idNo: { type: string, description: '仅入参；服务端加密+哈希存储' }
@@ -263,7 +263,7 @@ components:
       type: object
       properties:
         legalName: { type: string }
-        gender: { type: integer }
+        gender: { type: integer, format: int8, description: '性别：0=其他，1=男，2=女' }
         dob: { type: string, format: date }
         heightCm: { type: integer, nullable: true }
         weightKg: { type: string, nullable: true }

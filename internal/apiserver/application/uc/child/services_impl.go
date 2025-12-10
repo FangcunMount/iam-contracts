@@ -34,7 +34,7 @@ func (s *childApplicationService) Register(ctx context.Context, dto RegisterChil
 		validator := domain.NewValidator(tx.Children)
 
 		// 转换 DTO 为值对象
-		gender := parseGender(dto.Gender)
+		gender := meta.NewGender(dto.Gender)
 		birthday := meta.NewBirthday(dto.Birthday)
 
 		// 验证注册参数
@@ -183,7 +183,7 @@ func (s *childProfileApplicationService) UpdateProfile(ctx context.Context, dto 
 		}
 
 		// 转换值对象
-		gender := parseGender(dto.Gender)
+		gender := meta.NewGender(dto.Gender)
 		birthday := meta.NewBirthday(dto.Birthday)
 
 		// 调用领域服务更新资料
@@ -287,12 +287,12 @@ func (s *childQueryApplicationService) GetByIDCard(ctx context.Context, idCard s
 }
 
 // FindSimilar 查找相似儿童（姓名、性别、生日）
-func (s *childQueryApplicationService) FindSimilar(ctx context.Context, name string, gender string, birthday string) ([]*ChildResult, error) {
+func (s *childQueryApplicationService) FindSimilar(ctx context.Context, name string, gender uint8, birthday string) ([]*ChildResult, error) {
 	var results []*ChildResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 
-		genderObj := parseGender(gender)
+		genderObj := meta.NewGender(gender)
 		birthdayObj := meta.NewBirthday(birthday)
 
 		children, err := tx.Children.FindSimilar(ctx, name, genderObj, birthdayObj)
@@ -320,18 +320,6 @@ func parseChildID(childID string) (meta.ID, error) {
 	return parsedChildID, nil
 }
 
-// parseGender 解析性别字符串
-func parseGender(gender string) meta.Gender {
-	switch gender {
-	case "male", "男":
-		return meta.GenderMale
-	case "female", "女":
-		return meta.GenderFemale
-	default:
-		return meta.GenderOther
-	}
-}
-
 // toChildResult 将领域实体转换为 DTO
 func toChildResult(child *domain.Child) *ChildResult {
 	if child == nil {
@@ -348,7 +336,7 @@ func toChildResult(child *domain.Child) *ChildResult {
 		ID:       child.ID.String(),
 		Name:     child.Name,
 		IDCard:   child.IDCard.String(),
-		Gender:   child.Gender.String(),
+		Gender:   child.Gender.Value(),
 		Birthday: child.Birthday.String(),
 		Height:   uint32(heightTenths / 10),  // tenths of cm -> cm
 		Weight:   uint32(weightTenths * 100), // tenths of kg -> grams (1kg=1000g, 0.1kg=100g)

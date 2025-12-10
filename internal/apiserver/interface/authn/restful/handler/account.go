@@ -143,7 +143,7 @@ func (h *AccountHandler) RegisterWithWeChat(c *gin.Context) {
 		IsNewAccount: result.IsNewAccount,
 	}
 
-	h.Created(c, response)
+	h.Success(c, response)
 }
 
 // parseAccountID 解析账户ID
