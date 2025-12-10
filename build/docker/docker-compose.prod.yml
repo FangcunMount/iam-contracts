@@ -8,9 +8,13 @@ services:
     user: "${WWW_UID:-1000}:${WWW_GID:-1000}"
     env_file:
       - ../../configs/env/config.prod.env
+    # 端口配置：仅暴露给 Docker 内网，外部访问通过 Nginx 反向代理
+    # expose: 仅容器网络内可访问，不映射到宿主机
     expose:
-      - "8080"
-      - "9090"
+      - "9080"   # HTTP REST API (内网服务调用，性能优先)
+      - "9444"   # HTTPS REST API (外网通过 Nginx 代理到此端口)
+      - "9090"   # gRPC 服务 (mTLS 保护，内网服务间通信)
+      - "9091"   # gRPC 健康检查 (内网监控系统)
     volumes:
       # 挂载配置文件（可以覆盖镜像中的配置）
       - ../../configs:/app/configs:ro

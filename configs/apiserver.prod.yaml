@@ -6,12 +6,9 @@ app:
 # 服务器配置
 server:
   name: "iam"
-  address: "0.0.0.0"
-  port: 8080  # 标准端口，方便代理
-  port-ssl: 8443
+  run-mode: "release"   # Gin 开发模式, 可选值有：debug, release, test
   read-timeout: 60    # 秒
   write-timeout: 60   # 秒
-  run-mode: "release"   # Gin 开发模式, 可选值有：debug, release, test
 
 # MySQL 配置
 mysql:
@@ -122,12 +119,16 @@ tls:
   key: /etc/iam-contracts/ssl/yangshujie.com.key
   strict: false
 
+# gRPC 服务配置
+# 端口策略：
+#   - 9090: gRPC 服务端口，启用 mTLS 双向认证，仅限内网可信服务访问
+#   - 9091: 健康检查端口，HTTP 协议，供监控系统使用（不需要客户端证书）
 grpc:
-  bind-address: 0.0.0.0
-  bind-port: 9090
-  healthz-port: 9091
+  bind-address: 0.0.0.0  # 监听所有接口（容器内网络）
+  bind-port: 9090        # gRPC 服务端口
+  healthz-port: 9091     # 健康检查端口
   mtls:
-    enabled: true
+    enabled: true        # 启用 mTLS 双向认证，强制客户端提供证书
     cert-file: /etc/iam-contracts/grpc/server/iam-grpc.crt
     key-file: /etc/iam-contracts/grpc/server/iam-grpc.key
     ca-file: /etc/iam-contracts/grpc/ca/ca-chain.crt
@@ -156,10 +157,16 @@ grpc:
 idp:
   encryption-key: "CHANGE_ME_WITH_32_BYTE_BASE64_SECRET"  # 占位符，请通过安全渠道注入32字节密钥
 
+# HTTP REST API 配置（不安全，内网使用）
+# 用途：内网服务间调用，性能优先（无 TLS 握手开销）
+# 安全策略：通过 Docker 网络隔离 + 防火墙规则限制访问
 insecure:
-  bind-address: 0.0.0.0  # 允许外部访问,用于 Docker 端口映射
+  bind-address: 0.0.0.0
   bind-port: 9080
 
+# HTTPS REST API 配置（安全，外网访问）
+# 用途：外部客户端访问（移动端、Web、第三方服务）
+# 访问路径：客户端 -> Nginx (443) -> iam-apiserver (9444)
 secure:
   bind-address: 0.0.0.0
   bind-port: 9444

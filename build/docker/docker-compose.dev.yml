@@ -16,9 +16,10 @@ services:
     env_file:
       - ../../configs/env/config.dev.env
     ports:
-      - "18081:18081"   # HTTP
-      - "18441:18441"   # HTTPS
-      - "19091:19091"   # gRPC
+      - "18081:18081"   # HTTP REST API
+      - "18441:18441"   # HTTPS REST API
+      - "19091:19091"   # gRPC 服务
+      - "19092:19092"   # gRPC 健康检查
     volumes:
       # 挂载配置文件（使用开发环境配置）
       - ../../configs:/app/configs:ro

@@ -79,7 +79,19 @@ RUN mkdir -p /etc/iam-contracts/ssl /etc/iam-contracts/grpc/ca /etc/iam-contract
 USER app
 
 # 暴露端口
-EXPOSE 9080 9444
+# 注意：EXPOSE 仅为文档声明，实际端口映射由 docker-compose 或 k8s 控制
+#
+# REST API 端口（主要服务入口）
+# HTTP REST API (内网服务调用，无 TLS 开销，性能更好)
+EXPOSE 9080  
+# HTTPS REST API (外网访问，TLS 加密保护)
+EXPOSE 9444  
+#
+# gRPC 端口（服务间通信，mTLS 双向认证保护）
+# gRPC 服务 (需要客户端证书，仅限内网可信服务)
+EXPOSE 9090  
+# gRPC 健康检查 (HTTP，供监控系统使用)
+EXPOSE 9091  
 
 # 健康检查 (检查实际监听的端口 9080)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

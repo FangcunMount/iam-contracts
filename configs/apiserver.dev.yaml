@@ -6,12 +6,9 @@ app:
 # 服务器配置
 server:
   name: "iam"
-  address: "0.0.0.0"
-  port: 18081  # 标准端口
-  port-ssl: 18441  # HTTPS 端口
+  run-mode: "debug"   # Gin 开发模式: debug, release, test
   read-timeout: 60    # 秒
   write-timeout: 60   # 秒
-  run-mode: "debug"   # Gin 开发模式: debug, release, test
 
 # MySQL 配置
 mysql:
