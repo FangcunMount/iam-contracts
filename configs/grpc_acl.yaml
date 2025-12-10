@@ -16,47 +16,77 @@ services:
   # QS 服务 - 心理健康测评系统
   - service_name: qs-apiserver.svc  # 匹配证书 CN
     enabled: true
-    description: "QS API SERVER - 心理健康测评系统，仅允许读取用户和监护关系信息"
+    description: "QS API SERVER - 心理健康测评系统，允许用户/监护关系的查询和管理"
     allowed_methods:
-       # Identity 读取服务
-      - /iam.identity.v1.IdentityService/GetUser
-      - /iam.identity.v1.IdentityService/GetUserProfile
-      - /iam.identity.v1.IdentityService/GetUserByExternalId
-      - /iam.identity.v1.IdentityService/ListChildren
-      - /iam.identity.v1.IdentityService/GetChild
-      - /iam.identity.v1.IdentityService/GetGuardianship
-      - /iam.identity.v1.IdentityService/ListGuardianships
-      - /iam.identity.v1.IdentityService/CheckGuardianship
-      # Authn 服务（Token 验证）
-      - /iam.authn.v1.AuthnService/ValidateToken
-      - /iam.authn.v1.AuthnService/IntrospectToken
-      - /iam.authn.v1.AuthnService/GetPublicKeys
-      - /iam.authn.v1.AuthService/IssueServiceToken 
-      # JWKS 服务
-      - /iam.authn.v1.JWKSService/GetJWKS   
+      # IdentityRead - 用户查询服务
+      - /iam.identity.v1.IdentityRead/GetUser
+      - /iam.identity.v1.IdentityRead/BatchGetUsers
+      - /iam.identity.v1.IdentityRead/SearchUsers
+      - /iam.identity.v1.IdentityRead/GetChild
+      - /iam.identity.v1.IdentityRead/BatchGetChildren
+      
+      # GuardianshipQuery - 监护关系查询
+      - /iam.identity.v1.GuardianshipQuery/IsGuardian
+      - /iam.identity.v1.GuardianshipQuery/ListChildren
+      - /iam.identity.v1.GuardianshipQuery/ListGuardians
+      
+      # GuardianshipCommand - 监护关系管理
+      - /iam.identity.v1.GuardianshipCommand/AddGuardian
+      - /iam.identity.v1.GuardianshipCommand/UpdateGuardianRelation
+      - /iam.identity.v1.GuardianshipCommand/RevokeGuardian
+      - /iam.identity.v1.GuardianshipCommand/BatchRevokeGuardians
+      - /iam.identity.v1.GuardianshipCommand/ImportGuardians
+      
+      # IdentityLifecycle - 用户生命周期管理
+      - /iam.identity.v1.IdentityLifecycle/CreateUser
+      - /iam.identity.v1.IdentityLifecycle/UpdateUser
+      - /iam.identity.v1.IdentityLifecycle/LinkExternalIdentity
+      
+      # AuthService - Token 验证和管理
+      - /iam.authn.v1.AuthService/VerifyToken
+      - /iam.authn.v1.AuthService/RefreshToken
+      - /iam.authn.v1.AuthService/IssueServiceToken
+      
+      # JWKSService - 公钥获取
+      - /iam.authn.v1.JWKSService/GetJWKS
     denied_methods: []
 
   # QS Collection Server - 数据收集服务
   - service_name: qs-collection-server.svc  # 匹配证书 CN
     enabled: true
-    description: "QS Collection Server - 数据收集服务，调用 IAM 进行身份验证"
+    description: "QS Collection Server - 数据收集服务，允许用户/监护关系的查询和管理"
     allowed_methods:
-       # Identity 读取服务
-      - /iam.identity.v1.IdentityService/GetUser
-      - /iam.identity.v1.IdentityService/GetUserProfile
-      - /iam.identity.v1.IdentityService/GetUserByExternalId
-      - /iam.identity.v1.IdentityService/ListChildren
-      - /iam.identity.v1.IdentityService/GetChild
-      - /iam.identity.v1.IdentityService/GetGuardianship
-      - /iam.identity.v1.IdentityService/ListGuardianships
-      - /iam.identity.v1.IdentityService/CheckGuardianship
-      # Authn 服务（Token 验证）
-      - /iam.authn.v1.AuthnService/ValidateToken
-      - /iam.authn.v1.AuthnService/IntrospectToken
-      - /iam.authn.v1.AuthnService/GetPublicKeys
+      # IdentityRead - 用户查询服务
+      - /iam.identity.v1.IdentityRead/GetUser
+      - /iam.identity.v1.IdentityRead/BatchGetUsers
+      - /iam.identity.v1.IdentityRead/SearchUsers
+      - /iam.identity.v1.IdentityRead/GetChild
+      - /iam.identity.v1.IdentityRead/BatchGetChildren
+      
+      # GuardianshipQuery - 监护关系查询
+      - /iam.identity.v1.GuardianshipQuery/IsGuardian
+      - /iam.identity.v1.GuardianshipQuery/ListChildren
+      - /iam.identity.v1.GuardianshipQuery/ListGuardians
+      
+      # GuardianshipCommand - 监护关系管理
+      - /iam.identity.v1.GuardianshipCommand/AddGuardian
+      - /iam.identity.v1.GuardianshipCommand/UpdateGuardianRelation
+      - /iam.identity.v1.GuardianshipCommand/RevokeGuardian
+      - /iam.identity.v1.GuardianshipCommand/BatchRevokeGuardians
+      - /iam.identity.v1.GuardianshipCommand/ImportGuardians
+      
+      # IdentityLifecycle - 用户生命周期管理
+      - /iam.identity.v1.IdentityLifecycle/CreateUser
+      - /iam.identity.v1.IdentityLifecycle/UpdateUser
+      - /iam.identity.v1.IdentityLifecycle/LinkExternalIdentity
+      
+      # AuthService - Token 验证和管理
+      - /iam.authn.v1.AuthService/VerifyToken
+      - /iam.authn.v1.AuthService/RefreshToken
       - /iam.authn.v1.AuthService/IssueServiceToken
-      # JWKS 服务
-      - /iam.authn.v1.JWKSService/GetJWKS   
+      
+      # JWKSService - 公钥获取
+      - /iam.authn.v1.JWKSService/GetJWKS
     denied_methods: []
 
   # 内部管理工具
@@ -65,9 +95,14 @@ services:
     description: "内部管理工具，完全访问权限"
     allowed_methods:
       # 所有 Identity 服务方法
-      - /iam.identity.v1.IdentityService/*
+      - /iam.identity.v1.IdentityRead/*
+      - /iam.identity.v1.GuardianshipQuery/*
+      - /iam.identity.v1.GuardianshipCommand/*
+      - /iam.identity.v1.IdentityLifecycle/*
+      - /iam.identity.v1.IdentityStream/*
       # 所有 Authn 服务方法
-      - /iam.authn.v1.AuthnService/*
+      - /iam.authn.v1.AuthService/*
+      - /iam.authn.v1.JWKSService/*
 
   # 运维工具
   - service_name: ops
