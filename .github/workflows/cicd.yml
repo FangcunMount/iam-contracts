@@ -513,8 +513,8 @@ jobs:
             # 检查 gRPC mTLS 证书是否存在（由 infra 项目统一管理）
             GRPC_DIR_HOST="/data/infra/ssl/grpc"
             GRPC_CA="$GRPC_DIR_HOST/ca/ca-chain.crt"
-            GRPC_CRT="$GRPC_DIR_HOST/server/iam-grpc.crt"
-            GRPC_KEY="$GRPC_DIR_HOST/server/iam-grpc.key"
+            GRPC_CRT="$GRPC_DIR_HOST/server/iam-apiserver.crt"
+            GRPC_KEY="$GRPC_DIR_HOST/server/iam-apiserver.key"
             for f in "$GRPC_CA" "$GRPC_CRT" "$GRPC_KEY"; do
               if ! $SUDO test -r "$f"; then
                 echo "❌ Missing or unreadable gRPC mTLS file: $f"

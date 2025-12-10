@@ -72,8 +72,8 @@ grpc:
   # mTLS 双向认证配置（用于内部服务间通信）
   mtls:
     enabled: true        # 启用 mTLS 双向认证，强制客户端提供证书
-    cert-file: /etc/iam-contracts/grpc/server/iam-grpc.crt
-    key-file: /etc/iam-contracts/grpc/server/iam-grpc.key
+    cert-file: /etc/iam-contracts/grpc/server/iam-apiserver.crt
+    key-file: /etc/iam-contracts/grpc/server/iam-apiserver.key
     ca-file: /etc/iam-contracts/grpc/ca/ca-chain.crt
     # ca-dir: /etc/iam-contracts/grpc/ca/  # 可选：CA 证书目录，支持多级 CA 信任链
     require-client-cert: true  # 强制客户端提供证书
