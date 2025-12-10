@@ -1,16 +1,115 @@
+# ============================================================================
+# iam-apiserver 开发环境配置
+# ============================================================================
+# 用途：IAM 身份认证与授权服务本地开发环境配置
+# 维护：开发团队
+# 更新时间：2025-12-10
+# ============================================================================
+
+# ============================================================================
+# 1. 应用基础配置
+# ============================================================================
 app:
   name: "iam"
   version: "1.0.0"
   mode: "development"  # development, production
 
-# 服务器配置
+# ============================================================================
+# 2. 服务端口配置
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# 2.1 RESTful HTTP/HTTPS 服务配置
+# ----------------------------------------------------------------------------
 server:
   name: "iam"
   run-mode: "debug"   # Gin 开发模式: debug, release, test
   read-timeout: 60    # 秒
   write-timeout: 60   # 秒
 
-# MySQL 配置
+# HTTP REST API 配置（不安全，内网使用）
+# 用途：本地开发调试，健康检查
+insecure:
+  bind-address: "0.0.0.0"
+  bind-port: 18081
+
+# HTTPS REST API 配置（安全，外网访问）
+# 用途：本地开发 HTTPS 测试
+secure:
+  bind-address: "0.0.0.0"
+  bind-port: 18441
+  tls:
+    cert-file: /data/infra/ssl/web/iam-apiserver.crt
+    private-key-file: /data/infra/ssl/web/iam-apiserver.key
+
+# CORS 跨域配置（开发环境允许所有来源）
+cors:
+  allowed-origins:
+    - "*"
+  allowed-methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "OPTIONS"
+    - "PATCH"
+  allowed-headers:
+    - "Content-Type"
+    - "Authorization"
+    - "X-Requested-With"
+
+# ----------------------------------------------------------------------------
+# 2.2 gRPC 服务配置（开发环境）
+# ----------------------------------------------------------------------------
+grpc:
+  bind-address: "0.0.0.0"
+  bind-port: 19091
+  healthz-port: 19092
+  
+  # mTLS 双向认证配置（由 infra 项目统一管理）
+  mtls:
+    enabled: true   # 开发环境开启 mTLS
+    cert-file: "/data/infra/ssl/grpc/server/iam-grpc.crt"
+    key-file: "/data/infra/ssl/grpc/server/iam-grpc.key"
+    ca-file: "/data/infra/ssl/grpc/ca/ca-chain.crt"
+    # ca-dir: "/data/infra/ssl/grpc/ca/"  # 可选：CA 证书目录，支持多级 CA 信任链
+    require-client-cert: true
+    
+    # 允许的客户端证书 OU 列表
+    allowed-ous:
+      - QS
+      - Admin
+      - Ops
+    
+    # 证书自动重载
+    enable-auto-reload: true
+    reload-interval: 5m
+  
+  # 应用层凭证认证配置
+  auth:
+    enabled: false  # 开发环境默认禁用
+    enable-bearer: true   # JWT Bearer Token
+    enable-hmac: true     # HMAC 签名
+    enable-api-key: true  # API Key
+    hmac-timestamp-validity: 5m
+    require-identity-match: true
+  
+  # 服务级 ACL 配置
+  acl:
+    enabled: false  # 开发环境默认禁用
+    config-file: "./configs/grpc_acl.yaml"
+  
+  # 审计日志配置
+  audit:
+    enabled: true  # 开发环境开启审计日志，便于调试
+
+# ============================================================================
+# 3. 数据存储配置
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# 3.1 MySQL 数据库配置
+# ----------------------------------------------------------------------------
 mysql:
   host: "127.0.0.1:3306"
   username: "infra_dev"        # 对应 build/docker/infra/dev.env -> MYSQL_USER
@@ -21,13 +120,17 @@ mysql:
   conn-max-lifetime: 3600  # 秒
   log-level: 4 # GORM log level, 1: silent, 2:error, 3:warn, 4:info (开发环境使用 info)
 
-# 数据库迁移配置
+# ----------------------------------------------------------------------------
+# 3.2 数据库迁移配置
+# ----------------------------------------------------------------------------
 migration:
   enabled: true  # 开发环境启用自动迁移
   autoseed: true  # 开发环境自动加载种子数据
   database: "iam_contracts"
 
-# Redis 配置（双实例架构）
+# ----------------------------------------------------------------------------
+# 3.3 Redis 配置（双实例架构）
+# ----------------------------------------------------------------------------
 redis:
   # Cache Redis - 用于缓存、会话、限流等临时数据（端口 6379）
   cache:
@@ -57,7 +160,38 @@ redis:
     use-ssl: false
     enable-logging: true  # 开启 Redis 命令日志（用于调试，生产环境建议关闭）
 
-# 日志配置（使用 component-base v0.2.9 duplicate 模式）
+# ============================================================================
+# 4. 安全与认证配置
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# 4.1 JWKS 密钥管理
+# ----------------------------------------------------------------------------
+jwks:
+  keys_dir: "./configs/keys"  # 私钥存放目录（相对或绝对路径）
+  auto_init: true           # 启动时若无 active key 则自动生成（仅建议在开发环境启用）
+
+# ----------------------------------------------------------------------------
+# 4.2 TLS 证书（通用）
+# ----------------------------------------------------------------------------
+tls:
+  cert: /data/infra/ssl/web/iam-apiserver.crt
+  key: /data/infra/ssl/web/iam-apiserver.key
+  strict: false  # 开发环境不严格验证
+
+# ----------------------------------------------------------------------------
+# 4.3 IDP 身份提供商
+# ----------------------------------------------------------------------------
+idp:
+  encryption-key: ""  # 留空使用默认密钥（开发环境）或通过环境变量 IAM_APISERVER_IDP_ENCRYPTION_KEY 设置
+
+# ============================================================================
+# 5. 系统运行配置
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# 5.1 日志配置（开发环境 - 使用 component-base v0.2.9 duplicate 模式）
+# ----------------------------------------------------------------------------
 log:
   # 基础配置
   disable-caller: false        # 开发环境显示调用者信息
@@ -89,33 +223,9 @@ log:
     error:
       - logs/iam-error.log        # ERROR 额外落盘，便于快速定位故障
 
-# JWKS 配置
-jwks:
-  keys_dir: "./configs/keys"  # 私钥存放目录（相对或绝对路径）
-  auto_init: true           # 启动时若无 active key 则自动生成（仅建议在开发环境启用）
-
-
-# CORS 配置（开发环境允许所有来源）
-cors:
-  allowed-origins:
-    - "*"
-  allowed-methods:
-    - "GET"
-    - "POST"
-    - "PUT"
-    - "DELETE"
-    - "OPTIONS"
-    - "PATCH"
-  allowed-headers:
-    - "Content-Type"
-    - "Authorization"
-    - "X-Requested-With"
-
-# IDP 模块配置
-idp:
-  encryption-key: ""  # 留空使用默认密钥（开发环境）或通过环境变量 IAM_APISERVER_IDP_ENCRYPTION_KEY 设置
-
-# NSQ 消息队列配置（可选，用于事件驱动）
+# ----------------------------------------------------------------------------
+# 5.2 NSQ 消息队列配置（可选，用于事件驱动）
+# ----------------------------------------------------------------------------
 nsq:
   enabled: false                              # 开发环境默认禁用
   lookupd-addrs:                              # NSQLookupd 地址
@@ -125,63 +235,3 @@ nsq:
   max-in-flight: 200                          # 最大并发处理数
   msg-timeout: 60                             # 消息超时时间（秒）
   requeue-delay: 5                            # 重新入队延迟（秒）
-
-# HTTPS/TLS 配置（由 infra 项目统一管理）
-tls:
-  cert: /data/infra/ssl/web/iam-apiserver.crt
-  key: /data/infra/ssl/web/iam-apiserver.key
-  strict: false  # 开发环境不严格验证
-
-insecure:
-  bind-address: 0.0.0.0
-  bind-port: 18081
-
-secure:
-  bind-address: 0.0.0.0
-  bind-port: 18441
-  tls:
-    cert-file: /data/infra/ssl/web/iam-apiserver.crt
-    private-key-file: /data/infra/ssl/web/iam-apiserver.key
-
-grpc:
-  bind-address: 0.0.0.0
-  bind-port: 19091
-  healthz-port: 19092
-  
-  # mTLS 双向认证配置（由 infra 项目统一管理）
-  mtls:
-    enabled: true   # 开发环境开启 mTLS
-    cert-file: "/data/infra/ssl/grpc/server/iam-grpc.crt"
-    key-file: "/data/infra/ssl/grpc/server/iam-grpc.key"
-    ca-file: "/data/infra/ssl/grpc/ca/ca-chain.crt"
-    # ca-dir: "/data/infra/ssl/grpc/ca/"  # 可选：CA 证书目录，支持多级 CA 信任链
-    require-client-cert: true
-    # 允许的客户端证书 OU 列表
-    allowed-ous:
-      - QS
-      - Admin
-      - Ops
-    # 证书自动重载
-    enable-auto-reload: true
-    reload-interval: 5m
-  
-  # 应用层凭证认证配置
-  auth:
-    enabled: false  # 开发环境默认禁用
-    # 支持的凭证类型
-    enable-bearer: true   # JWT Bearer Token
-    enable-hmac: true     # HMAC 签名
-    enable-api-key: true  # API Key
-    # HMAC 配置
-    hmac-timestamp-validity: 5m
-    # 是否要求 mTLS 身份与凭证身份一致
-    require-identity-match: true
-  
-  # 服务级 ACL 配置
-  acl:
-    enabled: false  # 开发环境默认禁用
-    config-file: "./configs/grpc_acl.yaml"
-  
-  # 审计日志配置
-  audit:
-    enabled: true  # 开发环境开启审计日志，便于调试

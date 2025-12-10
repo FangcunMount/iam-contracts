@@ -1,19 +1,120 @@
+# ============================================================================
+# iam-apiserver 生产环境配置
+# ============================================================================
+# 用途：IAM 身份认证与授权服务，提供 REST API 和 gRPC 服务
+# 维护：运维团队
+# 更新时间：2025-12-10
+# ============================================================================
+
+# ============================================================================
+# 1. 应用基础配置
+# ============================================================================
 app:
   name: "iam"
   version: "1.0.0"
   mode: "production"  # development, production
 
-# 服务器配置
+# ============================================================================
+# 2. 服务端口配置
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# 2.1 RESTful HTTP/HTTPS 服务配置
+# ----------------------------------------------------------------------------
 server:
   name: "iam"
   run-mode: "release"   # Gin 开发模式, 可选值有：debug, release, test
   read-timeout: 60    # 秒
   write-timeout: 60   # 秒
 
-# MySQL 配置
+# HTTP REST API 配置（不安全，内网使用）
+# 用途：内网服务间调用、健康检查，性能优先（无 TLS 握手开销）
+# 安全策略：通过 Docker 网络隔离 + 防火墙规则限制访问
+insecure:
+  bind-address: "0.0.0.0"
+  bind-port: 9080
+
+# HTTPS REST API 配置（安全，外网访问）
+# 用途：外部客户端访问（移动端、Web、第三方服务）
+# 访问路径：客户端 -> Nginx (443) -> iam-apiserver (9444)
+secure:
+  bind-address: "0.0.0.0"
+  bind-port: 9444
+  tls:
+    cert-file: /etc/iam-contracts/ssl/yangshujie.com.crt
+    private-key-file: /etc/iam-contracts/ssl/yangshujie.com.key
+
+# CORS 跨域配置
+cors:
+  allowed-origins:
+    - "*"
+  allowed-methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "OPTIONS"
+  allowed-headers:
+    - "Content-Type"
+    - "Authorization"
+
+# ----------------------------------------------------------------------------
+# 2.2 gRPC 服务配置（生产环境 - 安全模式）
+# ----------------------------------------------------------------------------
+# 端口策略：
+#   - 9090: gRPC 服务端口，启用 mTLS 双向认证，仅限内网可信服务访问
+#   - 9091: 健康检查端口，HTTP 协议，供监控系统使用（不需要客户端证书）
+grpc:
+  bind-address: "0.0.0.0"  # 监听所有接口（容器内网络）
+  bind-port: 9090        # gRPC 服务端口
+  healthz-port: 9091     # 健康检查端口（独立 HTTP 端口，无需 mTLS）
+  
+  # mTLS 双向认证配置（用于内部服务间通信）
+  mtls:
+    enabled: true        # 启用 mTLS 双向认证，强制客户端提供证书
+    cert-file: /etc/iam-contracts/grpc/server/iam-grpc.crt
+    key-file: /etc/iam-contracts/grpc/server/iam-grpc.key
+    ca-file: /etc/iam-contracts/grpc/ca/ca-chain.crt
+    # ca-dir: /etc/iam-contracts/grpc/ca/  # 可选：CA 证书目录，支持多级 CA 信任链
+    require-client-cert: true  # 强制客户端提供证书
+    
+    # 组织单元白名单
+    allowed-ous:
+      - QS
+      - Admin
+      - Ops
+    
+    # 证书自动重载（生产环境推荐）
+    enable-auto-reload: true
+    reload-interval: 5m
+  
+  # 认证配置
+  auth:
+    enabled: true
+    enable-bearer: true
+    enable-hmac: true
+    enable-api-key: true
+    hmac-timestamp-validity: 5m
+    require-identity-match: true
+  
+  # 访问控制列表
+  acl:
+    enabled: true
+    config-file: "/app/configs/grpc_acl.yaml"
+  
+  # 审计日志
+  audit:
+    enabled: true
+
+# ============================================================================
+# 3. 数据存储配置
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# 3.1 MySQL 数据库配置
+# ----------------------------------------------------------------------------
 mysql:
-  # 生产环境使用云 RDS 内网地址
-  host: "your-rds.mysql.rds.aliyuncs.com:3306"
+  host: "your-rds.mysql.rds.aliyuncs.com:3306"  # 生产环境使用云 RDS 内网地址
   username: "iam"
   password: "iam_contracts_pass123"
   database: "iam_contracts"
@@ -22,18 +123,21 @@ mysql:
   conn-max-lifetime: 3600  # 秒
   log-level: 4 # GORM log level, 1: silent, 2:error, 3:warn, 4:info (生产环境使用 silent)
 
-# 数据库迁移配置
+# ----------------------------------------------------------------------------
+# 3.2 数据库迁移配置
+# ----------------------------------------------------------------------------
 migration:
   enabled: true  # 是否启用自动迁移（生产环境建议启用）
   autoseed: false  # 是否自动加载种子数据（仅开发/测试环境）
   database: "iam_contracts"  # 数据库名称
 
-# Redis 配置（双实例架构）
+# ----------------------------------------------------------------------------
+# 3.3 Redis 配置（双实例架构）
+# ----------------------------------------------------------------------------
 redis:
   # Cache Redis - 用于缓存、会话、限流等临时数据
   cache:
-    # ServerA 本地缓存实例（Swarm 容器名）
-    host: "redis-cache"
+    host: "redis-cache"  # ServerA 本地缓存实例（Swarm 容器名）
     port: 6379
     username: ""  # Redis 6.0+ ACL 用户名，留空表示使用 default 用户
     password: ""
@@ -47,8 +151,7 @@ redis:
 
   # Store Redis - 用于持久化存储、队列、发布订阅等
   store:
-    # 云 Redis-Store 内网地址（持久化）
-    host: "your-redis.redis.rds.aliyuncs.com"
+    host: "your-redis.redis.rds.aliyuncs.com"  # 云 Redis-Store 内网地址（持久化）
     port: 6380
     username: ""  # Redis 6.0+ ACL 用户名，留空表示使用 default 用户
     password: ""
@@ -60,12 +163,43 @@ redis:
     use-ssl: false
     enable-logging: false  # 生产环境关闭命令日志
 
-# 日志配置（生产环境 - 使用 component-base v0.2.9 duplicate 模式）
+# ============================================================================
+# 4. 安全与认证配置
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# 4.1 JWKS 密钥管理
+# ----------------------------------------------------------------------------
+jwks:
+  keys_dir: "/app/data/keys"
+  auto_init: true  # 启用自动初始化，确保启动时至少有一个活跃密钥
+
+# ----------------------------------------------------------------------------
+# 4.2 TLS 证书（通用）
+# ----------------------------------------------------------------------------
+tls:
+  cert: /etc/iam-contracts/ssl/yangshujie.com.crt
+  key: /etc/iam-contracts/ssl/yangshujie.com.key
+  strict: false
+
+# ----------------------------------------------------------------------------
+# 4.3 IDP 身份提供商
+# ----------------------------------------------------------------------------
+idp:
+  encryption-key: "CHANGE_ME_WITH_32_BYTE_BASE64_SECRET"  # 占位符，请通过安全渠道注入32字节密钥
+
+# ============================================================================
+# 5. 系统运行配置
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# 5.1 日志配置（生产环境 - 使用 component-base v0.2.9 duplicate 模式）
+# ----------------------------------------------------------------------------
 log:
   # 基础配置
   disable-caller: true          # 生产环境禁用调用者信息（性能优化）
   disable-stacktrace: true      # 仅在 panic 时记录堆栈
-  level: debug                   # 日志基本级别： debug, info, warn, error, fatal, panic
+  level: debug                   # 日志基本级别：debug, info, warn, error, fatal, panic
   format: console                # 日志格式（json 适合生产环境，console 适合开发环境）
   enable-color: false           # 文件输出禁用颜色
   development: false            # 生产模式
@@ -93,83 +227,3 @@ log:
     error:
       - stderr                              # ERROR 级别写入标准错误，便于监控采集
       - /var/log/iam-contracts/error.log    # 额外记录 ERROR（快速定位故障）
-
-# JWKS 配置
-jwks:
-  keys_dir: "/app/data/keys"
-  auto_init: true  # 启用自动初始化，确保启动时至少有一个活跃密钥
-
-# cors 配置
-cors:
-  allowed-origins:
-    - "*"
-  allowed-methods:
-    - "GET"
-    - "POST"
-    - "PUT"
-    - "DELETE"
-    - "OPTIONS"
-  allowed-headers:
-    - "Content-Type"
-    - "Authorization"
-
-# HTTPS 服务器相关配置
-tls:
-  cert: /etc/iam-contracts/ssl/yangshujie.com.crt
-  key: /etc/iam-contracts/ssl/yangshujie.com.key
-  strict: false
-
-# gRPC 服务配置
-# 端口策略：
-#   - 9090: gRPC 服务端口，启用 mTLS 双向认证，仅限内网可信服务访问
-#   - 9091: 健康检查端口，HTTP 协议，供监控系统使用（不需要客户端证书）
-grpc:
-  bind-address: 0.0.0.0  # 监听所有接口（容器内网络）
-  bind-port: 9090        # gRPC 服务端口
-  healthz-port: 9091     # 健康检查端口
-  mtls:
-    enabled: true        # 启用 mTLS 双向认证，强制客户端提供证书
-    cert-file: /etc/iam-contracts/grpc/server/iam-grpc.crt
-    key-file: /etc/iam-contracts/grpc/server/iam-grpc.key
-    ca-file: /etc/iam-contracts/grpc/ca/ca-chain.crt
-    # ca-dir: /etc/iam-contracts/grpc/ca/  # 可选：CA 证书目录，支持多级 CA 信任链
-    require-client-cert: true
-    allowed-ous:
-      - QS
-      - Admin
-      - Ops
-    enable-auto-reload: true
-    reload-interval: 5m
-  auth:
-    enabled: true
-    enable-bearer: true
-    enable-hmac: true
-    enable-api-key: true
-    hmac-timestamp-validity: 5m
-    require-identity-match: true
-  acl:
-    enabled: true
-    config-file: "/app/configs/grpc_acl.yaml"
-  audit:
-    enabled: true
-
-# IDP 模块配置
-idp:
-  encryption-key: "CHANGE_ME_WITH_32_BYTE_BASE64_SECRET"  # 占位符，请通过安全渠道注入32字节密钥
-
-# HTTP REST API 配置（不安全，内网使用）
-# 用途：内网服务间调用，性能优先（无 TLS 握手开销）
-# 安全策略：通过 Docker 网络隔离 + 防火墙规则限制访问
-insecure:
-  bind-address: 0.0.0.0
-  bind-port: 9080
-
-# HTTPS REST API 配置（安全，外网访问）
-# 用途：外部客户端访问（移动端、Web、第三方服务）
-# 访问路径：客户端 -> Nginx (443) -> iam-apiserver (9444)
-secure:
-  bind-address: 0.0.0.0
-  bind-port: 9444
-  tls:
-    cert-file: /etc/iam-contracts/ssl/yangshujie.com.crt
-    private-key-file: /etc/iam-contracts/ssl/yangshujie.com.key
