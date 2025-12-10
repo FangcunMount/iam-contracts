@@ -4,11 +4,11 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/logger"
 )
 
 type loginApplicationService struct {
@@ -38,46 +38,70 @@ func NewLoginApplicationService(
 }
 
 func (s *loginApplicationService) Login(ctx context.Context, req LoginRequest) (*LoginResult, error) {
+	l := logger.L(ctx)
+
 	scenario, authInput, err := s.prepareAuthentication(ctx, req)
 	if err != nil {
+		l.Warnw("认证准备失败",
+			"action", logger.ActionLogin,
+			"error", err.Error(),
+		)
 		return nil, err
 	}
+
+	l.Debugw("开始认证流程",
+		"action", logger.ActionLogin,
+		"scenario", string(scenario),
+		"tenant_id", authInput.TenantID,
+	)
 
 	decision, err := s.authenticater.Authenticate(ctx, scenario, authInput)
 	if err != nil {
+		l.Errorw("认证过程异常",
+			"action", logger.ActionLogin,
+			"scenario", string(scenario),
+			"error", err.Error(),
+		)
 		return nil, err
 	}
-	/**
-	OK           bool
-	ErrCode      ErrCode
-	Principal    *Principal // OK=true 时有效
-	CredentialID meta.ID    // 命中的凭据ID（给应用层记成功/失败/锁定）
-
-	// 可选：比如密码条件再哈希
-	ShouldRotate bool
-	NewMaterial  []byte
-	NewAlgo      *string
-	*/
-
-	log.Info("auth end, desicion: ")
-	log.Infow("ErrCode: %v", decision.ErrCode)
-	log.Infow("Principal: %v", decision.Principal)
-	log.Infow("CredentialID: %v", decision.CredentialID)
-	log.Infow("ShouldRotate: %v", decision.ShouldRotate)
 
 	if !decision.OK {
-		log.Warnw("authentication failed: %v", decision.ErrCode)
+		l.Warnw("认证失败",
+			"action", logger.ActionLogin,
+			"scenario", string(scenario),
+			"err_code", string(decision.ErrCode),
+			"credential_id", decision.CredentialID.String(),
+			"result", logger.ResultFailed,
+		)
 		return nil, s.convertAuthError(decision.ErrCode)
 	}
 
-	log.Infow("begin to issue token for principal: %v", decision.Principal)
-	tokenPair, err := s.tokenIssuer.IssueToken(ctx, decision.Principal)
+	l.Infow("认证成功，开始颁发令牌",
+		"action", logger.ActionLogin,
+		"scenario", string(scenario),
+		"user_id", decision.Principal.UserID.String(),
+		"account_id", decision.Principal.AccountID.String(),
+		"should_rotate", decision.ShouldRotate,
+	)
 
-	log.Infow("token issued: %v", tokenPair)
+	tokenPair, err := s.tokenIssuer.IssueToken(ctx, decision.Principal)
 	if err != nil {
-		log.Errorw("failed to issue token: %v", err)
+		l.Errorw("令牌颁发失败",
+			"action", logger.ActionLogin,
+			"user_id", decision.Principal.UserID.String(),
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "failed to issue token: %v", err)
 	}
+
+	l.Infow("登录完成",
+		"action", logger.ActionLogin,
+		"user_id", decision.Principal.UserID.String(),
+		"account_id", decision.Principal.AccountID.String(),
+		"tenant_id", decision.Principal.TenantID,
+		"result", logger.ResultSuccess,
+	)
 
 	return &LoginResult{
 		Principal: decision.Principal,
@@ -90,25 +114,49 @@ func (s *loginApplicationService) Login(ctx context.Context, req LoginRequest) (
 
 // Logout 登出接口 - 撤销令牌
 func (s *loginApplicationService) Logout(ctx context.Context, req LogoutRequest) error {
+	l := logger.L(ctx)
+
 	// 至少需要提供一个令牌
 	if (req.AccessToken == nil || *req.AccessToken == "") &&
 		(req.RefreshToken == nil || *req.RefreshToken == "") {
+		l.Warnw("登出请求缺少令牌",
+			"action", logger.ActionLogout,
+			"result", logger.ResultFailed,
+		)
 		return perrors.WithCode(code.ErrInvalidArgument, "either access_token or refresh_token is required")
 	}
 
 	// 优先撤销 RefreshToken（更彻底）
 	if req.RefreshToken != nil && *req.RefreshToken != "" {
 		if err := s.tokenRefresher.RevokeRefreshToken(ctx, *req.RefreshToken); err != nil {
+			l.Errorw("撤销刷新令牌失败",
+				"action", logger.ActionLogout,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return perrors.WithCode(code.ErrInvalidArgument, "failed to revoke refresh token: %v", err)
 		}
+		l.Infow("刷新令牌已撤销",
+			"action", logger.ActionLogout,
+			"result", logger.ResultSuccess,
+		)
 		return nil
 	}
 
 	// 撤销 AccessToken
 	if req.AccessToken != nil && *req.AccessToken != "" {
 		if err := s.tokenIssuer.RevokeToken(ctx, *req.AccessToken); err != nil {
+			l.Errorw("撤销访问令牌失败",
+				"action", logger.ActionLogout,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
 			return perrors.WithCode(code.ErrInvalidArgument, "failed to revoke access token: %v", err)
 		}
+		l.Infow("访问令牌已撤销",
+			"action", logger.ActionLogout,
+			"result", logger.ResultSuccess,
+		)
 		return nil
 	}
 

@@ -19,6 +19,7 @@ import (
 	"github.com/FangcunMount/component-base/pkg/grpc/interceptors"
 	"github.com/FangcunMount/component-base/pkg/grpc/mtls"
 	"github.com/FangcunMount/component-base/pkg/log"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/middleware"
 )
 
 // Server GRPC 服务器结构体
@@ -170,8 +171,8 @@ func buildUnaryInterceptors(config *Config, acl *interceptors.ServiceACL) []grpc
 	// 2. 请求 ID 拦截器
 	chain = append(chain, RequestIDInterceptor())
 
-	// 3. 日志拦截器
-	chain = append(chain, LoggingInterceptor())
+	// 3. 日志拦截器（使用增强版，支持请求范围 Logger 注入）
+	chain = append(chain, middleware.UnaryServerLoggingInterceptor())
 
 	// 4. mTLS 身份提取拦截器（如果启用 mTLS）
 	if config.MTLS.Enabled {
@@ -223,6 +224,9 @@ func buildUnaryInterceptors(config *Config, acl *interceptors.ServiceACL) []grpc
 // buildStreamInterceptors 构建 Stream 拦截器链
 func buildStreamInterceptors(config *Config, acl *interceptors.ServiceACL) []grpc.StreamServerInterceptor {
 	var chain []grpc.StreamServerInterceptor
+
+	// 流式日志拦截器（使用增强版，支持请求范围 Logger 注入）
+	chain = append(chain, middleware.StreamServerLoggingInterceptor())
 
 	// mTLS 流式拦截器
 	if config.MTLS.Enabled {

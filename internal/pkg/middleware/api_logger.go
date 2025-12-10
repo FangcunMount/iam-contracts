@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/log"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -69,7 +70,17 @@ func APILoggerWithConfig(config APILoggerConfig) gin.HandlerFunc {
 		start := time.Now()
 		requestID := c.GetString(XRequestIDKey)
 
-		// === 1. 记录请求开始信息 ===
+		// === 1. 创建请求范围的 Logger 并注入 context ===
+		reqLogger := logger.NewRequestLogger(c.Request.Context(),
+			log.String(logger.FieldMethod, c.Request.Method),
+			log.String(logger.FieldPath, c.Request.URL.Path),
+			log.String(logger.FieldClientIP, c.ClientIP()),
+			log.String(logger.FieldRequestID, requestID),
+		)
+		ctx := logger.WithLogger(c.Request.Context(), reqLogger)
+		c.Request = c.Request.WithContext(ctx)
+
+		// === 2. 记录请求开始信息 ===
 		logRequestStart(c, cfg, requestID)
 
 		// 读取并缓存请求体
@@ -85,7 +96,7 @@ func APILoggerWithConfig(config APILoggerConfig) gin.HandlerFunc {
 		// 处理请求
 		c.Next()
 
-		// === 2. 记录请求结束信息 ===
+		// === 3. 记录请求结束信息 ===
 		statusCode := writer.Status()
 		latency := time.Since(start)
 		responseBody := writer.Body()
