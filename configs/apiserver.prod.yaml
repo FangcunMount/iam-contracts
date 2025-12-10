@@ -90,7 +90,7 @@ grpc:
   
   # 认证配置
   auth:
-    enabled: true
+    enabled: false
     enable-bearer: true
     enable-hmac: true
     enable-api-key: true
