@@ -4,6 +4,7 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
 
@@ -48,20 +49,80 @@ func NewAuthenticater(
 // 2. 获取并创建认证策略
 // 3. 执行认证
 func (a *Authenticater) Authenticate(ctx context.Context, scenario Scenario, input AuthInput) (AuthDecision, error) {
+	l := logger.L(ctx)
+
+	l.Debugw("开始认证流程（域层）",
+		"action", logger.ActionLogin,
+		"scenario", string(scenario),
+		"tenant_id", input.TenantID,
+	)
+
 	// 根据场景构建领域凭据
 	credential, err := a.buildCredential(scenario, input)
 	if err != nil {
+		l.Warnw("构建认证凭据失败",
+			"action", logger.ActionLogin,
+			"scenario", string(scenario),
+			"error", err.Error(),
+		)
 		return AuthDecision{}, err
 	}
+
+	l.Debugw("认证凭据构建完成",
+		"action", logger.ActionLogin,
+		"scenario", string(scenario),
+		"credential_type", scenario,
+	)
 
 	// 创建认证策略
 	strategy := a.createStrategy(scenario)
 	if strategy == nil {
+		l.Errorw("不支持的认证场景",
+			"action", logger.ActionLogin,
+			"scenario", string(scenario),
+		)
 		return AuthDecision{}, perrors.WithCode(code.ErrInvalidArgument, "unsupported authentication scenario: %s", scenario)
 	}
 
+	l.Debugw("认证策略已创建",
+		"action", logger.ActionLogin,
+		"scenario", string(scenario),
+		"strategy", scenario,
+	)
+
 	// 执行认证
-	return strategy.Authenticate(ctx, credential)
+	l.Debugw("开始执行认证策略",
+		"action", logger.ActionLogin,
+		"scenario", string(scenario),
+	)
+
+	decision, err := strategy.Authenticate(ctx, credential)
+	if err != nil {
+		l.Errorw("认证策略执行出错",
+			"action", logger.ActionLogin,
+			"scenario", string(scenario),
+			"error", err.Error(),
+		)
+		return AuthDecision{}, err
+	}
+
+	if !decision.OK {
+		l.Warnw("认证不通过（域层）",
+			"action", logger.ActionLogin,
+			"scenario", string(scenario),
+			"err_code", string(decision.ErrCode),
+		)
+		return decision, nil
+	}
+
+	l.Infow("认证成功（域层）",
+		"action", logger.ActionLogin,
+		"scenario", string(scenario),
+		"user_id", decision.Principal.UserID.String(),
+		"account_id", decision.Principal.AccountID.String(),
+	)
+
+	return decision, nil
 }
 
 // BuildCredential 根据认证场景构建领域凭据

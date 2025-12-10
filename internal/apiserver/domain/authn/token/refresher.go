@@ -6,6 +6,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
+	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/security/sanitize"
@@ -36,9 +37,22 @@ func NewTokenRefresher(
 
 // RefreshToken 刷新令牌
 func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue string) (*TokenPair, error) {
+	l := logger.L(ctx)
+
+	l.Debugw("开始刷新令牌",
+		"action", "refresh",
+		"resource", "refresh_token",
+	)
+
 	// 从 Redis 获取刷新令牌
 	refreshToken, err := s.tokenStore.GetRefreshToken(ctx, refreshTokenValue)
 	if err != nil {
+		l.Warnw("从存储加载刷新令牌失败",
+			"action", "refresh",
+			"resource", "refresh_token",
+			"error", err.Error(),
+			"token_hint", sanitize.MaskToken(refreshTokenValue),
+		)
 		log.Warnw("failed to load refresh token from store",
 			"error", err,
 			"token_hint", sanitize.MaskToken(refreshTokenValue),
@@ -47,6 +61,11 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 	}
 
 	if refreshToken == nil {
+		l.Warnw("刷新令牌在存储中不存在",
+			"action", "refresh",
+			"resource", "refresh_token",
+			"token_hint", sanitize.MaskToken(refreshTokenValue),
+		)
 		log.Warnw("refresh token not found in store",
 			"token_hint", sanitize.MaskToken(refreshTokenValue),
 		)
@@ -55,6 +74,12 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 
 	// 检查刷新令牌是否过期
 	if refreshToken.IsExpired() {
+		l.Warnw("刷新令牌已过期",
+			"action", "refresh",
+			"resource", "refresh_token",
+			"token_hint", sanitize.MaskToken(refreshTokenValue),
+			"user_id", refreshToken.UserID.String(),
+		)
 		log.Infow("refresh token expired",
 			"token_hint", sanitize.MaskToken(refreshTokenValue),
 			"user_id", refreshToken.UserID,
@@ -64,6 +89,13 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 		return nil, perrors.WithCode(code.ErrExpired, "refresh token has expired")
 	}
 
+	l.Debugw("刷新令牌有效，准备颁发新令牌",
+		"action", "refresh",
+		"resource", "refresh_token",
+		"user_id", refreshToken.UserID.String(),
+		"account_id", refreshToken.AccountID.String(),
+	)
+
 	// 创建新的认证主体（从刷新令牌中恢复）
 	principal := &authentication.Principal{
 		UserID:    refreshToken.UserID,
@@ -72,8 +104,18 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 	}
 
 	// 颁发新的令牌对
+	l.Debugw("通过颁发者创建新的令牌对",
+		"action", "refresh",
+		"resource", "token",
+	)
+
 	newTokenPair, err := NewTokenIssuer(s.tokenGenerator, s.tokenStore, s.accessTTL, s.refreshTTL).IssueToken(ctx, principal)
 	if err != nil {
+		l.Errorw("颁发新令牌对失败",
+			"action", "refresh",
+			"resource", "token",
+			"error", err.Error(),
+		)
 		return nil, err
 	}
 

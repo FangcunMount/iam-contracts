@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
@@ -79,29 +80,54 @@ func (j *JWTTokenAuthStrategy) Kind() Scenario {
 // 3. 检查账户状态（是否锁定/禁用）
 // 4. 返回认证判决
 func (j *JWTTokenAuthStrategy) Authenticate(ctx context.Context, credential AuthCredential) (AuthDecision, error) {
+	l := logger.L(ctx)
+
 	tokenCredential, ok := credential.(*JWTTokenCredential)
 	if !ok {
 		return AuthDecision{}, fmt.Errorf("jwt token strategy expects *JWTTokenCredential, got %T", credential)
 	}
 
+	l.Debugw("JWT Token认证：步骤1 - 验证令牌",
+		"scenario", string(AuthJWTToken),
+	)
+
 	// Step 1: 验证 JWT Token
 	userID, accountID, tenantID, err := j.tokenVerifier.VerifyAccessToken(ctx, tokenCredential.AccessToken)
 	if err != nil {
 		// Token 无效/过期/被撤销 - 返回业务失败
+		l.Warnw("令牌验证失败",
+			"scenario", string(AuthJWTToken),
+			"error", err.Error(),
+		)
 		return AuthDecision{
 			OK:      false,
 			ErrCode: ErrInvalidCredential, // 使用统一的凭据无效错误码
 		}, nil
 	}
 
+	l.Debugw("JWT Token认证：步骤2 - 检查账户状态",
+		"scenario", string(AuthJWTToken),
+		"user_id", userID.String(),
+		"account_id", accountID.String(),
+	)
+
 	// Step 2: 检查账户状态
 	enabled, locked, err := j.accountRepo.GetAccountStatus(ctx, accountID)
 	if err != nil {
 		// 系统异常
+		l.Errorw("查询账户状态失败",
+			"scenario", string(AuthJWTToken),
+			"account_id", accountID.String(),
+			"error", err.Error(),
+		)
 		return AuthDecision{}, fmt.Errorf("failed to get account status: %w", err)
 	}
 
 	if !enabled {
+		l.Warnw("账户已禁用",
+			"scenario", string(AuthJWTToken),
+			"account_id", accountID.String(),
+		)
 		return AuthDecision{
 			OK:      false,
 			ErrCode: ErrDisabled,
@@ -109,11 +135,21 @@ func (j *JWTTokenAuthStrategy) Authenticate(ctx context.Context, credential Auth
 	}
 
 	if locked {
+		l.Warnw("账户已锁定",
+			"scenario", string(AuthJWTToken),
+			"account_id", accountID.String(),
+		)
 		return AuthDecision{
 			OK:      false,
 			ErrCode: ErrLocked,
 		}, nil
 	}
+
+	l.Infow("JWT Token认证成功",
+		"scenario", string(AuthJWTToken),
+		"user_id", userID.String(),
+		"account_id", accountID.String(),
+	)
 
 	// Step 3: 认证成功，构造认证主体
 	principal := &Principal{
