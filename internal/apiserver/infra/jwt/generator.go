@@ -73,6 +73,7 @@ func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authenti
 		AccountID: principal.AccountID.Uint64(),
 		StandardClaims: jwt.StandardClaims{
 			Id:        tokenID,
+			Subject:   principal.UserID.String(), // 添加 sub 字段，设置为 user_id
 			Issuer:    g.issuer,
 			IssuedAt:  now.Unix(),
 			ExpiresAt: now.Add(expiresIn).Unix(),
