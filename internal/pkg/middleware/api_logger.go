@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	"github.com/FangcunMount/iam-contracts/internal/pkg/logger"
+	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 

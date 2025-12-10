@@ -11,8 +11,8 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/database"
 	"github.com/FangcunMount/component-base/pkg/log"
+	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/config"
-	"github.com/FangcunMount/iam-contracts/internal/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/migration"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/options"
 )

@@ -144,7 +144,7 @@ require (
 )
 
 require (
-	github.com/FangcunMount/component-base v0.3.8
+	github.com/FangcunMount/component-base v0.3.9
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/casbin/casbin/v2 v2.128.0
 	github.com/casbin/gorm-adapter/v3 v3.37.0

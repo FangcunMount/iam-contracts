@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/log"
+	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/FangcunMount/iam-contracts/internal/pkg/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"

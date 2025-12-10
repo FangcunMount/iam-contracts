@@ -4,11 +4,11 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
-	"github.com/FangcunMount/iam-contracts/internal/pkg/logger"
 )
 
 type loginApplicationService struct {
