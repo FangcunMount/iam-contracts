@@ -71,7 +71,16 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/ChildRegisterReq' }
       responses:
-        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/ChildRegisterResp' }}}}
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/ChildRegisterResp' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -237,15 +246,15 @@ components:
       properties:
         id: { type: string }
         legalName: { type: string }
-        gender: { type: integer, format: int8, description: '性别：0=其他，1=男，2=女' }
+        gender: { type: integer, format: int8, description: '性别：0=其他，1=男，2=女', nullable: true }
         dob: { type: string, format: date }
         idType: { type: string }
         idMasked: { type: string }
         heightCm: { type: integer, nullable: true }
         weightKg: { type: string, nullable: true }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-      required: [id, legalName, gender, dob, idType]
+        createdAt: { type: string, format: date-time, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+      required: [id, legalName]
 
     ChildCreateReq:
       type: object
@@ -284,6 +293,7 @@ components:
       properties:
         child: { $ref: '#/components/schemas/Child' }
         guardianship: { $ref: '#/components/schemas/Guardianship' }
+      required: [child, guardianship]
 
     ChildPage:
       type: object
@@ -323,6 +333,15 @@ components:
         items:
           type: array
           items: { $ref: '#/components/schemas/Guardianship' }
+
+    SuccessResponse:
+      type: object
+      description: 统一成功响应格式
+      properties:
+        code: { type: integer, example: 0, description: '业务状态码，0表示成功' }
+        message: { type: string, example: 'success', description: '响应消息' }
+        data: { type: object, description: '响应数据' }
+      required: [code, message]
 
     Error:
       type: object
