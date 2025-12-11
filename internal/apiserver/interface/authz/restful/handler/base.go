@@ -7,18 +7,18 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/dto"
-	pkgHandler "github.com/FangcunMount/iam-contracts/pkg/handler"
+	"github.com/FangcunMount/iam-contracts/pkg/core"
 )
 
 // BaseHandler 继承公共的 BaseHandler，并添加 authz 模块特定的方法
 type BaseHandler struct {
-	*pkgHandler.BaseHandler
+	*core.BaseHandler
 }
 
 // NewBaseHandler 创建基础 Handler
 func NewBaseHandler() *BaseHandler {
 	return &BaseHandler{
-		BaseHandler: pkgHandler.NewBaseHandler(),
+		BaseHandler: core.NewBaseHandler(),
 	}
 }
 
@@ -26,13 +26,13 @@ func NewBaseHandler() *BaseHandler {
 // 实际项目中应该从 JWT token 或 header 中提取
 func getTenantID(c *gin.Context) string {
 	// 使用公共方法
-	return pkgHandler.NewBaseHandler().GetTenantID(c)
+	return core.NewBaseHandler().GetTenantID(c)
 }
 
 // getUserID 从上下文中获取用户ID
 // 实际项目中应该从 JWT token 中提取
 func getUserID(c *gin.Context) string {
-	userID, _ := pkgHandler.NewBaseHandler().GetUserID(c)
+	userID, _ := core.NewBaseHandler().GetUserID(c)
 	if userID == "" {
 		return "system" // 默认用户（开发环境）
 	}
@@ -46,7 +46,7 @@ func handleError(c *gin.Context, err error) {
 	}
 	// 委托给 BaseHandler 的 Error 方法
 	// 但是使用 authz 特定的错误响应格式
-	pkgHandler.NewBaseHandler().Error(c, err)
+	core.NewBaseHandler().Error(c, err)
 }
 
 // success 成功响应 (authz 模块特定的响应格式)

@@ -22,29 +22,30 @@ type ErrResponse struct {
 	Reference string `json:"reference,omitempty"`
 }
 
-// SuccessResponse 定义了当请求成功时返回的消息
+// Response 统一响应结构
 // swagger:model
-type SuccessResponse struct {
-	// Code 定义了业务成功代码
+type Response struct {
+	// Code 业务状态码，0 表示成功
 	Code int `json:"code"`
 
-	// Message 包含此消息的详细信息
+	// Message 响应消息
 	Message string `json:"message"`
 
-	// Data 包含成功响应的数据
+	// Data 响应数据
 	Data interface{} `json:"data,omitempty"`
+
+	// Reference 返回参考文档（错误时使用）
+	Reference string `json:"reference,omitempty"`
 }
 
-// WriteResponse 将错误或响应数据写入HTTP响应。
-// 所有响应(包括业务错误)统一返回 HTTP 200,通过响应体中的 code 字段区分成功/失败。
-// 如果err不为空，则将解析后的错误信息写入响应体的 ErrResponse 结构；
-// 否则，将data作为成功响应写入。
+// WriteResponse 将错误或响应数据写入 HTTP 响应体
+// 它使用 errors.ParseCoder 将任何错误解析为 errors.Coder
+// 如果 err 不为 nil，则将错误写入响应体
+// 如果 err 为 nil，则将响应数据写入响应体，格式为 {"code":0,"message":"success","data":{...}}
 func WriteResponse(c *gin.Context, err error, data interface{}) {
 	if err != nil {
-		// 使用 errors.ParseCoder 解析自定义错误
 		coder := errors.ParseCoder(err)
-		// 统一返回 HTTP 200，业务错误通过响应体中的 code 字段表示
-		c.JSON(http.StatusOK, ErrResponse{
+		c.JSON(coder.HTTPStatus(), ErrResponse{
 			Code:      coder.Code(),
 			Message:   coder.String(),
 			Reference: coder.Reference(),
@@ -53,8 +54,8 @@ func WriteResponse(c *gin.Context, err error, data interface{}) {
 		return
 	}
 
-	c.JSON(http.StatusOK, SuccessResponse{
-		Code:    0, // 0 表示成功
+	c.JSON(http.StatusOK, Response{
+		Code:    0,
 		Message: "success",
 		Data:    data,
 	})

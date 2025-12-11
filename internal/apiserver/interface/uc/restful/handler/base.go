@@ -1,17 +1,17 @@
 package handler
 
 import (
-	pkgHandler "github.com/FangcunMount/iam-contracts/pkg/handler"
+	"github.com/FangcunMount/iam-contracts/pkg/core"
 )
 
 // BaseHandler 继承公共的 BaseHandler
 type BaseHandler struct {
-	*pkgHandler.BaseHandler
+	*core.BaseHandler
 }
 
 // NewBaseHandler 创建基础 Handler
 func NewBaseHandler() *BaseHandler {
 	return &BaseHandler{
-		BaseHandler: pkgHandler.NewBaseHandler(),
+		BaseHandler: core.NewBaseHandler(),
 	}
 }
