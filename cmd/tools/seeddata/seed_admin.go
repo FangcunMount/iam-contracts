@@ -222,12 +222,22 @@ func loginWithPassword(iamServiceURL, loginID, password string) (string, error) 
 		return "", fmt.Errorf("login failed: status=%d, response=%v", resp.StatusCode, respBody)
 	}
 
-	var tokenPair TokenPair
-	if err := json.NewDecoder(resp.Body).Decode(&tokenPair); err != nil {
+	// 响应包装格式为 {"code":0,"data":{...},"message":"..."}
+	var wrapper struct {
+		Code    int       `json:"code"`
+		Message string    `json:"message"`
+		Data    TokenPair `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
 		return "", fmt.Errorf("decode response: %w", err)
 	}
 
-	return tokenPair.AccessToken, nil
+	if wrapper.Code != 0 {
+		return "", fmt.Errorf("login failed: code=%d, message=%s, data=%v", wrapper.Code, wrapper.Message, wrapper.Data)
+	}
+
+	return wrapper.Data.AccessToken, nil
 }
 
 // ==================== 创建员工（QS 服务） ====================
