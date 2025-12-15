@@ -868,8 +868,10 @@ func resolveAdminLogin(cfg *SeedConfig) (loginID, password string) {
 
 	// 记录用户手机号，按别名索引
 	userPhones := make(map[string]string, len(cfg.Users))
+	userByAlias := make(map[string]UserConfig, len(cfg.Users))
 	for _, u := range cfg.Users {
 		userPhones[u.Alias] = u.Phone
+		userByAlias[u.Alias] = u
 	}
 
 	for _, ac := range cfg.Accounts {
@@ -878,13 +880,7 @@ func resolveAdminLogin(cfg *SeedConfig) (loginID, password string) {
 		}
 		// 取第一个 operation 账号作为管理员凭据
 		password = ac.Password
-		loginID = ac.ExternalID
-		if loginID == "" {
-			loginID = ac.Username
-		}
-		if loginID == "" && userPhones[ac.UserAlias] != "" {
-			loginID = userPhones[ac.UserAlias]
-		}
+		loginID = resolveLoginID(ac, userByAlias[ac.UserAlias])
 		break
 	}
 

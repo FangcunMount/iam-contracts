@@ -133,15 +133,8 @@ func seedStaff(ctx context.Context, deps *dependencies, state *seedContext) erro
 			continue
 		}
 
-		// 运营账号 external_id 使用手机号，优先使用配置的 external_id/username，否则回退用户手机号
-		loginID := account.ExternalID
-		if loginID == "" {
-			loginID = account.Username
-		}
-		if loginID == "" {
-			loginID = uc.Phone
-		}
-		loginID = normalizeLoginID(loginID)
+		// 运营账号优先使用手机号形态的 external_id/username，否则回退用户手机号
+		loginID := resolveLoginID(*account, uc)
 
 		// 登录获取 token
 		token, err := loginWithPassword(deps.Config.IAMServiceURL, loginID, account.Password)

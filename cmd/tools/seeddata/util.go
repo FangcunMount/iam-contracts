@@ -31,3 +31,44 @@ func normalizeLoginID(loginID string) string {
 	}
 	return trimmed
 }
+
+// isPhoneLike 粗略判断是否是手机号/E.164
+func isPhoneLike(id string) bool {
+	if id == "" {
+		return false
+	}
+	id = strings.TrimSpace(id)
+	if strings.HasPrefix(id, "+") {
+		return true
+	}
+	if len(id) == 11 && strings.HasPrefix(id, "1") {
+		return true
+	}
+	return false
+}
+
+// resolveLoginID 为 operation 账号选择登录标识：
+// 1) external_id/username 若像手机号则补全 E.164
+// 2) 否则使用关联用户手机号
+// 3) 最后回退 external_id/username
+func resolveLoginID(ac AccountConfig, uc UserConfig) string {
+	if isPhoneLike(ac.ExternalID) {
+		return normalizeLoginID(ac.ExternalID)
+	}
+	if isPhoneLike(ac.Username) {
+		return normalizeLoginID(ac.Username)
+	}
+	if isPhoneLike(uc.Phone) {
+		return normalizeLoginID(uc.Phone)
+	}
+	if ac.ExternalID != "" {
+		return ac.ExternalID
+	}
+	if ac.Username != "" {
+		return ac.Username
+	}
+	if uc.Phone != "" {
+		return normalizeLoginID(uc.Phone)
+	}
+	return ""
+}
