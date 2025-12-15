@@ -46,25 +46,27 @@ import (
 // seedStep represents a specific seeding step.
 type seedStep string
 
-// All available seed steps.
+// All available seed steps - 按职能划分的数据初始化步骤
 const (
-	stepInit        seedStep = "init"        // 系统初始化（管理员用户+认证账号+JWKS）
-	stepTenants     seedStep = "tenants"     // 创建租户数据
-	stepUserCenter  seedStep = "user"        // 创建用户、儿童、监护关系
-	stepFamily      seedStep = "family"      // 批量创建家庭数据（faker生成）
-	stepAuthn       seedStep = "authn"       // 创建认证账号和凭证
-	stepRoles       seedStep = "roles"       // 创建基础角色
-	stepResources   seedStep = "resources"   // 创建授权资源
-	stepAssignments seedStep = "assignments" // 创建角色分配
-	stepCasbin      seedStep = "casbin"      // 创建Casbin策略规则
-	stepJWKS        seedStep = "jwks"        // 生成JWKS密钥
-	stepWechatApp   seedStep = "wechatapp"   // 创建微信应用
+	// ===== 系统基础设施初始化 =====
+	stepSystemInit seedStep = "system-init" // 系统基础设施初始化：租户 + JWKS密钥 + 微信应用
+
+	// ===== 认证授权体系初始化 =====
+	stepAuthnInit seedStep = "authn-init" // 认证授权体系初始化：认证账号 + 角色 + 资源 + 权限分配 + Casbin策略
+
+	// ===== 管理员账号初始化 =====
+	stepAdminInit seedStep = "admin-init" // 管理员账号初始化：创建管理员用户 + 认证账号 + 分配角色权限 + QS员工
+
+	// ===== 家庭数据批量生成 =====
+	stepFamilyInit seedStep = "family-init" // 家庭数据批量初始化：以家庭为单位批量生成测试数据
 )
 
 // defaultSteps defines the default execution order of all seed steps.
-// init: 系统初始化，创建管理员用户和认证账号
+// 默认执行所有初始化步骤，按职能顺序：系统基础设施 → 认证授权体系 → 管理员账号
 var defaultSteps = []seedStep{
-	stepInit,
+	stepSystemInit, // 系统基础设施：租户 + JWKS + 微信应用
+	stepAuthnInit,  // 认证授权体系：完整的 RBAC 权限系统
+	stepAdminInit,  // 管理员账号：创建管理员并分配权限
 }
 
 // dependencies holds all external dependencies required by seed functions.
@@ -113,7 +115,7 @@ func main() {
 	keysDirFlag := flag.String("keys-dir", "./tmp/keys", "Directory to store generated JWKS private keys")
 	casbinModelFlag := flag.String("casbin-model", "configs/casbin_model.conf", "Path to casbin model configuration file")
 	configFileFlag := flag.String("config", "configs/seeddata.yaml", "Path to seed data configuration file")
-	stepsFlag := flag.String("steps", strings.Join(stepListToStrings(defaultSteps), ","), "Comma separated seed steps (init,tenants,user,family,authn,roles,resources,assignments,casbin,jwks,wechatapp)")
+	stepsFlag := flag.String("steps", strings.Join(stepListToStrings(defaultSteps), ","), "Comma separated seed steps (system-init,authn-init,admin-init,family-init)")
 	familyCountFlag := flag.Int("family-count", 200000, "Number of families to generate in family seed step")
 	workerCountFlag := flag.Int("worker-count", 500, "Number of concurrent workers for family seed step")
 	verboseFlag := flag.Bool("verbose", false, "Enable verbose output including SQL logs")
@@ -182,71 +184,75 @@ func main() {
 	// 按顺序执行各个步骤
 	for _, step := range stepOrder {
 		switch step {
-		case stepInit:
-			// 系统初始化步骤：用户 + 认证账号 + JWKS + 角色 + 角色分配 + 员工
-			logger.Infow("🔧 开始系统初始化...")
-			if err := seedSystemInit(ctx, deps, state); err != nil {
-				logger.Fatalw("❌ 管理员用户创建失败", "error", err)
+		case stepSystemInit:
+			// 【系统基础设施初始化】租户 + JWKS密钥 + 微信应用
+			logger.Infow("🏗️  开始系统基础设施初始化...")
+
+			// 1. 创建租户
+			if err := seedTenants(ctx, deps); err != nil {
+				logger.Fatalw("❌ 租户创建失败", "error", err)
 			}
-			if err := seedAuthn(ctx, deps, state); err != nil {
-				logger.Fatalw("❌ 管理员认证账号创建失败", "error", err)
-			}
+			// 2. 生成 JWKS 密钥
 			if err := seedJWKS(ctx, deps); err != nil {
 				logger.Fatalw("❌ JWKS密钥生成失败", "error", err)
 			}
-			// 创建角色
+			// 3. 创建微信应用
+			if err := seedWechatApps(ctx, deps); err != nil {
+				logger.Fatalw("❌ 微信应用创建失败", "error", err)
+			}
+
+			logger.Infow("✅ 系统基础设施初始化完成")
+
+		case stepAuthnInit:
+			// 【认证授权体系初始化】完整的 RBAC 权限系统
+			logger.Infow("🔐 开始认证授权体系初始化...")
+
+			// 1. 创建角色
 			if err := seedRoles(ctx, deps, state); err != nil {
 				logger.Fatalw("❌ 角色创建失败", "error", err)
 			}
-			// 分配角色给用户（复用现有的 seedRoleAssignments）
-			if err := seedRoleAssignments(ctx, deps, state); err != nil {
-				logger.Warnw("⚠️  角色分配失败（非致命错误）", "error", err)
-			}
-			// 在认证账号创建完成后，登录并创建员工
-			if err := seedStaff(ctx, deps, state); err != nil {
-				logger.Warnw("⚠️  员工创建失败（非致命错误）", "error", err)
-			}
-			logger.Infow("✅ 系统初始化完成")
-		case stepTenants:
-			if err := seedTenants(ctx, deps); err != nil {
-				logger.Fatalw("❌ 租户数据创建失败", "error", err)
-			}
-		case stepUserCenter:
-			if err := seedSystemInit(ctx, deps, state); err != nil {
-				logger.Fatalw("❌ 用户中心数据创建失败", "error", err)
-			}
-		case stepFamily:
-			if err := seedFamilyCenter(ctx, deps, *familyCountFlag, *workerCountFlag); err != nil {
-				logger.Fatalw("❌ 家庭数据批量创建失败", "error", err)
-			}
-		case stepAuthn:
-			if err := seedAuthn(ctx, deps, state); err != nil {
-				logger.Fatalw("❌ 认证账号数据创建失败", "error", err)
-			}
-		case stepRoles:
-			if err := seedRoles(ctx, deps, state); err != nil {
-				logger.Fatalw("❌ 基础角色数据创建失败", "error", err)
-			}
-		case stepResources:
+			// 2. 创建资源
 			if err := seedAuthzResources(ctx, deps, state); err != nil {
-				logger.Fatalw("❌ 授权资源数据创建失败", "error", err)
+				logger.Fatalw("❌ 资源创建失败", "error", err)
 			}
-		case stepAssignments:
-			if err := seedRoleAssignments(ctx, deps, state); err != nil {
-				logger.Fatalw("❌ 角色分配数据创建失败", "error", err)
-			}
-		case stepCasbin:
+			// 3. Casbin 策略规则
 			if err := seedCasbinPolicies(ctx, deps); err != nil {
 				logger.Fatalw("❌ Casbin策略创建失败", "error", err)
 			}
-		case stepJWKS:
-			if err := seedJWKS(ctx, deps); err != nil {
-				logger.Fatalw("❌ JWKS密钥生成失败", "error", err)
+
+			logger.Infow("✅ 认证授权体系初始化完成")
+
+		case stepAdminInit:
+			// 【管理员账号初始化】创建管理员并分配权限
+			logger.Infow("👤 开始管理员账号初始化...")
+
+			// 1. 创建管理员用户
+			if err := seedAdmin(ctx, deps, state); err != nil {
+				logger.Fatalw("❌ 管理员用户创建失败", "error", err)
 			}
-		case stepWechatApp:
-			if err := seedWechatApps(ctx, deps); err != nil {
-				logger.Fatalw("❌ 微信应用数据创建失败", "error", err)
+			// 2. 创建认证账号
+			if err := seedAuthn(ctx, deps, state); err != nil {
+				logger.Fatalw("❌ 认证账号创建失败", "error", err)
 			}
+			// 3. 分配角色权限
+			if err := seedRoleAssignments(ctx, deps, state); err != nil {
+				logger.Warnw("⚠️  角色分配失败（非致命错误）", "error", err)
+			}
+			// 4. 创建 QS 员工（可选）
+			if err := seedStaff(ctx, deps, state); err != nil {
+				logger.Warnw("⚠️  QS员工创建失败（非致命错误）", "error", err)
+			}
+
+			logger.Infow("✅ 管理员账号初始化完成")
+
+		case stepFamilyInit:
+			// 【家庭数据批量初始化】以家庭为单位批量生成测试数据
+			logger.Infow("👨‍👩‍👧‍👦 开始家庭数据批量生成...")
+			if err := seedFamilyCenter(ctx, deps, *familyCountFlag, *workerCountFlag); err != nil {
+				logger.Fatalw("❌ 家庭数据批量创建失败", "error", err)
+			}
+			logger.Infow("✅ 家庭数据批量生成完成")
+
 		default:
 			logger.Warnw("⚠️  未知的 seed 步骤，跳过", "step", step)
 		}

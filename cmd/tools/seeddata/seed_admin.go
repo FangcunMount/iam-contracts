@@ -21,7 +21,7 @@ import (
 // 2. 返回的 state 保存用户ID，供后续步骤使用（如 authn 步骤）
 //
 // 幂等性：通过手机号查询检查，已存在的用户会被更新而不是重复创建
-func seedSystemInit(ctx context.Context, deps *dependencies, state *seedContext) error {
+func seedAdmin(ctx context.Context, deps *dependencies, state *seedContext) error {
 	if deps.Config == nil || len(deps.Config.Users) == 0 {
 		deps.Logger.Warnw("⚠️  配置文件中没有用户数据，跳过")
 		return nil
