@@ -123,7 +123,7 @@ func seedRoleAssignments(ctx context.Context, deps *dependencies, state *seedCon
 
 		if _, err := assignmentCommander.Grant(ctx, cmd); err != nil {
 			if !isDuplicateAssignment(err) {
-				return fmt.Errorf("grant role %s to subject %s: %w", roleID, subjectID, err)
+				return fmt.Errorf("grant role %d to subject %s: %w", roleID, subjectID, err)
 			}
 		}
 	}
