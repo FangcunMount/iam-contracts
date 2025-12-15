@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	assignmentApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/assignment"
 	resourceApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/resource"
@@ -16,96 +15,7 @@ import (
 	assignmentMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/assignment"
 	resourceMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/resource"
 	roleMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/role"
-	"gorm.io/gorm/clause"
 )
-
-// ==================== 授权相关类型定义 ====================
-
-// rolePO 角色持久化对象 (用于直接插入)
-type rolePO struct {
-	ID          uint64    `gorm:"primaryKey;column:id"`
-	Name        string    `gorm:"column:name"`
-	DisplayName string    `gorm:"column:display_name"`
-	TenantID    string    `gorm:"column:tenant_id"`
-	IsSystem    bool      `gorm:"column:is_system"`
-	Description string    `gorm:"column:description"`
-	CreatedAt   time.Time `gorm:"column:created_at"`
-	UpdatedAt   time.Time `gorm:"column:updated_at"`
-	CreatedBy   uint64    `gorm:"column:created_by"`
-	UpdatedBy   uint64    `gorm:"column:updated_by"`
-	DeletedBy   uint64    `gorm:"column:deleted_by"`
-	Version     int       `gorm:"column:version"`
-}
-
-// TableName 指定表名
-func (rolePO) TableName() string {
-	return "authz_roles"
-}
-
-// ==================== 角色 Seed 函数 ====================
-
-// seedAuthzRoles 创建基础角色数据
-//
-// 业务说明：
-// - 创建系统基础角色（super_admin, tenant_admin, user）
-// - 使用直接数据库插入方式，确保角色 ID 固定
-// - 这些角色用于后续的角色分配
-//
-// 幂等性：使用 UPSERT 策略，可以安全地重复执行
-func seedAuthzRoles(ctx context.Context, deps *dependencies) error {
-	deps.Logger.Infow("📋 开始创建基础角色数据...")
-
-	roles := []rolePO{
-		{
-			ID:          1,
-			Name:        "super_admin",
-			DisplayName: "超级管理员",
-			TenantID:    "default",
-			IsSystem:    true,
-			Description: "拥有所有权限",
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-			Version:     1,
-		},
-		{
-			ID:          2,
-			Name:        "tenant_admin",
-			DisplayName: "租户管理员",
-			TenantID:    "default",
-			IsSystem:    true,
-			Description: "管理本租户内的所有资源",
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-			Version:     1,
-		},
-		{
-			ID:          3,
-			Name:        "user",
-			DisplayName: "普通用户",
-			TenantID:    "default",
-			IsSystem:    true,
-			Description: "普通用户权限",
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-			Version:     1,
-		},
-	}
-
-	for _, role := range roles {
-		// 使用 UPSERT 策略：如果存在则更新，不存在则插入
-		if err := deps.DB.WithContext(ctx).
-			Clauses(clause.OnConflict{
-				Columns:   []clause.Column{{Name: "id"}},
-				UpdateAll: true,
-			}).
-			Create(&role).Error; err != nil {
-			return fmt.Errorf("upsert role %s: %w", role.Name, err)
-		}
-	}
-
-	deps.Logger.Infow("✅ 基础角色数据已创建", "count", len(roles))
-	return nil
-}
 
 // ==================== 授权资源 Seed 函数 ====================
 
@@ -190,25 +100,30 @@ func seedRoleAssignments(ctx context.Context, deps *dependencies, state *seedCon
 	assignmentCommander := assignmentApp.NewAssignmentCommandService(assignmentManager, assignmentRepo, roleRepo, casbinPort)
 
 	for _, ac := range config.Assignments {
-		// 解析 subject_id: 如果以数字开头,直接使用;否则从 state.Users 查找别名
-		subjectID := ac.SubjectID
-		if _, ok := state.Users[ac.SubjectID]; ok {
-			// 是用户别名,从 state 获取实际ID
-			subjectID = state.Users[ac.SubjectID]
+		// 解析 subject_id: 支持 @alias 语法或直接使用 ID
+		subjectID := resolveUserAlias(ac.SubjectID, state)
+
+		// 解析 role_id: 支持 role_alias 或直接使用 role_id
+		roleID, err := resolveRoleAlias(ac.RoleID, ac.RoleAlias, state)
+		if err != nil {
+			deps.Logger.Warnw("⚠️  解析角色ID失败，跳过",
+				"role_id", ac.RoleID,
+				"role_alias", ac.RoleAlias,
+				"error", err)
+			continue
 		}
-		// 否则直接使用配置中的 ID (兼容直接配置ID的情况)
 
 		cmd := assignmentDomain.GrantCommand{
 			SubjectType: assignmentDomain.SubjectTypeUser,
 			SubjectID:   subjectID,
-			RoleID:      ac.RoleID,
+			RoleID:      roleID,
 			TenantID:    ac.TenantID,
 			GrantedBy:   ac.GrantedBy,
 		}
 
 		if _, err := assignmentCommander.Grant(ctx, cmd); err != nil {
 			if !isDuplicateAssignment(err) {
-				return fmt.Errorf("grant role %d to subject %s: %w", ac.RoleID, subjectID, err)
+				return fmt.Errorf("grant role %d to subject %s: %w", roleID, subjectID, err)
 			}
 		}
 	}

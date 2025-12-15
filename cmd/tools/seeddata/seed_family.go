@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -11,6 +14,7 @@ import (
 
 	"github.com/mozillazg/go-pinyin"
 
+	loginApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/login"
 	childApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/child"
 	guardApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
 	ucUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
@@ -485,6 +489,7 @@ type familyServices struct {
 	ChildAppSrv    childApp.ChildApplicationService
 	GuardAppSrv    guardApp.GuardianshipApplicationService
 	GuardQuerySrv  guardApp.GuardianshipQueryApplicationService
+	LoginAppSrv    loginApp.LoginApplicationService
 }
 
 // Run 执行家庭 seed 任务
@@ -492,6 +497,8 @@ func (t *familySeedTask) Run(
 	ctx context.Context,
 	services *familyServices,
 	phoneSet *PhoneSet,
+	collectionURL string,
+	iamServiceURL string,
 ) error {
 	// 1. 生成家庭数据
 	family, err := generateFamily(t.Index, phoneSet)
@@ -533,6 +540,20 @@ func (t *familySeedTask) Run(
 		if motherID != "" {
 			if err := createGuardianship(ctx, services.GuardAppSrv, services.GuardQuerySrv, motherID, childID, "parent"); err != nil {
 				return fmt.Errorf("task %d: create mother guardianship for child %d: %w", t.Index, i, err)
+			}
+		}
+
+		// 5. 创建受试者（testee）- 使用父母账号获取 token
+		var guardianPhone string
+		if family.Father != nil {
+			guardianPhone = family.Father.Phone
+		} else if family.Mother != nil {
+			guardianPhone = family.Mother.Phone
+		}
+		if guardianPhone != "" && collectionURL != "" {
+			if err := createTestee(ctx, services.LoginAppSrv, collectionURL, iamServiceURL, guardianPhone, childID, &child); err != nil {
+				// 受试者创建失败不阻断流程，记录错误继续
+				fmt.Printf("\nWarning: task %d: create testee for child %d failed: %v\n", t.Index, i, err)
 			}
 		}
 	}
@@ -649,6 +670,81 @@ func isDuplicateGuardianError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "already exists")
 }
 
+// createTestee 调用 collection 服务 API 创建受试者
+func createTestee(
+	ctx context.Context,
+	loginAppSrv loginApp.LoginApplicationService,
+	collectionURL string,
+	iamServiceURL string,
+	guardianPhone string,
+	childID string,
+	child *childrenSeed,
+) error {
+	// 如果没有配置 collection URL，跳过
+	if collectionURL == "" {
+		return nil
+	}
+
+	// 1. 通过 IAM 服务登录获取超级管理员 token
+	token, err := loginAsSuperAdmin(ctx, iamServiceURL)
+	if err != nil {
+		return fmt.Errorf("login as super admin: %w", err)
+	}
+
+	// 如果没有 token，跳过
+	if token == "" {
+		return nil
+	}
+
+	// 2. 准备请求数据
+	gender := uint8(1) // 默认男性
+	if child.Gender == "female" {
+		gender = 2
+	}
+
+	reqData := map[string]interface{}{
+		"iam_child_id": childID,
+		"name":         child.Name,
+		"gender":       gender,
+		"birthday":     child.Birthday,
+		"source":       "imported",
+	}
+
+	jsonData, err := json.Marshal(reqData)
+	if err != nil {
+		return fmt.Errorf("marshal request: %w", err)
+	}
+
+	// 3. 调用 collection 服务 API
+	apiURL := collectionURL + "/testees"
+	req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 4. 检查响应
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
+		return nil // 创建成功
+	}
+
+	// 读取错误响应
+	var errResp map[string]interface{}
+	_ = json.NewDecoder(resp.Body).Decode(&errResp)
+	return fmt.Errorf("collection API returned status %d: %v", resp.StatusCode, errResp)
+}
+
 // ==================== Worker Pool 实现 ====================
 
 // printProgress 打印进度条
@@ -686,12 +782,15 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 
 	// 初始化应用服务
 	uow := ucUOW.NewUnitOfWork(deps.DB)
+	// 注意：LoginAppSrv 需要更多依赖，这里暂时设置为 nil
+	// 如果需要使用登录功能，需要完整初始化
 	services := &familyServices{
 		UserAppSrv:     userApp.NewUserApplicationService(uow),
 		UserProfileSrv: userApp.NewUserProfileApplicationService(uow),
 		ChildAppSrv:    childApp.NewChildApplicationService(uow),
 		GuardAppSrv:    guardApp.NewGuardianshipApplicationService(uow),
 		GuardQuerySrv:  guardApp.NewGuardianshipQueryApplicationService(uow),
+		LoginAppSrv:    nil, // TODO: 需要完整初始化 login 服务依赖
 	}
 
 	// 创建手机号去重集合
@@ -707,13 +806,17 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 	// 打印初始进度
 	printProgress(0, int64(familyCount), 0)
 
+	// 获取配置
+	collectionURL := deps.Config.CollectionURL
+	iamServiceURL := deps.Config.IAMServiceURL
+
 	// 启动 workers
 	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
 			for task := range taskCh {
-				if err := task.Run(ctx, services, phoneSet); err != nil {
+				if err := task.Run(ctx, services, phoneSet, collectionURL, iamServiceURL); err != nil {
 					failed := atomic.AddInt64(&failCount, 1)
 					success := atomic.LoadInt64(&successCount)
 					printProgress(success+failed, int64(familyCount), failed)
@@ -750,4 +853,51 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 	}
 	fmt.Printf("✅ 家庭数据创建完成: %d 个家庭\n", successCount)
 	return nil
+}
+
+// loginAsSuperAdmin 使用超级管理员账号登录 IAM 服务获取 token
+func loginAsSuperAdmin(ctx context.Context, iamServiceURL string) (string, error) {
+	// 超级管理员凭据（与 seeddata.yaml 中的配置保持一致）
+	username := "admin"
+	password := "Admin@123"
+
+	// 构建凭证：username + ":" + password
+	credentials := []byte(username + ":" + password)
+
+	reqBody := LoginRequest{
+		Method:      "password",
+		Credentials: credentials,
+		DeviceID:    "seeddata-collection",
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("marshal request: %w", err)
+	}
+
+	url := iamServiceURL + "/authn/login"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		var respBody map[string]interface{}
+		_ = json.NewDecoder(resp.Body).Decode(&respBody)
+		return "", fmt.Errorf("login failed: status=%d, response=%v", resp.StatusCode, respBody)
+	}
+
+	var tokenPair TokenPair
+	if err := json.NewDecoder(resp.Body).Decode(&tokenPair); err != nil {
+		return "", fmt.Errorf("decode response: %w", err)
+	}
+
+	return tokenPair.AccessToken, nil
 }

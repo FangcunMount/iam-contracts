@@ -19,9 +19,9 @@ tenants:
   # 默认租户
   - code: "default"
     name: "默认租户"
-    contact_name: "张三"
-    contact_phone: "13923456789"
-    contact_email: "zhangsan@example.com"
+    contact_name: "admin"
+    contact_phone: "13123456789"
+    contact_email: "admin@system.com"
     status: "active"
     max_users: 1000
     max_roles: 100
@@ -35,98 +35,10 @@ users:
     email: "admin@system.com"
     id_card: "11010119900101100X"
     status: 1
-  
-  # 张三
-  - alias: "zhangsan"
-    name: "张三"
-    phone: "13923456789"
-    email: "zhangsan@example.com"
-    id_card: "110101199001021005"
-    status: 1
-  
-  # 李四
-  - alias: "lisi"
-    name: "李四"
-    phone: "13934567890"
-    email: "lisi@example.com"
-    id_card: "110101199001031000"
-    status: 1
-  
-  # 王五 (监护人)
-  - alias: "wangwu"
-    name: "王五"
-    phone: "13945678901"
-    email: "wangwu@example.com"
-    id_card: "110101198001011005"
-    status: 1
-  
-  # 赵六 (监护人)
-  - alias: "zhaoliu"
-    name: "赵六"
-    phone: "13956789012"
-    email: "zhaoliu@example.com"
-    id_card: "110101198001021000"
-    status: 1
-
-# ==================== 3. 儿童配置 (User Center) ====================
-children:
-  # 小明
-  - alias: "xiaoming"
-    name: "小明"
-    id_card: "110101201501011006"
-    gender: 1  # 男
-    birthday: "2015-01-01"
-    height: 1450  # 145.0cm
-    weight: 350   # 35.0kg
-  
-  # 小红
-  - alias: "xiaohong"
-    name: "小红"
-    id_card: "110101201502011008"
-    gender: 2  # 女
-    birthday: "2015-02-01"
-    height: 1420  # 142.0cm
-    weight: 330   # 33.0kg
-  
-  # 小刚
-  - alias: "xiaogang"
-    name: "小刚"
-    id_card: "110101201603011007"
-    gender: 1  # 男
-    birthday: "2016-03-01"
-    height: 1380  # 138.0cm
-    weight: 310   # 31.0kg
-  
-  # 小丽 (无身份证)
-  - alias: "xiaoli"
-    name: "小丽"
-    id_card: ""  # 无身份证
-    gender: 2  # 女
-    birthday: "2018-05-15"
-    height: 1100  # 110.0cm
-    weight: 200   # 20.0kg
-
-# ==================== 4. 监护关系配置 (User Center) ====================
-guardianships:
-  # 王五是小明的父亲
-  - user_alias: "wangwu"
-    child_alias: "xiaoming"
-    relation: "father"
-  
-  # 赵六是小红的母亲
-  - user_alias: "zhaoliu"
-    child_alias: "xiaohong"
-    relation: "mother"
-  
-  # 王五是小刚的监护人
-  - user_alias: "wangwu"
-    child_alias: "xiaogang"
-    relation: "guardian"
-  
-  # 赵六是小丽的母亲
-  - user_alias: "zhaoliu"
-    child_alias: "xiaoli"
-    relation: "mother"
+    # 员工配置（可选，用于 QS 服务创建员工）
+    org_id: 1
+    roles: ["admin"]
+    is_active: true
 
 # ==================== 5. 认证账号配置 (Authentication) ====================
 accounts:
@@ -139,37 +51,60 @@ accounts:
     password: "Admin@123"  # 注意: 生产环境应使用强密码
     app_id: ""
     status: 1
-  
-  # 张三 - 运营账号
-  - alias: "zhangsan_account"
-    user_alias: "zhangsan"
-    provider: "operation"
-    external_id: "zhangsan"
-    username: "zhangsan"
-    password: "Pass@123"
-    app_id: ""
-    status: 1
-  
-  # 王五 - 微信账号
-  - alias: "wangwu_wechat"
-    user_alias: "wangwu"
-    provider: "wechat"
-    external_id: "wangwu_openid_123"
-    username: ""
-    password: ""
-    app_id: "wx1234567890abcdef"
-    status: 1
-    # 微信扩展信息
-    wechat_open_id: "wangwu_openid_123"
-    wechat_union_id: "wangwu_unionid_456"
-    wechat_nickname: "王五"
-    wechat_avatar_url: "https://example.com/avatar/wangwu.jpg"
 
+# ==================== 5.5 角色配置 (Authorization) ====================
+roles:
+  # ========== IAM 系统角色（建议补充，确保 seeddata 可统一管理） ==========
+  - alias: "super_admin"
+    name: "super_admin"
+    display_name: "超级管理员"
+    tenant_id: "default"
+    description: "拥有所有权限"
+
+  - alias: "tenant_admin"
+    name: "tenant_admin"
+    display_name: "租户管理员"
+    tenant_id: "default"
+    description: "管理本租户内的所有资源"
+
+  - alias: "user"
+    name: "user"
+    display_name: "普通用户"
+    tenant_id: "default"
+    description: "普通用户权限"
+
+  # ========== QS 服务角色 ==========
+  - alias: "qs_admin"
+    name: "qs:admin"
+    display_name: "QS管理员"
+    tenant_id: "default"
+    description: "QS服务所有资源的管理权限"
+  
+  - alias: "qs_content_manager"
+    name: "qs:content_manager"
+    display_name: "内容管理员"
+    tenant_id: "default"
+    description: "问卷和量表的管理权限"
+  
+  - alias: "qs_evaluator"
+    name: "qs:evaluator"
+    display_name: "评估员"
+    tenant_id: "default"
+    description: "测评相关只读权限"
+  
+  - alias: "qs_staff"
+    name: "qs:staff"
+    display_name: "普通员工"
+    tenant_id: "default"
+    description: "基本查看权限"
+  
 # ==================== 6. 授权资源配置 (Authorization) ====================
 resources:
+  # ========== IAM 服务资源 ==========
+  
   # 用户管理资源
-  - alias: "res_uc_users"
-    key: "uc:users"
+  - alias: "res_iam_users"
+    key: "iam:users"
     display_name: "用户管理"
     app_name: "iam"
     domain: "uc"
@@ -178,8 +113,8 @@ resources:
     description: "用户中心的用户管理权限"
   
   # 儿童管理资源
-  - alias: "res_uc_children"
-    key: "uc:children"
+  - alias: "res_iam_children"
+    key: "iam:children"
     display_name: "儿童管理"
     app_name: "iam"
     domain: "uc"
@@ -188,8 +123,8 @@ resources:
     description: "用户中心的儿童档案管理权限"
   
   # 监护关系管理资源
-  - alias: "res_uc_guardianships"
-    key: "uc:guardianships"
+  - alias: "res_iam_guardianships"
+    key: "iam:guardianships"
     display_name: "监护关系管理"
     app_name: "iam"
     domain: "uc"
@@ -198,8 +133,8 @@ resources:
     description: "用户中心的监护关系管理权限"
   
   # 角色管理资源
-  - alias: "res_authz_roles"
-    key: "authz:roles"
+  - alias: "res_iam_roles"
+    key: "iam:roles"
     display_name: "角色管理"
     app_name: "iam"
     domain: "authz"
@@ -208,8 +143,8 @@ resources:
     description: "授权模块的角色管理权限"
   
   # 策略管理资源
-  - alias: "res_authz_policies"
-    key: "authz:policies"
+  - alias: "res_iam_policies"
+    key: "iam:policies"
     display_name: "策略管理"
     app_name: "iam"
     domain: "authz"
@@ -217,59 +152,168 @@ resources:
     actions: ["create", "read", "update", "delete", "list"]
     description: "授权模块的策略管理权限"
 
-# ==================== 7. 角色分配配置 (Authorization) ====================
-assignments:
-  # 系统管理员拥有 super_admin 角色
-  - subject_type: "user"
-    subject_id: "1000000000000001"  # 系统管理员 (注意: 这个ID将通过别名引用替换)
-    role_id: 1  # super_admin
-    tenant_id: "default"
-    granted_by: "system"
+  # ========== QS 服务资源 ==========
   
-  # 张三拥有 user 角色
-  - subject_type: "user"
-    subject_id: "1000000000000002"  # 张三 (注意: 这个ID将通过别名引用替换)
-    role_id: 3  # user
-    tenant_id: "default"
-    granted_by: "system"
+  # 问卷管理
+  - alias: "res_qs_questionnaires"
+    key: "qs:questionnaires"
+    display_name: "问卷管理"
+    app_name: "qs"
+    domain: "questionnaire"
+    type: "collection"
+    actions: ["create", "read", "update", "delete", "list", "publish", "unpublish", "archive"]
+    description: "问卷的创建、编辑、发布等权限"
   
-  # 王五拥有 user 角色
-  - subject_type: "user"
-    subject_id: "1000000000000004"  # 王五 (注意: 这个ID将通过别名引用替换)
-    role_id: 3  # user
-    tenant_id: "default"
-    granted_by: "system"
+  # 量表管理
+  - alias: "res_qs_scales"
+    key: "qs:scales"
+    display_name: "量表管理"
+    app_name: "qs"
+    domain: "scale"
+    type: "collection"
+    actions: ["create", "read", "update", "delete", "list", "publish", "unpublish", "archive"]
+    description: "量表的创建、编辑、发布等权限"
+  
+  # 测评管理
+  - alias: "res_qs_evaluations"
+    key: "qs:evaluations"
+    display_name: "测评管理"
+    app_name: "qs"
+    domain: "evaluation"
+    type: "collection"
+    actions: ["read", "list", "retry", "statistics"]
+    description: "测评结果的查看、重试等权限"
+  
+  # 答卷管理
+  - alias: "res_qs_answersheets"
+    key: "qs:answersheets"
+    display_name: "答卷管理"
+    app_name: "qs"
+    domain: "answersheet"
+    type: "collection"
+    actions: ["read", "list", "statistics"]
+    description: "答卷的查看、统计等权限"
+  
+  # 员工管理
+  - alias: "res_qs_staff"
+    key: "qs:staff"
+    display_name: "员工管理"
+    app_name: "qs"
+    domain: "actor"
+    type: "collection"
+    actions: ["create", "read", "delete", "list"]
+    description: "员工的增删查权限"
+  
+  # 受试者管理
+  - alias: "res_qs_testees"
+    key: "qs:testees"
+    display_name: "受试者管理"
+    app_name: "qs"
+    domain: "actor"
+    type: "collection"
+    actions: ["read", "list", "update"]
+    description: "受试者的查看、更新权限"
 
+# ==================== 7. 角色分配配置 (Authorization) ====================
+# 注意：
+# - subject_id 使用 @alias 语法引用 users 中的别名，运行时替换为实际用户ID
+# - role_alias 使用 @alias 语法引用 roles 中的别名；也可以直接用 role_id
+assignments:
+  # 系统管理员拥有 super_admin 角色（schema.sql 预置的角色，使用 role_id）
+  - subject_type: "user"
+    subject_id: "@admin"
+    role_id: 1  # super_admin (预置角色)
+    tenant_id: "default"
+    granted_by: "system"
+  
+  # 系统管理员同时拥有 qs:admin 角色（使用 role_alias 引用）
+  - subject_type: "user"
+    subject_id: "@admin"
+    role_alias: "@qs_admin"
+    tenant_id: "default"
+    granted_by: "system"
+  
 # ==================== 8. Casbin 策略配置 (Authorization) ====================
 policies:
-  # 角色策略: super_admin 可以对所有资源执行所有操作
+  # ========== IAM 全局角色策略 ==========
+  
+  # 超级管理员：所有资源的所有操作
   - type: "p"
     subject: "role:super_admin"
     values: ["*", "*", "allow"]
   
-  # 角色策略: tenant_admin 可以管理租户内资源
+  # 租户管理员：管理租户内资源
   - type: "p"
     subject: "role:tenant_admin"
     values: ["tenant:*", "*", "allow"]
   
-  # 角色策略: user 只能读取和更新自己的信息
+  # 普通用户：只能读取和更新自己的信息
   - type: "p"
     subject: "role:user"
     values: ["user:self", "read", "allow"]
-  
   - type: "p"
     subject: "role:user"
     values: ["user:self", "update", "allow"]
   
-  # 角色继承: super_admin 继承 tenant_admin
+  # ========== QS 服务角色策略 ==========
+  
+  # QS 管理员：所有 QS 资源的所有操作
+  - type: "p"
+    subject: "role:qs:admin"
+    values: ["qs:*", "*", "allow"]
+  
+  # 内容管理员：问卷和量表的完整管理
+  - type: "p"
+    subject: "role:qs:content_manager"
+    values: ["qs:questionnaires", "*", "allow"]
+  - type: "p"
+    subject: "role:qs:content_manager"
+    values: ["qs:scales", "*", "allow"]
+  - type: "p"
+    subject: "role:qs:content_manager"
+    values: ["qs:answersheets", "read|list|statistics", "allow"]
+  
+  # 评估员：测评相关只读 + 重试
+  - type: "p"
+    subject: "role:qs:evaluator"
+    values: ["qs:evaluations", "read|list|retry|statistics", "allow"]
+  - type: "p"
+    subject: "role:qs:evaluator"
+    values: ["qs:answersheets", "read|list|statistics", "allow"]
+  - type: "p"
+    subject: "role:qs:evaluator"
+    values: ["qs:testees", "read|list", "allow"]
+  
+  # 普通员工：只能查看受试者
+  - type: "p"
+    subject: "role:qs:staff"
+    values: ["qs:testees", "read|list", "allow"]
+  
+  # ========== 角色继承 ==========
+  
+  # IAM 角色继承
   - type: "g"
     subject: "role:super_admin"
     values: ["role:tenant_admin"]
-  
-  # 角色继承: tenant_admin 继承 user
   - type: "g"
     subject: "role:tenant_admin"
     values: ["role:user"]
+  
+  # super_admin 继承 qs:admin
+  - type: "g"
+    subject: "role:super_admin"
+    values: ["role:qs:admin"]
+  
+  # QS 角色继承链: qs:admin -> qs:content_manager -> qs:evaluator -> qs:staff
+  - type: "g"
+    subject: "role:qs:admin"
+    values: ["role:qs:content_manager"]
+  - type: "g"
+    subject: "role:qs:content_manager"
+    values: ["role:qs:evaluator"]
+  - type: "g"
+    subject: "role:qs:evaluator"
+    values: ["role:qs:staff"]
 
 # ==================== 9. JWKS 密钥配置 (Authentication) ====================
 jwks:
@@ -286,5 +330,20 @@ wechat_apps:
     name: "问卷笔记本小程序"
     type: "MiniProgram"
     status: "Enabled"
-    app_secret: "d3a4a12cbffb569423a786317cca6cae"  # 生产环境中应通过环境变量或密钥管理系统设置
-  
+    app_secret: ""  # 生产环境中应通过环境变量或密钥管理系统设置
+
+# ==================== 11. Collection 服务配置 ====================
+# Collection 服务用于创建受试者（testee）数据
+# 在 seed_family 过程中，每创建一个儿童（child）后，会自动调用 collection 服务创建对应的受试者
+collection_url: "https://collect.yangshujie.com/api/v1"  # Collection 服务 API 地址
+# 注意：Collection 服务认证通过 IAM 服务动态获取超级管理员 token，无需预配置
+
+# ==================== 12. QS 服务配置 ====================
+# QS 服务用于创建员工、受试者等数据
+# 在 seed_system 过程中，创建管理员后会自动调用 QS 服务创建对应的员工
+qs_service_url: "https://qs.yangshujie.com/api/v1"  # QS 服务 API 地址
+
+# ==================== 13. IAM 服务配置 ====================
+# IAM 服务 URL（用于 seeddata 工具登录获取 token）
+# 在创建员工前，需要先登录 IAM 获取 access_token
+iam_service_url: "https://iam.yangshujie.com/api/v1"  # IAM 服务 API 地址

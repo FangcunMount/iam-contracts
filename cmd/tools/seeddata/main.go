@@ -48,6 +48,7 @@ type seedStep string
 
 // All available seed steps.
 const (
+	stepInit        seedStep = "init"        // 系统初始化（管理员用户+认证账号+JWKS）
 	stepTenants     seedStep = "tenants"     // 创建租户数据
 	stepUserCenter  seedStep = "user"        // 创建用户、儿童、监护关系
 	stepFamily      seedStep = "family"      // 批量创建家庭数据（faker生成）
@@ -61,8 +62,9 @@ const (
 )
 
 // defaultSteps defines the default execution order of all seed steps.
+// init: 系统初始化，创建管理员用户和认证账号
 var defaultSteps = []seedStep{
-	stepFamily,
+	stepInit,
 }
 
 // dependencies holds all external dependencies required by seed functions.
@@ -83,6 +85,7 @@ type seedContext struct {
 	Children  map[string]string // 儿童别名 → 儿童ID
 	Accounts  map[string]uint64 // 账号别名 → 账号ID
 	Resources map[string]uint64 // 资源键 → 资源ID
+	Roles     map[string]string // 角色别名 → 角色ID
 }
 
 // newSeedContext creates a new seed context with initialized maps.
@@ -92,6 +95,7 @@ func newSeedContext() *seedContext {
 		Children:  map[string]string{},
 		Accounts:  map[string]uint64{},
 		Resources: map[string]uint64{},
+		Roles:     map[string]string{},
 	}
 }
 
@@ -109,7 +113,7 @@ func main() {
 	keysDirFlag := flag.String("keys-dir", "./tmp/keys", "Directory to store generated JWKS private keys")
 	casbinModelFlag := flag.String("casbin-model", "configs/casbin_model.conf", "Path to casbin model configuration file")
 	configFileFlag := flag.String("config", "configs/seeddata.yaml", "Path to seed data configuration file")
-	stepsFlag := flag.String("steps", strings.Join(stepListToStrings(defaultSteps), ","), "Comma separated seed steps (tenants,user,family,authn,resources,assignments,casbin,jwks)")
+	stepsFlag := flag.String("steps", strings.Join(stepListToStrings(defaultSteps), ","), "Comma separated seed steps (init,tenants,user,family,authn,roles,resources,assignments,casbin,jwks,wechatapp)")
 	familyCountFlag := flag.Int("family-count", 200000, "Number of families to generate in family seed step")
 	workerCountFlag := flag.Int("worker-count", 500, "Number of concurrent workers for family seed step")
 	verboseFlag := flag.Bool("verbose", false, "Enable verbose output including SQL logs")
@@ -178,12 +182,37 @@ func main() {
 	// 按顺序执行各个步骤
 	for _, step := range stepOrder {
 		switch step {
+		case stepInit:
+			// 系统初始化步骤：用户 + 认证账号 + JWKS + 角色 + 角色分配 + 员工
+			logger.Infow("🔧 开始系统初始化...")
+			if err := seedSystemInit(ctx, deps, state); err != nil {
+				logger.Fatalw("❌ 管理员用户创建失败", "error", err)
+			}
+			if err := seedAuthn(ctx, deps, state); err != nil {
+				logger.Fatalw("❌ 管理员认证账号创建失败", "error", err)
+			}
+			if err := seedJWKS(ctx, deps); err != nil {
+				logger.Fatalw("❌ JWKS密钥生成失败", "error", err)
+			}
+			// 创建角色
+			if err := seedRoles(ctx, deps, state); err != nil {
+				logger.Fatalw("❌ 角色创建失败", "error", err)
+			}
+			// 分配角色给用户（复用现有的 seedRoleAssignments）
+			if err := seedRoleAssignments(ctx, deps, state); err != nil {
+				logger.Warnw("⚠️  角色分配失败（非致命错误）", "error", err)
+			}
+			// 在认证账号创建完成后，登录并创建员工
+			if err := seedStaff(ctx, deps, state); err != nil {
+				logger.Warnw("⚠️  员工创建失败（非致命错误）", "error", err)
+			}
+			logger.Infow("✅ 系统初始化完成")
 		case stepTenants:
 			if err := seedTenants(ctx, deps); err != nil {
 				logger.Fatalw("❌ 租户数据创建失败", "error", err)
 			}
 		case stepUserCenter:
-			if err := seedUserCenter(ctx, deps, state); err != nil {
+			if err := seedSystemInit(ctx, deps, state); err != nil {
 				logger.Fatalw("❌ 用户中心数据创建失败", "error", err)
 			}
 		case stepFamily:
@@ -195,7 +224,7 @@ func main() {
 				logger.Fatalw("❌ 认证账号数据创建失败", "error", err)
 			}
 		case stepRoles:
-			if err := seedAuthzRoles(ctx, deps); err != nil {
+			if err := seedRoles(ctx, deps, state); err != nil {
 				logger.Fatalw("❌ 基础角色数据创建失败", "error", err)
 			}
 		case stepResources:

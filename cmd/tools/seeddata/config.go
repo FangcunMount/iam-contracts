@@ -15,12 +15,16 @@ type SeedConfig struct {
 	Children      []ChildConfig        `yaml:"children"`
 	Guardianships []GuardianshipConfig `yaml:"guardianships"`
 	Accounts      []AccountConfig      `yaml:"accounts"`
+	Roles         []RoleConfig         `yaml:"roles"` // 角色配置
 	Resources     []ResourceConfig     `yaml:"resources"`
 	Assignments   []AssignmentConfig   `yaml:"assignments"`
 	Policies      []PolicyConfig       `yaml:"policies"`
 	JWKS          JWKSConfig           `yaml:"jwks"`
 	WechatApps    []WechatAppConfig    `yaml:"wechat_apps"`
-	EncryptionKey string               `yaml:"encryption_key"` // IDP 模块加密密钥（32字节）
+	EncryptionKey string               `yaml:"encryption_key"`  // IDP 模块加密密钥（32字节）
+	CollectionURL string               `yaml:"collection_url"`  // Collection 服务 URL
+	QSServiceURL  string               `yaml:"qs_service_url"`  // QS 服务 URL
+	IAMServiceURL string               `yaml:"iam_service_url"` // IAM 服务 URL（用于登录获取 token）
 }
 
 // TenantConfig 租户配置
@@ -44,6 +48,10 @@ type UserConfig struct {
 	Email  string `yaml:"email"`   // 邮箱
 	IDCard string `yaml:"id_card"` // 身份证号
 	Status int    `yaml:"status"`  // 用户状态
+	// 员工相关配置（可选，用于 QS 服务创建员工）
+	OrgID    int      `yaml:"org_id"`    // 机构ID
+	Roles    []string `yaml:"roles"`     // 角色列表
+	IsActive bool     `yaml:"is_active"` // 是否激活
 }
 
 // ChildConfig 儿童档案配置
@@ -89,11 +97,22 @@ type ResourceConfig struct {
 	Description string   `yaml:"description"`  // 描述
 }
 
+// RoleConfig 角色配置
+type RoleConfig struct {
+	Alias       string `yaml:"alias"`        // 用于引用的别名
+	Name        string `yaml:"name"`         // 角色名称（租户内唯一）
+	DisplayName string `yaml:"display_name"` // 显示名称
+	TenantID    string `yaml:"tenant_id"`    // 租户ID
+	IsSystem    bool   `yaml:"is_system"`    // 是否系统角色
+	Description string `yaml:"description"`  // 描述
+}
+
 // AssignmentConfig 角色分配配置
 type AssignmentConfig struct {
 	SubjectType string `yaml:"subject_type"` // user/group
-	SubjectID   string `yaml:"subject_id"`   // 主体ID (可以是别名引用)
-	RoleID      uint64 `yaml:"role_id"`      // 角色ID
+	SubjectID   string `yaml:"subject_id"`   // 主体ID（支持 @alias 引用用户别名）
+	RoleID      uint64 `yaml:"role_id"`      // 角色ID（与 role_alias 二选一）
+	RoleAlias   string `yaml:"role_alias"`   // 角色别名（支持 @alias 引用角色）
 	TenantID    string `yaml:"tenant_id"`    // 租户ID
 	GrantedBy   string `yaml:"granted_by"`   // 授予者
 }

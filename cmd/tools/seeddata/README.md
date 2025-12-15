@@ -6,6 +6,7 @@ IAM 系统数据库初始化和种子数据填充工具。
 
 该工具用于快速初始化 IAM 系统的基础数据，包括:
 
+0. **系统初始化** (init) - 一键初始化管理员用户、认证账号和 JWKS 密钥（推荐首次部署使用）
 1. **租户数据** (tenants) - 创建默认租户和演示租户
 2. **用户中心** (user) - 创建系统管理员和测试用户、儿童档案、监护关系
 3. **认证账号** (authn) - 创建运营后台登录账号和凭证
@@ -15,6 +16,7 @@ IAM 系统数据库初始化和种子数据填充工具。
 7. **Casbin策略** (casbin) - 初始化权限控制策略规则
 8. **JWKS密钥** (jwks) - 生成JWT签名密钥对
 9. **微信应用** (wechatapp) - 创建微信小程序/公众号应用配置
+10. **批量家庭** (family) - 批量生成家庭数据（用于测试）
 
 ## 快速开始
 
@@ -59,6 +61,16 @@ go run ./cmd/tools/seeddata
 可以通过 `--steps` 参数指定要执行的步骤：
 
 ```bash
+# 系统初始化（首次部署推荐，默认步骤）
+# 包含：创建管理员用户 + 管理员认证账号（用户名密码）+ JWKS 密钥
+go run ./cmd/tools/seeddata \
+  --dsn "..."
+
+# 或明确指定 init 步骤
+go run ./cmd/tools/seeddata \
+  --dsn "..." \
+  --steps "init"
+
 # 只创建租户和用户
 go run ./cmd/tools/seeddata \
   --dsn "..." \
@@ -69,8 +81,15 @@ go run ./cmd/tools/seeddata \
   --dsn "..." \
   --steps "authn,jwks"
 
-# 执行所有步骤（默认）
-go run ./cmd/tools/seeddata --dsn "..." --steps "tenants,user,authn,roles,resources,assignments,casbin,jwks,wechatapp"
+# 批量创建家庭数据（用于压力测试）
+go run ./cmd/tools/seeddata \
+  --dsn "..." \
+  --steps "family" \
+  --family-count 10000 \
+  --worker-count 100
+
+# 执行所有步骤
+go run ./cmd/tools/seeddata --dsn "..." --steps "init,tenants,user,authn,roles,resources,assignments,casbin,jwks,wechatapp"
 ```
 
 ## 命令行参数

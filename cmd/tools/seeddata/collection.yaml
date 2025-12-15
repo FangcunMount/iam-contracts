@@ -1,0 +1,1284 @@
+openapi: 3.1.0
+info:
+  description: Questionnaire collection/BFF layer
+  title: Collection Server
+  contact:
+    name: API Support
+    email: yshujie@163.com
+    url: https://github.com/FangcunMount/qs-server
+  version: '1.0'
+servers:
+- url: http://localhost:18083/api/v1
+  description: 本地开发
+- url: https://collect.yangshujie.com/api/v1
+  description: 生产环境
+tags:
+- name: 受试者
+  description: 受试者
+- name: 测评
+  description: 测评管理
+- name: 答卷
+  description: 答卷提交与查询
+- name: 系统
+  description: 系统健康检查
+- name: 问卷
+  description: 问卷查询
+paths:
+  /answersheets:
+    post:
+      tags:
+      - 答卷
+      summary: 提交答卷
+      description: 用户提交问卷答卷
+      operationId: 提交答卷
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/answersheet.SubmitAnswerSheetRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/answersheet.SubmitAnswerSheetResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /answersheets/{id}:
+    get:
+      tags:
+      - 答卷
+      summary: 获取答卷详情
+      description: 根据ID获取答卷详情
+      operationId: 获取答卷详情
+      parameters:
+      - type: integer
+        description: 答卷ID
+        name: id
+        in: path
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/answersheet.AnswerSheetResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /answersheets/{id}/assessment:
+    get:
+      tags:
+      - 答卷
+      summary: 通过答卷ID获取测评详情
+      description: 根据答卷ID获取对应的测评详情
+      operationId: 通过答卷ID获取测评详情
+      parameters:
+      - type: integer
+        description: 答卷ID
+        name: id
+        in: path
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/evaluation.AssessmentDetailResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /assessments:
+    get:
+      tags:
+      - 测评
+      summary: 获取我的测评列表
+      description: 分页获取当前用户的测评列表
+      operationId: 获取我的测评列表
+      parameters:
+      - type: integer
+        description: 受试者ID
+        name: testee_id
+        in: query
+        required: true
+      - type: string
+        description: 状态筛选
+        name: status
+        in: query
+      - type: integer
+        default: 1
+        description: 页码
+        name: page
+        in: query
+      - type: integer
+        default: 20
+        description: 每页数量
+        name: page_size
+        in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/evaluation.ListAssessmentsResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /assessments/trend:
+    get:
+      tags:
+      - 测评
+      summary: 获取因子得分趋势
+      description: 获取指定因子的历史得分趋势
+      operationId: 获取因子得分趋势
+      parameters:
+      - type: integer
+        description: 受试者ID
+        name: testee_id
+        in: query
+        required: true
+      - type: string
+        description: 因子编码
+        name: factor_code
+        in: query
+        required: true
+      - type: integer
+        default: 10
+        description: 数据点数量
+        name: limit
+        in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/evaluation.TrendPointResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /assessments/{id}:
+    get:
+      tags:
+      - 测评
+      summary: 获取我的测评详情
+      description: 根据测评ID获取测评详情
+      operationId: 获取我的测评详情
+      parameters:
+      - type: integer
+        description: 测评ID
+        name: id
+        in: path
+        required: true
+      - type: integer
+        description: 受试者ID
+        name: testee_id
+        in: query
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/evaluation.AssessmentDetailResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /assessments/{id}/factors/high-risk:
+    get:
+      tags:
+      - 测评
+      summary: 获取高风险因子
+      description: 获取指定测评的高风险因子列表
+      operationId: 获取高风险因子
+      parameters:
+      - type: integer
+        description: 测评ID
+        name: id
+        in: path
+        required: true
+      - type: integer
+        description: 受试者ID
+        name: testee_id
+        in: query
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/evaluation.FactorScoreResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /assessments/{id}/report:
+    get:
+      tags:
+      - 测评
+      summary: 获取测评报告
+      description: 获取测评的解读报告
+      operationId: 获取测评报告
+      parameters:
+      - type: integer
+        description: 测评ID
+        name: id
+        in: path
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/evaluation.AssessmentReportResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /assessments/{id}/scores:
+    get:
+      tags:
+      - 测评
+      summary: 获取测评得分详情
+      description: 获取测评的因子得分详情
+      operationId: 获取测评得分详情
+      parameters:
+      - type: integer
+        description: 测评ID
+        name: id
+        in: path
+        required: true
+      - type: integer
+        description: 受试者ID
+        name: testee_id
+        in: query
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/evaluation.FactorScoreResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /public/info:
+    get:
+      tags:
+      - 系统
+      summary: 服务信息
+      description: 获取服务基本信息
+      operationId: 服务信息
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.Response'
+  /questionnaires:
+    get:
+      tags:
+      - 问卷
+      summary: 获取问卷列表
+      description: 分页获取问卷列表
+      operationId: 获取问卷列表
+      parameters:
+      - type: integer
+        default: 1
+        description: 页码
+        name: page
+        in: query
+      - type: integer
+        default: 20
+        description: 每页数量
+        name: page_size
+        in: query
+      - type: string
+        description: 状态过滤
+        name: status
+        in: query
+      - type: string
+        description: 标题过滤
+        name: title
+        in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/github_com_FangcunMount_qs-server_internal_collection-server_application_questionnaire.ListQuestionnairesResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /questionnaires/{code}:
+    get:
+      tags:
+      - 问卷
+      summary: 获取问卷详情
+      description: 根据问卷编码获取问卷详情
+      operationId: 获取问卷详情
+      parameters:
+      - type: string
+        description: 问卷编码
+        name: code
+        in: path
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/questionnaire.QuestionnaireResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /testees:
+    get:
+      tags:
+      - 受试者
+      summary: 查询我的受试者列表
+      description: 查询当前用户（监护人）的所有受试者列表（支持分页）
+      operationId: 查询我的受试者列表
+      parameters:
+      - type: integer
+        default: 0
+        description: 偏移量
+        name: offset
+        in: query
+      - type: integer
+        default: 20
+        description: 每页数量
+        name: limit
+        in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/testee.ListTesteesResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+    post:
+      tags:
+      - 受试者
+      summary: 创建受试者
+      description: 创建新的受试者信息
+      operationId: 创建受试者
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/testee.CreateTesteeRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/testee.TesteeResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /testees/exists:
+    get:
+      tags:
+      - 受试者
+      summary: 检查受试者是否存在
+      description: 根据IAM儿童ID检查受试者是否存在
+      operationId: 检查受试者是否存在
+      parameters:
+      - type: string
+        description: IAM儿童ID
+        name: iam_child_id
+        in: query
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/testee.TesteeExistsResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /testees/{id}:
+    get:
+      tags:
+      - 受试者
+      summary: 获取受试者详情
+      description: 根据ID获取受试者详细信息
+      operationId: 获取受试者详情
+      parameters:
+      - type: integer
+        description: 受试者ID
+        name: id
+        in: path
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/testee.TesteeResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+    put:
+      tags:
+      - 受试者
+      summary: 更新受试者信息
+      description: 更新受试者的基本信息
+      operationId: 更新受试者信息
+      parameters:
+      - type: integer
+        description: 受试者ID
+        name: id
+        in: path
+        required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/testee.UpdateTesteeRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/core.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/testee.TesteeResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.ErrResponse'
+  /health:
+    get:
+      tags:
+      - 系统
+      summary: 健康检查
+      description: 检查服务健康状态
+      operationId: 健康检查
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.Response'
+  /ping:
+    get:
+      tags:
+      - 系统
+      summary: Ping
+      description: 测试服务连通性
+      operationId: Ping
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/core.Response'
+components:
+  schemas:
+    answersheet.AnswerSheetResponse:
+      type: object
+      properties:
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/github_com_FangcunMount_qs-server_internal_collection-server_application_answersheet.Answer'
+        created_at:
+          type: string
+        id:
+          type: string
+        questionnaire_code:
+          type: string
+        questionnaire_version:
+          type: string
+        score:
+          type: number
+        testee_id:
+          type: string
+        testee_name:
+          type: string
+        title:
+          type: string
+        updated_at:
+          type: string
+        writer_id:
+          type: string
+        writer_name:
+          type: string
+    answersheet.SubmitAnswerSheetRequest:
+      type: object
+      required:
+      - answers
+      - questionnaire_code
+      - questionnaire_version
+      - testee_id
+      properties:
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/github_com_FangcunMount_qs-server_internal_collection-server_application_answersheet.Answer'
+        questionnaire_code:
+          type: string
+        questionnaire_version:
+          type: string
+        testee_id:
+          type: integer
+        title:
+          type: string
+    answersheet.SubmitAnswerSheetResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        message:
+          type: string
+    core.ErrResponse:
+      type: object
+      properties:
+        code:
+          description: Code 定义了业务错误代码
+          type: integer
+        message:
+          description: 'Message 包含此消息的详细信息
+
+            此消息适合暴露给外部'
+          type: string
+        reference:
+          description: Reference 返回参考文档，可能有助于解决此错误
+          type: string
+    core.Response:
+      type: object
+      properties:
+        code:
+          description: Code 业务状态码，0 表示成功
+          type: integer
+        data:
+          description: Data 响应数据
+        message:
+          description: Message 响应消息
+          type: string
+        reference:
+          description: Reference 返回参考文档（错误时使用）
+          type: string
+    evaluation.AssessmentDetailResponse:
+      type: object
+      properties:
+        answer_sheet_id:
+          type: string
+        created_at:
+          type: string
+        failed_at:
+          type: string
+        failure_reason:
+          type: string
+        id:
+          type: string
+        interpreted_at:
+          type: string
+        org_id:
+          type: string
+        origin_id:
+          type: string
+        origin_type:
+          type: string
+        questionnaire_code:
+          type: string
+        questionnaire_version:
+          type: string
+        risk_level:
+          type: string
+        scale_code:
+          type: string
+        scale_name:
+          type: string
+        status:
+          type: string
+        submitted_at:
+          type: string
+        testee_id:
+          type: string
+        total_score:
+          type: number
+    evaluation.AssessmentReportResponse:
+      type: object
+      properties:
+        assessment_id:
+          type: string
+        conclusion:
+          type: string
+        created_at:
+          type: string
+        dimensions:
+          type: array
+          items:
+            $ref: '#/components/schemas/evaluation.DimensionInterpretResponse'
+        risk_level:
+          type: string
+        scale_code:
+          type: string
+        scale_name:
+          type: string
+        suggestions:
+          type: array
+          items:
+            type: string
+        total_score:
+          type: number
+    evaluation.AssessmentSummaryResponse:
+      type: object
+      properties:
+        created_at:
+          type: string
+        id:
+          type: string
+        interpreted_at:
+          type: string
+        origin_type:
+          type: string
+        questionnaire_code:
+          type: string
+        questionnaire_version:
+          type: string
+        risk_level:
+          type: string
+        scale_code:
+          type: string
+        scale_name:
+          type: string
+        status:
+          type: string
+        submitted_at:
+          type: string
+        total_score:
+          type: number
+    evaluation.DimensionInterpretResponse:
+      type: object
+      properties:
+        description:
+          type: string
+        factor_code:
+          type: string
+        factor_name:
+          type: string
+        raw_score:
+          type: number
+        risk_level:
+          type: string
+    evaluation.FactorScoreResponse:
+      type: object
+      properties:
+        conclusion:
+          type: string
+        factor_code:
+          type: string
+        factor_name:
+          type: string
+        is_total_score:
+          type: boolean
+        raw_score:
+          type: number
+        risk_level:
+          type: string
+        suggestion:
+          type: string
+    evaluation.ListAssessmentsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/evaluation.AssessmentSummaryResponse'
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+    evaluation.TrendPointResponse:
+      type: object
+      properties:
+        assessment_id:
+          type: string
+        created_at:
+          type: string
+        risk_level:
+          type: string
+        score:
+          type: number
+    github_com_FangcunMount_qs-server_internal_collection-server_application_answersheet.Answer:
+      type: object
+      required:
+      - question_code
+      - question_type
+      - value
+      properties:
+        question_code:
+          type: string
+        question_type:
+          type: string
+        score:
+          type: integer
+        value:
+          description: JSON 字符串
+          type: string
+    github_com_FangcunMount_qs-server_internal_collection-server_application_questionnaire.ListQuestionnairesResponse:
+      type: object
+      properties:
+        page:
+          type: integer
+        page_size:
+          type: integer
+        questionnaires:
+          type: array
+          items:
+            $ref: '#/components/schemas/questionnaire.QuestionnaireSummaryResponse'
+        total:
+          type: integer
+    meta.Birthday:
+      type: object
+    questionnaire.CalculationRuleResponse:
+      type: object
+      properties:
+        formula_type:
+          type: string
+    questionnaire.OptionResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        content:
+          type: string
+        score:
+          type: integer
+    questionnaire.QuestionResponse:
+      type: object
+      properties:
+        calculation_rule:
+          $ref: '#/components/schemas/questionnaire.CalculationRuleResponse'
+        code:
+          type: string
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/questionnaire.OptionResponse'
+        placeholder:
+          type: string
+        tips:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+        validation_rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/questionnaire.ValidationRuleResponse'
+    questionnaire.QuestionnaireResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        created_at:
+          type: string
+        description:
+          type: string
+        img_url:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/questionnaire.QuestionResponse'
+        status:
+          type: string
+        title:
+          type: string
+        type:
+          description: 问卷类型：Survey(调查问卷) / MedicalScale(医学量表)
+          type: string
+        updated_at:
+          type: string
+        version:
+          type: string
+    questionnaire.QuestionnaireSummaryResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        created_at:
+          type: string
+        description:
+          type: string
+        img_url:
+          type: string
+        question_count:
+          type: integer
+        status:
+          type: string
+        title:
+          type: string
+        type:
+          description: 问卷类型：Survey(调查问卷) / MedicalScale(医学量表)
+          type: string
+        updated_at:
+          type: string
+        version:
+          type: string
+    questionnaire.ValidationRuleResponse:
+      type: object
+      properties:
+        rule_type:
+          type: string
+        target_value:
+          type: string
+    testee.AssessmentStatsDTO:
+      type: object
+      properties:
+        last_assessment_at:
+          description: 最后测评时间
+          type: string
+        last_risk_level:
+          description: 最后风险等级
+          type: string
+        total_count:
+          description: 总测评次数
+          type: integer
+    testee.CreateTesteeRequest:
+      type: object
+      required:
+      - gender
+      - iam_child_id
+      - name
+      properties:
+        birthday:
+          description: 出生日期（格式：YYYY-MM-DD）
+          allOf:
+          - $ref: '#/components/schemas/meta.Birthday'
+        gender:
+          description: 性别：1-男，2-女，3-其他
+          type: integer
+        iam_child_id:
+          description: IAM儿童ID - 使用字符串以兼容 IAM 系统和前端大数字
+          type: string
+        iam_user_id:
+          description: IAM用户ID（成人）- 使用字符串以兼容 IAM 系统和前端大数字
+          type: string
+        is_key_focus:
+          description: 是否重点关注
+          type: boolean
+        name:
+          description: 姓名
+          type: string
+        source:
+          description: 来源：online_form/plan/screening/imported
+          type: string
+        tags:
+          description: 标签列表
+          type: array
+          items:
+            type: string
+    testee.ListTesteesResponse:
+      type: object
+      properties:
+        items:
+          description: 受试者列表
+          type: array
+          items:
+            $ref: '#/components/schemas/testee.TesteeResponse'
+        total:
+          description: 总数
+          type: integer
+    testee.TesteeExistsResponse:
+      type: object
+      properties:
+        exists:
+          description: 是否存在
+          type: boolean
+        testee_id:
+          description: 受试者ID（如果存在）
+          type: string
+    testee.TesteeResponse:
+      type: object
+      properties:
+        assessment_stats:
+          description: 测评统计信息
+          allOf:
+          - $ref: '#/components/schemas/testee.AssessmentStatsDTO'
+        birthday:
+          description: 出生日期（格式：YYYY-MM-DD）
+          allOf:
+          - $ref: '#/components/schemas/meta.Birthday'
+        created_at:
+          description: 创建时间
+          type: string
+        gender:
+          description: 性别
+          type: integer
+        iam_child_id:
+          description: IAM儿童ID - 使用字符串以兼容 IAM 系统和前端大数字
+          type: string
+        iam_user_id:
+          description: IAM用户ID - 使用字符串以兼容 IAM 系统和前端大数字
+          type: string
+        id:
+          description: 受试者ID
+          type: string
+        is_key_focus:
+          description: 是否重点关注
+          type: boolean
+        name:
+          description: 姓名
+          type: string
+        org_id:
+          description: 机构ID
+          type: string
+        source:
+          description: 来源
+          type: string
+        tags:
+          description: 标签列表
+          type: array
+          items:
+            type: string
+        updated_at:
+          description: 更新时间
+          type: string
+    testee.UpdateTesteeRequest:
+      type: object
+      properties:
+        birthday:
+          description: 出生日期（格式：YYYY-MM-DD）
+          allOf:
+          - $ref: '#/components/schemas/meta.Birthday'
+        gender:
+          description: 性别
+          type: integer
+        is_key_focus:
+          description: 是否重点关注
+          type: boolean
+        name:
+          description: 姓名
+          type: string
+        tags:
+          description: 标签列表
+          type: array
+          items:
+            type: string
