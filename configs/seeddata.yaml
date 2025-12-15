@@ -219,10 +219,10 @@ resources:
 # - subject_id 使用 @alias 语法引用 users 中的别名，运行时替换为实际用户ID
 # - role_alias 使用 @alias 语法引用 roles 中的别名；也可以直接用 role_id
 assignments:
-  # 系统管理员拥有 super_admin 角色（schema.sql 预置的角色，使用 role_id）
+  # 系统管理员拥有 super_admin 角色（用 alias 解析，避免写死 ID）
   - subject_type: "user"
     subject_id: "@admin"
-    role_id: 1  # super_admin (预置角色)
+    role_alias: "@super_admin"
     tenant_id: "default"
     granted_by: "system"
   
