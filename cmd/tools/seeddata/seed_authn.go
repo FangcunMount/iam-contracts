@@ -5,12 +5,18 @@ import (
 	"errors"
 	"fmt"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/register"
 	authnUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
 	accountDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
+	authnAuth "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
+	credentialDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/credential"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/crypto"
+	accountRepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/account"
+	credentialRepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/credential"
 	userRepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
 	wechatInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/wechat"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -40,6 +46,8 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 	// 初始化基础设施层
 	unitOfWork := authnUOW.NewUnitOfWork(deps.DB)
 	userRepository := userRepo.NewRepository(deps.DB)
+	accountRepository := accountRepo.NewAccountRepository(deps.DB)
+	credentialRepository := credentialRepo.NewRepository(deps.DB)
 
 	// 初始化领域服务（密码哈希器）
 	// TODO: pepper 应该从配置中读取
@@ -102,6 +110,16 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 
 		result, err := registerService.Register(ctx, req)
 		if err != nil {
+			// 支持重复运行：按策略选择跳过或覆盖
+			if handled, accID, handleErr := handleAuthnConflict(ctx, deps, accountRepository, credentialRepository, passwordHasher, ac, userID, err); handled {
+				if handleErr != nil {
+					return fmt.Errorf("register account %s: %w", ac.Alias, handleErr)
+				}
+				if accID != 0 {
+					state.Accounts[ac.Alias] = accID
+				}
+				continue
+			}
 			return fmt.Errorf("register account %s: %w", ac.Alias, err)
 		}
 
@@ -127,4 +145,86 @@ func parseAuthnUserID(userIDStr string) (meta.ID, error) {
 		return meta.FromUint64(0), fmt.Errorf("invalid user id format: %s", userIDStr)
 	}
 	return meta.FromUint64(id), nil
+}
+
+// handleAuthnConflict 处理账号/凭据已存在的场景，支持 skip/overwrite 策略
+func handleAuthnConflict(
+	ctx context.Context,
+	deps *dependencies,
+	accountRepo *accountRepo.AccountRepository,
+	credentialRepo *credentialRepo.Repository,
+	passwordHasher authnAuth.PasswordHasher,
+	ac AccountConfig,
+	userID meta.ID,
+	originalErr error,
+) (handled bool, accountID uint64, err error) {
+	// 非冲突错误，不处理
+	if !(perrors.IsCode(originalErr, code.ErrAccountExists) ||
+		perrors.IsCode(originalErr, code.ErrExternalExists) ||
+		perrors.IsCode(originalErr, code.ErrCredentialExists)) {
+		return false, 0, nil
+	}
+
+	// 查询已存在账号
+	existing, getErr := accountRepo.GetByExternalIDAppId(ctx,
+		accountDomain.ExternalID(ac.Username),
+		accountDomain.AppId(ac.AppID),
+	)
+	if getErr != nil {
+		return true, 0, fmt.Errorf("fetch existing account: %w", getErr)
+	}
+	if existing == nil {
+		return true, 0, fmt.Errorf("account already exists but not found by username=%s", ac.Username)
+	}
+	if existing.UserID != userID {
+		return true, 0, fmt.Errorf("account %s belongs to another user", ac.Username)
+	}
+
+	switch deps.OnConflict {
+	case "skip":
+		deps.Logger.Infow("⚠️  账号已存在，按策略跳过",
+			"account_alias", ac.Alias,
+			"username", ac.Username,
+			"strategy", "skip")
+		return true, existing.ID.Uint64(), nil
+	case "overwrite":
+		// 覆盖密码：若有密码凭据则更新，否则创建
+		cred, credErr := credentialRepo.GetByAccountIDAndType(ctx, existing.ID, credentialDomain.CredPassword)
+		if credErr != nil {
+			return true, 0, fmt.Errorf("get credential: %w", credErr)
+		}
+
+		hashed, hashErr := passwordHasher.Hash(ac.Password + passwordHasher.Pepper())
+		if hashErr != nil {
+			return true, 0, fmt.Errorf("hash password: %w", hashErr)
+		}
+		algo := "argon2id"
+
+		if cred != nil {
+			if updErr := credentialRepo.UpdateMaterial(ctx, cred.ID, []byte(hashed), algo); updErr != nil {
+				return true, 0, fmt.Errorf("update credential: %w", updErr)
+			}
+		} else {
+			issuer := credentialDomain.NewIssuer(passwordHasher)
+			newCred, issueErr := issuer.IssuePassword(ctx, credentialDomain.IssuePasswordRequest{
+				AccountID:     existing.ID,
+				PlainPassword: ac.Password,
+			})
+			if issueErr != nil {
+				return true, 0, fmt.Errorf("issue credential: %w", issueErr)
+			}
+			if createErr := credentialRepo.Create(ctx, newCred); createErr != nil {
+				return true, 0, fmt.Errorf("create credential: %w", createErr)
+			}
+		}
+
+		deps.Logger.Infow("🔄  账号已存在，密码已覆盖",
+			"account_alias", ac.Alias,
+			"username", ac.Username,
+			"strategy", "overwrite")
+		return true, existing.ID.Uint64(), nil
+	default:
+		// fail 策略：交回调用方处理
+		return false, 0, nil
+	}
 }

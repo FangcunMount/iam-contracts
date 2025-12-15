@@ -78,6 +78,7 @@ type dependencies struct {
 	CasbinModel string        // Casbin模型文件路径
 	Logger      log.Logger    // 日志记录器
 	Config      *SeedConfig   // 种子数据配置
+	OnConflict  string        // 数据已存在时的处理策略：skip/overwrite/fail
 }
 
 // seedContext holds the state and references created during seeding.
@@ -119,10 +120,16 @@ func main() {
 	familyCountFlag := flag.Int("family-count", 200000, "Number of families to generate in family seed step")
 	workerCountFlag := flag.Int("worker-count", 500, "Number of concurrent workers for family seed step")
 	verboseFlag := flag.Bool("verbose", false, "Enable verbose output including SQL logs")
+	onConflictFlag := flag.String("on-conflict", "skip", "Behavior when data already exists: skip|overwrite|fail")
 	flag.Parse()
 
 	// 初始化日志
 	logger := log.New(log.NewOptions())
+
+	onConflict := strings.ToLower(*onConflictFlag)
+	if onConflict != "skip" && onConflict != "overwrite" && onConflict != "fail" {
+		logger.Fatalw("❌ 无效的冲突处理策略", "on_conflict", *onConflictFlag)
+	}
 
 	// 加载种子数据配置
 	logger.Infow("📄 加载种子数据配置...", "config_file", *configFileFlag)
@@ -172,6 +179,7 @@ func main() {
 		CasbinModel: *casbinModelFlag,
 		Logger:      logger,
 		Config:      seedConfig,
+		OnConflict:  onConflict,
 	}
 
 	// 解析要执行的步骤
