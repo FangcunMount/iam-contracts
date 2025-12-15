@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/register"
@@ -159,9 +160,7 @@ func handleAuthnConflict(
 	originalErr error,
 ) (handled bool, accountID uint64, err error) {
 	// 非冲突错误，不处理
-	if !(perrors.IsCode(originalErr, code.ErrAccountExists) ||
-		perrors.IsCode(originalErr, code.ErrExternalExists) ||
-		perrors.IsCode(originalErr, code.ErrCredentialExists)) {
+	if !isAuthnConflictError(originalErr) {
 		return false, 0, nil
 	}
 
@@ -194,25 +193,23 @@ func handleAuthnConflict(
 			return true, 0, fmt.Errorf("get credential: %w", credErr)
 		}
 
-		hashed, hashErr := passwordHasher.Hash(ac.Password + passwordHasher.Pepper())
-		if hashErr != nil {
-			return true, 0, fmt.Errorf("hash password: %w", hashErr)
+		issuer := credentialDomain.NewIssuer(passwordHasher)
+		newCred, issueErr := issuer.IssuePassword(ctx, credentialDomain.IssuePasswordRequest{
+			AccountID:     existing.ID,
+			PlainPassword: ac.Password, // 由 issuer 内部加 pepper + hash
+		})
+		if issueErr != nil {
+			return true, 0, fmt.Errorf("issue credential: %w", issueErr)
 		}
-		algo := "argon2id"
 
 		if cred != nil {
-			if updErr := credentialRepo.UpdateMaterial(ctx, cred.ID, []byte(hashed), algo); updErr != nil {
+			if newCred.Algo == nil {
+				return true, 0, fmt.Errorf("issued credential algo is nil")
+			}
+			if updErr := credentialRepo.UpdateMaterial(ctx, cred.ID, newCred.Material, *newCred.Algo); updErr != nil {
 				return true, 0, fmt.Errorf("update credential: %w", updErr)
 			}
 		} else {
-			issuer := credentialDomain.NewIssuer(passwordHasher)
-			newCred, issueErr := issuer.IssuePassword(ctx, credentialDomain.IssuePasswordRequest{
-				AccountID:     existing.ID,
-				PlainPassword: ac.Password,
-			})
-			if issueErr != nil {
-				return true, 0, fmt.Errorf("issue credential: %w", issueErr)
-			}
 			if createErr := credentialRepo.Create(ctx, newCred); createErr != nil {
 				return true, 0, fmt.Errorf("create credential: %w", createErr)
 			}
@@ -227,4 +224,21 @@ func handleAuthnConflict(
 		// fail 策略：交回调用方处理
 		return false, 0, nil
 	}
+}
+
+// isAuthnConflictError 识别账号/凭据唯一性冲突
+func isAuthnConflictError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if perrors.IsCode(err, code.ErrAccountExists) ||
+		perrors.IsCode(err, code.ErrExternalExists) ||
+		perrors.IsCode(err, code.ErrCredentialExists) {
+		return true
+	}
+	// 兜底：字符串匹配
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "account already exists") ||
+		strings.Contains(msg, "credential already exists") ||
+		strings.Contains(msg, "duplicate")
 }
