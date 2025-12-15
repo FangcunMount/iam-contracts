@@ -159,14 +159,29 @@ func (s *registerApplicationService) Register(ctx context.Context, req RegisterR
 			return err
 		}
 
-		// 持久化凭据
+		// 持久化凭据（幂等：凭据已存在时复用现有凭据）
 		if err := tx.Credentials.Create(ctx, credential); err != nil {
-			l.Errorw("持久化凭据失败",
-				"action", logger.ActionRegister,
-				"error", err.Error(),
-				"result", logger.ResultFailed,
-			)
-			return perrors.WithCode(code.ErrDatabase, "failed to save credential: %v", err)
+			if perrors.IsCode(err, code.ErrCredentialExists) {
+				credType := mapCredentialType(req.CredentialType)
+				existing, getErr := tx.Credentials.GetByAccountIDAndType(ctx, account.ID, credType)
+				if getErr != nil {
+					l.Errorw("查询已存在的凭据失败",
+						"action", logger.ActionRegister,
+						"error", getErr.Error(),
+						"result", logger.ResultFailed,
+					)
+					return perrors.WithCode(code.ErrDatabase, "failed to reuse credential: %v", getErr)
+				}
+				// 复用已存在的凭据
+				credential = existing
+			} else {
+				l.Errorw("持久化凭据失败",
+					"action", logger.ActionRegister,
+					"error", err.Error(),
+					"result", logger.ResultFailed,
+				)
+				return perrors.WithCode(code.ErrDatabase, "failed to save credential: %v", err)
+			}
 		}
 
 		idpType := "password"
@@ -380,4 +395,18 @@ func (s *registerApplicationService) createOrGetUser(ctx context.Context, repo u
 	}
 
 	return user, true, nil
+}
+
+// mapCredentialType 将应用层凭据类型映射为领域层类型
+func mapCredentialType(t CredentialType) credDomain.CredentialType {
+	switch t {
+	case CredTypePhone:
+		return credDomain.CredPhoneOTP
+	case CredTypeWechat:
+		return credDomain.CredOAuthWxMinip
+	case CredTypeWecom:
+		return credDomain.CredOAuthWecom
+	default:
+		return credDomain.CredPassword
+	}
 }
