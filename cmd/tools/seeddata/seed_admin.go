@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	ucUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	userApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
@@ -133,8 +134,18 @@ func seedStaff(ctx context.Context, deps *dependencies, state *seedContext) erro
 			continue
 		}
 
+		// 运营账号 external_id 使用手机号，优先使用配置的 external_id/username，否则回退用户手机号
+		loginID := account.ExternalID
+		if loginID == "" {
+			loginID = account.Username
+		}
+		if loginID == "" {
+			loginID = uc.Phone
+		}
+		loginID = normalizeLoginID(loginID)
+
 		// 登录获取 token
-		token, err := loginWithPassword(deps.Config.IAMServiceURL, account.Username, account.Password)
+		token, err := loginWithPassword(deps.Config.IAMServiceURL, loginID, account.Password)
 		if err != nil {
 			deps.Logger.Warnw("⚠️  登录失败，跳过员工创建",
 				"alias", uc.Alias,
@@ -174,15 +185,15 @@ type TokenPair struct {
 	ExpiresIn    int    `json:"expires_in"`
 }
 
-// loginWithPassword 使用用户名密码登录 IAM 获取 token
-func loginWithPassword(iamServiceURL, username, password string) (string, error) {
+// loginWithPassword 使用登录标识（与账户 ExternalID 相同，如手机号）+密码登录 IAM 获取 token
+func loginWithPassword(iamServiceURL, loginID, password string) (string, error) {
 	credentials, err := json.Marshal(struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 		// TenantID 可选，0 表示默认租户
 		TenantID uint64 `json:"tenant_id,omitempty"`
 	}{
-		Username: username,
+		Username: loginID,
 		Password: password,
 	})
 	if err != nil {
@@ -225,6 +236,22 @@ func loginWithPassword(iamServiceURL, username, password string) (string, error)
 	}
 
 	return tokenPair.AccessToken, nil
+}
+
+// normalizeLoginID 尝试将手机号补全为 E.164，避免账号 ExternalID=手机号时登录失败
+func normalizeLoginID(loginID string) string {
+	if loginID == "" {
+		return loginID
+	}
+	trimmed := strings.TrimSpace(loginID)
+	if strings.HasPrefix(trimmed, "+") {
+		return trimmed
+	}
+	// 简单规则：11位国内手机号前补 +86
+	if len(trimmed) == 11 && strings.HasPrefix(trimmed, "1") {
+		return "+86" + trimmed
+	}
+	return trimmed
 }
 
 // ==================== 创建员工（QS 服务） ====================
