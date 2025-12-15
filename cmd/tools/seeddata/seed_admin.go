@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -162,9 +161,9 @@ func seedStaff(ctx context.Context, deps *dependencies, state *seedContext) erro
 
 // LoginRequest IAM 登录请求
 type LoginRequest struct {
-	Method      string `json:"method"`
-	Credentials string `json:"credentials"` // base64编码的凭证字符串
-	DeviceID    string `json:"device_id,omitempty"`
+	Method      string          `json:"method"`
+	Credentials json.RawMessage `json:"credentials"` // 直接传递接口期望的 JSON 对象
+	DeviceID    string          `json:"device_id,omitempty"`
 }
 
 // TokenPair IAM 登录响应
@@ -177,8 +176,18 @@ type TokenPair struct {
 
 // loginWithPassword 使用用户名密码登录 IAM 获取 token
 func loginWithPassword(iamServiceURL, username, password string) (string, error) {
-	// 构建凭证：username + ":" + password，然后base64编码
-	credentials := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
+	credentials, err := json.Marshal(struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		// TenantID 可选，0 表示默认租户
+		TenantID uint64 `json:"tenant_id,omitempty"`
+	}{
+		Username: username,
+		Password: password,
+	})
+	if err != nil {
+		return "", fmt.Errorf("marshal credentials: %w", err)
+	}
 
 	reqBody := LoginRequest{
 		Method:      "password",
