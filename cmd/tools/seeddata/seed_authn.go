@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
@@ -51,8 +52,8 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 	credentialRepository := credentialRepo.NewRepository(deps.DB)
 
 	// 初始化领域服务（密码哈希器）
-	// TODO: pepper 应该从配置中读取
-	passwordHasher := crypto.NewArgon2Hasher("default-pepper-change-me")
+	pepper := os.Getenv("SEEDDATA_PASSWORD_PEPPER") // 与服务端保持一致，默认空字符串
+	passwordHasher := crypto.NewArgon2Hasher(pepper)
 
 	// 初始化身份提供商（简单实现，用于 seeddata）
 	idp := wechatInfra.NewIdentityProvider(nil, nil)
