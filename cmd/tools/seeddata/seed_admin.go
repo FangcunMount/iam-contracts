@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -162,7 +163,7 @@ func seedStaff(ctx context.Context, deps *dependencies, state *seedContext) erro
 // LoginRequest IAM 登录请求
 type LoginRequest struct {
 	Method      string `json:"method"`
-	Credentials []byte `json:"credentials"`
+	Credentials string `json:"credentials"` // base64编码的凭证字符串
 	DeviceID    string `json:"device_id,omitempty"`
 }
 
@@ -176,8 +177,8 @@ type TokenPair struct {
 
 // loginWithPassword 使用用户名密码登录 IAM 获取 token
 func loginWithPassword(iamServiceURL, username, password string) (string, error) {
-	// 构建凭证：username + ":" + password
-	credentials := []byte(username + ":" + password)
+	// 构建凭证：username + ":" + password，然后base64编码
+	credentials := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
 
 	reqBody := LoginRequest{
 		Method:      "password",

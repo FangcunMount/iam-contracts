@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -861,8 +862,8 @@ func loginAsSuperAdmin(ctx context.Context, iamServiceURL string) (string, error
 	username := "admin"
 	password := "Admin@123"
 
-	// 构建凭证：username + ":" + password
-	credentials := []byte(username + ":" + password)
+	// 构建凭证：username + ":" + password，然后base64编码
+	credentials := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
 
 	reqBody := LoginRequest{
 		Method:      "password",
