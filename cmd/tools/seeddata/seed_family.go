@@ -499,6 +499,8 @@ func (t *familySeedTask) Run(
 	phoneSet *PhoneSet,
 	collectionURL string,
 	iamServiceURL string,
+	adminLoginID string,
+	adminPassword string,
 ) error {
 	// 1. 生成家庭数据
 	family, err := generateFamily(t.Index, phoneSet)
@@ -551,7 +553,7 @@ func (t *familySeedTask) Run(
 			guardianPhone = family.Mother.Phone
 		}
 		if guardianPhone != "" && collectionURL != "" {
-			if err := createTestee(ctx, services.LoginAppSrv, collectionURL, iamServiceURL, guardianPhone, childID, &child); err != nil {
+			if err := createTestee(ctx, services.LoginAppSrv, collectionURL, iamServiceURL, adminLoginID, adminPassword, guardianPhone, childID, &child); err != nil {
 				// 受试者创建失败不阻断流程，记录错误继续
 				fmt.Printf("\nWarning: task %d: create testee for child %d failed: %v\n", t.Index, i, err)
 			}
@@ -676,6 +678,8 @@ func createTestee(
 	loginAppSrv loginApp.LoginApplicationService,
 	collectionURL string,
 	iamServiceURL string,
+	adminLoginID string,
+	adminPassword string,
 	guardianPhone string,
 	childID string,
 	child *childrenSeed,
@@ -686,7 +690,7 @@ func createTestee(
 	}
 
 	// 1. 通过 IAM 服务登录获取超级管理员 token
-	token, err := loginAsSuperAdmin(ctx, iamServiceURL)
+	token, err := loginAsSuperAdmin(ctx, iamServiceURL, adminLoginID, adminPassword)
 	if err != nil {
 		return fmt.Errorf("login as super admin: %w", err)
 	}
@@ -809,6 +813,7 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 	// 获取配置
 	collectionURL := deps.Config.CollectionURL
 	iamServiceURL := deps.Config.IAMServiceURL
+	adminLoginID, adminPassword := resolveAdminLogin(deps.Config)
 
 	// 启动 workers
 	for i := 0; i < workerCount; i++ {
@@ -816,7 +821,7 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 		go func(workerID int) {
 			defer wg.Done()
 			for task := range taskCh {
-				if err := task.Run(ctx, services, phoneSet, collectionURL, iamServiceURL); err != nil {
+				if err := task.Run(ctx, services, phoneSet, collectionURL, iamServiceURL, adminLoginID, adminPassword); err != nil {
 					failed := atomic.AddInt64(&failCount, 1)
 					success := atomic.LoadInt64(&successCount)
 					printProgress(success+failed, int64(familyCount), failed)
@@ -855,11 +860,53 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 	return nil
 }
 
+// resolveAdminLogin 从配置解析管理员登录ID和密码（运营账号 external_id 为手机号）
+func resolveAdminLogin(cfg *SeedConfig) (loginID, password string) {
+	if cfg == nil {
+		return "", ""
+	}
+
+	// 记录用户手机号，按别名索引
+	userPhones := make(map[string]string, len(cfg.Users))
+	for _, u := range cfg.Users {
+		userPhones[u.Alias] = u.Phone
+	}
+
+	for _, ac := range cfg.Accounts {
+		if ac.Provider != "operation" {
+			continue
+		}
+		// 取第一个 operation 账号作为管理员凭据
+		password = ac.Password
+		loginID = ac.ExternalID
+		if loginID == "" {
+			loginID = ac.Username
+		}
+		if loginID == "" && userPhones[ac.UserAlias] != "" {
+			loginID = userPhones[ac.UserAlias]
+		}
+		break
+	}
+
+	if loginID == "" {
+		// 回退使用名为 admin 的用户手机号
+		loginID = userPhones["admin"]
+	}
+
+	return normalizeLoginID(loginID), password
+}
+
 // loginAsSuperAdmin 使用超级管理员账号登录 IAM 服务获取 token
-func loginAsSuperAdmin(ctx context.Context, iamServiceURL string) (string, error) {
-	// 超级管理员凭据（与 seeddata.yaml 中的配置保持一致）
-	username := "admin"
-	password := "Admin@123"
+func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password string) (string, error) {
+	// 优先使用传入的 loginID，否则回退默认 admin
+	if loginID == "" {
+		loginID = "admin"
+	}
+	if password == "" {
+		password = "Admin@123"
+	}
+
+	loginID = normalizeLoginID(loginID)
 
 	// 构建接口期望的 JSON 凭证
 	credentials, err := json.Marshal(struct {
@@ -867,7 +914,7 @@ func loginAsSuperAdmin(ctx context.Context, iamServiceURL string) (string, error
 		Password string `json:"password"`
 		TenantID uint64 `json:"tenant_id,omitempty"`
 	}{
-		Username: username,
+		Username: loginID,
 		Password: password,
 	})
 	if err != nil {
