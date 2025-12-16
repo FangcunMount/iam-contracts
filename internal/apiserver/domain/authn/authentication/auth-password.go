@@ -229,7 +229,7 @@ func (p *PasswordAuthStrategy) Authenticate(ctx context.Context, credential Auth
 		} else {
 			shouldRotate = true
 			newHashBytes = []byte(newHash)
-			l.Infow("检测到需要rehash的密码",
+			l.Debugw("检测到需要rehash的密码",
 				"scenario", string(AuthPassword),
 				"credential_id", credentialID.String(),
 			)
@@ -237,7 +237,7 @@ func (p *PasswordAuthStrategy) Authenticate(ctx context.Context, credential Auth
 	}
 
 	// Step 6: 认证成功，构造Principal
-	l.Infow("密码认证成功",
+	l.Debugw("密码认证成功",
 		"scenario", string(AuthPassword),
 		"account_id", accountID.String(),
 		"user_id", userID.String(),

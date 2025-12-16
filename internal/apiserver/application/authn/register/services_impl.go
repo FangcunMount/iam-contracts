@@ -52,7 +52,7 @@ func (s *registerApplicationService) Register(ctx context.Context, req RegisterR
 	l := logger.L(ctx)
 	var result *RegisterResult
 
-	l.Infow("开始用户注册流程",
+	l.Debugw("开始用户注册流程",
 		"action", logger.ActionRegister,
 		"resource", logger.ResourceUser,
 		"account_type", string(req.AccountType),
@@ -228,7 +228,7 @@ func (s *registerApplicationService) Register(ctx context.Context, req RegisterR
 		return nil, err
 	}
 
-	l.Infow("用户注册成功",
+	l.Debugw("用户注册成功",
 		"action", logger.ActionRegister,
 		"resource", logger.ResourceUser,
 		"user_id", result.UserID.String(),

@@ -30,7 +30,7 @@ func NewGuardianshipApplicationService(uow uow.UnitOfWork) GuardianshipApplicati
 // AddGuardian 添加监护人
 func (s *guardianshipApplicationService) AddGuardian(ctx context.Context, dto AddGuardianDTO) error {
 	l := logger.L(ctx)
-	l.Infow("添加监护人",
+	l.Debugw("添加监护人",
 		"action", logger.ActionCreate,
 		"resource", "guardianship",
 		"user_id", dto.UserID,
@@ -82,7 +82,7 @@ func (s *guardianshipApplicationService) AddGuardian(ctx context.Context, dto Ad
 	})
 
 	if err == nil {
-		l.Infow("添加监护人成功",
+		l.Debugw("添加监护人成功",
 			"action", logger.ActionCreate,
 			"resource", "guardianship",
 			"user_id", dto.UserID,
@@ -97,7 +97,7 @@ func (s *guardianshipApplicationService) AddGuardian(ctx context.Context, dto Ad
 // RemoveGuardian 移除监护人
 func (s *guardianshipApplicationService) RemoveGuardian(ctx context.Context, dto RemoveGuardianDTO) error {
 	l := logger.L(ctx)
-	l.Infow("移除监护人",
+	l.Debugw("移除监护人",
 		"action", logger.ActionDelete,
 		"resource", "guardianship",
 		"user_id", dto.UserID,
@@ -145,7 +145,7 @@ func (s *guardianshipApplicationService) RemoveGuardian(ctx context.Context, dto
 	})
 
 	if err == nil {
-		l.Infow("移除监护人成功",
+		l.Debugw("移除监护人成功",
 			"action", logger.ActionDelete,
 			"resource", "guardianship",
 			"user_id", dto.UserID,

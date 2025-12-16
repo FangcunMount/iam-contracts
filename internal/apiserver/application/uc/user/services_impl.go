@@ -109,7 +109,7 @@ func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserD
 	})
 
 	if err == nil {
-		l.Infow("用户注册成功",
+		l.Debugw("用户注册成功",
 			"action", logger.ActionRegister,
 			"resource", logger.ResourceUser,
 			"user_id", result.ID,
@@ -177,7 +177,7 @@ func (s *userProfileApplicationService) Rename(ctx context.Context, userID strin
 	})
 
 	if err == nil {
-		l.Infow("修改用户名称成功",
+		l.Debugw("修改用户名称成功",
 			"action", logger.ActionUpdate,
 			"resource", logger.ResourceUser,
 			"user_id", userID,
@@ -231,7 +231,7 @@ func (s *userProfileApplicationService) Renickname(ctx context.Context, userID s
 	})
 
 	if err == nil {
-		l.Infow("修改用户昵称成功",
+		l.Debugw("修改用户昵称成功",
 			"action", logger.ActionUpdate,
 			"resource", logger.ResourceUser,
 			"user_id", userID,
@@ -306,7 +306,7 @@ func (s *userProfileApplicationService) UpdateContact(ctx context.Context, dto U
 	})
 
 	if err == nil {
-		l.Infow("更新联系方式成功",
+		l.Debugw("更新联系方式成功",
 			"action", logger.ActionUpdate,
 			"resource", logger.ResourceUser,
 			"user_id", dto.UserID,
@@ -370,7 +370,7 @@ func (s *userProfileApplicationService) UpdateIDCard(ctx context.Context, userID
 	})
 
 	if err == nil {
-		l.Infow("更新身份证成功",
+		l.Debugw("更新身份证成功",
 			"action", logger.ActionUpdate,
 			"resource", logger.ResourceUser,
 			"user_id", userID,
@@ -436,7 +436,7 @@ func (s *userStatusApplicationService) Activate(ctx context.Context, userID stri
 	})
 
 	if err == nil {
-		l.Infow("激活用户成功",
+		l.Debugw("激活用户成功",
 			"action", logger.ActionUpdate,
 			"resource", logger.ResourceUser,
 			"user_id", userID,
@@ -488,7 +488,7 @@ func (s *userStatusApplicationService) Deactivate(ctx context.Context, userID st
 	})
 
 	if err == nil {
-		l.Infow("停用用户成功",
+		l.Debugw("停用用户成功",
 			"action", logger.ActionUpdate,
 			"resource", logger.ResourceUser,
 			"user_id", userID,
@@ -540,7 +540,7 @@ func (s *userStatusApplicationService) Block(ctx context.Context, userID string)
 	})
 
 	if err == nil {
-		l.Infow("封禁用户成功",
+		l.Debugw("封禁用户成功",
 			"action", logger.ActionUpdate,
 			"resource", logger.ResourceUser,
 			"user_id", userID,

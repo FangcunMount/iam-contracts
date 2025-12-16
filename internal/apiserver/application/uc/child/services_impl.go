@@ -132,7 +132,7 @@ func (s *childApplicationService) Register(ctx context.Context, dto RegisterChil
 	})
 
 	if err == nil {
-		l.Infow("儿童档案注册成功",
+		l.Debugw("儿童档案注册成功",
 			"action", logger.ActionRegister,
 			"resource", logger.ResourceChild,
 			"resource_id", result.ID,
@@ -205,7 +205,7 @@ func (s *childProfileApplicationService) Rename(ctx context.Context, childID str
 	})
 
 	if err == nil {
-		l.Infow("儿童姓名修改成功",
+		l.Debugw("儿童姓名修改成功",
 			"action", logger.ActionUpdate,
 			"resource", logger.ResourceChild,
 			"resource_id", childID,
@@ -275,7 +275,7 @@ func (s *childProfileApplicationService) UpdateIDCard(ctx context.Context, child
 	})
 
 	if err == nil {
-		l.Infow("儿童身份证更新成功",
+		l.Debugw("儿童身份证更新成功",
 			"action", logger.ActionUpdate,
 			"resource", logger.ResourceChild,
 			"resource_id", childID,
@@ -336,7 +336,7 @@ func (s *childProfileApplicationService) UpdateProfile(ctx context.Context, dto 
 	})
 
 	if err == nil {
-		l.Infow("儿童基本信息更新成功",
+		l.Debugw("儿童基本信息更新成功",
 			"action", logger.ActionUpdate,
 			"resource", logger.ResourceChild,
 			"resource_id", dto.ChildID,
@@ -398,7 +398,7 @@ func (s *childProfileApplicationService) UpdateHeightWeight(ctx context.Context,
 	})
 
 	if err == nil {
-		l.Infow("儿童身高体重更新成功",
+		l.Debugw("儿童身高体重更新成功",
 			"action", logger.ActionUpdate,
 			"resource", logger.ResourceChild,
 			"resource_id", dto.ChildID,

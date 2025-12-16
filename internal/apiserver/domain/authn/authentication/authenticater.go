@@ -115,7 +115,7 @@ func (a *Authenticater) Authenticate(ctx context.Context, scenario Scenario, inp
 		return decision, nil
 	}
 
-	l.Infow("认证成功（域层）",
+	l.Debugw("认证成功（域层）",
 		"action", logger.ActionLogin,
 		"scenario", string(scenario),
 		"user_id", decision.Principal.UserID.String(),

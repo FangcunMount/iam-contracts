@@ -39,7 +39,7 @@ func NewWechatAppApplicationService(
 // CreateApp 创建微信应用
 func (s *wechatAppApplicationService) CreateApp(ctx context.Context, dto CreateWechatAppDTO) (*WechatAppResult, error) {
 	l := logger.L(ctx)
-	l.Infow("创建微信应用",
+	l.Debugw("创建微信应用",
 		"action", logger.ActionCreate,
 		"resource", "wechat_app",
 		"app_id", dto.AppID,
@@ -90,7 +90,7 @@ func (s *wechatAppApplicationService) CreateApp(ctx context.Context, dto CreateW
 		return nil, fmt.Errorf("failed to persist wechat app: %w", err)
 	}
 
-	l.Infow("创建微信应用成功",
+	l.Debugw("创建微信应用成功",
 		"action", logger.ActionCreate,
 		"resource", "wechat_app",
 		"app_id", dto.AppID,
@@ -164,7 +164,7 @@ func NewWechatAppCredentialApplicationService(
 // RotateAuthSecret 轮换认证密钥（AppSecret）
 func (s *wechatAppCredentialApplicationService) RotateAuthSecret(ctx context.Context, appID string, newSecret string) error {
 	l := logger.L(ctx)
-	l.Infow("轮换认证密钥",
+	l.Debugw("轮换认证密钥",
 		"action", logger.ActionUpdate,
 		"resource", "wechat_app_credential",
 		"app_id", appID,
@@ -217,7 +217,7 @@ func (s *wechatAppCredentialApplicationService) RotateAuthSecret(ctx context.Con
 		return fmt.Errorf("failed to update wechat app: %w", err)
 	}
 
-	l.Infow("轮换认证密钥成功",
+	l.Debugw("轮换认证密钥成功",
 		"action", logger.ActionUpdate,
 		"resource", "wechat_app_credential",
 		"app_id", appID,
@@ -230,7 +230,7 @@ func (s *wechatAppCredentialApplicationService) RotateAuthSecret(ctx context.Con
 // RotateMsgSecret 轮换消息加解密密钥
 func (s *wechatAppCredentialApplicationService) RotateMsgSecret(ctx context.Context, appID string, callbackToken string, encodingAESKey string) error {
 	l := logger.L(ctx)
-	l.Infow("轮换消息加解密密钥",
+	l.Debugw("轮换消息加解密密钥",
 		"action", logger.ActionUpdate,
 		"resource", "wechat_app_credential",
 		"app_id", appID,
@@ -283,7 +283,7 @@ func (s *wechatAppCredentialApplicationService) RotateMsgSecret(ctx context.Cont
 		return fmt.Errorf("failed to update wechat app: %w", err)
 	}
 
-	l.Infow("轮换消息加解密密钥成功",
+	l.Debugw("轮换消息加解密密钥成功",
 		"action", logger.ActionUpdate,
 		"resource", "wechat_app_credential",
 		"app_id", appID,

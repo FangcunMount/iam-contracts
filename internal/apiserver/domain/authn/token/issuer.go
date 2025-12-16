@@ -108,7 +108,7 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to save refresh token")
 	}
 
-	l.Infow("令牌对颁发成功",
+	l.Debugw("令牌对颁发成功",
 		"action", logger.ActionCreate,
 		"resource", "token",
 		"user_id", principal.UserID.String(),
@@ -180,7 +180,7 @@ func (s *TokenIssuer) RevokeToken(ctx context.Context, tokenValue string) error 
 		return perrors.WrapC(err, code.ErrInternalServerError, "failed to add token to blacklist")
 	}
 
-	l.Infow("访问令牌撤销成功",
+	l.Debugw("访问令牌撤销成功",
 		"action", logger.ActionDelete,
 		"resource", "access_token",
 		"token_id", claims.TokenID,

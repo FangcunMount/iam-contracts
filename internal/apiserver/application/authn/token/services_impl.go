@@ -54,7 +54,7 @@ func (s *tokenApplicationService) RefreshToken(ctx context.Context, refreshToken
 		return nil, perrors.WithCode(code.ErrTokenInvalid, "failed to refresh token: %v", err)
 	}
 
-	l.Infow("访问令牌刷新成功",
+	l.Debugw("访问令牌刷新成功",
 		"action", logger.ActionRefresh,
 		"resource", logger.ResourceToken,
 		"result", logger.ResultSuccess,
@@ -86,7 +86,7 @@ func (s *tokenApplicationService) RevokeToken(ctx context.Context, accessToken s
 		return perrors.WithCode(code.ErrInvalidArgument, "failed to revoke token: %v", err)
 	}
 
-	l.Infow("访问令牌撤销成功",
+	l.Debugw("访问令牌撤销成功",
 		"action", logger.ActionRevoke,
 		"resource", logger.ResourceToken,
 		"result", logger.ResultSuccess,
@@ -117,7 +117,7 @@ func (s *tokenApplicationService) RevokeRefreshToken(ctx context.Context, refres
 		return perrors.WithCode(code.ErrInvalidArgument, "failed to revoke refresh token: %v", err)
 	}
 
-	l.Infow("刷新令牌撤销成功",
+	l.Debugw("刷新令牌撤销成功",
 		"action", logger.ActionRevoke,
 		"resource", logger.ResourceToken,
 		"token_type", "refresh",
@@ -153,7 +153,7 @@ func (s *tokenApplicationService) VerifyToken(ctx context.Context, accessToken s
 		}, nil
 	}
 
-	l.Infow("访问令牌验证成功",
+	l.Debugw("访问令牌验证成功",
 		"action", logger.ActionVerify,
 		"resource", logger.ResourceToken,
 		"user_id", claims.UserID.String(),

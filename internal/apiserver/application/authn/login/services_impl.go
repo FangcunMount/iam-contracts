@@ -76,7 +76,7 @@ func (s *loginApplicationService) Login(ctx context.Context, req LoginRequest) (
 		return nil, s.convertAuthError(decision.ErrCode)
 	}
 
-	l.Infow("认证成功，开始颁发令牌",
+	l.Debugw("认证成功，开始颁发令牌",
 		"action", logger.ActionLogin,
 		"scenario", string(scenario),
 		"user_id", decision.Principal.UserID.String(),
@@ -95,7 +95,7 @@ func (s *loginApplicationService) Login(ctx context.Context, req LoginRequest) (
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "failed to issue token: %v", err)
 	}
 
-	l.Infow("登录完成",
+	l.Debugw("登录完成",
 		"action", logger.ActionLogin,
 		"user_id", decision.Principal.UserID.String(),
 		"account_id", decision.Principal.AccountID.String(),
@@ -136,7 +136,7 @@ func (s *loginApplicationService) Logout(ctx context.Context, req LogoutRequest)
 			)
 			return perrors.WithCode(code.ErrInvalidArgument, "failed to revoke refresh token: %v", err)
 		}
-		l.Infow("刷新令牌已撤销",
+		l.Debugw("刷新令牌已撤销",
 			"action", logger.ActionLogout,
 			"result", logger.ResultSuccess,
 		)
@@ -153,7 +153,7 @@ func (s *loginApplicationService) Logout(ctx context.Context, req LogoutRequest)
 			)
 			return perrors.WithCode(code.ErrInvalidArgument, "failed to revoke access token: %v", err)
 		}
-		l.Infow("访问令牌已撤销",
+		l.Debugw("访问令牌已撤销",
 			"action", logger.ActionLogout,
 			"result", logger.ResultSuccess,
 		)

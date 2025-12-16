@@ -145,7 +145,7 @@ func (j *JWTTokenAuthStrategy) Authenticate(ctx context.Context, credential Auth
 		}, nil
 	}
 
-	l.Infow("JWT Token认证成功",
+	l.Debugw("JWT Token认证成功",
 		"scenario", string(AuthJWTToken),
 		"user_id", userID.String(),
 		"account_id", accountID.String(),

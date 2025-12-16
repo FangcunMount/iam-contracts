@@ -128,7 +128,7 @@ func (s *accountApplicationService) SetUniqueID(ctx context.Context, accountID m
 	})
 
 	if err == nil {
-		l.Infow("账户唯一ID设置成功",
+		l.Debugw("账户唯一ID设置成功",
 			"action", logger.ActionUpdate,
 			"resource", "account",
 			"account_id", accountID.String(),
@@ -164,7 +164,7 @@ func (s *accountApplicationService) UpdateProfile(ctx context.Context, accountID
 	})
 
 	if err == nil {
-		l.Infow("账户资料更新成功",
+		l.Debugw("账户资料更新成功",
 			"action", logger.ActionUpdate,
 			"resource", "account",
 			"account_id", accountID.String(),
