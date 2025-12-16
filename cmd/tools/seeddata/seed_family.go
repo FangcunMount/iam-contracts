@@ -831,6 +831,9 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 	// 统计
 	var successCount, failCount int64
 	var wg sync.WaitGroup
+	// 失败任务详情收集（用于排查并发下偶发错误）
+	var failedMu sync.Mutex
+	failedDetails := make([]string, 0, 8)
 
 	// 打印初始进度
 	printProgress(0, int64(familyCount), 0)
@@ -857,6 +860,13 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 			defer wg.Done()
 			for task := range taskCh {
 				if err := task.Run(ctx, services, phoneSet, collectionURL, iamServiceURL, adminLoginID, adminPassword); err != nil {
+					// 记录失败详情，便于排查（只保存有限条）
+					failedMu.Lock()
+					if len(failedDetails) < 100 {
+						failedDetails = append(failedDetails, fmt.Sprintf("task %d: %v", task.Index, err))
+					}
+					failedMu.Unlock()
+
 					failed := atomic.AddInt64(&failCount, 1)
 					success := atomic.LoadInt64(&successCount)
 					printProgress(success+failed, int64(familyCount), failed)
@@ -889,6 +899,20 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 	fmt.Println()
 	if failCount > 0 {
 		fmt.Printf("⚠️  家庭数据创建完成: 成功 %d, 失败 %d, 总计 %d\n", successCount, failCount, familyCount)
+		// 打印部分失败详情以便排查（最多 100 条）
+		failedMu.Lock()
+		if len(failedDetails) > 0 {
+			fmt.Println("---- 失败任务示例 ----")
+			for i, d := range failedDetails {
+				if i >= 20 {
+					fmt.Printf("... 共 %d 条失败，已显示 20 条样例\n", len(failedDetails))
+					break
+				}
+				fmt.Printf("%s\n", d)
+			}
+			fmt.Println("---- 结束 ----")
+		}
+		failedMu.Unlock()
 		return fmt.Errorf("部分家庭创建失败: %d/%d", failCount, familyCount)
 	}
 	fmt.Printf("✅ 家庭数据创建完成: %d 个家庭\n", successCount)
