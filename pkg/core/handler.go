@@ -229,10 +229,10 @@ func (h *BaseHandler) GetUserID(c *gin.Context) (string, bool) {
 func (h *BaseHandler) GetTenantID(c *gin.Context) string {
 	tenantID, exists := c.Get("tenant_id")
 	if !exists {
-		return ""
+		return "default"
 	}
 	if id, ok := tenantID.(string); ok {
 		return id
 	}
-	return ""
+	return "default"
 }
