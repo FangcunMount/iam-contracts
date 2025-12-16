@@ -37,7 +37,7 @@ users:
     status: 1
     # 员工配置（可选，用于 QS 服务创建员工）
     org_id: 1
-    roles: ["admin"]
+    roles: ["qs:admin"]  # QS 服务的员工角色（使用完整角色名）
     is_active: true
 
 # ==================== 5. 认证账号配置 (Authentication) ====================
@@ -97,6 +97,18 @@ roles:
     display_name: "普通员工"
     tenant_id: "default"
     description: "基本查看权限"
+  
+  - alias: "qs_evaluation_plan_manager"
+    name: "qs:evaluation_plan_manager"
+    display_name: "测评计划管理员"
+    tenant_id: "default"
+    description: "测评计划的管理权限"
+  
+  - alias: "qs_screening_plan_manager"
+    name: "qs:screening_plan_manager"
+    display_name: "筛查计划管理员"
+    tenant_id: "default"
+    description: "筛查计划的管理权限"
   
 # ==================== 6. 授权资源配置 (Authorization) ====================
 resources:
@@ -213,6 +225,26 @@ resources:
     type: "collection"
     actions: ["read", "list", "update"]
     description: "受试者的查看、更新权限"
+  
+  # 测评计划管理
+  - alias: "res_qs_evaluation_plans"
+    key: "qs:evaluation_plans"
+    display_name: "测评计划管理"
+    app_name: "qs"
+    domain: "plan"
+    type: "collection"
+    actions: ["create", "read", "update", "delete", "list", "publish", "unpublish", "archive"]
+    description: "测评计划的创建、编辑、发布等权限"
+  
+  # 筛查计划管理
+  - alias: "res_qs_screening_plans"
+    key: "qs:screening_plans"
+    display_name: "筛查计划管理"
+    app_name: "qs"
+    domain: "plan"
+    type: "collection"
+    actions: ["create", "read", "update", "delete", "list", "publish", "unpublish", "archive"]
+    description: "筛查计划的创建、编辑、发布等权限"
 
 # ==================== 7. 角色分配配置 (Authorization) ====================
 # 注意：
@@ -289,6 +321,16 @@ policies:
     subject: "role:qs:staff"
     values: ["qs:testees", "read|list", "allow"]
   
+  # 测评计划管理员：测评计划的完整管理
+  - type: "p"
+    subject: "role:qs:evaluation_plan_manager"
+    values: ["qs:evaluation_plans", "*", "allow"]
+  
+  # 筛查计划管理员：筛查计划的完整管理
+  - type: "p"
+    subject: "role:qs:screening_plan_manager"
+    values: ["qs:screening_plans", "*", "allow"]
+  
   # ========== 角色继承 ==========
   
   # IAM 角色继承
@@ -313,7 +355,13 @@ policies:
     values: ["role:qs:evaluator"]
   - type: "g"
     subject: "role:qs:evaluator"
-    values: ["role:qs:staff"]
+    values: ["role:qs:staff"]  
+  - type: "g"
+    subject: "role:qs:admin"
+    values: ["role:qs:evaluation_plan_manager"]
+  - type: "g"
+    subject: "role:qs:admin"
+    values: ["role:qs:screening_plan_manager"]
 
 # ==================== 9. JWKS 密钥配置 (Authentication) ====================
 jwks:

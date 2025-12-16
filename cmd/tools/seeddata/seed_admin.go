@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/FangcunMount/component-base/pkg/log"
 	ucUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	userApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
 )
@@ -147,7 +148,7 @@ func seedStaff(ctx context.Context, deps *dependencies, state *seedContext) erro
 		}
 
 		// 创建员工
-		if err := createStaff(deps.Config.QSServiceURL, token, userID, uc); err != nil {
+		if err := createStaff(deps.Config.QSServiceURL, token, userID, uc, deps.Logger); err != nil {
 			deps.Logger.Warnw("⚠️  创建员工失败（非致命错误）",
 				"alias", uc.Alias,
 				"error", err)
@@ -245,27 +246,27 @@ func loginWithPassword(iamServiceURL, loginID, password string) (string, error) 
 // CreateStaffRequest 创建员工请求体
 type CreateStaffRequest struct {
 	Name     string   `json:"name"`
-	OrgID    int      `json:"org_id"`
+	OrgID    int64    `json:"org_id"`
 	Roles    []string `json:"roles"`
-	UserID   int      `json:"user_id"`
+	UserID   int64    `json:"user_id"`
 	Phone    string   `json:"phone,omitempty"`
 	Email    string   `json:"email,omitempty"`
 	IsActive bool     `json:"is_active"`
 }
 
 // createStaff 调用 QS 服务创建员工
-func createStaff(qsServiceURL, adminToken, userID string, cfg UserConfig) error {
-	// 解析 userID 为整数
-	uid, err := strconv.Atoi(userID)
+func createStaff(qsServiceURL, adminToken, userID string, cfg UserConfig, logger log.Logger) error {
+	// 解析 userID 为整数（64 位）
+	uid, err := strconv.ParseInt(userID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("invalid user_id: %w", err)
 	}
 
 	reqBody := CreateStaffRequest{
 		Name:     cfg.Name,
-		OrgID:    cfg.OrgID,
 		Roles:    cfg.Roles,
 		UserID:   uid,
+		OrgID:    int64(cfg.OrgID),
 		Phone:    cfg.Phone,
 		Email:    cfg.Email,
 		IsActive: cfg.IsActive,
@@ -287,17 +288,47 @@ func createStaff(qsServiceURL, adminToken, userID string, cfg UserConfig) error 
 		req.Header.Set("Authorization", "Bearer "+adminToken)
 	}
 
+	// 记录请求详情
+	logger.Infow("📤 发送创建员工请求",
+		"url", url,
+		"method", "POST",
+		"request_body", string(body),
+		"has_token", adminToken != "",
+		"token_prefix", func() string {
+			if len(adminToken) > 20 {
+				return adminToken[:20] + "..."
+			}
+			return adminToken
+		}())
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		logger.Errorw("❌ 请求失败", "error", err)
 		return fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
+	// 读取响应体
+	var respBodyBytes bytes.Buffer
+	_, _ = respBodyBytes.ReadFrom(resp.Body)
+	respBodyStr := respBodyBytes.String()
+
+	// 记录响应详情
+	logger.Infow("📥 收到创建员工响应",
+		"status_code", resp.StatusCode,
+		"status", resp.Status,
+		"response_headers", resp.Header,
+		"response_body", respBodyStr)
+
 	if resp.StatusCode >= 400 {
 		var respBody map[string]interface{}
-		_ = json.NewDecoder(resp.Body).Decode(&respBody)
+		_ = json.Unmarshal(respBodyBytes.Bytes(), &respBody)
+		logger.Errorw("❌ 创建员工失败",
+			"status_code", resp.StatusCode,
+			"response_body", respBody)
 		return fmt.Errorf("create staff failed: status=%d, response=%v", resp.StatusCode, respBody)
 	}
 
+	logger.Infow("✅ 创建员工请求成功", "status_code", resp.StatusCode)
 	return nil
 }
