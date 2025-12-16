@@ -213,7 +213,9 @@ func generateFakeIDCard() string {
 	birthStr := birthDate.Format("20060102")
 
 	// 3. 生成3位顺序码（奇数为男，偶数为女，这里随机）
-	seqCode := fmt.Sprintf("%03d", rand.Intn(1000))
+	// 注意：顺序码 "000" 在某些系统被视为非法，避免生成 000
+	seq := rand.Intn(999) + 1 // 1..999
+	seqCode := fmt.Sprintf("%03d", seq)
 
 	// 4. 计算校验码
 	first17 := areaCode + birthStr + seqCode
