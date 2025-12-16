@@ -1,6 +1,11 @@
 package main
 
-import "strings"
+import (
+	"context"
+	"strings"
+	"sync"
+	"time"
+)
 
 // ==================== 辅助函数 ====================
 
@@ -71,4 +76,48 @@ func resolveLoginID(ac AccountConfig, uc UserConfig) string {
 		return normalizeLoginID(uc.Phone)
 	}
 	return ""
+}
+
+// superAdmin token 缓存
+var (
+	superAdminToken       string
+	superAdminTokenExpiry time.Time
+	superAdminTokenMu     sync.Mutex
+)
+
+// getSuperAdminToken 返回缓存的超级管理员 token，如过期则重新登录获取并缓存
+func getSuperAdminToken(ctx context.Context, iamServiceURL, loginID, password string) (string, error) {
+	superAdminTokenMu.Lock()
+	// 返回前先检查缓存
+	if superAdminToken != "" && time.Now().Before(superAdminTokenExpiry) {
+		token := superAdminToken
+		superAdminTokenMu.Unlock()
+		return token, nil
+	}
+	superAdminTokenMu.Unlock()
+
+	// 未命中缓存或已过期，执行登录获取 TokenPair
+	tp, err := loginAsSuperAdmin(ctx, iamServiceURL, loginID, password)
+	if err != nil {
+		return "", err
+	}
+
+	// loginAsSuperAdmin 返回 TokenPair (updated signature)
+	token := tp.AccessToken
+	// 计算过期时间，若服务未返回 expires_in 则默认 10 分钟
+	var expiry time.Time
+	if tp.ExpiresIn > 0 {
+		expiry = time.Now().Add(time.Duration(tp.ExpiresIn) * time.Second)
+	} else {
+		expiry = time.Now().Add(10 * time.Minute)
+	}
+	// 提前 30 秒刷新
+	expiry = expiry.Add(-30 * time.Second)
+
+	superAdminTokenMu.Lock()
+	superAdminToken = token
+	superAdminTokenExpiry = expiry
+	superAdminTokenMu.Unlock()
+
+	return token, nil
 }

@@ -703,8 +703,8 @@ func createTestee(
 		return nil
 	}
 
-	// 1. 通过 IAM 服务登录获取超级管理员 token
-	token, err := loginAsSuperAdmin(ctx, iamServiceURL, adminLoginID, adminPassword)
+	// 1. 获取超级管理员 token（缓存）
+	token, err := getSuperAdminToken(ctx, iamServiceURL, adminLoginID, adminPassword)
 	if err != nil {
 		return fmt.Errorf("login as super admin: %w", err)
 	}
@@ -918,7 +918,8 @@ func resolveAdminLogin(cfg *SeedConfig) (loginID, password string) {
 }
 
 // loginAsSuperAdmin 使用超级管理员账号登录 IAM 服务获取 token
-func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password string) (string, error) {
+// loginAsSuperAdmin 使用超级管理员账号登录 IAM 服务获取 TokenPair（含过期信息）
+func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password string) (TokenPair, error) {
 	// 优先使用传入的 loginID，否则回退默认 admin
 	if loginID == "" {
 		loginID = "admin"
@@ -939,7 +940,7 @@ func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password str
 		Password: password,
 	})
 	if err != nil {
-		return "", fmt.Errorf("marshal credentials: %w", err)
+		return TokenPair{}, fmt.Errorf("marshal credentials: %w", err)
 	}
 
 	reqBody := LoginRequest{
@@ -950,7 +951,7 @@ func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password str
 
 	body, err := json.Marshal(reqBody)
 	if err != nil {
-		return "", fmt.Errorf("marshal request: %w", err)
+		return TokenPair{}, fmt.Errorf("marshal request: %w", err)
 	}
 
 	url := iamServiceURL + "/authn/login"
@@ -962,7 +963,7 @@ func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password str
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 		if err != nil {
-			return "", fmt.Errorf("create request: %w", err)
+			return TokenPair{}, fmt.Errorf("create request: %w", err)
 		}
 		req.Header.Set("Content-Type", "application/json")
 
@@ -976,7 +977,7 @@ func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password str
 				time.Sleep(sleep)
 				continue
 			}
-			return "", lastErr
+			return TokenPair{}, lastErr
 		}
 
 		// 读取响应体为 bytes，便于日志与解析
@@ -995,7 +996,7 @@ func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password str
 				time.Sleep(sleep)
 				continue
 			}
-			return "", fmt.Errorf("login failed: status=%d, response=%v", resp.StatusCode, respMap)
+			return TokenPair{}, fmt.Errorf("login failed: status=%d, response=%v", resp.StatusCode, respMap)
 		}
 
 		// 正常响应，解析包装格式
@@ -1005,14 +1006,14 @@ func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password str
 			Data    TokenPair `json:"data"`
 		}
 		if err := json.Unmarshal(bodyBytes, &wrapper); err != nil {
-			return "", fmt.Errorf("decode response: %w", err)
+			return TokenPair{}, fmt.Errorf("decode response: %w", err)
 		}
 		if wrapper.Code != 0 {
-			return "", fmt.Errorf("login failed: code=%d, message=%s, data=%v", wrapper.Code, wrapper.Message, wrapper.Data)
+			return TokenPair{}, fmt.Errorf("login failed: code=%d, message=%s, data=%v", wrapper.Code, wrapper.Message, wrapper.Data)
 		}
 
-		return wrapper.Data.AccessToken, nil
+		return wrapper.Data, nil
 	}
 
-	return "", lastErr
+	return TokenPair{}, lastErr
 }
