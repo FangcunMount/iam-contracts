@@ -64,9 +64,10 @@ const (
 // defaultSteps defines the default execution order of all seed steps.
 // 默认执行所有初始化步骤，按职能顺序：系统基础设施 → 认证授权体系 → 管理员账号
 var defaultSteps = []seedStep{
-	stepSystemInit, // 系统基础设施：租户 + JWKS + 微信应用
-	stepAuthnInit,  // 认证授权体系：完整的 RBAC 权限系统
-	stepAdminInit,  // 管理员账号：创建管理员并分配权限
+	// stepSystemInit, // 系统基础设施：租户 + JWKS + 微信应用
+	// stepAuthnInit,  // 认证授权体系：完整的 RBAC 权限系统
+	// stepAdminInit,  // 管理员账号：创建管理员并分配权限
+	stepFamilyInit, // 家庭数据批量初始化：以家庭为单位批量生成数据
 }
 
 // dependencies holds all external dependencies required by seed functions.

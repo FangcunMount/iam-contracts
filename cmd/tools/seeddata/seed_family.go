@@ -14,7 +14,6 @@ import (
 
 	"github.com/mozillazg/go-pinyin"
 
-	loginApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/login"
 	childApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/child"
 	guardApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
 	ucUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
@@ -489,7 +488,6 @@ type familyServices struct {
 	ChildAppSrv    childApp.ChildApplicationService
 	GuardAppSrv    guardApp.GuardianshipApplicationService
 	GuardQuerySrv  guardApp.GuardianshipQueryApplicationService
-	LoginAppSrv    loginApp.LoginApplicationService
 }
 
 // Run 执行家庭 seed 任务
@@ -547,13 +545,16 @@ func (t *familySeedTask) Run(
 
 		// 5. 创建受试者（testee）- 使用父母账号获取 token
 		var guardianPhone string
+		var guardianUserID string
 		if family.Father != nil {
 			guardianPhone = family.Father.Phone
+			guardianUserID = fatherID
 		} else if family.Mother != nil {
 			guardianPhone = family.Mother.Phone
+			guardianUserID = motherID
 		}
 		if guardianPhone != "" && collectionURL != "" {
-			if err := createTestee(ctx, services.LoginAppSrv, collectionURL, iamServiceURL, adminLoginID, adminPassword, guardianPhone, childID, &child); err != nil {
+			if err := createTestee(ctx, collectionURL, iamServiceURL, adminLoginID, adminPassword, guardianUserID, guardianPhone, childID, &child); err != nil {
 				// 受试者创建失败不阻断流程，记录错误继续
 				fmt.Printf("\nWarning: task %d: create testee for child %d failed: %v\n", t.Index, i, err)
 			}
@@ -675,11 +676,11 @@ func isDuplicateGuardianError(err error) bool {
 // createTestee 调用 collection 服务 API 创建受试者
 func createTestee(
 	ctx context.Context,
-	loginAppSrv loginApp.LoginApplicationService,
 	collectionURL string,
 	iamServiceURL string,
 	adminLoginID string,
 	adminPassword string,
+	guardianUserID string,
 	guardianPhone string,
 	childID string,
 	child *childrenSeed,
@@ -707,6 +708,7 @@ func createTestee(
 	}
 
 	reqData := map[string]interface{}{
+		"iam_user_id":  guardianUserID,
 		"iam_child_id": childID,
 		"name":         child.Name,
 		"gender":       gender,
@@ -721,6 +723,9 @@ func createTestee(
 
 	// 3. 调用 collection 服务 API
 	apiURL := collectionURL + "/testees"
+	// 记录请求详情
+	fmt.Printf("📤 发送创建受试者请求 url=%s method=POST iam_user_id=%s iam_child_id=%s request_body=%s has_token=true token_prefix=<hidden>\n", apiURL, guardianUserID, childID, string(jsonData))
+
 	req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
@@ -734,9 +739,18 @@ func createTestee(
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
+		fmt.Printf("❌ 请求失败: %v\n", err)
 		return fmt.Errorf("send request: %w", err)
 	}
 	defer resp.Body.Close()
+
+	// 读取响应体
+	var respBodyBytes bytes.Buffer
+	_, _ = respBodyBytes.ReadFrom(resp.Body)
+	respBodyStr := respBodyBytes.String()
+
+	// 记录响应详情
+	fmt.Printf("📥 收到创建受试者响应 status=%d status_text=%s response_headers=%v response_body=%s\n", resp.StatusCode, resp.Status, resp.Header, respBodyStr)
 
 	// 4. 检查响应
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
@@ -745,7 +759,8 @@ func createTestee(
 
 	// 读取错误响应
 	var errResp map[string]interface{}
-	_ = json.NewDecoder(resp.Body).Decode(&errResp)
+	_ = json.Unmarshal(respBodyBytes.Bytes(), &errResp)
+	fmt.Printf("❌ 创建受试者失败 status=%d response=%v\n", resp.StatusCode, errResp)
 	return fmt.Errorf("collection API returned status %d: %v", resp.StatusCode, errResp)
 }
 
@@ -786,15 +801,12 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 
 	// 初始化应用服务
 	uow := ucUOW.NewUnitOfWork(deps.DB)
-	// 注意：LoginAppSrv 需要更多依赖，这里暂时设置为 nil
-	// 如果需要使用登录功能，需要完整初始化
 	services := &familyServices{
 		UserAppSrv:     userApp.NewUserApplicationService(uow),
 		UserProfileSrv: userApp.NewUserProfileApplicationService(uow),
 		ChildAppSrv:    childApp.NewChildApplicationService(uow),
 		GuardAppSrv:    guardApp.NewGuardianshipApplicationService(uow),
 		GuardQuerySrv:  guardApp.NewGuardianshipQueryApplicationService(uow),
-		LoginAppSrv:    nil, // TODO: 需要完整初始化 login 服务依赖
 	}
 
 	// 创建手机号去重集合
@@ -947,10 +959,20 @@ func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password str
 		return "", fmt.Errorf("login failed: status=%d, response=%v", resp.StatusCode, respBody)
 	}
 
-	var tokenPair TokenPair
-	if err := json.NewDecoder(resp.Body).Decode(&tokenPair); err != nil {
+	// 响应可能为包装格式 {"code":0,"data":{...},"message":"..."}
+	var wrapper struct {
+		Code    int       `json:"code"`
+		Message string    `json:"message"`
+		Data    TokenPair `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
 		return "", fmt.Errorf("decode response: %w", err)
 	}
 
-	return tokenPair.AccessToken, nil
+	if wrapper.Code != 0 {
+		return "", fmt.Errorf("login failed: code=%d, message=%s, data=%v", wrapper.Code, wrapper.Message, wrapper.Data)
+	}
+
+	return wrapper.Data.AccessToken, nil
 }
