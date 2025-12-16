@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -953,38 +954,65 @@ func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password str
 	}
 
 	url := iamServiceURL + "/authn/login"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return "", fmt.Errorf("create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
+	// 重试策略：最多尝试 3 次，指数退避
+	maxAttempts := 3
+	client := &http.Client{Timeout: 10 * time.Second}
+	var lastErr error
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+		if err != nil {
+			return "", fmt.Errorf("create request: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
 
-	if resp.StatusCode >= 400 {
-		var respBody map[string]interface{}
-		_ = json.NewDecoder(resp.Body).Decode(&respBody)
-		return "", fmt.Errorf("login failed: status=%d, response=%v", resp.StatusCode, respBody)
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("request failed: %w", err)
+			// 网络/连接错误可重试
+			if attempt < maxAttempts {
+				sleep := time.Duration(200*(1<<uint(attempt-1))) * time.Millisecond
+				fmt.Printf("⚠️ login attempt %d failed (network): %v, retrying after %s\n", attempt, err, sleep)
+				time.Sleep(sleep)
+				continue
+			}
+			return "", lastErr
+		}
+
+		// 读取响应体为 bytes，便于日志与解析
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		// 尝试解析错误响应体为 map 以便记录
+		var respMap map[string]interface{}
+		_ = json.Unmarshal(bodyBytes, &respMap)
+
+		if resp.StatusCode >= 400 {
+			// 5xx 视为临时性错误，可重试
+			if resp.StatusCode >= 500 && attempt < maxAttempts {
+				fmt.Printf("⚠️ login attempt %d got status %d, response=%v, retrying...\n", attempt, resp.StatusCode, respMap)
+				sleep := time.Duration(200*(1<<uint(attempt-1))) * time.Millisecond
+				time.Sleep(sleep)
+				continue
+			}
+			return "", fmt.Errorf("login failed: status=%d, response=%v", resp.StatusCode, respMap)
+		}
+
+		// 正常响应，解析包装格式
+		var wrapper struct {
+			Code    int       `json:"code"`
+			Message string    `json:"message"`
+			Data    TokenPair `json:"data"`
+		}
+		if err := json.Unmarshal(bodyBytes, &wrapper); err != nil {
+			return "", fmt.Errorf("decode response: %w", err)
+		}
+		if wrapper.Code != 0 {
+			return "", fmt.Errorf("login failed: code=%d, message=%s, data=%v", wrapper.Code, wrapper.Message, wrapper.Data)
+		}
+
+		return wrapper.Data.AccessToken, nil
 	}
 
-	// 响应可能为包装格式 {"code":0,"data":{...},"message":"..."}
-	var wrapper struct {
-		Code    int       `json:"code"`
-		Message string    `json:"message"`
-		Data    TokenPair `json:"data"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
-		return "", fmt.Errorf("decode response: %w", err)
-	}
-
-	if wrapper.Code != 0 {
-		return "", fmt.Errorf("login failed: code=%d, message=%s, data=%v", wrapper.Code, wrapper.Message, wrapper.Data)
-	}
-
-	return wrapper.Data.AccessToken, nil
+	return "", lastErr
 }
