@@ -63,6 +63,18 @@ type familySeed struct {
 	Children []childrenSeed
 }
 
+// familyDevMode 控制是否输出详细运行日志（开发模式）。
+// 在 main 启动时由 --dev 标志设置。
+var familyDevMode bool
+
+// famPrintf 仅在开发模式下打印详细日志。
+func famPrintf(format string, args ...interface{}) {
+	if !familyDevMode {
+		return
+	}
+	fmt.Printf(format, args...)
+}
+
 // ==================== PhoneSet 线程安全的手机号集合 ====================
 
 // PhoneSet 线程安全的手机号去重集合
@@ -723,8 +735,8 @@ func createTestee(
 
 	// 3. 调用 collection 服务 API
 	apiURL := collectionURL + "/testees"
-	// 记录请求详情
-	fmt.Printf("📤 发送创建受试者请求 url=%s method=POST iam_user_id=%s iam_child_id=%s request_body=%s has_token=true token_prefix=<hidden>\n", apiURL, guardianUserID, childID, string(jsonData))
+	// 记录请求详情（仅开发模式）
+	famPrintf("📤 发送创建受试者请求 url=%s method=POST iam_user_id=%s iam_child_id=%s request_body=%s has_token=true token_prefix=<hidden>\n", apiURL, guardianUserID, childID, string(jsonData))
 
 	req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -749,8 +761,8 @@ func createTestee(
 	_, _ = respBodyBytes.ReadFrom(resp.Body)
 	respBodyStr := respBodyBytes.String()
 
-	// 记录响应详情
-	fmt.Printf("📥 收到创建受试者响应 status=%d status_text=%s response_headers=%v response_body=%s\n", resp.StatusCode, resp.Status, resp.Header, respBodyStr)
+	// 记录响应详情（仅开发模式）
+	famPrintf("📥 收到创建受试者响应 status=%d status_text=%s response_headers=%v response_body=%s\n", resp.StatusCode, resp.Status, resp.Header, respBodyStr)
 
 	// 4. 检查响应
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
