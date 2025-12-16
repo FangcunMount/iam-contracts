@@ -94,11 +94,12 @@ func getSuperAdminToken(ctx context.Context, iamServiceURL, loginID, password st
 		superAdminTokenMu.Unlock()
 		return token, nil
 	}
-	superAdminTokenMu.Unlock()
 
-	// 未命中缓存或已过期，执行登录获取 TokenPair
+	// 未命中缓存或已过期，先在锁内执行登录以避免并发风暴（多个 goroutine 同时触发登录）
+	// 注意：这会阻塞其它 goroutine 直到登录完成，但能显著降低对 IAM 的突发请求压力
 	tp, err := loginAsSuperAdmin(ctx, iamServiceURL, loginID, password)
 	if err != nil {
+		superAdminTokenMu.Unlock()
 		return "", err
 	}
 
@@ -114,7 +115,6 @@ func getSuperAdminToken(ctx context.Context, iamServiceURL, loginID, password st
 	// 提前 30 秒刷新
 	expiry = expiry.Add(-30 * time.Second)
 
-	superAdminTokenMu.Lock()
 	superAdminToken = token
 	superAdminTokenExpiry = expiry
 	superAdminTokenMu.Unlock()

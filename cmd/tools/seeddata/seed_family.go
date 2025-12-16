@@ -840,6 +840,16 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 	iamServiceURL := deps.Config.IAMServiceURL
 	adminLoginID, adminPassword := resolveAdminLogin(deps.Config)
 
+	// 预拉取超级管理员 token，避免 worker 启动后并发触发首次登录风暴
+	if iamServiceURL != "" {
+		if tkn, err := getSuperAdminToken(ctx, iamServiceURL, adminLoginID, adminPassword); err != nil {
+			fmt.Printf("⚠️  预拉取 super-admin token 失败: %v (workers may retry)\n", err)
+		} else {
+			famPrintf("ℹ️  预拉取 super-admin token 成功，缓存到期: %v\n", superAdminTokenExpiry)
+			_ = tkn
+		}
+	}
+
 	// 启动 workers
 	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
