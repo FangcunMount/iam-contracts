@@ -55,6 +55,7 @@ func NewService(
 			childRepo:            childRepo,
 			guardRepo:            guardRepo,
 			guardianshipQuerySvc: guardianshipQuerySvc,
+			userQuerySvc:         userQuerySvc,
 		},
 		guardianshipCmd: guardianshipCommandServer{
 			guardianshipSvc: guardianshipSvc,
@@ -93,6 +94,7 @@ type guardianshipQueryServer struct {
 	childRepo            childDomain.Repository
 	guardRepo            guardianshipDomain.Repository
 	guardianshipQuerySvc guardianshipApp.GuardianshipQueryApplicationService
+	userQuerySvc         userApp.UserQueryApplicationService
 }
 
 // guardianshipCommandServer 监护关系命令服务（写操作）

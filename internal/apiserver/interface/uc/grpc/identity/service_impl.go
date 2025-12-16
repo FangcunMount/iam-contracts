@@ -214,9 +214,18 @@ func (s *guardianshipQueryServer) ListGuardians(ctx context.Context, req *identi
 
 	items := make([]*identityv1.GuardianshipEdge, 0, len(guardianships))
 	for _, g := range guardianships {
+		// 查询监护人详细信息
+		var guardian *identityv1.User
+		if g.UserID != "" {
+			userResult, err := s.userQuerySvc.GetByID(ctx, g.UserID)
+			if err == nil && userResult != nil {
+				guardian = userResultToProto(userResult)
+			}
+		}
+
 		items = append(items, &identityv1.GuardianshipEdge{
 			Guardianship: guardianshipResultToProto(g),
-			Guardian:     nil, // 需要额外查询用户信息，暂不实现
+			Guardian:     guardian,
 		})
 	}
 
