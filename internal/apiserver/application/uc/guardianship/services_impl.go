@@ -7,8 +7,7 @@ import (
 	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	childdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/child"
-	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
-	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
+	gsshipdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -40,7 +39,7 @@ func (s *guardianshipApplicationService) AddGuardian(ctx context.Context, dto Ad
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		managerService := guardianship.NewManagerService(tx.Guardianships, tx.Children, tx.Users)
+		managerService := gsshipdomain.NewManagerService(tx.Guardianships, tx.Children, tx.Users)
 
 		// 转换 ID
 		userID, err := parseUserID(dto.UserID)
@@ -106,7 +105,7 @@ func (s *guardianshipApplicationService) RemoveGuardian(ctx context.Context, dto
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 创建领域服务
-		managerService := guardianship.NewManagerService(tx.Guardianships, tx.Children, tx.Users)
+		managerService := gsshipdomain.NewManagerService(tx.Guardianships, tx.Children, tx.Users)
 
 		// 转换 ID
 		userID, err := parseUserID(dto.UserID)
@@ -492,19 +491,19 @@ func parseChildID(childID string) (meta.ID, error) {
 }
 
 // parseRelation 解析关系字符串
-func parseRelation(relation string) domain.Relation {
+func parseRelation(relation string) gsshipdomain.Relation {
 	switch relation {
 	case "parent", "父母":
-		return domain.RelParent
+		return gsshipdomain.RelParent
 	case "grandparents", "祖父母":
-		return domain.RelGrandparents
+		return gsshipdomain.RelGrandparents
 	default:
-		return domain.RelOther
+		return gsshipdomain.RelOther
 	}
 }
 
 // toGuardianshipResult 将领域实体转换为 DTO
-func toGuardianshipResult(guardianship *domain.Guardianship, child *childdomain.Child) *GuardianshipResult {
+func toGuardianshipResult(guardianship *gsshipdomain.Guardianship, child *childdomain.Child) *GuardianshipResult {
 	if guardianship == nil {
 		return nil
 	}
