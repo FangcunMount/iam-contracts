@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package iam.idp.v1;
+
+option go_package = "github.com/FangcunMount/iam-contracts/api/grpc/iam/idp/v1;idpv1";
+
+// ============= Enums =============
+
+// 微信应用类型
+enum WechatAppType {
+  WECHAT_APP_TYPE_UNSPECIFIED = 0;
+  WECHAT_APP_TYPE_MINI_PROGRAM = 1; // 小程序
+  WECHAT_APP_TYPE_MP = 2;           // 公众号
+}
+
+// 微信应用状态
+enum WechatAppStatus {
+  WECHAT_APP_STATUS_UNSPECIFIED = 0;
+  WECHAT_APP_STATUS_ENABLED = 1;   // 启用
+  WECHAT_APP_STATUS_DISABLED = 2;   // 禁用
+  WECHAT_APP_STATUS_ARCHIVED = 3;  // 归档
+}
+
+// ============= Messages =============
+
+// 微信应用
+message WechatApp {
+  string id = 1;              // 内部 ID
+  string app_id = 2;          // 微信应用 ID
+  string app_secret = 3;       // 微信应用密钥（AppSecret）
+  string name = 4;            // 应用名称
+  WechatAppType type = 5;     // 应用类型
+  WechatAppStatus status = 6; // 应用状态
+}
+
+// ============= Requests & Responses =============
+
+// 查询微信应用请求
+message GetWechatAppRequest {
+  string app_id = 1; // 微信应用 ID
+}
+
+// 查询微信应用响应
+message GetWechatAppResponse {
+  WechatApp app = 1;
+}
+
+// ============= Services =============
+
+// IDP 服务（身份提供者服务）
+service IDPService {
+  // 根据 AppID 查询微信应用
+  rpc GetWechatApp(GetWechatAppRequest) returns (GetWechatAppResponse);
+}
+

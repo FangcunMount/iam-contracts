@@ -17,6 +17,7 @@ import (
 	infraRedis "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/redis"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/wechatapi"
 	wechatapiPort "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/wechatapi/port"
+	idpGrpc "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/idp/grpc"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/idp/restful/handler"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 )
@@ -41,6 +42,9 @@ type IDPModule struct {
 	// HTTP 处理器（对外暴露）
 	WechatAppHandler *handler.WechatAppHandler
 	// WechatAuthHandler 已移除 - 认证由 authn 模块统一提供
+
+	// gRPC 服务（对外暴露）
+	GRPCService *idpGrpc.Service
 
 	// 基础设施组件（内部管理，供其他模块使用）
 	wechatAppRepo       wechatappDomain.Repository
@@ -223,6 +227,13 @@ func (m *IDPModule) initializeInterface() error {
 		m.WechatAppService,
 		m.WechatAppCredentialService,
 		m.WechatAppTokenService,
+	)
+
+	// 创建 gRPC 服务
+	m.GRPCService = idpGrpc.NewService(
+		m.WechatAppService,
+		m.wechatAppRepo,
+		m.secretVault,
 	)
 
 	// WechatAuthHandler 已移除 - 认证功能由 authn 模块统一提供

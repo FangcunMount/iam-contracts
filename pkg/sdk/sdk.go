@@ -8,6 +8,7 @@
 //   - errors: 统一错误处理
 //   - auth: 认证服务（Token 验证、JWKS、服务间认证）
 //   - identity: 身份服务（用户管理、监护关系）
+//   - idp: 身份提供者服务（微信应用管理）
 //
 // 快速开始：
 //
@@ -29,6 +30,9 @@
 //
 //	// 使用监护关系服务
 //	result, err := client.Guardianship().IsGuardian(ctx, "user-1", "child-1")
+//
+//	// 使用 IDP 服务
+//	wechatApp, err := client.IDP().GetWechatApp(ctx, "wx1234567890")
 package sdk
 
 import (
@@ -37,9 +41,11 @@ import (
 
 	authnv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/authn/v1"
 	identityv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/identity/v1"
+	idpv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/idp/v1"
 	"github.com/FangcunMount/iam-contracts/pkg/sdk/auth"
 	"github.com/FangcunMount/iam-contracts/pkg/sdk/config"
 	"github.com/FangcunMount/iam-contracts/pkg/sdk/identity"
+	"github.com/FangcunMount/iam-contracts/pkg/sdk/idp"
 	"github.com/FangcunMount/iam-contracts/pkg/sdk/transport"
 	"google.golang.org/grpc"
 )
@@ -123,6 +129,7 @@ type Client struct {
 	authClient         *auth.Client
 	identityClient     *identity.Client
 	guardianshipClient *identity.GuardianshipClient
+	idpClient          *idp.Client
 }
 
 // NewClient 创建 IAM 客户端
@@ -187,6 +194,10 @@ func (c *Client) initSubClients() {
 	queryService := identityv1.NewGuardianshipQueryClient(c.conn)
 	commandService := identityv1.NewGuardianshipCommandClient(c.conn)
 	c.guardianshipClient = identity.NewGuardianshipClient(queryService, commandService)
+
+	// IDP 客户端
+	idpService := idpv1.NewIDPServiceClient(c.conn)
+	c.idpClient = idp.NewClient(idpService)
 }
 
 // Auth 返回认证服务客户端
@@ -202,6 +213,11 @@ func (c *Client) Identity() *identity.Client {
 // Guardianship 返回监护关系服务客户端
 func (c *Client) Guardianship() *identity.GuardianshipClient {
 	return c.guardianshipClient
+}
+
+// IDP 返回身份提供者服务客户端
+func (c *Client) IDP() *idp.Client {
+	return c.idpClient
 }
 
 // Conn 返回底层 gRPC 连接

@@ -160,12 +160,14 @@ func generateFakePhone() string {
 }
 
 // generateFakeName 生成假中文姓名
-func generateFakeName() string {
-	// 随机选择姓氏
-	surname := chineseSurnames[rand.Intn(len(chineseSurnames))]
+func generateFakeName(surname string) (string, string) {
+	if surname == "" {
+		// 随机选择姓氏
+		surname = chineseSurnames[rand.Intn(len(chineseSurnames))]
+	}
 
 	// 随机决定名字长度（1-2个字，70%双字名，30%单字名）
-	var givenName string
+	givenName := ""
 	if rand.Float32() < 0.7 {
 		// 双字名
 		char1 := chineseGivenNameChars[rand.Intn(len(chineseGivenNameChars))]
@@ -176,7 +178,7 @@ func generateFakeName() string {
 		givenName = chineseGivenNameChars[rand.Intn(len(chineseGivenNameChars))]
 	}
 
-	return surname + givenName
+	return surname, givenName
 }
 
 // 中国身份证号地区码（部分常用）
@@ -420,7 +422,8 @@ func generateFamily(index int, phoneSet *PhoneSet) (*familySeed, error) {
 
 	// 决定家长组成
 	r := rand.Float32()
-	hasFather := r >= 0.50             // 50% 以上有父亲
+	hasFather := r >= 0.50 // 50% 以上有父亲
+	fatherSurname := ""
 	hasMother := r < 0.50 || r >= 0.65 // 小于65% 有母亲（即50%只有母亲 + 35%有双亲）
 
 	if hasFather {
@@ -428,10 +431,10 @@ func generateFamily(index int, phoneSet *PhoneSet) (*familySeed, error) {
 		if err != nil {
 			return nil, fmt.Errorf("generate father phone: %w", err)
 		}
-		name := generateFakeName()
-		alias := generateAlias(name, phone)
+		fatherSurname, name := generateFakeName(fatherSurname)
+		alias := generateAlias(fatherSurname+name, phone)
 		family.Father = &parentSeed{
-			Name:     name,
+			Name:     fatherSurname + name,
 			Nickname: alias, // 昵称 = 姓名全拼 + 手机号后4位
 			Phone:    phone,
 			Gender:   "male",
@@ -444,10 +447,10 @@ func generateFamily(index int, phoneSet *PhoneSet) (*familySeed, error) {
 		if err != nil {
 			return nil, fmt.Errorf("generate mother phone: %w", err)
 		}
-		name := generateFakeName()
-		alias := generateAlias(name, phone)
+		motherSurname, name := generateFakeName(fatherSurname)
+		alias := generateAlias(motherSurname+name, phone)
 		family.Mother = &parentSeed{
-			Name:     name,
+			Name:     motherSurname + name,
 			Nickname: alias, // 昵称 = 姓名全拼 + 手机号后4位
 			Phone:    phone,
 			Gender:   "female",
@@ -470,13 +473,13 @@ func generateFamily(index int, phoneSet *PhoneSet) (*familySeed, error) {
 	family.Children = make([]childrenSeed, 0, childCount)
 	for i := 0; i < childCount; i++ {
 		birthday := generateChildBirthday()
-		name := generateFakeName()
+		childSurname, name := generateFakeName(fatherSurname)
 		gender := guessGenderByName(name) // 根据名字推测性别
 		idCard := generateFakeIDCard()
 
 		child := childrenSeed{
 			Alias:    fmt.Sprintf("child_%d_%d", index, i),
-			Name:     name,
+			Name:     childSurname + name,
 			IDCard:   idCard,
 			Gender:   gender,
 			Birthday: birthday,
