@@ -53,7 +53,6 @@ func defaultMiddlewares() map[string]gin.HandlerFunc {
 		"secure":   Secure,
 		"options":  Options,
 		"nocache":  NoCache,
-		"cors":     Cors(),
 		"tracing":  Tracing(), // 链路追踪中间件（整合了 request_id 生成）
 		"dump":     gindump.Dump(),
 		// 注意: 以下中间件已被更优的方案替代，建议使用 api_logger

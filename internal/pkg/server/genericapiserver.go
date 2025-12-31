@@ -77,7 +77,6 @@ func (s *GenericAPIServer) Setup() {
 func (s *GenericAPIServer) InstallMiddlewares() {
 	// ===== 1. 基础设施层 =====
 	// 必要的中间件
-	s.Use(middleware.Cors())  // CORS 跨域
 	s.Use(middleware.Secure)  // 安全头
 	s.Use(middleware.Options) // OPTIONS 请求处理
 
