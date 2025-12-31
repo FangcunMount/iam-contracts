@@ -49,6 +49,9 @@ services:
       
       # JWKSService - 公钥获取
       - /iam.authn.v1.JWKSService/GetJWKS
+      
+      # IDPService - 微信应用查询
+      - /iam.idp.v1.IDPService/GetWechatApp
     denied_methods: []
 
   # QS Collection Server - 数据收集服务
