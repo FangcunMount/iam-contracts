@@ -11,4 +11,7 @@ const (
 
 	// ContextKeyTokenID 当前使用的 Token ID
 	ContextKeyTokenID = "token_id"
+
+	// ContextKeyClaims 当前认证请求的 Claims
+	ContextKeyClaims = "claims"
 )

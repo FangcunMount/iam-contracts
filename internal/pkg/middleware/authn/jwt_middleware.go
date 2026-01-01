@@ -74,6 +74,7 @@ func (m *JWTAuthMiddleware) AuthRequired() gin.HandlerFunc {
 
 		// 将用户信息存入上下文（从 Claims 中读取）
 		if resp.Claims != nil {
+			c.Set(ContextKeyClaims, resp.Claims)
 			uid := resp.Claims.UserID.String()
 			aid := resp.Claims.AccountID.String()
 			tid := resp.Claims.TokenID
@@ -128,6 +129,7 @@ func (m *JWTAuthMiddleware) AuthOptional() gin.HandlerFunc {
 
 		// 将用户信息存入上下文（从 Claims 中读取）
 		if resp.Claims != nil {
+			c.Set(ContextKeyClaims, resp.Claims)
 			uid := resp.Claims.UserID.String()
 			aid := resp.Claims.AccountID.String()
 			tid := resp.Claims.TokenID
