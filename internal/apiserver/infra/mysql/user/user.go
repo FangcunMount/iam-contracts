@@ -36,8 +36,8 @@ func (p *UserPO) BeforeCreate(tx *gorm.DB) error {
 	}
 	p.CreatedAt = time.Now()
 	p.UpdatedAt = time.Now()
-	createdBy := meta.FromUint64(0)
-	updatedBy := meta.FromUint64(0)
+	createdBy := base.UserIDOrZero(tx.Statement.Context)
+	updatedBy := createdBy
 	deletedBy := meta.FromUint64(0)
 	p.CreatedBy = createdBy
 	p.UpdatedBy = updatedBy
@@ -48,7 +48,7 @@ func (p *UserPO) BeforeCreate(tx *gorm.DB) error {
 } // BeforeUpdate 在更新前设置信息
 func (u *UserPO) BeforeUpdate(tx *gorm.DB) error {
 	u.UpdatedAt = time.Now()
-	updatedBy := meta.FromUint64(0) // 0 必定是有效 ID
+	updatedBy := base.UserIDOrZero(tx.Statement.Context)
 	u.UpdatedBy = updatedBy
 
 	return nil

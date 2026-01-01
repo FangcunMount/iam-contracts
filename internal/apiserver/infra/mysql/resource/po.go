@@ -30,8 +30,8 @@ func (ResourcePO) TableName() string {
 func (p *ResourcePO) BeforeCreate(tx *gorm.DB) error {
 	now := time.Now()
 	id := meta.FromUint64(idutil.GetIntID()) // 新生成的 ID 必定有效
-	createdBy := meta.FromUint64(0)
-	updatedBy := meta.FromUint64(0)
+	createdBy := base.UserIDOrZero(tx.Statement.Context)
+	updatedBy := createdBy
 	deletedBy := meta.FromUint64(0)
 	p.ID = id
 	p.CreatedAt = now
@@ -47,7 +47,7 @@ func (p *ResourcePO) BeforeCreate(tx *gorm.DB) error {
 func (r *ResourcePO) BeforeUpdate(tx *gorm.DB) error {
 	r.UpdatedAt = time.Now()
 
-	updatedBy := meta.FromUint64(0)
+	updatedBy := base.UserIDOrZero(tx.Statement.Context)
 	r.UpdatedBy = updatedBy
 
 	return nil

@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"context"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -74,6 +75,8 @@ func (m *JWTAuthMiddleware) AuthRequired() gin.HandlerFunc {
 
 		// 将用户信息存入上下文（从 Claims 中读取）
 		if resp.Claims != nil {
+			ctx := context.WithValue(c.Request.Context(), ContextKeyUserID, resp.Claims.UserID)
+			c.Request = c.Request.WithContext(ctx)
 			c.Set(ContextKeyClaims, resp.Claims)
 			uid := resp.Claims.UserID.String()
 			aid := resp.Claims.AccountID.String()
@@ -129,6 +132,8 @@ func (m *JWTAuthMiddleware) AuthOptional() gin.HandlerFunc {
 
 		// 将用户信息存入上下文（从 Claims 中读取）
 		if resp.Claims != nil {
+			ctx := context.WithValue(c.Request.Context(), ContextKeyUserID, resp.Claims.UserID)
+			c.Request = c.Request.WithContext(ctx)
 			c.Set(ContextKeyClaims, resp.Claims)
 			uid := resp.Claims.UserID.String()
 			aid := resp.Claims.AccountID.String()

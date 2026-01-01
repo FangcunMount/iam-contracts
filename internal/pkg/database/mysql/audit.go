@@ -1,9 +1,11 @@
 package mysql
 
 import (
+	"context"
 	"time"
 
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
 )
 
 // InitialVersion 默认的乐观锁版本号起点。
@@ -106,4 +108,58 @@ func (a *AuditFields) SetDeletedBy(id meta.ID) {
 
 func (a *AuditFields) SetVersion(v uint32) {
 	a.Version = v
+}
+
+// UserIDFromContext extracts the authenticated user id from context when available.
+func UserIDFromContext(ctx context.Context) (meta.ID, bool) {
+	if ctx == nil {
+		return 0, false
+	}
+	value := ctx.Value(authn.ContextKeyUserID)
+	if value == nil {
+		return 0, false
+	}
+	switch v := value.(type) {
+	case meta.ID:
+		if v.IsZero() {
+			return 0, false
+		}
+		return v, true
+	case string:
+		id, err := meta.ParseID(v)
+		if err != nil || id.IsZero() {
+			return 0, false
+		}
+		return id, true
+	case uint64:
+		if v == 0 {
+			return 0, false
+		}
+		return meta.FromUint64(v), true
+	case int64:
+		if v <= 0 {
+			return 0, false
+		}
+		return meta.FromUint64(uint64(v)), true
+	case uint:
+		if v == 0 {
+			return 0, false
+		}
+		return meta.FromUint64(uint64(v)), true
+	case int:
+		if v <= 0 {
+			return 0, false
+		}
+		return meta.FromUint64(uint64(v)), true
+	default:
+		return 0, false
+	}
+}
+
+// UserIDOrZero returns the authenticated user id or 0 when not available.
+func UserIDOrZero(ctx context.Context) meta.ID {
+	if userID, ok := UserIDFromContext(ctx); ok {
+		return userID
+	}
+	return meta.FromUint64(0)
 }

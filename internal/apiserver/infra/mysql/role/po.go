@@ -28,8 +28,8 @@ func (RolePO) TableName() string {
 func (p *RolePO) BeforeCreate(tx *gorm.DB) error {
 	now := time.Now()
 	id := meta.FromUint64(idutil.GetIntID()) // 新生成的 ID 必定有效
-	createdBy := meta.FromUint64(0)
-	updatedBy := meta.FromUint64(0)
+	createdBy := base.UserIDOrZero(tx.Statement.Context)
+	updatedBy := createdBy
 	deletedBy := meta.FromUint64(0)
 	p.ID = id
 	p.CreatedAt = now
@@ -44,7 +44,7 @@ func (p *RolePO) BeforeCreate(tx *gorm.DB) error {
 // BeforeUpdate 在更新前设置信息
 func (p *RolePO) BeforeUpdate(tx *gorm.DB) error {
 	p.UpdatedAt = time.Now()
-	updatedBy := meta.FromUint64(0)
+	updatedBy := base.UserIDOrZero(tx.Statement.Context)
 	p.UpdatedBy = updatedBy
 	return nil
 }
