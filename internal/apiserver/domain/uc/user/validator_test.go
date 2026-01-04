@@ -40,8 +40,8 @@ func TestValidator_ValidateRegister_EmptyInputs(t *testing.T) {
 	assert.Contains(t, fmt.Sprintf("%-v", err), "name cannot be empty")
 
 	err = v.ValidateRegister(context.Background(), "name", meta.Phone{})
-	require.Error(t, err)
-	assert.Contains(t, fmt.Sprintf("%-v", err), "phone cannot be empty")
+	require.NoError(t, err)
+	assert.Equal(t, 0, repo.FindPhoneCalls)
 }
 
 func TestValidator_ValidateRegister_DuplicatePhone(t *testing.T) {
@@ -78,8 +78,8 @@ func TestValidator_CheckPhoneUnique_EmptyPhone(t *testing.T) {
 	v := user.NewValidator(repo)
 
 	err := v.CheckPhoneUnique(context.Background(), meta.Phone{})
-	require.Error(t, err)
-	assert.Contains(t, fmt.Sprintf("%-v", err), "phone cannot be empty")
+	require.NoError(t, err)
+	assert.Equal(t, 0, repo.FindPhoneCalls)
 }
 
 func TestValidator_ValidateRename(t *testing.T) {

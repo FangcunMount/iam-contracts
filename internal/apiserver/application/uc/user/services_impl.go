@@ -44,15 +44,13 @@ func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserD
 		validator := user.NewValidator(tx.Users)
 
 		// 转换 DTO 为值对象
-		phone, err := meta.NewPhone(dto.Phone)
-		if err != nil {
-			l.Warnw("手机号格式验证失败",
-				"action", logger.ActionRegister,
-				"resource", logger.ResourceUser,
-				"error", err.Error(),
-				"result", logger.ResultFailed,
-			)
-			return err
+		var phone meta.Phone
+		if dto.Phone != "" {
+			var err error
+			phone, err = meta.NewPhone(dto.Phone)
+			if err != nil {
+				return err
+			}
 		}
 
 		// 验证注册参数
@@ -66,8 +64,12 @@ func (s *userApplicationService) Register(ctx context.Context, dto RegisterUserD
 			return err
 		}
 
-		// 创建用户实体
-		newUser, err := user.NewUser(dto.Name, phone)
+		// 创建用户实体（如有指定ID则使用）
+		var opts []user.UserOption
+		if dto.ID > 0 {
+			opts = append(opts, user.WithID(meta.FromUint64(dto.ID)))
+		}
+		newUser, err := user.NewUser(dto.Name, phone, opts...)
 		if err != nil {
 			l.Errorw("创建用户实体失败",
 				"action", logger.ActionRegister,
@@ -270,23 +272,29 @@ func (s *userProfileApplicationService) UpdateContact(ctx context.Context, dto U
 		}
 
 		// 转换值对象
-		phone, err := meta.NewPhone(dto.Phone)
-		if err != nil {
-			l.Warnw("手机号格式错误",
-				"action", logger.ActionUpdate,
-				"resource", logger.ResourceUser,
-				"error", err.Error(),
-			)
-			return err
+		var phone meta.Phone
+		if dto.Phone != "" {
+			phone, err = meta.NewPhone(dto.Phone)
+			if err != nil {
+				l.Warnw("手机号格式错误",
+					"action", logger.ActionUpdate,
+					"resource", logger.ResourceUser,
+					"error", err.Error(),
+				)
+				return err
+			}
 		}
-		email, err := meta.NewEmail(dto.Email)
-		if err != nil {
-			l.Warnw("邮箱格式错误",
-				"action", logger.ActionUpdate,
-				"resource", logger.ResourceUser,
-				"error", err.Error(),
-			)
-			return err
+		var email meta.Email
+		if dto.Email != "" {
+			email, err = meta.NewEmail(dto.Email)
+			if err != nil {
+				l.Warnw("邮箱格式错误",
+					"action", logger.ActionUpdate,
+					"resource", logger.ResourceUser,
+					"error", err.Error(),
+				)
+				return err
+			}
 		}
 
 		// 调用领域服务更新联系方式

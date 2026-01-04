@@ -107,15 +107,40 @@ func TestUserApplicationService_Register_InvalidPhone(t *testing.T) {
 
 	dto := user.RegisterUserDTO{
 		Name:  "王五",
-		Phone: "", // 空电话号码
+		Phone: "not-a-phone", // 非法电话号码
 	}
 
 	// Act
 	result, err := appService.Register(ctx, dto)
 
-	// Assert - 空电话号码应该被拒绝
+	// Assert - 非法电话号码应该被拒绝
 	assert.Error(t, err)
 	assert.Nil(t, result)
+}
+
+func TestUserApplicationService_Register_WithoutPhone(t *testing.T) {
+	// Arrange
+	db := testutil.SetupTestDB(t)
+	unitOfWork := uow.NewUnitOfWork(db)
+	appService := user.NewUserApplicationService(unitOfWork)
+	ctx := context.Background()
+
+	dto := user.RegisterUserDTO{
+		Name:  "赵六",
+		Phone: "",
+		Email: "zhaoliu@example.com",
+	}
+
+	// Act
+	result, err := appService.Register(ctx, dto)
+
+	// Assert - 空手机号允许
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.NotEmpty(t, result.ID)
+	assert.Equal(t, dto.Name, result.Name)
+	assert.Empty(t, result.Phone)
+	assert.Equal(t, dto.Email, result.Email)
 }
 
 // ==================== UserProfileApplicationService 测试 ====================

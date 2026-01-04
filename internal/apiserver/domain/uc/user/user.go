@@ -22,9 +22,6 @@ func NewUser(name string, phone meta.Phone, opts ...UserOption) (*User, error) {
 	if name == "" {
 		return nil, errors.WithCode(code.ErrUserBasicInfoInvalid, "name cannot be empty")
 	}
-	if phone.IsEmpty() {
-		return nil, errors.WithCode(code.ErrUserBasicInfoInvalid, "phone cannot be empty")
-	}
 
 	user := &User{
 		Name:   name,

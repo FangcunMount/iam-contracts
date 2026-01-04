@@ -5,8 +5,8 @@ type ChildCreateRequest struct {
 	LegalName string `json:"legalName" binding:"required"`
 	Gender    *uint8 `json:"gender" binding:"required"`
 	DOB       string `json:"dob" binding:"required"`
-	IDType    string `json:"idType" binding:"required"`
-	IDNo      string `json:"idNo" binding:"required"`
+	IDType    string `json:"idType,omitempty"`
+	IDNo      string `json:"idNo,omitempty"`
 	HeightCm  *int   `json:"heightCm,omitempty"`
 	WeightKg  string `json:"weightKg,omitempty"`
 }

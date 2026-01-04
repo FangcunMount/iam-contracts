@@ -48,8 +48,9 @@ type UserQueryApplicationService interface {
 
 // RegisterUserDTO 注册用户 DTO
 type RegisterUserDTO struct {
+	ID    uint64 // 用户ID（可选，0 表示由系统生成）
 	Name  string // 用户名
-	Phone string // 手机号（必填）
+	Phone string // 手机号（可选）
 	Email string // 邮箱（可选）
 }
 

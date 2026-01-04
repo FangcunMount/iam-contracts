@@ -41,10 +41,8 @@ func TestNewUser_Validations(t *testing.T) {
 	_, err := NewUser("", validPhone)
 	require.Error(t, err)
 	assert.Contains(t, fmt.Sprintf("%-v", err), "name cannot be empty")
-
 	_, err = NewUser("name", meta.Phone{})
-	require.Error(t, err)
-	assert.Contains(t, fmt.Sprintf("%-v", err), "phone cannot be empty")
+	require.NoError(t, err)
 }
 
 func TestUserLifecycleAndUpdates(t *testing.T) {

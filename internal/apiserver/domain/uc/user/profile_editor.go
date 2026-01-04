@@ -61,6 +61,13 @@ func (s *profileEditor) UpdateContact(ctx context.Context, id meta.ID, phone met
 		return nil, err
 	}
 
+	if phone.IsEmpty() {
+		phone = user.Phone
+	}
+	if email.IsEmpty() {
+		email = user.Email
+	}
+
 	// 验证联系方式变更
 	if err := s.validator.ValidateUpdateContact(ctx, user, phone, email); err != nil {
 		return nil, err

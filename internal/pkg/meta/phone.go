@@ -80,7 +80,7 @@ func (p Phone) Region() (string, error) {
 // Value 实现 driver.Valuer 接口，返回数据库存储值
 func (p Phone) Value() (driver.Value, error) {
 	if p.IsEmpty() {
-		return "", nil // 返回空字符串以符合 NOT NULL 约束
+		return nil, nil // 空值写入 NULL
 	}
 	if !e164Re.MatchString(p.e164) {
 		return nil, errors.New("Phone.Value: non-E164 in memory")

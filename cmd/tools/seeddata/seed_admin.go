@@ -61,6 +61,9 @@ func ensureSystemUser(
 ) (string, error) {
 	// 先尝试通过手机号查询
 	if res, err := userQuerySrv.GetByPhone(ctx, cfg.Phone); err == nil && res != nil {
+		if cfg.ID > 0 && res.ID != strconv.FormatUint(cfg.ID, 10) {
+			return "", fmt.Errorf("user id mismatch for phone %s: existing=%s expected=%d", cfg.Phone, res.ID, cfg.ID)
+		}
 		// 用户已存在，更新信息
 		if res.Name != cfg.Name {
 			_ = userProfileSrv.Rename(ctx, res.ID, cfg.Name)
@@ -80,6 +83,7 @@ func ensureSystemUser(
 
 	// 用户不存在，创建新用户
 	created, err := userAppSrv.Register(ctx, userApp.RegisterUserDTO{
+		ID:    cfg.ID,
 		Name:  cfg.Name,
 		Phone: cfg.Phone,
 		Email: cfg.Email,

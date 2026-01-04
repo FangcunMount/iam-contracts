@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS `users`
     `id`         BIGINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '用户ID',
     `name`       VARCHAR(64)     NOT NULL COMMENT '用户名称',
     `nickname`   VARCHAR(64)              DEFAULT '' COMMENT '用户昵称',
-    `phone`      VARCHAR(20)     NOT NULL COMMENT '手机号',
+    `phone`      VARCHAR(20)              DEFAULT NULL COMMENT '手机号（可为空）',
     `email`      VARCHAR(100)    NOT NULL COMMENT '邮箱',
     `id_card`    VARCHAR(20)              DEFAULT NULL COMMENT '身份证号（可为空）',
     `status`     INT             NOT NULL DEFAULT 1 COMMENT '用户状态: 1-正常, 2-禁用',

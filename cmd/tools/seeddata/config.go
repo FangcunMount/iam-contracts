@@ -42,6 +42,7 @@ type TenantConfig struct {
 
 // UserConfig 用户配置
 type UserConfig struct {
+	ID     uint64 `yaml:"id"`      // 用户ID（可选，0 表示自动生成）
 	Alias  string `yaml:"alias"`   // 用于引用的别名
 	Name   string `yaml:"name"`    // 用户姓名
 	Phone  string `yaml:"phone"`   // 手机号

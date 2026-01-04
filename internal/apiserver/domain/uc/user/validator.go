@@ -33,12 +33,11 @@ func (v *validator) ValidateRegister(ctx context.Context, name string, phone met
 		return perrors.WithCode(code.ErrUserBasicInfoInvalid, "name cannot be empty")
 	}
 
-	if phone.IsEmpty() {
-		return perrors.WithCode(code.ErrUserBasicInfoInvalid, "phone cannot be empty")
-	}
-
 	// 检查手机号唯一性
-	return v.CheckPhoneUnique(ctx, phone)
+	if !phone.IsEmpty() {
+		return v.CheckPhoneUnique(ctx, phone)
+	}
+	return nil
 }
 
 // ValidateRename 验证改名参数
@@ -65,7 +64,7 @@ func (v *validator) ValidateUpdateContact(ctx context.Context, user *User, phone
 // CheckPhoneUnique 检查手机号唯一性
 func (v *validator) CheckPhoneUnique(ctx context.Context, phone meta.Phone) error {
 	if phone.IsEmpty() {
-		return perrors.WithCode(code.ErrUserBasicInfoInvalid, "phone cannot be empty")
+		return nil
 	}
 
 	_, err := v.repo.FindByPhone(ctx, phone)

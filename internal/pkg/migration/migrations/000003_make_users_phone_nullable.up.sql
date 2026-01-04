@@ -1,0 +1,2 @@
+ALTER TABLE `users`
+    MODIFY COLUMN `phone` VARCHAR(20) DEFAULT NULL COMMENT '手机号（可为空）';

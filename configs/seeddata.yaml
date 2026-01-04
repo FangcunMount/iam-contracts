@@ -28,20 +28,81 @@ tenants:
 
 # ==================== 2. 用户配置 (User Center) ====================
 users:
-  # 系统管理员
-  - alias: "admin"
-    name: "系统管理员"
-    phone: "13912345678"
-    email: "admin@system.com"
-    id_card: "11010119900101100X"
+  # 系统用户
+  - alias: "system"
+    id: 10001
+    name: "系统用户"
+    phone: "13112345671"
+    email: "system@fangcunmount.com"
+    id_card: ""
     status: 1
     # 员工配置（可选，用于 QS 服务创建员工）
     org_id: 1
     roles: ["qs:admin"]  # QS 服务的员工角色（使用完整角色名）
     is_active: true
 
+  # 超级管理员
+  - alias: "super_admin"
+    id: 10002
+    name: "超级管理员"
+    phone: "13112345672"
+    email: "super_admin@fangcunmount.com"
+    id_card: ""
+    status: 1
+    # 员工配置（可选，用于 QS 服务创建员工）
+    org_id: 1
+    roles: ["qs:admin"]  # QS 服务的员工角色（使用完整角色名）
+    is_active: true
+
+  # 系统管理员
+  - alias: "admin"
+    id: 10003
+    name: "系统管理员"
+    phone: "13112345673"
+    email: "admin@fangcunmount.com"
+    id_card: ""
+    status: 1
+    is_active: true
+    # 员工配置（可选，用于 QS 服务创建员工）
+    org_id: 1
+    roles: ["qs:admin"]  # QS 服务的员工角色（使用完整角色名）
+    is_active: true
+
+  - alias: "content_manager"
+    id: 10004
+    name: "内容管理员"
+    phone: "13112345674"
+    email: "content_manager@fangcunmount.com"
+    id_card: ""
+    status: 1
+    is_active: true
+    # 员工配置（可选，用于 QS 服务创建员工）
+    org_id: 1
+    roles: ["qs:content_manager"]  # QS 服务的员工角色（使用完整角色名）
+    is_active: true
+
 # ==================== 5. 认证账号配置 (Authentication) ====================
 accounts:
+  # 系统用户 - 运营账号
+  - alias: "system_account"
+    user_alias: "system"
+    provider: "operation"
+    external_id: "system"
+    username: "system"
+    password: "Admin@123"  # 注意: 生产环境应使用强密码
+    app_id: ""
+    status: 1
+
+  # 超级管理员 - 运营账号
+  - alias: "super_admin_account"
+    user_alias: "super_admin"
+    provider: "operation"
+    external_id: "super_admin"
+    username: "super_admin"
+    password: "Admin@123"  # 注意: 生产环境应使用强密码
+    app_id: ""
+    status: 1
+
   # 系统管理员 - 运营账号
   - alias: "admin_account"
     user_alias: "admin"
@@ -51,6 +112,17 @@ accounts:
     password: "Admin@123"  # 注意: 生产环境应使用强密码
     app_id: ""
     status: 1
+
+  # 内容管理员 - 运营账号
+  - alias: "content_manager_account"
+    user_alias: "content_manager"
+    provider: "operation"
+    external_id: "content_manager"
+    username: "content_manager"
+    password: "Admin@123"  # 注意: 生产环境应使用强密码
+    app_id: ""
+    status: 1
+    
 
 # ==================== 5.5 角色配置 (Authorization) ====================
 roles:
