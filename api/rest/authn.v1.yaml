@@ -816,96 +816,112 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
-    LoginRequest:
-      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.CreateKeyRequest:
       properties:
-        method:
+        algorithm:
+          description: 签名算法
+          enum:
+          - RS256
+          - RS384
+          - RS512
           type: string
-          description: 认证方式：password | phone_otp | wechat | wecom
+        notAfter:
+          description: 过期时间（可选）
+          type: string
+        notBefore:
+          description: 生效时间（可选）
+          type: string
+      required:
+      - algorithm
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.LoginRequest:
+      properties:
         credentials:
-          type: array
           description: 凭证（根据 method 不同而不同）
           items:
             type: integer
+          type: array
         device_id:
-          type: string
           description: 设备 ID
+          type: string
+        method:
+          description: 认证方式：password | phone_otp | wechat | wecom
+          type: string
       required:
-      - method
       - credentials
-    RefreshTokenRequest:
+      - method
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.LogoutRequest:
+      properties:
+        access_token:
+          description: 可选，撤销访问令牌
+          type: string
+        refresh_token:
+          description: 可选，撤销刷新令牌
+          type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.RefreshTokenRequest:
       properties:
         refresh_token:
           type: string
       required:
       - refresh_token
-    LogoutRequest:
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.RegisterWeChatAccountReq:
       properties:
-        access_token:
+        appId:
+          description: 微信应用ID
           type: string
-          description: 可选，撤销访问令牌
-        refresh_token:
+        avatar:
+          description: 微信头像（可选）
           type: string
-          description: 可选，撤销刷新令牌
-    VerifyTokenRequest:
+        email:
+          description: 邮箱（可选）
+          type: string
+        jsCode:
+          description: 微信登录凭证（临时登录凭证）
+          type: string
+        meta:
+          additionalProperties: true
+          description: 微信元数据（可选）
+          type: object
+        name:
+          description: 用户名
+          type: string
+        nickname:
+          description: 微信昵称（可选）
+          type: string
+        phone:
+          description: 手机号（可选）
+          type: string
+      required:
+      - appId
+      - jsCode
+      - name
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.SetWeChatUnionIDReq:
+      properties:
+        unionId:
+          type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.UpsertWeChatProfileReq:
+      properties:
+        avatar:
+          type: string
+        meta:
+          additionalProperties: true
+          type: object
+        nickname:
+          type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.VerifyTokenRequest:
       properties:
         access_token:
           type: string
       required:
       - access_token
-    TokenPair:
       type: object
-      properties:
-        access_token:
-          type: string
-        refresh_token:
-          type: string
-        token_type:
-          type: string
-          example: Bearer
-        expires_in:
-          type: integer
-    TokenVerifyResponse:
-      type: object
-      properties:
-        valid:
-          type: boolean
-          description: 令牌是否有效
-        claims:
-          $ref: '#/components/schemas/TokenClaims'
-          description: 令牌声明（如果有效）
-    TokenClaims:
-      type: object
-      properties:
-        account_id:
-          type: string
-          description: 账户 ID
-        expires_at:
-          type: string
-          description: 过期时间
-        issued_at:
-          type: string
-          description: 签发时间
-        issuer:
-          type: string
-          description: 签发者
-        jti:
-          type: string
-          description: JWT ID（可选）
-        kid:
-          type: string
-          description: Key ID（可选）
-        tenant_id:
-          type: integer
-          description: 租户 ID（可选）
-        user_id:
-          type: string
-          description: 用户 ID
-    Account:
-      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.Account:
       properties:
         appId:
           type: string
@@ -919,41 +935,72 @@ components:
           type: string
         userId:
           type: string
-    RegisterWeChatAccountReq:
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.CleanupResponse:
       properties:
-        appId:
-          type: string
-          description: 微信应用ID
-        avatar:
-          type: string
-          description: 微信头像（可选）
-        email:
-          type: string
-          description: 邮箱（可选）
-        jsCode:
-          type: string
-          description: 微信登录凭证（临时登录凭证）
-        meta:
-          type: object
-          additionalProperties: true
-          description: 微信元数据（可选）
-        name:
-          type: string
-          description: 用户名
-        nickname:
-          type: string
-          description: 微信昵称（可选）
-        phone:
-          type: string
-          description: 手机号（必填）
-      required:
-      - appId
-      - jsCode
-      - name
-      - phone
-    RegisterResult:
+        deletedCount:
+          description: 删除的密钥数量
+          type: integer
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.KeyListResponse:
+      properties:
+        keys:
+          description: 密钥列表
+          items:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.KeyInfo'
+          type: array
+        limit:
+          description: 每页数量
+          type: integer
+        offset:
+          description: 偏移量
+          type: integer
+        total:
+          description: 总数
+          type: integer
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.KeyResponse:
+      properties:
+        algorithm:
+          description: 签名算法
+          type: string
+        createdAt:
+          description: 创建时间
+          type: string
+        kid:
+          description: 密钥 ID
+          type: string
+        notAfter:
+          description: 过期时间
+          type: string
+        notBefore:
+          description: 生效时间
+          type: string
+        publicJwk:
+          allOf:
+          - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_domain_authn_jwks.PublicJWK'
+          description: 公钥 JWK
+        status:
+          description: 密钥状态 (active, grace, retired)
+          type: string
+        updatedAt:
+          description: 更新时间
+          type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse:
+      properties:
+        message:
+          type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.PublishableKeysResponse:
+      properties:
+        keys:
+          description: 可发布的密钥列表
+          items:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.PublishableKeyInfo'
+          type: array
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.RegisterResult:
       properties:
         accountId:
           type: integer
@@ -975,183 +1022,43 @@ components:
           type: integer
         userName:
           type: string
-    UpsertWeChatProfileReq:
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.TokenPair:
       properties:
-        nickname:
+        access_token:
+          description: 访问令牌
           type: string
-        avatar:
-          type: string
-          format: uri
-        meta:
-          type: object
-          additionalProperties: true
-    SetWeChatUnionIDReq:
-      type: object
-      properties:
-        unionId:
-          type: string
-    MessageResponse:
-      type: object
-      properties:
-        message:
-          type: string
-    JWK:
-      type: object
-      properties:
-        kid:
-          type: string
-        kty:
-          type: string
-        use:
-          type: string
-        alg:
-          type: string
-        n:
-          type: string
-        e:
-          type: string
-        x:
-          type: string
-        y:
-          type: string
-        crv:
-          type: string
-    JWKSet:
-      type: object
-      properties:
-        keys:
-          type: array
-          items:
-            $ref: '#/components/schemas/JWK'
-    CreateKeyRequest:
-      type: object
-      properties:
-        algorithm:
-          type: string
-          enum:
-          - RS256
-          - RS384
-          - RS512
-          description: 签名算法
-        notBefore:
-          type: string
-          description: 生效时间（可选）
-        notAfter:
-          type: string
-          description: 过期时间（可选）
-      required:
-      - algorithm
-    KeyResponse:
-      type: object
-      properties:
-        kid:
-          type: string
-          description: 密钥 ID
-        algorithm:
-          type: string
-          description: 签名算法
-        status:
-          type: string
-          enum:
-          - active
-          - grace
-          - retired
-          description: 密钥状态
-        publicJwk:
-          $ref: '#/components/schemas/PublicJWK'
-          description: 公钥 JWK
-        notBefore:
-          type: string
-          description: 生效时间
-        notAfter:
-          type: string
-          description: 过期时间
-        createdAt:
-          type: string
-          format: date-time
-          description: 创建时间
-        updatedAt:
-          type: string
-          format: date-time
-          description: 更新时间
-    KeyListResponse:
-      type: object
-      properties:
-        total:
+        expires_in:
+          description: 过期时间（秒）
           type: integer
-          description: 总数
-        limit:
-          type: integer
-          description: 每页数量
-        offset:
-          type: integer
-          description: 偏移量
-        keys:
-          type: array
-          items:
-            $ref: '#/components/schemas/KeyInfo'
-    KeyInfo:
+        refresh_token:
+          description: 刷新令牌（可选）
+          type: string
+        token_type:
+          description: 令牌类型（Bearer）
+          type: string
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.TokenVerifyResponse:
       properties:
-        kid:
-          type: string
-          description: 密钥 ID
-        algorithm:
-          type: string
-          description: 签名算法
-        status:
-          type: string
-          description: 密钥状态
-        publicJwk:
-          $ref: '#/components/schemas/PublicJWK'
-          description: 公钥 JWK
-        notBefore:
-          type: string
-          description: 生效时间
-        notAfter:
-          type: string
-          description: 过期时间
-        createdAt:
-          type: string
-          format: date-time
-          description: 创建时间
-        updatedAt:
-          type: string
-          format: date-time
-          description: 更新时间
-    PublicJWK:
+        claims:
+          allOf:
+          - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.TokenClaims'
+          description: 令牌声明（如果有效）
+        valid:
+          description: 令牌是否有效
+          type: boolean
       type: object
-      properties:
-        kid:
-          type: string
-          description: key id
-        kty:
-          type: string
-          description: '"RSA"/"EC"/"OKP"'
-        use:
-          type: string
-          description: '"sig"'
-        alg:
-          type: string
-          description: '"RS256"/"ES256"/"EdDSA"'
-        n:
-          type: string
-          description: 'RSA: n/e; EC: crv/x/y; OKP: crv/x'
-        e:
-          type: string
-        x:
-          type: string
-        y:
-          type: string
-        crv:
-          type: string
-    Error:
-      type: object
+    github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse:
       properties:
         code:
-          type: string
+          description: Code 定义了业务错误代码
+          type: integer
         message:
+          description: 'Message 包含此消息的详细信息
+
+            此消息适合暴露给外部'
           type: string
-        requestId:
+        reference:
+          description: Reference 返回参考文档，可能有助于解决此错误
           type: string
+      type: object

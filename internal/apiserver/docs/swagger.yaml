@@ -102,13 +102,12 @@ definitions:
         description: 微信昵称（可选）
         type: string
       phone:
-        description: 手机号（必填）
+        description: 手机号（可选）
         type: string
     required:
     - appId
     - jsCode
     - name
-    - phone
     type: object
   github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.SetWeChatUnionIDReq:
     properties:

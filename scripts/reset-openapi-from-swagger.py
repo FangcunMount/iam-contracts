@@ -74,7 +74,7 @@ def rewrite_ref(obj: Any) -> Any:
         if "$ref" in obj and isinstance(obj["$ref"], str):
             ref = obj["$ref"]
             if ref.startswith("#/definitions/"):
-                name = ref.split("/")[-1]
+                name = ref[len("#/definitions/") :]
                 obj = {**obj, "$ref": f"#/components/schemas/{name}"}
         return {k: rewrite_ref(v) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -210,6 +210,18 @@ def merge_tags(existing: List[Dict[str, Any]], found: List[str]) -> List[Dict[st
     return list(existing_by_name.values())
 
 
+def collect_schema_refs(obj: Any, out: set[str]) -> None:
+    if isinstance(obj, dict):
+        ref = obj.get("$ref")
+        if isinstance(ref, str) and ref.startswith("#/components/schemas/"):
+            out.add(ref[len("#/components/schemas/") :])
+        for v in obj.values():
+            collect_schema_refs(v, out)
+    elif isinstance(obj, list):
+        for v in obj:
+            collect_schema_refs(v, out)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--swagger", default=str(DEFAULT_SWAGGER), help="Path to swagger.yaml")
@@ -221,6 +233,7 @@ def main() -> int:
     global_produces = swagger.get("produces", [])
 
     module_paths: Dict[str, Dict[str, Any]] = {k: {} for k in SPEC_PATHS}
+    module_schema_refs: Dict[str, set[str]] = {k: set() for k in SPEC_PATHS}
     unknown_paths: List[str] = []
     all_tags: Dict[str, set] = {k: set() for k in SPEC_PATHS}
 
@@ -231,18 +244,33 @@ def main() -> int:
             unknown_paths.append(raw_path)
             continue
         module_paths[module][mapped] = convert_path_item(path_item, global_produces)
+        collect_schema_refs(module_paths[module][mapped], module_schema_refs[module])
         for op in module_paths[module][mapped].values():
             if isinstance(op, dict):
                 for tag in op.get("tags", []) or []:
                     all_tags[module].add(tag)
+
+    swagger_defs = swagger.get("definitions", {})
 
     for module, spec_path in SPEC_PATHS.items():
         spec = load_yaml(spec_path)
         spec["paths"] = module_paths[module]
         spec_tags = spec.get("tags", [])
         spec["tags"] = merge_tags(spec_tags, sorted(all_tags[module]))
+        schemas: Dict[str, Any] = {}
+        missing = []
+        for name in sorted(module_schema_refs[module]):
+            if name not in swagger_defs:
+                missing.append(name)
+                continue
+            schemas[name] = rewrite_ref(swagger_defs[name])
+        if missing:
+            print(f"{spec_path.name}: missing swagger definitions: {missing}")
+        components = spec.get("components", {})
+        components["schemas"] = schemas
+        spec["components"] = components
         if args.dry_run:
-            print(f"{spec_path.name}: {len(module_paths[module])} paths")
+            print(f"{spec_path.name}: {len(module_paths[module])} paths, {len(schemas)} schemas")
         else:
             dump_yaml(spec_path, spec)
 

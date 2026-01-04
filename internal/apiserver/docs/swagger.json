@@ -2819,8 +2819,7 @@
             "required": [
                 "appId",
                 "jsCode",
-                "name",
-                "phone"
+                "name"
             ],
             "properties": {
                 "appId": {
@@ -2853,7 +2852,7 @@
                     "type": "string"
                 },
                 "phone": {
-                    "description": "手机号（必填）",
+                    "description": "手机号（可选）",
                     "type": "string"
                 }
             }

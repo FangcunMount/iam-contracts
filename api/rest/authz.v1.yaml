@@ -581,276 +581,240 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
-    Message:
-      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AddPolicyRequest:
       properties:
-        message:
-          type: string
-    Role:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        display_name:
-          type: string
-        description:
-          type: string
-        tenant_id:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-      required:
-      - id
-      - name
-      - display_name
-    RolePage:
-      type: object
-      properties:
-        total:
-          type: integer
-        limit:
-          type: integer
-        offset:
-          type: integer
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Role'
-    CreateRoleRequest:
-      type: object
-      properties:
-        name:
-          type: string
-        display_name:
-          type: string
-        description:
-          type: string
-      required:
-      - name
-      - display_name
-    UpdateRoleRequest:
-      type: object
-      properties:
-        display_name:
-          type: string
-        description:
-          type: string
-    Assignment:
-      type: object
-      properties:
-        id:
-          type: integer
-        subject_type:
-          type: string
-          enum:
-          - user
-          - group
-        subject_id:
-          type: string
-        role_id:
-          type: integer
-        granted_by:
-          type: string
-        tenant_id:
-          type: string
-    AssignmentPage:
-      type: object
-      properties:
-        total:
-          type: integer
-        limit:
-          type: integer
-        offset:
-          type: integer
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Assignment'
-    GrantRequest:
-      type: object
-      properties:
-        subject_type:
-          type: string
-          enum:
-          - user
-          - group
-        subject_id:
-          type: string
-        role_id:
-          type: integer
-        granted_by:
-          type: string
-      required:
-      - subject_type
-      - subject_id
-      - role_id
-      - granted_by
-    RevokeRequest:
-      type: object
-      properties:
-        subject_type:
-          type: string
-          enum:
-          - user
-          - group
-        subject_id:
-          type: string
-        role_id:
-          type: integer
-      required:
-      - subject_type
-      - subject_id
-      - role_id
-    PolicyRule:
-      type: object
-      properties:
-        role_id:
-          type: integer
-        resource_id:
-          type: integer
-        action:
-          type: string
-    PolicyRuleList:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/PolicyRule'
-    AddPolicyRequest:
-      type: object
-      properties:
-        role_id:
-          type: integer
-        resource_id:
-          type: integer
         action:
           type: string
         changed_by:
           type: string
         reason:
           type: string
-      required:
-      - role_id
-      - resource_id
-      - action
-      - changed_by
-    RemovePolicyRequest:
-      type: object
-      properties:
-        role_id:
-          type: integer
         resource_id:
           type: integer
-        action:
-          type: string
-        changed_by:
-          type: string
-        reason:
-          type: string
+        role_id:
+          type: integer
       required:
-      - role_id
-      - resource_id
       - action
       - changed_by
-    Resource:
+      - resource_id
+      - role_id
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AssignmentResponse:
       properties:
+        granted_by:
+          type: string
         id:
           type: integer
-        key:
+        role_id:
+          type: integer
+        subject_id:
           type: string
-        domain:
+        subject_type:
           type: string
-        app_name:
+        tenant_id:
           type: string
-        type:
-          type: string
-        actions:
-          type: array
-          items:
-            type: string
-        createdAt:
-          type: string
-          format: date-time
-        display_name:
-          type: string
-        description:
-          type: string
-    ResourcePage:
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CreateResourceRequest:
       properties:
-        total:
-          type: integer
-        limit:
-          type: integer
-        offset:
-          type: integer
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Resource'
-    CreateResourceRequest:
-      type: object
-      properties:
-        key:
-          type: string
-        domain:
-          type: string
-        app_name:
-          type: string
-        type:
-          type: string
         actions:
-          type: array
           items:
             type: string
           minItems: 1
-        display_name:
+          type: array
+        app_name:
           type: string
         description:
           type: string
+        display_name:
+          type: string
+        domain:
+          type: string
+        key:
+          type: string
+        type:
+          type: string
       required:
-      - key
-      - domain
-      - type
       - actions
       - app_name
       - display_name
-    UpdateResourceRequest:
+      - domain
+      - key
+      - type
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CreateRoleRequest:
+      properties:
+        description:
+          type: string
+        display_name:
+          type: string
+        name:
+          type: string
+      required:
+      - display_name
+      - name
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.GrantRequest:
+      properties:
+        granted_by:
+          type: string
+        role_id:
+          type: integer
+        subject_id:
+          type: string
+        subject_type:
+          enum:
+          - user
+          - group
+          type: string
+      required:
+      - granted_by
+      - role_id
+      - subject_id
+      - subject_type
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ListResponse:
+      properties:
+        code:
+          type: integer
+        data: {}
+        limit:
+          type: integer
+        message:
+          type: string
+        offset:
+          type: integer
+        total:
+          type: integer
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.PolicyRuleResponse:
+      properties:
+        action:
+          type: string
+        domain:
+          type: string
+        object:
+          type: string
+        subject:
+          type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.PolicyVersionResponse:
+      properties:
+        changed_by:
+          type: string
+        reason:
+          type: string
+        tenant_id:
+          type: string
+        version:
+          type: integer
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RemovePolicyRequest:
+      properties:
+        action:
+          type: string
+        changed_by:
+          type: string
+        reason:
+          type: string
+        resource_id:
+          type: integer
+        role_id:
+          type: integer
+      required:
+      - action
+      - changed_by
+      - resource_id
+      - role_id
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ResourceResponse:
       properties:
         actions:
-          type: array
           items:
             type: string
-          minItems: 1
-        display_name:
+          type: array
+        app_name:
           type: string
         description:
           type: string
-    ValidateActionRequest:
-      type: object
-      properties:
-        resource_key:
+        display_name:
           type: string
-        action:
+        domain:
+          type: string
+        id:
+          type: integer
+        key:
+          type: string
+        type:
+          type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response:
+      properties:
+        code:
+          type: integer
+        data: {}
+        message:
+          type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RevokeRequest:
+      properties:
+        role_id:
+          type: integer
+        subject_id:
+          type: string
+        subject_type:
+          enum:
+          - user
+          - group
           type: string
       required:
-      - resource_key
-      - action
-    ValidateActionResponse:
+      - role_id
+      - subject_id
+      - subject_type
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RoleResponse:
+      properties:
+        description:
+          type: string
+        display_name:
+          type: string
+        id:
+          type: integer
+        name:
+          type: string
+        tenant_id:
+          type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.UpdateResourceRequest:
+      properties:
+        actions:
+          items:
+            type: string
+          minItems: 1
+          type: array
+        description:
+          type: string
+        display_name:
+          type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.UpdateRoleRequest:
+      properties:
+        description:
+          type: string
+        display_name:
+          type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ValidateActionRequest:
+      properties:
+        action:
+          type: string
+        resource_key:
+          type: string
+      required:
+      - action
+      - resource_key
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ValidateActionResponse:
       properties:
         valid:
           type: boolean
-    Error:
       type: object
-      properties:
-        code:
-          type: string
-        message:
-          type: string

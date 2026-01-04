@@ -2,6 +2,7 @@ package register
 
 import (
 	"context"
+	"fmt"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
@@ -71,7 +72,27 @@ func (s *registerApplicationService) Register(ctx context.Context, req RegisterR
 		if userRepo == nil {
 			userRepo = s.userRepo
 		}
-		user, isNewUser, err := s.createOrGetUser(ctx, userRepo, req)
+		accountRepo := tx.Accounts
+		openID, unionID, err := s.resolveWechatIDs(ctx, req)
+		if err != nil {
+			l.Errorw("解析微信身份失败",
+				"action", logger.ActionRegister,
+				"error", err.Error(),
+				"result", logger.ResultFailed,
+			)
+			return err
+		}
+		if openID != "" && req.WechatOpenID == nil {
+			req.WechatOpenID = &openID
+		}
+		if unionID != "" && req.WechatUnionID == nil {
+			req.WechatUnionID = &unionID
+		}
+		if openID != "" && req.WechatJsCode != nil {
+			req.WechatJsCode = nil
+		}
+
+		user, isNewUser, err := s.createOrGetUser(ctx, userRepo, accountRepo, req, openID, unionID)
 		if err != nil {
 			l.Errorw("创建或获取用户失败",
 				"action", logger.ActionRegister,
@@ -363,20 +384,63 @@ func (s *registerApplicationService) toDomainInput(ctx context.Context, req Regi
 // ============= 内部辅助方法 =============
 
 // createOrGetUser 创建或获取用户（步骤1）
-func (s *registerApplicationService) createOrGetUser(ctx context.Context, repo userDomain.Repository, req RegisterRequest) (*userDomain.User, bool, error) {
+func (s *registerApplicationService) createOrGetUser(
+	ctx context.Context,
+	repo userDomain.Repository,
+	accountRepo domain.Repository,
+	req RegisterRequest,
+	wechatOpenID string,
+	wechatUnionID string,
+) (*userDomain.User, bool, error) {
 	if repo == nil {
 		return nil, false, perrors.WithCode(code.ErrInternalServerError, "user repository is not initialized")
 	}
 
-	// 通过手机号查找现有用户
-	existingUser, err := repo.FindByPhone(ctx, req.Phone)
-	if err != nil && !perrors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, false, err
+	// 如果是微信小程序注册且提供了 UnionID，则通过 UnionID 查找现有用户
+	if req.AccountType == domain.TypeWcMinip && accountRepo != nil {
+		// 如果是微信小程序注册且提供了 UnionID，则通过 UnionID 查找现有用户
+		if wechatUnionID != "" {
+			account, err := accountRepo.GetByUniqueID(ctx, domain.UnionID(wechatUnionID))
+			if err != nil && !perrors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, false, err
+			}
+			if account != nil {
+				user, err := repo.FindByID(ctx, account.UserID)
+				if err != nil {
+					return nil, false, err
+				}
+				return user, false, nil
+			}
+		}
+
+		// 如果是微信小程序注册且提供了 OpenID，则通过 OpenID 查找现有用户
+		if wechatOpenID != "" && req.WechatAppID != nil && *req.WechatAppID != "" {
+			externalID := domain.ExternalID(fmt.Sprintf("%s@%s", wechatOpenID, *req.WechatAppID))
+			appID := domain.AppId(*req.WechatAppID)
+			account, err := accountRepo.GetByExternalIDAppId(ctx, externalID, appID)
+			if err != nil && !perrors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, false, err
+			}
+			if account != nil {
+				user, err := repo.FindByID(ctx, account.UserID)
+				if err != nil {
+					return nil, false, err
+				}
+				return user, false, nil
+			}
+		}
 	}
 
-	// 用户已存在
-	if existingUser != nil {
-		return existingUser, false, nil
+	// 通过手机号查找现有用户
+	if !req.Phone.IsEmpty() {
+		existingUser, err := repo.FindByPhone(ctx, req.Phone)
+		if err != nil && !perrors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, false, err
+		}
+		// 用户已存在
+		if existingUser != nil {
+			return existingUser, false, nil
+		}
 	}
 
 	// 创建新用户
@@ -395,6 +459,52 @@ func (s *registerApplicationService) createOrGetUser(ctx context.Context, repo u
 	}
 
 	return user, true, nil
+}
+
+// resolveWechatIDs 解析微信小程序的 OpenID 和 UnionID
+func (s *registerApplicationService) resolveWechatIDs(ctx context.Context, req RegisterRequest) (string, string, error) {
+	if req.AccountType != domain.TypeWcMinip {
+		return "", "", nil
+	}
+	if req.WechatOpenID != nil && *req.WechatOpenID != "" {
+		openID := *req.WechatOpenID
+		unionID := ""
+		if req.WechatUnionID != nil {
+			unionID = *req.WechatUnionID
+		}
+		return openID, unionID, nil
+	}
+	if req.WechatAppID == nil || *req.WechatAppID == "" || req.WechatJsCode == nil || *req.WechatJsCode == "" {
+		return "", "", nil
+	}
+	if s.wechatAppQuerier == nil || s.secretVault == nil {
+		return "", "", perrors.WithCode(code.ErrInvalidArgument, "wechat app configuration service not available")
+	}
+
+	wechatApp, err := s.wechatAppQuerier.GetByAppID(ctx, *req.WechatAppID)
+	if err != nil {
+		return "", "", perrors.WithCode(code.ErrInvalidArgument, "failed to query wechat app: %v", err)
+	}
+	if wechatApp == nil {
+		return "", "", perrors.WithCode(code.ErrInvalidArgument, "wechat app not found: %s", *req.WechatAppID)
+	}
+	if !wechatApp.IsEnabled() {
+		return "", "", perrors.WithCode(code.ErrInvalidArgument, "wechat app is disabled: %s", *req.WechatAppID)
+	}
+	if wechatApp.Cred == nil || wechatApp.Cred.Auth == nil {
+		return "", "", perrors.WithCode(code.ErrInvalidArgument, "wechat app credentials not found")
+	}
+
+	appSecretPlain, err := s.secretVault.Decrypt(ctx, wechatApp.Cred.Auth.AppSecretCipher)
+	if err != nil {
+		return "", "", perrors.WithCode(code.ErrInvalidArgument, "failed to decrypt app secret: %v", err)
+	}
+
+	openID, unionID, err := s.idp.ExchangeWxMinipCode(ctx, *req.WechatAppID, string(appSecretPlain), *req.WechatJsCode)
+	if err != nil {
+		return "", "", perrors.WithCode(code.ErrInvalidCredential, "failed to call wechat code2session: %v", err)
+	}
+	return openID, unionID, nil
 }
 
 // mapCredentialType 将应用层凭据类型映射为领域层类型

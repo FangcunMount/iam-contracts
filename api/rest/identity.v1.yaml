@@ -493,273 +493,176 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
-    User:
-      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.ChildRegisterRequest:
       properties:
-        id:
-          type: string
-        status:
-          type: string
-          enum:
-          - active
-          - inactive
-          - blocked
-        nickname:
-          type: string
-        avatar:
-          type: string
-          format: uri
-        contacts:
-          type: array
-          items:
-            $ref: '#/components/schemas/VerifiedContact'
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-      required:
-      - id
-      - status
-    UserUpdateReq:
-      type: object
-      properties:
-        nickname:
-          type: string
-        avatar:
-          type: string
-          format: uri
-        contacts:
-          type: array
-          items:
-            $ref: '#/components/schemas/VerifiedContactUpsert'
-    VerifiedContact:
-      type: object
-      properties:
-        type:
-          type: string
-          enum:
-          - email
-          - phone
-        value:
-          type: string
-        verifiedAt:
-          type: string
-          format: date-time
-    VerifiedContactUpsert:
-      type: object
-      properties:
-        type:
-          type: string
-          enum:
-          - email
-          - phone
-        value:
-          type: string
-    Child:
-      type: object
-      properties:
-        id:
-          type: string
-        legalName:
+        dob:
           type: string
         gender:
           type: integer
-          format: int8
-          description: 性别：0=其他，1=男，2=女
-          nullable: true
+        heightCm:
+          type: integer
+        idNo:
+          type: string
+        idType:
+          type: string
+        legalName:
+          type: string
+        relation:
+          enum:
+          - self
+          - parent
+          - guardian
+          type: string
+        weightKg:
+          type: string
+      required:
+      - dob
+      - gender
+      - legalName
+      - relation
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.ChildUpdateRequest:
+      properties:
         dob:
           type: string
-          format: date
-        idType:
+        gender:
+          type: integer
+        heightCm:
+          type: integer
+        legalName:
+          type: string
+        weightKg:
+          type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.GuardianGrantRequest:
+      properties:
+        childId:
+          type: string
+        relation:
+          enum:
+          - self
+          - parent
+          - guardian
+          type: string
+        userId:
+          type: string
+      required:
+      - childId
+      - relation
+      - userId
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.UserUpdateRequest:
+      properties:
+        avatar:
+          type: string
+        contacts:
+          items:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.UserContactUpsert'
+          type: array
+        nickname:
+          type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildPageResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildResponse'
+          type: array
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildRegisterResponse:
+      properties:
+        child:
+          $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildResponse'
+        guardianship:
+          $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipResponse'
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildResponse:
+      properties:
+        createdAt:
+          type: string
+        dob:
+          type: string
+        gender:
+          type: integer
+        heightCm:
+          type: integer
+        id:
           type: string
         idMasked:
           type: string
-        heightCm:
-          type: integer
-          nullable: true
-        weightKg:
-          type: string
-          nullable: true
-        createdAt:
-          type: string
-          format: date-time
-          nullable: true
-        updatedAt:
-          type: string
-          format: date-time
-          nullable: true
-      required:
-      - id
-      - legalName
-    ChildCreateReq:
-      type: object
-      properties:
-        legalName:
-          type: string
-        gender:
-          type: integer
-          format: int8
-          description: 性别：0=其他，1=男，2=女
-        dob:
-          type: string
-          format: date
         idType:
           type: string
-        idNo:
-          type: string
-          description: 仅入参；服务端加密+哈希存储
-        heightCm:
-          type: integer
-          nullable: true
-        weightKg:
-          type: string
-          nullable: true
-      required:
-      - legalName
-      - gender
-      - dob
-      - idType
-      - idNo
-    ChildUpdateReq:
-      type: object
-      properties:
         legalName:
           type: string
-        gender:
-          type: integer
-          format: int8
-          description: 性别：0=其他，1=男，2=女
-        dob:
+        updatedAt:
           type: string
-          format: date
-        heightCm:
-          type: integer
-          nullable: true
         weightKg:
           type: string
-          nullable: true
-    ChildRegisterReq:
-      allOf:
-      - $ref: '#/components/schemas/ChildCreateReq'
-      - type: object
-        properties:
-          relation:
-            type: string
-            enum:
-            - self
-            - parent
-            - guardian
-            default: parent
-        required:
-        - relation
-    ChildRegisterResp:
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipPageResponse:
       properties:
-        child:
-          $ref: '#/components/schemas/Child'
-        guardianship:
-          $ref: '#/components/schemas/Guardianship'
-      required:
-      - child
-      - guardianship
-    ChildPage:
-      type: object
-      properties:
-        total:
-          type: integer
+        items:
+          items:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipResponse'
+          type: array
         limit:
           type: integer
         offset:
           type: integer
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Child'
-    Guardianship:
+        total:
+          type: integer
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipResponse:
       properties:
+        childId:
+          type: string
         id:
           type: integer
-          format: int64
-        userId:
-          type: string
-        childId:
-          type: string
         relation:
           type: string
-          enum:
-          - self
-          - parent
-          - guardian
-        since:
-          type: string
-          format: date-time
         revokedAt:
           type: string
-          format: date-time
-          nullable: true
-      required:
-      - id
-      - userId
-      - childId
-      - relation
-      - since
-    GuardianGrantReq:
-      type: object
-      properties:
+        since:
+          type: string
         userId:
           type: string
-        childId:
-          type: string
-        relation:
-          type: string
-          enum:
-          - self
-          - parent
-          - guardian
-      required:
-      - userId
-      - childId
-      - relation
-    GuardianshipPage:
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse:
       properties:
-        total:
-          type: integer
-        limit:
-          type: integer
-        offset:
-          type: integer
-        items:
-          type: array
+        avatar:
+          type: string
+        contacts:
           items:
-            $ref: '#/components/schemas/Guardianship'
-    SuccessResponse:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.VerifiedContactResponse'
+          type: array
+        createdAt:
+          type: string
+        id:
+          type: string
+        nickname:
+          type: string
+        status:
+          type: string
+        updatedAt:
+          type: string
       type: object
-      description: 统一成功响应格式
+    github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse:
       properties:
         code:
+          description: Code 定义了业务错误代码
           type: integer
-          example: 0
-          description: 业务状态码，0表示成功
         message:
+          description: 'Message 包含此消息的详细信息
+
+            此消息适合暴露给外部'
           type: string
-          example: success
-          description: 响应消息
-        data:
-          type: object
-          description: 响应数据
-      required:
-      - code
-      - message
-    Error:
+        reference:
+          description: Reference 返回参考文档，可能有助于解决此错误
+          type: string
       type: object
-      properties:
-        code:
-          type: string
-        message:
-          type: string
-        requestId:
-          type: string

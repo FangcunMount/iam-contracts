@@ -81,18 +81,13 @@ func (h *AccountHandler) RegisterWithWeChat(c *gin.Context) {
 		return
 	}
 
-	phone, err := meta.NewPhone(strings.TrimSpace(reqBody.Phone))
-	if err != nil {
-		h.Error(c, err)
-		return
+	var phone meta.Phone
+	if strings.TrimSpace(reqBody.Phone) != "" {
+		phone, _ = meta.NewPhone(strings.TrimSpace(reqBody.Phone))
 	}
 	var email meta.Email
 	if strings.TrimSpace(reqBody.Email) != "" {
-		email, err = meta.NewEmail(strings.TrimSpace(reqBody.Email))
-		if err != nil {
-			h.Error(c, err)
-			return
-		}
+		email, _ = meta.NewEmail(strings.TrimSpace(reqBody.Email))
 	}
 
 	appID := strings.TrimSpace(reqBody.AppID)

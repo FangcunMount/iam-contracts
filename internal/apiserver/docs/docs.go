@@ -2825,8 +2825,7 @@ const docTemplate = `{
             "required": [
                 "appId",
                 "jsCode",
-                "name",
-                "phone"
+                "name"
             ],
             "properties": {
                 "appId": {
@@ -2859,7 +2858,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "phone": {
-                    "description": "手机号（必填）",
+                    "description": "手机号（可选）",
                     "type": "string"
                 }
             }

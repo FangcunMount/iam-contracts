@@ -108,7 +108,7 @@ func (r *BindWeChatAccountReq) Validate() error {
 // 该接口会原子性地创建 User + Account + WeChatAccount
 type RegisterWeChatAccountReq struct {
 	Name     string                 `json:"name" binding:"required"`   // 用户名
-	Phone    string                 `json:"phone" binding:"required"`  // 手机号（必填）
+	Phone    string                 `json:"phone,omitempty"`           // 手机号（可选）
 	Email    string                 `json:"email,omitempty"`           // 邮箱（可选）
 	AppID    string                 `json:"appId" binding:"required"`  // 微信应用ID
 	JsCode   string                 `json:"jsCode" binding:"required"` // 微信登录凭证（临时登录凭证）

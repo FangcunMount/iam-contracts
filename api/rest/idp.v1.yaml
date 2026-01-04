@@ -228,83 +228,103 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
-    WechatApp:
-      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_request.CreateWechatAppRequest:
       properties:
         app_id:
-          type: string
-        name:
-          type: string
-        type:
+          description: 微信应用 ID（必填）
           type: string
         app_secret:
-          type: string
-        status:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-    CreateWechatAppRequest:
-      type: object
-      properties:
-        app_id:
+          description: AppSecret（可选，创建时设置）
           type: string
         name:
+          description: 应用名称（必填）
           type: string
         type:
-          type: string
-        app_secret:
+          description: 应用类型（MiniProgram/OfficialAccount，必填）
           type: string
       required:
       - app_id
       - name
       - type
-    RotateAuthSecretRequest:
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_request.RefreshAccessTokenRequest:
       properties:
         app_id:
+          description: 微信应用 ID
+          type: string
+      required:
+      - app_id
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_request.RotateAuthSecretRequest:
+      properties:
+        app_id:
+          description: 微信应用 ID
           type: string
         new_secret:
+          description: 新的 AppSecret
           type: string
       required:
       - app_id
       - new_secret
-    RotateMsgSecretRequest:
       type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_request.RotateMsgSecretRequest:
       properties:
         app_id:
+          description: 微信应用 ID
           type: string
         callback_token:
+          description: 回调 Token
           type: string
         encoding_aes_key:
+          description: 加密 AES Key
           type: string
       required:
       - app_id
       - callback_token
       - encoding_aes_key
-    RefreshAccessTokenRequest:
       type: object
-      properties:
-        app_id:
-          type: string
-      required:
-      - app_id
-    AccessTokenResponse:
-      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.AccessTokenResponse:
       properties:
         access_token:
+          description: 访问令牌
           type: string
         expires_in:
+          description: 过期时间（秒）
           type: integer
-    Message:
       type: object
-      properties:
-        message:
-          type: string
-    Error:
-      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.ErrorResponse:
       properties:
         code:
-          type: string
+          description: 错误码
+          type: integer
         message:
+          description: 错误消息
           type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.RotateSecretResponse:
+      properties:
+        message:
+          description: 消息
+          type: string
+        success:
+          description: 是否成功
+          type: boolean
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_idp_restful_response.WechatAppResponse:
+      properties:
+        app_id:
+          description: 微信应用 ID
+          type: string
+        id:
+          description: 内部 ID
+          type: string
+        name:
+          description: 应用名称
+          type: string
+        status:
+          description: 应用状态（Active/Inactive）
+          type: string
+        type:
+          description: 应用类型（MiniProgram/OfficialAccount）
+          type: string
+      type: object
