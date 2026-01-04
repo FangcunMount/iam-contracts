@@ -8,344 +8,758 @@ info:
     email: yshujie@163.com
     url: https://github.com/FangcunMount/iam-contracts
 servers:
-  - url: https://iam.yangshujie.com/api/v1
-    description: Production
-  - url: http://localhost:18081/api/v1
-    description: Local Dev
+- url: https://iam.yangshujie.com/api/v1
+  description: Production
+- url: http://localhost:18081/api/v1
+  description: Local Dev
 security:
-  - bearerAuth: []
+- bearerAuth: []
 tags:
-  - name: Identity-Users
-  - name: Identity-Children
-  - name: Identity-Guardianship
-
+- name: Identity-Users
+- name: Identity-Children
+- name: Identity-Guardianship
 paths:
-  /identity/me:
+  /identity/children/{id}:
     get:
-      tags: [Identity-Users]
-      summary: 获取当前用户信息
-      description: 获取当前登录用户的基本资料（昵称、头像、联系方式、状态）
-      operationId: GetMe
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' }}}}
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '500': { $ref: '#/components/responses/InternalServerError' }
-    patch:
-      tags: [Identity-Users]
-      summary: 更新当前用户信息
-      description: 部分更新当前登录用户的资料
-      operationId: PatchMe
-      requestBody:
+      tags:
+      - Identity-Children
+      summary: 查询儿童档案（仅限自己监护的孩子）
+      description: 根据儿童 ID 查询儿童详细档案，只能查询当前用户监护的孩子
+      parameters:
+      - name: id
+        in: path
+        description: 儿童 ID
         required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/UserUpdateReq' }
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' }}}}
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '500': { $ref: '#/components/responses/InternalServerError' }
-
-  /identity/me/children:
-    get:
-      tags: [Identity-Children]
-      summary: 获取当前用户的儿童档案列表
-      description: 获取当前登录用户监护的儿童列表。
-      operationId: ListMyChildren
-      parameters: [ { $ref: '#/components/parameters/Offset' }, { $ref: '#/components/parameters/Limit' } ]
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChildPage' }}}}
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '500': { $ref: '#/components/responses/InternalServerError' }
-
-  /identity/children/register:
-    post:
-      tags: [Identity-Children]
-      summary: 注册孩子（建档+授当前用户为监护人）
-      description: 创建儿童档案并自动将当前用户设置为监护人
-      operationId: RegisterChild
-      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ChildRegisterReq' }
+        schema:
+          type: string
       responses:
         '200':
-          description: OK
+          description: 查询成功
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/SuccessResponse'
-                  - type: object
-                    properties:
-                      data: { $ref: '#/components/schemas/ChildRegisterResp' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '500': { $ref: '#/components/responses/InternalServerError' }
-
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildResponse'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '403':
+          description: 无权限访问此儿童
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '404':
+          description: 儿童不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+    patch:
+      tags:
+      - Identity-Children
+      summary: 更新儿童档案（仅限自己监护的孩子）
+      description: 部分更新儿童档案信息，只能更新当前用户监护的孩子
+      parameters:
+      - name: id
+        in: path
+        description: 儿童 ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.ChildUpdateRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildResponse'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '403':
+          description: 无权限修改此儿童
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '404':
+          description: 儿童不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+  /identity/children/register:
+    post:
+      tags:
+      - Identity-Children
+      summary: 注册儿童档案并建立监护关系
+      description: 创建儿童档案并自动将当前用户设置为监护人（身份证可不填写）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.ChildRegisterRequest'
+      responses:
+        '201':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildRegisterResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '409':
+          description: 儿童已存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
   /identity/children/search:
     get:
-      tags: [Identity-Children]
+      tags:
+      - Identity-Children
       summary: 搜索儿童
-      description: 根据姓名、生日等信息搜索相似的儿童档案
-      operationId: SearchChildren
+      description: 根据姓名、生日等信息搜索相似的儿童档案（用于运营查询）
       parameters:
-        - in: query
-          name: name
-          schema: { type: string }
-        - in: query
-          name: dob
-          schema: { type: string, format: date }
-        - $ref: '#/components/parameters/Offset'
-        - $ref: '#/components/parameters/Limit'
+      - name: name
+        in: query
+        description: 儿童姓名
+        schema:
+          type: string
+      - name: dob
+        in: query
+        description: 出生日期 YYYY-MM-DD
+        schema:
+          type: string
+      - name: offset
+        in: query
+        description: 偏移量
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        description: 每页数量
+        schema:
+          type: integer
+          default: 20
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChildPage' }}}}
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '500': { $ref: '#/components/responses/InternalServerError' }
-
-  /identity/children/{childId}:
-    parameters: [ { $ref: '#/components/parameters/ChildId' } ]
-    get:
-      tags: [Identity-Children]
-      summary: 查询儿童档案（仅限自己监护的孩子）
-      description: 根据儿童 ID 查询儿童档案，需具备监护关系。
-      operationId: GetChild
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Child' }}}}
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '500': { $ref: '#/components/responses/InternalServerError' }
-    patch:
-      tags: [Identity-Children]
-      summary: 更新儿童档案（仅限自己监护的孩子）
-      description: 部分更新指定儿童档案，需具备监护关系。
-      operationId: PatchChild
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ChildUpdateReq' }
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Child' }}}}
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '500': { $ref: '#/components/responses/InternalServerError' }
-
-  /identity/guardians/grant:
-    post:
-      tags: [Identity-Guardianship]
-      summary: 授予监护（为已存在的孩子添加监护人）
-      description: 为儿童添加监护人。
-      operationId: GrantGuardian
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/GuardianGrantReq' }
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Guardianship' }}}}
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '500': { $ref: '#/components/responses/InternalServerError' }
-
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildPageResponse'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
   /identity/guardians:
     get:
-      tags: [Identity-Guardianship]
+      tags:
+      - Identity-Guardianship
       summary: 查询监护关系
-      description: 根据用户或儿童查询监护关系列表。
-      operationId: ListGuardianships
+      description: 查询用户或儿童的监护关系列表
       parameters:
-        - in: query
-          name: user_id
-          schema: { type: string }
-          description: 根据用户 ID 查询其监护的儿童
-        - in: query
-          name: child_id
-          schema: { type: string }
-          description: 根据儿童 ID 查询其监护人
-        - in: query
-          name: active
-          schema: { type: boolean }
-          description: 是否仅返回有效监护关系
-        - $ref: '#/components/parameters/Offset'
-        - $ref: '#/components/parameters/Limit'
+      - name: user_id
+        in: query
+        description: 用户 ID
+        schema:
+          type: string
+      - name: child_id
+        in: query
+        description: 儿童 ID
+        schema:
+          type: string
+      - name: active
+        in: query
+        description: 是否仅查询活跃的监护关系
+        schema:
+          type: boolean
+      - name: offset
+        in: query
+        description: 偏移量
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        description: 每页数量
+        schema:
+          type: integer
+          default: 20
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/GuardianshipPage' }}}}
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '500': { $ref: '#/components/responses/InternalServerError' }
-
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipPageResponse'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+  /identity/guardians/grant:
+    post:
+      tags:
+      - Identity-Guardianship
+      summary: 授予监护关系
+      description: 将用户设置为儿童的监护人
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.GuardianGrantRequest'
+      responses:
+        '200':
+          description: 授予成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipResponse'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '409':
+          description: 监护关系已存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+  /identity/me:
+    get:
+      tags:
+      - Identity-Users
+      summary: 获取当前用户信息
+      description: 获取当前登录用户的资料信息
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+    patch:
+      tags:
+      - Identity-Users
+      summary: 更新当前用户信息
+      description: 部分更新当前登录用户的信息，支持更新昵称和联系方式
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.UserUpdateRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+  /identity/me/children:
+    get:
+      tags:
+      - Identity-Children
+      summary: 获取当前用户的儿童档案列表
+      description: 获取当前登录用户作为监护人的所有儿童档案
+      parameters:
+      - name: offset
+        in: query
+        description: 偏移量
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        description: 每页数量
+        schema:
+          type: integer
+          default: 20
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildPageResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
 components:
   securitySchemes:
-    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   parameters:
-    ChildId:  { in: path, name: childId, required: true, schema: { type: string } }
-    Limit:    { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
-    Offset:   { in: query, name: offset, schema: { type: integer, minimum: 0, default: 0 } }
+    ChildId:
+      in: path
+      name: childId
+      required: true
+      schema:
+        type: string
+    Limit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Offset:
+      in: query
+      name: offset
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
     IdempotencyKey:
       in: header
       name: X-Idempotency-Key
-      schema: { type: string }
+      schema:
+        type: string
   responses:
-    Unauthorized: { description: 未认证, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
-    Forbidden:    { description: 无权限, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
-    NotFound:     { description: 不存在, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
-    Conflict:     { description: 冲突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
-    BadRequest:   { description: 参数错误, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
-    InternalServerError: { description: 服务器内部错误, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
+    Unauthorized:
+      description: 未认证
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: 无权限
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: 不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: 冲突
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: 参数错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalServerError:
+      description: 服务器内部错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
   schemas:
     User:
       type: object
       properties:
-        id: { type: string }
-        status: { type: string, enum: [active, inactive, blocked] }
-        nickname: { type: string }
-        avatar: { type: string, format: uri }
+        id:
+          type: string
+        status:
+          type: string
+          enum:
+          - active
+          - inactive
+          - blocked
+        nickname:
+          type: string
+        avatar:
+          type: string
+          format: uri
         contacts:
           type: array
-          items: { $ref: '#/components/schemas/VerifiedContact' }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-      required: [id, status]
-
+          items:
+            $ref: '#/components/schemas/VerifiedContact'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - status
     UserUpdateReq:
       type: object
       properties:
-        nickname: { type: string }
-        avatar: { type: string, format: uri }
+        nickname:
+          type: string
+        avatar:
+          type: string
+          format: uri
         contacts:
           type: array
-          items: { $ref: '#/components/schemas/VerifiedContactUpsert' }
-
+          items:
+            $ref: '#/components/schemas/VerifiedContactUpsert'
     VerifiedContact:
       type: object
       properties:
-        type: { type: string, enum: [email, phone] }
-        value: { type: string }
-        verifiedAt: { type: string, format: date-time }
-
+        type:
+          type: string
+          enum:
+          - email
+          - phone
+        value:
+          type: string
+        verifiedAt:
+          type: string
+          format: date-time
     VerifiedContactUpsert:
       type: object
       properties:
-        type: { type: string, enum: [email, phone] }
-        value: { type: string }
-
+        type:
+          type: string
+          enum:
+          - email
+          - phone
+        value:
+          type: string
     Child:
       type: object
       properties:
-        id: { type: string }
-        legalName: { type: string }
-        gender: { type: integer, format: int8, description: '性别：0=其他，1=男，2=女', nullable: true }
-        dob: { type: string, format: date }
-        idType: { type: string }
-        idMasked: { type: string }
-        heightCm: { type: integer, nullable: true }
-        weightKg: { type: string, nullable: true }
-        createdAt: { type: string, format: date-time, nullable: true }
-        updatedAt: { type: string, format: date-time, nullable: true }
-      required: [id, legalName]
-
+        id:
+          type: string
+        legalName:
+          type: string
+        gender:
+          type: integer
+          format: int8
+          description: 性别：0=其他，1=男，2=女
+          nullable: true
+        dob:
+          type: string
+          format: date
+        idType:
+          type: string
+        idMasked:
+          type: string
+        heightCm:
+          type: integer
+          nullable: true
+        weightKg:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - legalName
     ChildCreateReq:
       type: object
       properties:
-        legalName: { type: string }
-        gender: { type: integer, format: int8, description: '性别：0=其他，1=男，2=女' }
-        dob: { type: string, format: date }
-        idType: { type: string }
-        idNo: { type: string, description: '仅入参；服务端加密+哈希存储' }
-        heightCm: { type: integer, nullable: true }
-        weightKg: { type: string, nullable: true }
-      required: [legalName, gender, dob, idType, idNo]
-
+        legalName:
+          type: string
+        gender:
+          type: integer
+          format: int8
+          description: 性别：0=其他，1=男，2=女
+        dob:
+          type: string
+          format: date
+        idType:
+          type: string
+        idNo:
+          type: string
+          description: 仅入参；服务端加密+哈希存储
+        heightCm:
+          type: integer
+          nullable: true
+        weightKg:
+          type: string
+          nullable: true
+      required:
+      - legalName
+      - gender
+      - dob
+      - idType
+      - idNo
     ChildUpdateReq:
       type: object
       properties:
-        legalName: { type: string }
-        gender: { type: integer, format: int8, description: '性别：0=其他，1=男，2=女' }
-        dob: { type: string, format: date }
-        heightCm: { type: integer, nullable: true }
-        weightKg: { type: string, nullable: true }
-
+        legalName:
+          type: string
+        gender:
+          type: integer
+          format: int8
+          description: 性别：0=其他，1=男，2=女
+        dob:
+          type: string
+          format: date
+        heightCm:
+          type: integer
+          nullable: true
+        weightKg:
+          type: string
+          nullable: true
     ChildRegisterReq:
       allOf:
-        - $ref: '#/components/schemas/ChildCreateReq'
-        - type: object
-          properties:
-            relation:
-              type: string
-              enum: [self, parent, guardian]
-              default: parent
-          required: [relation]
-
+      - $ref: '#/components/schemas/ChildCreateReq'
+      - type: object
+        properties:
+          relation:
+            type: string
+            enum:
+            - self
+            - parent
+            - guardian
+            default: parent
+        required:
+        - relation
     ChildRegisterResp:
       type: object
       properties:
-        child: { $ref: '#/components/schemas/Child' }
-        guardianship: { $ref: '#/components/schemas/Guardianship' }
-      required: [child, guardianship]
-
+        child:
+          $ref: '#/components/schemas/Child'
+        guardianship:
+          $ref: '#/components/schemas/Guardianship'
+      required:
+      - child
+      - guardianship
     ChildPage:
       type: object
       properties:
-        total: { type: integer }
-        limit: { type: integer }
-        offset: { type: integer }
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
         items:
           type: array
-          items: { $ref: '#/components/schemas/Child' }
-
+          items:
+            $ref: '#/components/schemas/Child'
     Guardianship:
       type: object
       properties:
-        id: { type: integer, format: int64 }
-        userId: { type: string }
-        childId: { type: string }
-        relation: { type: string, enum: [self, parent, guardian] }
-        since: { type: string, format: date-time }
-        revokedAt: { type: string, format: date-time, nullable: true }
-      required: [id, userId, childId, relation, since]
-
+        id:
+          type: integer
+          format: int64
+        userId:
+          type: string
+        childId:
+          type: string
+        relation:
+          type: string
+          enum:
+          - self
+          - parent
+          - guardian
+        since:
+          type: string
+          format: date-time
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - userId
+      - childId
+      - relation
+      - since
     GuardianGrantReq:
       type: object
       properties:
-        userId: { type: string }
-        childId: { type: string }
-        relation: { type: string, enum: [self, parent, guardian] }
-      required: [userId, childId, relation]
-
+        userId:
+          type: string
+        childId:
+          type: string
+        relation:
+          type: string
+          enum:
+          - self
+          - parent
+          - guardian
+      required:
+      - userId
+      - childId
+      - relation
     GuardianshipPage:
       type: object
       properties:
-        total: { type: integer }
-        limit: { type: integer }
-        offset: { type: integer }
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
         items:
           type: array
-          items: { $ref: '#/components/schemas/Guardianship' }
-
+          items:
+            $ref: '#/components/schemas/Guardianship'
     SuccessResponse:
       type: object
       description: 统一成功响应格式
       properties:
-        code: { type: integer, example: 0, description: '业务状态码，0表示成功' }
-        message: { type: string, example: 'success', description: '响应消息' }
-        data: { type: object, description: '响应数据' }
-      required: [code, message]
-
+        code:
+          type: integer
+          example: 0
+          description: 业务状态码，0表示成功
+        message:
+          type: string
+          example: success
+          description: 响应消息
+        data:
+          type: object
+          description: 响应数据
+      required:
+      - code
+      - message
     Error:
       type: object
       properties:
-        code: { type: string }
-        message: { type: string }
-        requestId: { type: string }
+        code:
+          type: string
+        message:
+          type: string
+        requestId:
+          type: string

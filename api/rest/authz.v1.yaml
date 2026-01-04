@@ -8,471 +8,849 @@ info:
     email: yshujie@163.com
     url: https://github.com/FangcunMount/iam-contracts
 servers:
-  - url: https://iam.yangshujie.com/api/v1
-    description: 生产环境
-  - url: http://localhost:18081/api/v1
-    description: 本地开发
+- url: https://iam.yangshujie.com/api/v1
+  description: 生产环境
+- url: http://localhost:18081/api/v1
+  description: 本地开发
 tags:
-  - name: Health
-    description: 健康检查
-  - name: Authorization-Roles
-    description: 角色管理
-  - name: Authorization-Assignments
-    description: 角色分配管理
-  - name: Authorization-Policies
-    description: 策略管理
-  - name: Authorization-Resources
-    description: 资源管理
-
+- name: Health
+  description: 健康检查
+- name: Authorization-Roles
+  description: 角色管理
+- name: Authorization-Assignments
+  description: 角色分配管理
+- name: Authorization-Policies
+  description: 策略管理
+- name: Authorization-Resources
+  description: 资源管理
 paths:
-  /authz/health:
-    get:
-      tags: [Health]
-      summary: 授权模块健康检查
-      description: 授权服务健康检查。
-      operationId: AuthzHealth
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { status: { type: string }, module: { type: string }}}}}}
-
-  /authz/roles:
-    get:
-      tags: [Authorization-Roles]
-      summary: 列出角色
-      description: 分页列出角色。
-      operationId: ListRoles
-      parameters: [ { $ref: '#/components/parameters/Offset' }, { $ref: '#/components/parameters/Limit' } ]
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/RolePage' }}}}
-    post:
-      tags: [Authorization-Roles]
-      summary: 创建角色
-      description: 创建一个新角色。
-      operationId: CreateRole
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/CreateRoleRequest' }
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Role' }}}}
-
-  /authz/roles/{id}:
-    parameters: [ { $ref: '#/components/parameters/RoleId' } ]
-    get:
-      tags: [Authorization-Roles]
-      summary: 获取角色详情
-      description: 按 ID 查询角色详情。
-      operationId: GetRole
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Role' }}}}
-        '404': { $ref: '#/components/responses/NotFound' }
-    put:
-      tags: [Authorization-Roles]
-      summary: 更新角色
-      description: 更新角色的显示名或描述。
-      operationId: UpdateRole
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/UpdateRoleRequest' }
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Role' }}}}
+  /authz/assignments/{id}:
     delete:
-      tags: [Authorization-Roles]
-      summary: 删除角色
-      description: 删除指定角色。
-      operationId: DeleteRole
+      tags:
+      - Authorization-Assignments
+      summary: 根据分配ID撤销角色
+      parameters:
+      - name: id
+        in: path
+        description: 分配ID
+        required: true
+        schema:
+          type: string
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
-
-  /authz/roles/{id}/assignments:
-    parameters: [ { $ref: '#/components/parameters/RoleId' } ]
-    get:
-      tags: [Authorization-Roles]
-      summary: 列出角色的分配记录
-      description: 按角色分页查询分配记录。
-      operationId: ListAssignmentsByRole
-      parameters: [ { $ref: '#/components/parameters/Offset' }, { $ref: '#/components/parameters/Limit' } ]
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AssignmentPage' }}}}
-
-  /authz/roles/{id}/policies:
-    parameters: [ { $ref: '#/components/parameters/RoleId' } ]
-    get:
-      tags: [Authorization-Roles]
-      summary: 获取角色策略
-      description: 按角色获取策略列表。
-      operationId: GetPoliciesByRole
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PolicyRuleList' }}}}
-
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
   /authz/assignments/grant:
     post:
-      tags: [Authorization-Assignments]
+      tags:
+      - Authorization-Assignments
       summary: 授予角色
-      description: 将角色授予用户或组。
-      operationId: GrantAssignment
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/GrantRequest' }
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.GrantRequest'
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Assignment' }}}}
-
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AssignmentResponse'
+                  type: object
   /authz/assignments/revoke:
     post:
-      tags: [Authorization-Assignments]
+      tags:
+      - Authorization-Assignments
       summary: 撤销角色
-      description: 撤销主体的角色分配。
-      operationId: RevokeAssignment
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/RevokeRequest' }
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RevokeRequest'
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
-
-  /authz/assignments/{id}:
-    parameters: [ { $ref: '#/components/parameters/AssignmentId' } ]
-    delete:
-      tags: [Authorization-Assignments]
-      summary: 根据分配ID撤销角色
-      description: 通过分配 ID 撤销角色。
-      operationId: RevokeAssignmentById
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
-
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
   /authz/assignments/subject:
     get:
-      tags: [Authorization-Assignments]
+      tags:
+      - Authorization-Assignments
       summary: 列出主体的角色分配
-      description: 按主体类型与 ID 查询角色分配。
-      operationId: ListAssignmentsBySubject
       parameters:
-        - in: query
-          name: subject_type
-          schema: { type: string }
-        - in: query
-          name: subject_id
-          schema: { type: string }
-        - $ref: '#/components/parameters/Offset'
-        - $ref: '#/components/parameters/Limit'
+      - name: subject_type
+        in: query
+        description: 主体类型
+        required: true
+        schema:
+          type: string
+          enum:
+          - user
+          - group
+      - name: subject_id
+        in: query
+        description: 主体ID
+        required: true
+        schema:
+          type: string
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AssignmentPage' }}}}
-
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      items:
+                        $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AssignmentResponse'
+                      type: array
+                  type: object
   /authz/policies:
     post:
-      tags: [Authorization-Policies]
+      tags:
+      - Authorization-Policies
       summary: 添加策略规则
-      description: 为角色添加资源动作策略。
-      operationId: AddPolicyRule
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/AddPolicyRequest' }
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AddPolicyRequest'
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
     delete:
-      tags: [Authorization-Policies]
+      tags:
+      - Authorization-Policies
       summary: 移除策略规则
-      description: 移除角色的资源动作策略。
-      operationId: RemovePolicyRule
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/RemovePolicyRequest' }
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RemovePolicyRequest'
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
-
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
   /authz/policies/version:
     get:
-      tags: [Authorization-Policies]
+      tags:
+      - Authorization-Policies
       summary: 获取当前策略版本
-      description: 查询当前策略版本号。
-      operationId: GetPolicyVersion
       responses:
-        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { version: { type: string }}}}}}
-
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.PolicyVersionResponse'
+                  type: object
   /authz/resources:
     get:
-      tags: [Authorization-Resources]
+      tags:
+      - Authorization-Resources
       summary: 列出资源
-      description: 按条件分页列出资源。
-      operationId: ListResources
       parameters:
-        - in: query
-          name: app_name
-          schema: { type: string }
-        - in: query
-          name: domain
-          schema: { type: string }
-        - in: query
-          name: type
-          schema: { type: string }
-        - $ref: '#/components/parameters/Offset'
-        - $ref: '#/components/parameters/Limit'
+      - name: app_name
+        in: query
+        description: 应用名称
+        schema:
+          type: string
+      - name: domain
+        in: query
+        description: 域
+        schema:
+          type: string
+      - name: type
+        in: query
+        description: 类型
+        schema:
+          type: string
+      - name: offset
+        in: query
+        description: 偏移量
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        description: 每页数量
+        schema:
+          type: integer
+          default: 10
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ResourcePage' }}}}
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ListResponse'
+                - properties:
+                    data:
+                      items:
+                        $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ResourceResponse'
+                      type: array
+                  type: object
     post:
-      tags: [Authorization-Resources]
+      tags:
+      - Authorization-Resources
       summary: 创建资源
-      description: 创建受控资源及其动作列表。
-      operationId: CreateResource
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CreateResourceRequest' }
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CreateResourceRequest'
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Resource' }}}}
-
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ResourceResponse'
+                  type: object
   /authz/resources/{id}:
-    parameters: [ { $ref: '#/components/parameters/ResourceId' } ]
     get:
-      tags: [Authorization-Resources]
+      tags:
+      - Authorization-Resources
       summary: 获取资源详情
-      description: 按资源 ID 查询详情。
-      operationId: GetResource
+      parameters:
+      - name: id
+        in: path
+        description: 资源ID
+        required: true
+        schema:
+          type: string
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Resource' }}}}
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ResourceResponse'
+                  type: object
     put:
-      tags: [Authorization-Resources]
+      tags:
+      - Authorization-Resources
       summary: 更新资源
-      description: 更新资源的基本信息与动作。
-      operationId: UpdateResource
+      parameters:
+      - name: id
+        in: path
+        description: 资源ID
+        required: true
+        schema:
+          type: string
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/UpdateResourceRequest' }
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.UpdateResourceRequest'
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Resource' }}}}
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ResourceResponse'
+                  type: object
     delete:
-      tags: [Authorization-Resources]
+      tags:
+      - Authorization-Resources
       summary: 删除资源
-      description: 删除指定资源。
-      operationId: DeleteResource
+      parameters:
+      - name: id
+        in: path
+        description: 资源ID
+        required: true
+        schema:
+          type: string
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Message' }}}}
-
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
   /authz/resources/key/{key}:
-    parameters: [ { in: path, name: key, required: true, schema: { type: string } } ]
     get:
-      tags: [Authorization-Resources]
+      tags:
+      - Authorization-Resources
       summary: 根据键获取资源
-      description: 通过资源键查询资源详情。
-      operationId: GetResourceByKey
+      parameters:
+      - name: key
+        in: path
+        description: 资源键
+        required: true
+        schema:
+          type: string
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Resource' }}}}
-        '404': { $ref: '#/components/responses/NotFound' }
-
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ResourceResponse'
+                  type: object
   /authz/resources/validate-action:
     post:
-      tags: [Authorization-Resources]
+      tags:
+      - Authorization-Resources
       summary: 验证资源动作
-      description: 校验资源动作是否合法。
-      operationId: ValidateResourceAction
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/ValidateActionRequest' }
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ValidateActionRequest'
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ValidateActionResponse' }}}}
-
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ValidateActionResponse'
+                  type: object
+  /authz/roles:
+    get:
+      tags:
+      - Authorization-Roles
+      summary: 列出角色
+      parameters:
+      - name: offset
+        in: query
+        description: 偏移量
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        description: 每页数量
+        schema:
+          type: integer
+          default: 10
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.ListResponse'
+                - properties:
+                    data:
+                      items:
+                        $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RoleResponse'
+                      type: array
+                  type: object
+    post:
+      tags:
+      - Authorization-Roles
+      summary: 创建角色
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CreateRoleRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RoleResponse'
+                  type: object
+  /authz/roles/{id}:
+    get:
+      tags:
+      - Authorization-Roles
+      summary: 获取角色详情
+      parameters:
+      - name: id
+        in: path
+        description: 角色ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RoleResponse'
+                  type: object
+    put:
+      tags:
+      - Authorization-Roles
+      summary: 更新角色
+      parameters:
+      - name: id
+        in: path
+        description: 角色ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.UpdateRoleRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RoleResponse'
+                  type: object
+    delete:
+      tags:
+      - Authorization-Roles
+      summary: 删除角色
+      parameters:
+      - name: id
+        in: path
+        description: 角色ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+  /authz/roles/{id}/assignments:
+    get:
+      tags:
+      - Authorization-Assignments
+      summary: 列出角色的分配记录
+      parameters:
+      - name: id
+        in: path
+        description: 角色ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      items:
+                        $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AssignmentResponse'
+                      type: array
+                  type: object
+  /authz/roles/{id}/policies:
+    get:
+      tags:
+      - Authorization-Policies
+      summary: 获取角色的策略列表
+      parameters:
+      - name: id
+        in: path
+        description: 角色ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      items:
+                        $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.PolicyRuleResponse'
+                      type: array
+                  type: object
 components:
   parameters:
-    Offset: { in: query, name: offset, schema: { type: integer, minimum: 0, default: 0 } }
-    Limit: { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
-    RoleId: { in: path, name: id, required: true, schema: { type: integer, format: int64 } }
-    AssignmentId: { in: path, name: id, required: true, schema: { type: integer, format: int64 } }
-    ResourceId: { in: path, name: id, required: true, schema: { type: integer, format: int64 } }
+    Offset:
+      in: query
+      name: offset
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Limit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    RoleId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+        format: int64
+    AssignmentId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+        format: int64
+    ResourceId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+        format: int64
   responses:
-    NotFound: { description: 不存在, content: { application/json: { schema: { $ref: '#/components/schemas/Error' }}}}
+    NotFound:
+      description: 不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
   schemas:
     Message:
       type: object
       properties:
-        message: { type: string }
-
+        message:
+          type: string
     Role:
       type: object
       properties:
-        id: { type: integer }
-        name: { type: string }
-        display_name: { type: string }
-        description: { type: string }
-        tenant_id: { type: string }
-        createdAt: { type: string, format: date-time }
-      required: [id, name, display_name]
-
+        id:
+          type: integer
+        name:
+          type: string
+        display_name:
+          type: string
+        description:
+          type: string
+        tenant_id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - name
+      - display_name
     RolePage:
       type: object
       properties:
-        total: { type: integer }
-        limit: { type: integer }
-        offset: { type: integer }
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
         data:
           type: array
-          items: { $ref: '#/components/schemas/Role' }
-
+          items:
+            $ref: '#/components/schemas/Role'
     CreateRoleRequest:
       type: object
       properties:
-        name: { type: string }
-        display_name: { type: string }
-        description: { type: string }
-      required: [name, display_name]
-
+        name:
+          type: string
+        display_name:
+          type: string
+        description:
+          type: string
+      required:
+      - name
+      - display_name
     UpdateRoleRequest:
       type: object
       properties:
-        display_name: { type: string }
-        description: { type: string }
-
+        display_name:
+          type: string
+        description:
+          type: string
     Assignment:
       type: object
       properties:
-        id: { type: integer }
-        subject_type: { type: string, enum: [user, group] }
-        subject_id: { type: string }
-        role_id: { type: integer }
-        granted_by: { type: string }
-        tenant_id: { type: string }
-
+        id:
+          type: integer
+        subject_type:
+          type: string
+          enum:
+          - user
+          - group
+        subject_id:
+          type: string
+        role_id:
+          type: integer
+        granted_by:
+          type: string
+        tenant_id:
+          type: string
     AssignmentPage:
       type: object
       properties:
-        total: { type: integer }
-        limit: { type: integer }
-        offset: { type: integer }
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
         data:
           type: array
-          items: { $ref: '#/components/schemas/Assignment' }
-
+          items:
+            $ref: '#/components/schemas/Assignment'
     GrantRequest:
       type: object
       properties:
         subject_type:
           type: string
-          enum: [user, group]
-        subject_id: { type: string }
-        role_id: { type: integer }
-        granted_by: { type: string }
-      required: [subject_type, subject_id, role_id, granted_by]
-
+          enum:
+          - user
+          - group
+        subject_id:
+          type: string
+        role_id:
+          type: integer
+        granted_by:
+          type: string
+      required:
+      - subject_type
+      - subject_id
+      - role_id
+      - granted_by
     RevokeRequest:
       type: object
       properties:
-        subject_type: { type: string, enum: [user, group] }
-        subject_id: { type: string }
-        role_id: { type: integer }
-      required: [subject_type, subject_id, role_id]
-
+        subject_type:
+          type: string
+          enum:
+          - user
+          - group
+        subject_id:
+          type: string
+        role_id:
+          type: integer
+      required:
+      - subject_type
+      - subject_id
+      - role_id
     PolicyRule:
       type: object
       properties:
-        role_id: { type: integer }
-        resource_id: { type: integer }
-        action: { type: string }
-
+        role_id:
+          type: integer
+        resource_id:
+          type: integer
+        action:
+          type: string
     PolicyRuleList:
       type: object
       properties:
         items:
           type: array
-          items: { $ref: '#/components/schemas/PolicyRule' }
-
+          items:
+            $ref: '#/components/schemas/PolicyRule'
     AddPolicyRequest:
       type: object
       properties:
-        role_id: { type: integer }
-        resource_id: { type: integer }
-        action: { type: string }
-        changed_by: { type: string }
-        reason: { type: string }
-      required: [role_id, resource_id, action, changed_by]
-
+        role_id:
+          type: integer
+        resource_id:
+          type: integer
+        action:
+          type: string
+        changed_by:
+          type: string
+        reason:
+          type: string
+      required:
+      - role_id
+      - resource_id
+      - action
+      - changed_by
     RemovePolicyRequest:
       type: object
       properties:
-        role_id: { type: integer }
-        resource_id: { type: integer }
-        action: { type: string }
-        changed_by: { type: string }
-        reason: { type: string }
-      required: [role_id, resource_id, action, changed_by]
-
+        role_id:
+          type: integer
+        resource_id:
+          type: integer
+        action:
+          type: string
+        changed_by:
+          type: string
+        reason:
+          type: string
+      required:
+      - role_id
+      - resource_id
+      - action
+      - changed_by
     Resource:
       type: object
       properties:
-        id: { type: integer }
-        key: { type: string }
-        domain: { type: string }
-        app_name: { type: string }
-        type: { type: string }
+        id:
+          type: integer
+        key:
+          type: string
+        domain:
+          type: string
+        app_name:
+          type: string
+        type:
+          type: string
         actions:
           type: array
-          items: { type: string }
-        createdAt: { type: string, format: date-time }
-        display_name: { type: string }
-        description: { type: string }
-
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        display_name:
+          type: string
+        description:
+          type: string
     ResourcePage:
       type: object
       properties:
-        total: { type: integer }
-        limit: { type: integer }
-        offset: { type: integer }
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
         data:
           type: array
-          items: { $ref: '#/components/schemas/Resource' }
-
+          items:
+            $ref: '#/components/schemas/Resource'
     CreateResourceRequest:
       type: object
       properties:
-        key: { type: string }
-        domain: { type: string }
-        app_name: { type: string }
-        type: { type: string }
+        key:
+          type: string
+        domain:
+          type: string
+        app_name:
+          type: string
+        type:
+          type: string
         actions:
           type: array
-          items: { type: string }
+          items:
+            type: string
           minItems: 1
-        display_name: { type: string }
-        description: { type: string }
-      required: [key, domain, type, actions, app_name, display_name]
-
+        display_name:
+          type: string
+        description:
+          type: string
+      required:
+      - key
+      - domain
+      - type
+      - actions
+      - app_name
+      - display_name
     UpdateResourceRequest:
       type: object
       properties:
         actions:
           type: array
-          items: { type: string }
+          items:
+            type: string
           minItems: 1
-        display_name: { type: string }
-        description: { type: string }
-
+        display_name:
+          type: string
+        description:
+          type: string
     ValidateActionRequest:
       type: object
       properties:
-        resource_key: { type: string }
-        action: { type: string }
-      required: [resource_key, action]
-
+        resource_key:
+          type: string
+        action:
+          type: string
+      required:
+      - resource_key
+      - action
     ValidateActionResponse:
       type: object
       properties:
-        valid: { type: boolean }
-
+        valid:
+          type: boolean
     Error:
       type: object
       properties:
-        code: { type: string }
-        message: { type: string }
+        code:
+          type: string
+        message:
+          type: string

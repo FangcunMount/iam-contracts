@@ -1859,7 +1859,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "创建儿童档案并自动将当前用户设置为监护人",
+                "description": "创建儿童档案并自动将当前用户设置为监护人（身份证可不填写）",
                 "consumes": [
                     "application/json"
                 ],
@@ -3697,8 +3697,6 @@ const docTemplate = `{
             "required": [
                 "dob",
                 "gender",
-                "idNo",
-                "idType",
                 "legalName",
                 "relation"
             ],

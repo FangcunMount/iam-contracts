@@ -123,6 +123,12 @@ help: ## 显示帮助信息
 api-validate: ## Lint OpenAPI (spectral) + compare swagger vs api/rest
 	./scripts/validate-openapi.sh
 
+docs-swagger: ## Regenerate swagger (internal/apiserver/docs)
+	swag init -g cmd/apiserver/apiserver.go -o internal/apiserver/docs --parseDependency --parseInternal
+
+docs-reset: ## Reset api/rest paths from swagger (split by prefix rules)
+	python scripts/reset-openapi-from-swagger.py
+
 version: ## 显示版本信息
 	@echo "$(COLOR_BOLD)版本信息:$(COLOR_RESET)"
 	@echo "  版本:     $(COLOR_GREEN)$(VERSION)$(COLOR_RESET)"

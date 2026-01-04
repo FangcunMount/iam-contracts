@@ -105,7 +105,7 @@ func (h *ChildHandler) ListMyChildren(c *gin.Context) {
 
 // RegisterChild 注册儿童并授予当前用户监护权
 // @Summary 注册儿童档案并建立监护关系
-// @Description 创建儿童档案并自动将当前用户设置为监护人
+// @Description 创建儿童档案并自动将当前用户设置为监护人（身份证可不填写）
 // @Tags Identity-Children
 // @Accept json
 // @Produce json

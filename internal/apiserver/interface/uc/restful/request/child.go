@@ -1,6 +1,6 @@
 package request
 
-// ChildCreateRequest 创建儿童档案请求
+// ChildCreateRequest 创建儿童档案请求（身份证可选）
 type ChildCreateRequest struct {
 	LegalName string `json:"legalName" binding:"required"`
 	Gender    *uint8 `json:"gender" binding:"required"`

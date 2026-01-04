@@ -698,8 +698,6 @@ definitions:
     required:
     - dob
     - gender
-    - idNo
-    - idType
     - legalName
     - relation
     type: object
@@ -2130,7 +2128,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 创建儿童档案并自动将当前用户设置为监护人
+      description: 创建儿童档案并自动将当前用户设置为监护人（身份证可不填写）
       parameters:
       - description: 注册儿童请求
         in: body
