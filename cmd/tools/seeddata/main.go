@@ -119,7 +119,7 @@ func main() {
 	configFileFlag := flag.String("config", "configs/seeddata.yaml", "Path to seed data configuration file")
 	stepsFlag := flag.String("steps", strings.Join(stepListToStrings(defaultSteps), ","), "Comma separated seed steps (system-init,authn-init,admin-init,family-init)")
 	familyCountFlag := flag.Int("family-count", 200000, "Number of families to generate in family seed step")
-	workerCountFlag := flag.Int("worker-count", 500, "Number of concurrent workers for family seed step")
+	workerCountFlag := flag.Int("worker-count", 20, "Number of concurrent workers for family seed step")
 	verboseFlag := flag.Bool("verbose", false, "Enable verbose output including SQL logs")
 	devFlag := flag.Bool("dev", false, "Enable development mode: print full runtime logs (verbose) vs stats-only mode")
 	onConflictFlag := flag.String("on-conflict", "skip", "Behavior when data already exists: skip|overwrite|fail")
