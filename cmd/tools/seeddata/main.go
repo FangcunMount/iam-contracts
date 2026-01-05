@@ -138,7 +138,7 @@ func main() {
 	logger.Infow("📄 加载种子数据配置...", "config_file", *configFileFlag)
 	seedConfig, err := LoadSeedConfig(*configFileFlag)
 	if err != nil {
-		logger.Fatalw("❌ 加载配置文件失败", "error", "file", *configFileFlag)
+		logger.Fatalw("❌ 加载配置文件失败", "error", err, "file", *configFileFlag)
 	}
 	logger.Infow("✅ 配置文件加载成功", "tenants", len(seedConfig.Tenants), "users", len(seedConfig.Users))
 
