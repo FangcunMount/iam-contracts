@@ -808,6 +808,52 @@
                 }
             }
         },
+        "/api/v1/suggest/child": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "支持中文/拼音前缀联想，数字关键词走手机号/ID 精确匹配",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Suggest"
+                ],
+                "summary": "儿童联想搜索",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "关键词；数字=精确匹配手机号/ID，其他=前缀联想",
+                        "name": "k",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "联想结果（按权重降序，去重）",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_domain_suggest.Term"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "参数缺失",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "description": "支持多种登录方式：密码登录、手机验证码登录、微信小程序登录、企业微信登录",
@@ -2738,6 +2784,23 @@
                 },
                 "y": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_domain_suggest.Term": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "mobile": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "weight": {
+                    "type": "integer"
                 }
             }
         },

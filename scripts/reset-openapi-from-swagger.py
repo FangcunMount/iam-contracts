@@ -52,6 +52,12 @@ def map_path(path: str) -> str:
         return "/authn" + path
     if path.startswith("/authz/") or path.startswith("/idp/"):
         return path
+    if path.startswith("/api/v1/suggest/") or path.startswith("/suggest/"):
+        # Suggest 归入 identity 模块，移除 /api/v1 前缀并添加 /identity
+        normalized = path
+        if normalized.startswith("/api/v1"):
+            normalized = normalized[len("/api/v1") :]
+        return "/identity" + normalized
     if path.startswith("/children") or path.startswith("/guardians") or path.startswith("/me") or path.startswith("/users"):
         return "/identity" + path
     return path
@@ -63,6 +69,8 @@ def module_for_path(path: str) -> str:
     if path.startswith("/authz/"):
         return "authz"
     if path.startswith("/identity/"):
+        return "identity"
+    if path.startswith("/suggest/") or path.startswith("/api/v1/suggest/"):
         return "identity"
     if path.startswith("/idp/"):
         return "idp"
