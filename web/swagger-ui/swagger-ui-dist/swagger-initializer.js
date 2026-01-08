@@ -10,6 +10,7 @@ window.onload = function() {
     { name: "Identity", url: "/openapi/identity.v1.yaml" },
     { name: "AuthZ", url: "/openapi/authz.v1.yaml" },
     { name: "IDP", url: "/openapi/idp.v1.yaml" },
+    { name: "Suggest", url: "/openapi/suggest.v1.yaml" },
   ];
 
   window.ui = SwaggerUIBundle({
