@@ -192,7 +192,7 @@ idp:
 # 4.4 Suggest 联想模块
 # ----------------------------------------------------------------------------
 suggest:
-  enable: false            # 默认关闭，可按需开启
+  enable: true
   data_dir: "/app/data/suggest"
   full_sync_cron: "@every 1h"
   delta_sync_cron: "@every 5m"
