@@ -1,0 +1,79 @@
+openapi: 3.1.0
+info:
+  title: IAM · Suggest API
+  version: 1.0.0
+  description: 联想搜索 REST API
+  contact:
+    name: API Support
+    email: yshujie@163.com
+    url: https://github.com/FangcunMount/iam-contracts
+servers:
+- url: https://iam.yangshujie.com/api/v1
+  description: Production
+- url: http://localhost:18081/api/v1
+  description: Local Dev
+security:
+- bearerAuth: []
+tags:
+- name: Suggest
+paths:
+  /suggest/child:
+    get:
+      tags:
+      - Suggest
+      summary: 儿童联想搜索
+      description: 支持中文/拼音前缀联想，数字关键词走手机号/ID 精确匹配
+      parameters:
+      - name: k
+        in: query
+        description: 关键词；数字=精确匹配手机号/ID，其他=前缀联想
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 联想结果（按权重降序，去重）
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_domain_suggest.Term'
+                type: array
+        '400':
+          description: 参数缺失
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    github_com_FangcunMount_iam-contracts_internal_apiserver_domain_suggest.Term:
+      properties:
+        id:
+          type: integer
+        mobile:
+          type: string
+        name:
+          type: string
+        weight:
+          type: integer
+      type: object
+    github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse:
+      properties:
+        code:
+          description: Code 定义了业务错误代码
+          type: integer
+        message:
+          description: 'Message 包含此消息的详细信息
+
+            此消息适合暴露给外部'
+          type: string
+        reference:
+          description: Reference 返回参考文档，可能有助于解决此错误
+          type: string
+      type: object

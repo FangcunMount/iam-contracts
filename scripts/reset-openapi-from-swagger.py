@@ -22,6 +22,7 @@ SPEC_PATHS = {
     "authz": ROOT / "api/rest/authz.v1.yaml",
     "identity": ROOT / "api/rest/identity.v1.yaml",
     "idp": ROOT / "api/rest/idp.v1.yaml",
+    "suggest": ROOT / "api/rest/suggest.v1.yaml",
 }
 
 
@@ -53,11 +54,11 @@ def map_path(path: str) -> str:
     if path.startswith("/authz/") or path.startswith("/idp/"):
         return path
     if path.startswith("/api/v1/suggest/") or path.startswith("/suggest/"):
-        # Suggest 归入 identity 模块，移除 /api/v1 前缀并添加 /identity
+        # Suggest 独立模块，移除 /api/v1 前缀
         normalized = path
         if normalized.startswith("/api/v1"):
             normalized = normalized[len("/api/v1") :]
-        return "/identity" + normalized
+        return normalized
     if path.startswith("/children") or path.startswith("/guardians") or path.startswith("/me") or path.startswith("/users"):
         return "/identity" + path
     return path
@@ -71,7 +72,7 @@ def module_for_path(path: str) -> str:
     if path.startswith("/identity/"):
         return "identity"
     if path.startswith("/suggest/") or path.startswith("/api/v1/suggest/"):
-        return "identity"
+        return "suggest"
     if path.startswith("/idp/"):
         return "idp"
     return "unknown"

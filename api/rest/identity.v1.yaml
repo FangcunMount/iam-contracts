@@ -20,34 +20,6 @@ tags:
 - name: Identity-Guardianship
 - name: Suggest
 paths:
-  /identity/suggest/child:
-    get:
-      tags:
-      - Suggest
-      summary: 儿童联想搜索
-      description: 支持中文/拼音前缀联想，数字关键词走手机号/ID 精确匹配
-      parameters:
-      - name: k
-        in: query
-        description: 关键词；数字=精确匹配手机号/ID，其他=前缀联想
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: 联想结果（按权重降序，去重）
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_domain_suggest.Term'
-                type: array
-        '400':
-          description: 参数缺失
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
   /identity/children/{id}:
     get:
       tags:
@@ -522,17 +494,6 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
-    github_com_FangcunMount_iam-contracts_internal_apiserver_domain_suggest.Term:
-      properties:
-        id:
-          type: integer
-        mobile:
-          type: string
-        name:
-          type: string
-        weight:
-          type: integer
-      type: object
     github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.ChildRegisterRequest:
       properties:
         dob:
