@@ -158,6 +158,13 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 			}
 		}
 
+		// 停止 suggest 更新任务
+		if s.container != nil && s.container.SuggestModule != nil {
+			if err := s.container.SuggestModule.Cleanup(); err != nil {
+				log.Errorf("Failed to cleanup suggest module: %v", err)
+			}
+		}
+
 		// 清理容器资源
 		if s.container != nil {
 			// 容器清理逻辑可以在这里添加

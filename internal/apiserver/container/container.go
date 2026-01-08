@@ -26,10 +26,11 @@ type Container struct {
 	eventBus messaging.EventBus
 
 	// 业务模块
-	AuthnModule *assembler.AuthnModule
-	UserModule  *assembler.UserModule
-	AuthzModule *assembler.AuthzModule
-	IDPModule   *assembler.IDPModule
+	AuthnModule   *assembler.AuthnModule
+	UserModule    *assembler.UserModule
+	AuthzModule   *assembler.AuthzModule
+	IDPModule     *assembler.IDPModule
+	SuggestModule *assembler.SuggestModule
 
 	// IDP 模块加密密钥（32 字节 AES-256）
 	idpEncryptionKey []byte
@@ -91,6 +92,12 @@ func (c *Container) Initialize() error {
 		errors = append(errors, fmt.Errorf("authz module: %w", err))
 	}
 
+	// 5. 初始化 Suggest 模块（可选）
+	if err := c.initSuggestModule(); err != nil {
+		log.Warnf("Failed to initialize Suggest module: %v", err)
+		errors = append(errors, fmt.Errorf("suggest module: %w", err))
+	}
+
 	c.initialized = true
 
 	// 打印初始化状态
@@ -114,6 +121,11 @@ func (c *Container) Initialize() error {
 		log.Info("   ✅ Authz module")
 	} else {
 		log.Warn("   ❌ Authz module failed")
+	}
+	if c.SuggestModule != nil && c.SuggestModule.Service != nil {
+		log.Info("   ✅ Suggest module")
+	} else {
+		log.Warn("   ⚠️  Suggest module not initialized or disabled")
 	}
 
 	// 如果有错误,返回组合错误(但容器仍然标记为已初始化)
@@ -166,6 +178,19 @@ func (c *Container) initAuthzModule() error {
 		return fmt.Errorf("failed to initialize authz module: %w", err)
 	}
 	c.AuthzModule = authzModule
+	return nil
+}
+
+// initSuggestModule 初始化联想模块
+func (c *Container) initSuggestModule() error {
+	suggestModule := assembler.NewSuggestModule()
+	if err := suggestModule.Initialize(c.mysqlDB); err != nil {
+		return fmt.Errorf("failed to initialize suggest module: %w", err)
+	}
+	// 可能因配置关闭而 Service 为空
+	if suggestModule.Service != nil {
+		c.SuggestModule = suggestModule
+	}
 	return nil
 }
 
@@ -271,5 +296,12 @@ func (c *Container) PrintStatus() {
 		fmt.Printf("✅\n")
 	} else {
 		fmt.Printf("❌\n")
+	}
+
+	fmt.Printf("   • Suggest Module: ")
+	if c.SuggestModule != nil && c.SuggestModule.Service != nil {
+		fmt.Printf("✅\n")
+	} else {
+		fmt.Printf("⚠️  (disabled or not initialized)\n")
 	}
 }

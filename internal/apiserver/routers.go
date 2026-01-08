@@ -12,6 +12,7 @@ import (
 	authnhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful"
 	authzhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful"
 	idphttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/idp/restful"
+	suggesthttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/suggest/restful"
 	userhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful"
 	authnMiddleware "github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
 	swaggerui "github.com/FangcunMount/iam-contracts/web/swagger-ui"
@@ -111,6 +112,23 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 	// User 模块路由始终注册
 	userhttp.Register(engine)
 	log.Info("✅ User module routes registered")
+
+	// Suggest 模块（依赖 Service 和可选认证）
+	if r.container.SuggestModule != nil && r.container.SuggestModule.Service != nil {
+		suggesthttp.Provide(suggesthttp.Dependencies{
+			Service: r.container.SuggestModule.Service,
+			AuthMiddleware: func() gin.HandlerFunc {
+				if authMiddleware != nil {
+					return authMiddleware.AuthRequired()
+				}
+				return func(c *gin.Context) { c.Next() }
+			}(),
+		})
+		suggesthttp.Register(engine)
+		log.Info("✅ Suggest module routes registered")
+	} else {
+		log.Warn("⚠️  Suggest module not initialized or disabled, routes not registered")
+	}
 
 	r.registerAdminRoutes(engine, authMiddleware)
 
