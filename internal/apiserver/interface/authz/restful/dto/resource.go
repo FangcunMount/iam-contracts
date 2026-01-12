@@ -1,6 +1,8 @@
 // Package dto 资源相关的 DTO 定义
 package dto
 
+import "github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+
 // CreateResourceRequest 创建资源请求
 type CreateResourceRequest struct {
 	Key         string   `json:"key" binding:"required"`
@@ -21,7 +23,7 @@ type UpdateResourceRequest struct {
 
 // ResourceResponse 资源响应
 type ResourceResponse struct {
-	ID          uint64   `json:"id"`
+	ID          meta.ID  `json:"id" swaggertype:"string"`
 	Key         string   `json:"key"`
 	DisplayName string   `json:"display_name"`
 	AppName     string   `json:"app_name"`

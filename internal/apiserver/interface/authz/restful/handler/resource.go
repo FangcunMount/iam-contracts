@@ -8,6 +8,7 @@ import (
 	resourceDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/dto"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/gin-gonic/gin"
 )
 
@@ -74,7 +75,7 @@ func (h *ResourceHandler) CreateResource(c *gin.Context) {
 // @Success 200 {object} dto.Response{data=dto.ResourceResponse}
 // @Router /authz/resources/{id} [put]
 func (h *ResourceHandler) UpdateResource(c *gin.Context) {
-	resourceID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	resourceID, err := meta.ParseID(c.Param("id"))
 	if err != nil {
 		handleError(c, errors.WithCode(code.ErrInvalidArgument, "资源ID格式错误"))
 		return
@@ -87,7 +88,7 @@ func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 	}
 
 	cmd := resourceDomain.UpdateResourceCommand{
-		ID:          resourceDomain.NewResourceID(resourceID),
+		ID:          resourceDomain.NewResourceID(resourceID.Uint64()),
 		DisplayName: &req.DisplayName,
 		Actions:     req.Actions,
 		Description: &req.Description,
@@ -109,13 +110,13 @@ func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 // @Success 200 {object} dto.Response
 // @Router /authz/resources/{id} [delete]
 func (h *ResourceHandler) DeleteResource(c *gin.Context) {
-	resourceID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	resourceID, err := meta.ParseID(c.Param("id"))
 	if err != nil {
 		handleError(c, errors.WithCode(code.ErrInvalidArgument, "资源ID格式错误"))
 		return
 	}
 
-	err = h.commander.DeleteResource(c.Request.Context(), resourceDomain.NewResourceID(resourceID))
+	err = h.commander.DeleteResource(c.Request.Context(), resourceDomain.NewResourceID(resourceID.Uint64()))
 	if err != nil {
 		handleError(c, err)
 		return
@@ -132,13 +133,13 @@ func (h *ResourceHandler) DeleteResource(c *gin.Context) {
 // @Success 200 {object} dto.Response{data=dto.ResourceResponse}
 // @Router /authz/resources/{id} [get]
 func (h *ResourceHandler) GetResource(c *gin.Context) {
-	resourceID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	resourceID, err := meta.ParseID(c.Param("id"))
 	if err != nil {
 		handleError(c, errors.WithCode(code.ErrInvalidArgument, "资源ID格式错误"))
 		return
 	}
 
-	foundResource, err := h.queryer.GetResourceByID(c.Request.Context(), resourceDomain.NewResourceID(resourceID))
+	foundResource, err := h.queryer.GetResourceByID(c.Request.Context(), resourceDomain.NewResourceID(resourceID.Uint64()))
 	if err != nil {
 		handleError(c, err)
 		return
@@ -229,7 +230,7 @@ func (h *ResourceHandler) ValidateAction(c *gin.Context) {
 // toResourceResponse 转换为响应对象
 func (h *ResourceHandler) toResourceResponse(r *resourceDomain.Resource) dto.ResourceResponse {
 	return dto.ResourceResponse{
-		ID:          r.ID.Uint64(),
+		ID:          meta.FromUint64(r.ID.Uint64()),
 		Key:         r.Key,
 		DisplayName: r.DisplayName,
 		AppName:     r.AppName,

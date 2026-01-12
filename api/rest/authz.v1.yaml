@@ -590,9 +590,9 @@ components:
         reason:
           type: string
         resource_id:
-          type: integer
+          type: string
         role_id:
-          type: integer
+          type: string
       required:
       - action
       - changed_by
@@ -604,9 +604,9 @@ components:
         granted_by:
           type: string
         id:
-          type: integer
+          type: string
         role_id:
-          type: integer
+          type: string
         subject_id:
           type: string
         subject_type:
@@ -658,7 +658,7 @@ components:
         granted_by:
           type: string
         role_id:
-          type: integer
+          type: string
         subject_id:
           type: string
         subject_type:
@@ -717,9 +717,9 @@ components:
         reason:
           type: string
         resource_id:
-          type: integer
+          type: string
         role_id:
-          type: integer
+          type: string
       required:
       - action
       - changed_by
@@ -741,7 +741,7 @@ components:
         domain:
           type: string
         id:
-          type: integer
+          type: string
         key:
           type: string
         type:
@@ -758,7 +758,7 @@ components:
     github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.RevokeRequest:
       properties:
         role_id:
-          type: integer
+          type: string
         subject_id:
           type: string
         subject_type:
@@ -778,7 +778,7 @@ components:
         display_name:
           type: string
         id:
-          type: integer
+          type: string
         name:
           type: string
         tenant_id:

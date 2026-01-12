@@ -2,13 +2,12 @@
 package handler
 
 import (
-	"strconv"
-
 	"github.com/FangcunMount/component-base/pkg/errors"
 	policyDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/dto"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/gin-gonic/gin"
 )
 
@@ -44,9 +43,21 @@ func (h *PolicyHandler) AddPolicyRule(c *gin.Context) {
 	tenantID := getTenantID(c)
 	changedBy := getUserID(c)
 
+	roleID := req.RoleID
+	resourceID := req.ResourceID
+
+	if roleID.IsZero() {
+		handleError(c, errors.WithCode(code.ErrInvalidArgument, "角色ID不能为空"))
+		return
+	}
+	if resourceID.IsZero() {
+		handleError(c, errors.WithCode(code.ErrInvalidArgument, "资源ID不能为空"))
+		return
+	}
+
 	cmd := policyDomain.AddPolicyRuleCommand{
-		RoleID:     req.RoleID,
-		ResourceID: resource.NewResourceID(req.ResourceID),
+		RoleID:     roleID.Uint64(),
+		ResourceID: resource.NewResourceID(resourceID.Uint64()),
 		Action:     req.Action,
 		TenantID:   tenantID,
 		ChangedBy:  changedBy,
@@ -80,9 +91,21 @@ func (h *PolicyHandler) RemovePolicyRule(c *gin.Context) {
 	tenantID := getTenantID(c)
 	changedBy := getUserID(c)
 
+	roleID := req.RoleID
+	resourceID := req.ResourceID
+
+	if roleID.IsZero() {
+		handleError(c, errors.WithCode(code.ErrInvalidArgument, "角色ID不能为空"))
+		return
+	}
+	if resourceID.IsZero() {
+		handleError(c, errors.WithCode(code.ErrInvalidArgument, "资源ID不能为空"))
+		return
+	}
+
 	cmd := policyDomain.RemovePolicyRuleCommand{
-		RoleID:     req.RoleID,
-		ResourceID: resource.NewResourceID(req.ResourceID),
+		RoleID:     roleID.Uint64(),
+		ResourceID: resource.NewResourceID(resourceID.Uint64()),
 		Action:     req.Action,
 		TenantID:   tenantID,
 		ChangedBy:  changedBy,
@@ -106,7 +129,7 @@ func (h *PolicyHandler) RemovePolicyRule(c *gin.Context) {
 // @Success 200 {object} dto.Response{data=[]dto.PolicyRuleResponse}
 // @Router /authz/roles/{id}/policies [get]
 func (h *PolicyHandler) GetPoliciesByRole(c *gin.Context) {
-	roleID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	roleID, err := meta.ParseID(c.Param("id"))
 	if err != nil {
 		handleError(c, errors.WithCode(code.ErrInvalidArgument, "角色ID格式错误"))
 		return
@@ -115,7 +138,7 @@ func (h *PolicyHandler) GetPoliciesByRole(c *gin.Context) {
 	tenantID := getTenantID(c)
 
 	query := policyDomain.GetPoliciesByRoleQuery{
-		RoleID:   roleID,
+		RoleID:   roleID.Uint64(),
 		TenantID: tenantID,
 	}
 

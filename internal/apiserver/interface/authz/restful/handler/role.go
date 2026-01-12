@@ -2,8 +2,6 @@
 package handler
 
 import (
-	"strconv"
-
 	"github.com/FangcunMount/component-base/pkg/errors"
 	roleDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/dto"
@@ -74,7 +72,7 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 // @Success 200 {object} dto.Response{data=dto.RoleResponse}
 // @Router /authz/roles/{id} [put]
 func (h *RoleHandler) UpdateRole(c *gin.Context) {
-	roleID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	roleID, err := meta.ParseID(c.Param("id"))
 	if err != nil {
 		handleError(c, errors.WithCode(code.ErrInvalidArgument, "角色ID格式错误"))
 		return
@@ -87,7 +85,7 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 	}
 
 	cmd := roleDomain.UpdateRoleCommand{
-		ID:          meta.FromUint64(roleID),
+		ID:          roleID,
 		DisplayName: &req.DisplayName,
 		Description: &req.Description,
 	}
@@ -108,13 +106,13 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 // @Success 200 {object} dto.Response
 // @Router /authz/roles/{id} [delete]
 func (h *RoleHandler) DeleteRole(c *gin.Context) {
-	roleID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	roleID, err := meta.ParseID(c.Param("id"))
 	if err != nil {
 		handleError(c, errors.WithCode(code.ErrInvalidArgument, "角色ID格式错误"))
 		return
 	}
 
-	err = h.commander.DeleteRole(c.Request.Context(), meta.FromUint64(roleID))
+	err = h.commander.DeleteRole(c.Request.Context(), roleID)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -131,7 +129,7 @@ func (h *RoleHandler) DeleteRole(c *gin.Context) {
 // @Success 200 {object} dto.Response{data=dto.RoleResponse}
 // @Router /authz/roles/{id} [get]
 func (h *RoleHandler) GetRole(c *gin.Context) {
-	roleID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	roleID, err := meta.ParseID(c.Param("id"))
 	if err != nil {
 		handleError(c, errors.WithCode(code.ErrInvalidArgument, "角色ID格式错误"))
 		return
@@ -186,7 +184,7 @@ func (h *RoleHandler) ListRoles(c *gin.Context) {
 // toRoleResponse 转换为响应对象
 func (h *RoleHandler) toRoleResponse(r *roleDomain.Role) dto.RoleResponse {
 	return dto.RoleResponse{
-		ID:          r.ID.Uint64(),
+		ID:          r.ID,
 		Name:        r.Name,
 		DisplayName: r.DisplayName,
 		TenantID:    r.TenantID,

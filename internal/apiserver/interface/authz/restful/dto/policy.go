@@ -1,22 +1,24 @@
 // Package dto 策略相关的 DTO 定义
 package dto
 
+import "github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+
 // AddPolicyRequest 添加策略规则请求
 type AddPolicyRequest struct {
-	RoleID     uint64 `json:"role_id" binding:"required"`
-	ResourceID uint64 `json:"resource_id" binding:"required"`
-	Action     string `json:"action" binding:"required"`
-	ChangedBy  string `json:"changed_by" binding:"required"`
-	Reason     string `json:"reason"`
+	RoleID     meta.ID `json:"role_id" binding:"required" swaggertype:"string"`
+	ResourceID meta.ID `json:"resource_id" binding:"required" swaggertype:"string"`
+	Action     string  `json:"action" binding:"required"`
+	ChangedBy  string  `json:"changed_by" binding:"required"`
+	Reason     string  `json:"reason"`
 }
 
 // RemovePolicyRequest 移除策略规则请求
 type RemovePolicyRequest struct {
-	RoleID     uint64 `json:"role_id" binding:"required"`
-	ResourceID uint64 `json:"resource_id" binding:"required"`
-	Action     string `json:"action" binding:"required"`
-	ChangedBy  string `json:"changed_by" binding:"required"`
-	Reason     string `json:"reason"`
+	RoleID     meta.ID `json:"role_id" binding:"required" swaggertype:"string"`
+	ResourceID meta.ID `json:"resource_id" binding:"required" swaggertype:"string"`
+	Action     string  `json:"action" binding:"required"`
+	ChangedBy  string  `json:"changed_by" binding:"required"`
+	Reason     string  `json:"reason"`
 }
 
 // PolicyRuleResponse 策略规则响应

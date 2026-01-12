@@ -2,12 +2,11 @@
 package handler
 
 import (
-	"strconv"
-
 	"github.com/FangcunMount/component-base/pkg/errors"
 	assignmentDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/dto"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/gin-gonic/gin"
 )
 
@@ -64,7 +63,7 @@ func (h *AssignmentHandler) GrantRole(c *gin.Context) {
 	cmd := assignmentDomain.GrantCommand{
 		SubjectType: subjectType,
 		SubjectID:   req.SubjectID,
-		RoleID:      req.RoleID,
+		RoleID:      req.RoleID.Uint64(),
 		TenantID:    tenantID,
 		GrantedBy:   grantedBy,
 	}
@@ -104,7 +103,7 @@ func (h *AssignmentHandler) RevokeRole(c *gin.Context) {
 	cmd := assignmentDomain.RevokeCommand{
 		SubjectType: subjectType,
 		SubjectID:   req.SubjectID,
-		RoleID:      req.RoleID,
+		RoleID:      req.RoleID.Uint64(),
 		TenantID:    tenantID,
 	}
 
@@ -124,7 +123,7 @@ func (h *AssignmentHandler) RevokeRole(c *gin.Context) {
 // @Success 200 {object} dto.Response
 // @Router /authz/assignments/{id} [delete]
 func (h *AssignmentHandler) RevokeRoleByID(c *gin.Context) {
-	assignmentID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	assignmentID, err := meta.ParseID(c.Param("id"))
 	if err != nil {
 		handleError(c, errors.WithCode(code.ErrInvalidArgument, "分配ID格式错误"))
 		return
@@ -133,7 +132,7 @@ func (h *AssignmentHandler) RevokeRoleByID(c *gin.Context) {
 	tenantID := getTenantID(c)
 
 	cmd := assignmentDomain.RevokeByIDCommand{
-		AssignmentID: assignmentDomain.NewAssignmentID(assignmentID),
+		AssignmentID: assignmentDomain.NewAssignmentID(assignmentID.Uint64()),
 		TenantID:     tenantID,
 	}
 
@@ -199,7 +198,7 @@ func (h *AssignmentHandler) ListAssignmentsBySubject(c *gin.Context) {
 // @Success 200 {object} dto.Response{data=[]dto.AssignmentResponse}
 // @Router /authz/roles/{id}/assignments [get]
 func (h *AssignmentHandler) ListAssignmentsByRole(c *gin.Context) {
-	roleID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	roleID, err := meta.ParseID(c.Param("id"))
 	if err != nil {
 		handleError(c, errors.WithCode(code.ErrInvalidArgument, "角色ID格式错误"))
 		return
@@ -208,7 +207,7 @@ func (h *AssignmentHandler) ListAssignmentsByRole(c *gin.Context) {
 	tenantID := getTenantID(c)
 
 	query := assignmentDomain.ListByRoleQuery{
-		RoleID:   roleID,
+		RoleID:   roleID.Uint64(),
 		TenantID: tenantID,
 	}
 
@@ -229,10 +228,10 @@ func (h *AssignmentHandler) ListAssignmentsByRole(c *gin.Context) {
 // toAssignmentResponse 转换为响应对象
 func (h *AssignmentHandler) toAssignmentResponse(a *assignmentDomain.Assignment) dto.AssignmentResponse {
 	return dto.AssignmentResponse{
-		ID:          a.ID.Uint64(),
+		ID:          meta.ID(a.ID),
 		SubjectType: a.SubjectType.String(),
 		SubjectID:   a.SubjectID,
-		RoleID:      a.RoleID,
+		RoleID:      meta.FromUint64(a.RoleID),
 		TenantID:    a.TenantID,
 		GrantedBy:   a.GrantedBy,
 	}

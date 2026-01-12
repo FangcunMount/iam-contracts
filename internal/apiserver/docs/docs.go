@@ -3281,10 +3281,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "resource_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "role_id": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -3295,10 +3295,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "role_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "subject_id": {
                     "type": "string"
@@ -3380,7 +3380,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "role_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "subject_id": {
                     "type": "string"
@@ -3468,10 +3468,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "resource_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "role_id": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -3497,7 +3497,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "key": {
                     "type": "string"
@@ -3528,7 +3528,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "role_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "subject_id": {
                     "type": "string"
@@ -3552,7 +3552,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
