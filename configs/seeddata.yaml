@@ -127,56 +127,56 @@ roles:
   - alias: "super_admin"
     name: "super_admin"
     display_name: "超级管理员"
-    tenant_id: "default"
+    tenant_id: 1
     description: "拥有所有权限"
 
   - alias: "tenant_admin"
     name: "tenant_admin"
     display_name: "租户管理员"
-    tenant_id: "default"
+    tenant_id: 1
     description: "管理本租户内的所有资源"
 
   - alias: "user"
     name: "user"
     display_name: "普通用户"
-    tenant_id: "default"
+    tenant_id: 1
     description: "普通用户权限"
 
   # ========== QS 服务角色 ==========
   - alias: "qs_admin"
     name: "qs:admin"
     display_name: "QS管理员"
-    tenant_id: "default"
+    tenant_id: 1
     description: "QS服务所有资源的管理权限"
   
   - alias: "qs_content_manager"
     name: "qs:content_manager"
     display_name: "内容管理员"
-    tenant_id: "default"
+    tenant_id: 1
     description: "问卷和量表的管理权限"
   
   - alias: "qs_evaluator"
     name: "qs:evaluator"
     display_name: "评估员"
-    tenant_id: "default"
+    tenant_id: 1
     description: "测评相关只读权限"
   
   - alias: "qs_staff"
     name: "qs:staff"
     display_name: "普通员工"
-    tenant_id: "default"
+    tenant_id: 1
     description: "基本查看权限"
   
   - alias: "qs_evaluation_plan_manager"
     name: "qs:evaluation_plan_manager"
     display_name: "测评计划管理员"
-    tenant_id: "default"
+    tenant_id: 1
     description: "测评计划的管理权限"
   
   - alias: "qs_screening_plan_manager"
     name: "qs:screening_plan_manager"
     display_name: "筛查计划管理员"
-    tenant_id: "default"
+    tenant_id: 1
     description: "筛查计划的管理权限"
   
 # ==================== 6. 授权资源配置 (Authorization) ====================
@@ -324,14 +324,14 @@ assignments:
   - subject_type: "user"
     subject_id: "@admin"
     role_alias: "@super_admin"
-    tenant_id: "default"
+    tenant_id: 1
     granted_by: "system"
   
   # 系统管理员同时拥有 qs:admin 角色（使用 role_alias 引用）
   - subject_type: "user"
     subject_id: "@admin"
     role_alias: "@qs_admin"
-    tenant_id: "default"
+    tenant_id: 1
     granted_by: "system"
   
 # ==================== 8. Casbin 策略配置 (Authorization) ====================
@@ -341,96 +341,96 @@ policies:
   # 超级管理员：所有资源的所有操作
   - type: "p"
     subject: "role:super_admin"
-    values: ["*", "*", "allow"]
+    values: ["default", "*", "*"]
   
   # 租户管理员：管理租户内资源
   - type: "p"
     subject: "role:tenant_admin"
-    values: ["tenant:*", "*", "allow"]
+    values: ["default", "tenant:*", "*"]
   
   # 普通用户：只能读取和更新自己的信息
   - type: "p"
     subject: "role:user"
-    values: ["user:self", "read", "allow"]
+    values: ["default", "user:self", "read"]
   - type: "p"
     subject: "role:user"
-    values: ["user:self", "update", "allow"]
+    values: ["default", "user:self", "update"]
   
   # ========== QS 服务角色策略 ==========
   
   # QS 管理员：所有 QS 资源的所有操作
   - type: "p"
     subject: "role:qs:admin"
-    values: ["qs:*", "*", "allow"]
+    values: ["default", "qs:*", "*"]
   
   # 内容管理员：问卷和量表的完整管理
   - type: "p"
     subject: "role:qs:content_manager"
-    values: ["qs:questionnaires", "*", "allow"]
+    values: ["default", "qs:questionnaires", "*"]
   - type: "p"
     subject: "role:qs:content_manager"
-    values: ["qs:scales", "*", "allow"]
+    values: ["default", "qs:scales", "*"]
   - type: "p"
     subject: "role:qs:content_manager"
-    values: ["qs:answersheets", "read|list|statistics", "allow"]
+    values: ["default", "qs:answersheets", "read|list|statistics"]
   
   # 评估员：测评相关只读 + 重试
   - type: "p"
     subject: "role:qs:evaluator"
-    values: ["qs:evaluations", "read|list|retry|statistics", "allow"]
+    values: ["default", "qs:evaluations", "read|list|retry|statistics"]
   - type: "p"
     subject: "role:qs:evaluator"
-    values: ["qs:answersheets", "read|list|statistics", "allow"]
+    values: ["default", "qs:answersheets", "read|list|statistics"]
   - type: "p"
     subject: "role:qs:evaluator"
-    values: ["qs:testees", "read|list", "allow"]
+    values: ["default", "qs:testees", "read|list"]
   
   # 普通员工：只能查看受试者
   - type: "p"
     subject: "role:qs:staff"
-    values: ["qs:testees", "read|list", "allow"]
+    values: ["default", "qs:testees", "read|list"]
   
   # 测评计划管理员：测评计划的完整管理
   - type: "p"
     subject: "role:qs:evaluation_plan_manager"
-    values: ["qs:evaluation_plans", "*", "allow"]
+    values: ["default", "qs:evaluation_plans", "*"]
   
   # 筛查计划管理员：筛查计划的完整管理
   - type: "p"
     subject: "role:qs:screening_plan_manager"
-    values: ["qs:screening_plans", "*", "allow"]
+    values: ["default", "qs:screening_plans", "*"]
   
   # ========== 角色继承 ==========
   
   # IAM 角色继承
   - type: "g"
     subject: "role:super_admin"
-    values: ["role:tenant_admin"]
+    values: ["role:tenant_admin", "default"]
   - type: "g"
     subject: "role:tenant_admin"
-    values: ["role:user"]
+    values: ["role:user", "default"]
   
   # super_admin 继承 qs:admin
   - type: "g"
     subject: "role:super_admin"
-    values: ["role:qs:admin"]
+    values: ["role:qs:admin", "default"]
   
   # QS 角色继承链: qs:admin -> qs:content_manager -> qs:evaluator -> qs:staff
   - type: "g"
     subject: "role:qs:admin"
-    values: ["role:qs:content_manager"]
+    values: ["role:qs:content_manager", "default"]
   - type: "g"
     subject: "role:qs:content_manager"
-    values: ["role:qs:evaluator"]
+    values: ["role:qs:evaluator", "default"]
   - type: "g"
     subject: "role:qs:evaluator"
-    values: ["role:qs:staff"]  
+    values: ["role:qs:staff", "default"]  
   - type: "g"
     subject: "role:qs:admin"
-    values: ["role:qs:evaluation_plan_manager"]
+    values: ["role:qs:evaluation_plan_manager", "default"]
   - type: "g"
     subject: "role:qs:admin"
-    values: ["role:qs:screening_plan_manager"]
+    values: ["role:qs:screening_plan_manager", "default"]
 
 # ==================== 9. JWKS 密钥配置 (Authentication) ====================
 jwks:
