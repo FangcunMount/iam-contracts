@@ -135,7 +135,7 @@ func (h *RoleHandler) GetRole(c *gin.Context) {
 		return
 	}
 
-	foundRole, err := h.queryer.GetRoleByID(c.Request.Context(), meta.FromUint64(roleID))
+	foundRole, err := h.queryer.GetRoleByID(c.Request.Context(), meta.FromUint64(uint64(roleID)))
 	if err != nil {
 		handleError(c, err)
 		return
