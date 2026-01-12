@@ -29,7 +29,8 @@ definitions:
   github_com_FangcunMount_iam-contracts_internal_apiserver_domain_suggest.Term:
     properties:
       id:
-        type: integer
+        example: ""
+        type: string
       mobile:
         type: string
       name:

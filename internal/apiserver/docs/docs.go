@@ -2797,7 +2797,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "id": {
-                    "type": "integer"
+                    "type": "string",
+                    "example": ""
                 },
                 "mobile": {
                     "type": "string"

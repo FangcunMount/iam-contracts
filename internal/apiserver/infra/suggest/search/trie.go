@@ -13,11 +13,12 @@ import (
 
 const maxSearchLen = 100
 
-// Trie implements a ternary search tree for prefix/wildcard lookup.
+// Trie 实现一个三元搜索树用于前缀/通配符查找
 type Trie struct {
 	root *node
 }
 
+// node 节点
 type node struct {
 	small *node
 	equal *node
@@ -27,13 +28,14 @@ type node struct {
 	end   bool
 }
 
+// Terms 术语列表
 type Terms []suggest.Term
 
 func (t Terms) Len() int           { return len(t) }
 func (t Terms) Less(i, j int) bool { return t[i].Weight > t[j].Weight }
 func (t Terms) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
 
-// RemoveDuplicate deduplicates by ID while preserving order.
+// RemoveDuplicate 去重，保留顺序
 func RemoveDuplicate(list Terms) Terms {
 	var out Terms
 	for _, cur := range list {
@@ -51,12 +53,12 @@ func RemoveDuplicate(list Terms) Terms {
 	return out
 }
 
-// NewTrie creates a new Trie.
+// NewTrie 创建一个新的 Trie
 func NewTrie() *Trie {
 	return &Trie{}
 }
 
-// ImportLines parses name|id|mobiles|disease|weight lines and inserts terms.
+// ImportLines 解析 name|id|mobiles|disease|weight 行并插入术语
 func (t *Trie) ImportLines(lines []string) {
 	pyArgs := pinyin.NewArgs()
 	for _, line := range lines {
@@ -95,6 +97,7 @@ func (t *Trie) ImportLines(lines []string) {
 	}
 }
 
+// uniq 去重
 func uniq(list []string) []string {
 	var out []string
 	for _, s := range list {
@@ -112,7 +115,7 @@ func uniq(list []string) []string {
 	return out
 }
 
-// Import 从文件导入
+// Import 从文件导入数据
 func (t *Trie) Import(file string) {
 	f, err := os.Open(file)
 	if err != nil {
@@ -127,7 +130,7 @@ func (t *Trie) Import(file string) {
 	}
 }
 
-// Put inserts a term keyed by the provided string.
+// Put 插入一个术语，键为提供的字符串
 func (t *Trie) Put(key string, term suggest.Term) {
 	if key == "" {
 		return
@@ -135,6 +138,7 @@ func (t *Trie) Put(key string, term suggest.Term) {
 	t.root = t.putRecursive(t.root, []rune(key), 0, term)
 }
 
+// putRecursive 递归插入术语
 func (t *Trie) putRecursive(n *node, key []rune, idx int, term suggest.Term) *node {
 	r := key[idx]
 	if n == nil {
@@ -153,7 +157,7 @@ func (t *Trie) putRecursive(n *node, key []rune, idx int, term suggest.Term) *no
 	return n
 }
 
-// Get retrieves the terms for the exact key.
+// Get 获取精确匹配的术语
 func (t *Trie) Get(key string) interface{} {
 	n := t.root
 	rkey := []rune(key)
@@ -178,7 +182,7 @@ func (t *Trie) Get(key string) interface{} {
 	return nil
 }
 
-// Wildcard supports '*' or '.' wildcards for prefix matching.
+// Wildcard 支持 '*' 或 '.' 通配符用于前缀匹配
 func (t *Trie) Wildcard(key string) []string {
 	if key == "" {
 		return nil
@@ -187,6 +191,7 @@ func (t *Trie) Wildcard(key string) []string {
 	return t.wildcardRecursive(t.root, []rune(key), realLen, 0, "")
 }
 
+// wildcardRecursive 递归通配符匹配
 func (t *Trie) wildcardRecursive(n *node, key []rune, realLen, idx int, prefix string) (matches []string) {
 	if n == nil {
 		return
@@ -213,7 +218,7 @@ func (t *Trie) wildcardRecursive(n *node, key []rune, realLen, idx int, prefix s
 	return
 }
 
-// collectAll collects all terminal keys under the given node up to maxSearchLen.
+// collectAll 收集所有终端键，最多 maxSearchLen 个
 func (t *Trie) collectAll(n *node, prefix string, matches *[]string) {
 	if n == nil || len(*matches) >= maxSearchLen {
 		return

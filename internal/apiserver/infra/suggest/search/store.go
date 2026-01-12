@@ -10,15 +10,16 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/suggest"
 )
 
+// Store 存储器
 type Store struct {
 	trie  *Trie
 	table *Hash
 	mu    sync.RWMutex
 }
 
-var active atomic.Value // holds *Store
+var active atomic.Value // 当前活跃的存储器
 
-// Load builds a Store from raw lines.
+// Load 从原始行构建 Store
 func Load(lines []string) *Store {
 	t := NewTrie()
 	h := NewHash()
@@ -27,10 +28,10 @@ func Load(lines []string) *Store {
 	return &Store{trie: t, table: h}
 }
 
-// Swap atomically replaces the active store.
+// Swap 原子替换当前活跃的存储器
 func Swap(s *Store) { active.Store(s) }
 
-// Current returns the current store.
+// Current 返回当前活跃的存储器
 func Current() *Store {
 	if v := active.Load(); v != nil {
 		return v.(*Store)
@@ -38,7 +39,7 @@ func Current() *Store {
 	return nil
 }
 
-// ImportLines appends new data into the existing store (protected by lock).
+// ImportLines 追加新数据到现有存储器（受锁保护）
 func (s *Store) ImportLines(lines []string) {
 	if s == nil || len(lines) == 0 {
 		return
@@ -49,7 +50,7 @@ func (s *Store) ImportLines(lines []string) {
 	s.table.ImportLines(lines)
 }
 
-// Suggest returns ordered and deduplicated terms.
+// Suggest 返回有序且去重的术语
 func (s *Store) Suggest(keyword string, max int, pad int) []suggest.Term {
 	if s == nil {
 		return nil
@@ -92,6 +93,7 @@ func (s *Store) Suggest(keyword string, max int, pad int) []suggest.Term {
 	return out
 }
 
+// isDigits 判断是否为数字
 func isDigits(s string) bool {
 	for _, r := range s {
 		if !unicode.IsDigit(r) {
