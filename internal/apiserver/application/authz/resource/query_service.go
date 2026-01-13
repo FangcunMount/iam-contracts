@@ -36,7 +36,7 @@ func (s *ResourceQueryService) ListResources(
 	ctx context.Context,
 	query resourceDomain.ListResourcesQuery,
 ) (*resourceDomain.ListResourcesResult, error) {
-	resources, total, err := s.resourceRepo.List(ctx, query.Offset, query.Limit)
+	resources, total, err := s.resourceRepo.List(ctx, query)
 	if err != nil {
 		return nil, err
 	}

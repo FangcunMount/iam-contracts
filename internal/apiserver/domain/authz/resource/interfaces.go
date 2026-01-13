@@ -83,6 +83,15 @@ type Queryer interface {
 
 // ListResourcesQuery 列出资源查询参数
 type ListResourcesQuery struct {
+	// AppName 应用名称过滤
+	AppName string
+
+	// Domain 业务域过滤
+	Domain string
+
+	// Type 资源类型过滤
+	Type string
+
 	// Offset 分页偏移量
 	Offset int
 

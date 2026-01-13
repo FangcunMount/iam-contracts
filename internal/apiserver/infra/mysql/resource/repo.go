@@ -138,21 +138,32 @@ func (r *ResourceRepository) ListByDomain(ctx context.Context, domain string, of
 	return bos, total, nil
 }
 
-// List 列出所有资源
-func (r *ResourceRepository) List(ctx context.Context, offset, limit int) ([]*domain.Resource, int64, error) {
+// List 列出资源（可按 app/domain/type 过滤）
+func (r *ResourceRepository) List(ctx context.Context, query domain.ListResourcesQuery) ([]*domain.Resource, int64, error) {
 	var pos []*ResourcePO
 	var total int64
 
+	db := r.db.WithContext(ctx).Model(&ResourcePO{})
+	if query.AppName != "" {
+		db = db.Where("app_name = ?", query.AppName)
+	}
+	if query.Domain != "" {
+		db = db.Where("domain = ?", query.Domain)
+	}
+	if query.Type != "" {
+		db = db.Where("`type` = ?", query.Type)
+	}
+
 	// 统计总数
-	if err := r.db.WithContext(ctx).Model(&ResourcePO{}).Count(&total).Error; err != nil {
+	if err := db.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to count resources: %w", err)
 	}
 
 	// 查询列表
-	err := r.db.WithContext(ctx).
+	err := db.
 		Order("`key` ASC").
-		Offset(offset).
-		Limit(limit).
+		Offset(query.Offset).
+		Limit(query.Limit).
 		Find(&pos).Error
 
 	if err != nil {

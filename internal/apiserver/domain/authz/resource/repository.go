@@ -17,8 +17,8 @@ type Repository interface {
 	FindByID(ctx context.Context, id ResourceID) (*Resource, error)
 	// FindByKey 根据键获取资源
 	FindByKey(ctx context.Context, key string) (*Resource, error)
-	// List 列出所有资源
-	List(ctx context.Context, offset, limit int) ([]*Resource, int64, error)
+	// List 列出资源（支持过滤和分页）
+	List(ctx context.Context, query ListResourcesQuery) ([]*Resource, int64, error)
 	// ValidateAction 校验动作是否在资源的允许列表中
 	ValidateAction(ctx context.Context, resourceKey, action string) (bool, error)
 }

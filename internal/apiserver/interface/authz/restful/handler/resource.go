@@ -181,10 +181,16 @@ func (h *ResourceHandler) GetResourceByKey(c *gin.Context) {
 func (h *ResourceHandler) ListResources(c *gin.Context) {
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	appName := c.Query("app_name")
+	domain := c.Query("domain")
+	typ := c.Query("type")
 
 	query := resourceDomain.ListResourcesQuery{
-		Offset: offset,
-		Limit:  limit,
+		AppName: appName,
+		Domain:  domain,
+		Type:    typ,
+		Offset:  offset,
+		Limit:   limit,
 	}
 
 	result, err := h.queryer.ListResources(c.Request.Context(), query)
