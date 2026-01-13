@@ -129,30 +129,16 @@ migration:
   database: "iam_contracts"
 
 # ----------------------------------------------------------------------------
-# 3.3 Redis 配置（双实例架构）
+# 3.3 Redis 配置
 # ----------------------------------------------------------------------------
 redis:
-  # Cache Redis - 用于缓存、会话、限流等临时数据（端口 6379）
+  # Redis - 用于缓存、令牌等
   cache:
     host: "127.0.0.1"
     port: 6379
     username: "app"  # 开发环境默认使用 default 用户
     password: "dev_app_123"  # 对应 build/docker/infra/dev.env -> REDIS_CACHE_PASSWORD/REDIS_AUTH_APP_PASSWORD
     database: 0  # Cache 使用 DB 0
-    max-idle: 50
-    max-active: 100
-    timeout: 5
-    enable-cluster: false
-    use-ssl: false
-    enable-logging: true  # 开启 Redis 命令日志（用于调试，生产环境建议关闭）
-  
-  # Store Redis (Auth) - 用于持久化存储、队列、发布订阅等（端口 6380）
-  store:
-    host: "127.0.0.1"
-    port: 6380
-    username: "app"  # 对应 build/docker/infra/dev.env -> REDIS_AUTH_APP_USERNAME
-    password: "dev_app_123"  # 与 build/docker/infra/dev.env -> REDIS_AUTH_APP_PASSWORD 一致
-    database: 0  # Auth 实例使用 DB 0（单独实例不需要不同 DB）
     max-idle: 50
     max-active: 100
     timeout: 5

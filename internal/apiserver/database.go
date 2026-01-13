@@ -18,7 +18,7 @@ import (
 )
 
 // DatabaseManager 数据库管理器
-// 支持双 Redis 客户端架构（Cache + Store）
+// Redis 客户端用于缓存、令牌等所有用途
 type DatabaseManager struct {
 	config   *config.Config
 	registry *database.Registry
@@ -42,7 +42,7 @@ func (dm *DatabaseManager) Initialize() error {
 		// 不返回错误，允许应用在没有MySQL的情况下运行
 	}
 
-	// 初始化双 Redis 客户端（Cache + Store）
+	// 初始化 Redis 客户端
 	if err := dm.initRedisClients(); err != nil {
 		log.Warnf("Failed to initialize Redis clients: %v", err)
 		// 不返回错误，允许应用在没有Redis的情况下运行
@@ -200,16 +200,11 @@ func (dm *DatabaseManager) initMySQL() error {
 	return dm.registry.Register(database.MySQL, mysqlConfig, mysqlConn)
 }
 
-// initRedisClients 初始化双 Redis 客户端（Cache + Store）
+// initRedisClients 初始化 Redis 客户端
 func (dm *DatabaseManager) initRedisClients() error {
 	// 初始化 Cache Redis
 	if err := dm.initSingleRedis("cache", database.DatabaseType("redis-cache"), dm.config.RedisOptions.Cache); err != nil {
 		log.Warnf("Failed to initialize Cache Redis: %v", err)
-	}
-
-	// 初始化 Store Redis
-	if err := dm.initSingleRedis("store", database.DatabaseType("redis-store"), dm.config.RedisOptions.Store); err != nil {
-		log.Warnf("Failed to initialize Store Redis: %v", err)
 	}
 
 	return nil
@@ -321,12 +316,6 @@ func (dm *DatabaseManager) GetMySQLDB() (*gorm.DB, error) {
 // 用于缓存、会话、限流等临时数据
 func (dm *DatabaseManager) GetCacheRedisClient() (*redis.Client, error) {
 	return dm.getRedisClientFromRegistry(database.DatabaseType("redis-cache"))
-}
-
-// GetStoreRedisClient 获取存储 Redis 客户端
-// 用于持久化存储、队列、发布订阅等
-func (dm *DatabaseManager) GetStoreRedisClient() (*redis.Client, error) {
-	return dm.getRedisClientFromRegistry(database.DatabaseType("redis-store"))
 }
 
 // Close 关闭所有数据库连接

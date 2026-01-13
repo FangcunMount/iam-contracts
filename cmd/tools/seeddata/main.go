@@ -19,8 +19,7 @@
 //
 //	go run ./cmd/tools/seeddata \
 //	  --dsn "user:pass@tcp(host:port)/db" \
-//	  --redis-cache "host:port" --redis-cache-password "pwd" \
-//	  --redis-store "host:port" --redis-store-password "pwd"
+//	  --redis-cache "host:port" --redis-cache-password "pwd"
 //
 // See README.md for detailed documentation.
 package main
@@ -74,7 +73,6 @@ var defaultSteps = []seedStep{
 type dependencies struct {
 	DB          *gorm.DB      // 数据库连接
 	RedisCache  *redis.Client // Cache Redis客户端（可选，用于缓存、会话等）
-	RedisStore  *redis.Client // Store Redis客户端（可选，用于持久化存储）
 	KeysDir     string        // JWKS密钥存储目录
 	CasbinModel string        // Casbin模型文件路径
 	Logger      log.Logger    // 日志记录器
@@ -111,9 +109,6 @@ func main() {
 	redisCacheFlag := flag.String("redis-cache", "", "Cache Redis address host:port (optional, for caching, sessions, rate limiting)")
 	redisCacheUsernameFlag := flag.String("redis-cache-username", "", "Cache Redis username (optional, for Redis 6.0+ ACL)")
 	redisCachePasswordFlag := flag.String("redis-cache-password", "", "Cache Redis password (optional)")
-	redisStoreFlag := flag.String("redis-store", "", "Store Redis address host:port (optional, for persistent storage, queues)")
-	redisStoreUsernameFlag := flag.String("redis-store-username", "", "Store Redis username (optional, for Redis 6.0+ ACL)")
-	redisStorePasswordFlag := flag.String("redis-store-password", "", "Store Redis password (optional)")
 	keysDirFlag := flag.String("keys-dir", "./tmp/keys", "Directory to store generated JWKS private keys")
 	casbinModelFlag := flag.String("casbin-model", "configs/casbin_model.conf", "Path to casbin model configuration file")
 	configFileFlag := flag.String("config", "configs/seeddata.yaml", "Path to seed data configuration file")
@@ -163,21 +158,10 @@ func main() {
 		}()
 	}
 
-	// 连接 Store Redis（可选）
-	redisStoreAddr := common.ResolveRedisAddr(*redisStoreFlag)
-	var redisStoreClient *redis.Client
-	if redisStoreAddr != "" {
-		redisStoreClient = common.MustOpenRedisWithAuth(redisStoreAddr, *redisStoreUsernameFlag, *redisStorePasswordFlag)
-		defer func() {
-			_ = redisStoreClient.Close()
-		}()
-	}
-
 	// 创建依赖对象
 	deps := &dependencies{
 		DB:          db,
 		RedisCache:  redisCacheClient,
-		RedisStore:  redisStoreClient,
 		KeysDir:     *keysDirFlag,
 		CasbinModel: *casbinModelFlag,
 		Logger:      logger,

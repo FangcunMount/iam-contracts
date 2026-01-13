@@ -62,10 +62,9 @@ func seedWechatApps(ctx context.Context, deps *dependencies) error {
 	}
 
 	// 初始化容器和 IDP 模块（传递加密密钥）
-	// Cache Redis: 用于 IDP 模块的 Access Token 缓存和 Authz 模块的权限策略缓存
-	// Store Redis: 用于 Authn 模块的 Token 持久化存储
+	// Redis: 用于 IDP 模块的 Access Token 缓存和 Authn 模块的 Token 存储
 	// EventBus: nil（种子数据工具不需要消息队列）
-	c := container.NewContainer(deps.DB, deps.RedisCache, deps.RedisStore, nil, encryptionKey)
+	c := container.NewContainer(deps.DB, deps.RedisCache, nil, encryptionKey)
 	if err := c.Initialize(); err != nil {
 		return fmt.Errorf("failed to initialize container: %w", err)
 	}

@@ -21,12 +21,10 @@ type SingleRedisOptions struct {
 	EnableLogging         bool     `json:"enable-logging,omitempty"               mapstructure:"enable-logging"`
 }
 
-// RedisOptions defines options for dual redis instances (cache + store).
+// RedisOptions defines options for a single redis instance (cache).
 type RedisOptions struct {
 	// Cache Redis - 用于缓存、会话、限流等临时数据
 	Cache *SingleRedisOptions `json:"cache" mapstructure:"cache"`
-	// Store Redis - 用于持久化存储、队列、发布订阅等
-	Store *SingleRedisOptions `json:"store" mapstructure:"store"`
 }
 
 // NewRedisOptions create a `zero` value instance.
@@ -39,21 +37,6 @@ func NewRedisOptions() *RedisOptions {
 			Username:              "",
 			Password:              "",
 			Database:              0, // 缓存使用 DB 0
-			MaxIdle:               50,
-			MaxActive:             100,
-			Timeout:               5,
-			EnableCluster:         false,
-			UseSSL:                false,
-			SSLInsecureSkipVerify: false,
-			EnableLogging:         false, // 默认不开启 Redis 命令日志
-		},
-		Store: &SingleRedisOptions{
-			Host:                  "127.0.0.1",
-			Port:                  6379,
-			Addrs:                 []string{},
-			Username:              "",
-			Password:              "",
-			Database:              1, // 存储使用 DB 1
 			MaxIdle:               50,
 			MaxActive:             100,
 			Timeout:               5,
@@ -110,41 +93,4 @@ func (o *RedisOptions) AddFlags(fs *pflag.FlagSet) {
 
 	fs.BoolVar(&o.Cache.SSLInsecureSkipVerify, "redis.cache.ssl-insecure-skip-verify", o.Cache.SSLInsecureSkipVerify, ""+
 		"Skip SSL certificate verification for cache.")
-
-	// Store Redis flags
-	fs.StringVar(&o.Store.Host, "redis.store.host", o.Store.Host, ""+
-		"Redis store service host address.")
-
-	fs.IntVar(&o.Store.Port, "redis.store.port", o.Store.Port, ""+
-		"Redis store service port.")
-
-	fs.StringSliceVar(&o.Store.Addrs, "redis.store.addrs", o.Store.Addrs, ""+
-		"Redis store cluster addresses. If set, host and port will be ignored.")
-
-	fs.StringVar(&o.Store.Username, "redis.store.username", o.Store.Username, ""+
-		"Username for Redis 6.0+ ACL authentication (store).")
-
-	fs.StringVar(&o.Store.Password, "redis.store.password", o.Store.Password, ""+
-		"Password for access to redis store service.")
-
-	fs.IntVar(&o.Store.Database, "redis.store.database", o.Store.Database, ""+
-		"Redis store database number (default: 1).")
-
-	fs.IntVar(&o.Store.MaxIdle, "redis.store.max-idle", o.Store.MaxIdle, ""+
-		"Maximum idle connections allowed to connect to redis store.")
-
-	fs.IntVar(&o.Store.MaxActive, "redis.store.max-active", o.Store.MaxActive, ""+
-		"Maximum active connections allowed to connect to redis store.")
-
-	fs.IntVar(&o.Store.Timeout, "redis.store.timeout", o.Store.Timeout, ""+
-		"Redis store connection timeout in seconds.")
-
-	fs.BoolVar(&o.Store.EnableCluster, "redis.store.enable-cluster", o.Store.EnableCluster, ""+
-		"Enable redis store cluster mode.")
-
-	fs.BoolVar(&o.Store.UseSSL, "redis.store.use-ssl", o.Store.UseSSL, ""+
-		"Enable SSL for redis store connection.")
-
-	fs.BoolVar(&o.Store.SSLInsecureSkipVerify, "redis.store.ssl-insecure-skip-verify", o.Store.SSLInsecureSkipVerify, ""+
-		"Skip SSL certificate verification for store.")
 }

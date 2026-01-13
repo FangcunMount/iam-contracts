@@ -93,12 +93,6 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 		cacheClient = nil // 允许在没有 Cache Redis 的情况下运行
 	}
 
-	storeClient, err := s.dbManager.GetStoreRedisClient()
-	if err != nil {
-		log.Warnf("Failed to get Store Redis client: %v", err)
-		storeClient = nil // 允许在没有 Store Redis 的情况下运行
-	}
-
 	// 获取 IDP 模块加密密钥（从配置或环境变量读取）
 	idpEncryptionKey, err := loadIDPEncryptionKey()
 	if err != nil {
@@ -112,8 +106,8 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 		eventBus = nil // 允许在没有 EventBus 的情况下运行
 	}
 
-	// 创建六边形架构容器（传入 MySQL、双 Redis、EventBus 和 IDP 加密密钥）
-	s.container = container.NewContainer(mysqlDB, cacheClient, storeClient, eventBus, idpEncryptionKey)
+	// 创建六边形架构容器（传入 MySQL、Redis、EventBus 和 IDP 加密密钥）
+	s.container = container.NewContainer(mysqlDB, cacheClient, eventBus, idpEncryptionKey)
 
 	// 初始化容器中的所有组件
 	if err := s.container.Initialize(); err != nil {

@@ -24,8 +24,7 @@ IAM 系统数据库初始化和种子数据填充工具。
 
 1. MySQL 数据库已创建并完成迁移（运行过 `make migrate-up`）
 2. Redis 服务已启动（可选）
-   - **Cache Redis**: 用于缓存、会话、限流等临时数据
-   - **Store Redis**: 用于持久化存储、队列、发布订阅等
+   - **Redis**: 用于缓存、会话、令牌等数据
 3. 准备好存放 JWKS 密钥的目录
 4. 配置种子数据文件 `configs/seeddata.yaml`
 
@@ -38,9 +37,6 @@ go run ./cmd/tools/seeddata \
   --redis-cache "redis-cache:6379" \
   --redis-cache-username "app" \
   --redis-cache-password "your_cache_password" \
-  --redis-store "r-xxx.redis.rds.aliyuncs.com:6380" \
-  --redis-store-username "app" \
-  --redis-store-password "your_store_password" \
   --keys-dir "./tmp/keys" \
   --casbin-model "./configs/casbin_model.conf" \
   --config "./configs/seeddata.yaml"
@@ -100,9 +96,6 @@ go run ./cmd/tools/seeddata --dsn "..." --steps "init,tenants,user,authn,roles,r
 | `--redis-cache` | `IAM_SEEDER_REDIS_CACHE` | 可选 | Cache Redis地址（host:port，用于缓存、会话、限流） |
 | `--redis-cache-username` | `IAM_SEEDER_REDIS_CACHE_USERNAME` | 可选 | Cache Redis用户名（Redis 6.0+ ACL） |
 | `--redis-cache-password` | `IAM_SEEDER_REDIS_CACHE_PASSWORD` | 可选 | Cache Redis密码 |
-| `--redis-store` | `IAM_SEEDER_REDIS_STORE` | 可选 | Store Redis地址（host:port，用于持久化存储、队列） |
-| `--redis-store-username` | `IAM_SEEDER_REDIS_STORE_USERNAME` | 可选 | Store Redis用户名（Redis 6.0+ ACL） |
-| `--redis-store-password` | `IAM_SEEDER_REDIS_STORE_PASSWORD` | 可选 | Store Redis密码 |
 | `--keys-dir` | - | `./tmp/keys` | JWKS私钥存储目录 |
 | `--casbin-model` | - | `configs/casbin_model.conf` | Casbin模型配置文件路径 |
 | `--config` | - | `configs/seeddata.yaml` | 种子数据配置文件路径 |
@@ -264,22 +257,7 @@ wechatapp (依赖租户)
 
 ### Q: 双 Redis 架构的用途是什么？
 
-**A**: seeddata 工具支持双 Redis 实例架构:
-
-- **Cache Redis** (`--redis-cache`): 用于临时数据
-  - 会话管理(Session)
-  - API 限流(Rate Limiting)
-  - 临时缓存(Cache)
-  - 特点: 可以配置 LRU/LFU 淘汰策略,丢失数据不影响业务
-
-- **Store Redis** (`--redis-store`): 用于持久化数据
-  - Token 黑名单
-  - 消息队列
-  - 发布订阅
-  - 分布式锁
-  - 特点: 需要持久化配置,数据不能丢失
-
-两个 Redis 实例都是**可选的**。如果不需要相关功能,可以不配置。
+**A**: seeddata 工具现在只需要一个 Redis 实例(`--redis-cache`，用于缓存/令牌相关功能)，可选配置；不配置时会跳过依赖 Redis 的功能。
 
 ### Q: 可以在生产环境运行吗？
 
