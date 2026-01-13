@@ -4,14 +4,14 @@ name: CI/CD Pipeline
 # 必需（部署 main 分支时强制校验）：
 #   SVRA_HOST, SVRA_USERNAME, SVRA_SSH_KEY
 #   MYSQL_HOST, MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DBNAME
-#   REDIS_CACHE_HOST
+#   REDIS_HOST
 #   IPD_ENCRYPTION_KEY
 #   GRPC_CA_CHAIN, GRPC_SERVER_CRT, GRPC_SERVER_KEY
 #   DOCKERHUB_USERNAME, DOCKERHUB_TOKEN
 # 可选（缺失时使用默认或跳过）：
 #   SVRA_SSH_PORT, SVRA_SUDO_PASSWORD
 #   MYSQL_PORT
-#   REDIS_CACHE_PORT, REDIS_CACHE_DB, REDIS_CACHE_USERNAME, REDIS_CACHE_PASSWORD
+#   REDIS_PORT, REDIS_DB, REDIS_USERNAME, REDIS_PASSWORD
 #   WWW_UID, WWW_GID
 #   NSQ_LOOKUPD_HOST, NSQ_LOOKUPD_PORT, NSQ_NSQD_HOST, NSQ_NSQD_PORT (事件驱动消息)
 # 注意：JWT 签名使用 JWKS (RS256) 非对称密钥，密钥在运行时自动生成并持久化到 /app/data/keys
@@ -45,11 +45,11 @@ jobs:
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
           MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
-          REDIS_CACHE_HOST: ${{ secrets.REDIS_CACHE_HOST }}
-          REDIS_CACHE_PORT: ${{ secrets.REDIS_CACHE_PORT }}
-          REDIS_CACHE_DB: ${{ secrets.REDIS_CACHE_DB }}
-          REDIS_CACHE_USERNAME: ${{ secrets.REDIS_CACHE_USERNAME }}
-          REDIS_CACHE_PASSWORD: ${{ secrets.REDIS_CACHE_PASSWORD }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
+          REDIS_DB: ${{ secrets.REDIS_DB }}
+          REDIS_USERNAME: ${{ secrets.REDIS_USERNAME }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
           IPD_ENCRYPTION_KEY: ${{ secrets.IPD_ENCRYPTION_KEY }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -70,8 +70,8 @@ jobs:
             echo "ℹ️ Not on main branch – required secrets reported for awareness only."
           fi
 
-          REQUIRED_SECRETS=(SVRA_HOST SVRA_USERNAME SVRA_SSH_KEY MYSQL_HOST MYSQL_USERNAME MYSQL_PASSWORD MYSQL_DBNAME REDIS_CACHE_HOST DOCKERHUB_USERNAME DOCKERHUB_TOKEN)
-          OPTIONAL_SECRETS=(SVRA_SSH_PORT SVRA_SUDO_PASSWORD MYSQL_PORT REDIS_CACHE_PORT REDIS_CACHE_DB REDIS_CACHE_USERNAME REDIS_CACHE_PASSWORD WWW_UID WWW_GID NSQ_LOOKUPD_HOST NSQ_LOOKUPD_PORT NSQ_NSQD_HOST NSQ_NSQD_PORT)
+          REQUIRED_SECRETS=(SVRA_HOST SVRA_USERNAME SVRA_SSH_KEY MYSQL_HOST MYSQL_USERNAME MYSQL_PASSWORD MYSQL_DBNAME REDIS_HOST DOCKERHUB_USERNAME DOCKERHUB_TOKEN)
+          OPTIONAL_SECRETS=(SVRA_SSH_PORT SVRA_SUDO_PASSWORD MYSQL_PORT REDIS_PORT REDIS_DB REDIS_USERNAME REDIS_PASSWORD WWW_UID WWW_GID NSQ_LOOKUPD_HOST NSQ_LOOKUPD_PORT NSQ_NSQD_HOST NSQ_NSQD_PORT)
 
           REQUIRED_SECRETS+=(IPD_ENCRYPTION_KEY)
 
@@ -106,17 +106,17 @@ jobs:
                 MYSQL_PORT)
                   echo "⚠️ $SECRET_NAME is not set (defaults to 3306)"
                   ;;
-                REDIS_CACHE_PORT)
+                REDIS_PORT)
                   echo "⚠️ $SECRET_NAME is not set (defaults to 6379)"
                   ;;
-                REDIS_CACHE_DB)
+                REDIS_DB)
                   echo "⚠️ $SECRET_NAME is not set (defaults to DB 0)"
                   ;;
-                REDIS_CACHE_USERNAME)
+                REDIS_USERNAME)
                   echo "⚠️ $SECRET_NAME is not set (uses default Redis user)"
                   ;;
-                REDIS_CACHE_PASSWORD)
-                  echo "⚠️ $SECRET_NAME is not set (Redis cache auth disabled)"
+                REDIS_PASSWORD)
+                  echo "⚠️ $SECRET_NAME is not set (Redis auth disabled)"
                   ;;
                 SVRA_SSH_PORT)
                   echo "⚠️ $SECRET_NAME is not set (defaults to 22)"
@@ -286,11 +286,11 @@ jobs:
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
-          REDIS_CACHE_HOST: ${{ secrets.REDIS_CACHE_HOST }}
-          REDIS_CACHE_PORT: ${{ secrets.REDIS_CACHE_PORT || 6379 }}
-          REDIS_CACHE_DB: ${{ secrets.REDIS_CACHE_DB || 0 }}
-          REDIS_CACHE_USERNAME: ${{ secrets.REDIS_CACHE_USERNAME }}
-          REDIS_CACHE_PASSWORD: ${{ secrets.REDIS_CACHE_PASSWORD }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT || 6379 }}
+          REDIS_DB: ${{ secrets.REDIS_DB || 0 }}
+          REDIS_USERNAME: ${{ secrets.REDIS_USERNAME }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
           IPD_ENCRYPTION_KEY: ${{ secrets.IPD_ENCRYPTION_KEY }}
           NSQ_LOOKUPD_HOST: ${{ secrets.NSQ_LOOKUPD_HOST }}
           NSQ_LOOKUPD_PORT: ${{ secrets.NSQ_LOOKUPD_PORT || 4161 }}
@@ -318,11 +318,11 @@ jobs:
           IAM_APISERVER_MYSQL_DATABASE=${MYSQL_DBNAME}
           
           # Redis (缓存/令牌)
-          IAM_APISERVER_REDIS_CACHE_HOST=${REDIS_CACHE_HOST}
-          IAM_APISERVER_REDIS_CACHE_PORT=${REDIS_CACHE_PORT}
-          IAM_APISERVER_REDIS_CACHE_USERNAME=${REDIS_CACHE_USERNAME}
-          IAM_APISERVER_REDIS_CACHE_PASSWORD=${REDIS_CACHE_PASSWORD}
-          IAM_APISERVER_REDIS_CACHE_DATABASE=${REDIS_CACHE_DB}
+          IAM_APISERVER_REDIS_CACHE_HOST=${REDIS_HOST}
+          IAM_APISERVER_REDIS_CACHE_PORT=${REDIS_PORT}
+          IAM_APISERVER_REDIS_CACHE_USERNAME=${REDIS_USERNAME}
+          IAM_APISERVER_REDIS_CACHE_PASSWORD=${REDIS_PASSWORD}
+          IAM_APISERVER_REDIS_CACHE_DATABASE=${REDIS_DB}
           
           IAM_APISERVER_IDP_ENCRYPTION_KEY=${IPD_ENCRYPTION_KEY}
           
