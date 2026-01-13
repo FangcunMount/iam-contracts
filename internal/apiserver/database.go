@@ -238,17 +238,23 @@ func (dm *DatabaseManager) initSingleRedis(instanceName string, dbType database.
 
 	// 创建 Redis 配置
 	redisConfig := &database.RedisConfig{
-		Host:          opts.Host,
-		Port:          opts.Port,
-		Addrs:         opts.Addrs,
-		Username:      opts.Username,
-		Password:      opts.Password,
-		Database:      opts.Database,
-		MaxIdle:       opts.MaxIdle,
-		MaxActive:     opts.MaxActive,
-		Timeout:       opts.Timeout,
-		EnableCluster: opts.EnableCluster,
-		UseSSL:        opts.UseSSL,
+		Host:                  opts.Host,
+		Port:                  opts.Port,
+		Addrs:                 opts.Addrs,
+		Username:              opts.Username,
+		Password:              opts.Password,
+		Database:              opts.Database,
+		MaxIdle:               opts.MaxIdle,
+		MaxActive:             opts.MaxActive,
+		Timeout:               opts.Timeout,
+		MinIdleConns:          opts.MinIdleConns,
+		PoolTimeout:           opts.PoolTimeout,
+		DialTimeout:           opts.DialTimeout,
+		ReadTimeout:           opts.ReadTimeout,
+		WriteTimeout:          opts.WriteTimeout,
+		EnableCluster:         opts.EnableCluster,
+		UseSSL:                opts.UseSSL,
+		SSLInsecureSkipVerify: opts.SSLInsecureSkipVerify,
 	}
 
 	// 创建 Redis 连接

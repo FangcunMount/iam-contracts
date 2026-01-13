@@ -15,6 +15,11 @@ type SingleRedisOptions struct {
 	MaxIdle               int      `json:"max-idle,omitempty"                     mapstructure:"max-idle"`
 	MaxActive             int      `json:"max-active,omitempty"                   mapstructure:"max-active"`
 	Timeout               int      `json:"timeout,omitempty"                      mapstructure:"timeout"`
+	MinIdleConns          int      `json:"min-idle-conns,omitempty"               mapstructure:"min-idle-conns"`
+	PoolTimeout           int      `json:"pool-timeout,omitempty"                 mapstructure:"pool-timeout"`
+	DialTimeout           int      `json:"dial-timeout,omitempty"                 mapstructure:"dial-timeout"`
+	ReadTimeout           int      `json:"read-timeout,omitempty"                 mapstructure:"read-timeout"`
+	WriteTimeout          int      `json:"write-timeout,omitempty"                mapstructure:"write-timeout"`
 	EnableCluster         bool     `json:"enable-cluster,omitempty"               mapstructure:"enable-cluster"`
 	UseSSL                bool     `json:"use-ssl,omitempty"                      mapstructure:"use-ssl"`
 	SSLInsecureSkipVerify bool     `json:"ssl-insecure-skip-verify,omitempty"     mapstructure:"ssl-insecure-skip-verify"`
@@ -40,6 +45,11 @@ func NewRedisOptions() *RedisOptions {
 			MaxIdle:               50,
 			MaxActive:             100,
 			Timeout:               5,
+			MinIdleConns:          0,
+			PoolTimeout:           0,
+			DialTimeout:           0,
+			ReadTimeout:           0,
+			WriteTimeout:          0,
 			EnableCluster:         false,
 			UseSSL:                false,
 			SSLInsecureSkipVerify: false,
@@ -84,6 +94,21 @@ func (o *RedisOptions) AddFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&o.Cache.Timeout, "redis.cache.timeout", o.Cache.Timeout, ""+
 		"Redis cache connection timeout in seconds.")
+
+	fs.IntVar(&o.Cache.MinIdleConns, "redis.cache.min-idle-conns", o.Cache.MinIdleConns, ""+
+		"Minimum idle connections kept in the pool.")
+
+	fs.IntVar(&o.Cache.PoolTimeout, "redis.cache.pool-timeout", o.Cache.PoolTimeout, ""+
+		"Maximum wait time for a connection from the pool (seconds).")
+
+	fs.IntVar(&o.Cache.DialTimeout, "redis.cache.dial-timeout", o.Cache.DialTimeout, ""+
+		"Dial timeout when establishing new connections (seconds).")
+
+	fs.IntVar(&o.Cache.ReadTimeout, "redis.cache.read-timeout", o.Cache.ReadTimeout, ""+
+		"Read timeout for Redis commands (seconds).")
+
+	fs.IntVar(&o.Cache.WriteTimeout, "redis.cache.write-timeout", o.Cache.WriteTimeout, ""+
+		"Write timeout for Redis commands (seconds).")
 
 	fs.BoolVar(&o.Cache.EnableCluster, "redis.cache.enable-cluster", o.Cache.EnableCluster, ""+
 		"Enable redis cache cluster mode.")
