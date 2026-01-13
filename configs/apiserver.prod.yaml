@@ -142,9 +142,14 @@ redis:
     username: ""  # Redis 6.0+ ACL 用户名，留空表示使用 default 用户
     password: ""
     database: 0  # 缓存使用 DB 0
-    max-idle: 50
-    max-active: 100
-    timeout: 5
+    max-idle: 200
+    max-active: 500
+    min-idle-conns: 20
+    timeout: 10
+    pool-timeout: 10
+    dial-timeout: 5
+    read-timeout: 5
+    write-timeout: 5
     enable-cluster: false
     use-ssl: false
     enable-logging: false  # 生产环境关闭命令日志

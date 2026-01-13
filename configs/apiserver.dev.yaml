@@ -139,9 +139,14 @@ redis:
     username: "app"  # 开发环境默认使用 default 用户
     password: "dev_app_123"  # 对应 build/docker/infra/dev.env -> REDIS_CACHE_PASSWORD/REDIS_AUTH_APP_PASSWORD
     database: 0  # Cache 使用 DB 0
-    max-idle: 50
-    max-active: 100
-    timeout: 5
+    max-idle: 200
+    max-active: 500
+    min-idle-conns: 20
+    timeout: 10
+    pool-timeout: 10
+    dial-timeout: 5
+    read-timeout: 5
+    write-timeout: 5
     enable-cluster: false
     use-ssl: false
     enable-logging: true  # 开启 Redis 命令日志（用于调试，生产环境建议关闭）
