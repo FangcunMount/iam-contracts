@@ -370,6 +370,8 @@ jobs:
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
           GHCR_USERNAME: ${{ github.repository_owner }}
           GITHUB_TOKEN: ${{ github.token }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           SUDO_PASSWORD: ${{ secrets.SVRA_SUDO_PASSWORD }}
           WWW_UID: ${{ env.WWW_UID }}
           WWW_GID: ${{ env.WWW_GID }}
@@ -378,7 +380,7 @@ jobs:
           username: ${{ secrets.SVRA_USERNAME }}
           key: ${{ secrets.SVRA_SSH_KEY }}
           port: ${{ secrets.SVRA_SSH_PORT || 22 }}
-          envs: DOCKER_REGISTRY,IMAGE_NAME,IMAGE_TAG,GHCR_USERNAME,GITHUB_TOKEN,SUDO_PASSWORD,WWW_UID,WWW_GID
+          envs: DOCKER_REGISTRY,IMAGE_NAME,IMAGE_TAG,GHCR_USERNAME,GITHUB_TOKEN,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,SUDO_PASSWORD,WWW_UID,WWW_GID
           script: |
             set -Eeuo pipefail
 
@@ -465,9 +467,25 @@ jobs:
             if [ -n "${GITHUB_TOKEN:-}" ]; then
               echo "Logging into GitHub Container Registry..."
               if [ "$SUDO" = "sudo_pw" ]; then
-                printf '%s\n%s' "$SUDO_PASSWORD" "$GITHUB_TOKEN" | sudo -S docker login "$DOCKER_REGISTRY" -u "$GHCR_USERNAME" --password-stdin >/dev/null || true
+                printf '%s\n%s' "$SUDO_PASSWORD" "$GITHUB_TOKEN" | sudo -S docker login "$DOCKER_REGISTRY" -u "$GHCR_USERNAME" --password-stdin >/dev/null && GHCR_LOGIN_OK=1 || GHCR_LOGIN_OK=0
               else
-                echo "$GITHUB_TOKEN" | $SUDO docker login "$DOCKER_REGISTRY" -u "$GHCR_USERNAME" --password-stdin >/dev/null || true
+                echo "$GITHUB_TOKEN" | $SUDO docker login "$DOCKER_REGISTRY" -u "$GHCR_USERNAME" --password-stdin >/dev/null && GHCR_LOGIN_OK=1 || GHCR_LOGIN_OK=0
+              fi
+            fi
+
+            # GHCR 登录失败时回退到 Docker Hub（qs-server 风格）
+            if [ "${GHCR_LOGIN_OK:-0}" -ne 1 ]; then
+              if [ -n "${DOCKERHUB_USERNAME:-}" ] && [ -n "${DOCKERHUB_TOKEN:-}" ]; then
+                echo "⚠️ GHCR login failed; falling back to Docker Hub..."
+                if [ "$SUDO" = "sudo_pw" ]; then
+                  printf '%s\n%s' "$SUDO_PASSWORD" "$DOCKERHUB_TOKEN" | sudo -S docker login -u "$DOCKERHUB_USERNAME" --password-stdin >/dev/null || true
+                else
+                  echo "$DOCKERHUB_TOKEN" | $SUDO docker login -u "$DOCKERHUB_USERNAME" --password-stdin >/dev/null || true
+                fi
+                DOCKER_REGISTRY="docker.io"
+                IMAGE_NAME="${DOCKERHUB_USERNAME}/iam-contracts"
+              else
+                echo "⚠️ GHCR login failed and Docker Hub credentials are missing."
               fi
             fi
 
