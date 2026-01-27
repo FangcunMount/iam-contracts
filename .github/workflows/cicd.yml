@@ -448,6 +448,12 @@ jobs:
             # ===========================================================
 
             # GHCR 登录（使用 GitHub Actions 自带的 GITHUB_TOKEN）
+            echo "------------------------------------------"
+            echo "🔎 GHCR access checklist (if login fails):"
+            echo "1) Package settings -> Repository access: add repo 'fangcun-mount/iam-contracts'"
+            echo "2) Ensure repo has Read access to the package"
+            echo "3) Org settings -> Packages: allow repository access if required"
+            echo "------------------------------------------"
             if [ -n "${GITHUB_TOKEN:-}" ]; then
               echo "Logging into GitHub Container Registry..."
               echo "$GITHUB_TOKEN" | $SUDO docker login "$DOCKER_REGISTRY" -u "$GHCR_USERNAME" --password-stdin >/dev/null || true
