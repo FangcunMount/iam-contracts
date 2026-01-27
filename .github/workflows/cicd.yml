@@ -274,6 +274,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Verify GHCR auth on runner
+        env:
+          GHCR_USERNAME: ${{ github.repository_owner }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          echo "🔐 Verifying GHCR access on runner..."
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin >/dev/null
+          echo "✅ GHCR login succeeded on runner"
 
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -360,7 +368,7 @@ jobs:
           DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
-          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_USERNAME: ${{ github.repository_owner }}
           GITHUB_TOKEN: ${{ github.token }}
           SUDO_PASSWORD: ${{ secrets.SVRA_SUDO_PASSWORD }}
           WWW_UID: ${{ env.WWW_UID }}
