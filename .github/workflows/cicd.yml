@@ -464,11 +464,11 @@ jobs:
             echo "------------------------------------------"
             if [ -n "${GITHUB_TOKEN:-}" ]; then
               echo "Logging into GitHub Container Registry..."
-              umask 077
-              TOKEN_FILE="/tmp/ghcr_token_$$"
-              printf '%s' "$GITHUB_TOKEN" > "$TOKEN_FILE"
-              $SUDO /bin/sh -c "cat '$TOKEN_FILE' | docker login '$DOCKER_REGISTRY' -u '$GHCR_USERNAME' --password-stdin >/dev/null" || true
-              rm -f "$TOKEN_FILE"
+              if [ "$SUDO" = "sudo_pw" ]; then
+                printf '%s\n%s' "$SUDO_PASSWORD" "$GITHUB_TOKEN" | sudo -S docker login "$DOCKER_REGISTRY" -u "$GHCR_USERNAME" --password-stdin >/dev/null || true
+              else
+                echo "$GITHUB_TOKEN" | $SUDO docker login "$DOCKER_REGISTRY" -u "$GHCR_USERNAME" --password-stdin >/dev/null || true
+              fi
             fi
 
             # 确保 docker compose 可用
