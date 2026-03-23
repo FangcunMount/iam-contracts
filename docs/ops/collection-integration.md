@@ -19,7 +19,7 @@ collection_auth:
 ### 配置项说明
 
 | 配置项 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
+| -------- | ------ | ------ | ------ |
 | `collection_url` | string | 否 | Collection 服务的 API 基础 URL。如果为空，将跳过受试者创建 |
 | `collection_auth.admin_token` | string | 否 | 管理员 Token，用于调用 Collection API。如果为空，将跳过受试者创建 |
 | `collection_auth.use_login` | bool | 否 | 是否使用用户登录获取 token（暂不支持，需先创建认证账号） |
@@ -61,7 +61,7 @@ Authorization: Bearer {admin_token}
 ### 字段说明
 
 | 字段 | 类型 | 说明 |
-|------|------|------|
+| ------ | ------ | ------ |
 | `iam_child_id` | string | IAM 系统中的儿童 ID |
 | `name` | string | 儿童姓名 |
 | `gender` | int | 性别（1=男，2=女） |

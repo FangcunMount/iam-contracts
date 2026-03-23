@@ -397,7 +397,7 @@ func (f *StrategyFactory) CreateStrategy(scenario domain.Scenario) domain.AuthSt
 ## 📈 设计优势总结
 
 | 方面 | 改进前 | 改进后 |
-|------|--------|--------|
+| ------ | -------- | -------- |
 | **端口数量** | 每种认证一个Deps接口（4个） | 5个按职责划分的端口 |
 | **扩展性** | 新增认证需要新增Deps | 复用现有端口 |
 | **测试性** | 需要mock整个Deps | 只mock需要的端口 |

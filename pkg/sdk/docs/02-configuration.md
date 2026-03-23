@@ -50,7 +50,7 @@
 ### 配置场景速查
 
 | 场景 | 配置重点 | 耗时 |
-|------|---------|------|
+| ------ | --------- | ------ |
 | 🚀 **本地开发** | `Endpoint` | 10秒 |
 | 🧪 **测试环境** | `Endpoint` + `TLS.InsecureSkipVerify` | 30秒 |
 | 🏢 **生产环境** | `Endpoint` + `TLS` + `Retry` + `CircuitBreaker` | 5分钟 |
@@ -388,7 +388,7 @@ type ObservabilityConfig struct {
 ## 环境变量映射
 
 | 环境变量 | 配置字段 | 默认值 |
-|---------|---------|--------|
+| --------- | --------- | -------- |
 | `IAM_ENDPOINT` | `Endpoint` | - |
 | `IAM_TIMEOUT` | `Timeout` | `30s` |
 | `IAM_DIAL_TIMEOUT` | `DialTimeout` | `10s` |

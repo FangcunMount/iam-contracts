@@ -57,7 +57,7 @@ api/
 **核心能力**:
 
 | 功能域 | API 端点 | 说明 |
-|--------|----------|------|
+| -------- | ---------- | ------ |
 | **认证** | `POST /api/v1/auth/login` | 用户登录 |
 | | `POST /api/v1/auth/refresh` | 刷新令牌 |
 | | `POST /api/v1/auth/logout` | 退出登录 |
@@ -87,7 +87,7 @@ api/
 **核心能力**:
 
 | 服务 | RPC 方法 | 说明 |
-|------|----------|------|
+| ------ | ---------- | ------ |
 | **AuthZ** | `Allow(AllowReq) → AllowResp` | 单次权限判定 |
 | | `AllowOnActor(AllowOnActorReq)` | 基于 Actor 的权限判定 |
 | | `BatchAllow(BatchAllowReq)` | 批量权限判定 |
@@ -104,7 +104,7 @@ api/
 ### 认证机制
 
 | 协议 | 认证方式 | 传输方式 |
-|------|---------|---------|
+| ------ | --------- | --------- |
 | **REST** | `Authorization: Bearer <JWT>` | HTTPS (TLS 1.2+) |
 | **gRPC** | `authorization` metadata | mTLS (双向认证) |
 
@@ -125,7 +125,7 @@ api/
 ### 请求追踪
 
 | Header/Metadata | 格式 | 说明 |
-|-----------------|------|------|
+| ----------------- | ------ | ------ |
 | `X-Request-Id` (REST) | UUID v4 | 链路追踪 ID |
 | `x-request-id` (gRPC) | UUID v4 | 同上 |
 | `X-Forwarded-For` | IP 地址 | 真实客户端 IP |

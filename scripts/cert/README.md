@@ -63,7 +63,7 @@ grpc:
 ### gRPC mTLS 证书
 
 | 证书类型 | 统一路径 | 说明 |
-|---------|---------|------|
+| --------- | --------- | ------ |
 | CA 证书链 | `/data/infra/ssl/grpc/ca/ca-chain.crt` | 所有项目验证证书时引用 |
 | IAM 服务端证书 | `/data/infra/ssl/grpc/server/iam-grpc.crt` | IAM gRPC 配置引用 |
 | IAM 服务端私钥 | `/data/infra/ssl/grpc/server/iam-grpc.key` | IAM gRPC 配置引用 |
@@ -73,7 +73,7 @@ grpc:
 ### REST API HTTPS 证书
 
 | 证书类型 | 统一路径 | 说明 |
-|---------|---------|------|
+| --------- | --------- | ------ |
 | IAM HTTPS 证书 | `/data/infra/ssl/web/iam-apiserver.crt` | IAM HTTPS 配置引用 |
 | IAM HTTPS 私钥 | `/data/infra/ssl/web/iam-apiserver.key` | IAM HTTPS 配置引用 |
 

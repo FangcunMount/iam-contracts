@@ -91,7 +91,7 @@ go run ./cmd/tools/seeddata --dsn "..." --steps "init,tenants,user,authn,roles,r
 ## 命令行参数
 
 | 参数 | 环境变量 | 默认值 | 说明 |
-|------|----------|--------|------|
+| ------ | ---------- | -------- | ------ |
 | `--dsn` | `IAM_SEEDER_DSN` | 必填 | MySQL数据源名称（DSN） |
 | `--redis-cache` | `IAM_SEEDER_REDIS_CACHE` | 可选 | Cache Redis地址（host:port，用于缓存、会话、限流） |
 | `--redis-cache-username` | `IAM_SEEDER_REDIS_CACHE_USERNAME` | 可选 | Cache Redis用户名（Redis 6.0+ ACL） |
@@ -108,7 +108,7 @@ go run ./cmd/tools/seeddata --dsn "..." --steps "init,tenants,user,authn,roles,r
 创建两个租户：
 
 | ID | 名称 | 代码 | 最大用户数 | 最大角色数 |
-|----|------|------|-----------|-----------|
+| ---- | ------ | ------ | ----------- | ----------- |
 | default | 默认租户 | DEFAULT | 100000 | 1000 |
 | demo | 演示租户 | DEMO | 1000 | 100 |
 
@@ -117,7 +117,7 @@ go run ./cmd/tools/seeddata --dsn "..." --steps "init,tenants,user,authn,roles,r
 #### 用户数据
 
 | 别名 | 姓名 | 手机 | 邮箱 | 身份证号 |
-|------|------|------|------|----------|
+| ------ | ------ | ------ | ------ | ---------- |
 | admin | 系统管理员 | 10086000001 | <admin@system.com> | 110101199001011001 |
 | zhangsan | 张三 | 13800138000 | <zhangsan@example.com> | 110101199001011002 |
 | lisi | 李四 | 13800138001 | <lisi@example.com> | 110101199001011003 |
@@ -127,7 +127,7 @@ go run ./cmd/tools/seeddata --dsn "..." --steps "init,tenants,user,authn,roles,r
 #### 儿童档案
 
 | 别名 | 姓名 | 性别 | 生日 | 身高(cm) | 体重(kg) |
-|------|------|------|------|----------|----------|
+| ------ | ------ | ------ | ------ | ---------- | ---------- |
 | xiaoming | 小明 | 男 | 2015-01-01 | 145.0 | 35.0 |
 | xiaohong | 小红 | 女 | 2015-02-01 | 142.0 | 33.0 |
 | xiaogang | 小刚 | 男 | 2016-03-01 | 138.0 | 31.0 |
@@ -145,7 +145,7 @@ go run ./cmd/tools/seeddata --dsn "..." --steps "init,tenants,user,authn,roles,r
 创建运营后台登录账号：
 
 | 用户名 | 密码 | 关联用户 | 哈希算法 |
-|--------|------|----------|----------|
+| -------- | ------ | ---------- | ---------- |
 | admin | Admin@123 | 系统管理员 | bcrypt |
 | zhangsan | Pass@123 | 张三 | bcrypt |
 
@@ -154,7 +154,7 @@ go run ./cmd/tools/seeddata --dsn "..." --steps "init,tenants,user,authn,roles,r
 创建系统资源定义：
 
 | 资源键 | 显示名称 | 应用 | 域 | 操作 |
-|--------|----------|------|-----|------|
+| -------- | ---------- | ------ | ----- | ------ |
 | uc:users | 用户管理 | iam | uc | create, read, update, delete, list |
 | uc:children | 儿童管理 | iam | uc | create, read, update, delete, list |
 | uc:guardianships | 监护关系管理 | iam | uc | create, read, update, delete, list, revoke |
@@ -166,7 +166,7 @@ go run ./cmd/tools/seeddata --dsn "..." --steps "init,tenants,user,authn,roles,r
 为用户分配角色：
 
 | 用户 | 角色ID | 租户 |
-|------|--------|------|
+| ------ | -------- | ------ |
 | admin | 1 (超级管理员) | default |
 | zhangsan | 3 | default |
 | wangwu | 3 | default |

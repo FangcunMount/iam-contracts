@@ -42,7 +42,7 @@
 ### 核心理念
 
 | 层级 | 职责 | 复用性 |
-|-----|------|--------|
+| ----- | ------ | -------- |
 | **component-base** | 提供通用能力（mTLS、拦截器） | ✅ 跨项目复用 |
 | **internal/pkg/grpc** | 集成业务日志、配置 | 📦 项目特定 |
 | **业务代码** | 注册服务、处理请求 | 🎯 业务逻辑 |
@@ -66,7 +66,7 @@ flowchart LR
 ```
 
 | 风险 | 描述 |
-|------|------|
+| ------ | ------ |
 | **窃听** | 网络流量被截获，敏感数据泄露 |
 | **篡改** | 请求/响应被中间人修改 |
 | **冒充** | 恶意服务伪装成合法服务 |
@@ -87,7 +87,7 @@ flowchart LR
 ```
 
 | 证书类型 | 作用 | 持有者 |
-|----------|------|--------|
+| ---------- | ------ | -------- |
 | **CA 证书** | 信任锚点，签发其他证书 | 组织/团队 |
 | **服务端证书** | 证明服务端身份，加密通信 | IAM gRPC Server |
 | **客户端证书** | 证明客户端身份 | 调用方服务（如 QS） |
@@ -97,7 +97,7 @@ flowchart LR
 每个证书都包含两部分：
 
 | 文件 | 内容 | 作用 | 能否公开 |
-|------|------|------|----------|
+| ------ | ------ | ------ | ---------- |
 | `.crt` | 公钥 + 身份信息 + CA 签名 | 发给对方验证身份 | ✅ 可以 |
 | `.key` | 私钥 | 解密、签名 | ❌ 绝对保密 |
 
@@ -168,7 +168,7 @@ flowchart TB
 **📄 职责划分**：
 
 | 项目 | 职责 | 生成的文件 | 路径 |
-|------|------|----------|---------|
+| ------ | ------ | ---------- | --------- |
 | **infra** | CA 证书管理 | `root-ca.crt`, `intermediate-ca.crt`, `ca-chain.crt` | `/data/infra/ssl/grpc/` |
 | **iam-contracts** | 服务端证书 | `iam-grpc.crt`, `iam-grpc.key` | `/data/ssl/iam-contracts/grpc/` |
 | **qs** | 客户端证书 | `qs.crt`, `qs.key` | `/etc/qs/certs/` |
@@ -256,7 +256,7 @@ grpc:
 所有客户端证书由 infra 统一生成，各项目直接引用：
 
 | 项目 | 证书生成命令 | 引用路径 |
-|------|------------|----------|
+| ------ | ------------ | ---------- |
 | **qs** | `cd /path/to/infra && ./scripts/cert/generate-grpc-certs.sh generate-server qs QS` | `/data/infra/ssl/grpc/server/qs.{crt,key}` |
 | **admin** | `cd /path/to/infra && ./scripts/cert/generate-grpc-certs.sh generate-server admin Admin` | `/data/infra/ssl/grpc/server/admin.{crt,key}` |
 | **ops** | `cd /path/to/infra && ./scripts/cert/generate-grpc-certs.sh generate-server ops Ops` | `/data/infra/ssl/grpc/server/ops.{crt,key}` |
@@ -370,7 +370,7 @@ flowchart TB
 ### 证书路径约定
 
 | 证书类型 | 统一路径 | 说明 |
-|---------|---------|------|
+| --------- | --------- | ------ |
 | **CA 证书链** | `/data/infra/ssl/grpc/ca/ca-chain.crt` | 所有项目验证证书时引用 |
 | **IAM 服务端证书** | `/data/infra/ssl/grpc/server/iam-grpc.crt` | IAM 配置文件引用 |
 | **IAM 服务端私钥** | `/data/infra/ssl/grpc/server/iam-grpc.key` 🔒 | IAM 配置文件引用 |
@@ -882,7 +882,7 @@ func (s *AuthnServiceImpl) RegisterService(server *grpc.Server) {
 ### 3.7 核心优势
 
 | 优势 | 说明 |
-|-----|------|
+| ----- | ------ |
 | **开箱即用** | 引入 component-base，配置即可使用 |
 | **高度复用** | mTLS、拦截器可在多个项目间共享 |
 | **灵活集成** | 通过适配器模式集成业务日志 |
@@ -967,7 +967,7 @@ flowchart LR
 ```
 
 | 拦截器 | 作用 |
-|--------|------|
+| -------- | ------ |
 | Recovery | 捕获 panic，防止服务崩溃 |
 | RequestID | 生成/传递请求 ID，支持链路追踪 |
 | Logging | 记录请求/响应日志 |
@@ -1051,7 +1051,7 @@ flowchart TB
 在 mTLS 之上叠加应用层认证，支持三种方式：
 
 | 类型 | 元数据键 | 格式 |
-|------|----------|------|
+| ------ | ---------- | ------ |
 | Bearer Token | `authorization` | `Bearer <token>` |
 | HMAC 签名 | `x-access-key`, `x-signature`, `x-timestamp`, `x-nonce` | HMAC-SHA256 |
 | API Key | `x-api-key` | 明文密钥 |
@@ -1161,7 +1161,7 @@ grpc:
 ### 5.2 默认值
 
 | 配置项 | 默认值 | 说明 |
-|--------|--------|------|
+| -------- | -------- | ------ |
 | BindPort | 9090 | gRPC 监听端口 |
 | MaxMsgSize | 4MB | 最大消息大小 |
 | MinTLSVersion | 1.2 | 最低 TLS 版本 |
@@ -1178,7 +1178,7 @@ grpc:
 gRPC 健康检查协议 ([grpc-health-checking](https://github.com/grpc/grpc/blob/master/doc/health-checking.md)) 定义了四种服务状态：
 
 | 状态 | 说明 | 使用场景 |
-|------|------|----------|
+| ------ | ------ | ---------- |
 | `SERVING` | 服务正常运行 | 所有服务就绪后设置 |
 | `NOT_SERVING` | 服务不可用 | 关闭服务前设置 |
 | `UNKNOWN` | 状态未知 | （已废弃，不推荐） |
@@ -1297,7 +1297,7 @@ grpc:
 **可用的 HTTP 端点：**
 
 | 端点 | 用途 | 返回值 |
-|------|------|--------|
+| ------ | ------ | -------- |
 | `/healthz` | 通用健康检查 | 200 OK / 503 Service Unavailable |
 | `/livez` | 存活探针（进程是否存活） | 200 OK（总是返回成功） |
 | `/readyz` | 就绪探针（是否可接收流量） | 200 READY / 503 NOT_READY |
@@ -1391,7 +1391,7 @@ spec:
 **方案对比：**
 
 | 特性 | HTTP 端点（方案 A） | gRPC 探测（方案 B） |
-|-----|-------------------|-------------------|
+| ----- | ------------------- | ------------------- |
 | **配置复杂度** | ✅ 简单 | ❌ 复杂（需要证书） |
 | **依赖** | ✅ 无需额外工具 | ❌ 需要 grpc_health_probe |
 | **性能** | ✅ 更快 | ⚠️ 稍慢（TLS 握手） |
@@ -1655,7 +1655,7 @@ interceptors.LoggingInterceptor(&ZapLogger{logger: myZapLogger})
 ### 9.1 安全配置
 
 | 实践 | 说明 | 配置 |
-|-----|------|------|
+| ----- | ------ | ------ |
 | **必须启用 mTLS** | 生产环境禁止使用不安全连接 | `Insecure: false` |
 | **证书白名单** | 限制可连接的客户端 | `AllowedCNs: ["trusted-services"]` |
 | **最小权限原则** | 使用 ACL 严格控制方法访问 | `DefaultPolicy: "deny"` |
@@ -1665,7 +1665,7 @@ interceptors.LoggingInterceptor(&ZapLogger{logger: myZapLogger})
 ### 9.2 可靠性配置
 
 | 实践 | 说明 | 配置 |
-|-----|------|------|
+| ----- | ------ | ------ |
 | **证书热重载** | 避免证书更新重启服务 | `EnableAutoReload: true` |
 | **消息大小限制** | 防止大消息攻击 | `MaxMsgSize: 4MB` |
 | **连接管理** | 防止连接泄漏 | `MaxConnectionAge: 30m` |
@@ -1674,7 +1674,7 @@ interceptors.LoggingInterceptor(&ZapLogger{logger: myZapLogger})
 ### 9.3 可观测性
 
 | 实践 | 说明 |
-|-----|------|
+| ----- | ------ |
 | **请求 ID** | 每个请求生成唯一 ID，支持链路追踪 |
 | **结构化日志** | 使用 component-base 日志，统一格式 |
 | **审计日志** | 记录谁在什么时间调用了什么方法 |
@@ -1705,7 +1705,7 @@ grpc:
 ### 10.1 常见错误
 
 | 错误 | 原因 | 解决方案 |
-|-----|------|---------|
+| ----- | ------ | --------- |
 | `transport: authentication handshake failed` | 证书问题 | 检查证书路径、有效期、CN 白名单 |
 | `rpc error: code = PermissionDenied` | ACL 拒绝 | 检查 ACL 配置，确认服务在白名单 |
 | `rpc error: code = Unauthenticated` | 凭证验证失败 | 检查 Token/HMAC 是否正确 |
@@ -1741,7 +1741,7 @@ tail -f /var/log/iam/grpc-audit.log
 ### 11.1 核心价值
 
 | 价值 | 说明 |
-|-----|------|
+| ----- | ------ |
 | 🔒 **安全** | mTLS + 应用层认证 + ACL 三层防护 |
 | 🔄 **复用** | component-base 可在多个项目间共享 |
 | ⚙️ **灵活** | 所有功能可独立启用/禁用 |
@@ -1751,7 +1751,7 @@ tail -f /var/log/iam/grpc-audit.log
 ### 10.2 相关文档
 
 | 文档 | 说明 |
-|-----|------|
+| ----- | ------ |
 | [IAM SDK 文档](../../pkg/sdk/docs/README.md) | 客户端 SDK 使用指南 |
 | [QS 接入指南](./04-qs接入iam指南.md) | 完整的接入实践 |
 | [核心概念术语](./02-核心概念术语.md) | 领域术语表 |
@@ -1760,7 +1760,7 @@ tail -f /var/log/iam/grpc-audit.log
 ### 10.3 示例代码位置
 
 | 代码 | 位置 |
-|-----|------|
+| ----- | ------ |
 | 服务器实现 | `internal/pkg/grpc/server.go` |
 | 配置定义 | `internal/pkg/grpc/config.go` |
 | 日志适配 | `internal/pkg/grpc/interceptors.go` |

@@ -597,7 +597,7 @@ iam-contracts/
 ## 🛠 技术栈
 
 | 类别 | 技术 | 说明 |
-|------|------|------|
+| ------ | ------ | ------ |
 | **语言** | Go 1.21+ | 高性能、强类型、并发友好 |
 | **Web 框架** | Gin | 轻量级 HTTP 路由框架 |
 | **gRPC** | Google gRPC | 高性能 RPC 框架 |
@@ -619,7 +619,7 @@ iam-contracts/
 完整的项目文档位于 `docs/` 目录：
 
 | 文档 | 说明 |
-|------|------|
+| ------ | ------ |
 | [**架构概览**](docs/architecture-overview.md) | 整体架构设计、C4 模型、技术栈、部署架构 |
 | [**UC 模块设计**](docs/uc-architecture.md) | 用户中心详细设计、CQRS 实现、领域模型、数据库 Schema |
 | [**认证模块设计**](docs/authn-architecture.md) | JWT 管理、JWKS 发布、密钥轮换、多端登录适配 |

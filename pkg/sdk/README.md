@@ -86,7 +86,7 @@ pkg/sdk/
 ### 设计亮点
 
 | 模块 | 设计模式 | 说明 |
-|------|---------|------|
+| ------ | --------- | ------ |
 | `auth/jwks.go` | **Chain of Responsibility** | Cache → CircuitBreaker → HTTP → gRPC → Seed，自动降级 |
 | `auth/verifier.go` | **Strategy** | LocalVerify / RemoteVerify / FallbackVerify / CachingVerify |
 | `transport/retry.go` | **Builder + Predicate** | 方法级配置 + 自定义重试判断 |
@@ -274,7 +274,7 @@ client, _ := sdk.NewClient(ctx, cfg,
 ### 环境变量
 
 | 变量名 | 说明 | 默认值 |
-|--------|------|--------|
+| -------- | ------ | -------- |
 | `IAM_ENDPOINT` | gRPC 服务地址 | (必填) |
 | `IAM_TIMEOUT` | 请求超时 | 30s |
 | `IAM_TLS_ENABLED` | 启用 TLS | true |
@@ -697,7 +697,7 @@ iam:
 ### 快速导航
 
 | 文档 | 说明 |
-|------|------|
+| ------ | ------ |
 | [快速开始](./docs/01-quick-start.md) | 安装、基础示例、常见配置 |
 | [配置详解](./docs/02-configuration.md) | 所有配置选项的完整说明 |
 | [JWT 验证](./docs/03-jwt-verification.md) | 本地 JWT 验证、JWKS 管理 |
@@ -915,7 +915,7 @@ cfg, _ := sdk.ConfigFromEnv()
 推荐收集的 Metrics：
 
 | 指标 | 说明 | 标签 |
-|------|------|------|
+| ------ | ------ | ------ |
 | `iam_sdk_requests_total` | 请求总数 | `method`, `code` |
 | `iam_sdk_request_duration_seconds` | 请求延迟 | `method` |
 | `iam_sdk_requests_in_flight` | 并发请求数 | - |

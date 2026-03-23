@@ -33,7 +33,7 @@ api/grpc/
 ## 🧩 服务矩阵
 
 | Service | 主要消费方 | 能力概览 |
-|---------|------------|-----------|
+| --------- | ------------ | ----------- |
 | `IdentityRead` | 运营、OA、消息 | 获取/搜索用户与儿童 (`GetUser/BatchGetUsers/SearchUsers/GetChild/BatchGetChildren`) |
 | `GuardianshipQuery` | 运营、消息 | 读取监护关系 (`IsGuardian/ListChildren/ListGuardians`) |
 | `GuardianshipCommand` | OA、运营 | 写入监护关系 (`Add/Update/Revoke/BatchRevoke/Import`) |
@@ -108,7 +108,7 @@ api/grpc/
 ## ⚠️ 错误码约定
 
 | Code | 场景示例 |
-|------|---------|
+| ------ | --------- |
 | `INVALID_ARGUMENT` | 缺少必填字段、ID 非数字、分页参数超限 |
 | `NOT_FOUND` | 用户/儿童/监护关系不存在 |
 | `ALREADY_EXISTS` | 重复创建监护关系或外部账号映射 |

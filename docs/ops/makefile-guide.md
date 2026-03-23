@@ -26,7 +26,7 @@ make status
 ### 📦 构建命令
 
 | 命令 | 说明 |
-|------|------|
+| ------ | ------ |
 | `make build` | 构建所有服务 |
 | `make build-apiserver` | 构建 API 服务器 |
 | `make clean` | 清理构建文件和临时文件 |
@@ -34,7 +34,7 @@ make status
 ### 🚀 服务管理
 
 | 命令 | 说明 |
-|------|------|
+| ------ | ------ |
 | `make run` | 启动所有服务 |
 | `make run-apiserver` | 启动 API 服务器 |
 | `make stop` | 停止所有服务 |
@@ -50,7 +50,7 @@ make status
 ### 🛠️ 开发工具
 
 | 命令 | 说明 |
-|------|------|
+| ------ | ------ |
 | `make dev` | 启动开发环境（热更新） |
 | `make dev-apiserver` | 独立启动 API 服务器开发环境 |
 | `make dev-stop` | 停止开发环境 |
@@ -65,7 +65,7 @@ make status
 ### 🧪 测试命令
 
 | 命令 | 说明 |
-|------|------|
+| ------ | ------ |
 | `make test` | 运行所有测试 |
 | `make test-unit` | 运行单元测试 |
 | `make test-integration` | 运行集成测试 |
@@ -83,7 +83,7 @@ make test-coverage
 ### ✨ 代码质量
 
 | 命令 | 说明 |
-|------|------|
+| ------ | ------ |
 | `make lint` | 运行代码检查 |
 | `make fmt` | 格式化代码 |
 | `make fmt-check` | 检查代码格式（CI 使用） |
@@ -96,7 +96,7 @@ make test-coverage
 ### 📦 依赖管理
 
 | 命令 | 说明 |
-|------|------|
+| ------ | ------ |
 | `make deps` | 下载所有依赖 |
 | `make deps-download` | 下载依赖 |
 | `make deps-tidy` | 整理依赖 |
@@ -105,7 +105,7 @@ make test-coverage
 ### 🔧 Protocol Buffers
 
 | 命令 | 说明 |
-|------|------|
+| ------ | ------ |
 | `make proto-gen` | 生成 protobuf 代码 |
 
 **前提条件**：
@@ -115,7 +115,7 @@ make test-coverage
 ### 🔍 调试和诊断
 
 | 命令 | 说明 |
-|------|------|
+| ------ | ------ |
 | `make version` | 显示版本信息 |
 | `make debug` | 显示调试信息 |
 | `make ps` | 显示相关进程 |
@@ -124,14 +124,14 @@ make test-coverage
 ### 🚀 CI/CD
 
 | 命令 | 说明 |
-|------|------|
+| ------ | ------ |
 | `make ci` | 运行 CI 流程（验证、格式检查、Lint、测试） |
 | `make release` | 发布版本（清理、构建） |
 
 ### ⚡ 快捷命令
 
 | 命令 | 等同于 | 说明 |
-|------|--------|------|
+| ------ | -------- | ------ |
 | `make up` | `make run` | 启动服务 |
 | `make down` | `make stop` | 停止服务 |
 | `make re` | `make restart` | 重启服务 |
@@ -233,7 +233,7 @@ make debug
 Makefile 使用以下变量，可以通过环境变量覆盖：
 
 | 变量 | 默认值 | 说明 |
-|------|--------|------|
+| ------ | -------- | ------ |
 | `APISERVER_BIN` | `bin/apiserver` | API 服务器二进制文件路径 |
 | `APISERVER_CONFIG` | `configs/apiserver-simple.yaml` | API 服务器配置文件 |
 | `APISERVER_PORT` | `8080` | API 服务器端口 |
