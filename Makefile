@@ -161,6 +161,16 @@ build-tools: ## 构建工具（seeddata等）
 
 run: run-apiserver ## 启动服务
 
+stop: stop-apiserver ## 停止服务
+
+restart: restart-apiserver ## 重启服务
+
+status: status-apiserver ## 查看服务状态
+
+logs: logs-apiserver ## 查看服务日志
+
+health: health-check ## 健康检查
+
 run-apiserver: ## 启动 API 服务器
 	@echo "🚀 启动 iam-contracts..."
 	@$(MAKE) create-dirs
