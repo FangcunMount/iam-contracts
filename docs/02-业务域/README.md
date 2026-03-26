@@ -1,57 +1,49 @@
 # 业务域
 
-本文回答：`iam-contracts` 在新文档框架里，业务域层应该怎么组织，当前哪些正文已经迁入这一层，以及旧 `认证域 / 授权域 / 用户域` 目录现在该怎样看待。
+本文回答：`docs/02-业务域/` 承载哪些业务能力、各篇如何阅读，以及与 [运行时](../01-运行时/README.md)、[接口与集成](../03-接口与集成/README.md)、[专题分析](../05-专题分析/README.md) 如何分工。
 
-## 30 秒结论
+## 阅读维度（Why / What / Where / Verify）
 
-- `docs/02-业务域/` 现在开始承接**现状版业务域正文**，它是新框架里的业务能力层，而不是旧目录的索引页。
-- 当前已经迁入的是三组核心正文：
-  - [01-authn-认证、Token、JWKS.md](./01-authn-认证、Token、JWKS.md)
-  - [02-authz-角色、策略、资源、Assignment.md](./02-authz-角色、策略、资源、Assignment.md)
-  - [03-user-用户、儿童、Guardianship.md](./03-user-用户、儿童、Guardianship.md)
-- 当前也已经补了一篇补充能力正文：
-  - [04-suggest-儿童联想搜索.md](./04-suggest-儿童联想搜索.md)
-- 旧 `docs/01-认证域/`、`docs/02-授权域/`、`docs/03-用户域/` 已归档到 [../_archive/](../_archive/README.md)。
-- 这层文档的目标是“当前代码的可信镜像”，不是未来设计稿；结论优先回链到源码、合同和现有专题。
+| 维度 | 本层回答什么 | 验证时优先打开 |
+| ---- | ------------ | -------------- |
+| **Why** | 该域解决什么问题、不负责什么 | 各篇「模块边界」与「边界与注意事项」 |
+| **What** | 领域概念、聚合、应用服务职责 | 各篇「模型与服务」「核心设计」 |
+| **Where** | 在 `iam-apiserver` 中的入口（REST/gRPC/装配） | 各篇「运行时示意图」与文末锚点表 |
+| **Verify** | 与契约、配置、数据库如何对齐 | `api/rest/*.yaml`、`api/grpc/**/*.proto`、`configs/`、各篇 Verify 提示 |
 
-## 重点速查
+进程与命名：业务逻辑均在 **`iam-apiserver`**（入口 [`cmd/apiserver/apiserver.go`](../../cmd/apiserver/apiserver.go)），与 [01-运行时](../01-运行时/README.md) 一致。本仓库**没有**独立 `worker` 进程；异步与消息以代码为准（如 authz 策略版本通知依赖 EventBus 是否装配）。
 
-| 想回答的问题 | 先打开哪里 |
+## 单篇文档的统一结构
+
+各业务域正文采用同一骨架（不适用的节可写 **N/A** 并一句话说明）：
+
+| 章节 | 内容 |
 | ---- | ---- |
-| 当前认证域真正落地了什么？ | [01-authn-认证、Token、JWKS.md](./01-authn-认证、Token、JWKS.md) |
-| 当前授权域真正落地了什么？ | [02-authz-角色、策略、资源、Assignment.md](./02-authz-角色、策略、资源、Assignment.md) |
-| 当前 suggest 联想搜索到底怎么实现？ | [04-suggest-儿童联想搜索.md](./04-suggest-儿童联想搜索.md) |
-| REST / gRPC 契约从哪看？ | [../03-接口与集成/README.md](../03-接口与集成/README.md)、[../../api/rest/README.md](../../api/rest/README.md)、[../../api/grpc/README.md](../../api/grpc/README.md) |
-| 认证主链专题从哪看？ | [../05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md](../05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md) |
-| 授权主链专题从哪看？ | [../05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md](../05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md) |
-| 用户与监护关系当前从哪看？ | [03-user-用户、儿童、Guardianship.md](./03-user-用户、儿童、Guardianship.md)、[../05-专题分析/03-监护关系链路：用户、儿童、Guardianship 的协作.md](../05-专题分析/03-监护关系链路：用户、儿童、Guardianship 的协作.md) |
+| **30 秒了解系统** | 3～6 条 bullet + 一张对照表；**模块边界**（负责/不负责/依赖）；**运行时示意图**（至少一张 mermaid） |
+| **模型与服务** | ER 图（`erDiagram`）与分层图（`flowchart`）分工；**领域模型与领域服务**；**应用服务设计** |
+| **核心设计** | 多个 `### 核心<主题>：<简短标题>`，每节先 **结论** 再图/表 |
+| **边界与注意事项** | 易误解点、已知限制；专题层只交叉引用 |
+| **代码锚点索引**（建议） | `关注点 \| 路径 \| 说明` |
 
-## 当前业务域地图
+**领域事件与 Topic**：本仓库**无** `configs/events.yaml`；若写事件/Topic，须回链源码（如 authz 版本通知主题 `iam.authz.policy_version` 见 [version_notifier.go](../../internal/apiserver/infra/messaging/version_notifier.go)），否则标 **N/A**。
 
-| 业务域 | 当前职责 | 新正文位置 |
-| ---- | ---- | ---- |
-| `authn` | 登录、账户、Token、JWKS、安全基线 | [01-authn-认证、Token、JWKS.md](./01-authn-认证、Token、JWKS.md) |
-| `authz` | 角色、策略、资源、Assignment、Casbin 规则落地 | [02-authz-角色、策略、资源、Assignment.md](./02-authz-角色、策略、资源、Assignment.md) |
-| `user` | 用户、儿童、监护关系 | [03-user-用户、儿童、Guardianship.md](./03-user-用户、儿童、Guardianship.md) |
-| `idp` | 第三方身份提供方能力 | 暂未单列，先看 `api/` 合同和装配点 |
-| `suggest` | 儿童联想搜索等补充读侧能力 | [04-suggest-儿童联想搜索.md](./04-suggest-儿童联想搜索.md) |
+## 当前文档地图
 
-## 与其他层的分工
-
-| 层 | 负责什么 |
+| 模块 | 说明 |
 | ---- | ---- |
-| `00-概览` | 系统地图、术语、阅读路径、事实来源 |
-| `01-运行时` | 进程、gRPC、mTLS、健康检查、装配 |
-| `02-业务域` | 各业务域当前能力、边界、主模型、当前风险 |
-| `03-接口与集成` | 契约解释层、接入边界、合同导航 |
-| `04-基础设施与运维` | 六边形、CQRS、部署、配置、Makefile、迁移 |
-| `05-专题分析` | 跨层主链路、重点设计与当前保证 |
+| [01-authn-认证、Token、JWKS.md](./01-authn-认证、Token、JWKS.md) | 账户、凭据、登录、Token、JWKS |
+| [02-authz-角色、策略、资源、Assignment.md](./02-authz-角色、策略、资源、Assignment.md) | 角色/资源/策略/Assignment、Casbin、PDP |
+| [03-user-用户、儿童、Guardianship.md](./03-user-用户、儿童、Guardianship.md) | 用户、儿童、监护关系 |
+| [04-suggest-儿童联想搜索.md](./04-suggest-儿童联想搜索.md) | 依附用户域的联想搜索读侧能力 |
 
-## 当前约定
+## 跨层分工
 
-1. 新正文优先写在 `docs/02-业务域/`，不再回写旧 `认证域 / 授权域 / 用户域` 目录。
-2. `authn / authz / user` 的旧目录已进入 `_archive/`。
-3. 业务域正文默认采用：
-   `本文回答 -> 30 秒结论 -> 重点速查 -> 当前实现 -> 当前边界`
-4. 对尚未完成的能力，一律写成：
-   `已实现 / 待补证据 / 待开发`
+| 层 | 职责 |
+| ---- | ---- |
+| [00-概览](../00-概览/README.md) | 术语、地图、阅读路径 |
+| [01-运行时](../01-运行时/README.md) | 进程、HTTP/gRPC 装配、mTLS、中间件 |
+| **02-业务域（本层）** | 各域模型、用例边界、核心设计、与相邻域依赖 |
+| [03-接口与集成](../03-接口与集成/README.md) | 接入方视角、合同与运行时漂移 |
+| [05-专题分析](../05-专题分析/README.md) | 长链路、跨层叙事（认证链、授权链、监护链等） |
+
+旧版 `docs/01-认证域` 等已归档至 [../_archive](../_archive/README.md)。

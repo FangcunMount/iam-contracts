@@ -1,226 +1,264 @@
 # 角色、策略、资源、Assignment
 
-本文回答：`iam-contracts` 授权域当前到底建模了哪些对象，Casbin 在当前实现里扮演什么角色，哪些链路已落地，哪些还不能讲成完整在线判定服务。
+本文回答：授权域（`authz`）在 IAM 中解决什么问题、**MySQL 元数据**与 **Casbin 规则**如何双写对齐、**管理链**与 **PDP 判定链**如何落地，以及如何对照代码与契约验证。
 
-## 30 秒结论
+**阅读维度**：Why = 租户内 RBAC + 可审计的策略版本；What = Role / Resource / Assignment / Policy（`p`）/ Grouping（`g`）与 Casbin；Where = `iam-apiserver` 的 REST/gRPC、Gin 中间件；Verify = OpenAPI、proto、[`configs/casbin_model.conf`](../../configs/casbin_model.conf)、`casbin_rule` 与 `authz_*` 表。
 
-- 当前授权域最完整的不是“在线判定中心”，而是“授权管理面 + Casbin 规则落地链”。
-- 当前核心对象是：`Role / Resource / Assignment / PolicyRule / PolicyVersion`。
-- 当前策略写链是：`REST -> PolicyCommandService -> role/resource repo -> PolicyRule -> CasbinAdapter -> PolicyVersion.Increment -> 可选 VersionNotifier`。
-- 当前赋权写链是：`REST -> AssignmentCommandService -> Assignment repo -> Casbin g 规则双写`。
-- 当前没有独立 `authz gRPC`，也没有公共 `Enforce / Allow` 接口；`RequirePermission` 仍是 stub。
+---
 
-## 重点速查
+## 30 秒了解系统
 
-| 关注点 | 当前答案 | 真实落点 |
-| ---- | ---- | ---- |
-| 角色对象 | 基础元数据 + `role:<name>` 键 | [../../internal/apiserver/domain/authz/role/role.go](../../internal/apiserver/domain/authz/role/role.go) |
-| 资源对象 | `key / app / domain / type / actions` | [../../internal/apiserver/domain/authz/resource/resource.go](../../internal/apiserver/domain/authz/resource/resource.go) |
-| 赋权对象 | `subject -> role`，带 `tenant_id` 与 `granted_by` | [../../internal/apiserver/domain/authz/assignment/assignment.go](../../internal/apiserver/domain/authz/assignment/assignment.go) |
-| 策略值对象 | `PolicyRule(Sub, Dom, Obj, Act)` | [../../internal/apiserver/domain/authz/policy/rule.go](../../internal/apiserver/domain/authz/policy/rule.go) |
-| 版本对象 | 租户级策略版本 | [../../internal/apiserver/domain/authz/policy/policy_version.go](../../internal/apiserver/domain/authz/policy/policy_version.go) |
-| Casbin 模型 | `dom` 租户隔离 + `keyMatch(obj)` + `regexMatch(act)` | [../../configs/casbin_model.conf](../../configs/casbin_model.conf)、装配见 [../../internal/apiserver/container/assembler/authz.go](../../internal/apiserver/container/assembler/authz.go) |
-| 写链 | Policy / Assignment 双写 Casbin | [../../internal/apiserver/application/authz/policy/command_service.go](../../internal/apiserver/application/authz/policy/command_service.go)、[../../internal/apiserver/application/authz/assignment/command_service.go](../../internal/apiserver/application/authz/assignment/command_service.go) |
-| 当前缺口 | 无独立判定 API，中间件权限校验未闭环 | [../../internal/pkg/middleware/authn/jwt_middleware.go](../../internal/pkg/middleware/authn/jwt_middleware.go) |
+- **管理面**：角色、资源目录、**策略规则**（角色 × 资源键 × 动作 → Casbin **`p`**）、**赋权**（主体 → 角色 → Casbin **`g`**）；策略变更递增 **`authz_policy_versions`**，可选发消息主题 **`iam.authz.policy_version`**（[`infra/messaging/version_notifier.go`](../../internal/apiserver/infra/messaging/version_notifier.go)）。
+- **判定面**：REST **`POST /api/v1/authz/check`**、gRPC **`AuthorizationService.Check`**、路由中间件 **`RequireRole` / `RequirePermission`**（[`jwt_middleware.go`](../../internal/pkg/middleware/authn/jwt_middleware.go)），底层均为 **`CasbinAdapter.Enforce`**（或 `GetRolesForUser`）。
+- **规则真源**：`configs/casbin_model.conf` + 持久化表 **`casbin_rule`**（`gorm-adapter`）；业务表 **`authz_roles` / `authz_resources` / `authz_assignments`** 存元数据，与 Casbin `p`/`g` **同步维护**。
+- **JWT**：`/api/v1/authz/*` 除 **`GET /health`** 外走与业务 API 一致的 **AuthMiddleware**；若未注入 **`CasbinAdapter`**，`Require*` 与 PDP 显式返回 **不可用**（不静默放行）。
+- **领域事件**：本仓库**无** [`configs/events.yaml`](../../configs/events.yaml)；策略版本 **Topic** 见上，订阅闭环 **N/A** 时需自行核对部署。
 
-## 现状分工：已落地 vs 未闭环
+| 对照 | 管理面 | 判定面 |
+| ---- | ------ | ------ |
+| 入口 | REST `/api/v1/authz/*`（除 health） | `/check`、gRPC `Check`、`Require*` |
+| 持久化 | `authz_*` + `casbin_rule` | 同一 `CachedEnforcer` / `Enforce` |
+| 典型调用方 | 控制台、运维 | 网关、BFF、服务间 PDP |
 
-**已相对完整、可在代码里逐条核对的部分**
+### 模块边界
 
-- **REST 管理面**：角色、资源、策略、Assignment 的合同与路由，见 [../../api/rest/authz.v1.yaml](../../api/rest/authz.v1.yaml)、[../../internal/apiserver/interface/authz/restful/router.go](../../internal/apiserver/interface/authz/restful/router.go)。
-- **写链与持久化**：Casbin `p`/`g` 写入、策略版本递增、Assignment 与 Casbin 双写，见 [../../internal/apiserver/application/authz/policy/command_service.go](../../internal/apiserver/application/authz/policy/command_service.go)、[../../internal/apiserver/application/authz/assignment/command_service.go](../../internal/apiserver/application/authz/assignment/command_service.go)。
-- **跨层主链与细节表**：见 [../05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md](../05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md)（与本文互补：专题讲链路，本文讲模型与边界）。
+#### 负责
 
-**明确未开发完、不应讲成对外 PDP 的部分**
+- 租户内角色、资源目录、策略（`p`）与主体—角色分配（`g`）的建模与持久化。
+- 单次 allow 判定；策略版本递增与可选版本通知。
 
-- **无独立 `authz` gRPC**：当前 gRPC 注册见 [../../internal/apiserver/server.go](../../internal/apiserver/server.go)（无 authz 服务）。
-- **无公开的 `Enforce` / `Allow` 判定接口**：现状是**管理策略与规则**，不是对外提供统一 PDP；判定数据进 Casbin，但未暴露标准在线判定 API。
-- **运行时保护未闭环**：`authz` 路由未像部分模块那样统一挂 JWT；[../../internal/pkg/middleware/authn/jwt_middleware.go](../../internal/pkg/middleware/authn/jwt_middleware.go) 中 `RequireRole` / `RequirePermission` 仍为 stub。
-- **合同与运行时漂移**（如 `changed_by` / `granted_by` 来源、策略版本接口空值风险等）：收在 [../03-接口与集成/03-授权接入与边界.md](../03-接口与集成/03-授权接入与边界.md)，不在此重复展开。
+#### 不负责
 
-## 1. 当前模型
+- 登录、Token、JWKS：见 [01-authn](./01-authn-认证、Token、JWKS.md)。
+- 用户档案、监护业务：见 [03-user](./03-user-用户、儿童、Guardianship.md)。
+- 进程级 gRPC mTLS / 服务端 ACL：见 [01-运行时](../01-运行时/README.md) 与 [`configs/grpc_acl.yaml`](../../configs/grpc_acl.yaml)。
 
-### 1.1 `Role`
+#### 依赖
 
-`Role` 当前字段非常克制：
+- `AuthnModule` 的 JWT 校验与上下文；主体来自 `user:<id>`、`tenant_id`（缺省见中间件）。
+- 与 user 域无聚合级依赖；主体键为 **`user:` / `group:`** 等约定。
 
-- `ID`
-- `Name`
-- `DisplayName`
-- `TenantID`
-- `Description`
+### 运行时示意图
 
-它最关键的行为不是维护权限树，而是产出 Casbin 角色键：
+仅 **`iam-apiserver`**；无独立 worker。
 
-- `role:<name>`
-
-所以今天不能把 `Role` 讲成“内嵌 Permission 列表的聚合根”。
-
-### 1.2 `Resource`
-
-`Resource` 当前更像授权资源目录，核心字段包括：
-
-- `Key`
-- `DisplayName`
-- `AppName`
-- `Domain`
-- `Type`
-- `Actions`
-- `Description`
-
-当前资源键采用结构化形式，例如：
-
-- `<app>:<domain>:<type>:*`
-
-这说明它更像“资源目录 + 动作集合”，不是“HTTP 路由匹配规则”。
-
-### 1.3 `Assignment`
-
-`Assignment` 当前描述“谁在什么租户下被赋予哪个角色”，主要字段是：
-
-- `SubjectType`
-- `SubjectID`
-- `RoleID`
-- `TenantID`
-- `GrantedBy`
-
-它最终会映射成 Casbin `g` 规则。
-
-### 1.4 `PolicyRule / PolicyVersion`
-
-当前策略对象最关键的是：
-
-- `PolicyRule(Sub, Dom, Obj, Act)`
-- `GroupingRule(Sub, Dom, Role)`
-- `PolicyVersion(TenantID, Version, ChangedBy, Reason)`
-
-这说明授权域当前最稳定的抽象其实是：
-
-- 规则
-- 分配
-- 版本
-
-而不是一整套自定义 Permission DSL。
-
-## 2. 当前 Casbin 模型
-
-运行时 `iam-apiserver` 在 [../../internal/apiserver/container/assembler/authz.go](../../internal/apiserver/container/assembler/authz.go) 中通过 `NewCasbinAdapter(db, "configs/casbin_model.conf")` 载入模型；真源为 [../../configs/casbin_model.conf](../../configs/casbin_model.conf)。
-
-> 仓库内另有 [../../internal/apiserver/infra/casbin/model.conf](../../internal/apiserver/infra/casbin/model.conf)，**未**被上述装配路径使用；若与 `configs/casbin_model.conf` 不一致，以运行时载入的 `configs` 版本为准。
-
-[../../configs/casbin_model.conf](../../configs/casbin_model.conf) 当前定义：
-
-```text
-[request_definition]
-r = sub, dom, obj, act
-
-[policy_definition]
-p = sub, dom, obj, act
-
-[role_definition]
-g = _, _, _
-
-[policy_effect]
-e = some(where (p.eft == allow))
-
-[matchers]
-m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && keyMatch(r.obj, p.obj) && regexMatch(r.act, p.act)
+```mermaid
+flowchart TB
+  subgraph iam["iam-apiserver"]
+    REST["REST /api/v1/authz"]
+    GRPC["gRPC AuthorizationService"]
+    MW["JWT + Require*"]
+    APP["application/authz/*"]
+    CAS["CasbinAdapter CachedEnforcer"]
+    DB[("MySQL authz_* + casbin_rule")]
+  end
+  C((Client)) --> REST
+  C --> GRPC
+  REST --> MW
+  MW --> APP
+  GRPC --> APP
+  APP --> CAS
+  APP --> DB
+  CAS --> DB
 ```
 
-当前最关键的事实：
+---
 
-- 请求、策略、分组都显式带 `dom`，租户隔离
-- 资源侧为 `keyMatch`（Casbin 内置路径式匹配，不是简单字符串相等）
-- 动作为 `regexMatch`（按正则匹配），不是简单字符串相等
+## 模型与服务
 
-## 3. 当前写链
+### 数据关系（概念 ER）
 
-### 3.1 策略写链
+与 [`configs/mysql/schema.sql`](../../configs/mysql/schema.sql) 中 Module 3 一致；**`authz_resources` 无 `tenant_id` 字段**，资源键 **`key` 全局唯一**（目录/动作元数据）；**`authz_roles` / `authz_assignments`** 带 **`tenant_id`**。Casbin 规则落在 **`casbin_rule`**（`ptype`=`p`/`g`，列 `v0`…`v5` 存 sub/dom/obj/act 等）。
 
-[../../internal/apiserver/application/authz/policy/command_service.go](../../internal/apiserver/application/authz/policy/command_service.go) 当前 `AddPolicyRule / RemovePolicyRule` 流程是：
+```mermaid
+erDiagram
+  authz_roles ||--o{ authz_assignments : "role_id"
+  authz_resources {
+    string key UK
+    string actions
+  }
+  authz_roles {
+    string tenant_id
+    string name
+  }
+  authz_assignments {
+    string subject_type
+    string subject_id
+    string tenant_id
+  }
+  authz_policy_versions {
+    string tenant_id
+    bigint policy_version
+  }
+  casbin_rule {
+    string ptype
+    string v0
+    string v1
+    string v2
+    string v3
+  }
+```
 
-1. 查角色
-2. 查资源
-3. 构造 `PolicyRule`
-4. 更新 Casbin `p` 规则
-5. 递增 `PolicyVersion`
-6. 如果配置了 `VersionNotifier`，再发版本变更通知
+**说明**：`p` 规则 **`sub`** 为角色键（`role:<name>`），**`dom`** 为租户；**`g`** 把 **`user:`/`group:`** 主体接到 **`role:...`**。详见 [`domain/authz/policy/rule.go`](../../internal/apiserver/domain/authz/policy/rule.go)、[`domain/authz/role/role.go`](../../internal/apiserver/domain/authz/role/role.go)（`Key()` → `role:`+`Name`）。
 
-当前更准确的说法是：
+### 主体与键约定（对照代码）
 
-- 策略变更会更新 Casbin 和版本表
-- 版本通知是可选增强，不是每种部署形态的强依赖闭环
+| 概念 | 格式 | 锚点 |
+| ---- | ---- | ---- |
+| 用户主体 | `user:<user_id>` | `check.go` `resolveSubject`、中间件 `Require*` |
+| 组主体 | `group:<id>` | `SubjectTypeGroup` |
+| 角色（Casbin `p.sub` / `g` 右侧） | `role:<role.Name>` | `Role.Key()` |
+| 租户域 `dom` | 字符串；Gin 缺省 **`default`** | `jwt_middleware.tenantIDFromGin` |
 
-### 3.2 赋权写链
+### 分层依赖（运行时）
 
-[../../internal/apiserver/application/authz/assignment/command_service.go](../../internal/apiserver/application/authz/assignment/command_service.go) 当前 `Grant` 流程是：
+```mermaid
+flowchart TB
+  subgraph interface
+    R[restful handlers]
+    G[grpc AuthorizationService]
+  end
+  subgraph application
+    RC[role command/query]
+    RS[resource command/query]
+    PC[policy command/query]
+    AC[assignment command/query]
+  end
+  subgraph domain
+    DR[role/resource/assignment/policy]
+  end
+  subgraph infra
+    CAS[CasbinAdapter]
+    MY[mysql repos]
+  end
+  R --> RC
+  R --> RS
+  R --> PC
+  R --> AC
+  G --> PC
+  PC --> DR
+  PC --> CAS
+  AC --> DR
+  AC --> CAS
+  RC --> MY
+  RS --> MY
+  AC --> MY
+  PC --> MY
+```
 
-1. 校验命令
-2. 校验角色存在
-3. 取角色信息
-4. 创建 `Assignment`
-5. 写数据库
-6. 写 Casbin `g` 规则
-7. Casbin 写失败时回滚数据库记录
+### 领域模型与领域服务
 
-`Revoke / RevokeByID` 则反向执行，并在必要时做有限回滚。
+**限界上下文**：同一租户下「主体是否可对资源执行动作」；不承载菜单 UI、不内置批量 PDP 产品。
 
-这说明当前赋权链强调的是：
+| 概念 | 职责 |
+| ---- | ---- |
+| `Role` | 租户内角色；`Key()` 为 Casbin 侧角色标识 |
+| `Resource` | 资源键与 `actions` JSON（校验动作合法性） |
+| `Assignment` | 主体与角色绑定；驱动 `g` |
+| `PolicyRule` | `p` 四元组（角色为 sub） |
+| `PolicyVersion` | 租户策略版本行（审计/同步） |
 
-- 数据库 + Casbin 双写尽量一致
+### 应用服务设计
 
-而不是：
+| 方向 | 职责 | 锚点 |
+| ---- | ---- | ---- |
+| 角色 | CRUD | [`application/authz/role/`](../../internal/apiserver/application/authz/role/) |
+| 资源 | CRUD、动作校验 | [`application/authz/resource/`](../../internal/apiserver/application/authz/resource/) |
+| 策略 | 增删 `p`、版本递增、可选通知 | [`policy/command_service.go`](../../internal/apiserver/application/authz/policy/command_service.go)、[`policy/query_service.go`](../../internal/apiserver/application/authz/policy/query_service.go) |
+| 赋权 | Grant/Revoke、`g` 双写 | [`assignment/command_service.go`](../../internal/apiserver/application/authz/assignment/command_service.go) |
+| PDP | `Enforce` | [`handler/check.go`](../../internal/apiserver/interface/authz/restful/handler/check.go)、[`grpc/service.go`](../../internal/apiserver/interface/authz/grpc/service.go) |
 
-- 事件驱动的最终一致性授权体系
+---
 
-## 4. 当前读链与判定边界
+## 核心设计
 
-当前公开可证明的读能力主要是：
+### Casbin 模型与 Matcher
 
-- 按角色查看策略
-- 查看当前租户的策略版本
-- 查看某个主体有哪些 Assignment
+**结论**：[`configs/casbin_model.conf`](../../configs/casbin_model.conf) 定义 `r = sub, dom, obj, act`，`p = sub, dom, obj, act`，`g = _, _, _`，**Matcher** 含 **`g(r.sub, p.sub, r.dom)`**（用户继承角色）、**`keyMatch(r.obj, p.obj)`**、**`regexMatch(r.act, p.act)`**。改模型会改变语义，须与存量 `casbin_rule` 一并评估。
 
-当前还不能讲成现状的能力：
+### 核心数据流：策略变更（`p` + 版本）
 
-- 公共 `Enforce(subject, object, action)` API
-- 独立 `authz gRPC`
-- 完整路由级权限中间件闭环
+**结论**：先 **`AddPolicy`**，再 **`authz_policy_versions` 递增**；版本写失败则 **回滚 Casbin**（见 [`AddPolicyRule`](../../internal/apiserver/application/authz/policy/command_service.go)）。
 
-尤其是 [../../internal/pkg/middleware/authn/jwt_middleware.go](../../internal/pkg/middleware/authn/jwt_middleware.go) 里：
+```mermaid
+sequenceDiagram
+  participant H as PolicyHandler
+  participant S as PolicyCommandService
+  participant C as CasbinAdapter
+  participant V as PolicyVersionRepository
+  participant N as VersionNotifier
+  H->>S: AddPolicyRuleCommand
+  S->>C: AddPolicy(p)
+  S->>V: Increment
+  alt 版本失败
+    S->>C: RemovePolicy(p)
+  end
+  opt notifier != nil
+    S->>N: Publish(tenant, version)
+  end
+```
 
-- `RequireRole` 仍是 stub
-- `RequirePermission` 仍是 stub
+### 核心数据流：赋权（DB + `g`）
 
-所以今天更准确的口径是：
+**结论**：**先写 `authz_assignments`**，再 **`AddGroupingPolicy`**；Casbin 失败则 **删除刚插入的 assignment**（[`Grant`](../../internal/apiserver/application/authz/assignment/command_service.go)）。**Revoke** 先删库再删 `g`。
 
-- `authz` 已经形成管理面
-- 但在线判定面还没闭环
+```mermaid
+sequenceDiagram
+  participant H as AssignmentHandler
+  participant S as AssignmentCommandService
+  participant R as AssignmentRepository
+  participant C as CasbinAdapter
+  H->>S: GrantCommand
+  S->>R: Create
+  S->>C: AddGroupingPolicy(g)
+  alt g 失败
+    S->>R: Delete
+  end
+```
 
-## 5. 当前版本同步能力
+### 核心判定：PDP
 
-[../../internal/apiserver/infra/messaging/version_notifier.go](../../internal/apiserver/infra/messaging/version_notifier.go) 当前实现了版本通知器，主题与通道为：
+**结论**：HTTP `POST /authz/check` 从 **JWT** 或请求体 **`subject_type` + `subject_id`** 解析 `sub`（[`handler/check.go`](../../internal/apiserver/interface/authz/restful/handler/check.go)）；gRPC `Check` 要求 **显式传入 `Subject`/`Domain`/`Object`/`Action`**（[`grpc/service.go`](../../internal/apiserver/interface/authz/grpc/service.go)）；`casbin == nil` 时 HTTP 返回 **500**、gRPC 返回 **`Unavailable`**。
 
-- `iam.authz.policy_version`
-- `iam-policy-sync`
+### 核心集成：中间件
 
-这说明系统已经给“多实例策略版本同步”留出了真实实现位置。  
-但今天仍应克制表达为：
+**结论**：`RequireRole` 使用 **`GetRolesForUser`** 与 `role:<name>` 集合比较；`RequirePermission` 使用 **`Enforce(sub, dom, resourceObj, action)`**；`casbin == nil` 时 **500**（[`jwt_middleware.go`](../../internal/pkg/middleware/authn/jwt_middleware.go)）。
 
-- “已实现可选的版本通知能力”
+### 装配与配置
 
-而不是：
+| 项 | 说明 |
+| ---- | ---- |
+| Casbin 模型路径 | [`assembler/authz.go`](../../internal/apiserver/container/assembler/authz.go) 内写死 **`configs/casbin_model.conf`**（相对进程工作目录） |
+| 适配器 | [`infra/casbin`](../../internal/apiserver/infra/casbin/)：`gorm-adapter` + **`CachedEnforcer`**，`EnableAutoSave(true)` |
+| gRPC 注册 | [`server.go`](../../internal/apiserver/server.go)：`AuthzModule.GRPCService.Register` |
 
-- “所有实例默认都会自动完成本地授权缓存刷新”
+| 文件 | 作用 |
+| ---- | ---- |
+| [`configs/casbin_model.conf`](../../configs/casbin_model.conf) | Matcher 真源 |
+| [`configs/grpc_acl.yaml`](../../configs/grpc_acl.yaml) | gRPC 服务端 ACL（若启用；与 Casbin PDP 不同层） |
+| [`api/rest/authz.v1.yaml`](../../api/rest/authz.v1.yaml) | REST 合同 |
+| [`api/grpc/iam/authz/v1/authz.proto`](../../api/grpc/iam/authz/v1/authz.proto) | gRPC 合同 |
 
-## 6. 当前最准确的口径
+---
 
-如果只用一句话概括当前授权域，我会这样讲：
+## 边界与注意事项
 
-`iam-contracts` 当前已经完成了角色、资源、策略、Assignment 到 Casbin 规则的管理链，但它还不是一个对外提供统一在线判定接口的完整授权中心。`
+- 租户/操作者默认值、`changed_by`/`granted_by` 漂移：见 [03-授权接入与边界.md](../03-接口与集成/03-授权接入与边界.md)。
+- **双写、版本传播、与 PDP 长链路**：见 [05-专题分析/02-授权判定链路…](../05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md)。
 
-## 7. 继续往下读
+---
 
-1. [../05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md](../05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md)（管理链与 Casbin 事实）
-2. [../03-接口与集成/03-授权接入与边界.md](../03-接口与集成/03-授权接入与边界.md)（接入方式、合同/运行时漂移与风险）
-3. [../../api/rest/authz.v1.yaml](../../api/rest/authz.v1.yaml)
+## 代码锚点索引
+
+| 关注点 | 路径 | 说明 |
+| ------ | ---- | ---- |
+| 装配 | `internal/apiserver/container/assembler/authz.go` | `AuthzModule`、模型路径、CasbinAdapter 注入 |
+| REST 路由 | `internal/apiserver/interface/authz/restful/router.go` | `/health` 免鉴权；其余挂 `AuthMiddleware` |
+| REST PDP | `internal/apiserver/interface/authz/restful/handler/check.go` | `POST /check` |
+| gRPC | `internal/apiserver/interface/authz/grpc/service.go` | `AuthorizationService.Check` |
+| gRPC 注册 | `internal/apiserver/server.go` | `Register` |
+| 中间件 | `internal/pkg/middleware/authn/jwt_middleware.go` | `RequireRole` / `RequirePermission` |
+| Casbin 实现 | `internal/apiserver/infra/casbin/` | Adapter、`Enforce`、LoadPolicy |
+| 版本通知 | `internal/apiserver/infra/messaging/version_notifier.go` | Topic `iam.authz.policy_version` |
+| 域规则 | `internal/apiserver/domain/authz/policy/rule.go` | `PolicyRule` / `GroupingRule` |
+| 客户端 SDK | `pkg/sdk/authz/client.go` | 远端 PDP 调用 |

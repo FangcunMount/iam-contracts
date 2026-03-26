@@ -108,7 +108,7 @@
 | [README.md](./01-运行时/README.md) | 运行时入口与本组边界 | 3 min |
 | [01-服务入口、HTTP 与模块装配.md](./01-运行时/01-服务入口、HTTP 与模块装配.md) | `iam-apiserver` 启动链、容器初始化顺序、HTTP 暴露面与模块装配 | 10 min |
 | [02-gRPC与mTLS.md](./01-运行时/02-gRPC与mTLS.md) | gRPC 运行时、mTLS、ACL、健康检查与注册服务 | 10 min |
-| [03-HTTP认证中间件与身份上下文.md](./01-运行时/03-HTTP认证中间件与身份上下文.md) | JWT 中间件、上下文字段、当前受保护边界与权限 stub | 8 min |
+| [03-HTTP认证中间件与身份上下文.md](./01-运行时/03-HTTP认证中间件与身份上下文.md) | JWT 中间件、上下文字段、`authz` 与 `RequireRole`/`RequirePermission` | 8 min |
 | [04-健康检查、debug 路由与降级启动边界.md](./01-运行时/04-健康检查、debug 路由与降级启动边界.md) | 基础探针、debug 路由、部分初始化与运行时降级边界 | 6 min |
 
 ### 02-业务域

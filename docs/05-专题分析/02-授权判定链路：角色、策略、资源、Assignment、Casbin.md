@@ -2,19 +2,21 @@
 
 本文回答：`iam-contracts` 当前是如何把角色、资源、策略规则和 Assignment 组织成一条授权管理链的，Casbin 在这条链里承担什么角色，今天已经能证明什么、还不能讲成什么。
 
+**与业务域正文的分工**：相对 [../02-业务域/02-authz-角色、策略、资源、Assignment.md](../02-业务域/02-authz-角色、策略、资源、Assignment.md)——业务域给**模型、表、Casbin 装配与 PDP 入口**；本篇补**管理链与判定链分述**、**读面分裂（Casbin vs MySQL）**、**双写与版本通知**，以及 **合同/handler 漂移** 等可审计结论。
+
 ## 30 秒结论
 
-- 当前授权模块的主要对外暴露面是 `REST /api/v1/authz/...`，覆盖角色、资源、策略和 Assignment 管理；仓库里没有发现独立的 `authz gRPC` 服务注册，也没有公开的 `Enforce / Allow` 判定接口。
+- 当前授权模块对外包括：`REST /api/v1/authz/...` **管理面**、`POST /authz/check` **PDP**、**gRPC** `iam.authz.v1.AuthorizationService/Check`；Casbin 适配器提供 `Enforce`。
 - 策略写入主链是 `PolicyHandler -> PolicyCommandService -> role/resource 校验 -> Casbin p 规则写入 -> authz_policy_versions 递增 -> 可选发布版本通知`。
 - Assignment 写入主链是 `AssignmentHandler -> AssignmentCommandService -> authz_assignments 写库 -> Casbin g 规则写入`；撤销路径也会同步删除分配记录和分组规则。
 - Casbin 当前模型是 `r=sub, dom, obj, act`，其中 `role` 对应 `p` 规则主体，`user/group` 对应 `g` 规则主体，租户隔离靠 `dom` 字段，资源匹配靠 `keyMatch`，动作匹配靠 `regexMatch`。
-- 当前不能讲过头的地方有 6 个：`authz` router 没有统一挂 JWT 中间件、`tenant_id / user_id` 读不到时会退回 `default / system`、`RequirePermission` 中间件还是放行 stub、版本通知只看到发布链没看到启动时订阅链、`changed_by / granted_by` 的契约与运行时来源存在偏差、`GetCurrentVersion` 在新租户无版本记录时缺少空值保护。
+- 当前仍应单独核对的地方包括：`tenant_id / user_id` 读不到时会退回 `default / system`、版本通知只看到发布链未必有订阅链、`changed_by / granted_by` 合同与运行时来源偏差、`AuthMiddleware` 在认证模块未起时的降级行为；批量/Explain 非默认合同能力。
 
 ## 重点速查
 
 | 关注点 | 当前答案 | 真实落点 |
 | ---- | ---- | ---- |
-| 对外暴露面 | 当前是 REST 管理面，不是独立 PDP 服务 | [../../api/rest/authz.v1.yaml](../../api/rest/authz.v1.yaml)、[../../internal/apiserver/interface/authz/restful/router.go](../../internal/apiserver/interface/authz/restful/router.go) |
+| 对外暴露面 | REST 管理面 + PDP；gRPC `AuthorizationService` | [../../api/rest/authz.v1.yaml](../../api/rest/authz.v1.yaml)、[../../internal/apiserver/interface/authz/restful/router.go](../../internal/apiserver/interface/authz/restful/router.go)、[../../internal/apiserver/server.go](../../internal/apiserver/server.go) |
 | 模块装配 | `AuthzModule.Initialize` 统一装配 Role / Resource / Policy / Assignment 应用服务与 Casbin 适配器 | [../../internal/apiserver/container/assembler/authz.go](../../internal/apiserver/container/assembler/authz.go) |
 | 策略写入 | `AddPolicyRule / RemovePolicyRule` 先写 Casbin，再递增版本，最后可选发消息 | [../../internal/apiserver/application/authz/policy/command_service.go](../../internal/apiserver/application/authz/policy/command_service.go) |
 | Assignment 写入 | `Grant / Revoke / RevokeByID` 同时维护 MySQL 分配记录和 Casbin `g` 规则 | [../../internal/apiserver/application/authz/assignment/command_service.go](../../internal/apiserver/application/authz/assignment/command_service.go) |
@@ -22,9 +24,9 @@
 | Assignment 查询 | `ListBySubject / ListByRole` 当前读 MySQL，不是直接读 Casbin | [../../internal/apiserver/application/authz/assignment/query_service.go](../../internal/apiserver/application/authz/assignment/query_service.go) |
 | Casbin 模型 | `g + dom + keyMatch + regexMatch` 组成租户内 RBAC 判定 | [../../configs/casbin_model.conf](../../configs/casbin_model.conf) |
 | 版本通知 | 主题是 `iam.authz.policy_version`，只有 EventBus 存在时才会发 | [../../internal/apiserver/infra/messaging/version_notifier.go](../../internal/apiserver/infra/messaging/version_notifier.go)、[../../internal/apiserver/container/container.go](../../internal/apiserver/container/container.go) |
-| 路由保护边界 | `authz` 路由当前没有统一挂 JWT 中间件 | [../../internal/apiserver/routers.go](../../internal/apiserver/routers.go)、[../../internal/apiserver/interface/authz/restful/router.go](../../internal/apiserver/interface/authz/restful/router.go) |
+| 路由保护边界 | `/health` 外挂 `AuthMiddleware`；认证未起时可能降级为放行占位 | [../../internal/apiserver/routers.go](../../internal/apiserver/routers.go)、[../../internal/apiserver/interface/authz/restful/router.go](../../internal/apiserver/interface/authz/restful/router.go) |
 | 上下文默认值 | `tenant_id` 缺失时退到 `default`，`user_id` 缺失时退到 `system` | [../../internal/apiserver/interface/authz/restful/handler/base.go](../../internal/apiserver/interface/authz/restful/handler/base.go)、[../../pkg/core/handler.go](../../pkg/core/handler.go) |
-| 运行时权限中间件 | `RequireRole / RequirePermission` 目前还是 TODO 后放行 | [../../internal/pkg/middleware/authn/jwt_middleware.go](../../internal/pkg/middleware/authn/jwt_middleware.go) |
+| 运行时权限中间件 | 注入 Casbin 后真实判定；需显式 `Use` | [../../internal/pkg/middleware/authn/jwt_middleware.go](../../internal/pkg/middleware/authn/jwt_middleware.go) |
 | 持久化落点 | `authz_roles / authz_resources / authz_assignments / authz_policy_versions / casbin_rule` | [../../configs/mysql/schema.sql](../../configs/mysql/schema.sql) |
 
 ## 1. 主链路总览
@@ -54,42 +56,29 @@ sequenceDiagram
     REST-->>Client: AssignmentResponse
 ```
 
-这张图先抓住一点：当前 `iam-contracts` 的授权链首先是“授权管理链”，不是“公共判定 API 链”。也就是说，仓库里已经明确落地的是角色/资源/策略/Assignment 的写入、查询和版本传播，而不是统一的 `allow(user, obj, act)` 暴露面。
+这张图先抓住一点：主序列是**授权管理链**；**判定链**另见 `POST /authz/check`、gRPC `Check` 与 `CasbinAdapter.Enforce`。
 
 ## 2. 当前授权模块到底暴露了什么
 
-### 2.1 公开暴露面以 REST 管理接口为主
+### 2.1 REST 与 gRPC
 
-当前 [../../api/rest/authz.v1.yaml](../../api/rest/authz.v1.yaml) 暴露的是四组接口：
+当前 [../../api/rest/authz.v1.yaml](../../api/rest/authz.v1.yaml) 暴露管理接口与 **PDP** `POST /authz/check`（以 YAML 为准）。路由分组还包括：
 
-- 角色管理：`/authz/roles`
-- Assignment 管理：`/authz/assignments/grant`、`/authz/assignments/revoke`
-- 策略管理：`/authz/policies`、`/authz/policies/version`
-- 资源管理：`/authz/resources`
+- 角色：`/authz/roles`
+- Assignment：`/authz/assignments/*`
+- 策略：`/authz/policies`、`/authz/policies/version`
+- 资源：`/authz/resources`
 
 对应 router 在 [../../internal/apiserver/interface/authz/restful/router.go](../../internal/apiserver/interface/authz/restful/router.go)。
 
-这意味着当前对外可以明确讲成现状的是：
+当前对外可以明确讲成现状的是：
 
-- 角色、资源、策略、Assignment 的管理面 REST 已落地
-- 策略版本查询 REST 已落地
+- 管理面 REST 与策略版本查询已落地
+- **单次判定** REST `POST /authz/check` 已落地
 
-不能直接讲成现状的是：
+gRPC：`iam.authz.v1.AuthorizationService` 在 [../../internal/apiserver/server.go](../../internal/apiserver/server.go) 注册，proto 见 [../../api/grpc/iam/authz/v1/authz.proto](../../api/grpc/iam/authz/v1/authz.proto)。
 
-- “系统已经提供统一的权限判定 REST API”
-- “系统已经提供 authz gRPC 判定服务”
-
-因为当前仓库里没有查到这两类 driving 接口的真实注册点。
-
-### 2.2 当前也没有独立 authz gRPC 服务注册
-
-[../../internal/apiserver/server.go](../../internal/apiserver/server.go) 当前只注册了：
-
-- `Authn gRPC`
-- `User gRPC`
-- `IDP gRPC`
-
-没有 `Authz gRPC` 的注册日志或 service 装配，这和 [../02-业务域/02-authz-角色、策略、资源、Assignment.md](../02-业务域/02-authz-角色、策略、资源、Assignment.md) 里“当前没有单独 authz gRPC 合同”的判断一致。
+仍不宜讲过头：批量判定、Explain 等默认未在合同中暴露。
 
 ## 3. 策略规则如何进入 Casbin
 
@@ -233,25 +222,13 @@ m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && keyMatch(r.obj, p.obj) && regexM
 - [../../internal/apiserver/domain/authz/assignment/assignment.go](../../internal/apiserver/domain/authz/assignment/assignment.go)
 - [../../internal/apiserver/domain/authz/resource/resource.go](../../internal/apiserver/domain/authz/resource/resource.go)
 
-### 5.3 但当前仓库还没有公开的 `Enforce` 暴露面
+### 5.3 `Enforce` 的对外暴露面
 
-这是当前专题里最需要说清的一点：
+- **REST**：`POST /api/v1/authz/check` → [CheckHandler](../../internal/apiserver/interface/authz/restful/handler/check.go)
+- **gRPC**：`AuthorizationService.Check` → [grpc service](../../internal/apiserver/interface/authz/grpc/service.go)
+- **中间件**：`RequireRole` / `RequirePermission` → [jwt_middleware](../../internal/pkg/middleware/authn/jwt_middleware.go)（需注入 Casbin）
 
-- Casbin `enforcer` 已经存在
-- `p / g` 规则也已经被写入
-- 但仓库里没有查到一个被实际对外注册的 `Enforce(sub, dom, obj, act)` REST / gRPC 接口
-
-另外，[../../internal/pkg/middleware/authn/jwt_middleware.go](../../internal/pkg/middleware/authn/jwt_middleware.go) 虽然已经有：
-
-- `RequireRole(...)`
-- `RequirePermission(...)`
-
-但它们当前还是 TODO 后直接 `c.Next()` 的占位实现。
-
-所以今天更准确的表述是：
-
-- “授权数据与 Casbin 模型已落地”
-- “统一的在线权限判定面还没有在当前仓库里形成可证明的公开闭环”
+仍不默认提供：批量判定、Explain、未在业务路由上显式挂载的 `Require*`。
 
 ## 6. 当前查询面与版本面
 
@@ -272,12 +249,7 @@ m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && keyMatch(r.obj, p.obj) && regexM
 - 初始版本在 `GetOrCreate()` 中是 `1`
 - 每次策略变更时 `Increment()` 递增
 
-但当前 `PolicyHandler.GetCurrentVersion()` 只是直接调用 `GetCurrent()`，并没有先做 `GetOrCreate()`。
-
-因此需要明确一个风险边界：
-
-- 对一个还没有任何策略变更的新租户，`GetCurrentVersion` 可能拿到 `nil`
-- handler 当前没有空值保护，不能把“版本查询总能返回稳定结果”讲成已证明能力
+`PolicyHandler.GetCurrentVersion()` 在仓储返回 `nil` 时映射为 HTTP 200、`version: 0`（见 [policy.go](../../internal/apiserver/interface/authz/restful/handler/policy.go)）。接入方仍应把 `0` 与业务「尚无策略变更」语义对齐。
 
 ## 7. 当前保证与风险边界
 
@@ -286,6 +258,7 @@ m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && keyMatch(r.obj, p.obj) && regexM
 | 能力 | 当前状态 |
 | ---- | ---- |
 | 角色、资源、策略、Assignment 管理 REST | 已落地 |
+| REST/gRPC 单次 PDP（`check` / `Check`） | 已落地 |
 | Casbin `p / g` 规则持久化到 MySQL | 已落地 |
 | 按租户维度维护策略版本号 | 已落地 |
 | 有 EventBus 时发布版本变更消息 | 已落地 |
@@ -293,12 +266,12 @@ m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && keyMatch(r.obj, p.obj) && regexM
 
 ### 7.2 当前不能讲过头的地方
 
-1. `authz` 路由当前没有像 `user`、`suggest` 那样统一挂 `AuthRequired()`，因此不能直接说“授权管理接口默认全受保护”。
+1. 认证模块未初始化时，`AuthMiddleware` 可能为放行占位——不能讲成“任意部署下 authz 一定受 JWT 保护”。
 2. `tenant_id / user_id` 读取不到时会退成 `default / system`，所以“租户和操作者一定来自 JWT”也不能讲过头。
-3. `RequirePermission` 中间件当前还是放行 stub，不能把它讲成已接通 Casbin 判定。
+3. `RequireRole`/`RequirePermission` 仅在注入 Casbin 且路由显式使用时生效；不能讲成“所有业务 API 已自动按资源鉴权”。
 4. 版本通知当前只看到了发布链，没有看到仓库内启动期订阅刷新链。
 5. `changed_by / granted_by` 在 DTO 与 handler 真实取值之间存在偏差，当前契约和运行时来源并不完全一致。
-6. `GetCurrentVersion` 对“无版本记录”场景缺少保护，新租户首次查询版本时的行为不能包装成稳定能力。
+6. 批量判定、Explain、菜单模型等通常不在 IAM 默认合同内。
 
 ## 8. 建议阅读顺序
 
@@ -315,3 +288,19 @@ m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && keyMatch(r.obj, p.obj) && regexM
 - 这篇专题负责讲“当前链路今天怎么落”
 - 授权域正文负责讲“模型和模块边界”
 - 接口与集成层负责讲“调用方该怎么接”
+
+## 9. 如何验证本文结论（本地）
+
+在**仓库根目录**执行（需 `rg`；若无可用 `grep -R -n` 按路径与关键字替代）。
+
+```bash
+rg -n "casbin_model.conf|NewCasbinAdapter" internal/apiserver/container/assembler/authz.go
+rg -n "AddPolicyRule|casbinAdapter.AddPolicy" internal/apiserver/application/authz/policy/command_service.go
+rg -n "AddGroupingPolicy|Grant\(" internal/apiserver/application/authz/assignment/command_service.go
+rg -n "func.*Check\(" internal/apiserver/interface/authz/restful/handler/check.go
+rg -n "PolicyVersionTopic|iam.authz.policy_version" internal/apiserver/infra/messaging/version_notifier.go
+rg -n "AuthzModule.GRPCService" internal/apiserver/server.go
+```
+
+**读结果提示**：`policy/command_service` 中应先出现 **Casbin `AddPolicy`** 再 **`Increment`**；`assignment` 中 **Grant** 应先 **Create** 再 **`AddGroupingPolicy`**；`check.go` 中 `casbin == nil` 应返回错误；`server.go` 应注册 gRPC 授权服务。
+

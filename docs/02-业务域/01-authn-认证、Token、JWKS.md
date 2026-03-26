@@ -1,206 +1,244 @@
 # 认证、Token、JWKS
 
-本文回答：`iam-contracts` 的认证域当前到底落地了哪些对象和主链路，Token/JWKS 如何工作，哪些能力已经可讲成现状，哪些还不能讲过头。
+本文回答：认证域（`authn`）如何建立「可登录账户 → 认证决策 → Token/JWKS」闭环，以及与用户域、授权域的边界。
 
-## 30 秒结论
+**阅读维度**：Why = 多场景登录与可轮换密钥；What = Account/Credential/Principal/Token/JWKS；Where = `iam-apiserver` 的 REST/gRPC；Verify = `api/rest/authn.v1.yaml`、`api/grpc/iam/authn/v1/authn.proto`、`configs/`、`auth_*` 表。
 
-- 当前认证域的真实主轴是：`Account / Credential / Authenticater / Principal / Token / JWKS`。
-- 当前登录主链是：`REST /authn/login -> prepareAuthentication -> Authenticater -> Principal -> TokenIssuer -> AccessToken(JWT) + RefreshToken(Redis)`。
-- 当前访问令牌是 `RS256` JWT，刷新令牌是 Redis 中保存的随机 UUID；刷新时会轮换旧 refresh token。
-- 当前 gRPC 认证面主要是 `VerifyToken / RefreshToken / RevokeToken / RevokeRefreshToken / GetJWKS`；`IssueServiceToken` 仍未实现。
-- 当前不能讲成现状的两点是：没有独立 `Session` 聚合；Token Claims 也没有稳定承载角色/权限等完整授权上下文。
+---
 
-## 重点速查
+## 30 秒了解系统
 
-| 关注点 | 当前答案 | 真实落点 |
-| ---- | ---- | ---- |
-| 账户对象 | 登录账户，关联内部 `User` 与外部身份入口 | [../../internal/apiserver/domain/authn/account/account.go](../../internal/apiserver/domain/authn/account/account.go) |
-| 凭据对象 | 独立存储密码、OTP、微信、企业微信认证材料 | [../../internal/apiserver/domain/authn/credential/credential.go](../../internal/apiserver/domain/authn/credential/credential.go) |
-| 认证场景 | `password / phone_otp / oauth_wx_minip / oauth_wecom / jwt_token` | [../../internal/apiserver/domain/authn/authentication/types.go](../../internal/apiserver/domain/authn/authentication/types.go) |
-| 认证器 | `Authenticater` 负责按场景挑策略并返回 `AuthDecision` | [../../internal/apiserver/domain/authn/authentication/authenticater.go](../../internal/apiserver/domain/authn/authentication/authenticater.go) |
-| Token 颁发 | 访问令牌走 JWT+JWKS，刷新令牌落 Redis | [../../internal/apiserver/domain/authn/token/issuer.go](../../internal/apiserver/domain/authn/token/issuer.go)、[../../internal/apiserver/infra/redis/token-store.go](../../internal/apiserver/infra/redis/token-store.go) |
-| Token 验证 | 验签 + 过期检查 + 黑名单检查 | [../../internal/apiserver/domain/authn/token/verifyer.go](../../internal/apiserver/domain/authn/token/verifyer.go) |
-| JWT 生成 | `RS256`、Header 带 `kid` | [../../internal/apiserver/infra/jwt/generator.go](../../internal/apiserver/infra/jwt/generator.go) |
-| JWKS 密钥 | `active / grace / retired` 三态 | [../../internal/apiserver/domain/authn/jwks/key.go](../../internal/apiserver/domain/authn/jwks/key.go) |
-| gRPC 服务 | `AuthService + JWKSService` 的一部分实现已落地 | [../../internal/apiserver/interface/authn/grpc/service.go](../../internal/apiserver/interface/authn/grpc/service.go)、[../../api/grpc/iam/authn/v1/authn.proto](../../api/grpc/iam/authn/v1/authn.proto) |
+- 主轴对象：**Account / Credential / Authenticater / Principal / Token / JWKS**；登录成功产出 **Principal**，再经 **TokenIssuer** 颁发 **Access JWT（RS256）+ Refresh（Redis）**。
+- **REST** 暴露登录、刷新、校验、账户与 JWKS；**gRPC** 暴露 `VerifyToken`、`RefreshToken`、`Revoke*`、`GetJWKS` 等；**`IssueServiceToken` 当前固定返回 `codes.Unimplemented`**（见 [`interface/authn/grpc/service.go`](../../internal/apiserver/interface/authn/grpc/service.go)），非「待确认」。
+- **不负责**：独立 Session 聚合、在 JWT 内承载完整授权上下文（授权见 [02-authz](./02-authz-角色、策略、资源、Assignment.md)）。
+- **领域事件 / `configs/events.yaml`**：**N/A**（本仓库无统一事件清单文件）。
 
-## 1. 当前模型
+| 对照 | 登录与账户 | Token / JWKS |
+| ---- | ---------- | ------------ |
+| 主存储 | `auth_accounts`、凭据（`auth_credentials` / `auth_operation_accounts` 等，见下） | `jwks_keys`、`auth_token_blacklist`、Redis refresh |
+| 对外 | REST `/api/v1/authn/*` | `/.well-known/jwks.json`、gRPC `GetJWKS` |
+| Verify | [`api/rest/authn.v1.yaml`](../../api/rest/authn.v1.yaml) | [`authn.proto`](../../api/grpc/iam/authn/v1/authn.proto) |
 
-### 1.1 `Account`
+### 模块边界
 
-`Account` 当前表示“可登录账户”，不是“用户档案”，也不是“Session 根聚合”。它当前主要维护：
+#### 负责
 
-- `UserID`
-- `Type`
-- `AppID`
-- `ExternalID`
-- `UniqueID`
-- `Profile / Meta`
-- `Status`
+- 账户与凭据生命周期、按场景的认证策略（`Authenticater`）、Token 颁发/校验/撤销、JWKS 发布与密钥轮换。
 
-关键事实：
+#### 不负责
 
-- `Account` 不内嵌凭据列表
-- `Account` 不内嵌会话列表
-- `User` 仍属于用户域，不在认证域内部重建
+- 用户档案与监护：见 [03-user-用户、儿童、Guardianship.md](./03-user-用户、儿童、Guardianship.md)。
+- 角色、策略、Casbin：见 [02-authz-角色、策略、资源、Assignment.md](./02-authz-角色、策略、资源、Assignment.md)。
 
-### 1.2 `Credential`
+#### 依赖
 
-`Credential` 是独立实体，主要存：
+- 用户 ID 等与用户域衔接（`Principal.UserID`）；不反向依赖 authz。
 
-- `AccountID`
-- `IDP / IDPIdentifier / AppID`
-- `Material / Algo / ParamsJSON`
-- `Status / FailedAttempts / LockedUntil`
+### 运行时示意图
 
-当前支持的主要类型：
+仅 **`iam-apiserver`**。
 
-- `password`
-- `phone_otp`
-- `oauth_wx_minip`
-- `oauth_wecom`
+```mermaid
+flowchart TB
+  subgraph iam["iam-apiserver"]
+    REST["REST /api/v1/authn/*"]
+    GRPC["gRPC AuthService / JWKSService"]
+    APP["application/authn/*"]
+    DOM["domain/authn/*"]
+    JWT["infra/jwt + redis token store"]
+    DB[("MySQL auth_*")]
+  end
+  C((Client)) --> REST
+  C --> GRPC
+  REST --> APP
+  GRPC --> APP
+  APP --> DOM
+  APP --> JWT
+  APP --> DB
+```
 
-关键事实：
+---
 
-- 密码材料落库存储
-- 手机 OTP 本身不落库
-- OAuth 场景主要存外部身份标识和扩展参数
+## 模型与服务
 
-### 1.3 `Principal`
+### 数据关系（概念 ER）
 
-认证成功后的统一输出是 `Principal`，包含：
+**与 `schema.sql` + 代码 PO 对齐**：[`configs/mysql/schema.sql`](../../configs/mysql/schema.sql) 中可核对 `auth_accounts`、`auth_wechat_accounts`、`auth_operation_accounts`（运营后台用户名+密码哈希）、`auth_sessions`、`auth_token_blacklist`、`jwks_keys`、`idp_wechat_apps`。**通用凭据**在仓储层映射为表 **`auth_credentials`**（见 [`infra/mysql/credential/po.go`](../../internal/apiserver/infra/mysql/credential/po.go) 的 `TableName`）；密码策略 `FindPasswordCredential` 走该表。若你本地的 `schema.sql` 快照尚未包含 `auth_credentials`，以实际迁移/数据库为准。微信场景下 **`idp_wechat_apps.app_id`** 与 **`auth_wechat_accounts.app_id`** 逻辑对齐（非外键约束，登录时查配置用）。Refresh 令牌材料主要在 **Redis**（及可选 `auth_sessions` 行），不在此 ER 展开。
 
-- `AccountID`
-- `UserID`
-- `TenantID`
-- `AMR`
-- `Claims`
+```mermaid
+erDiagram
+  users ||--o{ auth_accounts : "user_id"
+  users ||--o{ auth_sessions : "user_id"
+  auth_accounts ||--o{ auth_wechat_accounts : "1:1 optional"
+  auth_accounts ||--o{ auth_operation_accounts : "1:1 optional ops"
+  auth_accounts ||--o{ auth_credentials : "domain generic creds"
+  idp_wechat_apps {
+    string app_id
+  }
+  auth_accounts {
+    bigint user_id
+    string provider
+    string external_id
+    tinyint status
+  }
+  auth_credentials {
+    bigint account_id
+    string type
+    blob material
+  }
+  jwks_keys {
+    string kid
+    tinyint status
+  }
+  auth_token_blacklist {
+    string token_id
+  }
+```
 
-当前 Token 颁发直接消费 `Principal`，而不是先创建一个独立 `Session` 聚合。
+### 认证场景与入口（可对照代码）
 
-## 2. 当前认证主链
+领域枚举见 [`domain/authn/authentication/types.go`](../../internal/apiserver/domain/authn/authentication/types.go) 的 `Scenario` / `AMR`。REST 侧按 `method` 分发（[`interface/authn/restful/handler/auth.go`](../../internal/apiserver/interface/authn/restful/handler/auth.go)），应用层在 `prepareAuthentication` 中按请求字段推断场景（[`application/authn/login/services_impl.go`](../../internal/apiserver/application/authn/login/services_impl.go)）。
 
-### 2.1 登录
+| REST `method` | `authentication.Scenario` | `credentials` JSON（[`request/auth.go`](../../internal/apiserver/interface/authn/restful/request/auth.go)） |
+| ------------- | --------------------------- | --------------------------------------------------------------------------- |
+| `password` | `AuthPassword` | `username`、`password`，可选 `tenant_id` |
+| `phone_otp` | `AuthPhoneOTP` | `phone`（E.164）、`otp_code` |
+| `wechat` | `AuthWxMinip` | `app_id`、`code`（→ 应用层 `WechatAppID`/`WechatJSCode`，依赖 IDP/`idp_wechat_apps`） |
+| `wecom` | `AuthWecom` | `corp_id`、`auth_code` |
 
-当前 REST 登录入口在 [../../internal/apiserver/interface/authn/restful/router.go](../../internal/apiserver/interface/authn/restful/router.go)，核心接口包括：
+| 入口 | `AuthJWTToken` |
+| ---- | ---------------- |
+| 应用 DTO | [`login.LoginRequest`](../../internal/apiserver/application/authn/login/services.go) 使用 `AuthType=jwt_token` 且填 `JWTToken`；**当前 REST `LoginRequest.Validate` 未包含该 method**，多为内部/gRPC 预留。 |
 
-- `POST /api/v1/authn/login`
-- `POST /api/v1/authn/refresh_token`
-- `POST /api/v1/authn/logout`
-- `POST /api/v1/authn/verify`
+**说明**：`prepareAuthentication` 若同时满足多组字段会**后写覆盖** `scenario`；单次请求只应走一种登录方式。
 
-登录主链见 [../../internal/apiserver/application/authn/login/services_impl.go](../../internal/apiserver/application/authn/login/services_impl.go)：
+### 分层依赖
 
-1. 根据请求字段推断认证场景
-2. 构造 `AuthInput`
-3. 调用 `Authenticater.Authenticate`
-4. 认证成功后拿到 `Principal`
-5. 调用 `TokenIssuer.IssueToken`
-6. 返回 `TokenPair`
+```mermaid
+flowchart TB
+  subgraph interface
+    RH[restful handlers]
+    GS[grpc service]
+  end
+  subgraph application
+    LG[login / account / token app]
+  end
+  subgraph domain
+    AC[account / credential]
+    AU[authentication]
+    TK[token / jwks]
+  end
+  subgraph infra
+    MY[mysql]
+    RD[redis]
+    JW[jwt]
+  end
+  RH --> LG
+  GS --> LG
+  LG --> AC
+  LG --> AU
+  LG --> TK
+  TK --> JW
+  TK --> RD
+  LG --> MY
+```
 
-### 2.2 刷新与撤销
+### 领域模型与领域服务
 
-当前刷新链见 [../../internal/apiserver/domain/authn/token/refresher.go](../../internal/apiserver/domain/authn/token/refresher.go)：
+**限界上下文**：证明「谁在什么租户下完成了哪种认证」，并颁发可验证的访问凭证；不实现业务授权。下表与上文「认证场景」互补：表讲**对象**，场景表讲**入口**。
 
-1. 从 Redis 读取 refresh token
-2. 检查是否存在、是否过期
-3. 恢复最小 `Principal`
-4. 签发新的 TokenPair
-5. 删除旧 refresh token
-
-撤销链当前分两种：
-
-- access token：加入 Redis 黑名单
-- refresh token：直接从 Redis 删除
-
-### 2.3 gRPC
-
-当前 gRPC 服务实现见 [../../internal/apiserver/interface/authn/grpc/service.go](../../internal/apiserver/interface/authn/grpc/service.go)。
-
-当前真正已注册并实现的主要 RPC：
-
-- `VerifyToken`
-- `RefreshToken`
-- `RevokeToken`
-- `RevokeRefreshToken`
-- `GetJWKS`
-
-当前不能讲成现状的点：
-
-- `IssueServiceToken` 在 proto 里存在，但运行时返回 `Unimplemented`
-
-## 3. 当前 Token 与 JWKS
-
-### 3.1 Token
-
-当前访问令牌由 [../../internal/apiserver/infra/jwt/generator.go](../../internal/apiserver/infra/jwt/generator.go) 生成：
-
-- 算法：`RS256`
-- Header：带 `kid`
-- Claims 当前稳定可证明的内容：
-  - `sub`
-  - `iss`
-  - `iat`
-  - `exp`
-  - `user_id`
-  - `account_id`
-
-当前刷新令牌由 [../../internal/apiserver/domain/authn/token/issuer.go](../../internal/apiserver/domain/authn/token/issuer.go) 创建并存入 Redis。
-
-如果配置未显式给出 TTL，当前装配默认值在 [../../internal/apiserver/container/assembler/authn.go](../../internal/apiserver/container/assembler/authn.go)：
-
-- access token：15 分钟
-- refresh token：7 天
-
-### 3.2 JWKS
-
-当前 JWKS 密钥模型见 [../../internal/apiserver/domain/authn/jwks/key.go](../../internal/apiserver/domain/authn/jwks/key.go)：
-
-| 状态 | 当前语义 |
+| 概念 | 职责 |
 | ---- | ---- |
-| `active` | 可签名、可验签、可发布 |
-| `grace` | 不再签名，但继续验签并发布 |
-| `retired` | 退役，不再发布 |
+| `Account` | 可登录账户锚点，关联 `UserID` 等 |
+| `Credential` | 密码/OTP/OAuth 等材料存储与状态 |
+| `Principal` | 认证成功输出，供 Token 颁发消费 |
+| `Token` | Access JWT + Refresh；黑名单与轮换 |
+| `JWKS` | 公钥生命周期 `active/grace/retired` |
 
-当前还具备：
+**长叙事**（逐步请求、中间件、错误码）：见 [05-专题分析/01-认证链路…](../05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md)，本篇不重复贴长流程。
 
-- 启动时自动初始化首个活跃密钥
-- Cron 版密钥轮换调度器
+### 应用服务设计
 
-对应落点：
+| 用例 | 职责一句 | 锚点 |
+| ---- | -------- | ---- |
+| 登录 | 场景推断 → `Authenticate` → `IssueToken` | [`application/authn/login/services_impl.go`](../../internal/apiserver/application/authn/login/services_impl.go) |
+| 刷新 | 校验 refresh、轮换、签发新对 | [`domain/authn/token/refresher.go`](../../internal/apiserver/domain/authn/token/refresher.go) |
+| 校验 | 验签、过期、黑名单 | [`domain/authn/token/verifyer.go`](../../internal/apiserver/domain/authn/token/verifyer.go) |
+| JWKS | 对外发布与密钥轮换 | [`assembler/authn.go`](../../internal/apiserver/container/assembler/authn.go)、[`key_rotation_cron_scheduler.go`](../../internal/apiserver/infra/scheduler/key_rotation_cron_scheduler.go) |
 
-- [../../internal/apiserver/container/assembler/authn.go](../../internal/apiserver/container/assembler/authn.go)
-- [../../internal/apiserver/infra/scheduler/key_rotation_cron_scheduler.go](../../internal/apiserver/infra/scheduler/key_rotation_cron_scheduler.go)
-- [../../configs/keys/README.md](../../configs/keys/README.md)
+---
 
-## 4. 当前安全边界
+## 核心设计
 
-当前已能稳定讲成现状的安全能力：
+### 核心主链：从登录到 TokenPair
 
-- `Argon2id` 密码哈希  
-  [../../internal/apiserver/infra/crypto/argon2_hasher.go](../../internal/apiserver/infra/crypto/argon2_hasher.go)
-- JWT 验签
-- 访问令牌黑名单
-- 刷新令牌轮换
-- JWKS 公钥发布与密钥轮换
+**结论**：`REST Handler → LoginApplicationService → Authenticater → Principal → TokenIssuer → JWT + Redis refresh`。下图省略 Handler 与 Application 的逐行调用，只保留**领域主链**；真实编排见 [`services_impl.go`](../../internal/apiserver/application/authn/login/services_impl.go)（`Authenticate` 后 `IssueToken`）。
 
-当前不能讲过头的地方：
+```mermaid
+sequenceDiagram
+  participant H as REST Handler
+  participant L as LoginApplicationService
+  participant A as Authenticater
+  participant I as TokenIssuer
+  H->>L: LoginRequest
+  L->>A: Authenticate(scenario, AuthInput)
+  A-->>L: AuthDecision + Principal
+  L->>I: IssueToken(Principal, ...)
+  I-->>L: TokenPair
+  L-->>H: HTTP 响应
+```
 
-1. 没有独立 `Session` 聚合与会话仓储
-2. 中间件里 `RequireRole / RequirePermission` 仍是 stub  
-   [../../internal/pkg/middleware/authn/jwt_middleware.go](../../internal/pkg/middleware/authn/jwt_middleware.go)
-3. 不能把 proto 里所有 Claims 预留字段都讲成当前运行时已稳定输出
+### 核心安全：JWT 与 JWKS
 
-## 5. 当前最准确的口径
+**结论**：Access **RS256**，Header **`kid`**；业务方用 JWKS 本地验签；密钥三态与轮换见 [`jwks/key.go`](../../internal/apiserver/domain/authn/jwks/key.go)。
 
-如果只用一句话概括当前认证域，我会这样讲：
+### 核心集成：REST 与 gRPC
 
-`iam-contracts` 当前已经形成了“多场景认证 + JWT/Refresh Token 生命周期 + JWKS 密钥管理”这条主线，但它还不是一个以 Session 为中心的完整认证平台。`
+**结论**：对外能力以 proto 与 [`interface/authn/grpc/service.go`](../../internal/apiserver/interface/authn/grpc/service.go) 为准。
 
-## 6. 继续往下读
+| RPC | 当前行为（可 grep 验证） |
+| --- | ------------------------ |
+| `VerifyToken` / `RefreshToken` / `RevokeToken` / `RevokeRefreshToken` / `GetJWKS` | 依赖装配；未注入依赖时返回 `Unimplemented` |
+| `IssueServiceToken` | **始终** `codes.Unimplemented`（`issue service token not supported`） |
 
-1. [../03-接口与集成/01-REST契约与接入.md](../03-接口与集成/01-REST契约与接入.md)
-2. [../03-接口与集成/02-gRPC契约与接入.md](../03-接口与集成/02-gRPC契约与接入.md)
-3. [../05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md](../05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md)
-4. [../../api/rest/authn.v1.yaml](../../api/rest/authn.v1.yaml)
-5. [../../api/grpc/iam/authn/v1/authn.proto](../../api/grpc/iam/authn/v1/authn.proto)
+### 核心配置
+
+装配时通过 **viper** 读取（见 [`container/assembler/authn.go`](../../internal/apiserver/container/assembler/authn.go)），未在 yaml 中写出时走代码内**默认值**。
+
+| 配置键 | 含义 | 默认（当 viper 为空/0） |
+| ------ | ---- | ------------------------ |
+| `auth.jwt_issuer` | Access JWT `iss` | 未配置时为空字符串（仍签发；校验方是否校验 `iss` 自定） |
+| `auth.access_token_ttl` | Access 有效期 | **15 分钟** |
+| `auth.refresh_token_ttl` | Refresh 有效期 | **7 天** |
+| `jwks.keys_dir` | PEM 私钥目录 | 空则按工作目录解析（启动日志会 warn） |
+| `jwks.auto_init` | 无 active key 时是否自动生成 | 与 `migration.autoseed`、`app.mode == development` 一起参与自动建钥判断 |
+| `app.mode` | 运行模式 | 参与 JWKS 自动初始化分支 |
+
+YAML 里另有 **gRPC 服务端 `grpc.auth`**（mTLS、API Key 等）与 **业务 JWT TTL** 不是同一命名空间；调 JWT 颁发请认准上表 `auth.*` 与装配代码。
+
+| 路径 | 作用 |
+| ---- | ---- |
+| [`configs/apiserver*.yaml`](../../configs/) | 运行时与环境相关项（含 `jwks`、`grpc`、`idp.encryption-key` 等） |
+| [`configs/keys/README.md`](../../configs/keys/README.md) | 私钥目录与 `jwks.auto_init` 说明 |
+
+---
+
+## 边界与注意事项
+
+- **无 Session 聚合**；**JWT Claims 不承诺完整授权上下文**。
+- **`RequireRole`/`RequirePermission`** 属授权中间件：见 [02-authz](./02-authz-角色、策略、资源、Assignment.md) 与 [`jwt_middleware.go`](../../internal/pkg/middleware/authn/jwt_middleware.go)。
+- 长链路叙事：见 [05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md](../05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md)。
+
+---
+
+## 代码锚点索引
+
+| 关注点 | 路径 | 说明 |
+| ------ | ---- | ---- |
+| 装配 | `internal/apiserver/container/assembler/authn.go` | `AuthnModule`、TTL、JWKS、Token 领域服务 |
+| 场景枚举 | `internal/apiserver/domain/authn/authentication/types.go` | `Scenario` / `AMR` |
+| REST | `internal/apiserver/interface/authn/restful/router.go` | 路由 |
+| REST 登录分发 | `internal/apiserver/interface/authn/restful/handler/auth.go` | `method` → 各登录分支 |
+| gRPC | `internal/apiserver/interface/authn/grpc/service.go` | 含 `IssueServiceToken` 桩 |
+| 凭据表映射 | `internal/apiserver/infra/mysql/credential/po.go` | `auth_credentials` |
+| 合同 | `api/rest/authn.v1.yaml`、`api/grpc/iam/authn/v1/authn.proto` | Verify |

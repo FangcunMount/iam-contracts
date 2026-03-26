@@ -2,6 +2,8 @@
 
 本文回答：`iam-contracts` 当前是如何把一次登录请求走到认证判决、再走到 Access Token / Refresh Token / JWKS 的，以及这条链路今天已经保证了什么、还不能讲成什么。
 
+**与业务域正文的分工**：相对 [../02-业务域/01-authn-认证、Token、JWKS.md](../02-业务域/01-authn-认证、Token、JWKS.md)——业务域给**模块边界、配置键、静态锚点**；本篇补**端到端时序**、Verify/Refresh/Logout/JWKS **后半段**，以及 **「已证明 / 不能讲过头」** 风险表（合同与实现对齐以代码为准）。
+
 ## 30 秒结论
 
 - 当前登录主入口是 `POST /api/v1/authn/login`，它先把 REST 请求映射成统一的 `LoginRequest`，再进入 `LoginApplicationService -> Authenticater -> 策略认证 -> TokenIssuer` 这条同步链路。
@@ -352,3 +354,18 @@ REST 登录响应当前主要返回：
 | [../03-接口与集成/01-REST契约与接入.md](../03-接口与集成/01-REST契约与接入.md) | REST 契约、路由与验证链 |
 | [../03-接口与集成/02-gRPC契约与接入.md](../03-接口与集成/02-gRPC契约与接入.md) | gRPC 合同、Verify / Refresh / JWKS Service |
 | [../01-运行时/02-gRPC与mTLS.md](../01-运行时/02-gRPC与mTLS.md) | gRPC / mTLS 运行时边界 |
+
+## 9. 如何验证本文结论（本地）
+
+在**仓库根目录**执行，用于回归时确认「专题中的锚点是否仍在、关键断言是否未改」。需已安装 [ripgrep](https://github.com/BurntSushi/ripgrep)（`rg`）；若无，可用 `grep -R -n` 按相同路径与关键字替代。
+
+```bash
+rg -n 'POST\("/login"' internal/apiserver/interface/authn/restful/router.go
+rg -n "prepareAuthentication|Authenticate" internal/apiserver/application/authn/login/services_impl.go
+rg -n "IssueServiceToken" internal/apiserver/interface/authn/grpc/service.go
+rg -n "tokenID|StandardClaims|GenerateAccessToken" internal/apiserver/infra/jwt/generator.go
+rg -n "access_token_ttl|refresh_token_ttl|jwt_issuer" internal/apiserver/container/assembler/authn.go
+rg -n "RotationScheduler|key_rotation" internal/apiserver/server.go
+```
+
+**读结果提示**：`IssueServiceToken` 应仍含 `Unimplemented`；`generator` 中若 `tokenID`/`Id` 仍为占位，则 §7.2「精准撤销」边界继续成立；`assembler` 中 TTL 默认值应与本文「15m / 7d」叙述一致（以代码为准）。

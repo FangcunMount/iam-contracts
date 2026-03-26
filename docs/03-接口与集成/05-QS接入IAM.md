@@ -7,7 +7,7 @@
 - 当前更推荐的接法是：`SDK + gRPC + 本地 JWKS 验签`，而不是直接手搓一套 IAM 客户端。
 - 如果场景是“网关验证用户 JWT”，优先看 `pkg/sdk` 里的 `TokenVerifier` 和 `JWKS` 配置；如果场景是“后端按 ID 读用户 / 判定监护关系”，优先看 gRPC 与 SDK 的 `Identity()` / `Guardianship()` 客户端。
 - `docs/03-接口与集成` 负责说明“怎么接”；真正的字段、服务和错误语义仍以 `api/rest/*.yaml`、`api/grpc/**/*.proto`、`pkg/sdk/docs/*` 为准。
-- 当前不要把 IAM 讲成“完整授权判定中心”：`authz` 现在更像管理面，`authz gRPC` 不存在，公开 `Enforce / Allow` 判定接口也没有落地。
+- 授权：`authz` 已包含管理面与单次 PDP（REST `POST /authz/check`、gRPC `AuthorizationService/Check`、SDK `Authz()`）；批量/Explain/菜单仍通常需业务侧扩展，见 [03-授权接入与边界.md](./03-授权接入与边界.md)。
 - 旧版《QS 接入 IAM 实践指南》已经归档到 [../_archive/00-概览/04-qs接入iam指南.md](../_archive/00-概览/04-qs接入iam指南.md)；现行接入口径以本文和关联文档为准。
 
 ## 重点速查
@@ -118,24 +118,18 @@ SDK 当前已经把最常用的服务收成统一入口：
 
 ## 4. 当前不要讲过头的几件事
 
-### 4.1 不要把 `authz` 讲成已经能给 QS 提供完整在线判定
+### 4.1 不要把 `authz` 讲成「全家桶」授权中心
 
-当前 `authz` 的已实现重心仍是：
-
-- 角色
-- 策略
-- 资源
-- Assignment 管理
-
-而不是完整的对外授权判定服务。相关边界见：
+当前 `authz` 已包含：**管理面** + **单次 PDP**（REST `POST /authz/check`、gRPC `AuthorizationService/Check`、SDK `Authz()`）。  
+仍不宜讲过头的是：批量判定、Explain、与前端菜单强绑定的默认方案，或「任意业务路由已自动鉴权」。相关边界见：
 
 - [03-授权接入与边界.md](./03-授权接入与边界.md)
 - [../02-业务域/02-authz-角色、策略、资源、Assignment.md](../02-业务域/02-authz-角色、策略、资源、Assignment.md)
 
 因此今天不要把它讲成：
 
-- “QS 可以直接走 IAM 的统一 `Allow/Enforce` 接口”
-- “IAM 已经提供完整 authz gRPC”
+- IAM 已覆盖业务侧所需的全部授权产品能力（仍可能需自建批量与 UX）
+- 「所有 HTTP 路径都已挂 `RequireRole`/`RequirePermission`」（需业务显式挂载中间件）
 
 ### 4.2 不要把身份 REST 和 gRPC 当成两套完全对称的壳
 

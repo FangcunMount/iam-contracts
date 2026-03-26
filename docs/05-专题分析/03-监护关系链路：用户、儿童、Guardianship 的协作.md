@@ -2,6 +2,18 @@
 
 本文回答：`iam-contracts` 当前是如何把 `user / child / guardianship` 串成一条身份主链路的，`建档 + 授监护 + 查询` 今天到底怎么落，哪些约束已经在代码里成立，哪些还不能沿用旧设计稿的说法。
 
+**与业务域正文的分工**：相对 [../02-业务域/03-user-用户、儿童、Guardianship.md](../02-业务域/03-user-用户、儿童、Guardianship.md)——业务域给**表结构、路由表、REST/gRPC 锚点**；本篇补**注册儿童两段事务**、**REST/gRPC/proto 与 router 的差异**、**`revoked_at` 与查询链**，以及 **gRPC 未实现/占位** 清单。
+
+## 快速阅读（1 分钟）
+
+| 维度 | 要点 |
+| ---- | ---- |
+| **主链** | `POST /children/register`：`childApp.Register`（事务①）→ `guardApp.AddGuardian`（事务②）；`POST /guardians/grant` 单独授监护；读链多经 **guardianship repo + child query** |
+| **已可依赖（概括）** | REST 核心路由与 gRPC `IdentityRead` / `GuardianshipQuery` / `GuardianshipCommand` / `IdentityLifecycle` 已注册；`uk(user_id,child_id)`；写模型可写 **`revoked_at`** |
+| **硬风险** | 注册**非单事务**（② 失败则 child 已落库）；**`revoked_at` 未在 `FindByUserID` 等全部路径过滤**；**`GET /guardians` 合同有、router 未接**；relation **跨层归一**；合同 **201** 与 handler **200** 不一致；部分 gRPC **Unimplemented** / Stream |
+
+排障与产品承诺优先看 **§7.2**；与旧设计稿差异见 **§4**。
+
 ## 30 秒结论
 
 - 当前监护关系主链路的核心是两类写操作和两类读操作：`注册儿童并授监护`、`单独授予监护`、`按用户列出儿童`、`按 user_id + child_id 判定关系`。
@@ -350,3 +362,19 @@ REST 请求 DTO [../../internal/apiserver/interface/uc/restful/request/child.go]
 - 这篇专题负责讲“今天真实跑起来的是哪条链”
 - 用户域正文负责讲“静态模型和边界”
 - 接口与集成层负责讲“调用方该怎么接”
+
+## 9. 如何验证本文结论（本地）
+
+在**仓库根目录**执行（需 `rg`；若无可用 `grep -R -n` 按路径与关键字替代）。
+
+```bash
+rg -n "RegisterChild|childApp.Register|guardApp.AddGuardian" internal/apiserver/interface/uc/restful/handler/child.go
+rg -n "registerChildRoutes|guardians/grant|/me/children" internal/apiserver/interface/uc/restful/router.go
+rg -n "FindByUserID|IsGuardian|revoked" internal/apiserver/infra/mysql/guardianship/repo.go
+rg -n "RegisterService|GuardianshipQuery|IdentityRead" internal/apiserver/interface/uc/grpc/identity/service.go
+rg -n "Unimplemented" internal/apiserver/interface/uc/grpc/identity/service_impl.go
+rg -n "UserModule|GRPCService.Register" internal/apiserver/server.go
+```
+
+**读结果提示**：`child.go` 中应先 **`Register`** 再 **`AddGuardian`**；`repo.go` 中 **`FindByUserID`** 若仍无 `revoked_at` 条件，则 §5.3 / §7.2 边界继续成立；`router.go` 可 **`rg "/guardians"`** 核对是否仅有 `grant` 而无列表路由；`service_impl.go` 中 **`Unimplemented`** 行仍应对应本文 gRPC 占位说明。
+

@@ -1,281 +1,154 @@
-# suggest：儿童联想搜索
+# 儿童联想搜索（Suggest）
 
-本文回答：`iam-contracts` 当前的 `suggest` 补充能力到底做了什么、运行时是怎么装配和刷新的、搜索行为如何工作，以及今天已经能证明什么、还不能讲成什么。
+本文回答：联想域如何在 **不落专用业务表** 的前提下，从 **MySQL 拉取儿童相关行**、构建 **内存 Trie + Hash** 索引，并通过 **REST** 提供前缀/数字查询；以及与用户域、认证域的边界。
 
-## 30 秒结论
+**阅读维度**：Why = 登录后快速按姓名/拼音/手机/ID 联想儿童；What = `Loader` 行格式、`Store`、Updater 调度；Where = `application/suggest`、`infra/suggest/search`、`interface/suggest`；Verify = [`api/rest/suggest.v1.yaml`](../../api/rest/suggest.v1.yaml)、[`configs/apiserver*.yaml`](../../configs/apiserver.dev.yaml) 中 `suggest` 段、[`infra/mysql/suggest/loader.go`](../../internal/apiserver/infra/mysql/suggest/loader.go) 默认 SQL。
 
-- `suggest` 不是新的身份主域，而是依附在 `user / guardianship` 数据上的补充查询能力，当前主要提供一个 REST 接口：`GET /api/v1/suggest/child?k=...`。
-- 运行主链是：`Router -> suggest/restful.Handler -> application/suggest.Service -> 内存 search.Store`；数据由 `mysql/suggest.Loader` 从 `children + guardianships + users` 拉取，`Updater` 负责启动时全量加载和后续 cron 刷新。
-- 查询行为今天已经可以证明 3 点：非数字关键词走中文/全拼/简拼前缀联想，纯数字关键词走孩子 ID / 监护手机号精确匹配，结果按 `weight` 降序并按 `child id` 去重。
-- `suggest` 当前没有 gRPC 暴露面，也没有 SDK 子客户端；它更像一个 REST 读侧补充能力，而不是 IAM 的主业务中心。
-- `待补证据`：`suggest.v1.yaml` 虽然已存在，也有 runtime route，但当前仍未纳入与其余 REST 合同同级别的 route/schema 比对脚本。
+---
 
-## 重点速查
+## 30 秒了解系统
 
-| 想回答的问题 | 先打开哪里 |
-| ---- | ---- |
-| 当前 suggest 暴露了什么接口？ | [../03-接口与集成/01-REST契约与接入.md](../03-接口与集成/01-REST契约与接入.md)、[../../api/rest/suggest.v1.yaml](../../api/rest/suggest.v1.yaml) |
-| 路由今天如何注册、是否挂认证？ | [../../internal/apiserver/interface/suggest/restful/handler.go](../../internal/apiserver/interface/suggest/restful/handler.go)、[../../internal/apiserver/routers.go](../../internal/apiserver/routers.go) |
-| 模块何时初始化、何时启动刷新？ | [../../internal/apiserver/container/assembler/suggest.go](../../internal/apiserver/container/assembler/suggest.go) |
-| 数据从哪里来？ | [../../internal/apiserver/infra/mysql/suggest/loader.go](../../internal/apiserver/infra/mysql/suggest/loader.go) |
-| 搜索是怎么匹配和排序的？ | [../../internal/apiserver/infra/suggest/search/store.go](../../internal/apiserver/infra/suggest/search/store.go)、[../../internal/apiserver/infra/suggest/search/trie.go](../../internal/apiserver/infra/suggest/search/trie.go)、[../../internal/apiserver/infra/suggest/search/hash.go](../../internal/apiserver/infra/suggest/search/hash.go) |
-| 配置项今天是什么？ | [../../internal/apiserver/application/suggest/config.go](../../internal/apiserver/application/suggest/config.go)、[../../configs/apiserver.dev.yaml](../../configs/apiserver.dev.yaml)、[../../configs/suggest.dev.yaml](../../configs/suggest.dev.yaml) |
+- **无独立 `suggest_*` 表**：数据来自可配置 **Raw SQL**（默认 **`children` + `guardianships` + `users`**），行被规范为 **`name|id|mobiles|-|weight`** 字符串（[`loader.go`](../../internal/apiserver/infra/mysql/suggest/loader.go)）。
+- **索引结构**：[`infra/suggest/search`](../../internal/apiserver/infra/suggest/search/) — **Trie**（中文/拼音前缀 + 通配补齐）与 **Hash**（纯数字关键词走手机号/ID 精确匹配），[`Store.Suggest`](../../internal/apiserver/infra/suggest/search/store.go) 内分支。
+- **刷新**：`Updater` 启动时 **全量** `Swap` 替换内存索引，之后按 **cron** 全量/可选 **增量** `ImportLines` 合并；可选 **`data_dir/snapshot.txt`** 落盘。
+- **REST**：**`GET /api/v1/suggest/child?k=`**（[`interface/suggest/restful`](../../internal/apiserver/interface/suggest/restful/handler.go)）；**`suggest.enable: false`** 时模块不初始化，**路由不注册**（[`routers.go`](../../internal/apiserver/routers.go)）。
+- **gRPC**：**N/A**（本模块仅 HTTP）。
+- **`configs/events.yaml`**：**N/A**。
 
-## 1. 这个模块在系统里的位置
+| 对照 | 数据面 | 查询面 |
+| ---- | ------ | ------ |
+| 入口 | MySQL + 可配置 SQL | 内存 `Store` |
+| 对外 | — | `GET /api/v1/suggest/child` |
+| Verify | 改 SQL 即改数据源 | [`suggest.v1.yaml`](../../api/rest/suggest.v1.yaml) |
 
-`suggest` 更适合被理解成：
+### 模块边界
 
-- 一个**补充读侧能力**
-- 一个**基于用户域数据派生的联想搜索**
-- 一个**只暴露 REST 查询面、没有独立业务写模型的模块**
+**负责**
 
-它今天依赖的仍是：
+- 按配置从库拉取行、维护内存索引、提供联想 API。
 
-- `children`
-- `guardianships`
-- `users`
+**不负责**
 
-因此它不是“第四个主业务域”，也不是新的聚合体系；更准确的定位是：它是在 IAM 内部维护、对上层业务更友好的儿童联想搜索能力。
+- 儿童/监护的写模型与业务规则：见 [03-user](./03-user-用户、儿童、Guardianship.md)（默认 SQL 只读 JOIN）。
+- 登录与 Token：见 [01-authn](./01-authn-认证、Token、JWKS.md)（路由可挂 JWT，见下）。
 
-## 2. 当前对外暴露面
+**依赖**
 
-### 2.1 REST 接口
+- **MySQL**（与 UC 同库）；**`suggest.enable`** 与 **`SuggestModule.Service`** 存在时才注册路由。
 
-今天已暴露的接口是：
+### 运行时示意图
 
-- `GET /api/v1/suggest/child?k=keyword`
+仅 **`iam-apiserver`**。
 
-证据：
-
-- [../../api/rest/suggest.v1.yaml](../../api/rest/suggest.v1.yaml)
-- [../../internal/apiserver/interface/suggest/restful/handler.go](../../internal/apiserver/interface/suggest/restful/handler.go)
-
-### 2.2 当前输入 / 输出语义
-
-| 项 | 当前语义 |
-| ---- | ---- |
-| 查询参数 | `k` 必填 |
-| 数字关键词 | 走孩子 ID / 监护手机号精确匹配 |
-| 非数字关键词 | 走中文名、全拼、简拼前缀联想 |
-| 返回值 | `[]suggest.Term` |
-| 返回字段 | `name`、`id`、`mobile`、`weight` |
-
-`Term` 的真实结构见：
-
-- [../../internal/apiserver/domain/suggest/term.go](../../internal/apiserver/domain/suggest/term.go)
-
-### 2.3 认证边界
-
-`已实现`：路由组本身支持注入认证中间件。  
-`当前运行时`：`routers.go` 在注册 `suggest` 路由时，如果 `authMiddleware` 已存在，就传入 `AuthRequired()`；否则回退成放行空中间件。
-
-证据：
-
-- [../../internal/apiserver/interface/suggest/restful/handler.go](../../internal/apiserver/interface/suggest/restful/handler.go)
-- [../../internal/apiserver/routers.go](../../internal/apiserver/routers.go)
-
-所以更准确的说法是：
-
-- 不要只因为 OpenAPI 标了 `BearerAuth`，就讲成“这一组接口永远强制 JWT”
-- 也不要讲成“suggest 默认公开”
-
-今天应写成：
-
-`当前 runtime 路由支持按依赖注入结果挂 JWT 认证；在现行 apiserver 装配下，通常会传入 AuthRequired。`
-
-## 3. 运行主链
-
-当前最重要的运行链是：
-
-```text
-HTTP GET /api/v1/suggest/child
-  -> suggest/restful.Handler.Child
-  -> application/suggest.Service.Suggest
-  -> infra/suggest/search.Current().Suggest
-  -> 返回 []suggest.Term
+```mermaid
+flowchart LR
+  subgraph iam["iam-apiserver"]
+    REST["GET /api/v1/suggest/child"]
+    SVC["application/suggest Service"]
+    UPD["Updater cron"]
+    LD["mysql Loader Raw SQL"]
+    ST["search.Store Trie+Hash"]
+    DB[("MySQL")]
+  end
+  UPD --> LD
+  LD --> DB
+  UPD --> ST
+  REST --> SVC
+  SVC --> ST
 ```
 
-这一段可以直接回链到：
+---
 
-- [../../internal/apiserver/interface/suggest/restful/handler.go](../../internal/apiserver/interface/suggest/restful/handler.go)
-- [../../internal/apiserver/application/suggest/service.go](../../internal/apiserver/application/suggest/service.go)
-- [../../internal/apiserver/infra/suggest/search/store.go](../../internal/apiserver/infra/suggest/search/store.go)
+## 模型与服务
 
-有两个值得特别注意的点：
+### 数据源与行格式（非 ER 表）
 
-1. 查询不直接打数据库，而是依赖当前活跃的内存 `Store`
-2. `Service` 本身很薄，真正的查询行为主要落在 `search.Store`
+与 **`children` / `guardianships` / `users`** 逻辑关联；**默认全量 SQL** 要求至少能映射出 `id`、`name`、`mobiles`、`weight` 列（见 `loader.record`）。行字符串格式：
 
-## 4. 模块初始化与刷新
+```text
+{name}|{id}|{mobiles}|-|{weight}
+```
 
-### 4.1 什么时候初始化
+**可验证行为**：默认 SQL 使用 **`g.deleted_at IS NULL`** 等软删条件；**若业务以 `guardianships.revoked_at` 为准**，需自行改写 **`suggest.full_sql` / `delta_sql`**，否则可能与 [03-user](./03-user-用户、儿童、Guardianship.md) 中「撤销仍可见」问题叠加或抵消。
 
-模块初始化由 `SuggestModule.Initialize(...)` 完成：
+### 领域模型
 
-- 先读 `suggest.*` 配置
-- `enable=false` 时直接跳过
-- 需要 MySQL 连接
-- 创建 `Service`
-- 创建 `Loader`
-- 创建 `Updater`
-- 启动后台刷新
+[`domain/suggest/term.go`](../../internal/apiserver/domain/suggest/term.go)：**`Term`**（`name`、`id`、`mobile`、`weight`）即 API 返回项。
 
-证据：
+### 查询语义（对照实现）
 
-- [../../internal/apiserver/container/assembler/suggest.go](../../internal/apiserver/container/assembler/suggest.go)
+| 关键词 `k` | 行为 | 锚点 |
+| ---------- | ---- | ---- |
+| **仅数字** | Hash 精确匹配（手机/ID 等） | `Store.Suggest` → `table.Search` |
+| **非数字** | Trie 前缀 + 不足 **`key_pad_len`** 时用 `*` 补齐再 `Wildcard` | 同文件 |
 
-### 4.2 刷新策略
+### 应用层与装配
 
-`Updater` 当前做的事情是：
+| 组件 | 职责 | 锚点 |
+| ---- | ---- | ---- |
+| `Service` | `Suggest(ctx, keyword)` → 调 `search.Current()` | [`application/suggest/service.go`](../../internal/apiserver/application/suggest/service.go) |
+| `Updater` | 全量 `Swap(Load)`、增量 `ImportLines`、可选 snapshot | [`application/suggest/updater.go`](../../internal/apiserver/application/suggest/updater.go) |
+| `Loader` | `Full` / `Delta(since)` 执行 Raw SQL | [`infra/mysql/suggest/loader.go`](../../internal/apiserver/infra/mysql/suggest/loader.go) |
+| `SuggestModule` | `enable` 短路、`LoadConfig`、组装 Service/Updater | [`container/assembler/suggest.go`](../../internal/apiserver/container/assembler/suggest.go) |
 
-- 启动时先跑一次全量
-- 注册全量 cron
-- 如果配置了 `delta_sync_cron`，再注册增量 cron
-- `ctx.Done()` 或关机时停止调度
+---
 
-证据：
+## 核心设计
 
-- [../../internal/apiserver/application/suggest/updater.go](../../internal/apiserver/application/suggest/updater.go)
+### 主链：全量构建与定时刷新
 
-### 4.3 快照持久化
+```mermaid
+sequenceDiagram
+  participant U as Updater
+  participant L as Loader
+  participant DB as MySQL
+  participant ST as search.Store
+  U->>L: Full()
+  L->>DB: Raw(FullSQL)
+  L-->>U: lines
+  U->>ST: Swap(Load(lines))
+```
 
-`已实现`：当 `snapshot=true` 且 `data_dir` 非空时，刷新结果会写到 `snapshot.txt`。  
-`当前边界`：这只是当前加载数据的快照持久化，不是新的权威存储，也不是增量事件日志。
+**增量**：`delta_sync_cron` 非空且配置了 **`DeltaSQL`** 时，`runDelta` 在 **当前 Store** 上 **`ImportLines`**（合并，非全量替换）。
 
-证据：
+### 核心配置（viper `suggest`）
 
-- [../../internal/apiserver/application/suggest/updater.go](../../internal/apiserver/application/suggest/updater.go)
-- [../../configs/apiserver.dev.yaml](../../configs/apiserver.dev.yaml)
+[`LoadConfig`](../../internal/apiserver/application/suggest/config.go) 默认值与 [`apiserver.dev.yaml`](../../configs/apiserver.dev.yaml) 示例：
 
-## 5. 数据来源与配置
+| 键 | 含义 | 默认/备注 |
+| --- | --- | --- |
+| `enable` | 是否启用模块 | `false`；为 `true` 才初始化 |
+| `data_dir` | snapshot 目录 | 与 `snapshot` 联用 |
+| `full_sync_cron` | 全量周期 | 默认 `@every 1h` |
+| `delta_sync_cron` | 增量周期 | 空则不做增量调度 |
+| `max_results` | 单次返回条数上限 | 默认 `20` |
+| `key_pad_len` | 非数字前缀补齐长度 | 默认 `25` |
+| `full_sql` / `delta_sql` | 覆盖默认 SQL | 空则用 loader 内建 |
+| `snapshot` | 是否写 `data_dir/snapshot.txt` | `data_dir` 非空且未显式设时默认为 `true` |
 
-### 5.1 默认数据源
+### REST 与鉴权
 
-默认 SQL 来自：
+- 路径：**`/api/v1/suggest/child`**，Query：**`k`（必填）**。
+- **AuthMiddleware**：在 [`routers.go`](../../internal/apiserver/routers.go) 中注入；若全局无 auth，则 **空中间件放行**（与代码一致）。
 
-- [../../internal/apiserver/infra/mysql/suggest/loader.go](../../internal/apiserver/infra/mysql/suggest/loader.go)
+---
 
-它当前会把这些表 join 在一起：
+## 边界与注意事项
 
-- `children`
-- `guardianships`
-- `users`
+- **内存索引**：进程内单例 **`search.Current()`**；多副本部署时各节点数据以各自调度为准，**非**分布式一致索引。
+- **与 03-user 一致性**：默认 SQL 与监护仓储过滤条件**不完全相同**（例如 `revoked_at`），上线前应用 **`full_sql` 对齐产品语义**。
+- 长链路若存在：可收束到专题文档目录（若仓库已有「联想/同步」专题可互链）。
 
-默认全量 SQL 的核心意图是：
+---
 
-- 以孩子为结果主体
-- 把监护人的手机号聚合成 `mobiles`
-- 产出默认 `weight = 1`
+## 代码锚点索引
 
-### 5.2 增量同步条件
-
-默认增量 SQL 会基于：
-
-- `c.updated_at`
-- `g.updated_at`
-- `u.updated_at`
-
-做 `GREATEST(...) > ?` 过滤。
-
-这意味着当前 suggest 的“增量刷新”不是基于事件总线，而是基于数据库时间戳轮询。
-
-### 5.3 当前可配置项
-
-今天配置层真正生效的主要是：
-
-| 配置项 | 作用 |
-| ---- | ---- |
-| `enable` | 是否启用模块 |
-| `data_dir` | 快照目录 |
-| `full_sync_cron` | 全量刷新周期 |
-| `delta_sync_cron` | 增量刷新周期 |
-| `max_results` | 返回结果上限 |
-| `key_pad_len` | 前缀通配填充长度 |
-| `full_sql` / `delta_sql` | 自定义 SQL |
-| `snapshot` | 是否落盘快照 |
-
-证据：
-
-- [../../internal/apiserver/application/suggest/config.go](../../internal/apiserver/application/suggest/config.go)
-- [../../configs/suggest.dev.yaml](../../configs/suggest.dev.yaml)
-- [../../configs/apiserver.dev.yaml](../../configs/apiserver.dev.yaml)
-
-## 6. 搜索行为今天到底怎么工作
-
-### 6.1 数字关键词
-
-`已实现`：纯数字关键词走 `Hash` 精确匹配。
-
-它当前会索引：
-
-- `child id`
-- 监护手机号
-
-证据：
-
-- [../../internal/apiserver/infra/suggest/search/hash.go](../../internal/apiserver/infra/suggest/search/hash.go)
-
-### 6.2 非数字关键词
-
-`已实现`：非数字关键词走 `Trie` 前缀 / 通配匹配。
-
-当前会导入三类 key：
-
-- 原始中文名
-- 全拼
-- 简拼
-
-证据：
-
-- [../../internal/apiserver/infra/suggest/search/trie.go](../../internal/apiserver/infra/suggest/search/trie.go)
-
-### 6.3 排序与去重
-
-今天结果处理链是：
-
-1. 取候选结果
-2. 按 `child id` 去重
-3. 按 `weight` 降序排序
-4. 截断到 `max_results`
-
-证据：
-
-- [../../internal/apiserver/infra/suggest/search/store.go](../../internal/apiserver/infra/suggest/search/store.go)
-- [../../internal/apiserver/infra/suggest/search/store_test.go](../../internal/apiserver/infra/suggest/search/store_test.go)
-
-### 6.4 一个容易讲错的点
-
-不要把它讲成“全文检索”或“搜索引擎”。
-
-更准确的说法是：
-
-`当前它是基于内存 Trie + Hash 的前缀联想和精确数字匹配。`
-
-## 7. 当前边界与风险
-
-### 7.1 它不是独立对外协议面
-
-今天 `suggest` 只有 REST 暴露面：
-
-- 没有 gRPC
-- 没有 SDK 子客户端
-- 没有单独的业务域专题主线
-
-因此它更像补充能力，而不是主集成协议层。
-
-### 7.2 默认权重并不丰富
-
-默认 SQL 里 `weight` 当前固定为 `1`。  
-如果业务方希望按关系类型、最近活跃度或别的信号排序，需要通过自定义 SQL 明确补进去。
-
-### 7.3 合同校验链还没完全纳入
-
-`待补证据`：`suggest.v1.yaml` 虽然已存在，也有 runtime route，但当前 `REST` 校验链还没像 `authn / authz / identity / idp` 那样把它纳入同级比对。
-
-更完整的说明见：
-
-- [../03-接口与集成/01-REST契约与接入.md](../03-接口与集成/01-REST契约与接入.md)
-
-## 8. 一句话总结
-
-`suggest` 今天是一项建立在用户域数据之上的补充读侧能力：启动时全量加载、运行时按 cron 刷新、查询时走内存 Trie + Hash，主要解决“按中文名 / 拼音 / 手机号 / 孩子 ID 快速联想儿童”的问题。
+| 关注点 | 路径 | 说明 |
+| ------ | ---- | ---- |
+| 装配 | `internal/apiserver/container/assembler/suggest.go` | `SuggestModule`、`enable`、Updater 启动 |
+| 配置 | `internal/apiserver/application/suggest/config.go` | `LoadConfig` |
+| REST | `internal/apiserver/interface/suggest/restful/handler.go` | `GET /child` |
+| REST 注册 | `internal/apiserver/routers.go` | `suggesthttp.Register` 条件 |
+| 索引 | `internal/apiserver/infra/suggest/search/store.go` | `Load`/`Swap`/`Suggest` |
+| SQL | `internal/apiserver/infra/mysql/suggest/loader.go` | 默认 Full/Delta SQL、行格式 |
+| 合同 | `api/rest/suggest.v1.yaml` | Verify |

@@ -1,14 +1,14 @@
 # HTTP认证中间件与身份上下文
 
-本文回答：`iam-contracts` 的 HTTP JWT 中间件今天是怎么工作的，哪些身份字段会写进上下文，哪些路由真正用了它，以及 `RequireRole / RequirePermission` 当前到底是什么状态。
+本文回答：`iam-contracts` 的 HTTP JWT 中间件今天是怎么工作的，哪些身份字段会写进上下文，哪些路由真正用了它，以及 `RequireRole / RequirePermission` 与 Casbin 的关系。
 
 ## 30 秒结论
 
-- 中央 HTTP 认证中间件是 [../../internal/pkg/middleware/authn/jwt_middleware.go](../../internal/pkg/middleware/authn/jwt_middleware.go) 里的 `JWTAuthMiddleware`，它依赖 `AuthnModule.TokenService.VerifyToken()` 做统一验 token。
+- 中央 HTTP 认证中间件是 [../../internal/pkg/middleware/authn/jwt_middleware.go](../../internal/pkg/middleware/authn/jwt_middleware.go) 里的 `JWTAuthMiddleware`，它依赖 `AuthnModule.TokenService.VerifyToken()` 做统一验 token；若 `AuthzModule.CasbinAdapter` 存在，会一并注入为 `CasbinEnforcer`（见 [routers.go](../../internal/apiserver/routers.go)）。
 - 当前 token 提取顺序是：`Authorization` Header -> query `token` -> cookie `access_token`。
 - 验证成功后，中间件会把 `claims`、`user_id`、`account_id`、`token_id` 写进 `gin.Context`，并把 `user_id` 写进 `request.Context`。
-- 当前真正消费这套中间件的是 `/api/v1/identity/*`、`/api/v1/suggest/*` 和条件式的 `/api/v1/admin/*`。
-- `RequireRole` 和 `RequirePermission` 现在还是 stub：它们只检查“是否已认证”，不会真的查角色或权限。
+- 当前真正消费这套中间件的是 `/api/v1/identity/*`、`/api/v1/suggest/*`、**`/api/v1/authz/*`（除 `/health`）** 和条件式的 `/api/v1/admin/*`。
+- `RequireRole` / `RequirePermission`：在已注入 Casbin 时调用 `GetRolesForUser` / `Enforce`；`casbin == nil` 时返回授权引擎未配置，不再静默放行。
 
 ## 重点速查
 
@@ -20,7 +20,8 @@
 | 受保护的用户路由 | `/api/v1/identity/*` | [../../internal/apiserver/interface/uc/restful/router.go](../../internal/apiserver/interface/uc/restful/router.go) |
 | 受保护的 suggest 路由 | `/api/v1/suggest/child` | [../../internal/apiserver/interface/suggest/restful/handler.go](../../internal/apiserver/interface/suggest/restful/handler.go) |
 | 条件式 admin 路由 | `/api/v1/admin/*` | [../../internal/apiserver/routers.go](../../internal/apiserver/routers.go) |
-| 当前未统一挂 JWT 的模块 | `authn / authz / idp` | [../../internal/apiserver/routers.go](../../internal/apiserver/routers.go) |
+| 受保护的 authz 路由 | `/api/v1/authz/*`（`/health` 公开） | [../../internal/apiserver/interface/authz/restful/router.go](../../internal/apiserver/interface/authz/restful/router.go) |
+| 当前未统一挂 JWT 的模块 | `authn / idp`（`authz` 已挂，见上） | [../../internal/apiserver/routers.go](../../internal/apiserver/routers.go) |
 
 ## 1. 中间件创建与注入
 
@@ -29,7 +30,8 @@
 1. 如果 `r.container.AuthnModule` 和 `TokenService` 都存在，就创建 `JWTAuthMiddleware`
 2. `user` 模块注入 `AuthRequired()`
 3. `suggest` 模块注入 `AuthRequired()`
-4. `/api/v1/admin` 这组路由在中间件存在时也挂 `AuthRequired()`
+4. `authz` 模块在装配时注入同一套 `AuthMiddleware`（健康检查除外）
+5. `/api/v1/admin` 这组路由在中间件存在时也挂 `AuthRequired()`
 
 如果认证模块没初始化成功，当前 router 的行为不是“阻止这些路由注册”，而是：
 
@@ -111,30 +113,20 @@
 | 路由组 | 当前状态 |
 | ---- | ---- |
 | `/api/v1/authn/*` | 公开登录与账号/JWKS 面，没有统一挂中央 JWT 中间件 |
-| `/api/v1/authz/*` | router 层未统一挂中央 JWT 中间件 |
 | `/api/v1/idp/*` | router 层未统一挂中央 JWT 中间件 |
 
-这并不自动等于“这些接口都不需要认证设计”，但它是 router 层的真实现状。
+`authz` 已在上文说明：`/health` 公开，其余路由在子 Group 上 `Use(AuthMiddleware)`。
 
 ## 5. 角色与权限中间件的当前状态
 
-`RequireRole()` 和 `RequirePermission()` 当前都只做了最小动作：
+`RequireRole()` / `RequirePermission()` 在 `JWTAuthMiddleware.casbin != nil` 时：
 
-1. 从 `gin.Context` 取 `account_id`
-2. 如果没有认证信息，则返回未认证错误
-3. 否则直接 `Next()`
+1. 要求已通过 `AuthRequired()`（上下文有 `user_id` 等）
+2. 从上下文取主体与租户（默认 `user:<user_id>`、`tenant_id`），调用 Casbin `GetRolesForUser` 或 `Enforce`
 
-它们当前没有：
+若 `casbin == nil`（例如 Authz 模块未初始化），则返回错误，不继续 `Next()`。
 
-- 查角色
-- 查权限
-- 调 Casbin
-- 调 `authz` 服务
-
-所以今天更准确的表达只能是：
-
-- “预留了角色/权限中间件位置”
-- 不能写成“HTTP 权限保护链已经闭环”
+业务路由需**显式** `Use(authMiddleware.RequireRole(...))` 或 `RequirePermission(obj, act)`；中央 router 不会自动给所有路径加上它们。
 
 ## 6. 当前最值得先记住的边界
 
@@ -150,7 +142,7 @@
 
 ### 规划改造
 
-- 如果未来要让 `RequireRole / RequirePermission` 真正接 `authz`，应在本层明确区分“当前 stub”和“未来闭环方案”
+- 若需批量判定、Explain 或与 BFF 菜单强绑定，通常在业务侧扩展，而非本中间件默认能力
 
 ## 7. 继续往下读
 
