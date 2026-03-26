@@ -214,6 +214,12 @@ func (s *apiServer) registerGRPCServices() {
 		log.Info("📡 Registered IDP gRPC services (IDPService)")
 	}
 
+	// 注册 Authz PDP gRPC
+	if s.container.AuthzModule != nil && s.container.AuthzModule.GRPCService != nil {
+		s.container.AuthzModule.GRPCService.Register(s.grpcServer.Server)
+		log.Info("📡 Registered Authz gRPC services (AuthorizationService)")
+	}
+
 	log.Info("✅ All gRPC services registered successfully")
 
 	// 标记所有服务为 SERVING 状态（健康检查）

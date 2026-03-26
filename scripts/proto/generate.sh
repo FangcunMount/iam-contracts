@@ -72,6 +72,16 @@ protoc \
     --go-grpc_opt=paths=source_relative \
     iam/idp/v1/idp.proto
 
+# 生成 authz proto
+echo "🔄 生成 authz 服务..."
+protoc \
+    --proto_path=${PROTO_PATH} \
+    --go_out=${PROTO_PATH} \
+    --go_opt=paths=source_relative \
+    --go-grpc_out=${PROTO_PATH} \
+    --go-grpc_opt=paths=source_relative \
+    iam/authz/v1/authz.proto
+
 echo "✅ Proto文件生成完成！"
 echo ""
 echo "📁 生成的文件:"

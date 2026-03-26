@@ -52,6 +52,9 @@ services:
       
       # IDPService - 微信应用查询
       - /iam.idp.v1.IDPService/GetWechatApp
+
+      # AuthorizationService - PDP（策略判定）
+      - /iam.authz.v1.AuthorizationService/Check
     denied_methods: []
 
   # QS Collection Server - 数据收集服务
@@ -90,6 +93,9 @@ services:
       
       # JWKSService - 公钥获取
       - /iam.authn.v1.JWKSService/GetJWKS
+
+      # AuthorizationService - PDP
+      - /iam.authz.v1.AuthorizationService/Check
     denied_methods: []
 
   # 内部管理工具
@@ -106,6 +112,7 @@ services:
       # 所有 Authn 服务方法
       - /iam.authn.v1.AuthService/*
       - /iam.authn.v1.JWKSService/*
+      - /iam.authz.v1.AuthorizationService/*
 
   # 运维工具
   - service_name: ops

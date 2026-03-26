@@ -19,9 +19,24 @@
 | 赋权对象 | `subject -> role`，带 `tenant_id` 与 `granted_by` | [../../internal/apiserver/domain/authz/assignment/assignment.go](../../internal/apiserver/domain/authz/assignment/assignment.go) |
 | 策略值对象 | `PolicyRule(Sub, Dom, Obj, Act)` | [../../internal/apiserver/domain/authz/policy/rule.go](../../internal/apiserver/domain/authz/policy/rule.go) |
 | 版本对象 | 租户级策略版本 | [../../internal/apiserver/domain/authz/policy/policy_version.go](../../internal/apiserver/domain/authz/policy/policy_version.go) |
-| Casbin 模型 | 显式带 `dom` 的租户隔离模型 | [../../internal/apiserver/infra/casbin/model.conf](../../internal/apiserver/infra/casbin/model.conf) |
+| Casbin 模型 | `dom` 租户隔离 + `keyMatch(obj)` + `regexMatch(act)` | [../../configs/casbin_model.conf](../../configs/casbin_model.conf)、装配见 [../../internal/apiserver/container/assembler/authz.go](../../internal/apiserver/container/assembler/authz.go) |
 | 写链 | Policy / Assignment 双写 Casbin | [../../internal/apiserver/application/authz/policy/command_service.go](../../internal/apiserver/application/authz/policy/command_service.go)、[../../internal/apiserver/application/authz/assignment/command_service.go](../../internal/apiserver/application/authz/assignment/command_service.go) |
 | 当前缺口 | 无独立判定 API，中间件权限校验未闭环 | [../../internal/pkg/middleware/authn/jwt_middleware.go](../../internal/pkg/middleware/authn/jwt_middleware.go) |
+
+## 现状分工：已落地 vs 未闭环
+
+**已相对完整、可在代码里逐条核对的部分**
+
+- **REST 管理面**：角色、资源、策略、Assignment 的合同与路由，见 [../../api/rest/authz.v1.yaml](../../api/rest/authz.v1.yaml)、[../../internal/apiserver/interface/authz/restful/router.go](../../internal/apiserver/interface/authz/restful/router.go)。
+- **写链与持久化**：Casbin `p`/`g` 写入、策略版本递增、Assignment 与 Casbin 双写，见 [../../internal/apiserver/application/authz/policy/command_service.go](../../internal/apiserver/application/authz/policy/command_service.go)、[../../internal/apiserver/application/authz/assignment/command_service.go](../../internal/apiserver/application/authz/assignment/command_service.go)。
+- **跨层主链与细节表**：见 [../05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md](../05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md)（与本文互补：专题讲链路，本文讲模型与边界）。
+
+**明确未开发完、不应讲成对外 PDP 的部分**
+
+- **无独立 `authz` gRPC**：当前 gRPC 注册见 [../../internal/apiserver/server.go](../../internal/apiserver/server.go)（无 authz 服务）。
+- **无公开的 `Enforce` / `Allow` 判定接口**：现状是**管理策略与规则**，不是对外提供统一 PDP；判定数据进 Casbin，但未暴露标准在线判定 API。
+- **运行时保护未闭环**：`authz` 路由未像部分模块那样统一挂 JWT；[../../internal/pkg/middleware/authn/jwt_middleware.go](../../internal/pkg/middleware/authn/jwt_middleware.go) 中 `RequireRole` / `RequirePermission` 仍为 stub。
+- **合同与运行时漂移**（如 `changed_by` / `granted_by` 来源、策略版本接口空值风险等）：收在 [../03-接口与集成/03-授权接入与边界.md](../03-接口与集成/03-授权接入与边界.md)，不在此重复展开。
 
 ## 1. 当前模型
 
@@ -89,7 +104,11 @@
 
 ## 2. 当前 Casbin 模型
 
-[../../internal/apiserver/infra/casbin/model.conf](../../internal/apiserver/infra/casbin/model.conf) 当前定义：
+运行时 `iam-apiserver` 在 [../../internal/apiserver/container/assembler/authz.go](../../internal/apiserver/container/assembler/authz.go) 中通过 `NewCasbinAdapter(db, "configs/casbin_model.conf")` 载入模型；真源为 [../../configs/casbin_model.conf](../../configs/casbin_model.conf)。
+
+> 仓库内另有 [../../internal/apiserver/infra/casbin/model.conf](../../internal/apiserver/infra/casbin/model.conf)，**未**被上述装配路径使用；若与 `configs/casbin_model.conf` 不一致，以运行时载入的 `configs` 版本为准。
+
+[../../configs/casbin_model.conf](../../configs/casbin_model.conf) 当前定义：
 
 ```text
 [request_definition]
@@ -101,15 +120,18 @@ p = sub, dom, obj, act
 [role_definition]
 g = _, _, _
 
+[policy_effect]
+e = some(where (p.eft == allow))
+
 [matchers]
-m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && r.obj == p.obj && r.act == p.act
+m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && keyMatch(r.obj, p.obj) && regexMatch(r.act, p.act)
 ```
 
 当前最关键的事实：
 
-- 请求、策略、分组都显式带 `dom`
-- 当前是租户隔离模型
-- 当前对象和动作是精确匹配，不是旧设计稿里的 `keyMatch2` 路径通配主流程
+- 请求、策略、分组都显式带 `dom`，租户隔离
+- 资源侧为 `keyMatch`（Casbin 内置路径式匹配，不是简单字符串相等）
+- 动作为 `regexMatch`（按正则匹配），不是简单字符串相等
 
 ## 3. 当前写链
 
@@ -199,6 +221,6 @@ m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && r.obj == p.obj && r.act == p.act
 
 ## 7. 继续往下读
 
-1. [../03-接口与集成/03-授权接入与边界.md](../03-接口与集成/03-授权接入与边界.md)
-2. [../05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md](../05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md)
+1. [../05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md](../05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md)（管理链与 Casbin 事实）
+2. [../03-接口与集成/03-授权接入与边界.md](../03-接口与集成/03-授权接入与边界.md)（接入方式、合同/运行时漂移与风险）
 3. [../../api/rest/authz.v1.yaml](../../api/rest/authz.v1.yaml)

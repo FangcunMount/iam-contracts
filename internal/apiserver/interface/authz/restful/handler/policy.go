@@ -180,6 +180,16 @@ func (h *PolicyHandler) GetCurrentVersion(c *gin.Context) {
 		return
 	}
 
+	if version == nil {
+		success(c, dto.PolicyVersionResponse{
+			TenantID:  tenantID,
+			Version:   0,
+			ChangedBy: "",
+			Reason:    "",
+		})
+		return
+	}
+
 	success(c, dto.PolicyVersionResponse{
 		TenantID:  version.TenantID,
 		Version:   version.Version,

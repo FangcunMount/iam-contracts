@@ -119,6 +119,29 @@ paths:
                         $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AssignmentResponse'
                       type: array
                   type: object
+  /authz/check:
+    post:
+      tags:
+      - Authorization-Policies
+      summary: 策略判定（Casbin Enforce）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+                - properties:
+                    data:
+                      $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckResponse'
+                  type: object
   /authz/policies:
     post:
       tags:
@@ -581,6 +604,28 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckRequest:
+      properties:
+        action:
+          type: string
+        object:
+          type: string
+        subject_id:
+          type: string
+        subject_type:
+          type: string
+          enum:
+          - user
+          - group
+      required:
+      - action
+      - object
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckResponse:
+      properties:
+        allowed:
+          type: boolean
+      type: object
     github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AddPolicyRequest:
       properties:
         action:

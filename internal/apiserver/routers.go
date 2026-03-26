@@ -46,11 +46,16 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 		return
 	}
 
-	// 创建新的认证中间件
+	// 创建新的认证中间件（可选注入 authz Casbin 以启用 RequireRole / RequirePermission）
 	var authMiddleware *authnMiddleware.JWTAuthMiddleware
 	if r.container.AuthnModule != nil && r.container.AuthnModule.TokenService != nil {
+		var casbin authnMiddleware.CasbinEnforcer
+		if r.container.AuthzModule != nil && r.container.AuthzModule.CasbinAdapter != nil {
+			casbin = r.container.AuthzModule.CasbinAdapter
+		}
 		authMiddleware = authnMiddleware.NewJWTAuthMiddleware(
 			r.container.AuthnModule.TokenService,
+			casbin,
 		)
 	} else {
 		log.Warn("Authn module unavailable; routes will be exposed without JWT middleware")
@@ -83,13 +88,20 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 		log.Warn("⚠️  Authn module not initialized, routes not registered")
 	}
 
-	// Authz 模块（授权管理）
+	// Authz 模块（授权管理 + PDP）
 	if r.container.AuthzModule != nil {
 		authzhttp.Provide(authzhttp.Dependencies{
 			RoleHandler:       r.container.AuthzModule.RoleHandler,
 			AssignmentHandler: r.container.AuthzModule.AssignmentHandler,
 			PolicyHandler:     r.container.AuthzModule.PolicyHandler,
 			ResourceHandler:   r.container.AuthzModule.ResourceHandler,
+			CheckHandler:      r.container.AuthzModule.CheckHandler,
+			AuthMiddleware: func() gin.HandlerFunc {
+				if authMiddleware != nil {
+					return authMiddleware.AuthRequired()
+				}
+				return func(c *gin.Context) { c.Next() }
+			}(),
 		})
 		authzhttp.Register(engine)
 		log.Info("✅ Authz module routes registered")

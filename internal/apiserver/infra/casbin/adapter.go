@@ -156,6 +156,24 @@ func (c *CasbinAdapter) LoadPolicy(ctx context.Context) error {
 	return c.enforcer.LoadPolicy()
 }
 
+// Enforce 执行 Casbin 判定。
+func (c *CasbinAdapter) Enforce(ctx context.Context, sub, dom, obj, act string) (bool, error) {
+	_ = ctx
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.enforcer.Enforce(sub, dom, obj, act)
+}
+
+// GetRolesForUser 返回用户在指定租户域下的直接角色键。
+func (c *CasbinAdapter) GetRolesForUser(ctx context.Context, user, domain string) ([]string, error) {
+	_ = ctx
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.enforcer.GetRolesForUser(user, domain)
+}
+
 // Enforcer 获取 Enforcer 实例（用于 PEP）
 func (c *CasbinAdapter) Enforcer() *casbin.CachedEnforcer {
 	return c.enforcer

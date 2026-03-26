@@ -188,16 +188,25 @@ sequenceDiagram
 
 ### 5.1 判定模型是标准四元组
 
-[../../configs/casbin_model.conf](../../configs/casbin_model.conf) 当前定义的是：
+`iam-apiserver` 授权模块初始化时固定载入 [../../configs/casbin_model.conf](../../configs/casbin_model.conf)（见 [../../internal/apiserver/container/assembler/authz.go](../../internal/apiserver/container/assembler/authz.go) 中 `modelPath := "configs/casbin_model.conf"` → `NewCasbinAdapter`）。与业务域正文一致，真源以该文件为准；仓库内 [../../internal/apiserver/infra/casbin/model.conf](../../internal/apiserver/infra/casbin/model.conf) 未被该装配路径使用。
 
-- `r = sub, dom, obj, act`
-- `p = sub, dom, obj, act`
-- `g = _, _, _`
-
-matcher 是：
+[../../configs/casbin_model.conf](../../configs/casbin_model.conf) 当前完整定义为：
 
 ```text
-g(r.sub, p.sub, r.dom) && r.dom == p.dom && keyMatch(r.obj, p.obj) && regexMatch(r.act, p.act)
+[request_definition]
+r = sub, dom, obj, act
+
+[policy_definition]
+p = sub, dom, obj, act
+
+[role_definition]
+g = _, _, _
+
+[policy_effect]
+e = some(where (p.eft == allow))
+
+[matchers]
+m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && keyMatch(r.obj, p.obj) && regexMatch(r.act, p.act)
 ```
 
 这意味着当前授权判定的真实语义是：

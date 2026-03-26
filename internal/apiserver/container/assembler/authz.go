@@ -3,7 +3,6 @@ package assembler
 import (
 	"fmt"
 
-	casbin2 "github.com/casbin/casbin/v2"
 	"gorm.io/gorm"
 
 	assignmentApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/assignment"
@@ -19,6 +18,7 @@ import (
 	policyInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/policy"
 	resourceInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/resource"
 	roleInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/role"
+	authzgrpc "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/grpc"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/handler"
 )
 
@@ -29,9 +29,11 @@ type AuthzModule struct {
 	AssignmentHandler *handler.AssignmentHandler
 	PolicyHandler     *handler.PolicyHandler
 	ResourceHandler   *handler.ResourceHandler
+	CheckHandler      *handler.CheckHandler
+	GRPCService       *authzgrpc.Service
 
-	// Infrastructure
-	Enforcer *casbin2.Enforcer
+	// CasbinAdapter 运行时策略引擎（供 HTTP/gRPC/中间件复用）
+	CasbinAdapter policyDomain.CasbinAdapter
 }
 
 // NewAuthzModule 创建授权模块
@@ -52,6 +54,7 @@ func (m *AuthzModule) Initialize(db *gorm.DB, versionNotifier policyDomain.Versi
 	if err != nil {
 		return fmt.Errorf("failed to create casbin adapter: %w", err)
 	}
+	m.CasbinAdapter = casbinAdapter
 
 	// 2. 初始化仓储层
 	roleRepository := roleInfra.NewRoleRepository(db)
@@ -92,5 +95,8 @@ func (m *AuthzModule) Initialize(db *gorm.DB, versionNotifier policyDomain.Versi
 	m.PolicyHandler = handler.NewPolicyHandler(policyCommander, policyQueryer)
 	// Assignment Handler
 	m.AssignmentHandler = handler.NewAssignmentHandler(assignmentCommander, assignmentQueryer)
+	// PDP
+	m.CheckHandler = handler.NewCheckHandler(casbinAdapter)
+	m.GRPCService = authzgrpc.NewService(casbinAdapter)
 	return nil
 }

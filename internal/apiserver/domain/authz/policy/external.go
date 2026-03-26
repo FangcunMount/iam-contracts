@@ -21,6 +21,11 @@ type CasbinAdapter interface {
 	GetGroupingsBySubject(ctx context.Context, subject, domain string) ([]GroupingRule, error)
 	// LoadPolicy 重新加载策略（用于缓存刷新）
 	LoadPolicy(ctx context.Context) error
+
+	// Enforce 执行 Casbin 判定（sub, dom, obj, act 与模型 request 定义一致）
+	Enforce(ctx context.Context, sub, dom, obj, act string) (bool, error)
+	// GetRolesForUser 返回用户在租户域下的直接角色键列表（如 role:admin）
+	GetRolesForUser(ctx context.Context, user, domain string) ([]string, error)
 }
 
 // VersionNotifier 策略版本通知接口（Driven Port - 外部服务）

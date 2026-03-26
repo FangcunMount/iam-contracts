@@ -14,16 +14,26 @@ import (
 	"github.com/FangcunMount/iam-contracts/pkg/core"
 )
 
+// CasbinEnforcer 可选注入的授权判定端口（由 authz Casbin 适配器实现）。
+// 为 nil 时 RequireRole / RequirePermission 返回服务不可用。
+type CasbinEnforcer interface {
+	Enforce(ctx context.Context, sub, dom, obj, act string) (bool, error)
+	GetRolesForUser(ctx context.Context, user, domain string) ([]string, error)
+}
+
 // JWTAuthMiddleware JWT 认证中间件
 // 使用新的认证模块来验证令牌
 type JWTAuthMiddleware struct {
 	tokenService token.TokenApplicationService
+	casbin       CasbinEnforcer
 }
 
-// NewJWTAuthMiddleware 创建 JWT 认证中间件
-func NewJWTAuthMiddleware(tokenService token.TokenApplicationService) *JWTAuthMiddleware {
+// NewJWTAuthMiddleware 创建 JWT 认证中间件。
+// casbin 可为 nil（仅 JWT 校验，不做角色/权限判定）。
+func NewJWTAuthMiddleware(tokenService token.TokenApplicationService, casbin CasbinEnforcer) *JWTAuthMiddleware {
 	return &JWTAuthMiddleware{
 		tokenService: tokenService,
+		casbin:       casbin,
 	}
 }
 
@@ -148,47 +158,102 @@ func (m *JWTAuthMiddleware) AuthOptional() gin.HandlerFunc {
 	}
 }
 
-// RequireRole 要求特定角色的中间件
-// 必须在 AuthRequired 之后使用
-func (m *JWTAuthMiddleware) RequireRole(roles ...string) gin.HandlerFunc {
+// RequireRole 要求用户拥有任一角色名（与 Casbin `role:<name>` 对齐，入参传 name 即可）。
+// 必须在 AuthRequired 之后使用。
+func (m *JWTAuthMiddleware) RequireRole(roleNames ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 从上下文获取用户信息
-		accountID, exists := c.Get(ContextKeyAccountID)
-		if !exists {
+		if m.casbin == nil {
+			core.WriteResponse(c, errors.WithCode(code.ErrInternalServerError, "Authorization engine not configured"), nil)
+			c.Abort()
+			return
+		}
+		userID, ok := c.Get(ContextKeyUserID)
+		if !ok {
 			core.WriteResponse(c, errors.WithCode(code.ErrUnauthorized, "Not authenticated"), nil)
 			c.Abort()
 			return
 		}
+		uid, ok := userID.(string)
+		if !ok || uid == "" {
+			core.WriteResponse(c, errors.WithCode(code.ErrUnauthorized, "Not authenticated"), nil)
+			c.Abort()
+			return
+		}
+		sub := "user:" + uid
+		dom := tenantIDFromGin(c)
+		roles, err := m.casbin.GetRolesForUser(c.Request.Context(), sub, dom)
+		if err != nil {
+			log.Errorw("casbin GetRolesForUser failed", "error", err, "sub", sub, "dom", dom)
+			core.WriteResponse(c, errors.WithCode(code.ErrInternalServerError, "Authorization check failed"), nil)
+			c.Abort()
+			return
+		}
+		want := make(map[string]struct{}, len(roleNames))
+		for _, n := range roleNames {
+			if n == "" {
+				continue
+			}
+			want["role:"+n] = struct{}{}
+		}
+		for _, got := range roles {
+			if _, ok := want[got]; ok {
+				c.Next()
+				return
+			}
+		}
+		core.WriteResponse(c, errors.WithCode(code.ErrPermissionDenied, "Forbidden"), nil)
+		c.Abort()
+	}
+}
 
-		// TODO: 从数据库或缓存查询用户角色
-		// 这里需要注入 AccountRepository 或 RoleService
-		_ = accountID
-		_ = roles
-
-		// 暂时放行,待实现角色系统
+// RequirePermission 对资源键与动作执行 Casbin Enforce（与 PDP 一致）。
+// 必须在 AuthRequired 之后使用。
+func (m *JWTAuthMiddleware) RequirePermission(resourceObj, action string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if m.casbin == nil {
+			core.WriteResponse(c, errors.WithCode(code.ErrInternalServerError, "Authorization engine not configured"), nil)
+			c.Abort()
+			return
+		}
+		userID, ok := c.Get(ContextKeyUserID)
+		if !ok {
+			core.WriteResponse(c, errors.WithCode(code.ErrUnauthorized, "Not authenticated"), nil)
+			c.Abort()
+			return
+		}
+		uid, ok := userID.(string)
+		if !ok || uid == "" {
+			core.WriteResponse(c, errors.WithCode(code.ErrUnauthorized, "Not authenticated"), nil)
+			c.Abort()
+			return
+		}
+		sub := "user:" + uid
+		dom := tenantIDFromGin(c)
+		allowed, err := m.casbin.Enforce(c.Request.Context(), sub, dom, resourceObj, action)
+		if err != nil {
+			log.Errorw("casbin Enforce failed", "error", err, "sub", sub, "dom", dom)
+			core.WriteResponse(c, errors.WithCode(code.ErrInternalServerError, "Authorization check failed"), nil)
+			c.Abort()
+			return
+		}
+		if !allowed {
+			core.WriteResponse(c, errors.WithCode(code.ErrPermissionDenied, "Forbidden"), nil)
+			c.Abort()
+			return
+		}
 		c.Next()
 	}
 }
 
-// RequirePermission 要求特定权限的中间件
-// 必须在 AuthRequired 之后使用
-func (m *JWTAuthMiddleware) RequirePermission(permissions ...string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// 从上下文获取用户信息
-		accountID, exists := c.Get(ContextKeyAccountID)
-		if !exists {
-			core.WriteResponse(c, errors.WithCode(code.ErrUnauthorized, "Not authenticated"), nil)
-			c.Abort()
-			return
-		}
-
-		// TODO: 从数据库或缓存查询用户权限
-		_ = accountID
-		_ = permissions
-
-		// 暂时放行,待实现权限系统
-		c.Next()
+func tenantIDFromGin(c *gin.Context) string {
+	tenantID, exists := c.Get("tenant_id")
+	if !exists {
+		return "default"
 	}
+	if id, ok := tenantID.(string); ok && id != "" {
+		return id
+	}
+	return "default"
 }
 
 // extractToken 从请求中提取令牌
@@ -269,10 +334,10 @@ func GetCurrentSessionID(c *gin.Context) (string, bool) {
 
 // RequireAuth 便捷函数：创建认证必需中间件
 func RequireAuth(tokenService token.TokenApplicationService) gin.HandlerFunc {
-	return NewJWTAuthMiddleware(tokenService).AuthRequired()
+	return NewJWTAuthMiddleware(tokenService, nil).AuthRequired()
 }
 
 // OptionalAuth 便捷函数：创建可选认证中间件
 func OptionalAuth(tokenService token.TokenApplicationService) gin.HandlerFunc {
-	return NewJWTAuthMiddleware(tokenService).AuthOptional()
+	return NewJWTAuthMiddleware(tokenService, nil).AuthOptional()
 }
