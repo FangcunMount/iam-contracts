@@ -327,7 +327,7 @@ docker buildx build \
 /data/ssl/private/fangcunmount.cn.key
 ```
 
-`docker-compose.prod.yml` 中服务以 `user: WWW_UID:WWW_GID`（默认与镜像内 `app` 用户一致）运行；私钥在宿主机若为 `root` 独占且 `600`，挂载进容器后进程仍无法读，需在部署时 `chown` 为该 UID/GID（CI 部署脚本已处理）。手动起容器时请自行对齐权限。
+`docker-compose.prod.yml` 中服务以 `user: WWW_UID:WWW_GID`（默认与镜像内 `app` 用户一致）运行；**宿主机上 `.crt` / `.key` 的属主 UID/GID 必须与之一致**（很多机器上 `WWW_*` 与 `www` 用户相同，旧证书常用 `chown www:www`）。若用 `scp` 拷入变成 `ubuntu:ubuntu` 等，挂载进容器仍会 permission denied。CI 部署脚本会按 `WWW_UID`/`WWW_GID` 做 `chown`；手动部署时请自行对齐。
 
 ### 2. gRPC mTLS 证书
 
