@@ -1,55 +1,65 @@
 # 用户、儿童、Guardianship
 
-本文回答：用户域（`uc`）如何承载**身份锚点**、**儿童档案**与**监护关系**，REST 与 gRPC 如何分工，以及与认证域、授权域的边界。
+本文回答：用户域（代码目录 `uc`）今天负责什么、不负责什么；它在 `iam-apiserver` 中如何组织 `User / Child / Guardianship` 这组对象；以及当前 REST / gRPC 暴露面、存储与真实代码落点分别是什么。
 
-**阅读维度**：Why = 身份与关系事实；What = User / Child / Guardianship；Where = `iam-apiserver` 的 `interface/uc`；Verify = [`api/rest/identity.v1.yaml`](../../api/rest/identity.v1.yaml)、[`api/grpc/iam/identity/v1/identity.proto`](../../api/grpc/iam/identity/v1/identity.proto)、[`configs/mysql/schema.sql`](../../configs/mysql/schema.sql) 中 `users` / `children` / `guardianships`。
+**阅读维度**：Why = 身份与关系事实；What = `User / Child / Guardianship`；Where = `iam-apiserver` 的 `interface/uc`；Verify = [`api/rest/identity.v1.yaml`](../../api/rest/identity.v1.yaml)、[`api/grpc/iam/identity/v1/identity.proto`](../../api/grpc/iam/identity/v1/identity.proto)、[`configs/mysql/schema.sql`](../../configs/mysql/schema.sql) 中 `users / children / guardianships`。
 
 ---
 
 ## 30 秒了解系统
 
-- 三类核心对象：**User**（用户档案与状态）、**Child**（儿童档案）、**Guardianship**（`user_id` × `child_id` 监护关系，含 `relation`、`established_at`、`revoked_at`）。
-- **REST** 前缀 **`/api/v1/identity`**：当前用户用 **`/me`**、**`/me/children`**；儿童注册 **`POST /children/register`** 在应用层为 **「先 `child.Register` 事务，再 `AddGuardian` 事务」** 两步（见 [核心流程](#核心流程儿童注册与监护)）。
-- **gRPC** 拆为 **`IdentityRead`**、**`GuardianshipQuery`**、**`GuardianshipCommand`**、**`IdentityLifecycle`**（[`interface/uc/grpc/identity/service.go`](../../internal/apiserver/interface/uc/grpc/identity/service.go)），偏服务间显式 ID。
-- **不负责**：登录与 Token（[01-authn](./01-authn-认证、Token、JWKS.md)）；角色与策略（[02-authz](./02-authz-角色、策略、资源、Assignment.md)）。
-- **`configs/events.yaml`**：**N/A**（本仓库无统一事件清单）。
+- 用户域的主问题只有两个：先维护“人”和“儿童”这两类身份对象，再维护“谁和哪个儿童是什么关系”的 `Guardianship`。
+- 模块内最重要的对象是：`User / Child / Guardianship`。
+- 当前用户域既有 REST，也有 gRPC：REST 偏“当前登录用户上下文”，gRPC 偏“服务间显式传 ID”。
+- `children/register` 的当前真实写链是“先建 child，再建 guardianship”的两段事务，不是原子闭环。
+- 查询与访问控制大多先从 guardianship 关系出发，再回查 child 或 user。
+- 统一事件清单：**N/A**。本仓库没有 `configs/events.yaml`；`identity.proto` 虽有 stream 合同，但运行时未注册 `IdentityStream`。
 
-| 对照 | REST | gRPC |
-| ---- | ---- | ---- |
-| 典型调用 | 前端/BFF、`/identity/me` 族 | 内部服务、`GetUser` / `IsGuardian` / 生命周期 RPC |
-| 契约 | [`identity.v1.yaml`](../../api/rest/identity.v1.yaml) | [`identity.proto`](../../api/grpc/iam/identity/v1/identity.proto) |
-| 上下文 | JWT → `GetUserID` | 请求体/参数显式传用户/儿童 ID |
+| 主题 | 当前答案 |
+| ---- | ---- |
+| 核心对象 | `User`、`Child`、`Guardianship` |
+| 主存储 | `users`、`children`、`guardianships` |
+| 典型 REST | `/api/v1/identity/me`、`/me/children`、`/children/register`、`/guardians/grant` |
+| 典型 gRPC | `IdentityRead`、`GuardianshipQuery`、`GuardianshipCommand`、`IdentityLifecycle` |
+| 真实契约 | [`api/rest/identity.v1.yaml`](../../api/rest/identity.v1.yaml)、[`api/grpc/iam/identity/v1/identity.proto`](../../api/grpc/iam/identity/v1/identity.proto) |
 
 ### 模块边界
 
-**负责**
+#### 负责
 
-- 用户资料与状态、儿童建档与查询、监护授予/撤销/查询（以代码为准）。
+- 用户资料与状态维护
+- 儿童档案创建、更新、查询
+- 用户与儿童之间监护关系的创建、撤销与查询
+- 服务间用户/儿童/监护关系读写 RPC
 
-**不负责**
+#### 不负责
 
-- 认证颁发、授权判定；进程 mTLS（见 [01-运行时](../01-运行时/README.md)）。
+- 登录、Token、JWKS：见 [01-authn-认证、Token、JWKS.md](./01-authn-认证、Token、JWKS.md)
+- 角色、策略、PDP：见 [02-authz-角色、策略、资源、Assignment.md](./02-authz-角色、策略、资源、Assignment.md)
+- HTTP JWT 中间件与 gRPC 传输安全：见 [../01-运行时/README.md](../01-运行时/README.md)
 
-**依赖**
+#### 依赖
 
-- REST 需 **AuthMiddleware** 注入用户上下文（装配时传入）；与 authz 无聚合依赖。
+- REST 依赖 `AuthMiddleware` 注入当前用户上下文
+- 与 authz 无聚合级依赖
+- 与 authn 的耦合主要体现在 `auth_accounts.user_id -> users.id`
 
 ### 运行时示意图
 
-仅 **`iam-apiserver`**。
+`uc` 只运行在 **`iam-apiserver`** 中。
 
 ```mermaid
 flowchart TB
-  subgraph iam["iam-apiserver"]
-    REST["REST /api/v1/identity"]
+  subgraph iam["iam-apiserver / uc"]
+    REST["REST /api/v1/identity/*"]
     GRPC["gRPC Identity* / Guardianship*"]
     APP["application/uc/*"]
-    UoW["uow UnitOfWork"]
+    UoW["UnitOfWork"]
     DOM["domain/uc/*"]
-    DB[("MySQL users/children/guardianships")]
+    DB[("MySQL users / children / guardianships")]
   end
-  C((Client)) --> REST
-  S((Service)) --> GRPC
+  C((Client / BFF)) --> REST
+  S((Internal Service)) --> GRPC
   REST --> APP
   GRPC --> APP
   APP --> UoW
@@ -57,13 +67,37 @@ flowchart TB
   UoW --> DB
 ```
 
+**图意**：用户域没有拆成独立子进程；REST 和 gRPC 共用同一套应用服务、领域模型和 MySQL 存储。
+
 ---
 
 ## 模型与服务
 
+### 模型关系图
+
+这张图只回答“静态对象如何协作”，不展开建档与查询时序。
+
+```mermaid
+flowchart LR
+  User["User"]
+  Child["Child"]
+  Guard["Guardianship<br/>relation / established_at / revoked_at"]
+  Account["Auth Account（外域引用）"]
+
+  User --> Guard
+  Child --> Guard
+  Account -. "user_id" .-> User
+```
+
+**图意**：当前用户域不是“Child 直接挂在 User 下”，而是通过 `Guardianship` 这层关系对象把两者连起来。`authn` 通过 `user_id` 引到 `User`，但 `User` 仍属于用户域本体。
+
 ### 数据关系（概念 ER）
 
-与 [`configs/mysql/schema.sql`](../../configs/mysql/schema.sql) Module 1 对齐。**`guardianships.user_id` → `users.id`，`child_id` → `children.id`**；**`uk_user_child_ref (user_id, child_id)`** 唯一。
+当前最重要的事实有 3 条：
+
+- `guardianships.user_id -> users.id`
+- `guardianships.child_id -> children.id`
+- `(user_id, child_id)` 有唯一约束
 
 ```mermaid
 erDiagram
@@ -89,122 +123,171 @@ erDiagram
   }
 ```
 
-**字段要点**：`users` 含 `phone`、`email`、`id_card` 等；`children` 含 `height`/`weight`（0.1 单位）等；**`auth_accounts.user_id`** 与 **`users.id`** 衔接见 [01-authn](./01-authn-认证、Token、JWKS.md)。
+### 领域模型与领域服务
 
-### REST 路由（可对照）
+**限界上下文**：用户域负责维护“谁是谁”“哪个儿童是谁”“谁与哪个儿童有何关系”。它不是认证域，也不是授权域。
 
-[`interface/uc/restful/router.go`](../../internal/apiserver/interface/uc/restful/router.go)；**整组 `/api/v1/identity` 在提供 `AuthMiddleware` 时统一挂载**（无单独 public 路由）。
-
-| 方法 | 路径 | 说明 |
+| 概念 | 职责 | 与相邻概念的关系 |
 | ---- | ---- | ---- |
-| GET/PATCH | `/me` | 当前用户资料 |
-| GET | `/me/children` | 当前用户作为监护人的儿童列表 |
-| POST | `/children/register` | 注册儿童 + 为当前用户建监护（handler 两步） |
-| GET | `/children/search` | 儿童搜索 |
-| GET/PATCH | `/children/:id` | 单条儿童 |
-| POST | `/guardians/grant` | 为**指定** `user_id` + `child_id` 授监护 |
+| `User` | 用户档案与状态锚点 | 可被 `authn` 账户引用 |
+| `Child` | 儿童身份对象与档案字段 | 被 `Guardianship` 引用 |
+| `Guardianship` | 监护关系对象 | 把 `User` 与 `Child` 连起来，并记录 `relation / established_at / revoked_at` |
 
-### 分层依赖
+当前 `Guardianship` 模型已经支持：
+
+- `relation`
+- `established_at`
+- `revoked_at`
+
+但当前代码里**没有**这些机制：
+
+- 主监护人 / 次监护人
+- 邀请码 / 待接受状态
+- 最多两个监护人
+- 更重的关系规则编排
+
+### 应用服务设计
 
 ```mermaid
 flowchart TB
   subgraph interface
-    RH[restful handlers]
-    GS[grpc identity 聚合]
+    RH["REST handlers"]
+    GS["gRPC identity services"]
   end
   subgraph application
-    US[user app]
-    CH[child app]
-    GU[guardianship app]
-    UoW[uow]
+    US["user app"]
+    CS["child app"]
+    GSVC["guardianship app/query"]
+    UOW["unit of work"]
   end
   subgraph domain
-    DU[user]
-    DC[child]
-    DG[guardianship]
+    DU["user"]
+    DC["child"]
+    DG["guardianship"]
   end
   subgraph infra
-    MY[mysql repos]
+    MY["mysql repos"]
   end
+
   RH --> US
-  RH --> CH
-  RH --> GU
+  RH --> CS
+  RH --> GSVC
   GS --> US
-  GS --> CH
-  GS --> GU
-  US --> UoW
-  CH --> UoW
-  GU --> UoW
-  UoW --> DU
-  UoW --> DC
-  UoW --> DG
-  UoW --> MY
+  GS --> CS
+  GS --> GSVC
+  US --> UOW
+  CS --> UOW
+  GSVC --> UOW
+  UOW --> DU
+  UOW --> DC
+  UOW --> DG
+  UOW --> MY
 ```
 
-### 领域模型与领域服务
-
-**限界上下文**：维护「谁是谁、儿童是谁、谁与儿童有何关系」；不解决登录、权限产品全家桶。
-
-| 概念 | 职责 |
-| ---- | ---- |
-| `User` | 用户档案与状态（`status` 等） |
-| `Child` | 儿童档案 |
-| `Guardianship` | 用户—儿童关系、`relation`、`revoked_at`/`established_at` |
-
-### 应用服务设计
-
-| 子域 | 命令/查询（节选） | 锚点 |
+| 子域 | 命令 / 查询（节选） | 锚点 |
 | ---- | ------------------ | ---- |
 | User | `UserApplicationService`、`UserProfile`、`UserStatus`、`UserQuery` | [`application/uc/user/`](../../internal/apiserver/application/uc/user/) |
 | Child | `Register`、`ChildProfile`、`ChildQuery` | [`application/uc/child/`](../../internal/apiserver/application/uc/child/) |
-| Guardianship | `AddGuardian`、`RemoveGuardian`、查询 | [`application/uc/guardianship/`](../../internal/apiserver/application/uc/guardianship/) |
+| Guardianship | `AddGuardian`、`RemoveGuardian`、`ListChildrenByUserID`、`IsGuardian` | [`application/uc/guardianship/`](../../internal/apiserver/application/uc/guardianship/) |
 
 ---
 
 ## 核心设计
 
-### REST 与 gRPC 不对称
+### 核心对象模型：`Guardianship` 是关系锚点，不是附属字段
 
-**结论**：同一能力可能两侧都有，但 **REST 强绑定「当前 JWT 用户」**（如 `/me`），gRPC 多 **显式 ID**；不要假设路径一一对称。详情见 [04-身份接入与监护关系边界.md](../03-接口与集成/04-身份接入与监护关系边界.md)。
+**结论**：当前用户域最关键的设计不是 `User` 或 `Child` 本身，而是把关系独立建模为 `Guardianship`。后面的查询、判定、撤销几乎都围绕这张关系表展开。
 
-### gRPC 服务拆分
+| 对象 | 当前作用 |
+| ---- | ---- |
+| `User` | 监护主体、身份锚点 |
+| `Child` | 被监护对象 |
+| `Guardianship` | 关系事实、访问前提、撤销锚点 |
 
-**结论**：[`identity.Service.RegisterService`](../../internal/apiserver/interface/uc/grpc/identity/service.go) 注册 **四个**服务：
+这意味着今天更准确的说法是：
 
-| Proto 服务 | 用途（概括） |
-| ---------- | ------------- |
-| `IdentityRead` | 读用户/儿童 |
-| `GuardianshipQuery` | 监护查询（如 `IsGuardian`） |
-| `GuardianshipCommand` | 监护写 |
-| `IdentityLifecycle` | 用户生命周期（创建/更新/状态等，依赖装配） |
+- “我的孩子”不是 `User.children` 直接展开
+- “能不能看某个 child”本质上先看 guardianship 是否存在
 
-### 核心流程：儿童注册与监护
+### 核心写模型：`children/register` 仍是两段事务
 
-**结论**：[`ChildHandler.RegisterChild`](../../internal/apiserver/interface/uc/restful/handler/child.go) 顺序为：**① `childApp.Register`（独立事务）** → **② `guardApp.AddGuardian`（独立事务）**。若 ② 失败，**儿童记录可能已存在**（需运维/补偿或业务重试）；**不是**单一大事务。  
-**`AddGuardian` 自身**在 [`guardianship/services_impl.go`](../../internal/apiserver/application/uc/guardianship/services_impl.go) 内用 **`uow.WithinTx`** 包裹仓储写入。
+**结论**：`children/register` 当前不是一个原子闭环，而是 handler 串起的两段独立事务。
 
 ```mermaid
 sequenceDiagram
   participant H as ChildHandler
   participant C as ChildApplicationService
   participant G as GuardianshipApplicationService
+
   H->>C: Register (tx1)
   C-->>H: ChildResult
   H->>G: AddGuardian (tx2)
-  G-->>H: ok/err
+  G-->>H: GuardianshipResult / err
 ```
 
-### 核心存储与 `revoked_at`
+当前顺序是：
 
-**结论**：移除/撤销监护走领域 **`RemoveGuardian`** + 仓储 **`Update`**（`revoked_at` 等以领域/PO 为准）。**可验证**：[`infra/mysql/guardianship/repo.go`](../../internal/apiserver/infra/mysql/guardianship/repo.go) 的 **`FindByUserID` 仅 `user_id = ?`，未带 `revoked_at IS NULL`**，故 **`/me/children` 等路径若未在上层过滤，可能仍列出已撤销关系**；`IsGuardian` 同理仅按 user/child 计数，**不区分是否已撤销**。
+1. `childApp.Register(...)`
+2. `guardApp.AddGuardian(...)`
+3. 再查一次关系组回包
+
+**设计边界**：
+
+- 如果第二步失败，`child` 可能已经落库
+- 所以今天不能讲成“注册儿童并授监护已经是单事务闭环”
+
+长链路和风险细节统一看 [../05-专题分析/03-监护关系链路：用户、儿童、Guardianship 的协作.md](../05-专题分析/03-监护关系链路：用户、儿童、Guardianship 的协作.md)。
+
+### 核心查询模型：关系查询先于 child / user 详情查询
+
+**结论**：当前大多数查询和访问控制都先读 guardianship，再去查 child 或 user。
+
+| 场景 | 当前主入口 |
+| ---- | ---- |
+| “我的孩子” | `guardQuery.ListChildrenByUserID(...)` 后再查 child |
+| “我能不能看这个 child” | `guardQuery.GetByUserIDAndChildID(...)` |
+| “某 user 是否是某 child 的监护人” | `guardQuery.IsGuardian(...)` |
+| “列出某个 child 的监护人” | `guardQuery.ListGuardiansByChildID(...)` |
+
+所以这组能力今天更像“关系优先的查询模型”，不是单独的 child 读模型。
+
+### 核心 gRPC 设计：读、写、生命周期拆成 4 个服务
+
+**结论**：gRPC 这层不是一个单一 `IdentityService`，而是按用途拆成 4 个服务。
+
+| Proto 服务 | 当前用途 |
+| ---------- | -------- |
+| `IdentityRead` | 用户 / 儿童读取 |
+| `GuardianshipQuery` | 监护关系查询 |
+| `GuardianshipCommand` | 监护关系写操作 |
+| `IdentityLifecycle` | 用户生命周期管理 |
+
+这条拆分本身就是模块设计的一部分，因为它反映了“读 / 写 / 生命周期”三个面向并不完全相同。
+
+### 核心边界：`revoked_at` 支持写模型，但还没统一进入读链和判定链
+
+**结论**：当前写模型支持通过 `revoked_at` 软撤销关系，但 repo 查询和判定入口仍未统一过滤。
+
+| 方法 | 当前是否显式过滤 `revoked_at` |
+| ---- | ---- |
+| `FindByUserIDAndChildID` | 否 |
+| `FindByUserID` | 否 |
+| `FindByChildID` | 否 |
+| `IsGuardian` | 否 |
+
+这意味着今天更准确的说法是：
+
+- 模型上已经有“撤销关系”
+- 但查询链和判定链还没有把它统一收口
 
 ---
 
 ## 边界与注意事项
 
-- 合同与运行时漂移、路由注册：`04-身份接入与监护关系边界.md`。
-- 长链路协作：`05-专题分析/03-监护关系链路：用户、儿童、Guardianship 的协作.md`。
-- 旧设计稿中的邀请码、主/次监护人等：**非**当前代码默认事实。
+- `GET /identity/guardians` 的合同与 handler 存在，但 router 还没注册；这是接口层边界，不应在模块文里包装成已对外暴露能力。详见 [../03-接口与集成/04-身份接入与监护关系边界.md](../03-接口与集成/04-身份接入与监护关系边界.md)。
+- `children/register` 的两段事务、`revoked_at` 的读链缺口、relation 漂移等，统一在专题层继续展开，不在这里重复铺完整时序。
+- 旧设计稿中的邀请码、主/次监护人、复杂家庭关系规则，都不是当前代码的默认事实。
+- `identity.proto` 里仍有 `IdentityStream` 与部分未实现方法，不能因为合同存在就当成当前运行面已开放。
 
 ---
 
@@ -212,10 +295,11 @@ sequenceDiagram
 
 | 关注点 | 路径 | 说明 |
 | ------ | ---- | ---- |
-| 装配 | `internal/apiserver/container/assembler/user.go` | `UserModule`、UoW、Handler、gRPC 聚合 |
-| REST | `internal/apiserver/interface/uc/restful/router.go` | `/api/v1/identity`、AuthMiddleware |
-| gRPC 聚合 | `internal/apiserver/interface/uc/grpc/service.go` | `Register` → identity |
-| gRPC 实现 | `internal/apiserver/interface/uc/grpc/identity/service.go` | 四服务注册 |
-| gRPC 注册 | `internal/apiserver/server.go` | `UserModule.GRPCService.Register` |
-| 领域 | `internal/apiserver/domain/uc/` | 用户/儿童/监护模型 |
-| 仓储 | `internal/apiserver/infra/mysql/user/`、`child/`、`guardianship/` | |
+| 模块装配 | `internal/apiserver/container/assembler/user.go` | `UserModule`、UoW、REST handler、gRPC 聚合 |
+| REST 路由 | `internal/apiserver/interface/uc/restful/router.go` | `/api/v1/identity` 路由组 |
+| REST child 写链 | `internal/apiserver/interface/uc/restful/handler/child.go` | `children/register` 两段事务起点 |
+| REST guardianship | `internal/apiserver/interface/uc/restful/handler/guardianship.go` | `grant` 与未接通的 `list` |
+| gRPC 聚合 | `internal/apiserver/interface/uc/grpc/identity/service.go` | 4 个服务注册 |
+| 领域模型 | `internal/apiserver/domain/uc/` | `user / child / guardianship` |
+| guardianship 仓储 | `internal/apiserver/infra/mysql/guardianship/repo.go` | `revoked_at` 查询边界 |
+| 真值契约 | `api/rest/identity.v1.yaml`、`api/grpc/iam/identity/v1/identity.proto` | REST / gRPC 合同 |

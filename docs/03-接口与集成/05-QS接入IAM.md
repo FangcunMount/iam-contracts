@@ -15,9 +15,9 @@
 | 场景 | 当前更推荐的入口 | 真实落点 |
 | ---- | ---- | ---- |
 | 先判断 SDK 是否能直接承载场景 | 先看 SDK 价值说明 | [../05-专题分析/04-SDK封装与接入价值.md](../05-专题分析/04-SDK封装与接入价值.md) |
-| 网关或 BFF 校验用户 JWT | SDK `TokenVerifier` + JWKS | [../../pkg/sdk/docs/03-jwt-verification.md](../../pkg/sdk/docs/03-jwt-verification.md)、[../../pkg/sdk/_examples/verifier/main.go](../../pkg/sdk/_examples/verifier/main.go) |
+| 网关或 BFF 校验用户 JWT | SDK `TokenVerifier` + JWKS | [../../pkg/sdk/docs/04-jwt-verification.md](../../pkg/sdk/docs/04-jwt-verification.md)、[../../pkg/sdk/_examples/verifier/main.go](../../pkg/sdk/_examples/verifier/main.go) |
 | 后端服务读取用户 / 儿童 / 监护关系 | SDK `Identity()` / `Guardianship()` | [../../pkg/sdk/docs/01-quick-start.md](../../pkg/sdk/docs/01-quick-start.md)、[../../api/grpc/iam/identity/v1/identity.proto](../../api/grpc/iam/identity/v1/identity.proto) |
-| 服务间获取服务 Token | SDK `ServiceAuthHelper` | [../../pkg/sdk/docs/04-service-auth.md](../../pkg/sdk/docs/04-service-auth.md)、[../../api/grpc/iam/authn/v1/authn.proto](../../api/grpc/iam/authn/v1/authn.proto) |
+| 服务间获取服务 Token | SDK `ServiceAuthHelper` | [../../pkg/sdk/docs/05-service-auth.md](../../pkg/sdk/docs/05-service-auth.md)、[../../api/grpc/iam/authn/v1/authn.proto](../../api/grpc/iam/authn/v1/authn.proto) |
 | 查看 gRPC 合同与 metadata | gRPC 契约解释层 | [02-gRPC契约与接入.md](./02-gRPC契约与接入.md)、[../../api/grpc/README.md](../../api/grpc/README.md) |
 | 查看 REST 路径与公开 JWKS | REST 契约解释层 | [01-REST契约与接入.md](./01-REST契约与接入.md)、[../../api/rest/authn.v1.yaml](../../api/rest/authn.v1.yaml) |
 | 身份与监护边界 | 身份接入边界文档 | [04-身份接入与监护关系边界.md](./04-身份接入与监护关系边界.md) |
@@ -53,7 +53,7 @@ SDK 已经提供：
 
 对应资料：
 
-- [../../pkg/sdk/docs/03-jwt-verification.md](../../pkg/sdk/docs/03-jwt-verification.md)
+- [../../pkg/sdk/docs/04-jwt-verification.md](../../pkg/sdk/docs/04-jwt-verification.md)
 - [../../pkg/sdk/_examples/verifier/main.go](../../pkg/sdk/_examples/verifier/main.go)
 - [../../api/rest/authn.v1.yaml](../../api/rest/authn.v1.yaml) 中的 `/.well-known/jwks.json`
 
@@ -94,7 +94,7 @@ SDK 当前已经把最常用的服务收成统一入口：
 
 如果 `qs` 的后端服务需要稳定调用 IAM 或其它内部 gRPC 服务，当前优先看：
 
-- [../../pkg/sdk/docs/04-service-auth.md](../../pkg/sdk/docs/04-service-auth.md)
+- [../../pkg/sdk/docs/05-service-auth.md](../../pkg/sdk/docs/05-service-auth.md)
 - [../../pkg/sdk/_examples/service_auth/main.go](../../pkg/sdk/_examples/service_auth/main.go)
 
 当前可证明的能力包括：
@@ -156,8 +156,8 @@ SDK 当前已经把最常用的服务收成统一入口：
 如果你现在就要让 `qs` 接 IAM，建议按这个顺序读：
 
 1. [../../pkg/sdk/docs/01-quick-start.md](../../pkg/sdk/docs/01-quick-start.md)
-2. [../../pkg/sdk/docs/03-jwt-verification.md](../../pkg/sdk/docs/03-jwt-verification.md)
-3. [../../pkg/sdk/docs/04-service-auth.md](../../pkg/sdk/docs/04-service-auth.md)
+2. [../../pkg/sdk/docs/04-jwt-verification.md](../../pkg/sdk/docs/04-jwt-verification.md)
+3. [../../pkg/sdk/docs/05-service-auth.md](../../pkg/sdk/docs/05-service-auth.md)
 4. [02-gRPC契约与接入.md](./02-gRPC契约与接入.md)
 5. [04-身份接入与监护关系边界.md](./04-身份接入与监护关系边界.md)
 6. [../01-运行时/02-gRPC与mTLS.md](../01-运行时/02-gRPC与mTLS.md)

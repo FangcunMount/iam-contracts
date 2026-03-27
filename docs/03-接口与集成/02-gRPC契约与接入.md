@@ -1,6 +1,15 @@
 # gRPC 契约与接入
 
-本文回答：`iam-contracts` 当前对外暴露了哪些 gRPC 服务、调用方应如何理解 `proto`、metadata、错误语义和调试入口，以及这些合同与运行时文档如何分工。
+## 本文回答
+
+本文只回答 6 件事：
+
+1. gRPC 契约层与解释层今天怎么分工
+2. 当前已暴露的 gRPC 服务到底有哪些
+3. Proto 布局今天怎么读
+4. metadata、超时、错误语义这些调用约定今天怎么理解
+5. 生成与调试入口在哪里
+6. 它和运行时文档应该怎么分工
 
 ## 30 秒结论
 
@@ -24,7 +33,27 @@
 | 代码生成 | Proto 生成脚本 | [../../scripts/proto/generate.sh](../../scripts/proto/generate.sh) |
 | 运行时安全 | mTLS / ACL / 健康检查 | [../01-运行时/02-gRPC与mTLS.md](../01-运行时/02-gRPC与mTLS.md) |
 
-## 1. 契约层与解释层的分工
+## 1. gRPC 契约层与解释层今天怎么分工
+
+```mermaid
+flowchart LR
+    Proto["api/grpc/**/*.proto<br/>gRPC 机器契约"]
+    Readme["api/grpc/README.md<br/>契约消费说明"]
+    Docs["docs/03-接口与集成<br/>解释层"]
+    Runtime["server.go + interface/*/grpc<br/>运行时注册"]
+    Gen["make proto-gen<br/>生成链"]
+    Caller["内部服务 / SDK / grpcurl"]
+
+    Proto --> Readme
+    Proto --> Docs
+    Proto --> Runtime
+    Proto --> Gen
+    Readme --> Caller
+    Docs --> Caller
+    Runtime --> Caller
+```
+
+**图意**：gRPC 接入的正确读法是“先看 proto 和 `api/grpc/README` 定义了什么，再看运行时到底注册了什么”。`docs/03` 负责解释消费方式和边界，不替代 Proto 自身。
 
 | 层 | 主要回答什么 |
 | ---- | ---- |
@@ -37,7 +66,7 @@
 - 字段、枚举、service 定义变化，应优先改 `proto`
 - README 和 `docs/` 只负责解释和导航，不应成为第二真值源
 
-## 2. 当前已暴露的 gRPC 服务
+## 2. 当前已暴露的 gRPC 服务到底有哪些
 
 根据当前代码注册点，实际暴露的服务如下：
 
@@ -56,7 +85,7 @@
 
 - 某个 `proto` 中存在的方法，如果当前未被 `Register...Server(...)` 注册，只能写成合同能力或未来能力，不能写成当前运行面（`AuthorizationService` 见 [server.go](../../internal/apiserver/server.go)）。
 
-## 3. Proto 布局
+## 3. Proto 布局今天怎么读
 
 ```text
 api/grpc/
@@ -74,7 +103,7 @@ api/grpc/
 | `identity/v1/identity.proto` | 用户、儿童、监护关系、身份生命周期 |
 | `idp/v1/idp.proto` | 微信应用等 IDP 能力 |
 
-## 4. 调用约定
+## 4. metadata、超时、错误语义这些调用约定今天怎么理解
 
 这部分以 [../../api/grpc/README.md](../../api/grpc/README.md) 为主，这里只保留最核心的接入摘要。
 
@@ -103,7 +132,7 @@ api/grpc/
 - `UNAUTHENTICATED`
 - `INTERNAL`
 
-## 5. 调试与生成
+## 5. 生成与调试入口在哪里
 
 | 动作 | 入口 |
 | ---- | ---- |
@@ -112,7 +141,7 @@ api/grpc/
 | 查看 gRPC 使用说明 | [../../api/grpc/README.md](../../api/grpc/README.md) |
 | grpcurl / Go 示例 | [../../api/grpc/README.md](../../api/grpc/README.md) |
 
-## 6. 与运行时文档的边界
+## 6. 它和运行时文档应该怎么分工
 
 本文不展开这些问题：
 
@@ -123,7 +152,7 @@ api/grpc/
 
 这些都应回到 [../01-运行时/02-gRPC与mTLS.md](../01-运行时/02-gRPC与mTLS.md)。
 
-## 7. 继续往下读
+## 继续往下读
 
 | 文档 | 说明 |
 | ---- | ---- |

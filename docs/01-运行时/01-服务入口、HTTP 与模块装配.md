@@ -1,6 +1,14 @@
 # 服务入口、HTTP 与模块装配
 
-本文回答：`iam-contracts` 的 `iam-apiserver` 进程是怎么启动的，HTTP / REST 路由与模块如何装配，以及今天哪些模块初始化失败后系统仍会继续启动。
+## 本文回答
+
+本文只回答 5 件事：
+
+1. `iam-apiserver` 是怎么从入口走到运行态的
+2. `PrepareRun()` 今天到底做了什么
+3. 模块初始化顺序与容错方式今天怎么读
+4. HTTP 暴露面今天包括什么
+5. 路由与认证中间件的真实关系是什么
 
 ## 30 秒结论
 
@@ -8,7 +16,7 @@
 - `createAPIServer()` 会同时构建 HTTP 服务器、gRPC 服务器和数据库管理器；`PrepareRun()` 再初始化数据库、EventBus、容器、路由、gRPC 服务和后台调度器。
 - 容器初始化顺序是：`IDP -> Authn -> User -> Authz -> Suggest`；单个模块初始化失败会记录 warning，但不会立刻让整个进程退出。
 - HTTP 路由由集中式 [../../internal/apiserver/routers.go](../../internal/apiserver/routers.go) 注册，当前主分组是：`authn`、`authz`、`idp`、`identity(user)`、`suggest`，另外还有 `/health`、`/ping`、`/debug/*`、`/swagger`、`/openapi`。
-- 当前只有 `user`、`suggest` 和 `/api/v1/admin/*` 明确消费了中央创建的 JWT 中间件；`authz` 与 `idp` 并没有在 router 层统一挂上 `AuthRequired()`。
+- 当前 `user`、`authz`、`suggest` 和 `/api/v1/admin/*` 都会消费中央创建的 JWT 中间件；`authn` 以公开登录/JWKS 为主，`idp` 当前仍没有在 router 层统一挂上 `AuthRequired()`。
 
 ## 重点速查
 
@@ -26,7 +34,7 @@
 | IDP 模块路由 | `/api/v1/idp/*` | [../../internal/apiserver/interface/idp/restful/router.go](../../internal/apiserver/interface/idp/restful/router.go) |
 | Suggest 路由 | `/api/v1/suggest/child` | [../../internal/apiserver/interface/suggest/restful/handler.go](../../internal/apiserver/interface/suggest/restful/handler.go) |
 
-## 1. 启动链
+## 1. `iam-apiserver` 是怎么从入口走到运行态的
 
 ### 1.1 入口到运行
 
@@ -56,7 +64,7 @@ flowchart LR
 - HTTP 与 gRPC 共用同一套容器和模块装配
 - 模块初始化与路由注册都发生在 `PrepareRun()`
 
-## 2. `PrepareRun()` 到底做了什么
+## 2. `PrepareRun()` 今天到底做了什么
 
 [../../internal/apiserver/server.go](../../internal/apiserver/server.go) 当前 `PrepareRun()` 的主动作是：
 
@@ -76,7 +84,7 @@ flowchart LR
 - Router 负责 HTTP 暴露面
 - gRPC 注册单独走 `registerGRPCServices()`
 
-## 3. 模块初始化顺序与容错方式
+## 3. 模块初始化顺序与容错方式今天怎么读
 
 ### 3.1 初始化顺序
 
@@ -107,7 +115,7 @@ flowchart LR
 - “系统支持部分模块降级启动”
 - 不是“任一模块失败都会阻止整个进程启动”
 
-## 4. HTTP 暴露面
+## 4. HTTP 暴露面今天包括什么
 
 ### 4.1 基础路由
 
@@ -130,7 +138,7 @@ flowchart LR
 | 模块 | 路由前缀 | 当前说明 |
 | ---- | ---- | ---- |
 | `authn` | `/api/v1/authn` | 登录、刷新、登出、verify、accounts、JWKS 管理 |
-| `authz` | `/api/v1/authz` | 角色、策略、资源、Assignment 管理面 |
+| `authz` | `/api/v1/authz` | 角色、策略、资源、Assignment 管理面与单次 PDP |
 | `idp` | `/api/v1/idp` | 微信应用管理与令牌相关接口 |
 | `user` | `/api/v1/identity` | me、children、guardianship 等身份接口 |
 | `suggest` | `/api/v1/suggest` | 联想搜索接口 |
@@ -141,25 +149,25 @@ flowchart LR
 - `/.well-known/jwks.json`
 - `/api/v1/.well-known/jwks.json`
 
-## 5. 路由与认证中间件的真实关系
+## 5. 路由与认证中间件的真实关系是什么
 
 中央 router 当前只在拿到 `AuthnModule.TokenService` 时创建 `JWTAuthMiddleware`。
 
 随后它把这个中间件用在：
 
 - `user` 模块：作为 `Dependencies.AuthMiddleware` 注入，并对 `/api/v1/identity` 整组生效
+- `authz` 模块：作为 `Dependencies.AuthMiddleware` 注入，并对 `/api/v1/authz` 整组生效（`/health` 例外）
 - `suggest` 模块：作为 `Dependencies.AuthMiddleware` 注入，并对 `/api/v1/suggest` 生效
 - `/api/v1/admin`：如果中间件存在，则整组挂 `AuthRequired()`
 
 当前没有统一挂上的：
 
 - `authn`
-- `authz`
 - `idp`
 
 这不是“设计上一定不需要认证”，只是当前 router 层的真实状态。
 
-## 6. 当前最值得先记住的运行时边界
+## 6. 当前保证与风险边界
 
 ### 已实现
 
@@ -168,6 +176,7 @@ flowchart LR
 - 集中式 HTTP 路由注册
 - 部分模块失败时的降级启动
 - JWT 中间件的中央创建与注入
+- `user / authz / suggest / admin` 这几组运行面都已接入同一套中央 JWT 中间件
 
 ### 待补证据
 
@@ -177,7 +186,7 @@ flowchart LR
 
 - 如果未来要把 `authz` 的统一保护或更多运行时面再拆分，应在本层单独区分“当前 router 实现”和“未来统一接入方案”
 
-## 7. 继续往下读
+## 继续往下读
 
 1. [02-gRPC与mTLS.md](./02-gRPC与mTLS.md)
 2. [03-HTTP认证中间件与身份上下文.md](./03-HTTP认证中间件与身份上下文.md)

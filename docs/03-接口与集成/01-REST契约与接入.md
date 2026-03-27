@@ -1,13 +1,22 @@
 # REST 契约与接入
 
-本文回答：`iam-contracts` 当前对外暴露了哪些 REST 合同、调用方应如何理解 `api/rest`、运行时路由、Swagger 生成物与验证链，以及接入时哪些地方已经实现、哪些地方还不能讲过头。
+## 本文回答
+
+本文只回答 6 件事：
+
+1. REST 契约层与解释层今天怎么分工
+2. 当前 REST 合同版图到底是什么
+3. 当前路由注册与鉴权边界怎么读
+4. 生成、重置与校验链今天怎么用
+5. 接入方今天更推荐按什么顺序阅读
+6. 运行时要去哪里继续核对
 
 ## 30 秒结论
 
 - REST 的机器契约以 [../../api/rest/](../../api/rest/) 下的 `OpenAPI 3.1` 文件为准，`docs/` 只负责解释如何接入、如何验证、如何找到真实代码落点。
 - 当前 REST 合同已经拆成 5 份：`authn`、`identity`、`authz`、`idp`、`suggest`；真实路由注册点分别落在 `internal/apiserver/interface/*/restful`，统一装配入口在 [../../internal/apiserver/routers.go](../../internal/apiserver/routers.go)。
 - `internal/apiserver/docs/swagger.yaml` 和运行时 `/swagger/`、`/openapi/` 都是派生工件或调试入口，不是独立真值层；提交前应优先看 `api/rest/*.yaml`，再用 `make api-validate` 校验有没有漂移。
-- 鉴权边界不能只靠概括性 README 判断：`identity` 与 `suggest` 在路由层明确挂了 JWT 中间件；`authn` 以公开登录/JWKS 为主；`authz` 与 `idp` 当前没有在 router 层统一挂 JWT。
+- 鉴权边界不能只靠概括性 README 判断：`identity`、`authz` 与 `suggest` 在路由层明确挂了 JWT 中间件；`authn` 以公开登录/JWKS 为主；`idp` 当前没有在 router 层统一挂 JWT。
 - [../../api/rest/README.md](../../api/rest/README.md) 里仍有一批历史示例路径沿用旧写法，例如 `/api/v1/auth/*`、`/api/v1/children/*`；接入时应优先相信逐份 YAML 和真实 router，而不是只看这份总 README。
 
 ## 重点速查
@@ -26,7 +35,27 @@
 | 路径重置入口 | 从 swagger 拆分回 `api/rest/*.yaml` | `make docs-reset`、[../../scripts/reset-openapi-from-swagger.py](../../scripts/reset-openapi-from-swagger.py) |
 | 本地 REST 监听 | 开发环境 `18081/18441` | [../04-基础设施与运维/04-端口、证书与数据库迁移.md](../04-基础设施与运维/04-端口、证书与数据库迁移.md)、[../../configs/apiserver.dev.yaml](../../configs/apiserver.dev.yaml) |
 
-## 1. 契约层与解释层的分工
+## 1. REST 契约层与解释层今天怎么分工
+
+```mermaid
+flowchart LR
+    Contract["api/rest/*.yaml<br/>REST 机器契约"]
+    Docs["docs/03-接口与集成<br/>解释层"]
+    Runtime["interface/*/restful + routers.go<br/>运行时注册"]
+    Swagger["internal/apiserver/docs/swagger.yaml<br/>生成物"]
+    Validate["make api-validate<br/>校验链"]
+    Caller["接入方 / 调试者"]
+
+    Contract --> Docs
+    Contract --> Runtime
+    Runtime --> Swagger
+    Contract --> Validate
+    Swagger --> Validate
+    Docs --> Caller
+    Contract --> Caller
+```
+
+**图意**：REST 接入不是“只看 OpenAPI”或“只看 handler”。更准确的读法是：`api/rest` 给合同，router/handler 给运行时真相，`docs/` 给消费建议，swagger 与 `make api-validate` 负责把这几层拉回一致。
 
 | 层 | 主要回答什么 |
 | ---- | ---- |
@@ -41,7 +70,7 @@
 - 改 handler 注解、路由注册或模型后，要重新生成并校验 swagger
 - `docs/` 不应该再复制一遍字段定义，只做导航、边界说明和验证指路
 
-## 2. 当前 REST 合同版图
+## 2. 当前 REST 合同版图到底是什么
 
 ### 2.1 合同文件与模块映射
 
@@ -81,7 +110,7 @@
 2. 再看对应 router / handler
 3. 最后把 `api/rest/README.md` 当总导航，而不是当逐路径的最终依据
 
-## 3. 当前路由注册与鉴权边界
+## 3. 当前路由注册与鉴权边界怎么读
 
 ### 3.1 路由层已经明确能证明的部分
 
@@ -91,7 +120,7 @@
 | `/api/v1/authn/*` 登录 / 刷新 / 验证 / 账户 | `已实现`：当前 router 层未统一挂 JWT 中间件 | [../../internal/apiserver/interface/authn/restful/router.go](../../internal/apiserver/interface/authn/restful/router.go) |
 | `/api/v1/identity/*` | `已实现`：当前在 `api` 组上统一 `Use(deps.AuthMiddleware)` | [../../internal/apiserver/interface/uc/restful/router.go](../../internal/apiserver/interface/uc/restful/router.go) |
 | `/api/v1/suggest/*` | `已实现`：当前在 `group` 上按依赖注入情况挂 JWT 中间件 | [../../internal/apiserver/interface/suggest/restful/handler.go](../../internal/apiserver/interface/suggest/restful/handler.go) |
-| `/api/v1/authz/*` | `待补证据`：当前 router 层没有统一 JWT guard | [../../internal/apiserver/interface/authz/restful/router.go](../../internal/apiserver/interface/authz/restful/router.go) |
+| `/api/v1/authz/*` | `已实现`：`/health` 外当前统一挂 `AuthMiddleware` | [../../internal/apiserver/interface/authz/restful/router.go](../../internal/apiserver/interface/authz/restful/router.go)、[../../internal/apiserver/routers.go](../../internal/apiserver/routers.go) |
 | `/api/v1/idp/*` | `待补证据`：当前 router 层没有统一 JWT guard | [../../internal/apiserver/interface/idp/restful/router.go](../../internal/apiserver/interface/idp/restful/router.go) |
 
 ### 3.2 不要讲过头的地方
@@ -100,7 +129,7 @@
 - 不要把“README 里写了某条路径”直接讲成“当前运行时就是这条路径”
 - 不要把“某个 handler 上有 Swagger 注解”直接讲成“它已经被对外正式承诺”；仍要回看 router 是否真的注册
 
-## 4. 生成、重置与校验链
+## 4. 生成、重置与校验链今天怎么用
 
 当前 REST 合同维护链是明确存在的：
 
@@ -130,7 +159,7 @@
 - `suggest.v1.yaml` 虽然存在，也有 runtime route，但当前没有被 `check-openapi-contracts.py` / `check-route-contracts.py` 纳入同级别漂移校验
 - 如果后续把 `suggest` 提升为更稳定的对外合同，应优先补上这条校验链
 
-## 5. 接入方推荐读法
+## 5. 接入方今天更推荐按什么顺序阅读
 
 ### 5.1 如果你是前端或外部集成方
 
@@ -149,7 +178,7 @@
 4. `make api-validate`
 5. 同步更新本组解释文档或对应业务域文档
 
-## 6. 运行时查看入口
+## 6. 运行时要去哪里继续核对
 
 除了仓库文件本身，当前进程还暴露了两个与 REST 合同相关的查看入口：
 
@@ -160,7 +189,7 @@
 
 这两个入口更适合调试和人工浏览；正式接入与代码评审，仍应回到仓库里的合同文件与校验命令。
 
-## 7. 继续往下读
+## 继续往下读
 
 | 文档 | 说明 |
 | ---- | ---- |
