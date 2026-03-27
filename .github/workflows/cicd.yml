@@ -453,6 +453,12 @@ jobs:
               exit 1
             fi
 
+            # compose 中 iam-apiserver 以 user: WWW_UID:WWW_GID 运行；bind 挂载保留宿主机权限，
+            # 若私钥仅为 root 可读则容器内会 permission denied，需与运行 UID 对齐。
+            $SUDO chown "$APP_UID:$APP_GID" "$CERT_HOST_PATH" "$KEY_HOST_PATH"
+            $SUDO chmod 0644 "$CERT_HOST_PATH"
+            $SUDO chmod 0640 "$KEY_HOST_PATH"
+
             TLS_MOUNTS="-v $CERT_HOST_PATH:/etc/iam-contracts/ssl/fangcunmount.cn.crt:ro \
                         -v $KEY_HOST_PATH:/etc/iam-contracts/ssl/fangcunmount.cn.key:ro"
             # ===========================================================
@@ -530,7 +536,10 @@ jobs:
                 exit 1
               fi
             done
-            echo "✅ gRPC certs found under $GRPC_DIR_HOST (permissions kept as-is; adjust manually if needed)"
+            $SUDO chown "$APP_UID:$APP_GID" "$GRPC_CA" "$GRPC_CRT" "$GRPC_KEY"
+            $SUDO chmod 0644 "$GRPC_CA" "$GRPC_CRT"
+            $SUDO chmod 0640 "$GRPC_KEY"
+            echo "✅ gRPC certs found under $GRPC_DIR_HOST (ownership aligned to container user)"
 
             # 导出运行所需环境变量（供 compose 内插值）
             export DOCKER_REGISTRY IMAGE_NAME IMAGE_TAG
