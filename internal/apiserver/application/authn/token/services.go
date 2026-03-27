@@ -2,6 +2,7 @@ package token
 
 import (
 	"context"
+	"time"
 
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 )
@@ -10,6 +11,9 @@ import (
 
 // TokenApplicationService 令牌应用服务 - 令牌管理
 type TokenApplicationService interface {
+	// IssueServiceToken 签发服务间访问令牌。
+	IssueServiceToken(ctx context.Context, req IssueServiceTokenRequest) (*TokenIssueResult, error)
+
 	// RefreshToken 刷新访问令牌
 	RefreshToken(ctx context.Context, refreshToken string) (*TokenRefreshResult, error)
 
@@ -24,6 +28,19 @@ type TokenApplicationService interface {
 }
 
 // ============= DTOs =============
+
+// IssueServiceTokenRequest 服务令牌签发请求。
+type IssueServiceTokenRequest struct {
+	Subject    string
+	Audience   []string
+	TTL        time.Duration
+	Attributes map[string]string
+}
+
+// TokenIssueResult 令牌签发结果 DTO。
+type TokenIssueResult struct {
+	TokenPair *domain.TokenPair
+}
 
 // TokenRefreshResult 令牌刷新结果DTO
 type TokenRefreshResult struct {

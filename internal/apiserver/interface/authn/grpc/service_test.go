@@ -1,0 +1,96 @@
+package grpc
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	authnv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/authn/v1"
+	tokenApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
+	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/structpb"
+)
+
+type tokenServiceStub struct {
+	issueReq tokenApp.IssueServiceTokenRequest
+	issueRes *tokenApp.TokenIssueResult
+	issueErr error
+}
+
+func (s *tokenServiceStub) IssueServiceToken(ctx context.Context, req tokenApp.IssueServiceTokenRequest) (*tokenApp.TokenIssueResult, error) {
+	s.issueReq = req
+	return s.issueRes, s.issueErr
+}
+
+func (s *tokenServiceStub) RefreshToken(ctx context.Context, refreshToken string) (*tokenApp.TokenRefreshResult, error) {
+	return nil, nil
+}
+
+func (s *tokenServiceStub) RevokeToken(ctx context.Context, accessToken string) error {
+	return nil
+}
+
+func (s *tokenServiceStub) RevokeRefreshToken(ctx context.Context, refreshToken string) error {
+	return nil
+}
+
+func (s *tokenServiceStub) VerifyToken(ctx context.Context, accessToken string) (*tokenApp.TokenVerifyResult, error) {
+	return &tokenApp.TokenVerifyResult{
+		Valid: true,
+		Claims: tokenDomain.NewTokenClaims(
+			tokenDomain.TokenTypeAccess,
+			"tid",
+			"user:1",
+			meta.FromUint64(1),
+			meta.FromUint64(2),
+			"iam",
+			[]string{"test"},
+			nil,
+			time.Now(),
+			time.Now().Add(time.Minute),
+		),
+	}, nil
+}
+
+func TestAuthServiceServerIssueServiceToken(t *testing.T) {
+	serviceToken := tokenDomain.NewServiceToken("sid", "jwt-service-token", "service:qs-server", []string{"iam-service"}, map[string]string{"scope": "internal"}, time.Hour)
+	stub := &tokenServiceStub{
+		issueRes: &tokenApp.TokenIssueResult{
+			TokenPair: tokenDomain.NewTokenPair(serviceToken, nil),
+		},
+	}
+	srv := &authServiceServer{tokenSvc: stub}
+
+	attrs, err := structpb.NewStruct(map[string]any{"scope": "internal", "level": 2})
+	require.NoError(t, err)
+
+	resp, err := srv.IssueServiceToken(context.Background(), &authnv1.IssueServiceTokenRequest{
+		Subject:    "service:qs-server",
+		Audience:   []string{"iam-service"},
+		Ttl:        durationpb.New(time.Hour),
+		Attributes: attrs,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.TokenPair)
+	require.Equal(t, "jwt-service-token", resp.TokenPair.AccessToken)
+	require.Equal(t, "Bearer", resp.TokenPair.TokenType)
+	require.Equal(t, "service:qs-server", stub.issueReq.Subject)
+	require.Equal(t, []string{"iam-service"}, stub.issueReq.Audience)
+	require.Equal(t, time.Hour, stub.issueReq.TTL)
+	require.Equal(t, "internal", stub.issueReq.Attributes["scope"])
+	require.Equal(t, "2", stub.issueReq.Attributes["level"])
+}
+
+func TestAuthServiceServerIssueServiceTokenValidation(t *testing.T) {
+	srv := &authServiceServer{tokenSvc: &tokenServiceStub{}}
+
+	_, err := srv.IssueServiceToken(context.Background(), &authnv1.IssueServiceTokenRequest{})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}

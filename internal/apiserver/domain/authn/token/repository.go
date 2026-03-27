@@ -49,6 +49,9 @@ type TokenGenerator interface {
 	//   - token: 令牌对象（包含 JWT 字符串）
 	GenerateAccessToken(ctx context.Context, principal *authentication.Principal, expiresIn time.Duration) (*Token, error)
 
+	// GenerateServiceToken 生成服务间访问令牌（JWT）。
+	GenerateServiceToken(ctx context.Context, subject string, audience []string, attributes map[string]string, expiresIn time.Duration) (*Token, error)
+
 	// ParseAccessToken 解析访问令牌
 	//
 	// 参数:

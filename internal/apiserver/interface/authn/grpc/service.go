@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -135,8 +136,40 @@ func (s *authServiceServer) RevokeRefreshToken(ctx context.Context, req *authnv1
 	return &authnv1.RevokeRefreshTokenResponse{}, nil
 }
 
-func (s *authServiceServer) IssueServiceToken(context.Context, *authnv1.IssueServiceTokenRequest) (*authnv1.IssueServiceTokenResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "issue service token not supported")
+func (s *authServiceServer) IssueServiceToken(ctx context.Context, req *authnv1.IssueServiceTokenRequest) (*authnv1.IssueServiceTokenResponse, error) {
+	if s.tokenSvc == nil {
+		return nil, status.Error(codes.Unimplemented, "token service not configured")
+	}
+	if req == nil || strings.TrimSpace(req.GetSubject()) == "" {
+		return nil, status.Error(codes.InvalidArgument, "subject is required")
+	}
+
+	var ttl time.Duration
+	if req.GetTtl() != nil {
+		ttl = req.GetTtl().AsDuration()
+		if ttl < 0 {
+			return nil, status.Error(codes.InvalidArgument, "ttl must be non-negative")
+		}
+	}
+
+	var attrs map[string]string
+	if req.GetAttributes() != nil {
+		attrs = structToStringMap(req.GetAttributes().AsMap())
+	}
+
+	result, err := s.tokenSvc.IssueServiceToken(ctx, tokenApp.IssueServiceTokenRequest{
+		Subject:    strings.TrimSpace(req.GetSubject()),
+		Audience:   cloneAudience(req.GetAudience()),
+		TTL:        ttl,
+		Attributes: attrs,
+	})
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	return &authnv1.IssueServiceTokenResponse{
+		TokenPair: toProtoTokenPair(result.TokenPair),
+	}, nil
 }
 
 func (s *jwksServiceServer) GetJWKS(ctx context.Context, req *authnv1.GetJWKSRequest) (*authnv1.GetJWKSResponse, error) {
@@ -175,21 +208,34 @@ func toProtoTokenClaims(claims *tokenDomain.TokenClaims) *authnv1.TokenClaims {
 	if claims == nil {
 		return nil
 	}
-	return &authnv1.TokenClaims{
-		TokenId:   claims.TokenID,
-		UserId:    claims.UserID.String(),
-		AccountId: claims.AccountID.String(),
-		IssuedAt:  timestamppb.New(claims.IssuedAt),
-		ExpiresAt: timestamppb.New(claims.ExpiresAt),
+	resp := &authnv1.TokenClaims{
+		TokenId:    claims.TokenID,
+		Subject:    claims.Subject,
+		Issuer:     claims.Issuer,
+		Audience:   cloneAudience(claims.Audience),
+		Attributes: cloneAttributes(claims.Attributes),
+		IssuedAt:   timestamppb.New(claims.IssuedAt),
+		ExpiresAt:  timestamppb.New(claims.ExpiresAt),
 	}
+	if !claims.UserID.IsZero() {
+		resp.UserId = claims.UserID.String()
+	}
+	if !claims.AccountID.IsZero() {
+		resp.AccountId = claims.AccountID.String()
+	}
+	return resp
 }
 
 func buildTokenMetadata(claims *tokenDomain.TokenClaims) *authnv1.TokenMetadata {
 	if claims == nil {
 		return nil
 	}
+	tokenType := authnv1.TokenType_TOKEN_TYPE_ACCESS
+	if claims.TokenType == tokenDomain.TokenTypeService {
+		tokenType = authnv1.TokenType_TOKEN_TYPE_SERVICE
+	}
 	return &authnv1.TokenMetadata{
-		TokenType: authnv1.TokenType_TOKEN_TYPE_ACCESS,
+		TokenType: tokenType,
 		Status:    authnv1.TokenStatus_TOKEN_STATUS_VALID,
 		IssuedAt:  timestamppb.New(claims.IssuedAt),
 		ExpiresAt: timestamppb.New(claims.ExpiresAt),
@@ -222,4 +268,35 @@ func toGRPCError(err error) error {
 		return status.Error(codes.Internal, coder.String())
 	}
 	return status.Error(codes.Internal, err.Error())
+}
+
+func cloneAudience(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]string, len(in))
+	copy(out, in)
+	return out
+}
+
+func cloneAttributes(in map[string]string) map[string]string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func structToStringMap(s map[string]any) map[string]string {
+	if len(s) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(s))
+	for k, v := range s {
+		out[k] = fmt.Sprint(v)
+	}
+	return out
 }

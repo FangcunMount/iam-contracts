@@ -2,6 +2,7 @@ package token
 
 import (
 	"context"
+	"time"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 )
@@ -21,6 +22,9 @@ type Issuer interface {
 	//   - TokenPair: 访问令牌和刷新令牌对
 	//   - err: 错误信息
 	IssueToken(ctx context.Context, principal *authentication.Principal) (*TokenPair, error)
+
+	// IssueServiceToken 签发服务间访问令牌。
+	IssueServiceToken(ctx context.Context, subject string, audience []string, attributes map[string]string, ttl time.Duration) (*TokenPair, error)
 
 	// RevokeToken 撤销令牌
 	RevokeToken(ctx context.Context, tokenValue string) error

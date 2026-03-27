@@ -14,6 +14,7 @@ import (
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 )
 
 // Generator JWT 令牌生成器（使用 JWKS 的 RSA 密钥签名）
@@ -38,8 +39,11 @@ func NewGenerator(
 
 // CustomClaims 自定义 JWT Claims
 type CustomClaims struct {
-	UserID    uint64 `json:"user_id"`
-	AccountID uint64 `json:"account_id"`
+	TokenType  string            `json:"token_type,omitempty"`
+	UserID     uint64            `json:"user_id,omitempty"`
+	AccountID  uint64            `json:"account_id,omitempty"`
+	Audience   []string          `json:"audience,omitempty"`
+	Attributes map[string]string `json:"attributes,omitempty"`
 	jwt.StandardClaims
 }
 
@@ -47,28 +51,10 @@ type CustomClaims struct {
 // 使用 JWKS 中的活跃 RSA 密钥进行签名
 func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authentication.Principal, expiresIn time.Duration) (*domain.Token, error) {
 	now := time.Now()
-	zeroID := meta.FromUint64(0)
-	tokenID := zeroID.String() // 生成唯一 Token ID
-
-	// 获取当前活跃的密钥
-	activeKey, err := g.keyMgmt.GetActiveKey(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get active key: %w", err)
-	}
-
-	// 获取私钥
-	privKey, err := g.privKeyResolver.ResolveSigningKey(ctx, activeKey.Kid, activeKey.JWK.Alg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve private key: %w", err)
-	}
-
-	// 确保私钥是 RSA 类型
-	rsaPrivKey, ok := privKey.(*rsa.PrivateKey)
-	if !ok {
-		return nil, fmt.Errorf("expected RSA private key, got %T", privKey)
-	}
+	tokenID := uuid.NewString()
 
 	claims := CustomClaims{
+		TokenType: string(domain.TokenTypeAccess),
 		UserID:    principal.UserID.Uint64(),
 		AccountID: principal.AccountID.Uint64(),
 		StandardClaims: jwt.StandardClaims{
@@ -81,16 +67,9 @@ func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authenti
 		},
 	}
 
-	// 创建 token，使用 RS256 签名算法
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-
-	// 在 header 中设置 kid（密钥 ID）
-	token.Header["kid"] = activeKey.Kid
-
-	// 使用 RSA 私钥签名
-	tokenString, err := token.SignedString(rsaPrivKey)
+	tokenString, err := g.signClaims(ctx, claims)
 	if err != nil {
-		return nil, fmt.Errorf("failed to sign token: %w", err)
+		return nil, err
 	}
 
 	return domain.NewAccessToken(
@@ -100,6 +79,33 @@ func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authenti
 		principal.AccountID,
 		expiresIn,
 	), nil
+}
+
+// GenerateServiceToken 生成服务间访问令牌（JWT）。
+func (g *Generator) GenerateServiceToken(ctx context.Context, subject string, audience []string, attributes map[string]string, expiresIn time.Duration) (*domain.Token, error) {
+	now := time.Now()
+	tokenID := uuid.NewString()
+
+	claims := CustomClaims{
+		TokenType:  string(domain.TokenTypeService),
+		Audience:   cloneStrings(audience),
+		Attributes: cloneStringMap(attributes),
+		StandardClaims: jwt.StandardClaims{
+			Id:        tokenID,
+			Subject:   subject,
+			Issuer:    g.issuer,
+			IssuedAt:  now.Unix(),
+			ExpiresAt: now.Add(expiresIn).Unix(),
+			NotBefore: now.Unix(),
+		},
+	}
+
+	tokenString, err := g.signClaims(ctx, claims)
+	if err != nil {
+		return nil, err
+	}
+
+	return domain.NewServiceToken(tokenID, tokenString, subject, audience, attributes, expiresIn), nil
 }
 
 // ParseAccessToken 解析访问令牌
@@ -179,11 +185,66 @@ func (g *Generator) ParseAccessToken(ctx context.Context, tokenValue string) (*d
 	// 转换为领域模型
 	userID := meta.FromUint64(claims.UserID)
 	accountID := meta.FromUint64(claims.AccountID)
+	tokenType := domain.TokenType(claims.TokenType)
+	if tokenType == "" {
+		tokenType = domain.TokenTypeAccess
+	}
 	return domain.NewTokenClaims(
+		tokenType,
 		claims.Id,
+		claims.Subject,
 		userID,
 		accountID,
+		claims.Issuer,
+		claims.Audience,
+		claims.Attributes,
 		time.Unix(claims.IssuedAt, 0),
 		time.Unix(claims.ExpiresAt, 0),
 	), nil
+}
+
+func (g *Generator) signClaims(ctx context.Context, claims CustomClaims) (string, error) {
+	activeKey, err := g.keyMgmt.GetActiveKey(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get active key: %w", err)
+	}
+
+	privKey, err := g.privKeyResolver.ResolveSigningKey(ctx, activeKey.Kid, activeKey.JWK.Alg)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve private key: %w", err)
+	}
+
+	rsaPrivKey, ok := privKey.(*rsa.PrivateKey)
+	if !ok {
+		return "", fmt.Errorf("expected RSA private key, got %T", privKey)
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	token.Header["kid"] = activeKey.Kid
+
+	tokenString, err := token.SignedString(rsaPrivKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %w", err)
+	}
+	return tokenString, nil
+}
+
+func cloneStrings(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]string, len(in))
+	copy(out, in)
+	return out
+}
+
+func cloneStringMap(in map[string]string) map[string]string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
 }

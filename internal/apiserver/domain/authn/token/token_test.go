@@ -41,11 +41,11 @@ func TestTokenClaimsExpiry(t *testing.T) {
 	now := time.Now()
 	uid := meta.FromUint64(5)
 	aid := meta.FromUint64(6)
-	claims := NewTokenClaims("tid", uid, aid, now.Add(-time.Minute), now.Add(-time.Second))
+	claims := NewTokenClaims(TokenTypeAccess, "tid", uid.String(), uid, aid, "iam", nil, nil, now.Add(-time.Minute), now.Add(-time.Second))
 	assert.True(t, claims.IsExpired())
 
 	uid2 := meta.FromUint64(7)
 	aid2 := meta.FromUint64(8)
-	claims2 := NewTokenClaims("tid2", uid2, aid2, now, now.Add(time.Minute))
+	claims2 := NewTokenClaims(TokenTypeAccess, "tid2", uid2.String(), uid2, aid2, "iam", nil, nil, now, now.Add(time.Minute))
 	assert.False(t, claims2.IsExpired())
 }

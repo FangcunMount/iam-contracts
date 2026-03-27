@@ -120,6 +120,48 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 	return NewTokenPair(accessToken, refreshToken), nil
 }
 
+// IssueServiceToken 签发服务间访问令牌。
+func (s *TokenIssuer) IssueServiceToken(ctx context.Context, subject string, audience []string, attributes map[string]string, ttl time.Duration) (*TokenPair, error) {
+	l := logger.L(ctx)
+
+	if subject == "" {
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "subject is required")
+	}
+
+	if ttl <= 0 {
+		ttl = s.accessTTL
+	}
+
+	l.Debugw("开始签发服务令牌",
+		"action", logger.ActionCreate,
+		"resource", "service_token",
+		"subject", subject,
+		"audience", audience,
+		"ttl_seconds", ttl.Seconds(),
+	)
+
+	serviceToken, err := s.tokenGenerator.GenerateServiceToken(ctx, subject, audience, attributes, ttl)
+	if err != nil {
+		l.Errorw("服务令牌生成失败",
+			"action", logger.ActionCreate,
+			"resource", "service_token",
+			"subject", subject,
+			"error", err.Error(),
+		)
+		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to generate service token")
+	}
+
+	l.Debugw("服务令牌签发成功",
+		"action", logger.ActionCreate,
+		"resource", "service_token",
+		"subject", subject,
+		"token_id", serviceToken.ID,
+		"result", logger.ResultSuccess,
+	)
+
+	return NewTokenPair(serviceToken, nil), nil
+}
+
 // RevokeToken 撤销令牌
 //
 // 将令牌加入黑名单，使其立即失效

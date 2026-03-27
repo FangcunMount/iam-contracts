@@ -13,8 +13,9 @@ import (
 )
 
 type genStub struct {
-	tok *token.Token
-	err error
+	tok        *token.Token
+	serviceTok *token.Token
+	err        error
 }
 
 func (g *genStub) GenerateAccessToken(ctx context.Context, pr *authentication.Principal, expiresIn time.Duration) (*token.Token, error) {
@@ -23,12 +24,21 @@ func (g *genStub) GenerateAccessToken(ctx context.Context, pr *authentication.Pr
 	}
 	return g.tok, nil
 }
+func (g *genStub) GenerateServiceToken(ctx context.Context, subject string, audience []string, attributes map[string]string, expiresIn time.Duration) (*token.Token, error) {
+	if g.err != nil {
+		return nil, g.err
+	}
+	if g.serviceTok != nil {
+		return g.serviceTok, nil
+	}
+	return g.tok, nil
+}
 func (g *genStub) ParseAccessToken(ctx context.Context, tokenValue string) (*token.TokenClaims, error) {
 	if g.tok == nil {
 		return nil, errors.New("no token")
 	}
 	// return claims built from g.tok
-	return token.NewTokenClaims(g.tok.ID, g.tok.UserID, g.tok.AccountID, g.tok.IssuedAt, g.tok.ExpiresAt), nil
+	return token.NewTokenClaims(g.tok.Type, g.tok.ID, g.tok.Subject, g.tok.UserID, g.tok.AccountID, "", g.tok.Audience, g.tok.Attributes, g.tok.IssuedAt, g.tok.ExpiresAt), nil
 }
 
 type storeStub struct {
@@ -79,6 +89,23 @@ func TestIssueToken_HappyPathAndGeneratorError(t *testing.T) {
 	issuer2 := token.NewTokenIssuer(genErr, store, time.Minute, time.Hour)
 	_, err2 := issuer2.IssueToken(context.Background(), acc)
 	require.Error(t, err2)
+}
+
+func TestIssueServiceToken_HappyPathAndValidation(t *testing.T) {
+	serviceTok := token.NewServiceToken("sid", "sval", "service:qs-server", []string{"iam-service"}, map[string]string{"scope": "internal"}, time.Minute)
+	gen := &genStub{serviceTok: serviceTok}
+	store := &storeStub{}
+	issuer := token.NewTokenIssuer(gen, store, time.Minute, time.Hour)
+
+	pair, err := issuer.IssueServiceToken(context.Background(), "service:qs-server", []string{"iam-service"}, map[string]string{"scope": "internal"}, 0)
+	require.NoError(t, err)
+	require.NotNil(t, pair)
+	require.Equal(t, serviceTok.Value, pair.AccessToken.Value)
+	require.Nil(t, pair.RefreshToken)
+	require.Nil(t, store.saved)
+
+	_, err = issuer.IssueServiceToken(context.Background(), "", []string{"iam-service"}, nil, time.Minute)
+	require.Error(t, err)
 }
 
 func TestRevokeToken_ExpiredAndBlacklist(t *testing.T) {
