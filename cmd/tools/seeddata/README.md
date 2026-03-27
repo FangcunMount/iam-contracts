@@ -372,4 +372,4 @@ type seedContext struct {
 如有问题或建议，请联系：
 
 - GitHub Issues: <https://github.com/FangcunMount/iam-contracts/issues>
-- Email: <support@yangshujie.com>
+- Email: <support@fangcunmount.cn>

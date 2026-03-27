@@ -452,15 +452,15 @@ wechat_apps:
 # ==================== 11. Collection 服务配置 ====================
 # Collection 服务用于创建受试者（testee）数据
 # 在 seed_family 过程中，每创建一个儿童（child）后，会自动调用 collection 服务创建对应的受试者
-collection_url: "https://collect.yangshujie.com/api/v1"  # Collection 服务 API 地址
+collection_url: "https://collect.fangcunmount.cn/api/v1"  # Collection 服务 API 地址
 # 注意：Collection 服务认证通过 IAM 服务动态获取超级管理员 token，无需预配置
 
 # ==================== 12. QS 服务配置 ====================
 # QS 服务用于创建员工、受试者等数据
 # 在 seed_system 过程中，创建管理员后会自动调用 QS 服务创建对应的员工
-qs_service_url: "https://qs.yangshujie.com/api/v1"  # QS 服务 API 地址
+qs_service_url: "https://qs.fangcunmount.cn/api/v1"  # QS 服务 API 地址
 
 # ==================== 13. IAM 服务配置 ====================
 # IAM 服务 URL（用于 seeddata 工具登录获取 token）
 # 在创建员工前，需要先登录 IAM 获取 access_token
-iam_service_url: "https://iam.yangshujie.com/api/v1"  # IAM 服务 API 地址
+iam_service_url: "https://iam.fangcunmount.cn/api/v1"  # IAM 服务 API 地址

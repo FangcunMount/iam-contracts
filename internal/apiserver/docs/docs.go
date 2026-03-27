@@ -9,11 +9,11 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "https://iam.yangshujie.com/terms",
+        "termsOfService": "https://iam.fangcunmount.cn/terms",
         "contact": {
             "name": "API Support",
             "url": "https://github.com/FangcunMount/iam-contracts",
-            "email": "support@yangshujie.com"
+            "email": "support@fangcunmount.cn"
         },
         "license": {
             "name": "Apache 2.0",
@@ -4108,7 +4108,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0.0",
-	Host:             "iam.yangshujie.com",
+	Host:             "iam.fangcunmount.cn",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "IAM API Documentation",

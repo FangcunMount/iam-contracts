@@ -33,8 +33,8 @@ secure:
   bind-address: 0.0.0.0
   bind-port: 9444        # HTTPS REST API
   tls:
-    cert-file: /etc/iam-contracts/ssl/yangshujie.com.crt
-    private-key-file: /etc/iam-contracts/ssl/yangshujie.com.key
+    cert-file: /etc/iam-contracts/ssl/fangcunmount.cn.crt
+    private-key-file: /etc/iam-contracts/ssl/fangcunmount.cn.key
 
 grpc:
   bind-address: 0.0.0.0
@@ -122,10 +122,10 @@ upstream iam_backend {
 
 server {
     listen 443 ssl http2;
-    server_name api.yangshujie.com;
+    server_name api.fangcunmount.cn;
     
-    ssl_certificate /data/ssl/certs/yangshujie.com.crt;
-    ssl_certificate_key /data/ssl/private/yangshujie.com.key;
+    ssl_certificate /data/ssl/certs/fangcunmount.cn.crt;
+    ssl_certificate_key /data/ssl/private/fangcunmount.cn.key;
     
     location /api/v1/ {
         proxy_pass https://iam_backend;

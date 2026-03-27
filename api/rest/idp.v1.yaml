@@ -8,7 +8,7 @@ info:
     email: yshujie@163.com
     url: https://github.com/FangcunMount/iam-contracts
 servers:
-- url: https://iam.yangshujie.com/api/v1
+- url: https://iam.fangcunmount.cn/api/v1
   description: 生产环境
 - url: http://localhost:18081/api/v1
   description: 本地开发

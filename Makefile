@@ -24,10 +24,10 @@ DOCKER_REPOSITORY ?= fangcunmount
 DOCKER_IMAGE := $(DOCKER_REGISTRY)/$(DOCKER_REPOSITORY)/$(PROJECT_NAME)
 DOCKER_TAG ?= latest
 LOG_DIR_HOST ?= /data/logs/iam
-TLS_CERT_HOST ?= /data/ssl/certs/yangshujie.com.crt
-TLS_KEY_HOST ?= /data/ssl/private/yangshujie.com.key
-TLS_CERT_DEST ?= /etc/iam-contracts/ssl/yangshujie.com.crt
-TLS_KEY_DEST ?= /etc/iam-contracts/ssl/yangshujie.com.key
+TLS_CERT_HOST ?= /data/ssl/certs/fangcunmount.cn.crt
+TLS_KEY_HOST ?= /data/ssl/private/fangcunmount.cn.key
+TLS_CERT_DEST ?= /etc/iam-contracts/ssl/fangcunmount.cn.crt
+TLS_KEY_DEST ?= /etc/iam-contracts/ssl/fangcunmount.cn.key
 DOCKER_NETWORK ?= infra-network
 
 # Go 相关

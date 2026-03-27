@@ -3,11 +3,11 @@
     "info": {
         "description": "IAM 系统 REST API 文档，包含认证(Authentication)、授权(Authorization)、身份管理(Identity)和身份提供商(IDP)模块",
         "title": "IAM API Documentation",
-        "termsOfService": "https://iam.yangshujie.com/terms",
+        "termsOfService": "https://iam.fangcunmount.cn/terms",
         "contact": {
             "name": "API Support",
             "url": "https://github.com/FangcunMount/iam-contracts",
-            "email": "support@yangshujie.com"
+            "email": "support@fangcunmount.cn"
         },
         "license": {
             "name": "Apache 2.0",
@@ -15,7 +15,7 @@
         },
         "version": "1.0.0"
     },
-    "host": "iam.yangshujie.com",
+    "host": "iam.fangcunmount.cn",
     "basePath": "/api/v1",
     "paths": {
         "/.well-known/jwks.json": {

@@ -879,17 +879,17 @@ definitions:
         description: Reference 返回参考文档，可能有助于解决此错误
         type: string
     type: object
-host: iam.yangshujie.com
+host: iam.fangcunmount.cn
 info:
   contact:
-    email: support@yangshujie.com
+    email: support@fangcunmount.cn
     name: API Support
     url: https://github.com/FangcunMount/iam-contracts
   description: IAM 系统 REST API 文档，包含认证(Authentication)、授权(Authorization)、身份管理(Identity)和身份提供商(IDP)模块
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: https://iam.yangshujie.com/terms
+  termsOfService: https://iam.fangcunmount.cn/terms
   title: IAM API Documentation
   version: 1.0.0
 paths:

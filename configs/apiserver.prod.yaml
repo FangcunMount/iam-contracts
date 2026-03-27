@@ -41,8 +41,8 @@ secure:
   bind-address: "0.0.0.0"
   bind-port: 9444
   tls:
-    cert-file: /etc/iam-contracts/ssl/yangshujie.com.crt
-    private-key-file: /etc/iam-contracts/ssl/yangshujie.com.key
+    cert-file: /etc/iam-contracts/ssl/fangcunmount.cn.crt
+    private-key-file: /etc/iam-contracts/ssl/fangcunmount.cn.key
 
 # CORS 跨域配置
 cors:
@@ -169,8 +169,8 @@ jwks:
 # 4.2 TLS 证书（通用）
 # ----------------------------------------------------------------------------
 tls:
-  cert: /etc/iam-contracts/ssl/yangshujie.com.crt
-  key: /etc/iam-contracts/ssl/yangshujie.com.key
+  cert: /etc/iam-contracts/ssl/fangcunmount.cn.crt
+  key: /etc/iam-contracts/ssl/fangcunmount.cn.key
   strict: false
 
 # ----------------------------------------------------------------------------

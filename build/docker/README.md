@@ -323,8 +323,8 @@ docker buildx build \
 
 ```bash
 # Web HTTPS 证书
-/data/ssl/certs/yangshujie.com.crt
-/data/ssl/private/yangshujie.com.key
+/data/ssl/certs/fangcunmount.cn.crt
+/data/ssl/private/fangcunmount.cn.key
 ```
 
 ### 2. gRPC mTLS 证书
