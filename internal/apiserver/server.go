@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/component-base/pkg/messaging"
@@ -432,7 +433,16 @@ func (s *apiServer) createEventBus() (messaging.EventBus, error) {
 		return nil, nil
 	}
 
-	// 构建 NSQ 配置
+	msgTimeoutSec := viper.GetInt("nsq.msg-timeout")
+	if msgTimeoutSec == 0 {
+		msgTimeoutSec = 60
+	}
+	requeueDelaySec := viper.GetInt("nsq.requeue-delay")
+	if requeueDelaySec == 0 {
+		requeueDelaySec = 5
+	}
+
+	// 构建 NSQ 配置（与 genericoptions.NSQOptions.ToMessagingConfig 对齐，避免 ReadTimeout 等为 0 导致 go-nsq 校验失败）
 	cfg := &messaging.Config{
 		Provider: messaging.ProviderNSQ,
 		NSQ: messaging.NSQConfig{
@@ -440,6 +450,11 @@ func (s *apiServer) createEventBus() (messaging.EventBus, error) {
 			NSQdAddr:     viper.GetString("nsq.nsqd-addr"),
 			MaxAttempts:  uint16(viper.GetInt("nsq.max-attempts")),
 			MaxInFlight:  viper.GetInt("nsq.max-in-flight"),
+			MsgTimeout:   time.Duration(msgTimeoutSec) * time.Second,
+			RequeueDelay: time.Duration(requeueDelaySec) * time.Second,
+			DialTimeout:  5 * time.Second,
+			ReadTimeout:  60 * time.Second,
+			WriteTimeout: 5 * time.Second,
 		},
 	}
 
