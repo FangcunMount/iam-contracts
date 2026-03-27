@@ -170,23 +170,23 @@ func (c *Client) RevokeRefreshToken(ctx context.Context, req *authnv1.RevokeRefr
 //
 // 参数：
 //   - ctx: 请求上下文
-//   - req: 签发请求，包含 ServiceId、Audience、ExpiresIn 等字段
+//   - req: 签发请求，包含 Subject、Audience、Ttl、Attributes 等字段
 //
 // 返回：
-//   - *authnv1.IssueServiceTokenResponse: 包含 Token、TokenType、ExpiresIn 字段
+//   - *authnv1.IssueServiceTokenResponse: 包含 TokenPair 字段
 //   - error: 可能的错误类型包括 InvalidArgument、PermissionDenied
 //
 // 示例：
 //
 //	resp, err := client.Auth().IssueServiceToken(ctx, &authnv1.IssueServiceTokenRequest{
-//	    ServiceId: "service-api",
-//	    Audience:  "service-backend",
-//	    ExpiresIn: 3600,
+//	    Subject:  "service:api",
+//	    Audience: []string{"iam-service"},
+//	    Ttl:      durationpb.New(time.Hour),
 //	})
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("服务 Token: %s\n", resp.Token)
+//	fmt.Printf("服务 Token: %s\n", resp.TokenPair.AccessToken)
 func (c *Client) IssueServiceToken(ctx context.Context, req *authnv1.IssueServiceTokenRequest) (*authnv1.IssueServiceTokenResponse, error) {
 	resp, err := c.authService.IssueServiceToken(ctx, req)
 	if err != nil {

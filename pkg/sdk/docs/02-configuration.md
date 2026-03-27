@@ -90,6 +90,13 @@
 默认值 (最低)
 ```
 
+### 示例约定
+
+- 上面的“配置模板”保留完整 `&sdk.Config{...}` 形态，适合直接照抄起步
+- 下面各小节默认只展示 **`Config` 内部字段片段**
+- 看到 `TLS:`、`Retry:`、`JWKS:` 这类片段时，直接嵌回你的 `&sdk.Config{ ... }` 即可
+- 完整可运行示例优先看 [../_examples/mtls/main.go](../_examples/mtls/main.go)
+
 ---
 
 ## 📋 配置结构
@@ -134,9 +141,7 @@ type Config struct {
 gRPC 服务地址，格式：`host:port`
 
 ```go
-&Config{
-    Endpoint: "iam.example.com:8081",
-}
+Endpoint: "iam.example.com:8081"
 ```
 
 ### Timeout
@@ -144,9 +149,7 @@ gRPC 服务地址，格式：`host:port`
 全局请求超时时间，默认 30 秒。可被方法级超时覆盖。
 
 ```go
-&Config{
-    Timeout: 30 * time.Second,
-}
+Timeout: 30 * time.Second
 ```
 
 ### DialTimeout
@@ -154,9 +157,7 @@ gRPC 服务地址，格式：`host:port`
 连接超时时间，默认 10 秒。
 
 ```go
-&Config{
-    DialTimeout: 10 * time.Second,
-}
+DialTimeout: 10 * time.Second
 ```
 
 ## TLS 配置
@@ -179,28 +180,24 @@ type TLSConfig struct {
 ### 示例：单向 TLS
 
 ```go
-&Config{
-    TLS: &TLSConfig{
-        Enabled:    true,
-        CACert:     "/etc/iam/certs/ca.crt",
-        ServerName: "iam.example.com",
-        MinVersion: tls.VersionTLS12,
-    },
+TLS: &TLSConfig{
+    Enabled:    true,
+    CACert:     "/etc/iam/certs/ca.crt",
+    ServerName: "iam.example.com",
+    MinVersion: tls.VersionTLS12,
 }
 ```
 
 ### 示例：双向 mTLS
 
 ```go
-&Config{
-    TLS: &TLSConfig{
-        Enabled:    true,
-        CACert:     "/etc/iam/certs/ca.crt",
-        ClientCert: "/etc/iam/certs/client.crt",
-        ClientKey:  "/etc/iam/certs/client.key",
-        ServerName: "iam.example.com",
-        MinVersion: tls.VersionTLS13,
-    },
+TLS: &TLSConfig{
+    Enabled:    true,
+    CACert:     "/etc/iam/certs/ca.crt",
+    ClientCert: "/etc/iam/certs/client.crt",
+    ClientKey:  "/etc/iam/certs/client.key",
+    ServerName: "iam.example.com",
+    MinVersion: tls.VersionTLS13,
 }
 ```
 
@@ -211,11 +208,9 @@ caCertPEM := []byte(`-----BEGIN CERTIFICATE-----
 MIIDXTCCAkWgAwIBAgIJAL...
 -----END CERTIFICATE-----`)
 
-&Config{
-    TLS: &TLSConfig{
-        Enabled:   true,
-        CACertPEM: caCertPEM,
-    },
+TLS: &TLSConfig{
+    Enabled:   true,
+    CACertPEM: caCertPEM,
 }
 ```
 
@@ -232,12 +227,10 @@ type KeepaliveConfig struct {
 ### 默认配置
 
 ```go
-&Config{
-    Keepalive: &KeepaliveConfig{
-        Time:                30 * time.Second,
-        Timeout:             10 * time.Second,
-        PermitWithoutStream: true,
-    },
+Keepalive: &KeepaliveConfig{
+    Time:                30 * time.Second,
+    Timeout:             10 * time.Second,
+    PermitWithoutStream: true,
 }
 ```
 
@@ -259,21 +252,19 @@ type RetryConfig struct {
 ### 示例：标准重试配置
 
 ```go
-&Config{
-    Retry: &RetryConfig{
-        Enabled:           true,
-        MaxAttempts:       3,
-        InitialBackoff:    100 * time.Millisecond,
-        MaxBackoff:        10 * time.Second,
-        BackoffMultiplier: 2.0,
-        RetryableCodes:    []string{"UNAVAILABLE", "RESOURCE_EXHAUSTED", "ABORTED"},
-    },
+Retry: &RetryConfig{
+    Enabled:           true,
+    MaxAttempts:       3,
+    InitialBackoff:    100 * time.Millisecond,
+    MaxBackoff:        10 * time.Second,
+    BackoffMultiplier: 2.0,
+    RetryableCodes:    []string{"UNAVAILABLE", "RESOURCE_EXHAUSTED", "ABORTED"},
 }
 ```
 
 ### 方法级重试配置（高级）
 
-详见 [方法级重试配置](./07-advanced-retry.md)
+当前还没有独立的“高级重试”文档；现阶段以 [SDK 总览](../README.md) 和 [`transport/retry.go`](../transport/retry.go) 为准。
 
 ## JWKS 配置
 
@@ -295,26 +286,22 @@ type JWKSConfig struct {
 ### 示例：标准 JWKS 配置
 
 ```go
-&Config{
-    JWKS: &JWKSConfig{
-        URL:             "https://iam.example.com/.well-known/jwks.json",
-        RefreshInterval: 5 * time.Minute,
-        RequestTimeout:  10 * time.Second,
-        CacheTTL:        1 * time.Hour,
-        FallbackOnError: true,
-    },
+JWKS: &JWKSConfig{
+    URL:             "https://iam.example.com/.well-known/jwks.json",
+    RefreshInterval: 5 * time.Minute,
+    RequestTimeout:  10 * time.Second,
+    CacheTTL:        1 * time.Hour,
+    FallbackOnError: true,
 }
 ```
 
 ### 示例：JWKS + gRPC 降级
 
 ```go
-&Config{
-    JWKS: &JWKSConfig{
-        URL:             "https://iam.example.com/.well-known/jwks.json",
-        GRPCEndpoint:    "iam.example.com:8081", // HTTP 失败时使用 gRPC
-        RefreshInterval: 5 * time.Minute,
-    },
+JWKS: &JWKSConfig{
+    URL:             "https://iam.example.com/.well-known/jwks.json",
+    GRPCEndpoint:    "iam.example.com:8081", // HTTP 失败时使用 gRPC
+    RefreshInterval: 5 * time.Minute,
 }
 ```
 
@@ -332,13 +319,11 @@ type CircuitBreakerConfig struct {
 ### 示例：标准熔断器配置
 
 ```go
-&Config{
-    CircuitBreaker: &CircuitBreakerConfig{
-        FailureThreshold: 5,
-        OpenDuration:     30 * time.Second,
-        HalfOpenRequests: 3,
-        SuccessThreshold: 2,
-    },
+CircuitBreaker: &CircuitBreakerConfig{
+    FailureThreshold: 5,
+    OpenDuration:     30 * time.Second,
+    HalfOpenRequests: 3,
+    SuccessThreshold: 2,
 }
 ```
 
@@ -359,16 +344,14 @@ type ObservabilityConfig struct {
 ### 示例：完整可观测性配置
 
 ```go
-&Config{
-    Observability: &ObservabilityConfig{
-        EnableMetrics:        true,
-        EnableTracing:        true,
-        EnableCircuitBreaker: true,
-        EnableRequestID:      true,
-        MetricsNamespace:     "myapp",
-        MetricsSubsystem:     "iam_client",
-        ServiceName:          "my-service",
-    },
+Observability: &ObservabilityConfig{
+    EnableMetrics:        true,
+    EnableTracing:        true,
+    EnableCircuitBreaker: true,
+    EnableRequestID:      true,
+    MetricsNamespace:     "myapp",
+    MetricsSubsystem:     "iam_client",
+    ServiceName:          "my-service",
 }
 ```
 
@@ -380,9 +363,7 @@ type ObservabilityConfig struct {
 - `pick_first`：选择第一个可用连接
 
 ```go
-&Config{
-    LoadBalancer: "round_robin",
-}
+LoadBalancer: "round_robin"
 ```
 
 ## 环境变量映射
@@ -405,6 +386,10 @@ type ObservabilityConfig struct {
 | `IAM_LOAD_BALANCER` | `LoadBalancer` | `round_robin` |
 
 ### 使用环境变量
+
+完整环境变量 / mTLS 场景见：
+
+- [../_examples/mtls/main.go](../_examples/mtls/main.go)
 
 ```bash
 export IAM_ENDPOINT="iam.example.com:8081"
@@ -513,9 +498,11 @@ if err != nil {
 - TLS 证书文件不存在
 - 超时时间为负数
 - 重试次数小于 1
+- 负载均衡策略不是 `round_robin` / `pick_first`
 
 ## 下一步
 
-- [JWT 验证](./03-jwt-verification.md)
-- [方法级重试配置](./07-advanced-retry.md)
-- [可观测性配置](./05-observability.md)
+- [Token 生命周期](./03-token-lifecycle.md)
+- [JWT 验证](./04-jwt-verification.md)
+- [服务间认证](./05-service-auth.md)
+- [示例索引](../_examples/README.md)

@@ -7,6 +7,7 @@
 //   - observability: 可观测性（Metrics、Tracing）
 //   - errors: 统一错误处理
 //   - auth: 认证服务（Token 验证、JWKS、服务间认证）
+//   - authz: 授权判定服务（PDP）
 //   - identity: 身份服务（用户管理、监护关系）
 //   - idp: 身份提供者服务（微信应用管理）
 //
@@ -28,6 +29,9 @@
 //	// 使用身份服务
 //	user, err := client.Identity().GetUser(ctx, "user-123")
 //
+//	// 使用授权判定服务
+//	allowed, err := client.Authz().Allow(ctx, "user:user-123", "default", "resource:child_profile", "read")
+//
 //	// 使用监护关系服务
 //	result, err := client.Guardianship().IsGuardian(ctx, "user-1", "child-1")
 //
@@ -40,9 +44,11 @@ import (
 	"fmt"
 
 	authnv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/authn/v1"
+	authzv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/authz/v1"
 	identityv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/identity/v1"
 	idpv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/idp/v1"
 	"github.com/FangcunMount/iam-contracts/pkg/sdk/auth"
+	"github.com/FangcunMount/iam-contracts/pkg/sdk/authz"
 	"github.com/FangcunMount/iam-contracts/pkg/sdk/config"
 	"github.com/FangcunMount/iam-contracts/pkg/sdk/identity"
 	"github.com/FangcunMount/iam-contracts/pkg/sdk/idp"
@@ -127,6 +133,7 @@ type Client struct {
 
 	// 子客户端
 	authClient         *auth.Client
+	authzClient        *authz.Client
 	identityClient     *identity.Client
 	guardianshipClient *identity.GuardianshipClient
 	idpClient          *idp.Client
@@ -185,6 +192,10 @@ func (c *Client) initSubClients() {
 	jwksService := authnv1.NewJWKSServiceClient(c.conn)
 	c.authClient = auth.NewClient(authService, jwksService)
 
+	// Authz 客户端
+	authorizationService := authzv1.NewAuthorizationServiceClient(c.conn)
+	c.authzClient = authz.NewClient(authorizationService)
+
 	// Identity 客户端
 	readService := identityv1.NewIdentityReadClient(c.conn)
 	lifecycleService := identityv1.NewIdentityLifecycleClient(c.conn)
@@ -203,6 +214,11 @@ func (c *Client) initSubClients() {
 // Auth 返回认证服务客户端
 func (c *Client) Auth() *auth.Client {
 	return c.authClient
+}
+
+// Authz 返回授权判定服务客户端
+func (c *Client) Authz() *authz.Client {
+	return c.authzClient
 }
 
 // Identity 返回身份服务客户端

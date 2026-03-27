@@ -1,10 +1,40 @@
 # IAM SDK 文档索引
 
-完整的 IAM SDK 使用文档。
+## 本文回答
+
+这组文档回答两个问题：
+
+- SDK 文档应该先看哪篇
+- 文档和完整示例各自承担什么职责
+
+## 30 秒结论
+
+- `pkg/sdk/docs/*` 负责解释思路、参数、边界和最小可理解示例。
+- `pkg/sdk/_examples/*` 负责放完整可运行程序。
+- 如果你第一次接 IAM SDK，先看 [快速开始](./01-quick-start.md)。
+- SDK 文档现在按“接入基础 → Token 主轴 → 授权判定”的顺序组织。
+- 如果你已经知道要做什么，直接按下面的“我想...”跳转。
+
+## 推荐阅读顺序
+
+### 第一层：先把 SDK 跑起来
+
+1. [快速开始](./01-quick-start.md)
+2. [配置详解](./02-configuration.md)
+
+### 第二层：搞清 Token 主轴
+
+3. [Token 生命周期](./03-token-lifecycle.md)
+4. [JWT 本地验证](./04-jwt-verification.md)
+5. [服务间认证](./05-service-auth.md)
+
+### 第三层：再接授权判定
+
+6. [授权判定（PDP）](./06-authz.md)
 
 ## 📚 文档列表
 
-### 入门指南
+### 第一组：接入基础
 
 1. **[快速开始](./01-quick-start.md)**
    - 安装和基础示例
@@ -21,9 +51,14 @@
    - 环境变量映射
    - YAML 配置文件
 
-### 核心功能
+### 第二组：Token 主轴
 
-1. **[JWT 本地验证](./03-jwt-verification.md)**
+3. **[Token 生命周期](./03-token-lifecycle.md)**
+   - 用户态 token 的消费边界
+   - `VerifyToken` / `RefreshToken` / `Revoke*` / `GetJWKS`
+   - `IssueServiceToken` 的调用边界
+
+4. **[JWT 本地验证](./04-jwt-verification.md)**
    - TokenVerifier 使用
    - JWKS Manager 配置
    - 验证策略（Strategy 模式）
@@ -31,7 +66,7 @@
    - 性能优化
    - 监控和统计
 
-2. **[服务间认证](./04-service-auth.md)**
+5. **[服务间认证](./05-service-auth.md)**
    - ServiceAuthHelper 基础用法
    - 自动 Token 刷新
    - Jitter 和退避策略
@@ -39,146 +74,49 @@
    - 状态监控
    - 生产环境最佳实践
 
-3. **[可观测性](./05-observability.md)**
-   - Prometheus Metrics 集成
-   - OpenTelemetry Tracing
-   - 请求 ID 传播
-   - 自定义 Metrics 和 Tracing
+### 第三组：授权判定
 
-4. **[错误处理](./06-error-handling.md)**
-   - 统一错误类型
-   - 错误分类和匹配
-   - 错误处理链
-   - 最佳实践
+6. **[授权判定（PDP）](./06-authz.md)**
+   - `Authz()` 的定位
+   - `Check` / `Allow`
+   - `subject / domain / object / action` 组织方式
+   - 当前能力边界
 
-### 高级主题
+## 📌 当前文档边界
 
-1. **[方法级重试配置](./07-advanced-retry.md)**
-   - 按方法定制重试策略
-   - 自定义可重试错误码
-   - 重试判断函数
-   - 预定义策略模板
+目前 `pkg/sdk/docs/` 已覆盖这些稳定主题：
 
-2. **[传输层配置](./08-transport.md)**
-   - gRPC 连接管理
-   - 拦截器链
-   - 负载均衡
-   - Keepalive 配置
+- 快速开始
+- 配置
+- Token 生命周期
+- JWT 本地验证
+- 服务间认证
+- 授权判定（PDP）
 
-3. **[设计模式](./09-design-patterns.md)**
-   - Chain of Responsibility（JWKS）
-   - Strategy（TokenVerifier）
-   - Builder（配置构建）
-   - Observer（回调钩子）
+其它主题如果尚未单独成文，以这些事实入口为准：
 
-### API 参考
-
-1. **[认证服务 API](./api/auth.md)**
-    - VerifyToken
-    - RefreshToken
-    - RevokeToken
-    - IssueServiceToken
-    - GetJWKS
-
-2. **[身份服务 API](./api/identity.md)**
-    - GetUser / ListUsers / BatchGetUsers
-    - CreateUser / UpdateUser / DeleteUser
-    - GetRole / ListRoles
-    - GetDepartment / ListDepartments
-
-3. **[监护关系 API](./api/guardianship.md)**
-    - IsGuardian
-    - ListChildren / ListGuardians
-    - AddGuardianship / RemoveGuardianship
+- SDK 总览：[`pkg/sdk/README.md`](../README.md)
+- 示例索引：[`pkg/sdk/_examples/README.md`](../_examples/README.md)
+- 代码真值：`pkg/sdk/*.go`
+- gRPC 合同：`api/grpc/**/*.proto`
 
 ## 🎯 快速导航
 
-### 我想
-
-- **快速开始使用 SDK** → [快速开始](./01-quick-start.md)
-- **配置 mTLS** → [配置详解 - TLS 配置](./02-configuration.md#tls-配置)
-- **本地验证 JWT** → [JWT 本地验证](./03-jwt-verification.md)
-- **实现服务间认证** → [服务间认证](./04-service-auth.md)
-- **添加 Metrics 监控** → [可观测性](./05-observability.md)
-- **处理特定错误** → [错误处理](./06-error-handling.md)
-- **定制重试策略** → [方法级重试配置](./07-advanced-retry.md)
-- **了解设计原理** → [设计模式](./09-design-patterns.md)
-
-### 场景索引
-
-#### 开发环境
-
-```go
-// 最简配置
-client, _ := sdk.NewClient(ctx, &sdk.Config{
-    Endpoint: "localhost:8081",
-})
-```
-
-→ [快速开始](./01-quick-start.md#最简示例)
-
-#### 测试环境
-
-```go
-// TLS 但跳过验证
-client, _ := sdk.NewClient(ctx, &sdk.Config{
-    Endpoint: "iam-test.example.com:8081",
-    TLS: &sdk.TLSConfig{
-        Enabled:            true,
-        InsecureSkipVerify: true,
-    },
-})
-```
-
-→ [配置详解](./02-configuration.md#示例单向-tls)
-
-#### 生产环境
-
-```go
-// mTLS + 重试 + 熔断 + 监控
-client, _ := sdk.NewClient(ctx, cfg, 
-    sdk.WithUnaryInterceptors(
-        observability.MetricsUnaryInterceptor(metrics),
-        observability.CircuitBreakerInterceptor(cb),
-    ),
-)
-```
-
-→ [README - 生产环境完整示例](../README.md#生产环境完整示例)
+| 我想... | 先看 | 说明 |
+| ------- | ---- | ---- |
+| 快速开始使用 SDK | [快速开始](./01-quick-start.md) | 一屏建立心智模型，再看最简示例 |
+| 配置开发 / 测试 / 生产环境 | [配置详解](./02-configuration.md) | 看 `Config`、TLS、超时、重试、熔断 |
+| 搞清 token 怎么校验 / 刷新 / 撤销 | [Token 生命周期](./03-token-lifecycle.md) | 先建立 token 消费面的总心智模型 |
+| 本地验证 JWT | [JWT 本地验证](./04-jwt-verification.md) | 看 verifier、JWKS、降级策略 |
+| 实现服务间认证 | [服务间认证](./05-service-auth.md) | 看 helper、自动刷新、回退策略 |
+| 做单次权限判定 | [授权判定（PDP）](./06-authz.md) | 看 `Authz().Check()` / `Allow()` |
+| 直接复制完整程序 | [示例索引](../_examples/README.md) | 进入 `_examples` 看可运行代码 |
 
 ## 📖 文档约定
 
-### 代码示例
-
-所有代码示例都假设已导入：
-
-```go
-import (
-    "context"
-    "log"
-    "time"
-    
-    sdk "github.com/FangcunMount/iam-contracts/pkg/sdk"
-    "github.com/FangcunMount/iam-contracts/pkg/sdk/auth"
-    "github.com/FangcunMount/iam-contracts/pkg/sdk/config"
-    "github.com/FangcunMount/iam-contracts/pkg/sdk/errors"
-    "github.com/FangcunMount/iam-contracts/pkg/sdk/observability"
-)
-```
-
-### 配置示例
-
-- ✅ 生产推荐配置
-- ⚠️ 需要根据实际情况调整
-- ❌ 仅用于测试/开发
-
-### 符号说明
-
-- 📌 重要提示
-- 💡 最佳实践
-- ⚡ 性能优化
-- 🔒 安全建议
-- 🐛 常见陷阱
+- 各篇文档会在正文里声明自己的“示例约定”；默认省略重复的 `package`、`import` 和基础 `ctx` 初始化。
+- 文档内保留“最小可理解示例”，完整程序统一放在 [示例索引](../_examples/README.md)。
+- 如果某个能力同时有“文档示例”和“完整示例”，先读文档，再去 `_examples` 复制运行。
 
 ## 🤝 贡献
 
@@ -189,15 +127,4 @@ import (
 
 ## 📝 更新日志
 
-- **2025-12-08**: 初始文档
-  - 快速开始
-  - 配置详解
-  - JWT 验证
-  - 服务间认证
-  - 错误处理
-  - 可观测性
-
-## 📧 联系方式
-
-- GitHub Issues: <https://github.com/FangcunMount/iam-contracts/issues>
-- 邮箱: <support@example.com>
+- **2026-03-27**: 收正索引页，明确 docs / `_examples` 分工，并纳入授权判定与 Token 生命周期文档

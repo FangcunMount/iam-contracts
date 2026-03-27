@@ -12,6 +12,7 @@ import (
 	authnv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/authn/v1"
 	"github.com/FangcunMount/iam-contracts/pkg/sdk/config"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 // =============================================================================
@@ -422,10 +423,15 @@ func (h *ServiceAuthHelper) closeCircuit() {
 }
 
 func (h *ServiceAuthHelper) refreshToken(ctx context.Context) error {
-	resp, err := h.authClient.IssueServiceToken(ctx, &authnv1.IssueServiceTokenRequest{
+	req := &authnv1.IssueServiceTokenRequest{
 		Subject:  h.config.ServiceID,
 		Audience: h.config.TargetAudience,
-	})
+	}
+	if h.config.TokenTTL > 0 {
+		req.Ttl = durationpb.New(h.config.TokenTTL)
+	}
+
+	resp, err := h.authClient.IssueServiceToken(ctx, req)
 	if err != nil {
 		return err
 	}

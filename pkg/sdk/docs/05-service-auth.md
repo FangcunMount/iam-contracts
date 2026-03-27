@@ -175,12 +175,24 @@ conn, _ := grpc.Dial("target-service:8081",
 
 ## 🚀 快速开始
 
+完整可运行示例见：
+
+- [../_examples/service_auth/main.go](../_examples/service_auth/main.go)
+
+### 示例约定
+
+除非特别说明，下面的片段默认：
+
+- 已存在 `ctx`
+- 已创建 `client`
+- 已按需导入 `sdk`、`auth`、`errors`
+- 进阶片段里的 `serviceAuthCfg` 指代已经准备好的 `*sdk.ServiceAuthConfig`
+
+需要完整的 `package main + import + 启动逻辑` 时，直接看 `_examples/service_auth/main.go`。
+
 ### 基础用法
 
 ```go
-import sdk "github.com/FangcunMount/iam-contracts/pkg/sdk"
-
-// 创建 IAM 客户端
 client, err := sdk.NewClient(ctx, &sdk.Config{
     Endpoint: "iam.example.com:8081",
     TLS: &sdk.TLSConfig{
@@ -189,37 +201,20 @@ client, err := sdk.NewClient(ctx, &sdk.Config{
     },
 })
 
-// 创建服务间认证助手
 helper, err := sdk.NewServiceAuthHelper(
     &sdk.ServiceAuthConfig{
-        ServiceID:      "my-service",              // 当前服务 ID
-        TargetAudience: []string{"iam-service"},   // 目标服务
-        TokenTTL:       time.Hour,                 // Token 有效期
-        RefreshBefore:  5 * time.Minute,           // 提前 5 分钟刷新
+        ServiceID:      "my-service",
+        TargetAudience: []string{"iam-service"},
+        TokenTTL:       time.Hour,
+        RefreshBefore:  5 * time.Minute,
     },
     client,
 )
 defer helper.Stop()
 
-// 使用方式 1: 获取 Token
 token, err := helper.GetToken(ctx)
-if err != nil {
-    log.Fatal(err)
-}
-fmt.Println("Token:", token)
-
-// 使用方式 2: 创建认证 Context
 authCtx, err := helper.NewAuthenticatedContext(ctx)
-if err != nil {
-    log.Fatal(err)
-}
 resp, err := client.Identity().GetUser(authCtx, "user-123")
-
-// 使用方式 3: 包装函数调用
-err = helper.CallWithAuth(ctx, func(authCtx context.Context) error {
-    _, err := client.Identity().GetUser(authCtx, "user-123")
-    return err
-})
 ```
 
 ## ServiceAuthConfig 配置
@@ -299,39 +294,39 @@ type RefreshStrategy struct {
 ### 自定义刷新策略
 
 ```go
-import "github.com/FangcunMount/iam-contracts/pkg/sdk/auth"
+refreshStrategy := &auth.RefreshStrategy{
+    JitterRatio:         0.15,              // 增加抖动
+    MinBackoff:          2 * time.Second,
+    MaxBackoff:          120 * time.Second,
+    BackoffMultiplier:   2.5,
+    MaxRetries:          3,                 // 更严格的熔断
+    CircuitOpenDuration: 60 * time.Second,
+
+    OnRefreshSuccess: func(token string, expiresIn time.Duration) {
+        log.Printf("Token 刷新成功，有效期: %v", expiresIn)
+        metrics.TokenRefreshSuccess.Inc()
+    },
+
+    OnRefreshFailure: func(err error, attempt int, nextRetry time.Duration) {
+        log.Printf("Token 刷新失败: attempt=%d, next=%v, err=%v",
+            attempt, nextRetry, err)
+        metrics.TokenRefreshFailure.Inc()
+    },
+
+    OnCircuitOpen: func() {
+        log.Println("Token 刷新熔断器打开")
+        alert.Send("ServiceAuth circuit breaker opened!")
+    },
+
+    OnCircuitClose: func() {
+        log.Println("Token 刷新熔断器关闭")
+    },
+}
 
 helper, err := sdk.NewServiceAuthHelper(
-    cfg,
+    serviceAuthCfg,
     client,
-    auth.WithRefreshStrategy(&auth.RefreshStrategy{
-        JitterRatio:         0.15,              // 增加抖动
-        MinBackoff:          2 * time.Second,
-        MaxBackoff:          120 * time.Second,
-        BackoffMultiplier:   2.5,
-        MaxRetries:          3,                 // 更严格的熔断
-        CircuitOpenDuration: 60 * time.Second,
-        
-        OnRefreshSuccess: func(token string, expiresIn time.Duration) {
-            log.Printf("Token 刷新成功，有效期: %v", expiresIn)
-            metrics.TokenRefreshSuccess.Inc()
-        },
-        
-        OnRefreshFailure: func(err error, attempt int, nextRetry time.Duration) {
-            log.Printf("Token 刷新失败: attempt=%d, next=%v, err=%v", 
-                attempt, nextRetry, err)
-            metrics.TokenRefreshFailure.Inc()
-        },
-        
-        OnCircuitOpen: func() {
-            log.Println("Token 刷新熔断器打开")
-            alert.Send("ServiceAuth circuit breaker opened!")
-        },
-        
-        OnCircuitClose: func() {
-            log.Println("Token 刷新熔断器关闭")
-        },
-    }),
+    auth.WithRefreshStrategy(refreshStrategy),
 )
 ```
 
@@ -556,36 +551,37 @@ if err != nil {
 ### 2. 启用回调监控
 
 ```go
+refreshStrategy := &auth.RefreshStrategy{
+    OnRefreshSuccess: func(token string, expiresIn time.Duration) {
+        metrics.TokenRefreshSuccess.Inc()
+        log.Printf("Token 刷新成功: expires_in=%v", expiresIn)
+    },
+
+    OnRefreshFailure: func(err error, attempt int, nextRetry time.Duration) {
+        metrics.TokenRefreshFailure.Inc()
+        log.Printf("Token 刷新失败: attempt=%d, err=%v, next_retry=%v",
+            attempt, err, nextRetry)
+
+        if attempt >= 3 {
+            alert.Send(fmt.Sprintf("ServiceAuth failing: %d attempts", attempt))
+        }
+    },
+
+    OnCircuitOpen: func() {
+        metrics.TokenRefreshCircuitOpen.Set(1)
+        alert.Send("CRITICAL: ServiceAuth circuit breaker opened!")
+    },
+
+    OnCircuitClose: func() {
+        metrics.TokenRefreshCircuitOpen.Set(0)
+        log.Println("ServiceAuth circuit breaker closed")
+    },
+}
+
 helper, err := sdk.NewServiceAuthHelper(
-    cfg,
+    serviceAuthCfg,
     client,
-    auth.WithRefreshStrategy(&auth.RefreshStrategy{
-        OnRefreshSuccess: func(token string, expiresIn time.Duration) {
-            metrics.TokenRefreshSuccess.Inc()
-            log.Printf("Token 刷新成功: expires_in=%v", expiresIn)
-        },
-        
-        OnRefreshFailure: func(err error, attempt int, nextRetry time.Duration) {
-            metrics.TokenRefreshFailure.Inc()
-            log.Printf("Token 刷新失败: attempt=%d, err=%v, next_retry=%v",
-                attempt, err, nextRetry)
-            
-            // 严重失败时告警
-            if attempt >= 3 {
-                alert.Send(fmt.Sprintf("ServiceAuth failing: %d attempts", attempt))
-            }
-        },
-        
-        OnCircuitOpen: func() {
-            metrics.TokenRefreshCircuitOpen.Set(1)
-            alert.Send("CRITICAL: ServiceAuth circuit breaker opened!")
-        },
-        
-        OnCircuitClose: func() {
-            metrics.TokenRefreshCircuitOpen.Set(0)
-            log.Println("ServiceAuth circuit breaker closed")
-        },
-    }),
+    auth.WithRefreshStrategy(refreshStrategy),
 )
 ```
 
@@ -674,7 +670,7 @@ A: 使用 mock 客户端：
 ```go
 // 测试时禁用自动刷新
 helper, _ := auth.NewServiceAuthHelperWithCallbacks(
-    cfg,
+    serviceAuthCfg,
     mockClient,
     nil, // 不需要回调
     nil,
@@ -683,6 +679,7 @@ helper, _ := auth.NewServiceAuthHelperWithCallbacks(
 
 ## 下一步
 
-- [可观测性](./05-observability.md)
-- [错误处理](./06-error-handling.md)
-- [高级重试配置](./07-advanced-retry.md)
+- [Token 生命周期](./03-token-lifecycle.md)
+- [JWT 本地验证](./04-jwt-verification.md)
+- [授权判定（PDP）](./06-authz.md)
+- [示例索引](../_examples/README.md)
