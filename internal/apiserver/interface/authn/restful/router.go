@@ -48,7 +48,9 @@ func registerAuthEndpointsV2(group *gin.RouterGroup, handler *authhandler.AuthHa
 	}
 
 	// 认证端点(符合 API 文档)
-	group.POST("/login", handler.Login)                // POST /v1/auth/login - 统一登录
+	group.POST("/login", handler.Login) // POST /v1/authn/login - 统一登录
+	// 登录预准备（发码、未来扫码会话等）
+	group.POST("/login/prep/phone-otp", handler.PreparePhoneOTPLogin)
 	group.POST("/refresh_token", handler.RefreshToken) // POST /v1/auth/refresh_token - 刷新令牌
 	group.POST("/logout", handler.Logout)              // POST /v1/auth/logout - 登出
 	group.POST("/verify", handler.VerifyToken)         // POST /v1/auth/verify - 验证令牌

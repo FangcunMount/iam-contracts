@@ -37,6 +37,25 @@ type OTPVerifier interface {
 	VerifyAndConsume(ctx context.Context, phoneE164, scene, code string) bool
 }
 
+// OTPCodeStore 写入待校验的 OTP（与 OTPVerifier 使用相同的 Redis key 约定）
+type OTPCodeStore interface {
+	// Put 写入验证码，TTL 到期后自动失效
+	Put(ctx context.Context, phoneE164, scene, code string, ttl time.Duration) error
+	// Delete 删除已写入的验证码（例如短信发送失败时回滚）
+	Delete(ctx context.Context, phoneE164, scene, code string) error
+}
+
+// OTPSendGate 限制同一手机号、同一场景的发送频率
+type OTPSendGate interface {
+	// TryAcquire 若允许发送返回 true；冷却期内返回 false（未产生错误时表示频控）
+	TryAcquire(ctx context.Context, phoneE164, scene string, cooldown time.Duration) (bool, error)
+}
+
+// SMSSender 登录 OTP 触达通道：实现通常为「投递 MQ / 事件」，由下游真正发短信，IAM 不直连运营商
+type SMSSender interface {
+	SendLoginOTP(ctx context.Context, phoneE164, code string) error
+}
+
 // IdentityProvider 身份提供商服务（OAuth/OIDC）
 // 职责：与外部IdP交互，换取用户身份标识
 type IdentityProvider interface {

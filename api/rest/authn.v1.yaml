@@ -652,6 +652,39 @@ paths:
               schema:
                 additionalProperties: true
                 type: object
+  /authn/login/prep/phone-otp:
+    post:
+      tags:
+      - 认证
+      summary: 登录预准备-发送手机登录验证码
+      description: 将验证码写入 Redis 并调用短信网关（开发可用 sms.provider=log 仅记录日志）；与 POST /authn/login 的 phone_otp 配合使用
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.PreparePhoneOTPLoginRequest'
+      responses:
+        '200':
+          description: 已受理发送
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+        '429':
+          description: 发送过于频繁
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
   /authn/logout:
     post:
       tags:
@@ -850,6 +883,14 @@ components:
       required:
       - credentials
       - method
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.PreparePhoneOTPLoginRequest:
+      properties:
+        phone:
+          description: 手机号（E.164 或国内号，服务端规范为 E.164）
+          type: string
+      required:
+      - phone
       type: object
     github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.LogoutRequest:
       properties:

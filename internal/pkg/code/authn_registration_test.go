@@ -71,6 +71,12 @@ func TestAuthnErrorCodesUsage(t *testing.T) {
 			expectedStatus: http.StatusUnauthorized,
 			shouldRegister: true,
 		},
+		{
+			name:           "ErrOTPSendTooFrequent",
+			errorCode:      code.ErrOTPSendTooFrequent,
+			expectedStatus: http.StatusTooManyRequests,
+			shouldRegister: true,
+		},
 	}
 
 	for _, tt := range tests {

@@ -2,6 +2,7 @@ package request
 
 import (
 	"encoding/json"
+	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
@@ -42,6 +43,19 @@ type PasswordCredentials struct {
 type PhoneOTPCredentials struct {
 	Phone   string `json:"phone" binding:"required"`    // E.164 格式
 	OTPCode string `json:"otp_code" binding:"required"` // 验证码
+}
+
+// PreparePhoneOTPLoginRequest 登录预准备：请求发送手机登录短信验证码
+type PreparePhoneOTPLoginRequest struct {
+	Phone string `json:"phone" binding:"required"` // 支持 E.164 或国内手机号，服务端规范为 E.164
+}
+
+// Validate 校验发送登录 OTP 请求
+func (r *PreparePhoneOTPLoginRequest) Validate() error {
+	if strings.TrimSpace(r.Phone) == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "phone is required")
+	}
+	return nil
 }
 
 // WeChatCredentials 微信小程序凭证

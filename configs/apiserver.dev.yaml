@@ -177,7 +177,20 @@ idp:
   encryption-key: ""  # 留空使用默认密钥（开发环境）或通过环境变量 IAM_APISERVER_IDP_ENCRYPTION_KEY 设置
 
 # ----------------------------------------------------------------------------
-# 4.4 Suggest 联想模块
+# 4.4 短信登录 OTP（发码）
+# ----------------------------------------------------------------------------
+# provider: log（仅打日志）| mq（经 NSQ 发布 iam.notify.sms，由下游真正发短信）
+# mq 需同时开启下方 nsq.enabled
+sms:
+  provider: log
+  login_otp_ttl: 5m
+  login_otp_send_cooldown: 60s
+  login_otp_code_length: 6
+  mq:
+    topic: iam.notify.sms
+
+# ----------------------------------------------------------------------------
+# 4.5 Suggest 联想模块
 # ----------------------------------------------------------------------------
 suggest:
   enable: true

@@ -11,9 +11,11 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/FangcunMount/component-base/pkg/log"
+	"github.com/FangcunMount/component-base/pkg/messaging"
 	accountApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/account"
 	jwksApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/jwks"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/login"
+	loginprep "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/loginprep"
 	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/register"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
 	authnUow "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
@@ -31,6 +33,7 @@ import (
 	mysqluser "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
 	redisInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/redis"
 	schedulerInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/scheduler"
+	smsInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/sms"
 	wechatInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/wechat"
 	authngrpc "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/grpc"
 	authhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful/handler"
@@ -41,8 +44,9 @@ type AuthnModule struct {
 	// 应用服务
 	AccountService  accountApp.AccountApplicationService
 	RegisterService registerApp.RegisterApplicationService
-	LoginService    login.LoginApplicationService
-	TokenService    token.TokenApplicationService
+	LoginService            login.LoginApplicationService
+	LoginPreparationService loginprep.LoginPreparationService
+	TokenService            token.TokenApplicationService
 
 	// JWKS 应用服务
 	KeyManagementApp *jwksApp.KeyManagementAppService
@@ -77,6 +81,7 @@ func NewAuthnModule() *AuthnModule {
 // 可选参数：
 //   - authentication.PasswordHasher 自定义密码哈希器
 //   - *IDPModule              注入 IDP 模块提供的基础设施能力
+//   - messaging.EventBus      可选；sms.provider=mq 时用于发布登录 OTP 短信任务
 func (m *AuthnModule) Initialize(params ...interface{}) error {
 	if len(params) < 2 {
 		log.Errorf("AuthnModule.Initialize requires at least 2 parameters: db, redisClient")
@@ -97,8 +102,9 @@ func (m *AuthnModule) Initialize(params ...interface{}) error {
 
 	// 获取可选依赖
 	var (
-		hasher  authentication.PasswordHasher
-		idpDeps *IDPModule
+		hasher    authentication.PasswordHasher
+		idpDeps   *IDPModule
+		eventBus  messaging.EventBus
 	)
 	for _, opt := range params[2:] {
 		switch v := opt.(type) {
@@ -106,6 +112,8 @@ func (m *AuthnModule) Initialize(params ...interface{}) error {
 			hasher = v
 		case *IDPModule:
 			idpDeps = v
+		case messaging.EventBus:
+			eventBus = v
 		}
 	}
 	if hasher == nil {
@@ -113,13 +121,15 @@ func (m *AuthnModule) Initialize(params ...interface{}) error {
 	}
 
 	// 初始化基础设施层
-	infra := m.initializeInfrastructure(db, redisClient, idpDeps)
+	infra := m.initializeInfrastructure(db, redisClient, idpDeps, eventBus)
 
 	// 初始化领域层
 	domain := m.initializeDomain(infra)
 
 	// 初始化应用层
-	m.initializeApplication(infra, domain, hasher)
+	if err := m.initializeApplication(infra, domain, hasher); err != nil {
+		return err
+	}
 
 	// 初始化接口层
 	m.initializeInterface()
@@ -139,6 +149,7 @@ type infrastructureComponents struct {
 	accountRepo    authentication.AccountRepository
 	credentialRepo authentication.CredentialRepository
 	otpVerifier    authentication.OTPVerifier
+	otpRedis       *redisInfra.OTPVerifierImpl
 	idp            authentication.IdentityProvider
 	tokenVerifier  authentication.TokenVerifier
 
@@ -158,13 +169,17 @@ type infrastructureComponents struct {
 	// IDP 基础设施
 	wechatAppQuerier idpPort.Repository
 	secretVault      idpPort.SecretVault
+
+	// 消息总线（可选，登录 OTP 走 MQ 时需要）
+	eventBus messaging.EventBus
 }
 
 // initializeInfrastructure 初始化基础设施层
-func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.Client, idpDeps *IDPModule) *infrastructureComponents {
+func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.Client, idpDeps *IDPModule, eventBus messaging.EventBus) *infrastructureComponents {
 	infra := &infrastructureComponents{
-		db:    db,
-		redis: redisClient,
+		db:       db,
+		redis:    redisClient,
+		eventBus: eventBus,
 	}
 
 	// UnitOfWork
@@ -172,8 +187,10 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 	infra.accountRepo = acctrepo.NewAccountRepository(db)
 	infra.credentialRepo = credentialrepo.NewRepository(db)
 
-	// OTP 验证器
-	infra.otpVerifier = redisInfra.NewOTPVerifier(redisClient)
+	// OTP：验证 / 写入 / 发送频控共用同一 Redis 实现
+	otpRedis := redisInfra.NewOTPVerifier(redisClient)
+	infra.otpVerifier = otpRedis
+	infra.otpRedis = otpRedis
 
 	// 身份提供商 (微信)
 	// 优先使用 IDP 模块提供的基础设施能力
@@ -296,7 +313,7 @@ func (m *AuthnModule) initializeApplication(
 	infra *infrastructureComponents,
 	domain *domainComponents,
 	hasher authentication.PasswordHasher,
-) {
+) error {
 	// 账户应用服务
 	m.AccountService = accountApp.NewAccountApplicationService(infra.unitOfWork)
 
@@ -309,6 +326,36 @@ func (m *AuthnModule) initializeApplication(
 		infra.wechatAppQuerier,
 		infra.secretVault,
 	)
+
+	smsProvider := strings.ToLower(strings.TrimSpace(viper.GetString("sms.provider")))
+	if smsProvider == "" {
+		smsProvider = "log"
+	}
+	var smsSender authentication.SMSSender
+	switch smsProvider {
+	case "log":
+		smsSender = smsInfra.LogSender{}
+	case "mq":
+		if infra.eventBus == nil {
+			return fmt.Errorf("sms.provider=mq requires NSQ EventBus (enable nsq.enabled and ensure EventBus is created)")
+		}
+		topic := strings.TrimSpace(viper.GetString("sms.mq.topic"))
+		smsSender = smsInfra.NewMQLoginOTPSender(infra.eventBus, topic)
+	default:
+		log.Warnw("unknown sms.provider, fallback to log", "sms.provider", smsProvider)
+		smsSender = smsInfra.LogSender{}
+	}
+
+	phoneOTP := &loginprep.PhoneOTPDeps{
+		Store:    infra.otpRedis,
+		Gate:     infra.otpRedis,
+		SMS:      smsSender,
+		TTL:      viper.GetDuration("sms.login_otp_ttl"),
+		Cooldown: viper.GetDuration("sms.login_otp_send_cooldown"),
+		CodeLen:  viper.GetInt("sms.login_otp_code_length"),
+	}
+
+	m.LoginPreparationService = loginprep.NewLoginPreparationService(phoneOTP)
 
 	m.LoginService = login.NewLoginApplicationService(
 		domain.tokenIssuer,
@@ -337,6 +384,8 @@ func (m *AuthnModule) initializeApplication(
 	m.KeyManagementApp = jwksApp.NewKeyManagementAppService(domain.keyManager, logger)
 	m.KeyPublishApp = jwksApp.NewKeyPublishAppService(domain.keySetBuilder, logger)
 	m.KeyRotationApp = jwksApp.NewKeyRotationAppService(domain.keyRotation, logger)
+
+	return nil
 }
 
 // initializeInterface 初始化接口层
@@ -349,6 +398,7 @@ func (m *AuthnModule) initializeInterface() {
 	m.AuthHandler = authhandler.NewAuthHandler(
 		m.LoginService,
 		m.TokenService,
+		m.LoginPreparationService,
 	)
 
 	m.JWKSHandler = authhandler.NewJWKSHandler(

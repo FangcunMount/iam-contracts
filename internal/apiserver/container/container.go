@@ -138,7 +138,7 @@ func (c *Container) Initialize() error {
 func (c *Container) initAuthModule() error {
 	authModule := assembler.NewAuthnModule()
 	// 传递 Redis（用于 Token 持久化）和 IDP 模块的服务
-	if err := authModule.Initialize(c.mysqlDB, c.redisClient, c.IDPModule); err != nil {
+	if err := authModule.Initialize(c.mysqlDB, c.redisClient, c.IDPModule, c.eventBus); err != nil {
 		return fmt.Errorf("failed to initialize auth module: %w", err)
 	}
 	c.AuthnModule = authModule
