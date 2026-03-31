@@ -21,10 +21,12 @@ func NoCache(c *gin.Context) {
 }
 
 // Options 是一个中间件函数，用于添加头信息，处理 OPTIONS 请求，并中止中间件链和结束请求
+// 注意：生产环境若前有 Nginx/CORS，勿在此处再写 Access-Control-Allow-Origin，否则会与网关叠成「多值」导致浏览器报错。
 func Options(c *gin.Context) {
 	if c.Request.Method != "OPTIONS" {
 		c.Next()
 	} else {
+		// 仅本地直连 apiserver 时用；生产由 Nginx 处理 OPTIONS 时不会进到这里
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "authorization, origin, content-type, accept")
@@ -35,8 +37,8 @@ func Options(c *gin.Context) {
 }
 
 // Secure 是一个中间件函数，用于添加安全头信息和资源访问头信息
+// 不在此设置 CORS：由前置 Nginx（如 iam.fangcunmount.cn.conf 的 map + add_header）统一出 Allow-Origin，避免与 Gin 重复。
 func Secure(c *gin.Context) {
-	c.Header("Access-Control-Allow-Origin", "*")
 	c.Header("X-Frame-Options", "DENY")
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.Header("X-XSS-Protection", "1; mode=block")
