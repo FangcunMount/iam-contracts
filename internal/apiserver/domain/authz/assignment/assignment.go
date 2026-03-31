@@ -7,7 +7,7 @@ import (
 // Assignment 用户/组 ↔ 角色赋权（聚合根）
 type Assignment struct {
 	ID          AssignmentID
-	SubjectType SubjectType // user/group
+	SubjectType SubjectType // user/group/service
 	SubjectID   string      // 用户或组ID
 	RoleID      uint64      // 角色ID
 	TenantID    string      // 租户ID（域）
@@ -65,8 +65,9 @@ func (id AssignmentID) String() string {
 type SubjectType string
 
 const (
-	SubjectTypeUser  SubjectType = "user"
-	SubjectTypeGroup SubjectType = "group"
+	SubjectTypeUser    SubjectType = "user"
+	SubjectTypeGroup   SubjectType = "group"
+	SubjectTypeService SubjectType = "service"
 )
 
 func (st SubjectType) String() string {

@@ -289,11 +289,16 @@ func (h *AuthHandler) VerifyToken(c *gin.Context) {
 	}
 
 	if result.Valid && result.Claims != nil {
+		var tenantID *int64
+		if !result.Claims.TenantID.IsZero() {
+			value := int64(result.Claims.TenantID.Uint64())
+			tenantID = &value
+		}
 		response.Claims = &resp.TokenClaims{
 			UserID:    result.Claims.UserID.String(),
 			AccountID: result.Claims.AccountID.String(),
-			TenantID:  nil, // Domain TokenClaims 没有 TenantID 字段
-			Issuer:    "",  // Domain TokenClaims 没有 Issuer 字段
+			TenantID:  tenantID,
+			Issuer:    result.Claims.Issuer,
 			IssuedAt:  result.Claims.IssuedAt,
 			ExpiresAt: result.Claims.ExpiresAt,
 			JTI:       result.Claims.TokenID,

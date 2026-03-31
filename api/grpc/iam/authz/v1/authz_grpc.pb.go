@@ -19,7 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthorizationService_Check_FullMethodName = "/iam.authz.v1.AuthorizationService/Check"
+	AuthorizationService_Check_FullMethodName                    = "/iam.authz.v1.AuthorizationService/Check"
+	AuthorizationService_GetAuthorizationSnapshot_FullMethodName = "/iam.authz.v1.AuthorizationService/GetAuthorizationSnapshot"
+	AuthorizationService_GrantAssignment_FullMethodName          = "/iam.authz.v1.AuthorizationService/GrantAssignment"
+	AuthorizationService_RevokeAssignment_FullMethodName         = "/iam.authz.v1.AuthorizationService/RevokeAssignment"
 )
 
 // AuthorizationServiceClient is the client API for AuthorizationService service.
@@ -30,6 +33,12 @@ const (
 type AuthorizationServiceClient interface {
 	// Check 对 (subject, domain, object, action) 执行 Casbin Enforce。
 	Check(ctx context.Context, in *CheckRequest, opts ...grpc.CallOption) (*CheckResponse, error)
+	// GetAuthorizationSnapshot 返回主体在指定租户与应用下的授权快照。
+	GetAuthorizationSnapshot(ctx context.Context, in *GetAuthorizationSnapshotRequest, opts ...grpc.CallOption) (*GetAuthorizationSnapshotResponse, error)
+	// GrantAssignment 为主体授予指定角色。
+	GrantAssignment(ctx context.Context, in *GrantAssignmentRequest, opts ...grpc.CallOption) (*GrantAssignmentResponse, error)
+	// RevokeAssignment 撤销主体上的指定角色。
+	RevokeAssignment(ctx context.Context, in *RevokeAssignmentRequest, opts ...grpc.CallOption) (*RevokeAssignmentResponse, error)
 }
 
 type authorizationServiceClient struct {
@@ -50,6 +59,36 @@ func (c *authorizationServiceClient) Check(ctx context.Context, in *CheckRequest
 	return out, nil
 }
 
+func (c *authorizationServiceClient) GetAuthorizationSnapshot(ctx context.Context, in *GetAuthorizationSnapshotRequest, opts ...grpc.CallOption) (*GetAuthorizationSnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAuthorizationSnapshotResponse)
+	err := c.cc.Invoke(ctx, AuthorizationService_GetAuthorizationSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizationServiceClient) GrantAssignment(ctx context.Context, in *GrantAssignmentRequest, opts ...grpc.CallOption) (*GrantAssignmentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GrantAssignmentResponse)
+	err := c.cc.Invoke(ctx, AuthorizationService_GrantAssignment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authorizationServiceClient) RevokeAssignment(ctx context.Context, in *RevokeAssignmentRequest, opts ...grpc.CallOption) (*RevokeAssignmentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevokeAssignmentResponse)
+	err := c.cc.Invoke(ctx, AuthorizationService_RevokeAssignment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthorizationServiceServer is the server API for AuthorizationService service.
 // All implementations must embed UnimplementedAuthorizationServiceServer
 // for forward compatibility.
@@ -58,6 +97,12 @@ func (c *authorizationServiceClient) Check(ctx context.Context, in *CheckRequest
 type AuthorizationServiceServer interface {
 	// Check 对 (subject, domain, object, action) 执行 Casbin Enforce。
 	Check(context.Context, *CheckRequest) (*CheckResponse, error)
+	// GetAuthorizationSnapshot 返回主体在指定租户与应用下的授权快照。
+	GetAuthorizationSnapshot(context.Context, *GetAuthorizationSnapshotRequest) (*GetAuthorizationSnapshotResponse, error)
+	// GrantAssignment 为主体授予指定角色。
+	GrantAssignment(context.Context, *GrantAssignmentRequest) (*GrantAssignmentResponse, error)
+	// RevokeAssignment 撤销主体上的指定角色。
+	RevokeAssignment(context.Context, *RevokeAssignmentRequest) (*RevokeAssignmentResponse, error)
 	mustEmbedUnimplementedAuthorizationServiceServer()
 }
 
@@ -70,6 +115,15 @@ type UnimplementedAuthorizationServiceServer struct{}
 
 func (UnimplementedAuthorizationServiceServer) Check(context.Context, *CheckRequest) (*CheckResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
+}
+func (UnimplementedAuthorizationServiceServer) GetAuthorizationSnapshot(context.Context, *GetAuthorizationSnapshotRequest) (*GetAuthorizationSnapshotResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAuthorizationSnapshot not implemented")
+}
+func (UnimplementedAuthorizationServiceServer) GrantAssignment(context.Context, *GrantAssignmentRequest) (*GrantAssignmentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GrantAssignment not implemented")
+}
+func (UnimplementedAuthorizationServiceServer) RevokeAssignment(context.Context, *RevokeAssignmentRequest) (*RevokeAssignmentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RevokeAssignment not implemented")
 }
 func (UnimplementedAuthorizationServiceServer) mustEmbedUnimplementedAuthorizationServiceServer() {}
 func (UnimplementedAuthorizationServiceServer) testEmbeddedByValue()                              {}
@@ -110,6 +164,60 @@ func _AuthorizationService_Check_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthorizationService_GetAuthorizationSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAuthorizationSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizationServiceServer).GetAuthorizationSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizationService_GetAuthorizationSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizationServiceServer).GetAuthorizationSnapshot(ctx, req.(*GetAuthorizationSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizationService_GrantAssignment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GrantAssignmentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizationServiceServer).GrantAssignment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizationService_GrantAssignment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizationServiceServer).GrantAssignment(ctx, req.(*GrantAssignmentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthorizationService_RevokeAssignment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeAssignmentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizationServiceServer).RevokeAssignment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizationService_RevokeAssignment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizationServiceServer).RevokeAssignment(ctx, req.(*RevokeAssignmentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthorizationService_ServiceDesc is the grpc.ServiceDesc for AuthorizationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -120,6 +228,18 @@ var AuthorizationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Check",
 			Handler:    _AuthorizationService_Check_Handler,
+		},
+		{
+			MethodName: "GetAuthorizationSnapshot",
+			Handler:    _AuthorizationService_GetAuthorizationSnapshot_Handler,
+		},
+		{
+			MethodName: "GrantAssignment",
+			Handler:    _AuthorizationService_GrantAssignment_Handler,
+		},
+		{
+			MethodName: "RevokeAssignment",
+			Handler:    _AuthorizationService_RevokeAssignment_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

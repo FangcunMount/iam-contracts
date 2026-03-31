@@ -27,6 +27,7 @@
 | 为什么 `pkg/sdk` 也应被视为主阅读路径？ | [../05-专题分析/04-SDK封装与接入价值.md](../05-专题分析/04-SDK封装与接入价值.md) |
 | 机器契约在哪？ | [../../api/README.md](../../api/README.md)、[../../api/rest/README.md](../../api/rest/README.md)、[../../api/grpc/README.md](../../api/grpc/README.md) |
 | 业务方接 IAM 的流程说明在哪？ | [05-QS接入IAM.md](./05-QS接入IAM.md) |
+| IAM token / 授权快照 / `authz_version` 与 QS 竖切（`CurrentAuthzSnapshot`、capability）边界在哪？ | [06-IAM-QS竖切边界-Token与授权快照.md](./06-IAM-QS竖切边界-Token与授权快照.md) |
 
 ## 1. `03-接口与集成` 这一组文档今天到底负责什么
 
@@ -48,6 +49,7 @@
 | [03-授权接入与边界.md](./03-授权接入与边界.md) | 授权管理面、判定面、JWT/租户上下文和当前不能讲过头的边界 |
 | [04-身份接入与监护关系边界.md](./04-身份接入与监护关系边界.md) | 身份 REST / gRPC、监护关系查询判定、合同漂移与当前边界 |
 | [05-QS接入IAM.md](./05-QS接入IAM.md) | 面向 `qs` 这类业务系统的现行接入路径、SDK 读法与边界提醒 |
+| [06-IAM-QS竖切边界-Token与授权快照.md](./06-IAM-QS竖切边界-Token与授权快照.md) | IAM 契约 PR（token、快照、`authz_version`）与 QS 竖切（`CurrentAuthzSnapshot`、capability→permissions）责任边界 |
 
 ## 3. 这一组文档里哪些接入术语值得统一
 

@@ -39,8 +39,5 @@ func (a *TokenVerifierAdapter) VerifyAccessToken(ctx context.Context, tokenValue
 	userID = claims.UserID
 	accountID = claims.AccountID
 
-	// tenantID 目前从 token claims 中无法获取，返回 nil
-	// 如果需要，可以在 TokenClaims 中添加 TenantID 字段
-	zeroTenantID := meta.FromUint64(0)
-	return userID, accountID, zeroTenantID, nil
+	return userID, accountID, claims.TenantID, nil
 }

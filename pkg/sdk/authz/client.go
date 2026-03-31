@@ -10,9 +10,11 @@ import (
 
 // Client 授权服务客户端。
 //
-// 当前聚焦对外稳定的判定面，包括：
+// 当前聚焦对外稳定的授权消费面，包括：
 //   - 单次权限判定（Check）
 //   - 便捷判定（Allow）
+//   - 授权快照（GetAuthorizationSnapshot）
+//   - 角色赋权/撤销（GrantAssignment / RevokeAssignment）
 //
 // 使用示例：
 //
@@ -60,6 +62,33 @@ func (c *Client) Allow(ctx context.Context, subject, domain, object, action stri
 		return false, err
 	}
 	return resp.Allowed, nil
+}
+
+// GetAuthorizationSnapshot 获取主体在指定租户/应用下的授权快照。
+func (c *Client) GetAuthorizationSnapshot(ctx context.Context, req *authzv1.GetAuthorizationSnapshotRequest) (*authzv1.GetAuthorizationSnapshotResponse, error) {
+	resp, err := c.authorizationService.GetAuthorizationSnapshot(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err)
+	}
+	return resp, nil
+}
+
+// GrantAssignment 为主体授予角色。
+func (c *Client) GrantAssignment(ctx context.Context, req *authzv1.GrantAssignmentRequest) (*authzv1.GrantAssignmentResponse, error) {
+	resp, err := c.authorizationService.GrantAssignment(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err)
+	}
+	return resp, nil
+}
+
+// RevokeAssignment 撤销主体上的角色。
+func (c *Client) RevokeAssignment(ctx context.Context, req *authzv1.RevokeAssignmentRequest) (*authzv1.RevokeAssignmentResponse, error) {
+	resp, err := c.authorizationService.RevokeAssignment(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err)
+	}
+	return resp, nil
 }
 
 // Raw 返回原始 AuthorizationService gRPC 客户端。

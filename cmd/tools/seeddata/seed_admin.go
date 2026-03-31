@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	ucUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
@@ -21,7 +22,7 @@ import (
 // 1. 创建系统管理员用户（用于后续创建认证账号）
 // 2. 返回的 state 保存用户ID，供后续步骤使用（如 authn 步骤）
 //
-// 幂等性：通过手机号查询检查，已存在的用户会被更新而不是重复创建
+// 幂等性：有手机号则按手机号查；手机号为空且配置了 id 则按用户 id 查；否则仅首次 Register 可成功
 func seedAdmin(ctx context.Context, deps *dependencies, state *seedContext) error {
 	if deps.Config == nil || len(deps.Config.Users) == 0 {
 		deps.Logger.Warnw("⚠️  配置文件中没有用户数据，跳过")
@@ -59,26 +60,22 @@ func ensureSystemUser(
 	userQuerySrv userApp.UserQueryApplicationService,
 	cfg UserConfig,
 ) (string, error) {
-	// 先尝试通过手机号查询
-	if res, err := userQuerySrv.GetByPhone(ctx, cfg.Phone); err == nil && res != nil {
-		if cfg.ID > 0 && res.ID != strconv.FormatUint(cfg.ID, 10) {
-			return "", fmt.Errorf("user id mismatch for phone %s: existing=%s expected=%d", cfg.Phone, res.ID, cfg.ID)
+	// 有手机号：按手机号做幂等与更新
+	if strings.TrimSpace(cfg.Phone) != "" {
+		if res, err := userQuerySrv.GetByPhone(ctx, cfg.Phone); err == nil && res != nil {
+			if cfg.ID > 0 && res.ID != strconv.FormatUint(cfg.ID, 10) {
+				return "", fmt.Errorf("user id mismatch for phone %s: existing=%s expected=%d", cfg.Phone, res.ID, cfg.ID)
+			}
+			applySeedUserUpdates(ctx, userProfileSrv, res, cfg)
+			return res.ID, nil
 		}
-		// 用户已存在，更新信息
-		if res.Name != cfg.Name {
-			_ = userProfileSrv.Rename(ctx, res.ID, cfg.Name)
+	} else if cfg.ID > 0 {
+		// 无手机号：无法用 GetByPhone；按固定 id 查询以实现重复执行 seed 时的幂等
+		idStr := strconv.FormatUint(cfg.ID, 10)
+		if res, err := userQuerySrv.GetByID(ctx, idStr); err == nil && res != nil {
+			applySeedUserUpdates(ctx, userProfileSrv, res, cfg)
+			return res.ID, nil
 		}
-		if res.Email != cfg.Email {
-			_ = userProfileSrv.UpdateContact(ctx, userApp.UpdateContactDTO{
-				UserID: res.ID,
-				Phone:  cfg.Phone,
-				Email:  cfg.Email,
-			})
-		}
-		if cfg.IDCard != "" && res.IDCard != cfg.IDCard {
-			_ = userProfileSrv.UpdateIDCard(ctx, res.ID, cfg.IDCard)
-		}
-		return res.ID, nil
 	}
 
 	// 用户不存在，创建新用户
@@ -97,6 +94,27 @@ func ensureSystemUser(
 		_ = userProfileSrv.UpdateIDCard(ctx, created.ID, cfg.IDCard)
 	}
 	return created.ID, nil
+}
+
+func applySeedUserUpdates(
+	ctx context.Context,
+	userProfileSrv userApp.UserProfileApplicationService,
+	res *userApp.UserResult,
+	cfg UserConfig,
+) {
+	if res.Name != cfg.Name {
+		_ = userProfileSrv.Rename(ctx, res.ID, cfg.Name)
+	}
+	if res.Email != cfg.Email {
+		_ = userProfileSrv.UpdateContact(ctx, userApp.UpdateContactDTO{
+			UserID: res.ID,
+			Phone:  cfg.Phone,
+			Email:  cfg.Email,
+		})
+	}
+	if cfg.IDCard != "" && res.IDCard != cfg.IDCard {
+		_ = userProfileSrv.UpdateIDCard(ctx, res.ID, cfg.IDCard)
+	}
 }
 
 // ==================== 登录并创建员工（QS 服务） ====================
@@ -138,7 +156,7 @@ func seedStaff(ctx context.Context, deps *dependencies, state *seedContext) erro
 			continue
 		}
 
-		// 运营账号优先使用手机号形态的 external_id/username，否则回退用户手机号
+		// 解析 operation 账号实际登录标识，优先 external_id，兼容 legacy username
 		loginID := resolveLoginID(*account, uc)
 
 		// 登录获取 token
@@ -146,7 +164,7 @@ func seedStaff(ctx context.Context, deps *dependencies, state *seedContext) erro
 		if err != nil {
 			deps.Logger.Warnw("⚠️  登录失败，跳过员工创建",
 				"alias", uc.Alias,
-				"username", account.Username,
+				"login_id", loginID,
 				"error", err)
 			continue
 		}

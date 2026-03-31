@@ -38,7 +38,7 @@ func (g *genStub) ParseAccessToken(ctx context.Context, tokenValue string) (*tok
 		return nil, errors.New("no token")
 	}
 	// return claims built from g.tok
-	return token.NewTokenClaims(g.tok.Type, g.tok.ID, g.tok.Subject, g.tok.UserID, g.tok.AccountID, "", g.tok.Audience, g.tok.Attributes, g.tok.IssuedAt, g.tok.ExpiresAt), nil
+	return token.NewTokenClaims(g.tok.Type, g.tok.ID, g.tok.Subject, g.tok.UserID, g.tok.AccountID, g.tok.TenantID, "", g.tok.Audience, g.tok.Attributes, g.tok.IssuedAt, g.tok.ExpiresAt), nil
 }
 
 type storeStub struct {
@@ -72,7 +72,7 @@ func TestIssueToken_HappyPathAndGeneratorError(t *testing.T) {
 	acc := &authentication.Principal{AccountID: meta.FromUint64(2), UserID: meta.FromUint64(1), TenantID: meta.FromUint64(0)}
 
 	// happy path
-	access := token.NewAccessToken("aid", "aval", acc.UserID, acc.AccountID, time.Minute)
+	access := token.NewAccessToken("aid", "aval", acc.UserID, acc.AccountID, acc.TenantID, time.Minute)
 	gen := &genStub{tok: access}
 	store := &storeStub{}
 	issuer := token.NewTokenIssuer(gen, store, time.Minute, time.Hour)
@@ -110,7 +110,7 @@ func TestIssueServiceToken_HappyPathAndValidation(t *testing.T) {
 
 func TestRevokeToken_ExpiredAndBlacklist(t *testing.T) {
 	// expired token: Parse returns claims with past expiry
-	expired := token.NewAccessToken("eid", "eval", meta.FromUint64(1), meta.FromUint64(2), -time.Minute)
+	expired := token.NewAccessToken("eid", "eval", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), -time.Minute)
 	gen := &genStub{tok: expired}
 	store := &storeStub{}
 	issuer := token.NewTokenIssuer(gen, store, time.Minute, time.Hour)
@@ -121,7 +121,7 @@ func TestRevokeToken_ExpiredAndBlacklist(t *testing.T) {
 	require.Equal(t, 0, store.addCalled)
 
 	// future token -> blacklist called
-	futureTok := token.NewAccessToken("fid", "fval", meta.FromUint64(9), meta.FromUint64(8), time.Hour)
+	futureTok := token.NewAccessToken("fid", "fval", meta.FromUint64(9), meta.FromUint64(8), meta.FromUint64(7), time.Hour)
 	gen2 := &genStub{tok: futureTok}
 	store2 := &storeStub{}
 	issuer2 := token.NewTokenIssuer(gen2, store2, time.Minute, time.Hour)

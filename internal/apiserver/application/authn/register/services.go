@@ -26,6 +26,12 @@ type RegisterRequest struct {
 	Phone meta.Phone // 手机号（E.164格式）
 	Email meta.Email // 邮箱（可选）
 
+	// ExistingUserID 非零时为已有用户绑定账号（不创建 User），用于 seed、管理端等场景。
+	ExistingUserID meta.ID
+
+	// OperaLoginID 运营账号写入 auth_accounts.external_id 的登录名，与密码登录 username 一致；空则由领域按邮箱/手机号推导。
+	OperaLoginID string
+
 	// ========== 账户类型（必须）==========
 	AccountType domain.AccountType // 账户类型（决定注册流程，如微信小程序需要 code2session）
 

@@ -23,7 +23,7 @@ func main() {
 	// 方式 1：使用原始 Check 请求
 	resp, err := client.Authz().Check(ctx, &authzv1.CheckRequest{
 		Subject: "user:user-123",
-		Domain:  "default",
+		Domain:  "fangcun",
 		Object:  "resource:child_profile",
 		Action:  "read",
 	})
@@ -36,7 +36,7 @@ func main() {
 	allowed, err := client.Authz().Allow(
 		ctx,
 		"user:user-123",
-		"default",
+		"fangcun",
 		"resource:report",
 		"read",
 	)

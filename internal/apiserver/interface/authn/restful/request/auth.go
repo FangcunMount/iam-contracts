@@ -34,6 +34,7 @@ func (r *LoginRequest) Validate() error {
 
 // PasswordCredentials 密码认证凭证
 type PasswordCredentials struct {
+	// Username 登录名：须与创建账号时写入的 auth_accounts.external_id 一致（例如配置的登录名或邮箱）
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
 	TenantID uint64 `json:"tenant_id,omitempty"`

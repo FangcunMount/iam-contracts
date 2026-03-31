@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/component-base/pkg/log"
 	appuser "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
 	requestdto "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/request"
 	responsedto "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/response"
@@ -161,7 +162,12 @@ func (h *UserHandler) resolveRoles(c *gin.Context, userID string) []string {
 	sub := "user:" + userID
 	dom := authn.TenantIDFromGin(c)
 	raw, err := h.casbin.GetRolesForUser(c.Request.Context(), sub, dom)
-	if err != nil || len(raw) == 0 {
+	if err != nil {
+		log.Debugw("me: GetRolesForUser failed", "sub", sub, "domain", dom, "error", err)
+		return nil
+	}
+	if len(raw) == 0 {
+		log.Debugw("me: no casbin roles", "sub", sub, "domain", dom)
 		return nil
 	}
 	out := make([]string, 0, len(raw))

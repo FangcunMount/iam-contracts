@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/big"
+	"strconv"
 	"time"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
@@ -40,8 +41,9 @@ func NewGenerator(
 // CustomClaims 自定义 JWT Claims
 type CustomClaims struct {
 	TokenType  string            `json:"token_type,omitempty"`
-	UserID     uint64            `json:"user_id,omitempty"`
-	AccountID  uint64            `json:"account_id,omitempty"`
+	UserID     string            `json:"user_id,omitempty"`
+	AccountID  string            `json:"account_id,omitempty"`
+	TenantID   string            `json:"tenant_id,omitempty"`
 	Audience   []string          `json:"audience,omitempty"`
 	Attributes map[string]string `json:"attributes,omitempty"`
 	jwt.StandardClaims
@@ -55,8 +57,9 @@ func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authenti
 
 	claims := CustomClaims{
 		TokenType: string(domain.TokenTypeAccess),
-		UserID:    principal.UserID.Uint64(),
-		AccountID: principal.AccountID.Uint64(),
+		UserID:    principal.UserID.String(),
+		AccountID: principal.AccountID.String(),
+		TenantID:  principal.TenantID.String(),
 		StandardClaims: jwt.StandardClaims{
 			Id:        tokenID,
 			Subject:   principal.UserID.String(), // 添加 sub 字段，设置为 user_id
@@ -77,6 +80,7 @@ func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authenti
 		tokenString,
 		principal.UserID,
 		principal.AccountID,
+		principal.TenantID,
 		expiresIn,
 	), nil
 }
@@ -183,8 +187,9 @@ func (g *Generator) ParseAccessToken(ctx context.Context, tokenValue string) (*d
 	}
 
 	// 转换为领域模型
-	userID := meta.FromUint64(claims.UserID)
-	accountID := meta.FromUint64(claims.AccountID)
+	userID := parseStringID(claims.UserID)
+	accountID := parseStringID(claims.AccountID)
+	tenantID := parseStringID(claims.TenantID)
 	tokenType := domain.TokenType(claims.TokenType)
 	if tokenType == "" {
 		tokenType = domain.TokenTypeAccess
@@ -195,6 +200,7 @@ func (g *Generator) ParseAccessToken(ctx context.Context, tokenValue string) (*d
 		claims.Subject,
 		userID,
 		accountID,
+		tenantID,
 		claims.Issuer,
 		claims.Audience,
 		claims.Attributes,
@@ -247,4 +253,15 @@ func cloneStringMap(in map[string]string) map[string]string {
 		out[k] = v
 	}
 	return out
+}
+
+func parseStringID(raw string) meta.ID {
+	if raw == "" {
+		return meta.FromUint64(0)
+	}
+	value, err := strconv.ParseUint(raw, 10, 64)
+	if err != nil {
+		return meta.FromUint64(0)
+	}
+	return meta.FromUint64(value)
 }

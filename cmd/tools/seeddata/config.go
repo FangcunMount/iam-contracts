@@ -45,7 +45,7 @@ type UserConfig struct {
 	ID     uint64 `yaml:"id"`      // 用户ID（可选，0 表示自动生成）
 	Alias  string `yaml:"alias"`   // 用于引用的别名
 	Name   string `yaml:"name"`    // 用户姓名
-	Phone  string `yaml:"phone"`   // 手机号
+	Phone  string `yaml:"phone"`   // 手机号；可留空。无手机号时请在 seed 中配置 id，否则重复执行可能重复建用户
 	Email  string `yaml:"email"`   // 邮箱
 	IDCard string `yaml:"id_card"` // 身份证号
 	Status int    `yaml:"status"`  // 用户状态
@@ -78,11 +78,11 @@ type AccountConfig struct {
 	Alias       string `yaml:"alias"`        // 用于引用的别名
 	UserAlias   string `yaml:"user_alias"`   // 关联的用户别名
 	Provider    string `yaml:"provider"`     // operation/wechat/parent/teacher
-	ExternalID  string `yaml:"external_id"`  // 外部ID
-	Username    string `yaml:"username"`     // 用户名
+	ExternalID  string `yaml:"external_id"`  // 密码登录主标识，写入 auth_accounts.external_id
+	Username    string `yaml:"username"`     // 兼容旧配置的回退登录名；仅 external_id 为空时使用
 	Password    string `yaml:"password"`     // 密码
-	AppID       string `yaml:"app_id"`       // 应用ID
-	Status      int    `yaml:"status"`       // 状态
+	AppID       string `yaml:"app_id"`       // 非 operation 账号的应用ID；operation 固定为 opera
+	Status      *int   `yaml:"status"`       // 账号状态；nil 表示使用领域默认值
 	AccountType string `yaml:"account_type"` // 账号类型(兼容旧配置)
 }
 

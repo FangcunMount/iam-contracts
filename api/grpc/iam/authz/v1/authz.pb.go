@@ -135,6 +135,378 @@ func (x *CheckResponse) GetAllowed() bool {
 	return false
 }
 
+type PermissionEntry struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Resource      string                 `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	Action        string                 `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PermissionEntry) Reset() {
+	*x = PermissionEntry{}
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PermissionEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PermissionEntry) ProtoMessage() {}
+
+func (x *PermissionEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PermissionEntry.ProtoReflect.Descriptor instead.
+func (*PermissionEntry) Descriptor() ([]byte, []int) {
+	return file_iam_authz_v1_authz_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PermissionEntry) GetResource() string {
+	if x != nil {
+		return x.Resource
+	}
+	return ""
+}
+
+func (x *PermissionEntry) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+type GetAuthorizationSnapshotRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Subject       string                 `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
+	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	AppName       string                 `protobuf:"bytes,3,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAuthorizationSnapshotRequest) Reset() {
+	*x = GetAuthorizationSnapshotRequest{}
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAuthorizationSnapshotRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAuthorizationSnapshotRequest) ProtoMessage() {}
+
+func (x *GetAuthorizationSnapshotRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAuthorizationSnapshotRequest.ProtoReflect.Descriptor instead.
+func (*GetAuthorizationSnapshotRequest) Descriptor() ([]byte, []int) {
+	return file_iam_authz_v1_authz_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetAuthorizationSnapshotRequest) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
+}
+
+func (x *GetAuthorizationSnapshotRequest) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *GetAuthorizationSnapshotRequest) GetAppName() string {
+	if x != nil {
+		return x.AppName
+	}
+	return ""
+}
+
+type GetAuthorizationSnapshotResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Roles         []string               `protobuf:"bytes,1,rep,name=roles,proto3" json:"roles,omitempty"`
+	Permissions   []*PermissionEntry     `protobuf:"bytes,2,rep,name=permissions,proto3" json:"permissions,omitempty"`
+	AuthzVersion  int64                  `protobuf:"varint,3,opt,name=authz_version,json=authzVersion,proto3" json:"authz_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAuthorizationSnapshotResponse) Reset() {
+	*x = GetAuthorizationSnapshotResponse{}
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAuthorizationSnapshotResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAuthorizationSnapshotResponse) ProtoMessage() {}
+
+func (x *GetAuthorizationSnapshotResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAuthorizationSnapshotResponse.ProtoReflect.Descriptor instead.
+func (*GetAuthorizationSnapshotResponse) Descriptor() ([]byte, []int) {
+	return file_iam_authz_v1_authz_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetAuthorizationSnapshotResponse) GetRoles() []string {
+	if x != nil {
+		return x.Roles
+	}
+	return nil
+}
+
+func (x *GetAuthorizationSnapshotResponse) GetPermissions() []*PermissionEntry {
+	if x != nil {
+		return x.Permissions
+	}
+	return nil
+}
+
+func (x *GetAuthorizationSnapshotResponse) GetAuthzVersion() int64 {
+	if x != nil {
+		return x.AuthzVersion
+	}
+	return 0
+}
+
+type GrantAssignmentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Subject       string                 `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
+	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	RoleName      string                 `protobuf:"bytes,3,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
+	GrantedBy     string                 `protobuf:"bytes,4,opt,name=granted_by,json=grantedBy,proto3" json:"granted_by,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GrantAssignmentRequest) Reset() {
+	*x = GrantAssignmentRequest{}
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GrantAssignmentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GrantAssignmentRequest) ProtoMessage() {}
+
+func (x *GrantAssignmentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GrantAssignmentRequest.ProtoReflect.Descriptor instead.
+func (*GrantAssignmentRequest) Descriptor() ([]byte, []int) {
+	return file_iam_authz_v1_authz_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GrantAssignmentRequest) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
+}
+
+func (x *GrantAssignmentRequest) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *GrantAssignmentRequest) GetRoleName() string {
+	if x != nil {
+		return x.RoleName
+	}
+	return ""
+}
+
+func (x *GrantAssignmentRequest) GetGrantedBy() string {
+	if x != nil {
+		return x.GrantedBy
+	}
+	return ""
+}
+
+type GrantAssignmentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GrantAssignmentResponse) Reset() {
+	*x = GrantAssignmentResponse{}
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GrantAssignmentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GrantAssignmentResponse) ProtoMessage() {}
+
+func (x *GrantAssignmentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GrantAssignmentResponse.ProtoReflect.Descriptor instead.
+func (*GrantAssignmentResponse) Descriptor() ([]byte, []int) {
+	return file_iam_authz_v1_authz_proto_rawDescGZIP(), []int{6}
+}
+
+type RevokeAssignmentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Subject       string                 `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
+	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	RoleName      string                 `protobuf:"bytes,3,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeAssignmentRequest) Reset() {
+	*x = RevokeAssignmentRequest{}
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeAssignmentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeAssignmentRequest) ProtoMessage() {}
+
+func (x *RevokeAssignmentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeAssignmentRequest.ProtoReflect.Descriptor instead.
+func (*RevokeAssignmentRequest) Descriptor() ([]byte, []int) {
+	return file_iam_authz_v1_authz_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RevokeAssignmentRequest) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
+}
+
+func (x *RevokeAssignmentRequest) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *RevokeAssignmentRequest) GetRoleName() string {
+	if x != nil {
+		return x.RoleName
+	}
+	return ""
+}
+
+type RevokeAssignmentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeAssignmentResponse) Reset() {
+	*x = RevokeAssignmentResponse{}
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeAssignmentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeAssignmentResponse) ProtoMessage() {}
+
+func (x *RevokeAssignmentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_iam_authz_v1_authz_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeAssignmentResponse.ProtoReflect.Descriptor instead.
+func (*RevokeAssignmentResponse) Descriptor() ([]byte, []int) {
+	return file_iam_authz_v1_authz_proto_rawDescGZIP(), []int{8}
+}
+
 var File_iam_authz_v1_authz_proto protoreflect.FileDescriptor
 
 const file_iam_authz_v1_authz_proto_rawDesc = "" +
@@ -146,9 +518,35 @@ const file_iam_authz_v1_authz_proto_rawDesc = "" +
 	"\x06object\x18\x03 \x01(\tR\x06object\x12\x16\n" +
 	"\x06action\x18\x04 \x01(\tR\x06action\")\n" +
 	"\rCheckResponse\x12\x18\n" +
-	"\aallowed\x18\x01 \x01(\bR\aallowed2X\n" +
+	"\aallowed\x18\x01 \x01(\bR\aallowed\"E\n" +
+	"\x0fPermissionEntry\x12\x1a\n" +
+	"\bresource\x18\x01 \x01(\tR\bresource\x12\x16\n" +
+	"\x06action\x18\x02 \x01(\tR\x06action\"n\n" +
+	"\x1fGetAuthorizationSnapshotRequest\x12\x18\n" +
+	"\asubject\x18\x01 \x01(\tR\asubject\x12\x16\n" +
+	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x19\n" +
+	"\bapp_name\x18\x03 \x01(\tR\aappName\"\x9e\x01\n" +
+	" GetAuthorizationSnapshotResponse\x12\x14\n" +
+	"\x05roles\x18\x01 \x03(\tR\x05roles\x12?\n" +
+	"\vpermissions\x18\x02 \x03(\v2\x1d.iam.authz.v1.PermissionEntryR\vpermissions\x12#\n" +
+	"\rauthz_version\x18\x03 \x01(\x03R\fauthzVersion\"\x86\x01\n" +
+	"\x16GrantAssignmentRequest\x12\x18\n" +
+	"\asubject\x18\x01 \x01(\tR\asubject\x12\x16\n" +
+	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x1b\n" +
+	"\trole_name\x18\x03 \x01(\tR\broleName\x12\x1d\n" +
+	"\n" +
+	"granted_by\x18\x04 \x01(\tR\tgrantedBy\"\x19\n" +
+	"\x17GrantAssignmentResponse\"h\n" +
+	"\x17RevokeAssignmentRequest\x12\x18\n" +
+	"\asubject\x18\x01 \x01(\tR\asubject\x12\x16\n" +
+	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x1b\n" +
+	"\trole_name\x18\x03 \x01(\tR\broleName\"\x1a\n" +
+	"\x18RevokeAssignmentResponse2\x96\x03\n" +
 	"\x14AuthorizationService\x12@\n" +
-	"\x05Check\x12\x1a.iam.authz.v1.CheckRequest\x1a\x1b.iam.authz.v1.CheckResponseBEZCgithub.com/FangcunMount/iam-contracts/api/grpc/iam/authz/v1;authzv1b\x06proto3"
+	"\x05Check\x12\x1a.iam.authz.v1.CheckRequest\x1a\x1b.iam.authz.v1.CheckResponse\x12y\n" +
+	"\x18GetAuthorizationSnapshot\x12-.iam.authz.v1.GetAuthorizationSnapshotRequest\x1a..iam.authz.v1.GetAuthorizationSnapshotResponse\x12^\n" +
+	"\x0fGrantAssignment\x12$.iam.authz.v1.GrantAssignmentRequest\x1a%.iam.authz.v1.GrantAssignmentResponse\x12a\n" +
+	"\x10RevokeAssignment\x12%.iam.authz.v1.RevokeAssignmentRequest\x1a&.iam.authz.v1.RevokeAssignmentResponseBEZCgithub.com/FangcunMount/iam-contracts/api/grpc/iam/authz/v1;authzv1b\x06proto3"
 
 var (
 	file_iam_authz_v1_authz_proto_rawDescOnce sync.Once
@@ -162,19 +560,33 @@ func file_iam_authz_v1_authz_proto_rawDescGZIP() []byte {
 	return file_iam_authz_v1_authz_proto_rawDescData
 }
 
-var file_iam_authz_v1_authz_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_iam_authz_v1_authz_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_iam_authz_v1_authz_proto_goTypes = []any{
-	(*CheckRequest)(nil),  // 0: iam.authz.v1.CheckRequest
-	(*CheckResponse)(nil), // 1: iam.authz.v1.CheckResponse
+	(*CheckRequest)(nil),                     // 0: iam.authz.v1.CheckRequest
+	(*CheckResponse)(nil),                    // 1: iam.authz.v1.CheckResponse
+	(*PermissionEntry)(nil),                  // 2: iam.authz.v1.PermissionEntry
+	(*GetAuthorizationSnapshotRequest)(nil),  // 3: iam.authz.v1.GetAuthorizationSnapshotRequest
+	(*GetAuthorizationSnapshotResponse)(nil), // 4: iam.authz.v1.GetAuthorizationSnapshotResponse
+	(*GrantAssignmentRequest)(nil),           // 5: iam.authz.v1.GrantAssignmentRequest
+	(*GrantAssignmentResponse)(nil),          // 6: iam.authz.v1.GrantAssignmentResponse
+	(*RevokeAssignmentRequest)(nil),          // 7: iam.authz.v1.RevokeAssignmentRequest
+	(*RevokeAssignmentResponse)(nil),         // 8: iam.authz.v1.RevokeAssignmentResponse
 }
 var file_iam_authz_v1_authz_proto_depIdxs = []int32{
-	0, // 0: iam.authz.v1.AuthorizationService.Check:input_type -> iam.authz.v1.CheckRequest
-	1, // 1: iam.authz.v1.AuthorizationService.Check:output_type -> iam.authz.v1.CheckResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	2, // 0: iam.authz.v1.GetAuthorizationSnapshotResponse.permissions:type_name -> iam.authz.v1.PermissionEntry
+	0, // 1: iam.authz.v1.AuthorizationService.Check:input_type -> iam.authz.v1.CheckRequest
+	3, // 2: iam.authz.v1.AuthorizationService.GetAuthorizationSnapshot:input_type -> iam.authz.v1.GetAuthorizationSnapshotRequest
+	5, // 3: iam.authz.v1.AuthorizationService.GrantAssignment:input_type -> iam.authz.v1.GrantAssignmentRequest
+	7, // 4: iam.authz.v1.AuthorizationService.RevokeAssignment:input_type -> iam.authz.v1.RevokeAssignmentRequest
+	1, // 5: iam.authz.v1.AuthorizationService.Check:output_type -> iam.authz.v1.CheckResponse
+	4, // 6: iam.authz.v1.AuthorizationService.GetAuthorizationSnapshot:output_type -> iam.authz.v1.GetAuthorizationSnapshotResponse
+	6, // 7: iam.authz.v1.AuthorizationService.GrantAssignment:output_type -> iam.authz.v1.GrantAssignmentResponse
+	8, // 8: iam.authz.v1.AuthorizationService.RevokeAssignment:output_type -> iam.authz.v1.RevokeAssignmentResponse
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_iam_authz_v1_authz_proto_init() }
@@ -188,7 +600,7 @@ func file_iam_authz_v1_authz_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_iam_authz_v1_authz_proto_rawDesc), len(file_iam_authz_v1_authz_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

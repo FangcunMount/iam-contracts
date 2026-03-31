@@ -78,6 +78,9 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 				"provider", ac.Provider)
 			continue
 		}
+		if err := validateOperationAccountConfig(ac); err != nil {
+			return fmt.Errorf("invalid account config %s: %w", ac.Alias, err)
+		}
 
 		// 1. 获取用户基本信息
 		userIDStr := state.Users[ac.UserAlias]
@@ -101,10 +104,13 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 		}
 
 		// 4. 执行注册（使用RegisterApplicationService）
+		loginExternalID := accountOperaExternalID(ac, user.Email.String())
 		req := registerApp.RegisterRequest{
 			Name:           user.Name,
 			Phone:          user.Phone,
 			Email:          user.Email,
+			ExistingUserID: userID,
+			OperaLoginID:   loginExternalID,
 			AccountType:    accountDomain.TypeOpera, // 运营账号类型
 			CredentialType: registerApp.CredTypePassword,
 			Password:       &ac.Password,
@@ -113,16 +119,23 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 		result, err := registerService.Register(ctx, req)
 		if err != nil {
 			// 支持重复运行：按策略选择跳过或覆盖
-			if handled, accID, handleErr := handleAuthnConflict(ctx, deps, accountRepository, credentialRepository, passwordHasher, ac, userID, err); handled {
+			if handled, accID, handleErr := handleAuthnConflict(ctx, deps, accountRepository, credentialRepository, passwordHasher, ac, userID, loginExternalID, err); handled {
 				if handleErr != nil {
 					return fmt.Errorf("register account %s: %w", ac.Alias, handleErr)
 				}
 				if accID != 0 {
+					if syncErr := syncSeedAccountStatus(ctx, accountRepository, ac, meta.FromUint64(accID)); syncErr != nil {
+						return fmt.Errorf("sync account status %s: %w", ac.Alias, syncErr)
+					}
 					state.Accounts[ac.Alias] = accID
 				}
 				continue
 			}
 			return fmt.Errorf("register account %s: %w", ac.Alias, err)
+		}
+
+		if err := syncSeedAccountStatus(ctx, accountRepository, ac, result.AccountID); err != nil {
+			return fmt.Errorf("sync account status %s: %w", ac.Alias, err)
 		}
 
 		// 5. 保存账号ID到状态
@@ -138,6 +151,41 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 
 	deps.Logger.Infow("✅ 认证账号数据已创建")
 	return nil
+}
+
+func validateOperationAccountConfig(ac AccountConfig) error {
+	appID := strings.TrimSpace(ac.AppID)
+	if appID != "" && appID != "opera" {
+		return fmt.Errorf("operation account app_id is fixed to opera, got %q", ac.AppID)
+	}
+	return nil
+}
+
+func configuredAccountStatus(ac AccountConfig) (accountDomain.AccountStatus, bool, error) {
+	if ac.Status == nil {
+		return 0, false, nil
+	}
+
+	switch *ac.Status {
+	case int(accountDomain.StatusDisabled),
+		int(accountDomain.StatusActive),
+		int(accountDomain.StatusArchived),
+		int(accountDomain.StatusDeleted):
+		return accountDomain.AccountStatus(*ac.Status), true, nil
+	default:
+		return 0, false, fmt.Errorf("unsupported status %d", *ac.Status)
+	}
+}
+
+func syncSeedAccountStatus(ctx context.Context, repo *accountRepo.AccountRepository, ac AccountConfig, accountID meta.ID) error {
+	status, ok, err := configuredAccountStatus(ac)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return nil
+	}
+	return repo.UpdateStatus(ctx, accountID, status)
 }
 
 // parseAuthnUserID 解析用户ID字符串为 meta.ID
@@ -158,6 +206,7 @@ func handleAuthnConflict(
 	passwordHasher authnAuth.PasswordHasher,
 	ac AccountConfig,
 	userID meta.ID,
+	externalID string,
 	originalErr error,
 ) (handled bool, accountID uint64, err error) {
 	// 非冲突错误，不处理
@@ -165,26 +214,31 @@ func handleAuthnConflict(
 		return false, 0, nil
 	}
 
-	// 查询已存在账号
+	// 与 OperaCreatorStrategy 一致：运营账号 app_id 默认为 "opera"
+	appID := accountDomain.AppId(ac.AppID)
+	if appID == "" {
+		appID = accountDomain.AppId("opera")
+	}
+	// 查询已存在账号（与注册时写入的 external_id 一致）
 	existing, getErr := accountRepo.GetByExternalIDAppId(ctx,
-		accountDomain.ExternalID(ac.Username),
-		accountDomain.AppId(ac.AppID),
+		accountDomain.ExternalID(externalID),
+		appID,
 	)
 	if getErr != nil {
 		return true, 0, fmt.Errorf("fetch existing account: %w", getErr)
 	}
 	if existing == nil {
-		return true, 0, fmt.Errorf("account already exists but not found by username=%s", ac.Username)
+		return true, 0, fmt.Errorf("account already exists but not found by external_id=%s", externalID)
 	}
 	if existing.UserID != userID {
-		return true, 0, fmt.Errorf("account %s belongs to another user", ac.Username)
+		return true, 0, fmt.Errorf("account %s belongs to another user", externalID)
 	}
 
 	switch deps.OnConflict {
 	case "skip":
 		deps.Logger.Infow("⚠️  账号已存在，按策略跳过",
 			"account_alias", ac.Alias,
-			"username", ac.Username,
+			"external_id", externalID,
 			"strategy", "skip")
 		return true, existing.ID.Uint64(), nil
 	case "overwrite":
@@ -218,7 +272,7 @@ func handleAuthnConflict(
 
 		deps.Logger.Infow("🔄  账号已存在，密码已覆盖",
 			"account_alias", ac.Alias,
-			"username", ac.Username,
+			"external_id", externalID,
 			"strategy", "overwrite")
 		return true, existing.ID.Uint64(), nil
 	default:

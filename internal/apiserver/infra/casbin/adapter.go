@@ -174,6 +174,41 @@ func (c *CasbinAdapter) GetRolesForUser(ctx context.Context, user, domain string
 	return c.enforcer.GetRolesForUser(user, domain)
 }
 
+// GetImplicitRolesForUser 返回用户在指定租户域下的隐式角色键。
+func (c *CasbinAdapter) GetImplicitRolesForUser(ctx context.Context, user, domain string) ([]string, error) {
+	_ = ctx
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.enforcer.GetImplicitRolesForUser(user, domain)
+}
+
+// GetImplicitPermissionsForUser 返回用户在指定租户域下的隐式权限规则。
+func (c *CasbinAdapter) GetImplicitPermissionsForUser(ctx context.Context, user, dom string) ([]domain.PolicyRule, error) {
+	_ = ctx
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	permissions, err := c.enforcer.GetImplicitPermissionsForUser(user, dom)
+	if err != nil {
+		return nil, err
+	}
+
+	rules := make([]domain.PolicyRule, 0, len(permissions))
+	for _, permission := range permissions {
+		if len(permission) < 4 {
+			continue
+		}
+		rules = append(rules, domain.PolicyRule{
+			Sub: permission[0],
+			Dom: permission[1],
+			Obj: permission[2],
+			Act: permission[3],
+		})
+	}
+	return rules, nil
+}
+
 // Enforcer 获取 Enforcer 实例（用于 PEP）
 func (c *CasbinAdapter) Enforcer() *casbin.CachedEnforcer {
 	return c.enforcer

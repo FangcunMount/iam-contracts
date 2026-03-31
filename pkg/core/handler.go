@@ -7,6 +7,8 @@ import (
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/gin-gonic/gin"
+
+	"github.com/FangcunMount/iam-contracts/pkg/tenant"
 )
 
 // BaseHandler 基础Handler结构
@@ -229,10 +231,10 @@ func (h *BaseHandler) GetUserID(c *gin.Context) (string, bool) {
 func (h *BaseHandler) GetTenantID(c *gin.Context) string {
 	tenantID, exists := c.Get("tenant_id")
 	if !exists {
-		return "default"
+		return tenant.DefaultID
 	}
 	if id, ok := tenantID.(string); ok {
 		return id
 	}
-	return "default"
+	return tenant.DefaultID
 }

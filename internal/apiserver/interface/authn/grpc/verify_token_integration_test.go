@@ -1,0 +1,199 @@
+package grpc
+
+import (
+	"bytes"
+	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"math/big"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	authnv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/authn/v1"
+	tokenapp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
+	jwksdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
+	domaintoken "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/jwt"
+	authhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful/handler"
+	resp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful/response"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"github.com/FangcunMount/iam-contracts/pkg/core"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
+)
+
+// 集成测试：与登录一致的签发链（IssueToken → JWT）→ 本地解析 tenant_id →
+// gRPC VerifyToken 与 REST POST /verify 返回的 user_id / account_id / tenant_id 一致。
+
+type noopTokenStore struct{}
+
+func (noopTokenStore) SaveRefreshToken(context.Context, *domaintoken.Token) error { return nil }
+func (noopTokenStore) GetRefreshToken(context.Context, string) (*domaintoken.Token, error) {
+	return nil, nil
+}
+func (noopTokenStore) DeleteRefreshToken(context.Context, string) error { return nil }
+func (noopTokenStore) AddToBlacklist(context.Context, string, time.Duration) error { return nil }
+func (noopTokenStore) IsBlacklisted(context.Context, string) (bool, error) { return false, nil }
+
+type staticPrivResolver struct{ key *rsa.PrivateKey }
+
+func (s *staticPrivResolver) ResolveSigningKey(context.Context, string, string) (any, error) {
+	return s.key, nil
+}
+
+// fixedKeyManager 仅满足 JWT 签发与验签所需的最小 Manager 行为。
+type fixedKeyManager struct{ active *jwksdomain.Key }
+
+func (m *fixedKeyManager) GetActiveKey(context.Context) (*jwksdomain.Key, error) { return m.active, nil }
+func (m *fixedKeyManager) GetKeyByKid(context.Context, string) (*jwksdomain.Key, error) {
+	return m.active, nil
+}
+func (m *fixedKeyManager) CreateKey(context.Context, string, *time.Time, *time.Time) (*jwksdomain.Key, error) {
+	return nil, errJWKSStub
+}
+func (m *fixedKeyManager) RetireKey(context.Context, string) error       { return errJWKSStub }
+func (m *fixedKeyManager) ForceRetireKey(context.Context, string) error { return errJWKSStub }
+func (m *fixedKeyManager) EnterGracePeriod(context.Context, string) error { return errJWKSStub }
+func (m *fixedKeyManager) CleanupExpiredKeys(context.Context) (int, error) { return 0, errJWKSStub }
+func (m *fixedKeyManager) ListKeys(context.Context, jwksdomain.KeyStatus, int, int) ([]*jwksdomain.Key, int64, error) {
+	return nil, 0, errJWKSStub
+}
+
+var errJWKSStub = errors.New("jwks: stub")
+
+func rsaPublicJWK(kid string, pub *rsa.PublicKey) jwksdomain.PublicJWK {
+	n := base64.RawURLEncoding.EncodeToString(pub.N.Bytes())
+	eb := big.NewInt(int64(pub.E)).Bytes()
+	es := base64.RawURLEncoding.EncodeToString(eb)
+	return jwksdomain.PublicJWK{
+		Kty: "RSA",
+		Use: "sig",
+		Alg: "RS256",
+		Kid: kid,
+		N:   &n,
+		E:   &es,
+	}
+}
+
+func newTestTokenStack(t *testing.T) (
+	tokenapp.TokenApplicationService,
+	*jwt.Generator,
+	*domaintoken.TokenIssuer,
+) {
+	t.Helper()
+
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	kid := "integration-test-kid"
+	jwk := rsaPublicJWK(kid, &priv.PublicKey)
+	now := time.Now()
+	active := jwksdomain.NewKey(kid, jwk,
+		jwksdomain.WithStatus(jwksdomain.KeyActive),
+		jwksdomain.WithNotBefore(now),
+		jwksdomain.WithNotAfter(now.Add(time.Hour)),
+	)
+
+	gen := jwt.NewGenerator("https://iam.integration.test", &fixedKeyManager{active: active}, &staticPrivResolver{key: priv})
+	store := noopTokenStore{}
+	issuer := domaintoken.NewTokenIssuer(gen, store, time.Hour, 24*time.Hour)
+	verifier := domaintoken.NewTokenVerifyer(gen, store)
+	svc := tokenapp.NewTokenApplicationService(issuer, nil, verifier)
+	return svc, gen, issuer
+}
+
+func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx := context.Background()
+
+	tokenSvc, gen, issuer := newTestTokenStack(t)
+
+	principal := &authentication.Principal{
+		UserID:    meta.FromUint64(1001),
+		AccountID: meta.FromUint64(2002),
+		TenantID:  meta.FromUint64(9001),
+	}
+
+	// 与登录成功后的签发路径一致：IssueToken → access_token JWT
+	pair, err := issuer.IssueToken(ctx, principal)
+	require.NoError(t, err)
+	require.NotNil(t, pair)
+	require.NotNil(t, pair.AccessToken)
+	access := pair.AccessToken.Value
+
+	// 本地解析（与 apiserver 验签链相同的 Generator）
+	parsed, err := gen.ParseAccessToken(ctx, access)
+	require.NoError(t, err)
+	require.Equal(t, uint64(9001), parsed.TenantID.Uint64(), "JWT 本地解析应含 tenant_id")
+	require.Equal(t, "1001", parsed.UserID.String())
+	require.Equal(t, "2002", parsed.AccountID.String())
+
+	// gRPC VerifyToken
+	grpcSrv := &authServiceServer{tokenSvc: tokenSvc}
+	gresp, err := grpcSrv.VerifyToken(ctx, &authnv1.VerifyTokenRequest{AccessToken: access})
+	require.NoError(t, err)
+	require.True(t, gresp.Valid)
+	require.NotNil(t, gresp.Claims)
+	require.Equal(t, "1001", gresp.Claims.UserId)
+	require.Equal(t, "2002", gresp.Claims.AccountId)
+	require.Equal(t, "9001", gresp.Claims.TenantId)
+
+	// REST POST verify（与 gRPC 使用同一 TokenApplicationService）
+	h := authhandler.NewAuthHandler(nil, tokenSvc, nil)
+	w := httptest.NewRecorder()
+	body := bytes.NewBufferString(`{"access_token":"` + access + `"}`)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/authn/verify", body)
+	c.Request.Header.Set("Content-Type", "application/json")
+	h.VerifyToken(c)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var envelope core.Response
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &envelope))
+	require.Equal(t, 0, envelope.Code)
+
+	dataBytes, err := json.Marshal(envelope.Data)
+	require.NoError(t, err)
+	var tv resp.TokenVerifyResponse
+	require.NoError(t, json.Unmarshal(dataBytes, &tv))
+	require.True(t, tv.Valid)
+	require.NotNil(t, tv.Claims)
+	require.Equal(t, "1001", tv.Claims.UserID)
+	require.Equal(t, "2002", tv.Claims.AccountID)
+	require.NotNil(t, tv.Claims.TenantID)
+	require.Equal(t, int64(9001), *tv.Claims.TenantID)
+
+	// 与 gRPC 声明对齐（时间字段由同一套 claims 产生）
+	require.Equal(t, gresp.Claims.UserId, tv.Claims.UserID)
+	require.Equal(t, gresp.Claims.AccountId, tv.Claims.AccountID)
+	require.Equal(t, gresp.Claims.TenantId, meta.FromUint64(uint64(*tv.Claims.TenantID)).String())
+}
+
+// 可选：gRPC VerifyToken 在 IncludeMetadata 时返回元数据（与 Claims 同源签发链）。
+func TestIntegration_VerifyToken_GRPC_IncludeMetadata(t *testing.T) {
+	ctx := context.Background()
+	tokenSvc, _, issuer := newTestTokenStack(t)
+
+	principal := &authentication.Principal{
+		UserID:    meta.FromUint64(42),
+		AccountID: meta.FromUint64(43),
+		TenantID:  meta.FromUint64(44),
+	}
+	pair, err := issuer.IssueToken(ctx, principal)
+	require.NoError(t, err)
+
+	grpcSrv := &authServiceServer{tokenSvc: tokenSvc}
+	gresp, err := grpcSrv.VerifyToken(ctx, &authnv1.VerifyTokenRequest{
+		AccessToken:       pair.AccessToken.Value,
+		IncludeMetadata: true,
+	})
+	require.NoError(t, err)
+	require.True(t, gresp.Valid)
+	require.NotNil(t, gresp.Metadata)
+}

@@ -3,6 +3,7 @@ package register
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
@@ -73,33 +74,56 @@ func (s *registerApplicationService) Register(ctx context.Context, req RegisterR
 			userRepo = s.userRepo
 		}
 		accountRepo := tx.Accounts
-		openID, unionID, err := s.resolveWechatIDs(ctx, req)
-		if err != nil {
-			l.Errorw("解析微信身份失败",
-				"action", logger.ActionRegister,
-				"error", err.Error(),
-				"result", logger.ResultFailed,
-			)
-			return err
-		}
-		if openID != "" && req.WechatOpenID == nil {
-			req.WechatOpenID = &openID
-		}
-		if unionID != "" && req.WechatUnionID == nil {
-			req.WechatUnionID = &unionID
-		}
-		if openID != "" && req.WechatJsCode != nil {
-			req.WechatJsCode = nil
-		}
 
-		user, isNewUser, err := s.createOrGetUser(ctx, userRepo, accountRepo, req, openID, unionID)
-		if err != nil {
-			l.Errorw("创建或获取用户失败",
-				"action", logger.ActionRegister,
-				"error", err.Error(),
-				"result", logger.ResultFailed,
-			)
-			return err
+		var user *userDomain.User
+		var isNewUser bool
+
+		if !req.ExistingUserID.IsZero() {
+			u, err := userRepo.FindByID(ctx, req.ExistingUserID)
+			if err != nil {
+				l.Errorw("按 ExistingUserID 加载用户失败",
+					"action", logger.ActionRegister,
+					"user_id", req.ExistingUserID.String(),
+					"error", err.Error(),
+					"result", logger.ResultFailed,
+				)
+				return err
+			}
+			if u == nil {
+				return perrors.WithCode(code.ErrInvalidArgument, "existing user not found: %s", req.ExistingUserID.String())
+			}
+			user = u
+			isNewUser = false
+		} else {
+			openID, unionID, err := s.resolveWechatIDs(ctx, req)
+			if err != nil {
+				l.Errorw("解析微信身份失败",
+					"action", logger.ActionRegister,
+					"error", err.Error(),
+					"result", logger.ResultFailed,
+				)
+				return err
+			}
+			if openID != "" && req.WechatOpenID == nil {
+				req.WechatOpenID = &openID
+			}
+			if unionID != "" && req.WechatUnionID == nil {
+				req.WechatUnionID = &unionID
+			}
+			if openID != "" && req.WechatJsCode != nil {
+				req.WechatJsCode = nil
+			}
+
+			var errGet error
+			user, isNewUser, errGet = s.createOrGetUser(ctx, userRepo, accountRepo, req, openID, unionID)
+			if errGet != nil {
+				l.Errorw("创建或获取用户失败",
+					"action", logger.ActionRegister,
+					"error", errGet.Error(),
+					"result", logger.ResultFailed,
+				)
+				return errGet
+			}
 		}
 
 		l.Debugw("用户处理完成",
@@ -337,6 +361,7 @@ func (s *registerApplicationService) toDomainInput(ctx context.Context, req Regi
 		UserID:        userID,
 		Phone:         req.Phone,
 		Email:         req.Email,
+		OperaLoginID:  strings.TrimSpace(req.OperaLoginID),
 		AccountType:   req.AccountType,
 		WechatAppID:   req.WechatAppID,
 		WechatJsCode:  req.WechatJsCode,

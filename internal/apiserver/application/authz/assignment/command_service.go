@@ -19,6 +19,8 @@ type AssignmentCommandService struct {
 	assignmentRepo      assignmentDomain.Repository
 	roleRepo            roleDomain.Repository
 	casbinAdapter       policyDomain.CasbinAdapter
+	versionRepo         policyDomain.Repository
+	versionNotifier     policyDomain.VersionNotifier
 }
 
 // NewAssignmentCommandService 创建赋权命令服务
@@ -27,12 +29,16 @@ func NewAssignmentCommandService(
 	assignmentRepo assignmentDomain.Repository,
 	roleRepo roleDomain.Repository,
 	casbinAdapter policyDomain.CasbinAdapter,
+	versionRepo policyDomain.Repository,
+	versionNotifier policyDomain.VersionNotifier,
 ) *AssignmentCommandService {
 	return &AssignmentCommandService{
 		assignmentValidator: assignmentValidator,
 		assignmentRepo:      assignmentRepo,
 		roleRepo:            roleRepo,
 		casbinAdapter:       casbinAdapter,
+		versionRepo:         versionRepo,
+		versionNotifier:     versionNotifier,
 	}
 }
 
@@ -82,6 +88,11 @@ func (s *AssignmentCommandService) Grant(ctx context.Context, cmd assignmentDoma
 		_ = s.assignmentRepo.Delete(ctx, newAssignment.ID)
 		return nil, errors.Wrap(err, "添加 Casbin 分组规则失败")
 	}
+	if err := s.bumpAuthzVersion(ctx, cmd.TenantID, cmd.GrantedBy, "assignment grant"); err != nil {
+		_ = s.casbinAdapter.RemoveGroupingPolicy(ctx, groupingRule)
+		_ = s.assignmentRepo.Delete(ctx, newAssignment.ID)
+		return nil, errors.Wrap(err, "更新授权版本失败")
+	}
 
 	return &newAssignment, nil
 }
@@ -113,6 +124,10 @@ func (s *AssignmentCommandService) Revoke(ctx context.Context, cmd assignmentDom
 	}
 	if err := s.casbinAdapter.RemoveGroupingPolicy(ctx, groupingRule); err != nil {
 		return errors.Wrap(err, "删除 Casbin 分组规则失败")
+	}
+	if err := s.bumpAuthzVersion(ctx, cmd.TenantID, "system", "assignment revoke"); err != nil {
+		_ = s.casbinAdapter.AddGroupingPolicy(ctx, groupingRule)
+		return errors.Wrap(err, "更新授权版本失败")
 	}
 
 	return nil
@@ -165,6 +180,28 @@ func (s *AssignmentCommandService) revokeAssignment(
 		_ = s.casbinAdapter.AddGroupingPolicy(ctx, groupingRule)
 		return errors.Wrap(err, "删除赋权记录失败")
 	}
+	if err := s.bumpAuthzVersion(ctx, targetAssignment.TenantID, "system", "assignment revoke"); err != nil {
+		_ = s.assignmentRepo.Create(ctx, targetAssignment)
+		_ = s.casbinAdapter.AddGroupingPolicy(ctx, groupingRule)
+		return errors.Wrap(err, "更新授权版本失败")
+	}
 
+	return nil
+}
+
+func (s *AssignmentCommandService) bumpAuthzVersion(ctx context.Context, tenantID, changedBy, reason string) error {
+	if s.versionRepo == nil {
+		return nil
+	}
+	if changedBy == "" {
+		changedBy = "system"
+	}
+	version, err := s.versionRepo.Increment(ctx, tenantID, changedBy, reason)
+	if err != nil {
+		return err
+	}
+	if s.versionNotifier != nil {
+		_ = s.versionNotifier.Publish(ctx, tenantID, version.Version)
+	}
 	return nil
 }

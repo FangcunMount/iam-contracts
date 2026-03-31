@@ -501,18 +501,18 @@ CREATE TABLE IF NOT EXISTS `schema_version`
 -- Seed Data
 -- ============================================================================
 
--- 默认租户
+-- 默认租户（与 pkg/tenant.DefaultID 对齐）
 INSERT INTO `tenants` (`id`, `name`, `code`, `status`)
-VALUES ('default', '默认租户', 'DEFAULT', 'active')
+VALUES ('fangcun', '方寸租户', 'fangcun', 'active')
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`),
                         `status`=VALUES(`status`);
 
 -- 系统默认角色
 INSERT INTO `authz_roles` (`id`, `name`, `display_name`, `tenant_id`, `is_system`, `description`, `created_at`,
                                `updated_at`, `created_by`, `updated_by`, `deleted_by`, `version`)
-VALUES (1, 'super_admin', '超级管理员', 'default', 1, '拥有所有权限', NOW(), NOW(), 0, 0, 0, 1),
-       (2, 'tenant_admin', '租户管理员', 'default', 1, '管理本租户内的所有资源', NOW(), NOW(), 0, 0, 0, 1),
-       (3, 'user', '普通用户', 'default', 1, '普通用户权限', NOW(), NOW(), 0, 0, 0, 1)
+VALUES (1, 'super_admin', '超级管理员', 'fangcun', 1, '拥有所有权限', NOW(), NOW(), 0, 0, 0, 1),
+       (2, 'tenant_admin', '租户管理员', 'fangcun', 1, '管理本租户内的所有资源', NOW(), NOW(), 0, 0, 0, 1),
+       (3, 'user', '普通用户', 'fangcun', 1, '普通用户权限', NOW(), NOW(), 0, 0, 0, 1)
 ON DUPLICATE KEY UPDATE `display_name`=VALUES(`display_name`),
                         `description`=VALUES(`description`);
 

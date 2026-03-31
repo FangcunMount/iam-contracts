@@ -83,7 +83,14 @@ func (m *AuthzModule) Initialize(db *gorm.DB, versionNotifier policyDomain.Versi
 	policyCommander := policyApp.NewPolicyCommandService(policyManager, policyVersionRepository, casbinAdapter, versionNotifier, roleRepository, resourceRepository)
 	policyQueryer := policyApp.NewPolicyQueryService(policyVersionRepository, casbinAdapter, roleRepository)
 	// Assignment 模块
-	assignmentCommander := assignmentApp.NewAssignmentCommandService(assignmentManager, assignmentRepository, roleRepository, casbinAdapter)
+	assignmentCommander := assignmentApp.NewAssignmentCommandService(
+		assignmentManager,
+		assignmentRepository,
+		roleRepository,
+		casbinAdapter,
+		policyVersionRepository,
+		versionNotifier,
+	)
 	assignmentQueryer := assignmentApp.NewAssignmentQueryService(assignmentManager, assignmentRepository)
 
 	// 5. 初始化 HTTP 处理器 - 依赖 driving 接口（CQRS）
@@ -97,6 +104,6 @@ func (m *AuthzModule) Initialize(db *gorm.DB, versionNotifier policyDomain.Versi
 	m.AssignmentHandler = handler.NewAssignmentHandler(assignmentCommander, assignmentQueryer)
 	// PDP
 	m.CheckHandler = handler.NewCheckHandler(casbinAdapter)
-	m.GRPCService = authzgrpc.NewService(casbinAdapter)
+	m.GRPCService = authzgrpc.NewService(casbinAdapter, roleRepository, policyVersionRepository, assignmentCommander)
 	return nil
 }

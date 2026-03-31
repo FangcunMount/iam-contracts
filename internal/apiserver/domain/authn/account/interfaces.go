@@ -66,8 +66,12 @@ type CreatorStrategy interface {
 type CreationInput struct {
 	// ========== 用户信息 ==========
 	UserID meta.ID    // 用户ID（必须）
-	Phone  meta.Phone // 手机号（必须）
+	Phone  meta.Phone // 手机号（可选；TypeOpera 时若未提供 OperaLoginID/Email 则仍需要用于 external_id）
 	Email  meta.Email // 邮箱（可选）
+
+	// OperaLoginID 运营账号登录名，写入 auth_accounts.external_id，与密码登录 credentials.username 一致。
+	// 非空时优先作为 external_id；空则依次尝试 Email、Phone。
+	OperaLoginID string
 
 	// ========== 账户类型（必须）==========
 	AccountType AccountType // 要创建的账户类型（决定使用哪个策略）

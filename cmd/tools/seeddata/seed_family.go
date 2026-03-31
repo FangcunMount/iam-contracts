@@ -924,17 +924,19 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 	return nil
 }
 
-// resolveAdminLogin 从配置解析管理员登录ID和密码（运营账号 external_id 为手机号）
+// resolveAdminLogin 从配置解析管理员登录ID和密码。
 func resolveAdminLogin(cfg *SeedConfig) (loginID, password string) {
 	if cfg == nil {
 		return "", ""
 	}
 
-	// 记录用户手机号，按别名索引
+	// 记录用户手机号/邮箱，按别名索引
 	userPhones := make(map[string]string, len(cfg.Users))
+	userEmails := make(map[string]string, len(cfg.Users))
 	userByAlias := make(map[string]UserConfig, len(cfg.Users))
 	for _, u := range cfg.Users {
 		userPhones[u.Alias] = u.Phone
+		userEmails[u.Alias] = u.Email
 		userByAlias[u.Alias] = u
 	}
 
@@ -949,8 +951,14 @@ func resolveAdminLogin(cfg *SeedConfig) (loginID, password string) {
 	}
 
 	if loginID == "" {
-		// 回退使用名为 admin 的用户手机号
-		loginID = userPhones["admin"]
+		// 回退优先使用 system/admin 的邮箱式登录名，再退回手机号
+		loginID = userEmails["system"]
+		if loginID == "" {
+			loginID = userEmails["admin"]
+		}
+		if loginID == "" {
+			loginID = userPhones["admin"]
+		}
 	}
 
 	return normalizeLoginID(loginID), password
@@ -959,9 +967,9 @@ func resolveAdminLogin(cfg *SeedConfig) (loginID, password string) {
 // loginAsSuperAdmin 使用超级管理员账号登录 IAM 服务获取 token
 // loginAsSuperAdmin 使用超级管理员账号登录 IAM 服务获取 TokenPair（含过期信息）
 func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password string) (TokenPair, error) {
-	// 优先使用传入的 loginID，否则回退默认 admin
+	// 优先使用传入的 loginID，否则回退默认 system 邮箱式登录名
 	if loginID == "" {
-		loginID = "admin"
+		loginID = "system@fangcunmount.com"
 	}
 	if password == "" {
 		password = "Admin@123"

@@ -2,6 +2,7 @@ package account
 
 import (
 	"context"
+	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
@@ -27,13 +28,10 @@ func (s *OperaCreatorStrategy) Kind() AccountType {
 
 // PrepareData 准备运营账户创建参数
 func (s *OperaCreatorStrategy) PrepareData(ctx context.Context, input CreationInput) (*CreationParams, error) {
-	// 验证必要参数
-	if input.Phone.IsEmpty() {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "phone is required for opera account")
+	externalID, err := pickOperaExternalID(input)
+	if err != nil {
+		return nil, err
 	}
-
-	// 运营账户使用手机号作为 ExternalID
-	externalID := ExternalID(input.Phone.String())
 	appID := AppId("opera")
 
 	return &CreationParams{
@@ -66,4 +64,18 @@ func (s *OperaCreatorStrategy) Create(ctx context.Context, params *CreationParam
 	}
 
 	return account, nil
+}
+
+func pickOperaExternalID(input CreationInput) (ExternalID, error) {
+	if s := strings.TrimSpace(input.OperaLoginID); s != "" {
+		return ExternalID(s), nil
+	}
+	if !input.Email.IsEmpty() {
+		return ExternalID(input.Email.String()), nil
+	}
+	if !input.Phone.IsEmpty() {
+		return ExternalID(input.Phone.String()), nil
+	}
+	return "", perrors.WithCode(code.ErrInvalidArgument,
+		"opera account: set opera_login_id, or provide email, or phone for external_id")
 }

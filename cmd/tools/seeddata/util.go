@@ -52,10 +52,11 @@ func isPhoneLike(id string) bool {
 	return false
 }
 
-// resolveLoginID 为 operation 账号选择登录标识：
-// 1) external_id/username 若像手机号则补全 E.164
-// 2) 否则使用关联用户手机号
-// 3) 最后回退 external_id/username
+// resolveLoginID 为 operation 账号选择实际登录标识：
+// 1) external_id 若像手机号则补全 E.164
+// 2) 兼容旧配置：username 若像手机号则补全 E.164
+// 3) 否则使用关联用户手机号
+// 4) 最后回退 external_id，再回退 legacy username
 func resolveLoginID(ac AccountConfig, uc UserConfig) string {
 	if isPhoneLike(ac.ExternalID) {
 		return normalizeLoginID(ac.ExternalID)

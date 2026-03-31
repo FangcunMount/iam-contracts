@@ -26,6 +26,7 @@ type Token struct {
 	Subject    string    // JWT sub，服务令牌或访问令牌的主体
 	UserID     meta.ID   // 关联的用户 ID
 	AccountID  meta.ID
+	TenantID   meta.ID
 	Audience   []string          // JWT audience
 	Attributes map[string]string // 附加属性（主要用于服务令牌）
 	IssuedAt   time.Time         // 颁发时间
@@ -33,7 +34,7 @@ type Token struct {
 }
 
 // NewAccessToken 创建访问令牌
-func NewAccessToken(id, value string, userID meta.ID, accountID meta.ID, expiresIn time.Duration) *Token {
+func NewAccessToken(id, value string, userID meta.ID, accountID meta.ID, tenantID meta.ID, expiresIn time.Duration) *Token {
 	now := time.Now()
 	return &Token{
 		ID:        id,
@@ -42,6 +43,7 @@ func NewAccessToken(id, value string, userID meta.ID, accountID meta.ID, expires
 		Subject:   userID.String(),
 		UserID:    userID,
 		AccountID: accountID,
+		TenantID:  tenantID,
 		IssuedAt:  now,
 		ExpiresAt: now.Add(expiresIn),
 	}
@@ -110,6 +112,7 @@ type TokenClaims struct {
 	Subject    string
 	UserID     meta.ID // 用户 ID
 	AccountID  meta.ID
+	TenantID   meta.ID
 	Issuer     string
 	Audience   []string
 	Attributes map[string]string
@@ -118,13 +121,14 @@ type TokenClaims struct {
 }
 
 // NewTokenClaims 创建令牌声明
-func NewTokenClaims(tokenType TokenType, tokenID, subject string, userID meta.ID, accountID meta.ID, issuer string, audience []string, attributes map[string]string, issuedAt, expiresAt time.Time) *TokenClaims {
+func NewTokenClaims(tokenType TokenType, tokenID, subject string, userID meta.ID, accountID meta.ID, tenantID meta.ID, issuer string, audience []string, attributes map[string]string, issuedAt, expiresAt time.Time) *TokenClaims {
 	return &TokenClaims{
 		TokenID:    tokenID,
 		TokenType:  tokenType,
 		Subject:    subject,
 		UserID:     userID,
 		AccountID:  accountID,
+		TenantID:   tenantID,
 		Issuer:     issuer,
 		Audience:   cloneStrings(audience),
 		Attributes: cloneStringMap(attributes),

@@ -366,6 +366,9 @@ type TokenClaims struct {
 	// UserID 用户 ID
 	UserID string
 
+	// AccountID 账户 ID（JWT claim account_id）
+	AccountID string
+
 	// TenantID 租户 ID
 	TenantID string
 
@@ -580,14 +583,13 @@ func extractClaims(token jwt.Token) *TokenClaims {
 
 	// 提取自定义声明
 	if v, ok := token.Get("user_id"); ok {
-		if s, ok := v.(string); ok {
-			claims.UserID = s
-		}
+		claims.UserID = claimString(v)
 	}
 	if v, ok := token.Get("tenant_id"); ok {
-		if s, ok := v.(string); ok {
-			claims.TenantID = s
-		}
+		claims.TenantID = claimString(v)
+	}
+	if v, ok := token.Get("account_id"); ok {
+		claims.AccountID = claimString(v)
 	}
 	if v, ok := token.Get("roles"); ok {
 		if arr, ok := v.([]interface{}); ok {
@@ -614,4 +616,23 @@ func extractClaims(token jwt.Token) *TokenClaims {
 	}
 
 	return claims
+}
+
+func claimString(v interface{}) string {
+	switch value := v.(type) {
+	case string:
+		return value
+	case float64:
+		return fmt.Sprintf("%.0f", value)
+	case int64:
+		return fmt.Sprintf("%d", value)
+	case int:
+		return fmt.Sprintf("%d", value)
+	case uint64:
+		return fmt.Sprintf("%d", value)
+	case uint:
+		return fmt.Sprintf("%d", value)
+	default:
+		return ""
+	}
 }

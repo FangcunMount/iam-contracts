@@ -178,5 +178,6 @@ SDK 当前已经把最常用的服务收成统一入口：
 | [02-gRPC契约与接入.md](./02-gRPC契约与接入.md) | gRPC 服务矩阵、metadata、生成与调试 |
 | [03-授权接入与边界.md](./03-授权接入与边界.md) | 授权能力当前能接到什么程度 |
 | [04-身份接入与监护关系边界.md](./04-身份接入与监护关系边界.md) | 身份 / 监护能力的真实边界 |
+| [06-IAM-QS竖切边界-Token与授权快照.md](./06-IAM-QS竖切边界-Token与授权快照.md) | Token、`GetAuthorizationSnapshot`、`authz_version` 与 QS `CurrentAuthzSnapshot` / capability 的竖切边界 |
 | [../../pkg/sdk/docs/README.md](../../pkg/sdk/docs/README.md) | SDK 文档总入口 |
 | [../_archive/00-概览/04-qs接入iam指南.md](../_archive/00-概览/04-qs接入iam指南.md) | 旧版长稿原文，仅作历史资料 |

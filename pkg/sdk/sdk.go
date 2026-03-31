@@ -30,7 +30,7 @@
 //	user, err := client.Identity().GetUser(ctx, "user-123")
 //
 //	// 使用授权判定服务
-//	allowed, err := client.Authz().Allow(ctx, "user:user-123", "default", "resource:child_profile", "read")
+//	allowed, err := client.Authz().Allow(ctx, "user:user-123", "fangcun", "resource:child_profile", "read")
 //
 //	// 使用监护关系服务
 //	result, err := client.Guardianship().IsGuardian(ctx, "user-1", "child-1")

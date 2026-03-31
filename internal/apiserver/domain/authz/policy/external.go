@@ -26,6 +26,10 @@ type CasbinAdapter interface {
 	Enforce(ctx context.Context, sub, dom, obj, act string) (bool, error)
 	// GetRolesForUser 返回用户在租户域下的直接角色键列表（如 role:admin）
 	GetRolesForUser(ctx context.Context, user, domain string) ([]string, error)
+	// GetImplicitRolesForUser 返回用户在租户域下的隐式角色键列表（包含继承角色）。
+	GetImplicitRolesForUser(ctx context.Context, user, domain string) ([]string, error)
+	// GetImplicitPermissionsForUser 返回用户在租户域下的隐式权限规则。
+	GetImplicitPermissionsForUser(ctx context.Context, user, domain string) ([]PolicyRule, error)
 }
 
 // VersionNotifier 策略版本通知接口（Driven Port - 外部服务）

@@ -12,6 +12,7 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/security/sanitize"
 	"github.com/FangcunMount/iam-contracts/pkg/core"
+	"github.com/FangcunMount/iam-contracts/pkg/tenant"
 )
 
 // CasbinEnforcer 可选注入的授权判定端口（由 authz Casbin 适配器实现）。
@@ -245,16 +246,16 @@ func (m *JWTAuthMiddleware) RequirePermission(resourceObj, action string) gin.Ha
 	}
 }
 
-// TenantIDFromGin 从 gin 上下文解析租户域（Casbin domain），缺省为 default。
+// TenantIDFromGin 从 gin 上下文解析租户域（Casbin domain），缺省为 tenant.DefaultID。
 func TenantIDFromGin(c *gin.Context) string {
 	tenantID, exists := c.Get("tenant_id")
 	if !exists {
-		return "default"
+		return tenant.DefaultID
 	}
 	if id, ok := tenantID.(string); ok && id != "" {
 		return id
 	}
-	return "default"
+	return tenant.DefaultID
 }
 
 // extractToken 从请求中提取令牌

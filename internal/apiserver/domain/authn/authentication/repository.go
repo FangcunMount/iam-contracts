@@ -29,7 +29,7 @@ type CredentialRepository interface {
 // AccountRepository 账户仓储（查询账户信息）
 // 职责：提供账户主体信息的查询能力
 type AccountRepository interface {
-	// FindAccountByUsername 根据用户名查找账户
+	// FindAccountByUsername 根据登录名查找账户（密码登录）：匹配 auth_accounts.external_id（创建账号时已写入）
 	// 返回：账户ID、用户ID
 	FindAccountByUsername(ctx context.Context, tenantID meta.ID, username string) (accountID, userID meta.ID, err error)
 
