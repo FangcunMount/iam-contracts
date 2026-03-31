@@ -12,9 +12,10 @@ import (
 	guardianshipInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/guardianship"
 	userInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
 	ucGrpc "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/grpc"
-	identityGrpc "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/grpc/identity"
+	identityGrpc 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/grpc/identity"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/handler"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
 )
 
 // UserModule 用户模块
@@ -38,6 +39,12 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 	db := params[0].(*gorm.DB)
 	if db == nil {
 		return errors.WithCode(code.ErrModuleInitializationFailed, "database connection is nil")
+	}
+	var casbin authn.CasbinEnforcer
+	if len(params) > 1 {
+		if c, ok := params[1].(authn.CasbinEnforcer); ok {
+			casbin = c
+		}
 	}
 
 	// 事务
@@ -74,6 +81,7 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 		userAppSrv,
 		userProfileAppSrv,
 		userQuerySrv,
+		casbin,
 	)
 
 	m.ChildHandler = handler.NewChildHandler(

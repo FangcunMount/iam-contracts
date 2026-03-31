@@ -1039,6 +1039,39 @@
                 }
             }
         },
+        "/authn/login/prep/phone-otp": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "认证"
+                ],
+                "summary": "登录预准备-发送手机验证码",
+                "parameters": [
+                    {
+                        "description": "手机号",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.PreparePhoneOTPLoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "已受理",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/authz/assignments/grant": {
             "post": {
                 "consumes": [
@@ -1191,6 +1224,51 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/authz/check": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization-Policies"
+                ],
+                "summary": "策略判定（Enforce）",
+                "parameters": [
+                    {
+                        "description": "判定请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -2867,6 +2945,18 @@
                 }
             }
         },
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.PreparePhoneOTPLoginRequest": {
+            "type": "object",
+            "required": [
+                "phone"
+            ],
+            "properties": {
+                "phone": {
+                    "description": "支持 E.164 或国内手机号，服务端规范为 E.164",
+                    "type": "string"
+                }
+            }
+        },
         "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.RefreshTokenRequest": {
             "type": "object",
             "required": [
@@ -3302,6 +3392,36 @@
                 },
                 "tenant_id": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckRequest": {
+            "type": "object",
+            "required": [
+                "action",
+                "object"
+            ],
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "object": {
+                    "type": "string"
+                },
+                "subject_id": {
+                    "type": "string"
+                },
+                "subject_type": {
+                    "description": "SubjectType 可选：user | group；与 SubjectID 同时省略时使用当前 JWT 用户。",
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckResponse": {
+            "type": "object",
+            "properties": {
+                "allowed": {
+                    "type": "boolean"
                 }
             }
         },
@@ -3998,6 +4118,12 @@
                 },
                 "nickname": {
                     "type": "string"
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "status": {
                     "type": "string"

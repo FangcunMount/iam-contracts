@@ -180,7 +180,7 @@ func (m *JWTAuthMiddleware) RequireRole(roleNames ...string) gin.HandlerFunc {
 			return
 		}
 		sub := "user:" + uid
-		dom := tenantIDFromGin(c)
+		dom := TenantIDFromGin(c)
 		roles, err := m.casbin.GetRolesForUser(c.Request.Context(), sub, dom)
 		if err != nil {
 			log.Errorw("casbin GetRolesForUser failed", "error", err, "sub", sub, "dom", dom)
@@ -228,7 +228,7 @@ func (m *JWTAuthMiddleware) RequirePermission(resourceObj, action string) gin.Ha
 			return
 		}
 		sub := "user:" + uid
-		dom := tenantIDFromGin(c)
+		dom := TenantIDFromGin(c)
 		allowed, err := m.casbin.Enforce(c.Request.Context(), sub, dom, resourceObj, action)
 		if err != nil {
 			log.Errorw("casbin Enforce failed", "error", err, "sub", sub, "dom", dom)
@@ -245,7 +245,8 @@ func (m *JWTAuthMiddleware) RequirePermission(resourceObj, action string) gin.Ha
 	}
 }
 
-func tenantIDFromGin(c *gin.Context) string {
+// TenantIDFromGin 从 gin 上下文解析租户域（Casbin domain），缺省为 default。
+func TenantIDFromGin(c *gin.Context) string {
 	tenantID, exists := c.Get("tenant_id")
 	if !exists {
 		return "default"

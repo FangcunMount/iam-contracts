@@ -82,6 +82,14 @@ definitions:
         description: 可选，撤销刷新令牌
         type: string
     type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.PreparePhoneOTPLoginRequest:
+    properties:
+      phone:
+        description: 支持 E.164 或国内手机号，服务端规范为 E.164
+        type: string
+    required:
+    - phone
+    type: object
   github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.RefreshTokenRequest:
     properties:
       refresh_token:
@@ -379,6 +387,26 @@ definitions:
         type: string
       tenant_id:
         type: string
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckRequest:
+    properties:
+      action:
+        type: string
+      object:
+        type: string
+      subject_id:
+        type: string
+      subject_type:
+        description: SubjectType 可选：user | group；与 SubjectID 同时省略时使用当前 JWT 用户。
+        type: string
+    required:
+    - action
+    - object
+    type: object
+  github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckResponse:
+    properties:
+      allowed:
+        type: boolean
     type: object
   github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CreateResourceRequest:
     properties:
@@ -851,6 +879,10 @@ definitions:
         type: string
       nickname:
         type: string
+      roles:
+        items:
+          type: string
+        type: array
       status:
         type: string
       updatedAt:
@@ -1562,6 +1594,27 @@ paths:
       summary: 验证访问令牌
       tags:
       - 认证
+  /authn/login/prep/phone-otp:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 手机号
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.PreparePhoneOTPLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 已受理
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse'
+      summary: 登录预准备-发送手机验证码
+      tags:
+      - 认证
   /authz/assignments/{id}:
     delete:
       parameters:
@@ -1658,6 +1711,32 @@ paths:
       summary: 列出主体的角色分配
       tags:
       - Authorization-Assignments
+  /authz/check:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 判定请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckResponse'
+              type: object
+      summary: 策略判定（Enforce）
+      tags:
+      - Authorization-Policies
   /authz/policies:
     delete:
       consumes:

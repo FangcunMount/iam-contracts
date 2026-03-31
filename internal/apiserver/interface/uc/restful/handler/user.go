@@ -11,6 +11,7 @@ import (
 	requestdto "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/request"
 	responsedto "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/response"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
 	_ "github.com/FangcunMount/iam-contracts/pkg/core" // imported for swagger
 )
 
@@ -20,19 +21,22 @@ type UserHandler struct {
 	userApp    appuser.UserApplicationService
 	profileApp appuser.UserProfileApplicationService
 	userQuery  appuser.UserQueryApplicationService
+	casbin     authn.CasbinEnforcer
 }
 
-// NewUserHandler 创建用户处理器
+// NewUserHandler 创建用户处理器。casbin 可为 nil，此时 /identity/me 不返回 roles。
 func NewUserHandler(
 	userApp appuser.UserApplicationService,
 	profileApp appuser.UserProfileApplicationService,
 	userQuery appuser.UserQueryApplicationService,
+	casbin authn.CasbinEnforcer,
 ) *UserHandler {
 	return &UserHandler{
 		BaseHandler: NewBaseHandler(),
 		userApp:     userApp,
 		profileApp:  profileApp,
 		userQuery:   userQuery,
+		casbin:      casbin,
 	}
 }
 
@@ -66,7 +70,7 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 		return
 	}
 
-	h.Success(c, newUserResponse(u))
+	h.Success(c, newUserResponse(u, h.resolveRoles(c, userID)))
 }
 
 // PatchUser 更新用户信息（昵称 / 联系方式）
@@ -131,7 +135,7 @@ func (h *UserHandler) PatchUser(c *gin.Context) {
 		return
 	}
 
-	h.Success(c, newUserResponse(u))
+	h.Success(c, newUserResponse(u, h.resolveRoles(c, userID)))
 }
 
 func extractContactValues(contacts []requestdto.UserContactUpsert) (phone string, email string) {
@@ -150,7 +154,34 @@ func extractContactValues(contacts []requestdto.UserContactUpsert) (phone string
 	return
 }
 
-func newUserResponse(u *appuser.UserResult) responsedto.UserResponse {
+func (h *UserHandler) resolveRoles(c *gin.Context, userID string) []string {
+	if h.casbin == nil || strings.TrimSpace(userID) == "" {
+		return nil
+	}
+	sub := "user:" + userID
+	dom := authn.TenantIDFromGin(c)
+	raw, err := h.casbin.GetRolesForUser(c.Request.Context(), sub, dom)
+	if err != nil || len(raw) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(raw))
+	for _, r := range raw {
+		r = strings.TrimSpace(r)
+		if r == "" {
+			continue
+		}
+		if strings.HasPrefix(r, "role:") {
+			r = strings.TrimPrefix(r, "role:")
+		}
+		out = append(out, r)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func newUserResponse(u *appuser.UserResult, roles []string) responsedto.UserResponse {
 	if u == nil {
 		return responsedto.UserResponse{}
 	}
@@ -159,6 +190,7 @@ func newUserResponse(u *appuser.UserResult) responsedto.UserResponse {
 		ID:       u.ID,
 		Status:   u.Status.String(),
 		Nickname: u.Name,
+		Roles:    roles,
 	}
 
 	if strings.TrimSpace(u.Phone) != "" {

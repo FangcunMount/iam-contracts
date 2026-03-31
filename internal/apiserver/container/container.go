@@ -12,6 +12,7 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container/assembler"
 	policyDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
 	messagingInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/messaging"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
 )
 
 // Container 容器
@@ -77,16 +78,16 @@ func (c *Container) Initialize() error {
 		errors = append(errors, fmt.Errorf("authn module: %w", err))
 	}
 
-	// 3. 初始化用户模块
-	if err := c.initUserModule(); err != nil {
-		log.Warnf("Failed to initialize User module: %v", err)
-		errors = append(errors, fmt.Errorf("user module: %w", err))
-	}
-
-	// 4. 初始化授权模块
+	// 3. 初始化授权模块（用户模块 /identity/me 的 roles 依赖 Casbin）
 	if err := c.initAuthzModule(); err != nil {
 		log.Warnf("Failed to initialize Authz module: %v", err)
 		errors = append(errors, fmt.Errorf("authz module: %w", err))
+	}
+
+	// 4. 初始化用户模块
+	if err := c.initUserModule(); err != nil {
+		log.Warnf("Failed to initialize User module: %v", err)
+		errors = append(errors, fmt.Errorf("user module: %w", err))
 	}
 
 	// 5. 初始化 Suggest 模块（可选）
@@ -148,7 +149,11 @@ func (c *Container) initAuthModule() error {
 // initUserModule 初始化用户模块
 func (c *Container) initUserModule() error {
 	userModule := assembler.NewUserModule()
-	if err := userModule.Initialize(c.mysqlDB); err != nil {
+	var casbin authn.CasbinEnforcer
+	if c.AuthzModule != nil {
+		casbin = c.AuthzModule.CasbinAdapter
+	}
+	if err := userModule.Initialize(c.mysqlDB, casbin); err != nil {
 		return fmt.Errorf("failed to initialize user module: %w", err)
 	}
 	c.UserModule = userModule

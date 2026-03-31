@@ -648,6 +648,10 @@ components:
           type: string
         nickname:
           type: string
+        roles:
+          items:
+            type: string
+          type: array
         status:
           type: string
         updatedAt:
