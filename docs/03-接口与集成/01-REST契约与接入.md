@@ -33,7 +33,7 @@
 | Swagger 生成物 | 代码注解生成的比对工件 | [../../internal/apiserver/docs/swagger.yaml](../../internal/apiserver/docs/swagger.yaml) |
 | 校验入口 | `spectral` + schema drift + route drift | `make api-validate`、[../../scripts/validate-openapi.sh](../../scripts/validate-openapi.sh) |
 | 路径重置入口 | 从 swagger 拆分回 `api/rest/*.yaml` | `make docs-reset`、[../../scripts/reset-openapi-from-swagger.py](../../scripts/reset-openapi-from-swagger.py) |
-| 本地 REST 监听 | 开发环境 `18081/18441` | [../04-基础设施与运维/04-端口、证书与数据库迁移.md](../04-基础设施与运维/04-端口、证书与数据库迁移.md)、[../../configs/apiserver.dev.yaml](../../configs/apiserver.dev.yaml) |
+| 本地 REST 监听 | 开发环境 `18081/18441` | [../04-基础设施与运维/04-端口&证书与数据库迁移.md](../04-基础设施与运维/04-端口&证书与数据库迁移.md)、[../../configs/apiserver.dev.yaml](../../configs/apiserver.dev.yaml) |
 
 ## 1. REST 契约层与解释层今天怎么分工
 
@@ -166,7 +166,7 @@ flowchart LR
 1. 先看对应的 `api/rest/*.yaml`
 2. 再看 [../../api/rest/README.md](../../api/rest/README.md) 获取整体导航
 3. 若遇到路径或安全语义疑问，回到 router / handler 核实
-4. 若涉及本地联调端口，再看 [../04-基础设施与运维/04-端口、证书与数据库迁移.md](../04-基础设施与运维/04-端口、证书与数据库迁移.md)
+4. 若涉及本地联调端口，再看 [../04-基础设施与运维/04-端口&证书与数据库迁移.md](../04-基础设施与运维/04-端口&证书与数据库迁移.md)
 
 ### 5.2 如果你在仓库里改 REST 能力
 
@@ -197,4 +197,4 @@ flowchart LR
 | [02-gRPC契约与接入.md](./02-gRPC契约与接入.md) | gRPC 合同、metadata、接入方式 |
 | [../../api/rest/README.md](../../api/rest/README.md) | REST 合同总导航 |
 | [05-QS接入IAM.md](./05-QS接入IAM.md) | 业务方接入 IAM 的整体流程 |
-| [../04-基础设施与运维/04-端口、证书与数据库迁移.md](../04-基础设施与运维/04-端口、证书与数据库迁移.md) | 端口、监听、开发/生产环境差异 |
+| [../04-基础设施与运维/04-端口&证书与数据库迁移.md](../04-基础设施与运维/04-端口&证书与数据库迁移.md) | 端口、监听、开发/生产环境差异 |

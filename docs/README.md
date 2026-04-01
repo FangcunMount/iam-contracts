@@ -18,16 +18,16 @@
 | 想回答的问题 | 先打开哪里 |
 | ---- | ---- |
 | 这个项目整体是怎么分层的？ | [00-概览/01-系统架构总览.md](./00-概览/01-系统架构总览.md) |
-| 如果只先维护最核心文档，应该从哪开始？ | [00-概览/03-阅读路径、代码组织与事实来源.md](./00-概览/03-阅读路径、代码组织与事实来源.md) |
-| 当前认证域真正落地了什么？ | [02-业务域/01-authn-认证、Token、JWKS.md](./02-业务域/01-authn-认证、Token、JWKS.md) |
-| 当前授权域真正落地了什么？ | [02-业务域/02-authz-角色、策略、资源、Assignment.md](./02-业务域/02-authz-角色、策略、资源、Assignment.md) |
-| 当前用户、儿童、监护关系从哪看？ | [02-业务域/03-user-用户、儿童、Guardianship.md](./02-业务域/03-user-用户、儿童、Guardianship.md)、[05-专题分析/03-监护关系链路：用户、儿童、Guardianship 的协作.md](./05-专题分析/03-监护关系链路：用户、儿童、Guardianship 的协作.md) |
+| 如果只先维护最核心文档，应该从哪开始？ | [00-概览/03-阅读路径&代码组织与事实来源.md](./00-概览/03-阅读路径&代码组织与事实来源.md) |
+| 当前认证域真正落地了什么？ | [02-业务域/01-authn-认证&Token&JWKS.md](./02-业务域/01-authn-认证&Token&JWKS.md) |
+| 当前授权域真正落地了什么？ | [02-业务域/02-authz-角色&策略&资源&Assignment.md](./02-业务域/02-authz-角色&策略&资源&Assignment.md) |
+| 当前用户、儿童、监护关系从哪看？ | [02-业务域/03-user-用户&儿童&Guardianship.md](./02-业务域/03-user-用户&儿童&Guardianship.md)、[05-专题分析/03-监护关系链路：用户&儿童&Guardianship 的协作.md](./05-专题分析/03-监护关系链路：用户&儿童&Guardianship 的协作.md) |
 | 当前 Suggest 儿童联想搜索从哪看？ | [02-业务域/04-suggest-儿童联想搜索.md](./02-业务域/04-suggest-儿童联想搜索.md) |
 | REST / gRPC 合同在哪里？ | [../api/rest/README.md](../api/rest/README.md)、[../api/grpc/README.md](../api/grpc/README.md)、[../api/README.md](../api/README.md) |
 | 业务系统要接授权能力，今天到底能接到什么程度？ | [03-接口与集成/03-授权接入与边界.md](./03-接口与集成/03-授权接入与边界.md) |
 | 业务系统要接身份与监护关系能力，今天到底能接到什么程度？ | [03-接口与集成/04-身份接入与监护关系边界.md](./03-接口与集成/04-身份接入与监护关系边界.md) |
 | 为什么 `pkg/sdk` 也是 IAM 的主阅读路径之一？ | [05-专题分析/04-SDK封装与接入价值.md](./05-专题分析/04-SDK封装与接入价值.md) |
-| 配置、部署、迁移从哪看？ | [04-基础设施与运维/README.md](./04-基础设施与运维/README.md)、[04-基础设施与运维/04-端口、证书与数据库迁移.md](./04-基础设施与运维/04-端口、证书与数据库迁移.md)、`configs/`、`build/docker/`、`scripts/` |
+| 配置、部署、迁移从哪看？ | [04-基础设施与运维/README.md](./04-基础设施与运维/README.md)、[04-基础设施与运维/04-端口&证书与数据库迁移.md](./04-基础设施与运维/04-端口&证书与数据库迁移.md)、`configs/`、`build/docker/`、`scripts/` |
 | 旧认证/授权/用户/基础设施/ops 文档从哪看？ | [_archive/README.md](./_archive/README.md) |
 
 ## 文档分层
@@ -45,7 +45,7 @@
 
 ## 阅读路径
 
-这一节保留完整逐篇阅读清单；[00-概览/03-阅读路径、代码组织与事实来源.md](./00-概览/03-阅读路径、代码组织与事实来源.md) 现在只负责说明“如何选入口、维护时先修哪里、冲突时信什么”，不再重复整套清单。
+这一节保留完整逐篇阅读清单；[00-概览/03-阅读路径&代码组织与事实来源.md](./00-概览/03-阅读路径&代码组织与事实来源.md) 现在只负责说明“如何选入口、维护时先修哪里、冲突时信什么”，不再重复整套清单。
 
 ### 新成员入门
 
@@ -53,9 +53,9 @@
 2. [系统架构总览](./00-概览/01-系统架构总览.md)
 3. [核心概念术语](./00-概览/02-核心概念术语.md)
 4. [业务域 README](./02-业务域/README.md)
-5. [认证、Token、JWKS](./02-业务域/01-authn-认证、Token、JWKS.md)
-6. [角色、策略、资源、Assignment](./02-业务域/02-authz-角色、策略、资源、Assignment.md)
-7. [用户、儿童、Guardianship](./02-业务域/03-user-用户、儿童、Guardianship.md)
+5. [认证、Token、JWKS](./02-业务域/01-authn-认证&Token&JWKS.md)
+6. [角色、策略、资源、Assignment](./02-业务域/02-authz-角色&策略&资源&Assignment.md)
+7. [用户、儿童、Guardianship](./02-业务域/03-user-用户&儿童&Guardianship.md)
 8. [六边形架构实践](./04-基础设施与运维/01-六边形架构实践.md)
 
 ### 后端开发者
@@ -64,22 +64,22 @@
 2. [系统架构总览](./00-概览/01-系统架构总览.md)
 3. [运行时 README](./01-运行时/README.md)
 4. [业务域 README](./02-业务域/README.md)
-5. [认证、Token、JWKS](./02-业务域/01-authn-认证、Token、JWKS.md)
-6. [角色、策略、资源、Assignment](./02-业务域/02-authz-角色、策略、资源、Assignment.md)
-7. [用户、儿童、Guardianship](./02-业务域/03-user-用户、儿童、Guardianship.md)
+5. [认证、Token、JWKS](./02-业务域/01-authn-认证&Token&JWKS.md)
+6. [角色、策略、资源、Assignment](./02-业务域/02-authz-角色&策略&资源&Assignment.md)
+7. [用户、儿童、Guardianship](./02-业务域/03-user-用户&儿童&Guardianship.md)
 8. [REST API 文档](../api/rest/README.md) 和 [gRPC API 文档](../api/grpc/README.md)
 9. [基础设施与运维 README](./04-基础设施与运维/README.md)
 
 ### 核心主线
 
-1. [阅读路径、代码组织与事实来源](./00-概览/03-阅读路径、代码组织与事实来源.md)
+1. [阅读路径、代码组织与事实来源](./00-概览/03-阅读路径&代码组织与事实来源.md)
 2. [系统架构总览](./00-概览/01-系统架构总览.md)
-3. [认证、Token、JWKS](./02-业务域/01-authn-认证、Token、JWKS.md)
+3. [认证、Token、JWKS](./02-业务域/01-authn-认证&Token&JWKS.md)
 4. [认证链专题](./05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md)
-5. [角色、策略、资源、Assignment](./02-业务域/02-authz-角色、策略、资源、Assignment.md)
-6. [授权判定链专题](./05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md)
-7. [用户、儿童、Guardianship](./02-业务域/03-user-用户、儿童、Guardianship.md)
-8. [监护关系链专题](./05-专题分析/03-监护关系链路：用户、儿童、Guardianship 的协作.md)
+5. [角色、策略、资源、Assignment](./02-业务域/02-authz-角色&策略&资源&Assignment.md)
+6. [授权判定链专题](./05-专题分析/02-授权判定链路：角色&策略&资源&Assignment&Casbin.md)
+7. [用户、儿童、Guardianship](./02-业务域/03-user-用户&儿童&Guardianship.md)
+8. [监护关系链专题](./05-专题分析/03-监护关系链路：用户&儿童&Guardianship 的协作.md)
 9. [接口与集成 README](./03-接口与集成/README.md)
 
 ### 集成方
@@ -101,26 +101,26 @@
 | [README.md](./00-概览/README.md) | 概览层入口与本组边界 | 3 min |
 | [01-系统架构总览.md](./00-概览/01-系统架构总览.md) | 系统边界、运行单元、主代码分层与契约层 | 10 min |
 | [02-核心概念术语.md](./00-概览/02-核心概念术语.md) | 统一业务域、架构层与契约层的关键术语 | 6 min |
-| [03-阅读路径、代码组织与事实来源.md](./00-概览/03-阅读路径、代码组织与事实来源.md) | 推荐阅读顺序、代码定位与事实来源优先级 | 8 min |
+| [03-阅读路径&代码组织与事实来源.md](./00-概览/03-阅读路径&代码组织与事实来源.md) | 推荐阅读顺序、代码定位与事实来源优先级 | 8 min |
 
 ### 01-运行时
 
 | 文档 | 说明 | 阅读时间 |
 | ---- | ---- | ---- |
 | [README.md](./01-运行时/README.md) | 运行时入口与本组边界 | 3 min |
-| [01-服务入口、HTTP 与模块装配.md](./01-运行时/01-服务入口、HTTP 与模块装配.md) | `iam-apiserver` 启动链、容器初始化顺序、HTTP 暴露面与模块装配 | 10 min |
+| [01-服务入口&HTTP 与模块装配.md](./01-运行时/01-服务入口&HTTP 与模块装配.md) | `iam-apiserver` 启动链、容器初始化顺序、HTTP 暴露面与模块装配 | 10 min |
 | [02-gRPC与mTLS.md](./01-运行时/02-gRPC与mTLS.md) | gRPC 运行时、mTLS、ACL、健康检查与注册服务 | 10 min |
 | [03-HTTP认证中间件与身份上下文.md](./01-运行时/03-HTTP认证中间件与身份上下文.md) | JWT 中间件、上下文字段、`authz` 与 `RequireRole`/`RequirePermission` | 8 min |
-| [04-健康检查、debug 路由与降级启动边界.md](./01-运行时/04-健康检查、debug 路由与降级启动边界.md) | 基础探针、debug 路由、部分初始化与运行时降级边界 | 6 min |
+| [04-健康检查&debug 路由与降级启动边界.md](./01-运行时/04-健康检查&debug 路由与降级启动边界.md) | 基础探针、debug 路由、部分初始化与运行时降级边界 | 6 min |
 
 ### 02-业务域
 
 | 文档 | 说明 | 阅读时间 |
 | ---- | ---- | ---- |
 | [README.md](./02-业务域/README.md) | 业务域统一入口与迁移约定 | 4 min |
-| [01-authn-认证、Token、JWKS.md](./02-业务域/01-authn-认证、Token、JWKS.md) | 认证域现状版正文 | 10 min |
-| [02-authz-角色、策略、资源、Assignment.md](./02-业务域/02-authz-角色、策略、资源、Assignment.md) | 授权域现状版正文 | 10 min |
-| [03-user-用户、儿童、Guardianship.md](./02-业务域/03-user-用户、儿童、Guardianship.md) | 用户域现状版正文，覆盖模型、监护关系、查询判定和事件边界 | 18 min |
+| [01-authn-认证&Token&JWKS.md](./02-业务域/01-authn-认证&Token&JWKS.md) | 认证域现状版正文 | 10 min |
+| [02-authz-角色&策略&资源&Assignment.md](./02-业务域/02-authz-角色&策略&资源&Assignment.md) | 授权域现状版正文 | 10 min |
+| [03-user-用户&儿童&Guardianship.md](./02-业务域/03-user-用户&儿童&Guardianship.md) | 用户域现状版正文，覆盖模型、监护关系、查询判定和事件边界 | 18 min |
 | [04-suggest-儿童联想搜索.md](./02-业务域/04-suggest-儿童联想搜索.md) | Suggest 补充读侧能力现状版正文，覆盖接口、刷新链、配置和边界 | 8 min |
 
 ### 03-接口与集成
@@ -141,8 +141,8 @@
 | [README.md](./04-基础设施与运维/README.md) | 基础设施与运维统一入口 | 4 min |
 | [01-六边形架构实践.md](./04-基础设施与运维/01-六边形架构实践.md) | interface / application / domain / infra 的真实分层与装配 | 10 min |
 | [02-CQRS模式实践.md](./04-基础设施与运维/02-CQRS模式实践.md) | 当前 CQRS 的真实形态与读写边界 | 8 min |
-| [03-命令、契约校验与开发流程.md](./04-基础设施与运维/03-命令、契约校验与开发流程.md) | `Makefile`、swagger / OpenAPI / proto 校验链与开发流程 | 10 min |
-| [04-端口、证书与数据库迁移.md](./04-基础设施与运维/04-端口、证书与数据库迁移.md) | 端口、mTLS、Docker、migration 入口 | 10 min |
+| [03-命令&契约校验与开发流程.md](./04-基础设施与运维/03-命令&契约校验与开发流程.md) | `Makefile`、swagger / OpenAPI / proto 校验链与开发流程 | 10 min |
+| [04-端口&证书与数据库迁移.md](./04-基础设施与运维/04-端口&证书与数据库迁移.md) | 端口、mTLS、Docker、migration 入口 | 10 min |
 | [05-Seeddata 与 Collection 集成补充.md](./04-基础设施与运维/05-Seeddata 与 Collection 集成补充.md) | seeddata 与 Collection 集成补充 | 6 min |
 
 ### 05-专题分析
@@ -151,8 +151,8 @@
 | ---- | ---- | ---- |
 | [README.md](./05-专题分析/README.md) | 专题分析入口 | 4 min |
 | [01-认证链路：从登录请求到 Token 与 JWKS.md](./05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md) | 登录、认证策略、Token 生命周期、JWKS 发布与轮换边界 | 10 min |
-| [02-授权判定链路：角色、策略、资源、Assignment、Casbin.md](./05-专题分析/02-授权判定链路：角色、策略、资源、Assignment、Casbin.md) | 授权管理链、Casbin 模型、策略版本传播与当前判定边界 | 10 min |
-| [03-监护关系链路：用户、儿童、Guardianship 的协作.md](./05-专题分析/03-监护关系链路：用户、儿童、Guardianship 的协作.md) | 建档、授监护、查询判定链，以及当前合同/运行时边界 | 10 min |
+| [02-授权判定链路：角色&策略&资源&Assignment&Casbin.md](./05-专题分析/02-授权判定链路：角色&策略&资源&Assignment&Casbin.md) | 授权管理链、Casbin 模型、策略版本传播与当前判定边界 | 10 min |
+| [03-监护关系链路：用户&儿童&Guardianship 的协作.md](./05-专题分析/03-监护关系链路：用户&儿童&Guardianship 的协作.md) | 建档、授监护、查询判定链，以及当前合同/运行时边界 | 10 min |
 | [04-SDK封装与接入价值.md](./05-专题分析/04-SDK封装与接入价值.md) | SDK 为什么不只是一个 wrapper、它替接入方省了什么，以及当前边界 | 8 min |
 
 ### _archive

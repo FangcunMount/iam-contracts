@@ -34,8 +34,8 @@
 
 #### 不负责
 
-- 儿童、用户、监护关系的写模型与业务规则：见 [03-user-用户、儿童、Guardianship.md](./03-user-用户、儿童、Guardianship.md)
-- 登录、Token、JWKS：见 [01-authn-认证、Token、JWKS.md](./01-authn-认证、Token、JWKS.md)
+- 儿童、用户、监护关系的写模型与业务规则：见 [03-user-用户&儿童&Guardianship.md](./03-user-用户&儿童&Guardianship.md)
+- 登录、Token、JWKS：见 [01-authn-认证&Token&JWKS.md](./01-authn-认证&Token&JWKS.md)
 - 分布式一致性搜索、跨副本统一索引、专用搜索集群
 
 #### 依赖

@@ -9,7 +9,7 @@
 3. 查询与判定：`我的孩子 / 指定关系 / IsGuardian` 今天如何工作
 4. 暴露面与边界：REST / gRPC 当前提供了什么，还缺什么
 
-**与业务域正文的分工**：相对 [../02-业务域/03-user-用户、儿童、Guardianship.md](../02-业务域/03-user-用户、儿童、Guardianship.md)，业务域文档讲 **静态模型、表结构、REST/gRPC 锚点、模块边界**；本篇讲 **建档与授监护的运行时主链**、**查询与判定如何消费 Guardianship**、**`revoked_at` 与 relation 漂移**、**REST/gRPC 合同与运行时之间的差异**。
+**与业务域正文的分工**：相对 [../02-业务域/03-user-用户&儿童&Guardianship.md](../02-业务域/03-user-用户&儿童&Guardianship.md)，业务域文档讲 **静态模型、表结构、REST/gRPC 锚点、模块边界**；本篇讲 **建档与授监护的运行时主链**、**查询与判定如何消费 Guardianship**、**`revoked_at` 与 relation 漂移**、**REST/gRPC 合同与运行时之间的差异**。
 
 ## 30 秒结论
 
@@ -410,7 +410,7 @@ relation 漂移也需要单列出来，因为它同时影响 REST 与 gRPC。
 
 | 文档 | 说明 |
 | ---- | ---- |
-| [../02-业务域/03-user-用户、儿童、Guardianship.md](../02-业务域/03-user-用户、儿童、Guardianship.md) | 用户域静态模型与边界 |
+| [../02-业务域/03-user-用户&儿童&Guardianship.md](../02-业务域/03-user-用户&儿童&Guardianship.md) | 用户域静态模型与边界 |
 | [../03-接口与集成/04-身份接入与监护关系边界.md](../03-接口与集成/04-身份接入与监护关系边界.md) | REST / gRPC 接入与边界 |
 | [../03-接口与集成/01-REST契约与接入.md](../03-接口与集成/01-REST契约与接入.md) | REST 契约总览 |
 | [../03-接口与集成/02-gRPC契约与接入.md](../03-接口与集成/02-gRPC契约与接入.md) | gRPC 合同总览 |

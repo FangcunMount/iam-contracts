@@ -15,8 +15,8 @@
 | ---- | ---- |
 | 六边形架构在当前代码里怎么落地？ | [01-六边形架构实践.md](./01-六边形架构实践.md) |
 | CQRS 在当前代码里怎么落地？ | [02-CQRS模式实践.md](./02-CQRS模式实践.md) |
-| 构建、运行、测试、swagger、proto、OpenAPI 校验怎么做？ | [03-命令、契约校验与开发流程.md](./03-命令、契约校验与开发流程.md) |
-| 端口、证书、Docker、数据库迁移从哪看？ | [04-端口、证书与数据库迁移.md](./04-端口、证书与数据库迁移.md) |
+| 构建、运行、测试、swagger、proto、OpenAPI 校验怎么做？ | [03-命令&契约校验与开发流程.md](./03-命令&契约校验与开发流程.md) |
+| 端口、证书、Docker、数据库迁移从哪看？ | [04-端口&证书与数据库迁移.md](./04-端口&证书与数据库迁移.md) |
 | seeddata 和 Collection 集成怎么理解？ | [05-Seeddata 与 Collection 集成补充.md](./05-Seeddata 与 Collection 集成补充.md) |
 | 真实配置和工件入口在哪里？ | [../../configs/](../../configs/)、[../../build/docker/](../../build/docker/)、[../../scripts/](../../scripts/)、[../../Makefile](../../Makefile) |
 
@@ -26,8 +26,8 @@
 | ---- | ---- |
 | [01-六边形架构实践.md](./01-六边形架构实践.md) | interface / application / domain / infra 的真实分层与装配 |
 | [02-CQRS模式实践.md](./02-CQRS模式实践.md) | 当前 CQRS 的真实形态与读写边界 |
-| [03-命令、契约校验与开发流程.md](./03-命令、契约校验与开发流程.md) | `Makefile`、swagger / OpenAPI / proto 校验链、开发命令面 |
-| [04-端口、证书与数据库迁移.md](./04-端口、证书与数据库迁移.md) | dev/prod 端口、mTLS 证书、Docker 与 migration 入口 |
+| [03-命令&契约校验与开发流程.md](./03-命令&契约校验与开发流程.md) | `Makefile`、swagger / OpenAPI / proto 校验链、开发命令面 |
+| [04-端口&证书与数据库迁移.md](./04-端口&证书与数据库迁移.md) | dev/prod 端口、mTLS 证书、Docker 与 migration 入口 |
 | [05-Seeddata 与 Collection 集成补充.md](./05-Seeddata 与 Collection 集成补充.md) | seed_family 与 Collection testee 创建的补充说明 |
 
 ## 与其他层的分工

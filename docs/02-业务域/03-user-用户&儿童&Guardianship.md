@@ -34,8 +34,8 @@
 
 #### 不负责
 
-- 登录、Token、JWKS：见 [01-authn-认证、Token、JWKS.md](./01-authn-认证、Token、JWKS.md)
-- 角色、策略、PDP：见 [02-authz-角色、策略、资源、Assignment.md](./02-authz-角色、策略、资源、Assignment.md)
+- 登录、Token、JWKS：见 [01-authn-认证&Token&JWKS.md](./01-authn-认证&Token&JWKS.md)
+- 角色、策略、PDP：见 [02-authz-角色&策略&资源&Assignment.md](./02-authz-角色&策略&资源&Assignment.md)
 - HTTP JWT 中间件与 gRPC 传输安全：见 [../01-运行时/README.md](../01-运行时/README.md)
 
 #### 依赖
@@ -236,7 +236,7 @@ sequenceDiagram
 - 如果第二步失败，`child` 可能已经落库
 - 所以今天不能讲成“注册儿童并授监护已经是单事务闭环”
 
-长链路和风险细节统一看 [../05-专题分析/03-监护关系链路：用户、儿童、Guardianship 的协作.md](../05-专题分析/03-监护关系链路：用户、儿童、Guardianship 的协作.md)。
+长链路和风险细节统一看 [../05-专题分析/03-监护关系链路：用户&儿童&Guardianship 的协作.md](../05-专题分析/03-监护关系链路：用户&儿童&Guardianship 的协作.md)。
 
 ### 核心查询模型：关系查询先于 child / user 详情查询
 

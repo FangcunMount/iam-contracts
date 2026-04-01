@@ -16,7 +16,7 @@
 - 当前 gRPC 运行时最值得先记住的是 4 件事：注册了哪些服务、拦截器链怎么排、dev/prod 到底开了哪些安全开关、健康检查如何暴露。
 - 当前实际注册的服务只有 `AuthService`、`JWKSService`、`IdentityRead`、`GuardianshipQuery`、`GuardianshipCommand`、`IdentityLifecycle`、`IDPService`；没有注册就不能讲成“当前已暴露”。
 - dev / prod 当前都启用了 `mTLS` 和审计；`auth` 仍关闭，`ACL` 只在 prod 开启。
-- gRPC 契约与 metadata 约定看 [../03-接口与集成/02-gRPC契约与接入.md](../03-接口与集成/02-gRPC契约与接入.md)；健康检查、debug 路由和降级启动边界看 [04-健康检查、debug 路由与降级启动边界.md](./04-健康检查、debug 路由与降级启动边界.md)。
+- gRPC 契约与 metadata 约定看 [../03-接口与集成/02-gRPC契约与接入.md](../03-接口与集成/02-gRPC契约与接入.md)；健康检查、debug 路由和降级启动边界看 [04-健康检查&debug 路由与降级启动边界.md](./04-健康检查&debug 路由与降级启动边界.md)。
 
 ## 重点速查
 
@@ -30,7 +30,7 @@
 | IDP gRPC | `IDPService` | [../../internal/apiserver/interface/idp/grpc/service.go](../../internal/apiserver/interface/idp/grpc/service.go) |
 | dev/prod 安全口径 | 两边都开 `mTLS`，`auth` 仍关闭，`ACL` 只在 prod 打开 | [../../configs/apiserver.dev.yaml](../../configs/apiserver.dev.yaml)、[../../configs/apiserver.prod.yaml](../../configs/apiserver.prod.yaml) |
 | ACL 合同 | 方法级 ACL 配置，不是 proto 合同 | [../../configs/grpc_acl.yaml](../../configs/grpc_acl.yaml) |
-| 健康检查与降级启动 | gRPC health、独立 HTTP 探针、部分初始化仍继续启动 | [../../internal/pkg/grpc/server.go](../../internal/pkg/grpc/server.go)、[../../internal/apiserver/server.go](../../internal/apiserver/server.go)、[./04-健康检查、debug 路由与降级启动边界.md](./04-健康检查、debug 路由与降级启动边界.md) |
+| 健康检查与降级启动 | gRPC health、独立 HTTP 探针、部分初始化仍继续启动 | [../../internal/pkg/grpc/server.go](../../internal/pkg/grpc/server.go)、[../../internal/apiserver/server.go](../../internal/apiserver/server.go)、[./04-健康检查&debug 路由与降级启动边界.md](./04-健康检查&debug 路由与降级启动边界.md) |
 
 ## 1. gRPC 在当前运行时里到底扮演什么角色
 
@@ -163,7 +163,7 @@ gRPC 这篇的重点是“服务如何启动与保护”，不是把整个运行
 - HTTP `/health`、`/ping`、`/debug/routes`、`/debug/modules`
 - MySQL / Redis / EventBus / 容器初始化失败后，进程为什么还会继续启动
 
-统一看 [04-健康检查、debug 路由与降级启动边界.md](./04-健康检查、debug 路由与降级启动边界.md)。
+统一看 [04-健康检查&debug 路由与降级启动边界.md](./04-健康检查&debug 路由与降级启动边界.md)。
 
 ## 6. 当前保证与风险边界
 
@@ -187,7 +187,7 @@ gRPC 这篇的重点是“服务如何启动与保护”，不是把整个运行
 | 文档 | 说明 |
 | ---- | ---- |
 | [../03-接口与集成/02-gRPC契约与接入.md](../03-接口与集成/02-gRPC契约与接入.md) | gRPC 合同、接入方式、metadata 约定 |
-| [04-健康检查、debug 路由与降级启动边界.md](./04-健康检查、debug 路由与降级启动边界.md) | 探针、debug 路由、部分初始化与降级启动边界 |
+| [04-健康检查&debug 路由与降级启动边界.md](./04-健康检查&debug 路由与降级启动边界.md) | 探针、debug 路由、部分初始化与降级启动边界 |
 | [../00-概览/01-系统架构总览.md](../00-概览/01-系统架构总览.md) | 系统级总览 |
 | [../../api/grpc/README.md](../../api/grpc/README.md) | `proto` 与调用契约入口 |
-| [../04-基础设施与运维/04-端口、证书与数据库迁移.md](../04-基础设施与运维/04-端口、证书与数据库迁移.md) | 端口、证书、迁移与 Docker 入口 |
+| [../04-基础设施与运维/04-端口&证书与数据库迁移.md](../04-基础设施与运维/04-端口&证书与数据库迁移.md) | 端口、证书、迁移与 Docker 入口 |

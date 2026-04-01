@@ -86,6 +86,6 @@
 
 | 文档 | 说明 |
 | ---- | ---- |
-| [03-命令、契约校验与开发流程.md](./03-命令、契约校验与开发流程.md) | 命令面与 seeddata 相关入口 |
+| [03-命令&契约校验与开发流程.md](./03-命令&契约校验与开发流程.md) | 命令面与 seeddata 相关入口 |
 | [../../configs/seeddata.yaml](../../configs/seeddata.yaml) | seeddata 配置真值 |
 | [../../cmd/tools/seeddata/seed_family.go](../../cmd/tools/seeddata/seed_family.go) | 真实调用链 |

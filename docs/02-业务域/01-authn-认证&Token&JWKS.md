@@ -35,8 +35,8 @@
 
 #### 不负责
 
-- 用户档案、儿童、监护关系：见 [03-user-用户、儿童、Guardianship.md](./03-user-用户、儿童、Guardianship.md)
-- 角色、策略、Assignment、Casbin：见 [02-authz-角色、策略、资源、Assignment.md](./02-authz-角色、策略、资源、Assignment.md)
+- 用户档案、儿童、监护关系：见 [03-user-用户&儿童&Guardianship.md](./03-user-用户&儿童&Guardianship.md)
+- 角色、策略、Assignment、Casbin：见 [02-authz-角色&策略&资源&Assignment.md](./02-authz-角色&策略&资源&Assignment.md)
 - HTTP 请求里的 JWT 消费与上下文注入：见 [../01-运行时/03-HTTP认证中间件与身份上下文.md](../01-运行时/03-HTTP认证中间件与身份上下文.md)
 - 登录长链、Token 生命周期时序、JWKS 轮换运行面：见 [../05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md](../05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md)
 
@@ -291,7 +291,7 @@ flowchart TB
 ## 边界与注意事项
 
 - `authn` 不应被讲成 Session 聚合中心；当前核心仍是账户、凭据、Token、JWKS。
-- JWT claims 不承诺承载完整授权上下文；授权看 [02-authz-角色、策略、资源、Assignment.md](./02-authz-角色、策略、资源、Assignment.md)。
+- JWT claims 不承诺承载完整授权上下文；授权看 [02-authz-角色&策略&资源&Assignment.md](./02-authz-角色&策略&资源&Assignment.md)。
 - `authn` 的 REST 管理端点当前在 router 层未统一挂认证/管理员保护，这应明确写成现状，而不是设计意图。
 - `jwt_token` 场景今天属于应用层保留能力，不是公开 REST 登录方式。
 - 统一事件清单：**N/A**。若后续补异步事件，应以源码为准，而不是先在 prose 中虚构 `topic`。

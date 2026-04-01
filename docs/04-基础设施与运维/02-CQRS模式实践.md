@@ -193,5 +193,5 @@ graph LR
 | 文档 | 说明 |
 | ---- | ---- |
 | [01-六边形架构实践.md](./01-六边形架构实践.md) | 当前分层与端口/适配器结构 |
-| [03-命令、契约校验与开发流程.md](./03-命令、契约校验与开发流程.md) | `Makefile`、swagger / OpenAPI / proto 校验链 |
-| [../02-业务域/02-authz-角色、策略、资源、Assignment.md](../02-业务域/02-authz-角色、策略、资源、Assignment.md) | 授权域入口 |
+| [03-命令&契约校验与开发流程.md](./03-命令&契约校验与开发流程.md) | `Makefile`、swagger / OpenAPI / proto 校验链 |
+| [../02-业务域/02-authz-角色&策略&资源&Assignment.md](../02-业务域/02-authz-角色&策略&资源&Assignment.md) | 授权域入口 |
