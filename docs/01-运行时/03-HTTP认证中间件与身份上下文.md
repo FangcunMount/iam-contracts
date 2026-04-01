@@ -73,7 +73,7 @@ flowchart LR
 
 | 问题 | 该看哪里 |
 | ---- | ---- |
-| 登录请求如何变成 `Principal` | [../05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md](../05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md) |
+| 登录请求如何变成 `Principal` | [../05-专题分析/01-认证链路--从登录请求到 Token 与 JWKS.md](../05-专题分析/01-认证链路--从登录请求到 Token 与 JWKS.md) |
 | Token 如何签发、刷新、撤销、JWKS 如何轮换 | [../02-业务域/01-authn-认证&Token&JWKS.md](../02-业务域/01-authn-认证&Token&JWKS.md) |
 | HTTP 请求里 token 如何被消费 | 本文 |
 

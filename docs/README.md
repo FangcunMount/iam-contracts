@@ -21,7 +21,7 @@
 | 如果只先维护最核心文档，应该从哪开始？ | [00-概览/03-阅读路径&代码组织与事实来源.md](./00-概览/03-阅读路径&代码组织与事实来源.md) |
 | 当前认证域真正落地了什么？ | [02-业务域/01-authn-认证&Token&JWKS.md](./02-业务域/01-authn-认证&Token&JWKS.md) |
 | 当前授权域真正落地了什么？ | [02-业务域/02-authz-角色&策略&资源&Assignment.md](./02-业务域/02-authz-角色&策略&资源&Assignment.md) |
-| 当前用户、儿童、监护关系从哪看？ | [02-业务域/03-user-用户&儿童&Guardianship.md](./02-业务域/03-user-用户&儿童&Guardianship.md)、[05-专题分析/03-监护关系链路：用户&儿童&Guardianship 的协作.md](./05-专题分析/03-监护关系链路：用户&儿童&Guardianship 的协作.md) |
+| 当前用户、儿童、监护关系从哪看？ | [02-业务域/03-user-用户&儿童&Guardianship.md](./02-业务域/03-user-用户&儿童&Guardianship.md)、[05-专题分析/03-监护关系链路--用户&儿童&Guardianship 的协作.md](./05-专题分析/03-监护关系链路--用户&儿童&Guardianship 的协作.md) |
 | 当前 Suggest 儿童联想搜索从哪看？ | [02-业务域/04-suggest-儿童联想搜索.md](./02-业务域/04-suggest-儿童联想搜索.md) |
 | REST / gRPC 合同在哪里？ | [../api/rest/README.md](../api/rest/README.md)、[../api/grpc/README.md](../api/grpc/README.md)、[../api/README.md](../api/README.md) |
 | 业务系统要接授权能力，今天到底能接到什么程度？ | [03-接口与集成/03-授权接入与边界.md](./03-接口与集成/03-授权接入与边界.md) |
@@ -75,11 +75,11 @@
 1. [阅读路径、代码组织与事实来源](./00-概览/03-阅读路径&代码组织与事实来源.md)
 2. [系统架构总览](./00-概览/01-系统架构总览.md)
 3. [认证、Token、JWKS](./02-业务域/01-authn-认证&Token&JWKS.md)
-4. [认证链专题](./05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md)
+4. [认证链专题](./05-专题分析/01-认证链路--从登录请求到 Token 与 JWKS.md)
 5. [角色、策略、资源、Assignment](./02-业务域/02-authz-角色&策略&资源&Assignment.md)
-6. [授权判定链专题](./05-专题分析/02-授权判定链路：角色&策略&资源&Assignment&Casbin.md)
+6. [授权判定链专题](./05-专题分析/02-授权判定链路--角色&策略&资源&Assignment&Casbin.md)
 7. [用户、儿童、Guardianship](./02-业务域/03-user-用户&儿童&Guardianship.md)
-8. [监护关系链专题](./05-专题分析/03-监护关系链路：用户&儿童&Guardianship 的协作.md)
+8. [监护关系链专题](./05-专题分析/03-监护关系链路--用户&儿童&Guardianship 的协作.md)
 9. [接口与集成 README](./03-接口与集成/README.md)
 
 ### 集成方
@@ -150,9 +150,9 @@
 | 文档 | 说明 | 阅读时间 |
 | ---- | ---- | ---- |
 | [README.md](./05-专题分析/README.md) | 专题分析入口 | 4 min |
-| [01-认证链路：从登录请求到 Token 与 JWKS.md](./05-专题分析/01-认证链路：从登录请求到 Token 与 JWKS.md) | 登录、认证策略、Token 生命周期、JWKS 发布与轮换边界 | 10 min |
-| [02-授权判定链路：角色&策略&资源&Assignment&Casbin.md](./05-专题分析/02-授权判定链路：角色&策略&资源&Assignment&Casbin.md) | 授权管理链、Casbin 模型、策略版本传播与当前判定边界 | 10 min |
-| [03-监护关系链路：用户&儿童&Guardianship 的协作.md](./05-专题分析/03-监护关系链路：用户&儿童&Guardianship 的协作.md) | 建档、授监护、查询判定链，以及当前合同/运行时边界 | 10 min |
+| [01-认证链路--从登录请求到 Token 与 JWKS.md](./05-专题分析/01-认证链路--从登录请求到 Token 与 JWKS.md) | 登录、认证策略、Token 生命周期、JWKS 发布与轮换边界 | 10 min |
+| [02-授权判定链路--角色&策略&资源&Assignment&Casbin.md](./05-专题分析/02-授权判定链路--角色&策略&资源&Assignment&Casbin.md) | 授权管理链、Casbin 模型、策略版本传播与当前判定边界 | 10 min |
+| [03-监护关系链路--用户&儿童&Guardianship 的协作.md](./05-专题分析/03-监护关系链路--用户&儿童&Guardianship 的协作.md) | 建档、授监护、查询判定链，以及当前合同/运行时边界 | 10 min |
 | [04-SDK封装与接入价值.md](./05-专题分析/04-SDK封装与接入价值.md) | SDK 为什么不只是一个 wrapper、它替接入方省了什么，以及当前边界 | 8 min |
 
 ### _archive

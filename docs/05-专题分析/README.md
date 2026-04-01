@@ -24,9 +24,9 @@
 
 | 想回答的问题 | 先打开哪里 |
 | ---- | ---- |
-| 登录请求如何走到认证、Token、JWKS？ | [01-认证链路：从登录请求到 Token 与 JWKS.md](./01-认证链路：从登录请求到 Token 与 JWKS.md) |
-| 角色、策略、资源、Assignment、Casbin 今天怎么协作？ | [02-授权判定链路：角色&策略&资源&Assignment&Casbin.md](./02-授权判定链路：角色&策略&资源&Assignment&Casbin.md) |
-| 用户、儿童、Guardianship 今天怎么协作？ | [03-监护关系链路：用户&儿童&Guardianship 的协作.md](./03-监护关系链路：用户&儿童&Guardianship 的协作.md) |
+| 登录请求如何走到认证、Token、JWKS？ | [01-认证链路--从登录请求到 Token 与 JWKS.md](./01-认证链路--从登录请求到 Token 与 JWKS.md) |
+| 角色、策略、资源、Assignment、Casbin 今天怎么协作？ | [02-授权判定链路--角色&策略&资源&Assignment&Casbin.md](./02-授权判定链路--角色&策略&资源&Assignment&Casbin.md) |
+| 用户、儿童、Guardianship 今天怎么协作？ | [03-监护关系链路--用户&儿童&Guardianship 的协作.md](./03-监护关系链路--用户&儿童&Guardianship 的协作.md) |
 | 为什么 `pkg/sdk` 不只是 wrapper，而是接入主轴？ | [04-SDK封装与接入价值.md](./04-SDK封装与接入价值.md) |
 | 认证域静态结构在哪里？ | [../02-业务域/01-authn-认证&Token&JWKS.md](../02-业务域/01-authn-认证&Token&JWKS.md) |
 | 授权域静态结构在哪里？ | [../02-业务域/02-authz-角色&策略&资源&Assignment.md](../02-业务域/02-authz-角色&策略&资源&Assignment.md) |
@@ -76,9 +76,9 @@ flowchart LR
 
 | 文档 | 现在主要回答什么 |
 | ---- | ---- |
-| [01-认证链路：从登录请求到 Token 与 JWKS.md](./01-认证链路：从登录请求到 Token 与 JWKS.md) | 登录如何变成 `Principal`，再进入 Token 生命周期、JWT 中间件和 JWKS 发布与轮换 |
-| [02-授权判定链路：角色&策略&资源&Assignment&Casbin.md](./02-授权判定链路：角色&策略&资源&Assignment&Casbin.md) | Role / Resource / Policy / Assignment 如何变成 Casbin `p/g` 规则，并被 REST / gRPC / 中间件消费 |
-| [03-监护关系链路：用户&儿童&Guardianship 的协作.md](./03-监护关系链路：用户&儿童&Guardianship 的协作.md) | `建档 + 授监护` 如何工作，查询链和 `revoked_at` 目前有什么边界 |
+| [01-认证链路--从登录请求到 Token 与 JWKS.md](./01-认证链路--从登录请求到 Token 与 JWKS.md) | 登录如何变成 `Principal`，再进入 Token 生命周期、JWT 中间件和 JWKS 发布与轮换 |
+| [02-授权判定链路--角色&策略&资源&Assignment&Casbin.md](./02-授权判定链路--角色&策略&资源&Assignment&Casbin.md) | Role / Resource / Policy / Assignment 如何变成 Casbin `p/g` 规则，并被 REST / gRPC / 中间件消费 |
+| [03-监护关系链路--用户&儿童&Guardianship 的协作.md](./03-监护关系链路--用户&儿童&Guardianship 的协作.md) | `建档 + 授监护` 如何工作，查询链和 `revoked_at` 目前有什么边界 |
 | [04-SDK封装与接入价值.md](./04-SDK封装与接入价值.md) | SDK 在接入链里的位置、能力面、接入决策，以及哪些能力已可依赖 |
 
 ## 3. 这一组和 `02/03/01` 怎么分工
@@ -156,9 +156,9 @@ flowchart LR
 
 | 文档 | 说明 |
 | ---- | ---- |
-| [01-认证链路：从登录请求到 Token 与 JWKS.md](./01-认证链路：从登录请求到 Token 与 JWKS.md) | 认证与 Token 主链 |
-| [02-授权判定链路：角色&策略&资源&Assignment&Casbin.md](./02-授权判定链路：角色&策略&资源&Assignment&Casbin.md) | 授权管理链与单次 PDP |
-| [03-监护关系链路：用户&儿童&Guardianship 的协作.md](./03-监护关系链路：用户&儿童&Guardianship 的协作.md) | 监护关系写链、查询链与合同边界 |
+| [01-认证链路--从登录请求到 Token 与 JWKS.md](./01-认证链路--从登录请求到 Token 与 JWKS.md) | 认证与 Token 主链 |
+| [02-授权判定链路--角色&策略&资源&Assignment&Casbin.md](./02-授权判定链路--角色&策略&资源&Assignment&Casbin.md) | 授权管理链与单次 PDP |
+| [03-监护关系链路--用户&儿童&Guardianship 的协作.md](./03-监护关系链路--用户&儿童&Guardianship 的协作.md) | 监护关系写链、查询链与合同边界 |
 | [04-SDK封装与接入价值.md](./04-SDK封装与接入价值.md) | SDK 作为接入主轴的价值与边界 |
 | [../02-业务域/README.md](../02-业务域/README.md) | 回到模块静态设计 |
 | [../03-接口与集成/README.md](../03-接口与集成/README.md) | 回到契约与接入层 |
