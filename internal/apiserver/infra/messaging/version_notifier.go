@@ -16,11 +16,11 @@ import (
 )
 
 const (
-	// PolicyVersionTopic 策略版本变更主题
-	PolicyVersionTopic = "iam.authz.policy_version"
+	// AuthzVersionTopic 授权版本变更主题
+	AuthzVersionTopic = "iam.authz.version"
 
-	// PolicyVersionChannel 订阅通道（用于负载均衡，同组消费者共享）
-	PolicyVersionChannel = "iam-policy-sync"
+	// AuthzVersionChannel 订阅通道（用于负载均衡，同组消费者共享）
+	AuthzVersionChannel = "iam-policy-sync"
 )
 
 // VersionNotifier NSQ 版本通知器实现
@@ -84,9 +84,9 @@ func (n *VersionNotifier) Publish(ctx context.Context, tenantID string, version 
 	message := messaging.NewMessage(uuid.New().String(), payload)
 	message.Metadata["tenant_id"] = tenantID
 
-	if err := n.publisher.PublishMessage(ctx, PolicyVersionTopic, message); err != nil {
+	if err := n.publisher.PublishMessage(ctx, AuthzVersionTopic, message); err != nil {
 		log.ErrorContext(ctx, "failed to publish version change",
-			log.String("topic", PolicyVersionTopic),
+			log.String("topic", AuthzVersionTopic),
 			log.String("tenant_id", tenantID),
 			log.String("error", err.Error()),
 		)
@@ -94,7 +94,7 @@ func (n *VersionNotifier) Publish(ctx context.Context, tenantID string, version 
 	}
 
 	log.InfoContext(ctx, "version change published",
-		log.String("topic", PolicyVersionTopic),
+		log.String("topic", AuthzVersionTopic),
 		log.String("tenant_id", tenantID),
 		log.Int64("version", version),
 	)
@@ -134,18 +134,18 @@ func (n *VersionNotifier) Subscribe(ctx context.Context, handler domain.VersionC
 	}
 
 	// 订阅主题
-	if err := n.subscriber.Subscribe(PolicyVersionTopic, PolicyVersionChannel, msgHandler); err != nil {
-		log.ErrorContext(ctx, "failed to subscribe to policy version topic",
-			log.String("topic", PolicyVersionTopic),
-			log.String("channel", PolicyVersionChannel),
+	if err := n.subscriber.Subscribe(AuthzVersionTopic, AuthzVersionChannel, msgHandler); err != nil {
+		log.ErrorContext(ctx, "failed to subscribe to authz version topic",
+			log.String("topic", AuthzVersionTopic),
+			log.String("channel", AuthzVersionChannel),
 			log.String("error", err.Error()),
 		)
 		return fmt.Errorf("failed to subscribe: %w", err)
 	}
 
-	log.InfoContext(ctx, "subscribed to policy version topic",
-		log.String("topic", PolicyVersionTopic),
-		log.String("channel", PolicyVersionChannel),
+	log.InfoContext(ctx, "subscribed to authz version topic",
+		log.String("topic", AuthzVersionTopic),
+		log.String("channel", AuthzVersionChannel),
 	)
 	return nil
 }
@@ -171,7 +171,7 @@ func (n *VersionNotifier) Close() error {
 	})
 
 	log.Info("version notifier closed",
-		log.String("topic", PolicyVersionTopic),
+		log.String("topic", AuthzVersionTopic),
 	)
 
 	if len(errs) > 0 {
