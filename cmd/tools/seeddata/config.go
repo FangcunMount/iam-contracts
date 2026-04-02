@@ -49,9 +49,9 @@ type UserConfig struct {
 	Email  string `yaml:"email"`   // 邮箱
 	IDCard string `yaml:"id_card"` // 身份证号
 	Status int    `yaml:"status"`  // 用户状态
-	// 员工相关配置（可选，用于 QS 服务创建员工）
+	// 员工相关配置（可选，用于 QS 服务创建 operator 档案）
 	OrgID    int      `yaml:"org_id"`    // 机构ID
-	Roles    []string `yaml:"roles"`     // 角色列表
+	Roles    []string `yaml:"roles"`     // 已废弃：仅保留给旧配置兼容，QS 真值角色来自 IAM assignments
 	IsActive bool     `yaml:"is_active"` // 是否激活
 }
 

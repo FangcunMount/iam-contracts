@@ -267,13 +267,12 @@ func loginWithPassword(iamServiceURL, loginID, password string) (string, error) 
 
 // CreateStaffRequest 创建员工请求体
 type CreateStaffRequest struct {
-	Name     string   `json:"name"`
-	OrgID    int64    `json:"org_id"`
-	Roles    []string `json:"roles"`
-	UserID   int64    `json:"user_id"`
-	Phone    string   `json:"phone,omitempty"`
-	Email    string   `json:"email,omitempty"`
-	IsActive bool     `json:"is_active"`
+	Name     string `json:"name"`
+	OrgID    int64  `json:"org_id"`
+	UserID   int64  `json:"user_id"`
+	Phone    string `json:"phone,omitempty"`
+	Email    string `json:"email,omitempty"`
+	IsActive bool   `json:"is_active"`
 }
 
 // createStaff 调用 QS 服务创建员工
@@ -286,7 +285,6 @@ func createStaff(qsServiceURL, adminToken, userID string, cfg UserConfig, logger
 
 	reqBody := CreateStaffRequest{
 		Name:     cfg.Name,
-		Roles:    cfg.Roles,
 		UserID:   uid,
 		OrgID:    int64(cfg.OrgID),
 		Phone:    cfg.Phone,
