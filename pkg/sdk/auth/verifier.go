@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -210,12 +211,13 @@ func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, o
 	}
 
 	claims := &TokenClaims{
-		Subject:  resp.Claims.Subject,
-		UserID:   resp.Claims.UserId,
-		TenantID: resp.Claims.TenantId,
-		Issuer:   resp.Claims.Issuer,
-		Audience: resp.Claims.Audience,
-		Extra:    make(map[string]interface{}),
+		Subject:   resp.Claims.Subject,
+		UserID:    resp.Claims.UserId,
+		AccountID: resp.Claims.AccountId,
+		TenantID:  resp.Claims.TenantId,
+		Issuer:    resp.Claims.Issuer,
+		Audience:  resp.Claims.Audience,
+		Extra:     make(map[string]interface{}),
 	}
 
 	if resp.Claims.ExpiresAt != nil {
@@ -622,6 +624,8 @@ func claimString(v interface{}) string {
 	switch value := v.(type) {
 	case string:
 		return value
+	case json.Number:
+		return value.String()
 	case float64:
 		return fmt.Sprintf("%.0f", value)
 	case int64:
