@@ -18,6 +18,8 @@ import (
 
 const qsErrUserAlreadyExists = 110002
 
+var qsBootstrapOperatorCaller = callQSBootstrapOperator
+
 // ==================== 系统初始化 Seed 函数 ====================
 
 // seedSystemInit 系统初始化：创建管理员用户
@@ -138,8 +140,10 @@ type qsErrorResponse struct {
 	Reference string `json:"reference,omitempty"`
 }
 
-// seedStaff 使用每个 org 的 bootstrap admin token 统一创建员工。
-// 必须在 authn 和 tenant-bootstrap-admin 之后调用，确保首个 active operator 已完成自举。
+// seedStaff 创建 QS operator/staff。
+// 优先走 internal gRPC BootstrapOperator，直接基于 IAM assignment 快照回填本地角色；
+// 若未配置 qs_internal_grpc，再回退到 bootstrap admin token + /staff 的旧路径。
+// 必须在 authn 和 tenant-bootstrap-admin 之后调用，确保角色真值与首个 active operator 已就绪。
 func seedStaff(ctx context.Context, deps *dependencies, state *seedContext) error {
 	if deps.Config == nil {
 		return nil
@@ -150,10 +154,72 @@ func seedStaff(ctx context.Context, deps *dependencies, state *seedContext) erro
 		deps.Logger.Infow("⏭️  没有需要创建的 QS 员工，跳过")
 		return nil
 	}
+	if strings.TrimSpace(deps.Config.QSInternalGRPC.Address) != "" {
+		return seedStaffViaInternalGRPC(ctx, deps, state, usersByOrg)
+	}
+
 	if deps.Config.QSServiceURL == "" {
 		deps.Logger.Warnw("⚠️  未配置 QS 服务 URL，跳过员工创建")
 		return nil
 	}
+	return seedStaffViaBootstrapToken(ctx, deps, state, usersByOrg)
+}
+
+func seedStaffViaInternalGRPC(ctx context.Context, deps *dependencies, state *seedContext, usersByOrg map[int][]UserConfig) error {
+	orgIDs := make([]int, 0, len(usersByOrg))
+	for orgID := range usersByOrg {
+		orgIDs = append(orgIDs, orgID)
+	}
+	sort.Ints(orgIDs)
+
+	deps.Logger.Infow("📡 使用 QS internal gRPC 自举员工",
+		"address", deps.Config.QSInternalGRPC.Address,
+		"org_count", len(orgIDs))
+
+	for _, orgID := range orgIDs {
+		for _, uc := range usersByOrg[orgID] {
+			qsRoles := resolveQSBootstrapRoles(deps.Config, uc)
+			if len(qsRoles) == 0 {
+				continue
+			}
+
+			userID, ok := state.Users[uc.Alias]
+			if !ok {
+				return fmt.Errorf("user %s not found in seed state", uc.Alias)
+			}
+
+			uid, err := strconv.ParseInt(userID, 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid user id for %s: %w", uc.Alias, err)
+			}
+
+			resp, err := qsBootstrapOperatorCaller(ctx, deps.Config.QSInternalGRPC, qsBootstrapOperatorRequest{
+				OrgID:    int64(uc.OrgID),
+				UserID:   uid,
+				Name:     uc.Name,
+				Email:    uc.Email,
+				Phone:    uc.Phone,
+				IsActive: uc.IsActive,
+			})
+			if err != nil {
+				return fmt.Errorf("bootstrap operator for %s in org %d: %w", uc.Alias, orgID, err)
+			}
+
+			deps.Logger.Infow("✅ 通过 internal gRPC 自举员工成功",
+				"alias", uc.Alias,
+				"org_id", uc.OrgID,
+				"operator_id", resp.OperatorID,
+				"created", resp.Created,
+				"expected_roles", qsRoles,
+				"actual_roles", resp.Roles,
+				"message", resp.Message)
+		}
+	}
+
+	return nil
+}
+
+func seedStaffViaBootstrapToken(ctx context.Context, deps *dependencies, state *seedContext, usersByOrg map[int][]UserConfig) error {
 	if deps.Config.IAMServiceURL == "" {
 		return fmt.Errorf("iam_service_url is required when seeding QS staff")
 	}

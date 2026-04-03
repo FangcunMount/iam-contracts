@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -144,5 +145,63 @@ func TestCreateStaffFailsOnNonDuplicateError(t *testing.T) {
 	}, []string{"qs:admin"}, logger)
 	if err == nil {
 		t.Fatalf("createStaff() error = nil, want failure on non-duplicate error")
+	}
+}
+
+func TestSeedStaffPrefersInternalGRPCBootstrap(t *testing.T) {
+	originalCaller := qsBootstrapOperatorCaller
+	defer func() { qsBootstrapOperatorCaller = originalCaller }()
+
+	calls := 0
+	qsBootstrapOperatorCaller = func(ctx context.Context, cfg QSInternalGRPCConfig, req qsBootstrapOperatorRequest) (*qsBootstrapOperatorResponse, error) {
+		calls++
+		if cfg.Address != "127.0.0.1:9090" {
+			t.Fatalf("unexpected gRPC address: %s", cfg.Address)
+		}
+		if req.OrgID != 1 || req.UserID != 110001 {
+			t.Fatalf("unexpected bootstrap request: %+v", req)
+		}
+		return &qsBootstrapOperatorResponse{
+			OperatorID: 9001,
+			Created:    true,
+			Message:    "operator bootstrapped",
+			Roles:      []string{"qs:admin"},
+		}, nil
+	}
+
+	deps := &dependencies{
+		Logger: log.New(log.NewOptions()),
+		Config: &SeedConfig{
+			Users: []UserConfig{
+				{
+					Alias:    "admin",
+					Name:     "租户管理员",
+					Email:    "admin@fangcunmount.com",
+					OrgID:    1,
+					IsActive: true,
+				},
+			},
+			Roles: []RoleConfig{
+				{Alias: "qs_admin", Name: "qs:admin", TenantID: "1"},
+			},
+			Assignments: []AssignmentConfig{
+				{SubjectType: "user", SubjectID: "@admin", RoleAlias: "@qs_admin", TenantID: "1"},
+			},
+			QSInternalGRPC: QSInternalGRPCConfig{
+				Address: "127.0.0.1:9090",
+			},
+		},
+	}
+	state := &seedContext{
+		Users: map[string]string{
+			"admin": "110001",
+		},
+	}
+
+	if err := seedStaff(context.Background(), deps, state); err != nil {
+		t.Fatalf("seedStaff() error = %v", err)
+	}
+	if calls != 1 {
+		t.Fatalf("qsBootstrapOperatorCaller calls = %d, want 1", calls)
 	}
 }
