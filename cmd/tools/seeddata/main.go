@@ -56,16 +56,20 @@ const (
 	// ===== 管理员账号初始化 =====
 	stepAdminInit seedStep = "admin-init" // 管理员账号初始化：创建管理员用户 + 认证账号 + 分配角色权限 + QS员工
 
+	// ===== 显式租户管理员自举 =====
+	stepTenantBootstrapAdmin seedStep = "tenant-bootstrap-admin" // 显式租户 bootstrap：admin/operator 自举
+
 	// ===== 家庭数据批量生成 =====
 	stepFamilyInit seedStep = "family-init" // 家庭数据批量初始化：以家庭为单位批量生成测试数据
 )
 
 // defaultSteps defines the default execution order of all seed steps.
-// 默认执行所有初始化步骤，按职能顺序：系统基础设施 → 认证授权体系 → 管理员账号
+// 默认执行所有初始化步骤，按职能顺序：系统基础设施 → 认证授权体系 → 租户 bootstrap → 管理员账号
 var defaultSteps = []seedStep{
-	stepSystemInit, // 系统基础设施：租户 + JWKS + 微信应用
-	stepAuthnInit,  // 认证授权体系：完整的 RBAC 权限系统
-	stepAdminInit,  // 管理员账号：创建管理员并分配权限
+	stepSystemInit,           // 系统基础设施：租户 + JWKS + 微信应用
+	stepAuthnInit,            // 认证授权体系：完整的 RBAC 权限系统
+	stepTenantBootstrapAdmin, // 显式租户 bootstrap：admin/operator 自举（无配置时自动跳过）
+	stepAdminInit,            // 管理员账号：创建管理员并分配权限
 	// stepFamilyInit, // 家庭数据批量初始化：以家庭为单位批量生成数据
 }
 
@@ -112,7 +116,7 @@ func main() {
 	keysDirFlag := flag.String("keys-dir", "./tmp/keys", "Directory to store generated JWKS private keys")
 	casbinModelFlag := flag.String("casbin-model", "configs/casbin_model.conf", "Path to casbin model configuration file")
 	configFileFlag := flag.String("config", "configs/seeddata.yaml", "Path to seed data configuration file")
-	stepsFlag := flag.String("steps", strings.Join(stepListToStrings(defaultSteps), ","), "Comma separated seed steps (system-init,authn-init,admin-init,family-init)")
+	stepsFlag := flag.String("steps", strings.Join(stepListToStrings(defaultSteps), ","), "Comma separated seed steps (system-init,authn-init,tenant-bootstrap-admin,admin-init,family-init)")
 	familyCountFlag := flag.Int("family-count", 200000, "Number of families to generate in family seed step")
 	workerCountFlag := flag.Int("worker-count", 20, "Number of concurrent workers for family seed step")
 	verboseFlag := flag.Bool("verbose", false, "Enable verbose output including SQL logs")
@@ -240,12 +244,19 @@ func main() {
 			if err := seedRoleAssignments(ctx, deps, state); err != nil {
 				logger.Warnw("⚠️  角色分配失败（非致命错误）", "error", err)
 			}
-			// 4. 创建 QS 员工（可选）
+			// 4. 创建 QS 员工
 			if err := seedStaff(ctx, deps, state); err != nil {
-				logger.Warnw("⚠️  QS员工创建失败（非致命错误）", "error", err)
+				logger.Fatalw("❌ QS员工创建失败", "error", err)
 			}
 
 			logger.Infow("✅ 管理员账号初始化完成")
+
+		case stepTenantBootstrapAdmin:
+			logger.Infow("🏢 开始显式租户管理员自举...")
+			if err := seedTenantBootstrapAdmins(ctx, deps, state); err != nil {
+				logger.Fatalw("❌ 租户管理员自举失败", "error", err)
+			}
+			logger.Infow("✅ 显式租户管理员自举完成")
 
 		case stepFamilyInit:
 			// 【家庭数据批量初始化】以家庭为单位批量生成测试数据

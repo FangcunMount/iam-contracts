@@ -51,6 +51,11 @@ type casbinEnforcerProvider interface {
 	Enforcer() *casbinv2.CachedEnforcer
 }
 
+type casbinSyncAdapter interface {
+	policyDomain.CasbinAdapter
+	casbinEnforcerProvider
+}
+
 // ==================== 授权资源 Seed 函数 ====================
 
 // seedAuthzResources 创建授权资源数据
@@ -335,10 +340,9 @@ func seedCasbinPolicies(ctx context.Context, deps *dependencies) error {
 	if err != nil {
 		return fmt.Errorf("init casbin adapter: %w", err)
 	}
-
-	enforcerProvider, ok := casbinPort.(casbinEnforcerProvider)
+	syncAdapter, ok := casbinPort.(casbinSyncAdapter)
 	if !ok {
-		return fmt.Errorf("casbin adapter does not expose enforcer")
+		return fmt.Errorf("casbin adapter does not expose sync capabilities")
 	}
 
 	desiredState, err := buildDesiredPolicyState(deps.Config.Policies, deps.Config.Roles)
@@ -346,7 +350,28 @@ func seedCasbinPolicies(ctx context.Context, deps *dependencies) error {
 		return err
 	}
 
-	rawPolicies, err := enforcerProvider.Enforcer().GetPolicy()
+	if err := syncCasbinDesiredState(ctx, deps, syncAdapter, desiredState); err != nil {
+		return err
+	}
+
+	deps.Logger.Infow("✅ Casbin 策略规则已同步")
+	return nil
+}
+
+func syncCasbinDesiredState(
+	ctx context.Context,
+	deps *dependencies,
+	adapter casbinSyncAdapter,
+	desiredState *desiredPolicyState,
+) error {
+	if adapter == nil {
+		return fmt.Errorf("casbin adapter is nil")
+	}
+	if desiredState == nil {
+		return fmt.Errorf("desired casbin state is nil")
+	}
+
+	rawPolicies, err := adapter.Enforcer().GetPolicy()
 	if err != nil {
 		return fmt.Errorf("list current casbin policies: %w", err)
 	}
@@ -367,7 +392,7 @@ func seedCasbinPolicies(ctx context.Context, deps *dependencies) error {
 		}
 	}
 
-	rawGroupings, err := enforcerProvider.Enforcer().GetGroupingPolicy()
+	rawGroupings, err := adapter.Enforcer().GetGroupingPolicy()
 	if err != nil {
 		return fmt.Errorf("list current casbin groupings: %w", err)
 	}
@@ -427,22 +452,22 @@ func seedCasbinPolicies(ctx context.Context, deps *dependencies) error {
 	}
 
 	if len(removePolicies) > 0 {
-		if err := casbinPort.RemovePolicy(ctx, removePolicies...); err != nil {
+		if err := adapter.RemovePolicy(ctx, removePolicies...); err != nil {
 			return fmt.Errorf("remove stale policy rules: %w", err)
 		}
 	}
 	if len(addPolicies) > 0 {
-		if err := casbinPort.AddPolicy(ctx, addPolicies...); err != nil {
+		if err := adapter.AddPolicy(ctx, addPolicies...); err != nil {
 			return fmt.Errorf("add policy rules: %w", err)
 		}
 	}
 	if len(removeGroupings) > 0 {
-		if err := casbinPort.RemoveGroupingPolicy(ctx, removeGroupings...); err != nil {
+		if err := adapter.RemoveGroupingPolicy(ctx, removeGroupings...); err != nil {
 			return fmt.Errorf("remove stale grouping rules: %w", err)
 		}
 	}
 	if len(addGroupings) > 0 {
-		if err := casbinPort.AddGroupingPolicy(ctx, addGroupings...); err != nil {
+		if err := adapter.AddGroupingPolicy(ctx, addGroupings...); err != nil {
 			return fmt.Errorf("add grouping rules: %w", err)
 		}
 	}

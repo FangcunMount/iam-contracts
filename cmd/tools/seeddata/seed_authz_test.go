@@ -37,12 +37,13 @@ func TestBuildDesiredPolicyState(t *testing.T) {
 	state, err := buildDesiredPolicyState(
 		[]PolicyConfig{
 			{Type: "p", Subject: "role:super_admin", Values: []string{"platform", "*", "*"}},
-			{Type: "g", Subject: "role:tenant_admin", Values: []string{"role:user", "fangcun"}},
+			{Type: "g", Subject: "role:qs:admin", Values: []string{"role:qs:evaluator", "1"}},
 		},
 		[]RoleConfig{
 			{Name: "super_admin", TenantID: "platform"},
 			{Name: "tenant_admin", TenantID: "fangcun"},
-			{Name: "user", TenantID: "fangcun"},
+			{Name: "qs:admin", TenantID: "1"},
+			{Name: "qs:evaluator", TenantID: "1"},
 		},
 	)
 	if err != nil {
@@ -60,25 +61,25 @@ func TestBuildDesiredPolicyState(t *testing.T) {
 	}
 
 	groupingKey := groupingRuleKey(policyDomain.GroupingRule{
-		Sub:  "role:tenant_admin",
-		Role: "role:user",
-		Dom:  "fangcun",
+		Sub:  "role:qs:admin",
+		Role: "role:qs:evaluator",
+		Dom:  "1",
 	})
 	if _, ok := state.Groupings[groupingKey]; !ok {
 		t.Fatalf("expected grouping %q to exist", groupingKey)
 	}
 
-	if _, ok := state.ManagedRoleKey["role:tenant_admin"]; !ok {
+	if _, ok := state.ManagedRoleKey["role:qs:admin"]; !ok {
 		t.Fatalf("expected managed role set to include inherited role")
 	}
-	if _, ok := state.ManagedRoleKey["role:user"]; !ok {
+	if _, ok := state.ManagedRoleKey["role:qs:evaluator"]; !ok {
 		t.Fatalf("expected managed role set to include descendant role")
 	}
 	if _, ok := state.ManagedTenant["platform"]; !ok {
 		t.Fatalf("expected managed tenant set to include platform")
 	}
-	if _, ok := state.ManagedTenant["fangcun"]; !ok {
-		t.Fatalf("expected managed tenant set to include fangcun")
+	if _, ok := state.ManagedTenant["1"]; !ok {
+		t.Fatalf("expected managed tenant set to include org-scoped qs domain")
 	}
 }
 
@@ -90,12 +91,12 @@ func TestIsManagedGroupingRuleSkipsUserAssignments(t *testing.T) {
 		"role:qs:content_manager":         {},
 		"role:qs:evaluation_plan_manager": {},
 	}
-	managedTenants := map[string]struct{}{"fangcun": {}}
+	managedTenants := map[string]struct{}{"1": {}}
 
 	if isManagedGroupingRule(policyDomain.GroupingRule{
 		Sub:  "user:110001",
 		Role: "role:qs:admin",
-		Dom:  "fangcun",
+		Dom:  "1",
 	}, managedRoles, managedTenants) {
 		t.Fatalf("user-role grouping should not be managed by policy sync")
 	}
@@ -103,7 +104,7 @@ func TestIsManagedGroupingRuleSkipsUserAssignments(t *testing.T) {
 	if !isManagedGroupingRule(policyDomain.GroupingRule{
 		Sub:  "role:qs:admin",
 		Role: "role:qs:content_manager",
-		Dom:  "fangcun",
+		Dom:  "1",
 	}, managedRoles, managedTenants) {
 		t.Fatalf("role-role grouping should be managed by policy sync")
 	}

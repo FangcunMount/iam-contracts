@@ -517,6 +517,7 @@ func (t *familySeedTask) Run(
 	iamServiceURL string,
 	adminLoginID string,
 	adminPassword string,
+	orgScope uint64,
 ) error {
 	// 1. 生成家庭数据
 	family, err := generateFamily(t.Index, phoneSet)
@@ -572,7 +573,7 @@ func (t *familySeedTask) Run(
 			guardianUserID = motherID
 		}
 		if guardianPhone != "" && collectionURL != "" {
-			if err := createTestee(ctx, collectionURL, iamServiceURL, adminLoginID, adminPassword, guardianUserID, guardianPhone, childID, &child); err != nil {
+			if err := createTestee(ctx, collectionURL, iamServiceURL, adminLoginID, adminPassword, guardianUserID, guardianPhone, childID, &child, orgScope); err != nil {
 				// 受试者创建失败不阻断流程，记录错误继续
 				fmt.Printf("\nWarning: task %d: create testee for child %d failed: %v\n", t.Index, i, err)
 			}
@@ -702,6 +703,7 @@ func createTestee(
 	guardianPhone string,
 	childID string,
 	child *childrenSeed,
+	orgScope uint64,
 ) error {
 	// 如果没有配置 collection URL，跳过
 	if collectionURL == "" {
@@ -709,7 +711,7 @@ func createTestee(
 	}
 
 	// 1. 获取超级管理员 token（缓存）
-	token, err := getSuperAdminToken(ctx, iamServiceURL, adminLoginID, adminPassword)
+	token, err := getSuperAdminToken(ctx, iamServiceURL, adminLoginID, adminPassword, orgScope)
 	if err != nil {
 		return fmt.Errorf("login as super admin: %w", err)
 	}
@@ -847,10 +849,11 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 	collectionURL := deps.Config.CollectionURL
 	iamServiceURL := deps.Config.IAMServiceURL
 	adminLoginID, adminPassword := resolveAdminLogin(deps.Config)
+	orgScope := resolveDefaultOrgScope(deps.Config)
 
 	// 预拉取超级管理员 token，避免 worker 启动后并发触发首次登录风暴
 	if iamServiceURL != "" {
-		if tkn, err := getSuperAdminToken(ctx, iamServiceURL, adminLoginID, adminPassword); err != nil {
+		if tkn, err := getSuperAdminToken(ctx, iamServiceURL, adminLoginID, adminPassword, orgScope); err != nil {
 			fmt.Printf("⚠️  预拉取 super-admin token 失败: %v (workers may retry)\n", err)
 		} else {
 			famPrintf("ℹ️  预拉取 super-admin token 成功，缓存到期: %v\n", superAdminTokenExpiry)
@@ -864,7 +867,7 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 		go func(workerID int) {
 			defer wg.Done()
 			for task := range taskCh {
-				if err := task.Run(ctx, services, phoneSet, collectionURL, iamServiceURL, adminLoginID, adminPassword); err != nil {
+				if err := task.Run(ctx, services, phoneSet, collectionURL, iamServiceURL, adminLoginID, adminPassword, orgScope); err != nil {
 					// 记录失败详情，便于排查（只保存有限条）
 					failedMu.Lock()
 					if len(failedDetails) < 100 {
@@ -966,7 +969,7 @@ func resolveAdminLogin(cfg *SeedConfig) (loginID, password string) {
 
 // loginAsSuperAdmin 使用超级管理员账号登录 IAM 服务获取 token
 // loginAsSuperAdmin 使用超级管理员账号登录 IAM 服务获取 TokenPair（含过期信息）
-func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password string) (TokenPair, error) {
+func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password string, tenantID uint64) (TokenPair, error) {
 	// 优先使用传入的 loginID，否则回退默认 system 邮箱式登录名
 	if loginID == "" {
 		loginID = "system@fangcunmount.com"
@@ -985,6 +988,7 @@ func loginAsSuperAdmin(ctx context.Context, iamServiceURL, loginID, password str
 	}{
 		Username: loginID,
 		Password: password,
+		TenantID: tenantID,
 	})
 	if err != nil {
 		return TokenPair{}, fmt.Errorf("marshal credentials: %w", err)

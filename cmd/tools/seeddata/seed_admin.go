@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -13,6 +15,8 @@ import (
 	ucUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	userApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
 )
+
+const qsErrUserAlreadyExists = 110002
 
 // ==================== 系统初始化 Seed 函数 ====================
 
@@ -119,66 +123,96 @@ func applySeedUserUpdates(
 
 // ==================== 登录并创建员工（QS 服务） ====================
 
-// seedStaff 登录获取 token 后创建员工
-// 必须在 authn 步骤之后调用，因为需要使用刚创建的认证账号登录
+type qsBootstrapPrincipal struct {
+	OrgID         int
+	UserAlias     string
+	LoginID       string
+	Password      string
+	Source        string
+	SkipUserAlias string
+}
+
+type qsErrorResponse struct {
+	Code      int    `json:"code"`
+	Message   string `json:"message"`
+	Reference string `json:"reference,omitempty"`
+}
+
+// seedStaff 使用每个 org 的 bootstrap admin token 统一创建员工。
+// 必须在 authn 和 tenant-bootstrap-admin 之后调用，确保首个 active operator 已完成自举。
 func seedStaff(ctx context.Context, deps *dependencies, state *seedContext) error {
+	if deps.Config == nil {
+		return nil
+	}
+
+	usersByOrg := collectQSStaffUsersByOrg(deps.Config)
+	if len(usersByOrg) == 0 {
+		deps.Logger.Infow("⏭️  没有需要创建的 QS 员工，跳过")
+		return nil
+	}
 	if deps.Config.QSServiceURL == "" {
 		deps.Logger.Warnw("⚠️  未配置 QS 服务 URL，跳过员工创建")
 		return nil
 	}
 	if deps.Config.IAMServiceURL == "" {
-		deps.Logger.Warnw("⚠️  未配置 IAM 服务 URL，跳过员工创建")
-		return nil
+		return fmt.Errorf("iam_service_url is required when seeding QS staff")
 	}
 
-	// 查找需要创建员工的用户及其对应的账号配置
-	for _, uc := range deps.Config.Users {
-		if len(uc.Roles) == 0 || uc.OrgID == 0 {
-			continue // 跳过没有配置员工信息的用户
-		}
+	orgIDs := make([]int, 0, len(usersByOrg))
+	for orgID := range usersByOrg {
+		orgIDs = append(orgIDs, orgID)
+	}
+	sort.Ints(orgIDs)
 
-		userID, ok := state.Users[uc.Alias]
-		if !ok {
-			deps.Logger.Warnw("⚠️  用户不存在，跳过员工创建", "alias", uc.Alias)
-			continue
-		}
-
-		// 查找该用户对应的账号配置
-		var account *AccountConfig
-		for i := range deps.Config.Accounts {
-			if deps.Config.Accounts[i].UserAlias == uc.Alias {
-				account = &deps.Config.Accounts[i]
-				break
-			}
-		}
-		if account == nil {
-			deps.Logger.Warnw("⚠️  未找到用户的认证账号配置，跳过员工创建", "alias", uc.Alias)
-			continue
-		}
-
-		// 解析 operation 账号实际登录标识，优先 external_id，兼容 legacy username
-		loginID := resolveLoginID(*account, uc)
-
-		// 登录获取 token
-		token, err := loginWithPassword(deps.Config.IAMServiceURL, loginID, account.Password)
+	for _, orgID := range orgIDs {
+		principal, err := selectQSBootstrapPrincipal(deps.Config, orgID)
 		if err != nil {
-			deps.Logger.Warnw("⚠️  登录失败，跳过员工创建",
-				"alias", uc.Alias,
-				"login_id", loginID,
-				"error", err)
-			continue
+			return fmt.Errorf("select bootstrap principal for org %d: %w", orgID, err)
 		}
 
-		// 创建员工
-		if err := createStaff(deps.Config.QSServiceURL, token, userID, uc, deps.Logger); err != nil {
-			deps.Logger.Warnw("⚠️  创建员工失败（非致命错误）",
-				"alias", uc.Alias,
-				"error", err)
-		} else {
+		token, err := loginWithPassword(
+			deps.Config.IAMServiceURL,
+			principal.LoginID,
+			principal.Password,
+			uint64(orgID),
+		)
+		if err != nil {
+			return fmt.Errorf("login bootstrap principal %s for org %d: %w", principal.UserAlias, orgID, err)
+		}
+
+		deps.Logger.Infow("✅ 已获取 QS bootstrap token",
+			"org_id", orgID,
+			"user_alias", principal.UserAlias,
+			"source", principal.Source)
+
+		for _, uc := range usersByOrg[orgID] {
+			qsRoles := resolveQSBootstrapRoles(deps.Config, uc)
+			if len(qsRoles) == 0 {
+				continue
+			}
+
+			if shouldSkipQSStaffCreate(principal, uc) {
+				deps.Logger.Infow("⏭️  跳过 bootstrap admin 的 /staff 创建",
+					"alias", uc.Alias,
+					"org_id", uc.OrgID,
+					"source", principal.Source)
+				continue
+			}
+
+			userID, ok := state.Users[uc.Alias]
+			if !ok {
+				return fmt.Errorf("user %s not found in seed state", uc.Alias)
+			}
+
+			if err := createStaff(deps.Config.QSServiceURL, token, userID, uc, qsRoles, deps.Logger); err != nil {
+				return fmt.Errorf("create staff for %s in org %d: %w", uc.Alias, orgID, err)
+			}
+
 			deps.Logger.Infow("✅ 员工创建成功",
 				"alias", uc.Alias,
 				"org_id", uc.OrgID,
-				"roles", uc.Roles)
+				"roles", qsRoles,
+				"bootstrap_alias", principal.UserAlias)
 		}
 	}
 
@@ -200,16 +234,18 @@ type TokenPair struct {
 	ExpiresIn    int    `json:"expires_in"`
 }
 
-// loginWithPassword 使用登录标识（与账户 ExternalID 相同，如手机号）+密码登录 IAM 获取 token
-func loginWithPassword(iamServiceURL, loginID, password string) (string, error) {
+// loginWithPassword 使用登录标识（与账户 ExternalID 相同，如手机号）+密码登录 IAM 获取 token。
+// 对 QS / collection 这类要求 JWT tenant_id=org_id 的调用方，应显式传入 org 作用域。
+func loginWithPassword(iamServiceURL, loginID, password string, tenantID uint64) (string, error) {
 	credentials, err := json.Marshal(struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
-		// TenantID 可选，0 表示默认租户
+		// TenantID 可选；0 表示不显式指定，由调用方自行承担默认域语义。
 		TenantID uint64 `json:"tenant_id,omitempty"`
 	}{
 		Username: loginID,
 		Password: password,
+		TenantID: tenantID,
 	})
 	if err != nil {
 		return "", fmt.Errorf("marshal credentials: %w", err)
@@ -267,16 +303,17 @@ func loginWithPassword(iamServiceURL, loginID, password string) (string, error) 
 
 // CreateStaffRequest 创建员工请求体
 type CreateStaffRequest struct {
-	Name     string `json:"name"`
-	OrgID    int64  `json:"org_id"`
-	UserID   int64  `json:"user_id"`
-	Phone    string `json:"phone,omitempty"`
-	Email    string `json:"email,omitempty"`
-	IsActive bool   `json:"is_active"`
+	Name     string   `json:"name"`
+	OrgID    int64    `json:"org_id"`
+	UserID   int64    `json:"user_id"`
+	Roles    []string `json:"roles,omitempty"`
+	Phone    string   `json:"phone,omitempty"`
+	Email    string   `json:"email,omitempty"`
+	IsActive bool     `json:"is_active"`
 }
 
 // createStaff 调用 QS 服务创建员工
-func createStaff(qsServiceURL, adminToken, userID string, cfg UserConfig, logger log.Logger) error {
+func createStaff(qsServiceURL, adminToken, userID string, cfg UserConfig, roles []string, logger log.Logger) error {
 	// 解析 userID 为整数（64 位）
 	uid, err := strconv.ParseInt(userID, 10, 64)
 	if err != nil {
@@ -287,6 +324,7 @@ func createStaff(qsServiceURL, adminToken, userID string, cfg UserConfig, logger
 		Name:     cfg.Name,
 		UserID:   uid,
 		OrgID:    int64(cfg.OrgID),
+		Roles:    append([]string(nil), roles...),
 		Phone:    cfg.Phone,
 		Email:    cfg.Email,
 		IsActive: cfg.IsActive,
@@ -328,10 +366,8 @@ func createStaff(qsServiceURL, adminToken, userID string, cfg UserConfig, logger
 	}
 	defer resp.Body.Close()
 
-	// 读取响应体
-	var respBodyBytes bytes.Buffer
-	_, _ = respBodyBytes.ReadFrom(resp.Body)
-	respBodyStr := respBodyBytes.String()
+	respBodyBytes, _ := io.ReadAll(resp.Body)
+	respBodyStr := string(respBodyBytes)
 
 	// 记录响应详情
 	logger.Infow("📥 收到创建员工响应",
@@ -341,8 +377,21 @@ func createStaff(qsServiceURL, adminToken, userID string, cfg UserConfig, logger
 		"response_body", respBodyStr)
 
 	if resp.StatusCode >= 400 {
+		var errResp qsErrorResponse
+		if err := json.Unmarshal(respBodyBytes, &errResp); err == nil &&
+			resp.StatusCode == http.StatusBadRequest &&
+			errResp.Code == qsErrUserAlreadyExists {
+			logger.Infow("⏭️  员工已存在，按幂等成功处理",
+				"org_id", cfg.OrgID,
+				"user_id", uid,
+				"roles", roles,
+				"code", errResp.Code,
+				"message", errResp.Message)
+			return nil
+		}
+
 		var respBody map[string]interface{}
-		_ = json.Unmarshal(respBodyBytes.Bytes(), &respBody)
+		_ = json.Unmarshal(respBodyBytes, &respBody)
 		logger.Errorw("❌ 创建员工失败",
 			"status_code", resp.StatusCode,
 			"response_body", respBody)
@@ -351,4 +400,177 @@ func createStaff(qsServiceURL, adminToken, userID string, cfg UserConfig, logger
 
 	logger.Infow("✅ 创建员工请求成功", "status_code", resp.StatusCode)
 	return nil
+}
+
+func collectQSStaffUsersByOrg(cfg *SeedConfig) map[int][]UserConfig {
+	if cfg == nil {
+		return nil
+	}
+
+	usersByOrg := make(map[int][]UserConfig)
+	for _, uc := range cfg.Users {
+		qsRoles := resolveQSBootstrapRoles(cfg, uc)
+		if uc.OrgID == 0 || len(qsRoles) == 0 {
+			continue
+		}
+		usersByOrg[uc.OrgID] = append(usersByOrg[uc.OrgID], uc)
+	}
+	return usersByOrg
+}
+
+func selectQSBootstrapPrincipal(cfg *SeedConfig, orgID int) (*qsBootstrapPrincipal, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("seed config is nil")
+	}
+
+	for _, bootstrap := range cfg.TenantBootstrapAdmins {
+		if int(bootstrap.QSOrgID) != orgID || !bootstrap.BootstrapQSOperator {
+			continue
+		}
+
+		account := bootstrap.BootstrapAccount
+		if strings.TrimSpace(account.Provider) == "" {
+			account.Provider = "operation"
+		}
+		if account.Provider != "operation" {
+			return nil, fmt.Errorf("bootstrap account for org %d must use operation provider", orgID)
+		}
+
+		loginID := resolveLoginID(account, bootstrap.BootstrapUser)
+		if strings.TrimSpace(loginID) == "" {
+			return nil, fmt.Errorf("bootstrap account for org %d has empty login id", orgID)
+		}
+		if strings.TrimSpace(account.Password) == "" {
+			return nil, fmt.Errorf("bootstrap account for org %d has empty password", orgID)
+		}
+
+		return &qsBootstrapPrincipal{
+			OrgID:         orgID,
+			UserAlias:     bootstrap.BootstrapUser.Alias,
+			LoginID:       loginID,
+			Password:      account.Password,
+			Source:        "tenant_bootstrap_admins",
+			SkipUserAlias: bootstrap.BootstrapUser.Alias,
+		}, nil
+	}
+
+	for _, uc := range cfg.Users {
+		if uc.OrgID != orgID {
+			continue
+		}
+		qsRoles := resolveQSBootstrapRoles(cfg, uc)
+		if !containsString(qsRoles, "qs:admin") {
+			continue
+		}
+
+		account, ok := findOperationAccountByUserAlias(cfg, uc.Alias)
+		if !ok {
+			continue
+		}
+		loginID := resolveLoginID(account, uc)
+		if strings.TrimSpace(loginID) == "" {
+			continue
+		}
+		if strings.TrimSpace(account.Password) == "" {
+			continue
+		}
+
+		return &qsBootstrapPrincipal{
+			OrgID:     orgID,
+			UserAlias: uc.Alias,
+			LoginID:   loginID,
+			Password:  account.Password,
+			Source:    "qs_admin_assignment",
+		}, nil
+	}
+
+	return nil, fmt.Errorf("no bootstrap principal with qs:admin assignment and operation account found")
+}
+
+func findOperationAccountByUserAlias(cfg *SeedConfig, userAlias string) (AccountConfig, bool) {
+	if cfg == nil {
+		return AccountConfig{}, false
+	}
+
+	for _, account := range cfg.Accounts {
+		if account.UserAlias != userAlias {
+			continue
+		}
+		provider := strings.TrimSpace(account.Provider)
+		if provider == "" {
+			provider = "operation"
+		}
+		if provider != "operation" {
+			continue
+		}
+		return account, true
+	}
+	return AccountConfig{}, false
+}
+
+func shouldSkipQSStaffCreate(principal *qsBootstrapPrincipal, uc UserConfig) bool {
+	if principal == nil {
+		return false
+	}
+	if principal.Source != "tenant_bootstrap_admins" {
+		return false
+	}
+	return uc.Alias != "" && uc.Alias == principal.SkipUserAlias
+}
+
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if strings.TrimSpace(value) == target {
+			return true
+		}
+	}
+	return false
+}
+
+func resolveQSBootstrapRoles(cfg *SeedConfig, uc UserConfig) []string {
+	if cfg == nil || uc.OrgID == 0 {
+		return append([]string(nil), uc.Roles...)
+	}
+
+	roleNameByAlias := make(map[string]string, len(cfg.Roles))
+	for _, role := range cfg.Roles {
+		alias := strings.TrimSpace(role.Alias)
+		name := strings.TrimSpace(role.Name)
+		if alias != "" && name != "" {
+			roleNameByAlias[alias] = name
+		}
+	}
+
+	tenantID := strconv.Itoa(uc.OrgID)
+	seen := make(map[string]struct{})
+	roles := make([]string, 0)
+
+	for _, assignment := range cfg.Assignments {
+		subjectType := strings.TrimSpace(assignment.SubjectType)
+		if subjectType != "" && subjectType != "user" {
+			continue
+		}
+		if strings.TrimSpace(assignment.SubjectID) != "@"+uc.Alias {
+			continue
+		}
+		if strings.TrimSpace(assignment.TenantID) != tenantID {
+			continue
+		}
+
+		roleAlias := strings.TrimPrefix(strings.TrimSpace(assignment.RoleAlias), "@")
+		roleName := strings.TrimSpace(roleNameByAlias[roleAlias])
+		if roleName == "" || !strings.HasPrefix(roleName, "qs:") {
+			continue
+		}
+		if _, ok := seen[roleName]; ok {
+			continue
+		}
+		seen[roleName] = struct{}{}
+		roles = append(roles, roleName)
+	}
+
+	if len(roles) > 0 {
+		return roles
+	}
+	return append([]string(nil), uc.Roles...)
 }

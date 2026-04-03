@@ -83,14 +83,17 @@ func resolveLoginID(ac AccountConfig, uc UserConfig) string {
 var (
 	superAdminToken       string
 	superAdminTokenExpiry time.Time
+	superAdminTokenTenant uint64
 	superAdminTokenMu     sync.Mutex
 )
 
 // getSuperAdminToken 返回缓存的超级管理员 token，如过期则重新登录获取并缓存
-func getSuperAdminToken(ctx context.Context, iamServiceURL, loginID, password string) (string, error) {
+func getSuperAdminToken(ctx context.Context, iamServiceURL, loginID, password string, tenantID uint64) (string, error) {
 	superAdminTokenMu.Lock()
 	// 返回前先检查缓存
-	if superAdminToken != "" && time.Now().Before(superAdminTokenExpiry) {
+	if superAdminToken != "" &&
+		superAdminTokenTenant == tenantID &&
+		time.Now().Before(superAdminTokenExpiry) {
 		token := superAdminToken
 		superAdminTokenMu.Unlock()
 		return token, nil
@@ -98,7 +101,7 @@ func getSuperAdminToken(ctx context.Context, iamServiceURL, loginID, password st
 
 	// 未命中缓存或已过期，先在锁内执行登录以避免并发风暴（多个 goroutine 同时触发登录）
 	// 注意：这会阻塞其它 goroutine 直到登录完成，但能显著降低对 IAM 的突发请求压力
-	tp, err := loginAsSuperAdmin(ctx, iamServiceURL, loginID, password)
+	tp, err := loginAsSuperAdmin(ctx, iamServiceURL, loginID, password, tenantID)
 	if err != nil {
 		superAdminTokenMu.Unlock()
 		return "", err
@@ -118,7 +121,20 @@ func getSuperAdminToken(ctx context.Context, iamServiceURL, loginID, password st
 
 	superAdminToken = token
 	superAdminTokenExpiry = expiry
+	superAdminTokenTenant = tenantID
 	superAdminTokenMu.Unlock()
 
 	return token, nil
+}
+
+func resolveDefaultOrgScope(cfg *SeedConfig) uint64 {
+	if cfg == nil {
+		return 0
+	}
+	for _, user := range cfg.Users {
+		if user.OrgID > 0 {
+			return uint64(user.OrgID)
+		}
+	}
+	return 0
 }

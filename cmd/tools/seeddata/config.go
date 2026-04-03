@@ -10,21 +10,23 @@ import (
 
 // SeedConfig 定义整个种子数据配置结构
 type SeedConfig struct {
-	Tenants       []TenantConfig       `yaml:"tenants"`
-	Users         []UserConfig         `yaml:"users"`
-	Children      []ChildConfig        `yaml:"children"`
-	Guardianships []GuardianshipConfig `yaml:"guardianships"`
-	Accounts      []AccountConfig      `yaml:"accounts"`
-	Roles         []RoleConfig         `yaml:"roles"` // 角色配置
-	Resources     []ResourceConfig     `yaml:"resources"`
-	Assignments   []AssignmentConfig   `yaml:"assignments"`
-	Policies      []PolicyConfig       `yaml:"policies"`
-	JWKS          JWKSConfig           `yaml:"jwks"`
-	WechatApps    []WechatAppConfig    `yaml:"wechat_apps"`
-	EncryptionKey string               `yaml:"encryption_key"`  // IDP 模块加密密钥（32字节）
-	CollectionURL string               `yaml:"collection_url"`  // Collection 服务 URL
-	QSServiceURL  string               `yaml:"qs_service_url"`  // QS 服务 URL
-	IAMServiceURL string               `yaml:"iam_service_url"` // IAM 服务 URL（用于登录获取 token）
+	Tenants               []TenantConfig               `yaml:"tenants"`
+	Users                 []UserConfig                 `yaml:"users"`
+	Children              []ChildConfig                `yaml:"children"`
+	Guardianships         []GuardianshipConfig         `yaml:"guardianships"`
+	Accounts              []AccountConfig              `yaml:"accounts"`
+	Roles                 []RoleConfig                 `yaml:"roles"` // 角色配置
+	Resources             []ResourceConfig             `yaml:"resources"`
+	Assignments           []AssignmentConfig           `yaml:"assignments"`
+	Policies              []PolicyConfig               `yaml:"policies"`
+	TenantBootstrapAdmins []TenantBootstrapAdminConfig `yaml:"tenant_bootstrap_admins"`
+	JWKS                  JWKSConfig                   `yaml:"jwks"`
+	WechatApps            []WechatAppConfig            `yaml:"wechat_apps"`
+	EncryptionKey         string                       `yaml:"encryption_key"`   // IDP 模块加密密钥（32字节）
+	CollectionURL         string                       `yaml:"collection_url"`   // Collection 服务 URL
+	QSServiceURL          string                       `yaml:"qs_service_url"`   // QS 服务 URL
+	QSInternalGRPC        QSInternalGRPCConfig         `yaml:"qs_internal_grpc"` // QS internal gRPC（用于 bootstrap 首个 operator）
+	IAMServiceURL         string                       `yaml:"iam_service_url"`  // IAM 服务 URL（用于登录获取 token）
 }
 
 // TenantConfig 租户配置
@@ -50,8 +52,8 @@ type UserConfig struct {
 	IDCard string `yaml:"id_card"` // 身份证号
 	Status int    `yaml:"status"`  // 用户状态
 	// 员工相关配置（可选，用于 QS 服务创建 operator 档案）
-	OrgID    int      `yaml:"org_id"`    // 机构ID
-	Roles    []string `yaml:"roles"`     // 已废弃：仅保留给旧配置兼容，QS 真值角色来自 IAM assignments
+	OrgID    int      `yaml:"org_id"`    // 机构ID（QS 当前会把 JWT tenant_id 当作该 org_id 使用）
+	Roles    []string `yaml:"roles"`     // 兼容回退：seedStaff 优先从 assignments 推导 QS 角色；此字段仅在旧配置未显式写 assignments 时兜底
 	IsActive bool     `yaml:"is_active"` // 是否激活
 }
 
@@ -84,6 +86,33 @@ type AccountConfig struct {
 	AppID       string `yaml:"app_id"`       // 非 operation 账号的应用ID；operation 固定为 opera
 	Status      *int   `yaml:"status"`       // 账号状态；nil 表示使用领域默认值
 	AccountType string `yaml:"account_type"` // 账号类型(兼容旧配置)
+}
+
+// TenantBootstrapAdminConfig 显式 tenant bootstrap admin 配置
+type TenantBootstrapAdminConfig struct {
+	TenantCode          string                     `yaml:"tenant_code"`           // IAM tenant/domain
+	TenantName          string                     `yaml:"tenant_name"`           // 租户名称
+	QSOrgID             int64                      `yaml:"qs_org_id"`             // 对应 QS org_id（将映射为字符串 domain）
+	BootstrapUser       UserConfig                 `yaml:"bootstrap_user"`        // bootstrap 用户
+	BootstrapAccount    AccountConfig              `yaml:"bootstrap_account"`     // bootstrap 运营账号
+	Grants              TenantBootstrapGrantConfig `yaml:"grants"`                // 初始角色授予
+	BootstrapQSOperator bool                       `yaml:"bootstrap_qs_operator"` // 是否调用 QS internal gRPC 自举 operator
+}
+
+// TenantBootstrapGrantConfig bootstrap 角色授予
+type TenantBootstrapGrantConfig struct {
+	IAMRoles []string `yaml:"iam_roles"` // tenant domain 下授予的 IAM 角色
+	QSRoles  []string `yaml:"qs_roles"`  // org domain 下授予的 QS 角色
+}
+
+// QSInternalGRPCConfig QS internal gRPC 客户端配置
+type QSInternalGRPCConfig struct {
+	Address    string `yaml:"address"`     // 目标地址，如 127.0.0.1:9090
+	Insecure   bool   `yaml:"insecure"`    // 是否使用明文连接
+	ServerName string `yaml:"server_name"` // TLS SNI / SAN 校验名
+	CAFile     string `yaml:"ca_file"`     // TLS CA 文件
+	CertFile   string `yaml:"cert_file"`   // mTLS 客户端证书
+	KeyFile    string `yaml:"key_file"`    // mTLS 客户端私钥
 }
 
 // ResourceConfig 授权资源配置

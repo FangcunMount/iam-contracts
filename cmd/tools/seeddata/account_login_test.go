@@ -148,3 +148,44 @@ func TestValidateOperationAccountConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestResolveQSBootstrapRolesPrefersAssignments(t *testing.T) {
+	t.Parallel()
+
+	cfg := &SeedConfig{
+		Users: []UserConfig{
+			{Alias: "admin", OrgID: 1, Roles: []string{"legacy-role"}},
+		},
+		Roles: []RoleConfig{
+			{Alias: "qs_admin", Name: "qs:admin", TenantID: "1"},
+			{Alias: "qs_eval", Name: "qs:evaluator", TenantID: "1"},
+		},
+		Assignments: []AssignmentConfig{
+			{SubjectType: "user", SubjectID: "@admin", RoleAlias: "@qs_admin", TenantID: "1"},
+			{SubjectType: "user", SubjectID: "@admin", RoleAlias: "@qs_eval", TenantID: "1"},
+		},
+	}
+
+	roles := resolveQSBootstrapRoles(cfg, cfg.Users[0])
+	if len(roles) != 2 {
+		t.Fatalf("resolveQSBootstrapRoles() len = %d, want 2", len(roles))
+	}
+	if roles[0] != "qs:admin" || roles[1] != "qs:evaluator" {
+		t.Fatalf("resolveQSBootstrapRoles() = %v, want [qs:admin qs:evaluator]", roles)
+	}
+}
+
+func TestResolveDefaultOrgScope(t *testing.T) {
+	t.Parallel()
+
+	cfg := &SeedConfig{
+		Users: []UserConfig{
+			{Alias: "system", OrgID: 1},
+			{Alias: "admin", OrgID: 2},
+		},
+	}
+
+	if got := resolveDefaultOrgScope(cfg); got != 1 {
+		t.Fatalf("resolveDefaultOrgScope() = %d, want 1", got)
+	}
+}

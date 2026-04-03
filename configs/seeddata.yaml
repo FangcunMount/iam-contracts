@@ -2,8 +2,8 @@
 # IAM Contracts 种子数据配置文件
 # ============================================================================
 # 描述: 初始化系统所需的基础数据和测试数据
-# 版本: 3.1.0
-# 更新时间: 2026-03-31
+# 版本: 3.2.0
+# 更新时间: 2026-04-02
 # 说明: 与数据库迁移文件同步 (internal/pkg/migration/migrations/)
 # ============================================================================
 
@@ -38,7 +38,9 @@ tenants:
 
 # ==================== 2. 用户配置 (User Center) ====================
 users:
-  # 系统用户（10001）：内置身份，持有 platform/super_admin + fangcun/tenant_admin + fangcun/qs:admin。phone 可留空；须保留 id 以便 seed 幂等；登录依赖运营账号 external_id/邮箱
+  # 系统用户（10001）：内置身份，持有 platform/super_admin + fangcun/tenant_admin + QS(org=1)/qs:admin。
+  # 注意：QS 现在把 JWT tenant_id 当作数值 org_id 使用，因此 QS 角色 assignment/policy 的 domain 使用字符串 "1" 而不是 fangcun。
+  # roles 字段仅作为 QS operator bootstrap 回退值；真值仍以 assignments 为准。
   - alias: "system"
     id: 10001
     name: "系统用户"
@@ -50,7 +52,7 @@ users:
     roles: ["qs:admin"]
     is_active: true
 
-  # 方寸租户（fangcun）管理员：租户级权限（tenant_admin），非全局 super_admin
+  # 方寸租户（fangcun）管理员：租户级 IAM 权限（tenant_admin）+ QS(org=1) 管理权限
   - alias: "admin"
     id: 110001
     name: "租户管理员"
@@ -61,7 +63,7 @@ users:
     org_id: 1
     roles: ["qs:admin"]
 
-  # 内容管理员（users[].roles 仅用于 QS staff 投影，不作为 IAM 角色真值）
+  # 内容管理员：问卷/量表内容管理；QS 角色真值以 assignments 为准
   - alias: "content_manager"
     id: 110002
     name: "内容管理员"
@@ -98,6 +100,73 @@ accounts:
     external_id: "content_manager@fangcunmount.com"
     password: "Admin@123"  # 注意: 生产环境应使用强密码
     status: 1
+
+# ==================== 5.2 显式租户管理员自举配置 ====================
+# 用途：
+# - 为新 tenant 显式自举首个租户管理员，不依赖“创建 tenant 的隐式副作用”
+# - IAM 侧创建 tenant domain 下的 tenant_admin/user 角色模板、副本策略、管理员用户/账号/assignment
+# - QS 侧可选调用 internal gRPC 自举首个 operator（避免 /staff 被 active operator 中间件拦住）
+#
+# 推荐使用方式：
+# - 先在上方 tenants 中声明新 tenant
+# - 再在这里新增一条 tenant_bootstrap_admins
+# - 需要 QS 首个 operator 时，同时配置下方 qs_internal_grpc
+# - 执行 --steps tenant-bootstrap-admin，或直接走默认 seed 流程
+#
+# 配置说明：
+# - tenant_code 是 IAM tenant/domain
+# - qs_org_id 会映射为 QS 的字符串 domain（例如 "1"）
+# - bootstrap_qs_operator=true 时，必须同时配置下方 qs_internal_grpc.address
+# - fangcun 作为当前默认租户，长期保留一条正式 bootstrap 配置，用于空 QS 库时先自举首个 active operator
+# - 未来新增 tenant 时，可继续在该数组中追加更多 entry
+tenant_bootstrap_admins:
+  - tenant_code: "fangcun"
+    tenant_name: "方寸"
+    qs_org_id: 1
+    bootstrap_user:
+      alias: "admin"
+      id: 110001
+      name: "租户管理员"
+      phone: ""
+      email: "admin@fangcunmount.com"
+      id_card: ""
+      status: 1
+      org_id: 1
+      is_active: true
+    bootstrap_account:
+      alias: "admin_account"
+      user_alias: "admin"
+      provider: "operation"
+      external_id: "admin@fangcunmount.com"
+      password: "Admin@123"
+      status: 1
+    grants:
+      iam_roles: ["tenant_admin"]
+      qs_roles: ["qs:admin"]
+    bootstrap_qs_operator: true
+  # - tenant_code: "acme"
+  #   tenant_name: "Acme Demo 租户"
+  #   qs_org_id: 2001
+  #   bootstrap_user:
+  #     alias: "acme_admin"
+  #     id: 120001
+  #     name: "Acme 租户管理员"
+  #     phone: ""
+  #     email: "admin+acme@fangcunmount.com"
+  #     id_card: ""
+  #     status: 1
+  #     org_id: 2001
+  #     is_active: true
+  #   bootstrap_account:
+  #     alias: "acme_admin_account"
+  #     provider: "operation"
+  #     external_id: "admin+acme@fangcunmount.com"
+  #     password: "Admin@123"
+  #     status: 1
+  #   grants:
+  #     iam_roles: ["tenant_admin"]
+  #     qs_roles: ["qs:admin"]
+  #   bootstrap_qs_operator: true
     
 
 # ==================== 5.5 角色配置 (Authorization) ====================
@@ -122,41 +191,37 @@ roles:
     description: "普通用户权限"
 
   # ========== QS 服务角色 ==========
+  # 说明：qs-server 现以 JWT tenant_id 作为数值 org_id 使用；本地 fangcun 机构当前对应 org_id=1，
+  # 因此 QS 角色统一挂在 authz domain "1"。
   - alias: "qs_admin"
     name: "qs:admin"
     display_name: "QS管理员"
-    tenant_id: "fangcun"
+    tenant_id: "1"
     description: "QS服务所有资源的管理权限"
   
   - alias: "qs_content_manager"
     name: "qs:content_manager"
     display_name: "内容管理员"
-    tenant_id: "fangcun"
+    tenant_id: "1"
     description: "问卷和量表的管理权限"
   
   - alias: "qs_evaluator"
     name: "qs:evaluator"
     display_name: "评估员"
-    tenant_id: "fangcun"
+    tenant_id: "1"
     description: "测评相关只读权限"
   
   - alias: "qs_staff"
     name: "qs:staff"
     display_name: "普通员工"
-    tenant_id: "fangcun"
+    tenant_id: "1"
     description: "基本查看权限"
   
   - alias: "qs_evaluation_plan_manager"
     name: "qs:evaluation_plan_manager"
     display_name: "测评计划管理员"
-    tenant_id: "fangcun"
+    tenant_id: "1"
     description: "测评计划的管理权限"
-  
-  - alias: "qs_screening_plan_manager"
-    name: "qs:screening_plan_manager"
-    display_name: "筛查计划管理员"
-    tenant_id: "fangcun"
-    description: "筛查计划的管理权限"
   
 # ==================== 6. 授权资源配置 (Authorization) ====================
 resources:
@@ -342,15 +407,6 @@ resources:
     actions: ["create", "read", "list", "update", "pause", "resume", "cancel", "enroll", "terminate", "statistics"]
     description: "测评计划生命周期与统计"
 
-  - alias: "res_qs_screening_plans"
-    key: "qs:screening_plans"
-    display_name: "筛查计划"
-    app_name: "qs"
-    domain: "plan"
-    type: "collection"
-    actions: ["create", "read", "list", "update", "pause", "resume", "cancel", "enroll", "terminate", "statistics"]
-    description: "筛查计划生命周期与统计"
-
   - alias: "res_qs_evaluation_plan_tasks"
     key: "qs:evaluation_plan_tasks"
     display_name: "测评计划任务"
@@ -359,15 +415,6 @@ resources:
     type: "collection"
     actions: ["schedule", "read", "list", "open", "complete", "expire", "cancel"]
     description: "测评计划任务调度与状态流转"
-
-  - alias: "res_qs_screening_plan_tasks"
-    key: "qs:screening_plan_tasks"
-    display_name: "筛查计划任务"
-    app_name: "qs"
-    domain: "plan_task"
-    type: "collection"
-    actions: ["schedule", "read", "list", "open", "complete", "expire", "cancel"]
-    description: "筛查计划任务调度与状态流转"
 
   - alias: "res_qs_system_statistics"
     key: "qs:system_statistics"
@@ -401,7 +448,7 @@ resources:
 # - subject_id 使用 @alias 语法引用 users 中的别名，运行时替换为实际用户ID
 # - role_alias 使用 @alias 语法引用 roles 中的别名；也可以直接用 role_id
 assignments:
-  # 系统用户（10001）：platform 超级管理员 + fangcun/IAM 租户管理员 + fangcun/QS 管理员
+  # 系统用户（10001）：platform 超级管理员 + fangcun/IAM 租户管理员 + QS(org=1) 管理员
   - subject_type: "user"
     subject_id: "@system"
     role_alias: "@super_admin"
@@ -415,10 +462,10 @@ assignments:
   - subject_type: "user"
     subject_id: "@system"
     role_alias: "@qs_admin"
-    tenant_id: "fangcun"
+    tenant_id: "1"
     granted_by: "system"
 
-  # 租户管理员（110001）：本租户 tenant_admin + QS 管理员
+  # 租户管理员（110001）：本租户 tenant_admin + QS(org=1) 管理员
   - subject_type: "user"
     subject_id: "@admin"
     role_alias: "@tenant_admin"
@@ -427,14 +474,14 @@ assignments:
   - subject_type: "user"
     subject_id: "@admin"
     role_alias: "@qs_admin"
-    tenant_id: "fangcun"
+    tenant_id: "1"
     granted_by: "system"
 
-  # 内容管理员：仅作为 QS 内容管理示例账号
+  # 内容管理员：仅作为 QS(org=1) 内容管理示例账号
   - subject_type: "user"
     subject_id: "@content_manager"
     role_alias: "@qs_content_manager"
-    tenant_id: "fangcun"
+    tenant_id: "1"
     granted_by: "system"
   
 # ==================== 8. Casbin 策略配置 (Authorization) ====================
@@ -483,53 +530,45 @@ policies:
     values: ["fangcun", "iam:profile", "update"]
 
   # ========== QS 服务角色策略 ==========
-  # QS 管理员：所有 QS 资源的所有操作
+  # QS 管理员：所有 QS 资源的所有操作（org scope = 1）
   - type: "p"
     subject: "role:qs:admin"
-    values: ["fangcun", "qs:*", ".*"]
+    values: ["1", "qs:*", ".*"]
 
   # 内容管理员：问卷和量表的完整管理
   - type: "p"
     subject: "role:qs:content_manager"
-    values: ["fangcun", "qs:questionnaires", "create|read|list|update|delete|publish|unpublish|archive|statistics"]
+    values: ["1", "qs:questionnaires", "create|read|list|update|delete|publish|unpublish|archive|statistics"]
   - type: "p"
     subject: "role:qs:content_manager"
-    values: ["fangcun", "qs:scales", "create|read|list|update|delete|publish|unpublish|archive"]
+    values: ["1", "qs:scales", "create|read|list|update|delete|publish|unpublish|archive"]
 
   # 评估员：测评执行、报告与受试者分析
   - type: "p"
     subject: "role:qs:evaluator"
-    values: ["fangcun", "qs:answersheets", "read|list|statistics"]
+    values: ["1", "qs:answersheets", "read|list|statistics"]
   - type: "p"
     subject: "role:qs:evaluator"
-    values: ["fangcun", "qs:assessments", "read|list|retry|batch_evaluate|statistics"]
+    values: ["1", "qs:assessments", "read|list|retry|batch_evaluate|statistics"]
   - type: "p"
     subject: "role:qs:evaluator"
-    values: ["fangcun", "qs:reports", "read|list"]
+    values: ["1", "qs:reports", "read|list"]
   - type: "p"
     subject: "role:qs:evaluator"
-    values: ["fangcun", "qs:testees", "read|list|analyze|statistics"]
+    values: ["1", "qs:testees", "read|list|analyze|statistics"]
 
   # 普通员工：只能查看受试者
   - type: "p"
     subject: "role:qs:staff"
-    values: ["fangcun", "qs:testees", "read|list"]
+    values: ["1", "qs:testees", "read|list"]
 
   # 测评计划管理员：测评计划与任务管理
   - type: "p"
     subject: "role:qs:evaluation_plan_manager"
-    values: ["fangcun", "qs:evaluation_plans", "create|read|list|update|pause|resume|cancel|enroll|terminate|statistics"]
+    values: ["1", "qs:evaluation_plans", "create|read|list|update|pause|resume|cancel|enroll|terminate|statistics"]
   - type: "p"
     subject: "role:qs:evaluation_plan_manager"
-    values: ["fangcun", "qs:evaluation_plan_tasks", "schedule|read|list|open|complete|expire|cancel"]
-
-  # 筛查计划管理员：筛查计划与任务管理
-  - type: "p"
-    subject: "role:qs:screening_plan_manager"
-    values: ["fangcun", "qs:screening_plans", "create|read|list|update|pause|resume|cancel|enroll|terminate|statistics"]
-  - type: "p"
-    subject: "role:qs:screening_plan_manager"
-    values: ["fangcun", "qs:screening_plan_tasks", "schedule|read|list|open|complete|expire|cancel"]
+    values: ["1", "qs:evaluation_plan_tasks", "schedule|read|list|open|complete|expire|cancel"]
 
   # ========== 角色继承 ==========
   # IAM 角色继承
@@ -540,25 +579,19 @@ policies:
   # QS 角色继承：管理员拥有各能力角色，能力角色再继承只读 staff
   - type: "g"
     subject: "role:qs:admin"
-    values: ["role:qs:content_manager", "fangcun"]
+    values: ["role:qs:content_manager", "1"]
   - type: "g"
     subject: "role:qs:admin"
-    values: ["role:qs:evaluator", "fangcun"]
+    values: ["role:qs:evaluator", "1"]
   - type: "g"
     subject: "role:qs:admin"
-    values: ["role:qs:evaluation_plan_manager", "fangcun"]
-  - type: "g"
-    subject: "role:qs:admin"
-    values: ["role:qs:screening_plan_manager", "fangcun"]
+    values: ["role:qs:evaluation_plan_manager", "1"]
   - type: "g"
     subject: "role:qs:evaluator"
-    values: ["role:qs:staff", "fangcun"]
+    values: ["role:qs:staff", "1"]
   - type: "g"
     subject: "role:qs:evaluation_plan_manager"
-    values: ["role:qs:staff", "fangcun"]
-  - type: "g"
-    subject: "role:qs:screening_plan_manager"
-    values: ["role:qs:staff", "fangcun"]
+    values: ["role:qs:staff", "1"]
 
 # ==================== 9. JWKS 密钥配置 (Authentication) ====================
 jwks:
@@ -592,3 +625,15 @@ qs_service_url: "https://qs.fangcunmount.cn/api/v1"  # QS 服务 API 地址
 # IAM 服务 URL（用于 seeddata 工具登录获取 token）
 # 在创建员工前，需要先登录 IAM 获取 access_token
 iam_service_url: "https://iam.fangcunmount.cn/api/v1"  # IAM 服务 API 地址
+
+# ==================== 14. QS internal gRPC 配置 ====================
+# 仅用于 tenant_bootstrap_admins.bootstrap_qs_operator=true 的场景
+# 本地开发默认按 qs-server 的 gRPC 地址 127.0.0.1:9090 直连，且允许 insecure=true。
+# 容器内网或生产环境可按部署情况覆盖 address / TLS / mTLS。
+qs_internal_grpc:
+  address: "127.0.0.1:9090"
+  insecure: true
+  server_name: ""   # TLS/mTLS 时的 SNI / SAN 校验名
+  ca_file: ""       # TLS CA 证书
+  cert_file: ""     # mTLS 客户端证书
+  key_file: ""      # mTLS 客户端私钥
