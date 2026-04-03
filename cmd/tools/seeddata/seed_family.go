@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/mozillazg/go-pinyin"
+	"gorm.io/gorm"
 
 	childApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/child"
 	guardApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
@@ -32,6 +33,18 @@ const (
 	maxPhoneRetry = 10
 	// maxDBRetry 数据库操作最大重试次数（遇到 duplicate key 时）
 	maxDBRetry = 3
+
+	// familySeedHistoryStartYear 家庭测试数据的历史起点年份。
+	familySeedHistoryStartYear = 2022
+)
+
+var (
+	familySeedStartOffset         = 0 * time.Minute
+	familySeedMotherOffset        = 2 * time.Minute
+	familySeedChildBaseOffset     = 15 * time.Minute
+	familySeedChildSpacing        = 45 * time.Minute
+	familySeedGuardianshipSpacing = 3 * time.Minute
+	familySeedTesteeOffset        = 9 * time.Minute
 )
 
 // ==================== 用户中心相关类型定义 ====================
@@ -201,22 +214,25 @@ var idCardWeights = []int{7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2}
 // 身份证校验码对应值
 var idCardCheckCodes = []byte{'1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'}
 
-// generateFakeIDCard 生成合法的18位身份证号
-// 格式：6位地区码 + 8位出生日期 + 3位顺序码 + 1位校验码
-func generateFakeIDCard() string {
+// generateFakeIDCardForBirthday 生成合法的18位身份证号。
+// 出生日期与儿童 birthday 保持一致，顺序码奇偶与性别保持一致。
+func generateFakeIDCardForBirthday(birthday string, gender string) string {
 	// 1. 随机选择地区码
 	areaCode := areaCodes[rand.Intn(len(areaCodes))]
 
-	// 2. 生成出生日期（3-15岁的儿童）
-	now := time.Now()
-	ageYears := 3 + rand.Intn(13) // 3-15岁
-	ageDays := rand.Intn(365)
-	birthDate := now.AddDate(-ageYears, 0, -ageDays)
+	// 2. 使用与 birthday 一致的出生日期
+	birthDate, err := time.Parse("2006-01-02", birthday)
+	if err != nil {
+		birthDate = time.Now()
+	}
 	birthStr := birthDate.Format("20060102")
 
-	// 3. 生成3位顺序码（奇数为男，偶数为女，这里随机）
+	// 3. 生成3位顺序码（奇数为男，偶数为女）
 	// 注意：顺序码 "000" 在某些系统被视为非法，避免生成 000
-	seq := rand.Intn(999) + 1 // 1..999
+	seq := rand.Intn(499)*2 + 1
+	if gender == "female" {
+		seq = rand.Intn(499)*2 + 2
+	}
 	seqCode := fmt.Sprintf("%03d", seq)
 
 	// 4. 计算校验码
@@ -265,19 +281,18 @@ func generateAlias(name, phone string) string {
 
 // ==================== 儿童数据生成函数 ====================
 
-// generateChildBirthday 生成儿童生日（3-12岁）
-func generateChildBirthday() string {
-	now := time.Now()
+// generateChildBirthday 生成儿童生日（相对于 refTime 为 3-12 岁）。
+func generateChildBirthday(refTime time.Time) string {
 	// 生成 3-12 岁的儿童
 	ageYears := 3 + rand.Intn(10) // 3-12岁
 	ageDays := rand.Intn(365)
-	birthDate := now.AddDate(-ageYears, 0, -ageDays)
+	birthDate := refTime.AddDate(-ageYears, 0, -ageDays)
 	return birthDate.Format("2006-01-02")
 }
 
 // generateChildHeight 根据年龄生成身高（厘米）
-func generateChildHeight(birthday string) uint32 {
-	age := calculateAge(birthday)
+func generateChildHeight(birthday string, refTime time.Time) uint32 {
+	age := calculateAgeAt(birthday, refTime)
 	// 基础身高 + 年龄增量 + 随机波动
 	baseHeight := 80 + age*6 // 粗略估算：3岁约98cm，每年增长6cm
 	variation := rand.Intn(15) - 7
@@ -292,8 +307,8 @@ func generateChildHeight(birthday string) uint32 {
 }
 
 // generateChildWeight 根据年龄生成体重（克）
-func generateChildWeight(birthday string) uint32 {
-	age := calculateAge(birthday)
+func generateChildWeight(birthday string, refTime time.Time) uint32 {
+	age := calculateAgeAt(birthday, refTime)
 	// 基础体重 + 年龄增量 + 随机波动
 	baseWeight := 12 + age*2 // 粗略估算：3岁约18kg，每年增长2kg
 	variation := rand.Intn(6) - 3
@@ -307,15 +322,14 @@ func generateChildWeight(birthday string) uint32 {
 	return uint32(weight * 1000) // 转换为克
 }
 
-// calculateAge 根据生日计算年龄
-func calculateAge(birthday string) int {
+// calculateAgeAt 根据生日和参考时间计算年龄。
+func calculateAgeAt(birthday string, refTime time.Time) int {
 	birthDate, err := time.Parse("2006-01-02", birthday)
 	if err != nil {
 		return 5 // 默认5岁
 	}
-	now := time.Now()
-	age := now.Year() - birthDate.Year()
-	if now.YearDay() < birthDate.YearDay() {
+	age := refTime.Year() - birthDate.Year()
+	if refTime.YearDay() < birthDate.YearDay() {
 		age--
 	}
 	return age
@@ -415,7 +429,7 @@ func guessGenderByName(name string) string {
 // 规则：
 // - 50% 只有母亲, 15% 只有父亲, 35% 有父亲和母亲
 // - 70% 有1个孩子, 25% 有2个孩子, 5% 有3个孩子
-func generateFamily(index int, phoneSet *PhoneSet) (*familySeed, error) {
+func generateFamily(index int, phoneSet *PhoneSet, refTime time.Time) (*familySeed, error) {
 	family := &familySeed{
 		Index: index,
 	}
@@ -472,10 +486,12 @@ func generateFamily(index int, phoneSet *PhoneSet) (*familySeed, error) {
 
 	family.Children = make([]childrenSeed, 0, childCount)
 	for i := 0; i < childCount; i++ {
-		birthday := generateChildBirthday()
+		birthday := generateChildBirthday(refTime)
+		height := generateChildHeight(birthday, refTime)
+		weight := generateChildWeight(birthday, refTime)
 		childSurname, name := generateFakeName(fatherSurname)
 		gender := guessGenderByName(name) // 根据名字推测性别
-		idCard := generateFakeIDCard()
+		idCard := generateFakeIDCardForBirthday(birthday, gender)
 
 		child := childrenSeed{
 			Alias:    fmt.Sprintf("child_%d_%d", index, i),
@@ -483,8 +499,8 @@ func generateFamily(index int, phoneSet *PhoneSet) (*familySeed, error) {
 			IDCard:   idCard,
 			Gender:   gender,
 			Birthday: birthday,
-			Height:   generateChildHeight(birthday),
-			Weight:   generateChildWeight(birthday),
+			Height:   height,
+			Weight:   weight,
 		}
 		family.Children = append(family.Children, child)
 	}
@@ -497,6 +513,7 @@ func generateFamily(index int, phoneSet *PhoneSet) (*familySeed, error) {
 // familySeedTask 家庭 seed 任务
 type familySeedTask struct {
 	Index int
+	Clock *familySeedClock
 }
 
 // familyServices 家庭相关的应用服务集合
@@ -506,6 +523,76 @@ type familyServices struct {
 	ChildAppSrv    childApp.ChildApplicationService
 	GuardAppSrv    guardApp.GuardianshipApplicationService
 	GuardQuerySrv  guardApp.GuardianshipQueryApplicationService
+	DB             *gorm.DB
+}
+
+// familySeedClock 为 family-init 生成稳定、可重复计算的历史时间分布。
+// 同一轮运行内，所有家庭会被均匀映射到 [2022-01-01, now] 区间。
+type familySeedClock struct {
+	start time.Time
+	end   time.Time
+	total int
+}
+
+func newFamilySeedClock(total int) *familySeedClock {
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		loc = time.Local
+	}
+
+	start := time.Date(familySeedHistoryStartYear, time.January, 1, 0, 0, 0, 0, loc)
+	end := time.Now().In(loc)
+	if !end.After(start) {
+		end = start
+	}
+
+	return &familySeedClock{
+		start: start,
+		end:   end,
+		total: total,
+	}
+}
+
+func (c *familySeedClock) familyBaseTime(index int) time.Time {
+	if c == nil {
+		return time.Now()
+	}
+	if c.total <= 1 {
+		return c.end
+	}
+	if index < 0 {
+		index = 0
+	}
+	if index >= c.total {
+		index = c.total - 1
+	}
+
+	span := c.end.Sub(c.start)
+	offset := time.Duration(int64(span) * int64(index) / int64(c.total-1))
+	return c.start.Add(offset)
+}
+
+func (c *familySeedClock) parentCreatedAt(index int, isMother bool) time.Time {
+	at := c.familyBaseTime(index).Add(familySeedStartOffset)
+	if isMother {
+		at = at.Add(familySeedMotherOffset)
+	}
+	return at
+}
+
+func (c *familySeedClock) childCreatedAt(index, childIndex int) time.Time {
+	return c.familyBaseTime(index).
+		Add(familySeedChildBaseOffset).
+		Add(time.Duration(childIndex) * familySeedChildSpacing)
+}
+
+func (c *familySeedClock) guardianshipCreatedAt(index, childIndex, guardianOrder int) time.Time {
+	return c.childCreatedAt(index, childIndex).
+		Add(time.Duration(guardianOrder+1) * familySeedGuardianshipSpacing)
+}
+
+func (c *familySeedClock) testeeCreatedAt(index, childIndex int) time.Time {
+	return c.childCreatedAt(index, childIndex).Add(familySeedTesteeOffset)
 }
 
 // Run 执行家庭 seed 任务
@@ -520,7 +607,36 @@ func (t *familySeedTask) Run(
 	orgScope uint64,
 ) error {
 	// 1. 生成家庭数据
-	family, err := generateFamily(t.Index, phoneSet)
+	familyBaseTime := time.Now()
+	if t.Clock != nil {
+		familyBaseTime = t.Clock.familyBaseTime(t.Index)
+	}
+	parentCreatedAt := func(isMother bool) time.Time {
+		if t.Clock == nil {
+			return time.Now()
+		}
+		return t.Clock.parentCreatedAt(t.Index, isMother)
+	}
+	childCreatedAt := func(childIndex int) time.Time {
+		if t.Clock == nil {
+			return time.Now()
+		}
+		return t.Clock.childCreatedAt(t.Index, childIndex)
+	}
+	guardianshipCreatedAt := func(childIndex, guardianOrder int) time.Time {
+		if t.Clock == nil {
+			return time.Now()
+		}
+		return t.Clock.guardianshipCreatedAt(t.Index, childIndex, guardianOrder)
+	}
+	testeeCreatedAt := func(childIndex int) time.Time {
+		if t.Clock == nil {
+			return time.Now()
+		}
+		return t.Clock.testeeCreatedAt(t.Index, childIndex)
+	}
+
+	family, err := generateFamily(t.Index, phoneSet, familyBaseTime)
 	if err != nil {
 		return fmt.Errorf("task %d: generate family: %w", t.Index, err)
 	}
@@ -532,6 +648,9 @@ func (t *familySeedTask) Run(
 		if err != nil {
 			return fmt.Errorf("task %d: create father: %w", t.Index, err)
 		}
+		if err := backfillEntityAuditTime(ctx, services.DB, "users", "id", fatherID, parentCreatedAt(false)); err != nil {
+			return fmt.Errorf("task %d: backfill father audit time: %w", t.Index, err)
+		}
 	}
 
 	// 3. 创建母亲（如果存在）
@@ -541,6 +660,9 @@ func (t *familySeedTask) Run(
 		if err != nil {
 			return fmt.Errorf("task %d: create mother: %w", t.Index, err)
 		}
+		if err := backfillEntityAuditTime(ctx, services.DB, "users", "id", motherID, parentCreatedAt(true)); err != nil {
+			return fmt.Errorf("task %d: backfill mother audit time: %w", t.Index, err)
+		}
 	}
 
 	// 4. 创建孩子并建立监护关系
@@ -549,16 +671,29 @@ func (t *familySeedTask) Run(
 		if err != nil {
 			return fmt.Errorf("task %d: create child %d: %w", t.Index, i, err)
 		}
+		if err := backfillEntityAuditTime(ctx, services.DB, "children", "id", childID, childCreatedAt(i)); err != nil {
+			return fmt.Errorf("task %d: backfill child %d audit time: %w", t.Index, i, err)
+		}
 
 		// 建立监护关系
 		if fatherID != "" {
 			if err := createGuardianship(ctx, services.GuardAppSrv, services.GuardQuerySrv, fatherID, childID, "parent"); err != nil {
 				return fmt.Errorf("task %d: create father guardianship for child %d: %w", t.Index, i, err)
 			}
+			if err := backfillGuardianshipAuditTime(ctx, services.DB, fatherID, childID, guardianshipCreatedAt(i, 0)); err != nil {
+				return fmt.Errorf("task %d: backfill father guardianship audit time for child %d: %w", t.Index, i, err)
+			}
 		}
 		if motherID != "" {
 			if err := createGuardianship(ctx, services.GuardAppSrv, services.GuardQuerySrv, motherID, childID, "parent"); err != nil {
 				return fmt.Errorf("task %d: create mother guardianship for child %d: %w", t.Index, i, err)
+			}
+			guardianOrder := 0
+			if fatherID != "" {
+				guardianOrder = 1
+			}
+			if err := backfillGuardianshipAuditTime(ctx, services.DB, motherID, childID, guardianshipCreatedAt(i, guardianOrder)); err != nil {
+				return fmt.Errorf("task %d: backfill mother guardianship audit time for child %d: %w", t.Index, i, err)
 			}
 		}
 
@@ -573,7 +708,7 @@ func (t *familySeedTask) Run(
 			guardianUserID = motherID
 		}
 		if guardianPhone != "" && collectionURL != "" {
-			if err := createTestee(ctx, collectionURL, iamServiceURL, adminLoginID, adminPassword, guardianUserID, guardianPhone, childID, &child, orgScope); err != nil {
+			if err := createTestee(ctx, collectionURL, iamServiceURL, adminLoginID, adminPassword, guardianUserID, guardianPhone, childID, &child, orgScope, testeeCreatedAt(i)); err != nil {
 				// 受试者创建失败不阻断流程，记录错误继续
 				fmt.Printf("\nWarning: task %d: create testee for child %d failed: %v\n", t.Index, i, err)
 			}
@@ -704,6 +839,7 @@ func createTestee(
 	childID string,
 	child *childrenSeed,
 	orgScope uint64,
+	createdAt time.Time,
 ) error {
 	// 如果没有配置 collection URL，跳过
 	if collectionURL == "" {
@@ -734,6 +870,8 @@ func createTestee(
 		"gender":       gender,
 		"birthday":     child.Birthday,
 		"source":       "imported",
+		"created_at":   createdAt.Format(time.RFC3339),
+		"updated_at":   createdAt.Format(time.RFC3339),
 	}
 
 	jsonData, err := json.Marshal(reqData)
@@ -784,6 +922,32 @@ func createTestee(
 	return fmt.Errorf("collection API returned status %d: %v", resp.StatusCode, errResp)
 }
 
+func backfillEntityAuditTime(ctx context.Context, db *gorm.DB, tableName, idColumn, idValue string, at time.Time) error {
+	if db == nil || tableName == "" || idColumn == "" || idValue == "" {
+		return nil
+	}
+	return db.WithContext(ctx).
+		Table(tableName).
+		Where(idColumn+" = ?", idValue).
+		Updates(map[string]interface{}{
+			"created_at": at,
+			"updated_at": at,
+		}).Error
+}
+
+func backfillGuardianshipAuditTime(ctx context.Context, db *gorm.DB, userID, childID string, at time.Time) error {
+	if db == nil || userID == "" || childID == "" {
+		return nil
+	}
+	return db.WithContext(ctx).
+		Table("guardianships").
+		Where("user_id = ? AND child_id = ?", userID, childID).
+		Updates(map[string]interface{}{
+			"created_at": at,
+			"updated_at": at,
+		}).Error
+}
+
 // ==================== Worker Pool 实现 ====================
 
 // printProgress 打印进度条
@@ -827,10 +991,12 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 		ChildAppSrv:    childApp.NewChildApplicationService(uow),
 		GuardAppSrv:    guardApp.NewGuardianshipApplicationService(uow),
 		GuardQuerySrv:  guardApp.NewGuardianshipQueryApplicationService(uow),
+		DB:             deps.DB,
 	}
 
 	// 创建手机号去重集合
 	phoneSet := newPhoneSet()
+	clock := newFamilySeedClock(familyCount)
 
 	// 创建任务 channel
 	taskCh := make(chan *familySeedTask, workerCount*2)
@@ -895,7 +1061,7 @@ func seedFamilyCenter(ctx context.Context, deps *dependencies, familyCount, work
 			wg.Wait()
 			fmt.Println() // 换行
 			return ctx.Err()
-		case taskCh <- &familySeedTask{Index: i}:
+		case taskCh <- &familySeedTask{Index: i, Clock: clock}:
 		}
 	}
 	close(taskCh)
