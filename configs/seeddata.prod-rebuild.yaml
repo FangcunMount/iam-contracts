@@ -1,17 +1,21 @@
 # ============================================================================
-# IAM Contracts 种子数据配置文件
+# IAM Contracts 生产数据库重建专用种子数据配置文件
 # ============================================================================
-# 描述: 初始化系统所需的基础数据和测试数据
+# 描述: 用于生产环境 IAM + QS 基础数据重建
 # 版本: 3.2.0
-# 更新时间: 2026-04-02
-# 说明: 与数据库迁移文件同步 (internal/pkg/migration/migrations/)
+# 更新时间: 2026-04-03
+# 说明:
+# - 基于 configs/seeddata.yaml 派生，仅用于生产重建窗口
+# - 预期执行命令需带 --skip-jwks，避免在 IAM auto_init 之后再生成第二把 active key
+# - 当前 qs_internal_grpc.address 假设维护窗口内已将 QS internal gRPC 9090 暴露到宿主机 127.0.0.1
+# - 若 seeddata 在 Docker 网络内执行，请改回 qs-apiserver:9090，并使用容器内可见证书路径
 # ============================================================================
 
 # ==================== 0. 加密配置 ====================
 # IDP 模块加密密钥（用于加密微信 AppSecret 等敏感信息）
 # 必须是 32 字节，可以是 Base64 编码的字符串
 # ⚠️ 必须与生产环境 IAM_APISERVER_IDP_ENCRYPTION_KEY 保持一致
-# ⚠️ 如果留空，将使用默认密钥（仅用于开发环境）
+# ⚠️ 生产重建前必须替换为真实值；若保留空值，将退回默认开发密钥
 encryption_key: ""
 
 # ==================== 1. 租户配置 ====================
@@ -82,7 +86,7 @@ accounts:
     user_alias: "system"
     provider: "operation"
     external_id: "system@fangcunmount.com"
-    password: "Admin@123"  # 注意: 生产环境应使用强密码
+    password: ""  # 必填：生产重建前替换为强密码；留空时 authn-init 会失败
     status: 1
 
   # fangcun 租户管理员：日常 IAM + QS 管理账号
@@ -90,7 +94,7 @@ accounts:
     user_alias: "admin"
     provider: "operation"
     external_id: "admin@fangcunmount.com"
-    password: "Admin@123"  # 注意: 生产环境应使用强密码
+    password: ""  # 必填：生产重建前替换为强密码；留空时 authn-init 会失败
     status: 1
 
   # 内容管理员：仅用于问卷/量表内容管理
@@ -98,7 +102,7 @@ accounts:
     user_alias: "content_manager"
     provider: "operation"
     external_id: "content_manager@fangcunmount.com"
-    password: "Admin@123"  # 注意: 生产环境应使用强密码
+    password: ""  # 必填：生产重建前替换为强密码；留空时 authn-init 会失败
     status: 1
 
 # ==================== 5.2 显式租户管理员自举配置 ====================
@@ -138,7 +142,7 @@ tenant_bootstrap_admins:
       user_alias: "admin"
       provider: "operation"
       external_id: "admin@fangcunmount.com"
-      password: "Admin@123"
+      password: ""  # 必填：生产重建前替换为强密码；留空时 tenant-bootstrap-admin 会失败
       status: 1
     grants:
       iam_roles: ["tenant_admin"]
@@ -601,8 +605,10 @@ jwks:
   valid_years: 1
 
 # ==================== 10. 微信应用配置 (IDP - WeChat) ====================
-wechat_apps:
-  # 问卷笔记本小程序
+# 生产重建模板默认跳过微信应用写入，避免在未填真实 encryption_key / app_secret 时种入错误配置。
+# 如需恢复微信登录能力，请先补齐真实 encryption_key 和 app_secret，再把对应条目加回。
+wechat_apps: 
+ # 问卷笔记本小程序
   - alias: "questionnaire_notebook"
     app_id: "wx72ade250b619a649"
     name: "问卷笔记本小程序"
@@ -628,13 +634,15 @@ iam_service_url: "https://iam.fangcunmount.cn/api/v1"  # IAM 服务 API 地址
 
 # ==================== 14. QS internal gRPC 配置 ====================
 # 仅用于 tenant_bootstrap_admins.bootstrap_qs_operator=true 的场景
-# 本地开发默认按 qs-server 的 gRPC 地址 127.0.0.1:9090 直连，且允许 insecure=true。
-# 容器内网或生产环境可按部署情况覆盖 address / TLS / mTLS。
-kqs_internal_grpc:
+# 本文件按生产宿主机重建窗口预设：
+# - QS internal gRPC 已临时映射到 127.0.0.1:9090
+# - 统一使用当前生产运行中的 /data/infra/ssl/grpc 证书链
+# - server_name 与 QS 服务端证书 SAN 对齐，取 qs-apiserver
+# 若改为容器内执行 seeddata，请把 address 改成 qs-apiserver:9090，并把路径改成容器内挂载路径。
+qs_internal_grpc:
   address: "127.0.0.1:9090"
   insecure: false
-  server_name: "qs-apiserver"   # TLS/mTLS 时的 SNI / SAN 校验名 
-  ca_file: "/data/infra/ssl/grpc/ca/ca-chain.crt" # TLS CA 证书
-  cert_file: "/data/infra/ssl/grpc/server/qs-apiserver.crt" # mTLS 客户端证书
-  key_file: "/data/infra/ssl/grpc/server/qs-apiserver.key" # mTLS 客户端私钥
-
+  server_name: "qs-apiserver"
+  ca_file: "/data/infra/ssl/grpc/ca/ca-chain.crt"
+  cert_file: "/data/infra/ssl/grpc/server/qs-apiserver.crt"
+  key_file: "/data/infra/ssl/grpc/server/qs-apiserver.key"
