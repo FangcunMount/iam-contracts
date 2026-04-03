@@ -55,6 +55,7 @@ services:
 
       # AuthorizationService - PDP（策略判定）
       - /iam.authz.v1.AuthorizationService/Check
+      - /iam.authz.v1.AuthorizationService/GetAuthorizationSnapshot
     denied_methods: []
 
   # QS Collection Server - 数据收集服务
@@ -96,6 +97,7 @@ services:
 
       # AuthorizationService - PDP
       - /iam.authz.v1.AuthorizationService/Check
+      - /iam.authz.v1.AuthorizationService/GetAuthorizationSnapshot
     denied_methods: []
 
   # 内部管理工具
