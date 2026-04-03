@@ -640,7 +640,7 @@ iam_service_url: "https://iam.fangcunmount.cn/api/v1"  # IAM 服务 API 地址
 # - server_name 与 QS 服务端证书 SAN 对齐，取 qs-apiserver
 # 若改为容器内执行 seeddata，请把 address 改成 qs-apiserver:9090，并把路径改成容器内挂载路径。
 qs_internal_grpc:
-  address: "127.0.0.1:9090"
+  address: "127.0.0.1:19090"
   insecure: false
   server_name: "qs-apiserver"
   ca_file: "/data/infra/ssl/grpc/ca/ca-chain.crt"
