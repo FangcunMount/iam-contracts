@@ -276,7 +276,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Verify GHCR auth on runner
         env:
-          GHCR_USERNAME: ${{ github.repository_owner }}
+          GHCR_USERNAME: ${{ github.actor }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           echo "🔐 Verifying GHCR access on runner..."
@@ -368,7 +368,7 @@ jobs:
           DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
-          GHCR_USERNAME: ${{ github.repository_owner }}
+          GHCR_USERNAME: ${{ github.actor }}
           GITHUB_TOKEN: ${{ github.token }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -402,6 +402,64 @@ jobs:
               $SUDO -v || true
               echo "ℹ️ Using sudo with password via STDIN for every command."
             fi
+
+            if [ "$SUDO" = "sudo_pw" ]; then
+              SUDO_ASKPASS_SCRIPT="$(mktemp)"
+              printf '%s\n' '#!/bin/sh' 'printf '\''%s\n'\'' "$SUDO_PASSWORD"' >"$SUDO_ASKPASS_SCRIPT"
+              chmod 700 "$SUDO_ASKPASS_SCRIPT"
+            fi
+
+            cleanup_auth_helpers() {
+              if [ -n "${SUDO_ASKPASS_SCRIPT:-}" ]; then
+                rm -f "$SUDO_ASKPASS_SCRIPT"
+              fi
+            }
+            trap cleanup_auth_helpers EXIT
+
+            docker_login_with_token() {
+              local username="$1"
+              local token="$2"
+              local registry="${3:-}"
+              local token_file rc
+
+              token_file="$(mktemp)"
+              chmod 600 "$token_file"
+              printf '%s' "$token" >"$token_file"
+              rc=1
+
+              if [ "$SUDO" = "sudo_pw" ]; then
+                if [ -n "$registry" ]; then
+                  if SUDO_ASKPASS="$SUDO_ASKPASS_SCRIPT" sudo -A docker login "$registry" -u "$username" --password-stdin <"$token_file" >/dev/null; then
+                    rc=0
+                  else
+                    rc=$?
+                  fi
+                else
+                  if SUDO_ASKPASS="$SUDO_ASKPASS_SCRIPT" sudo -A docker login -u "$username" --password-stdin <"$token_file" >/dev/null; then
+                    rc=0
+                  else
+                    rc=$?
+                  fi
+                fi
+              else
+                if [ -n "$registry" ]; then
+                  if $SUDO docker login "$registry" -u "$username" --password-stdin <"$token_file" >/dev/null; then
+                    rc=0
+                  else
+                    rc=$?
+                  fi
+                else
+                  if $SUDO docker login -u "$username" --password-stdin <"$token_file" >/dev/null; then
+                    rc=0
+                  else
+                    rc=$?
+                  fi
+                fi
+              fi
+
+              rm -f "$token_file"
+              return "$rc"
+            }
 
             echo "=========================================="
             echo "Starting deployment to Production Server (SVRA)"
@@ -470,23 +528,21 @@ jobs:
             echo "2) Ensure repo has Read access to the package"
             echo "3) Org settings -> Packages: allow repository access if required"
             echo "------------------------------------------"
+            GHCR_LOGIN_OK=0
             if [ -n "${GITHUB_TOKEN:-}" ]; then
               echo "Logging into GitHub Container Registry..."
-              if [ "$SUDO" = "sudo_pw" ]; then
-                printf '%s\n%s' "$SUDO_PASSWORD" "$GITHUB_TOKEN" | sudo -S docker login "$DOCKER_REGISTRY" -u "$GHCR_USERNAME" --password-stdin >/dev/null && GHCR_LOGIN_OK=1 || GHCR_LOGIN_OK=0
-              else
-                echo "$GITHUB_TOKEN" | $SUDO docker login "$DOCKER_REGISTRY" -u "$GHCR_USERNAME" --password-stdin >/dev/null && GHCR_LOGIN_OK=1 || GHCR_LOGIN_OK=0
-              fi
+              docker_login_with_token "$GHCR_USERNAME" "$GITHUB_TOKEN" "$DOCKER_REGISTRY" && GHCR_LOGIN_OK=1 || GHCR_LOGIN_OK=0
             fi
 
             # GHCR 登录失败时回退到 Docker Hub（qs-server 风格）
             if [ "${GHCR_LOGIN_OK:-0}" -ne 1 ]; then
               if [ -n "${DOCKERHUB_USERNAME:-}" ] && [ -n "${DOCKERHUB_TOKEN:-}" ]; then
                 echo "⚠️ GHCR login failed; falling back to Docker Hub..."
-                if [ "$SUDO" = "sudo_pw" ]; then
-                  printf '%s\n%s' "$SUDO_PASSWORD" "$DOCKERHUB_TOKEN" | sudo -S docker login -u "$DOCKERHUB_USERNAME" --password-stdin >/dev/null || true
-                else
-                  echo "$DOCKERHUB_TOKEN" | $SUDO docker login -u "$DOCKERHUB_USERNAME" --password-stdin >/dev/null || true
+                DOCKERHUB_LOGIN_OK=0
+                docker_login_with_token "$DOCKERHUB_USERNAME" "$DOCKERHUB_TOKEN" && DOCKERHUB_LOGIN_OK=1 || DOCKERHUB_LOGIN_OK=0
+                if [ "$DOCKERHUB_LOGIN_OK" -ne 1 ]; then
+                  echo "❌ Docker Hub login failed; verify DOCKERHUB_USERNAME/DOCKERHUB_TOKEN." >&2
+                  exit 1
                 fi
                 DOCKER_REGISTRY="docker.io"
                 IMAGE_NAME="${DOCKERHUB_USERNAME}/iam-contracts"
