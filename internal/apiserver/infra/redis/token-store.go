@@ -30,6 +30,7 @@ type refreshTokenData struct {
 	TokenID   string    `json:"token_id"`
 	UserID    uint64    `json:"user_id"`
 	AccountID uint64    `json:"account_id"`
+	TenantID  uint64    `json:"tenant_id"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
@@ -43,6 +44,7 @@ func (s *RedisStore) SaveRefreshToken(ctx context.Context, token *domain.Token) 
 		TokenID:   token.ID,
 		UserID:    token.UserID.Uint64(),
 		AccountID: token.AccountID.Uint64(),
+		TenantID:  token.TenantID.Uint64(),
 		ExpiresAt: token.ExpiresAt,
 	}
 
@@ -100,11 +102,13 @@ func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*d
 	ttl := time.Until(data.ExpiresAt)
 	userID := meta.FromUint64(data.UserID)
 	accountID := meta.FromUint64(data.AccountID)
+	tenantID := meta.FromUint64(data.TenantID)
 	token := domain.NewRefreshToken(
 		data.TokenID,
 		tokenValue,
 		userID,
 		accountID,
+		tenantID,
 		ttl,
 	)
 

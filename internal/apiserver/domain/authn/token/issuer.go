@@ -89,6 +89,7 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 		refreshTokenValue,   // token value
 		principal.UserID,    // user ID
 		principal.AccountID, // account ID
+		principal.TenantID,  // tenant ID
 		s.refreshTTL,
 	)
 

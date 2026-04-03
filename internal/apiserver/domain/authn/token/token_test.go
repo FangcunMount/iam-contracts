@@ -14,7 +14,7 @@ func TestNewAccessAndRefreshTokensAndPair(t *testing.T) {
 	acctID := meta.FromUint64(2)
 	tenantID := meta.FromUint64(3)
 	at := NewAccessToken("aid", "val", userID, acctID, tenantID, time.Minute)
-	rt := NewRefreshToken("rid", "rval", userID, acctID, time.Hour)
+	rt := NewRefreshToken("rid", "rval", userID, acctID, tenantID, time.Hour)
 
 	assert.Equal(t, TokenTypeAccess, at.Type)
 	assert.Equal(t, TokenTypeRefresh, rt.Type)

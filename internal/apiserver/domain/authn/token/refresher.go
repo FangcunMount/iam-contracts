@@ -100,6 +100,7 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 	principal := &authentication.Principal{
 		UserID:    refreshToken.UserID,
 		AccountID: refreshToken.AccountID,
+		TenantID:  refreshToken.TenantID,
 		// provider 和其他信息在刷新时不需要
 	}
 

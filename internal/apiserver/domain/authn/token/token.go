@@ -65,7 +65,7 @@ func NewServiceToken(id, value, subject string, audience []string, attributes ma
 }
 
 // NewRefreshToken 创建刷新令牌
-func NewRefreshToken(id, value string, userID meta.ID, accountID meta.ID, expiresIn time.Duration) *Token {
+func NewRefreshToken(id, value string, userID meta.ID, accountID meta.ID, tenantID meta.ID, expiresIn time.Duration) *Token {
 	now := time.Now()
 	return &Token{
 		ID:        id,
@@ -73,6 +73,7 @@ func NewRefreshToken(id, value string, userID meta.ID, accountID meta.ID, expire
 		Value:     value,
 		UserID:    userID,
 		AccountID: accountID,
+		TenantID:  tenantID,
 		IssuedAt:  now,
 		ExpiresAt: now.Add(expiresIn),
 	}
