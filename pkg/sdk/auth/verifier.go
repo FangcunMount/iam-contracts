@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FangcunMount/component-base/pkg/logger"
 	authnv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/authn/v1"
 	"github.com/FangcunMount/iam-contracts/pkg/sdk/config"
 	iamerrors "github.com/FangcunMount/iam-contracts/pkg/sdk/errors"
@@ -13,7 +14,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
 
-// =============================================================================
+// ==============================================q===============================
 // 策略模式：VerifyStrategy 接口
 // =============================================================================
 
@@ -62,12 +63,16 @@ func (s *LocalVerifyStrategy) Name() string {
 }
 
 func (s *LocalVerifyStrategy) Verify(ctx context.Context, tokenString string, opts *VerifyOptions) (*VerifyResult, error) {
+	logger.L(ctx).Debugw("LocalVerifyStrategy Verify", "tokenString", tokenString, "opts", opts)
+	logger.L(ctx).Debugw("LocalVerifyStrategy jwksManager", "jwksManager", s.jwksManager)
 	if s.jwksManager == nil {
+		logger.L(ctx).Errorw("LocalVerifyStrategy jwks manager not configured")
 		return nil, fmt.Errorf("local-strategy: jwks manager not configured")
 	}
 
 	keySet, err := s.jwksManager.GetKeySet(ctx)
 	if err != nil {
+		logger.L(ctx).Errorw("LocalVerifyStrategy get keys", "err", err)
 		return nil, fmt.Errorf("local-strategy: get keys: %w", err)
 	}
 
@@ -193,22 +198,28 @@ func (s *RemoteVerifyStrategy) Name() string {
 }
 
 func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, opts *VerifyOptions) (*VerifyResult, error) {
+	logger.L(ctx).Debugw("RemoteVerifyStrategy Verify", "tokenString", tokenString, "opts", opts)
+	logger.L(ctx).Debugw("RemoteVerifyStrategy authClient", "authClient", s.authClient)
 	if s.authClient == nil {
+		logger.L(ctx).Errorw("RemoteVerifyStrategy auth client not configured")
 		return nil, fmt.Errorf("remote-strategy: auth client not configured")
 	}
 
 	resp, err := s.authClient.VerifyToken(ctx, &authnv1.VerifyTokenRequest{
 		AccessToken: tokenString,
 	})
+	logger.L(ctx).Debugw("RemoteVerifyStrategy verify token", "resp", resp)
 	if err != nil {
+		logger.L(ctx).Errorw("RemoteVerifyStrategy verify token", "err", err)
 		return nil, err
 	}
 
 	if !resp.Valid {
-		return &VerifyResult{
-			Valid: false,
-		}, nil
+		logger.L(ctx).Errorw("RemoteVerifyStrategy verify token invalid")
+		return nil, fmt.Errorf("remote-strategy: verify token invalid")
 	}
+
+	logger.L(ctx).Debugw("RemoteVerifyStrategy verify token valid", "resp", resp)
 
 	claims := &TokenClaims{
 		Subject:   resp.Claims.Subject,
@@ -219,20 +230,25 @@ func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, o
 		Audience:  resp.Claims.Audience,
 		Extra:     make(map[string]interface{}),
 	}
+	logger.L(ctx).Debugw("RemoteVerifyStrategy claims", "claims", claims)
 
 	if resp.Claims.ExpiresAt != nil {
 		claims.ExpiresAt = resp.Claims.ExpiresAt.AsTime()
+		logger.L(ctx).Debugw("RemoteVerifyStrategy expires_at", "expires_at", claims.ExpiresAt)
 	}
 	if resp.Claims.IssuedAt != nil {
 		claims.IssuedAt = resp.Claims.IssuedAt.AsTime()
+		logger.L(ctx).Debugw("RemoteVerifyStrategy issued_at", "issued_at", claims.IssuedAt)
 	}
 
 	if resp.Claims.Attributes != nil {
 		for k, v := range resp.Claims.Attributes {
 			claims.Extra[k] = v
 		}
+		logger.L(ctx).Debugw("RemoteVerifyStrategy extra", "extra", claims.Extra)
 	}
 
+	logger.L(ctx).Debugw("RemoteVerifyStrategy verify token success", "claims", claims)
 	return &VerifyResult{
 		Valid:  true,
 		Claims: claims,
@@ -262,16 +278,28 @@ func (s *FallbackVerifyStrategy) Name() string {
 }
 
 func (s *FallbackVerifyStrategy) Verify(ctx context.Context, token string, opts *VerifyOptions) (*VerifyResult, error) {
+	logger.L(ctx).Debugw("FallbackVerifyStrategy Verify", "token", token, "opts", opts)
+	logger.L(ctx).Debugw("FallbackVerifyStrategy primary", "primary", s.primary)
+	logger.L(ctx).Debugw("FallbackVerifyStrategy fallback", "fallback", s.fallback)
 	result, err := s.primary.Verify(ctx, token, opts)
 	if err == nil {
+		logger.L(ctx).Debugw("FallbackVerifyStrategy primary verify success", "result", result)
 		return result, nil
 	}
 
 	// 主策略失败，尝试降级策略
 	if s.fallback != nil {
-		return s.fallback.Verify(ctx, token, opts)
+		logger.L(ctx).Debugw("FallbackVerifyStrategy fallback verify", "token", token, "opts", opts)
+		result, err := s.fallback.Verify(ctx, token, opts)
+		if err == nil {
+			logger.L(ctx).Debugw("FallbackVerifyStrategy fallback verify success", "result", result)
+			return result, nil
+		}
+		logger.L(ctx).Errorw("FallbackVerifyStrategy fallback verify failed", "err", err)
+		return nil, err
 	}
 
+	logger.L(ctx).Errorw("FallbackVerifyStrategy verify failed", "err", err)
 	return nil, err
 }
 
@@ -306,15 +334,21 @@ func (s *CachingVerifyStrategy) Name() string {
 }
 
 func (s *CachingVerifyStrategy) Verify(ctx context.Context, token string, opts *VerifyOptions) (*VerifyResult, error) {
+	logger.L(ctx).Debugw("CachingVerifyStrategy Verify", "token", token, "opts", opts)
+	logger.L(ctx).Debugw("CachingVerifyStrategy delegate", "delegate", s.delegate)
+	logger.L(ctx).Debugw("CachingVerifyStrategy cache", "cache", s.cache)
+	logger.L(ctx).Debugw("CachingVerifyStrategy ttl", "ttl", s.ttl)
 	// 检查缓存
 	if cached, ok := s.cache.Get(token); ok {
+		logger.L(ctx).Debugw("CachingVerifyStrategy get cached", "cached", cached)
 		return cached, nil
 	}
 
 	// 调用委托策略
 	result, err := s.delegate.Verify(ctx, token, opts)
 	if err != nil {
-		return nil, err
+		logger.L(ctx).Errorw("CachingVerifyStrategy delegate verify failed", "err", err)
+		return nil, fmt.Errorf("caching-strategy: delegate verify failed: %w", err)
 	}
 
 	// 缓存结果
@@ -529,9 +563,14 @@ func (s *StrategySelector) FallbackStrategy() (*FallbackVerifyStrategy, error) {
 //
 // 使用策略选择器自动选择最佳验证策略
 func NewTokenVerifier(cfg *config.TokenVerifyConfig, jwksManager *JWKSManager, authClient *Client) (*TokenVerifier, error) {
+	logger.L(context.Background()).Debugw("NewTokenVerifier cfg", "cfg", cfg)
+	logger.L(context.Background()).Debugw("NewTokenVerifier jwksManager", "jwksManager", jwksManager)
+	logger.L(context.Background()).Debugw("NewTokenVerifier authClient", "authClient", authClient)
+
 	// 使用策略选择器选择策略
 	selector := NewStrategySelector(cfg, jwksManager, authClient)
 	strategy, err := selector.Select()
+	logger.L(context.Background()).Debugw("NewTokenVerifier strategy", "strategy", strategy)
 	if err != nil {
 		return nil, err
 	}
@@ -573,6 +612,7 @@ func (v *TokenVerifier) Strategy() VerifyStrategy {
 // =============================================================================
 
 func extractClaims(token jwt.Token) *TokenClaims {
+	logger.L(context.Background()).Debugw("extractClaims token", "token", token)
 	claims := &TokenClaims{
 		Subject:   token.Subject(),
 		Issuer:    token.Issuer(),
@@ -582,16 +622,37 @@ func extractClaims(token jwt.Token) *TokenClaims {
 		NotBefore: token.NotBefore(),
 		Extra:     make(map[string]interface{}),
 	}
+	logger.L(context.Background()).Debugw("extractClaims token", "token", token)
+	logger.L(context.Background()).Debugw(
+		"extractClaims claims", "claims", claims,
+		"extractClaims subject", "subject", claims.Subject,
+		"extractClaims issuer", "issuer", claims.Issuer,
+		"extractClaims audience", "audience", claims.Audience,
+		"extractClaims expires_at", "expires_at", claims.ExpiresAt,
+		"extractClaims issued_at", "issued_at", claims.IssuedAt,
+		"extractClaims not_before", "not_before", claims.NotBefore,
+		"extractClaims extra", "extra", claims.Extra,
+		"extractClaims user_id", "user_id", claims.UserID,
+		"extractClaims tenant_id", "tenant_id", claims.TenantID,
+		"extractClaims account_id", "account_id", claims.AccountID,
+		"extractClaims roles", "roles", claims.Roles,
+		"extractClaims scopes", "scopes", claims.Scopes,
+		"extractClaims token_type", "token_type", claims.TokenType,
+	)
 
 	// 提取自定义声明
 	if v, ok := token.Get("user_id"); ok {
 		claims.UserID = claimString(v)
+		logger.L(context.Background()).Debugw("extractClaims user_id", "user_id", claims.UserID)
 	}
+
 	if v, ok := token.Get("tenant_id"); ok {
 		claims.TenantID = claimString(v)
+		logger.L(context.Background()).Debugw("extractClaims tenant_id", "tenant_id", claims.TenantID)
 	}
 	if v, ok := token.Get("account_id"); ok {
 		claims.AccountID = claimString(v)
+		logger.L(context.Background()).Debugw("extractClaims account_id", "account_id", claims.AccountID)
 	}
 	if v, ok := token.Get("roles"); ok {
 		if arr, ok := v.([]interface{}); ok {
@@ -601,6 +662,7 @@ func extractClaims(token jwt.Token) *TokenClaims {
 				}
 			}
 		}
+		logger.L(context.Background()).Debugw("extractClaims roles", "roles", claims.Roles)
 	}
 	if v, ok := token.Get("scopes"); ok {
 		if arr, ok := v.([]interface{}); ok {
@@ -610,6 +672,7 @@ func extractClaims(token jwt.Token) *TokenClaims {
 				}
 			}
 		}
+		logger.L(context.Background()).Debugw("extractClaims scopes", "scopes", claims.Scopes)
 	}
 	if v, ok := token.Get("token_type"); ok {
 		if s, ok := v.(string); ok {
