@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/logger"
@@ -63,16 +64,16 @@ func (s *LocalVerifyStrategy) Name() string {
 }
 
 func (s *LocalVerifyStrategy) Verify(ctx context.Context, tokenString string, opts *VerifyOptions) (*VerifyResult, error) {
-	logger.L(ctx).Debugw("LocalVerifyStrategy Verify", "tokenString", tokenString, "opts", opts)
-	logger.L(ctx).Debugw("LocalVerifyStrategy jwksManager", "jwksManager", s.jwksManager)
+	log.Println("LocalVerifyStrategy Verify", "tokenString", tokenString, "opts", opts)
+	log.Println("LocalVerifyStrategy jwksManager", "jwksManager", s.jwksManager)
 	if s.jwksManager == nil {
-		logger.L(ctx).Errorw("LocalVerifyStrategy jwks manager not configured")
+		log.Fatal("LocalVerifyStrategy jwks manager not configured")
 		return nil, fmt.Errorf("local-strategy: jwks manager not configured")
 	}
 
 	keySet, err := s.jwksManager.GetKeySet(ctx)
 	if err != nil {
-		logger.L(ctx).Errorw("LocalVerifyStrategy get keys", "err", err)
+		log.Fatal("LocalVerifyStrategy get keys", "err", err)
 		return nil, fmt.Errorf("local-strategy: get keys: %w", err)
 	}
 
@@ -198,28 +199,28 @@ func (s *RemoteVerifyStrategy) Name() string {
 }
 
 func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, opts *VerifyOptions) (*VerifyResult, error) {
-	logger.L(ctx).Debugw("RemoteVerifyStrategy Verify", "tokenString", tokenString, "opts", opts)
-	logger.L(ctx).Debugw("RemoteVerifyStrategy authClient", "authClient", s.authClient)
+	log.Println("RemoteVerifyStrategy Verify", "tokenString", tokenString, "opts", opts)
+	log.Println("RemoteVerifyStrategy authClient", "authClient", s.authClient)
 	if s.authClient == nil {
-		logger.L(ctx).Errorw("RemoteVerifyStrategy auth client not configured")
+		log.Fatal("RemoteVerifyStrategy auth client not configured")
 		return nil, fmt.Errorf("remote-strategy: auth client not configured")
 	}
 
 	resp, err := s.authClient.VerifyToken(ctx, &authnv1.VerifyTokenRequest{
 		AccessToken: tokenString,
 	})
-	logger.L(ctx).Debugw("RemoteVerifyStrategy verify token", "resp", resp)
+	log.Println("RemoteVerifyStrategy verify token", "resp", resp)
 	if err != nil {
-		logger.L(ctx).Errorw("RemoteVerifyStrategy verify token", "err", err)
+		log.Fatal("RemoteVerifyStrategy verify token", "err", err)
 		return nil, err
 	}
 
 	if !resp.Valid {
-		logger.L(ctx).Errorw("RemoteVerifyStrategy verify token invalid")
+		log.Fatal("RemoteVerifyStrategy verify token invalid")
 		return nil, fmt.Errorf("remote-strategy: verify token invalid")
 	}
 
-	logger.L(ctx).Debugw("RemoteVerifyStrategy verify token valid", "resp", resp)
+	log.Println("RemoteVerifyStrategy verify token valid", "resp", resp)
 
 	claims := &TokenClaims{
 		Subject:   resp.Claims.Subject,
@@ -230,25 +231,25 @@ func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, o
 		Audience:  resp.Claims.Audience,
 		Extra:     make(map[string]interface{}),
 	}
-	logger.L(ctx).Debugw("RemoteVerifyStrategy claims", "claims", claims)
+	log.Println("RemoteVerifyStrategy claims", "claims", claims)
 
 	if resp.Claims.ExpiresAt != nil {
 		claims.ExpiresAt = resp.Claims.ExpiresAt.AsTime()
-		logger.L(ctx).Debugw("RemoteVerifyStrategy expires_at", "expires_at", claims.ExpiresAt)
+		log.Println("RemoteVerifyStrategy expires_at", "expires_at", claims.ExpiresAt)
 	}
 	if resp.Claims.IssuedAt != nil {
 		claims.IssuedAt = resp.Claims.IssuedAt.AsTime()
-		logger.L(ctx).Debugw("RemoteVerifyStrategy issued_at", "issued_at", claims.IssuedAt)
+		log.Println("RemoteVerifyStrategy issued_at", "issued_at", claims.IssuedAt)
 	}
 
 	if resp.Claims.Attributes != nil {
 		for k, v := range resp.Claims.Attributes {
 			claims.Extra[k] = v
 		}
-		logger.L(ctx).Debugw("RemoteVerifyStrategy extra", "extra", claims.Extra)
+		log.Println("RemoteVerifyStrategy extra", "extra", claims.Extra)
 	}
 
-	logger.L(ctx).Debugw("RemoteVerifyStrategy verify token success", "claims", claims)
+	log.Println("RemoteVerifyStrategy verify token success", "claims", claims)
 	return &VerifyResult{
 		Valid:  true,
 		Claims: claims,
@@ -278,28 +279,28 @@ func (s *FallbackVerifyStrategy) Name() string {
 }
 
 func (s *FallbackVerifyStrategy) Verify(ctx context.Context, token string, opts *VerifyOptions) (*VerifyResult, error) {
-	logger.L(ctx).Debugw("FallbackVerifyStrategy Verify", "token", token, "opts", opts)
-	logger.L(ctx).Debugw("FallbackVerifyStrategy primary", "primary", s.primary)
-	logger.L(ctx).Debugw("FallbackVerifyStrategy fallback", "fallback", s.fallback)
+	log.Println("FallbackVerifyStrategy Verify", "token", token, "opts", opts)
+	log.Println("FallbackVerifyStrategy primary", "primary", s.primary)
+	log.Println("FallbackVerifyStrategy fallback", "fallback", s.fallback)
 	result, err := s.primary.Verify(ctx, token, opts)
 	if err == nil {
-		logger.L(ctx).Debugw("FallbackVerifyStrategy primary verify success", "result", result)
+		log.Println("FallbackVerifyStrategy primary verify success", "result", result)
 		return result, nil
 	}
 
 	// 主策略失败，尝试降级策略
 	if s.fallback != nil {
-		logger.L(ctx).Debugw("FallbackVerifyStrategy fallback verify", "token", token, "opts", opts)
+		log.Println("FallbackVerifyStrategy fallback verify", "token", token, "opts", opts)
 		result, err := s.fallback.Verify(ctx, token, opts)
 		if err == nil {
-			logger.L(ctx).Debugw("FallbackVerifyStrategy fallback verify success", "result", result)
+			log.Println("FallbackVerifyStrategy fallback verify success", "result", result)
 			return result, nil
 		}
-		logger.L(ctx).Errorw("FallbackVerifyStrategy fallback verify failed", "err", err)
+		log.Fatal("FallbackVerifyStrategy fallback verify failed", "err", err)
 		return nil, err
 	}
 
-	logger.L(ctx).Errorw("FallbackVerifyStrategy verify failed", "err", err)
+	log.Fatal("FallbackVerifyStrategy verify failed", "err", err)
 	return nil, err
 }
 
@@ -334,20 +335,20 @@ func (s *CachingVerifyStrategy) Name() string {
 }
 
 func (s *CachingVerifyStrategy) Verify(ctx context.Context, token string, opts *VerifyOptions) (*VerifyResult, error) {
-	logger.L(ctx).Debugw("CachingVerifyStrategy Verify", "token", token, "opts", opts)
-	logger.L(ctx).Debugw("CachingVerifyStrategy delegate", "delegate", s.delegate)
-	logger.L(ctx).Debugw("CachingVerifyStrategy cache", "cache", s.cache)
-	logger.L(ctx).Debugw("CachingVerifyStrategy ttl", "ttl", s.ttl)
+	log.Println("CachingVerifyStrategy Verify", "token", token, "opts", opts)
+	log.Println("CachingVerifyStrategy delegate", "delegate", s.delegate)
+	log.Println("CachingVerifyStrategy cache", "cache", s.cache)
+	log.Println("CachingVerifyStrategy ttl", "ttl", s.ttl)
 	// 检查缓存
 	if cached, ok := s.cache.Get(token); ok {
-		logger.L(ctx).Debugw("CachingVerifyStrategy get cached", "cached", cached)
+		log.Println("CachingVerifyStrategy get cached", "cached", cached)
 		return cached, nil
 	}
 
 	// 调用委托策略
 	result, err := s.delegate.Verify(ctx, token, opts)
 	if err != nil {
-		logger.L(ctx).Errorw("CachingVerifyStrategy delegate verify failed", "err", err)
+		log.Fatal("CachingVerifyStrategy delegate verify failed", "err", err)
 		return nil, fmt.Errorf("caching-strategy: delegate verify failed: %w", err)
 	}
 

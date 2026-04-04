@@ -195,6 +195,7 @@ func (s *tokenApplicationService) VerifyToken(ctx context.Context, accessToken s
 		"user_id", claims.UserID.String(),
 		"result", logger.ResultSuccess,
 	)
+	l.Debugw("访问令牌验证成功", "claims", claims)
 
 	return &TokenVerifyResult{
 		Valid:  true,
