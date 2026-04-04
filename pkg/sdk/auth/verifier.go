@@ -418,6 +418,9 @@ type TokenClaims struct {
 	// TokenType Token 类型
 	TokenType string
 
+	// AMR 认证方法引用（JWT `amr` claim）
+	AMR []string
+
 	// Extra 额外声明
 	Extra map[string]interface{}
 }
@@ -678,6 +681,22 @@ func extractClaims(token jwt.Token) *TokenClaims {
 	if v, ok := token.Get("token_type"); ok {
 		if s, ok := v.(string); ok {
 			claims.TokenType = s
+		}
+	}
+	if v, ok := token.Get("amr"); ok {
+		if arr, ok := v.([]interface{}); ok {
+			for _, item := range arr {
+				if s, ok := item.(string); ok {
+					claims.AMR = append(claims.AMR, s)
+				}
+			}
+		}
+	}
+	if v, ok := token.Get("attributes"); ok {
+		if m, ok := v.(map[string]interface{}); ok {
+			for k, val := range m {
+				claims.Extra[k] = val
+			}
 		}
 	}
 

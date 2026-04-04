@@ -214,6 +214,7 @@ func toProtoTokenClaims(claims *tokenDomain.TokenClaims) *authnv1.TokenClaims {
 		Issuer:     claims.Issuer,
 		Audience:   cloneAudience(claims.Audience),
 		Attributes: cloneAttributes(claims.Attributes),
+		Amr:        cloneAudience(claims.AMR),
 		IssuedAt:   timestamppb.New(claims.IssuedAt),
 		ExpiresAt:  timestamppb.New(claims.ExpiresAt),
 	}

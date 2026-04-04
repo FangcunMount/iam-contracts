@@ -55,6 +55,8 @@ func (a *Authenticater) Authenticate(ctx context.Context, scenario Scenario, inp
 		"action", logger.ActionLogin,
 		"scenario", string(scenario),
 		"tenant_id", input.TenantID,
+		"amr", []string{string(scenario)},
+		"claims", make(map[string]any),
 	)
 
 	// 根据场景构建领域凭据
@@ -72,6 +74,8 @@ func (a *Authenticater) Authenticate(ctx context.Context, scenario Scenario, inp
 		"action", logger.ActionLogin,
 		"scenario", string(scenario),
 		"credential_type", scenario,
+		"amr", []string{string(scenario)},
+		"claims", make(map[string]any),
 	)
 
 	// 创建认证策略

@@ -47,6 +47,7 @@ type CustomClaims struct {
 	TenantID   string            `json:"tenant_id,omitempty"`
 	Audience   []string          `json:"audience,omitempty"`
 	Attributes map[string]string `json:"attributes,omitempty"`
+	AMR        []string          `json:"amr,omitempty"`
 	jwt.StandardClaims
 }
 
@@ -58,11 +59,14 @@ func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authenti
 	now := time.Now()
 	tokenID := uuid.NewString()
 
+	attr := authentication.FlattenClaimsForJWT(principal.Claims)
 	claims := CustomClaims{
-		TokenType: string(domain.TokenTypeAccess),
-		UserID:    principal.UserID.String(),
-		AccountID: principal.AccountID.String(),
-		TenantID:  principal.TenantID.String(),
+		TokenType:  string(domain.TokenTypeAccess),
+		UserID:     principal.UserID.String(),
+		AccountID:  principal.AccountID.String(),
+		TenantID:   principal.TenantID.String(),
+		Attributes: cloneStringMap(attr),
+		AMR:        cloneStrings(principal.AMR),
 		StandardClaims: jwt.StandardClaims{
 			Id:        tokenID,
 			Subject:   principal.UserID.String(), // 添加 sub 字段，设置为 user_id
@@ -212,6 +216,7 @@ func (g *Generator) ParseAccessToken(ctx context.Context, tokenValue string) (*d
 		claims.Issuer,
 		claims.Audience,
 		claims.Attributes,
+		claims.AMR,
 		time.Unix(claims.IssuedAt, 0),
 		time.Unix(claims.ExpiresAt, 0),
 	), nil

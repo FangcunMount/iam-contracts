@@ -81,6 +81,9 @@ func (s *loginApplicationService) Login(ctx context.Context, req LoginRequest) (
 		"scenario", string(scenario),
 		"user_id", decision.Principal.UserID.String(),
 		"account_id", decision.Principal.AccountID.String(),
+		"tenant_id", decision.Principal.TenantID.String(),
+		"amr", decision.Principal.AMR,
+		"claims", decision.Principal.Claims,
 		"should_rotate", decision.ShouldRotate,
 	)
 
@@ -89,6 +92,10 @@ func (s *loginApplicationService) Login(ctx context.Context, req LoginRequest) (
 		l.Errorw("令牌颁发失败",
 			"action", logger.ActionLogin,
 			"user_id", decision.Principal.UserID.String(),
+			"account_id", decision.Principal.AccountID.String(),
+			"tenant_id", decision.Principal.TenantID.String(),
+			"amr", decision.Principal.AMR,
+			"claims", decision.Principal.Claims,
 			"error", err.Error(),
 			"result", logger.ResultFailed,
 		)

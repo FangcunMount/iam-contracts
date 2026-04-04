@@ -91,12 +91,15 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 	)
 
 	refreshTokenValue := uuid.New().String()
+	sessionClaims := authentication.FlattenClaimsForJWT(principal.Claims)
 	refreshToken := NewRefreshToken(
 		uuid.New().String(), // token ID
 		refreshTokenValue,   // token value
 		principal.UserID,    // user ID
 		principal.AccountID, // account ID
 		principal.TenantID,  // tenant ID
+		principal.AMR,
+		sessionClaims,
 		s.refreshTTL,
 	)
 

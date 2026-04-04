@@ -52,6 +52,7 @@ func (s *tokenServiceStub) VerifyToken(ctx context.Context, accessToken string) 
 			"iam",
 			[]string{"test"},
 			map[string]string{"scope": "internal", "level": "2"},
+			[]string{"pwd"},
 			time.Now(),
 			time.Now().Add(time.Minute),
 		),

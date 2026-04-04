@@ -2,6 +2,7 @@ package token
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
@@ -89,11 +90,23 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 		return nil, perrors.WithCode(code.ErrExpired, "refresh token has expired")
 	}
 
+	amr := refreshToken.AMR
+	if len(amr) == 0 {
+		amr = []string{string(authentication.AMRJWTToken)}
+	}
+	claims := authentication.ClaimsFromStringMap(refreshToken.SessionClaims)
+	if claims == nil {
+		claims = make(map[string]any)
+	}
+
 	l.Debugw("刷新令牌有效，准备颁发新令牌",
 		"action", "refresh",
 		"resource", "refresh_token",
 		"user_id", refreshToken.UserID.String(),
 		"account_id", refreshToken.AccountID.String(),
+		"tenant_id", refreshToken.TenantID.String(),
+		"amr", amr,
+		"claims", claims,
 	)
 
 	// 创建新的认证主体（从刷新令牌中恢复）
@@ -101,13 +114,17 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 		UserID:    refreshToken.UserID,
 		AccountID: refreshToken.AccountID,
 		TenantID:  refreshToken.TenantID,
-		// provider 和其他信息在刷新时不需要
+		AMR:       amr,
+		Claims:    claims,
 	}
 
 	// 颁发新的令牌对
 	l.Debugw("通过颁发者创建新的令牌对",
 		"action", "refresh",
 		"resource", "token",
+		"principal", fmt.Sprintf("%+v", principal),
+		"access_ttl", s.accessTTL.Seconds(),
+		"refresh_ttl", s.refreshTTL.Seconds(),
 	)
 
 	newTokenPair, err := NewTokenIssuer(s.tokenGenerator, s.tokenStore, s.accessTTL, s.refreshTTL).IssueToken(ctx, principal)

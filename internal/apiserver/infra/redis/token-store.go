@@ -27,11 +27,13 @@ func NewRedisStore(client *redis.Client) *RedisStore {
 
 // refreshTokenData 刷新令牌存储数据结构
 type refreshTokenData struct {
-	TokenID   string    `json:"token_id"`
-	UserID    uint64    `json:"user_id"`
-	AccountID uint64    `json:"account_id"`
-	TenantID  uint64    `json:"tenant_id"`
-	ExpiresAt time.Time `json:"expires_at"`
+	TokenID       string            `json:"token_id"`
+	UserID        uint64            `json:"user_id"`
+	AccountID     uint64            `json:"account_id"`
+	TenantID      uint64            `json:"tenant_id"`
+	Amr           []string          `json:"amr,omitempty"`
+	SessionClaims map[string]string `json:"session_claims,omitempty"`
+	ExpiresAt     time.Time         `json:"expires_at"`
 }
 
 // SaveRefreshToken 保存刷新令牌
@@ -41,11 +43,13 @@ func (s *RedisStore) SaveRefreshToken(ctx context.Context, token *domain.Token) 
 	}
 
 	data := refreshTokenData{
-		TokenID:   token.ID,
-		UserID:    token.UserID.Uint64(),
-		AccountID: token.AccountID.Uint64(),
-		TenantID:  token.TenantID.Uint64(),
-		ExpiresAt: token.ExpiresAt,
+		TokenID:       token.ID,
+		UserID:        token.UserID.Uint64(),
+		AccountID:     token.AccountID.Uint64(),
+		TenantID:      token.TenantID.Uint64(),
+		Amr:           token.AMR,
+		SessionClaims: token.SessionClaims,
+		ExpiresAt:     token.ExpiresAt,
 	}
 
 	// 序列化
@@ -109,6 +113,8 @@ func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*d
 		userID,
 		accountID,
 		tenantID,
+		data.Amr,
+		data.SessionClaims,
 		ttl,
 	)
 

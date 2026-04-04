@@ -294,14 +294,25 @@ func (h *AuthHandler) VerifyToken(c *gin.Context) {
 			value := int64(result.Claims.TenantID.Uint64())
 			tenantID = &value
 		}
+		amr := append([]string(nil), result.Claims.AMR...)
+		attrs := result.Claims.Attributes
+		var attrCopy map[string]string
+		if len(attrs) > 0 {
+			attrCopy = make(map[string]string, len(attrs))
+			for k, v := range attrs {
+				attrCopy[k] = v
+			}
+		}
 		response.Claims = &resp.TokenClaims{
-			UserID:    result.Claims.UserID.String(),
-			AccountID: result.Claims.AccountID.String(),
-			TenantID:  tenantID,
-			Issuer:    result.Claims.Issuer,
-			IssuedAt:  result.Claims.IssuedAt,
-			ExpiresAt: result.Claims.ExpiresAt,
-			JTI:       result.Claims.TokenID,
+			UserID:     result.Claims.UserID.String(),
+			AccountID:  result.Claims.AccountID.String(),
+			TenantID:   tenantID,
+			Issuer:     result.Claims.Issuer,
+			IssuedAt:   result.Claims.IssuedAt,
+			ExpiresAt:  result.Claims.ExpiresAt,
+			JTI:        result.Claims.TokenID,
+			Amr:        amr,
+			Attributes: attrCopy,
 		}
 	}
 

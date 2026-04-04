@@ -29,8 +29,12 @@ type Token struct {
 	TenantID   meta.ID
 	Audience   []string          // JWT audience
 	Attributes map[string]string // 附加属性（主要用于服务令牌）
-	IssuedAt   time.Time         // 颁发时间
-	ExpiresAt  time.Time         // 过期时间
+	// AMR 认证方法引用；访问令牌在领域对象中可选，刷新令牌会持久化以便轮换 access 时保留。
+	AMR []string
+	// SessionClaims Principal.Claims 的字符串快照；仅刷新令牌持久化，用于再次签发 access。
+	SessionClaims map[string]string
+	IssuedAt      time.Time // 颁发时间
+	ExpiresAt     time.Time // 过期时间
 }
 
 // NewAccessToken 创建访问令牌
@@ -65,17 +69,19 @@ func NewServiceToken(id, value, subject string, audience []string, attributes ma
 }
 
 // NewRefreshToken 创建刷新令牌
-func NewRefreshToken(id, value string, userID meta.ID, accountID meta.ID, tenantID meta.ID, expiresIn time.Duration) *Token {
+func NewRefreshToken(id, value string, userID meta.ID, accountID meta.ID, tenantID meta.ID, amr []string, sessionClaims map[string]string, expiresIn time.Duration) *Token {
 	now := time.Now()
 	return &Token{
-		ID:        id,
-		Type:      TokenTypeRefresh,
-		Value:     value,
-		UserID:    userID,
-		AccountID: accountID,
-		TenantID:  tenantID,
-		IssuedAt:  now,
-		ExpiresAt: now.Add(expiresIn),
+		ID:            id,
+		Type:          TokenTypeRefresh,
+		Value:         value,
+		UserID:        userID,
+		AccountID:     accountID,
+		TenantID:      tenantID,
+		AMR:           cloneStrings(amr),
+		SessionClaims: cloneStringMap(sessionClaims),
+		IssuedAt:      now,
+		ExpiresAt:     now.Add(expiresIn),
 	}
 }
 
@@ -117,12 +123,13 @@ type TokenClaims struct {
 	Issuer     string
 	Audience   []string
 	Attributes map[string]string
+	AMR        []string // RFC 8693 / OIDC amr
 	IssuedAt   time.Time // 颁发时间
 	ExpiresAt  time.Time // 过期时间
 }
 
 // NewTokenClaims 创建令牌声明
-func NewTokenClaims(tokenType TokenType, tokenID, subject string, userID meta.ID, accountID meta.ID, tenantID meta.ID, issuer string, audience []string, attributes map[string]string, issuedAt, expiresAt time.Time) *TokenClaims {
+func NewTokenClaims(tokenType TokenType, tokenID, subject string, userID meta.ID, accountID meta.ID, tenantID meta.ID, issuer string, audience []string, attributes map[string]string, amr []string, issuedAt, expiresAt time.Time) *TokenClaims {
 	return &TokenClaims{
 		TokenID:    tokenID,
 		TokenType:  tokenType,
@@ -133,6 +140,7 @@ func NewTokenClaims(tokenType TokenType, tokenID, subject string, userID meta.ID
 		Issuer:     issuer,
 		Audience:   cloneStrings(audience),
 		Attributes: cloneStringMap(attributes),
+		AMR:        cloneStrings(amr),
 		IssuedAt:   issuedAt,
 		ExpiresAt:  expiresAt,
 	}

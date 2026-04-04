@@ -38,7 +38,7 @@ func (g *genStub) ParseAccessToken(ctx context.Context, tokenValue string) (*tok
 		return nil, errors.New("no token")
 	}
 	// return claims built from g.tok
-	return token.NewTokenClaims(g.tok.Type, g.tok.ID, g.tok.Subject, g.tok.UserID, g.tok.AccountID, g.tok.TenantID, "", g.tok.Audience, g.tok.Attributes, g.tok.IssuedAt, g.tok.ExpiresAt), nil
+	return token.NewTokenClaims(g.tok.Type, g.tok.ID, g.tok.Subject, g.tok.UserID, g.tok.AccountID, g.tok.TenantID, "", g.tok.Audience, g.tok.Attributes, g.tok.AMR, g.tok.IssuedAt, g.tok.ExpiresAt), nil
 }
 
 type storeStub struct {

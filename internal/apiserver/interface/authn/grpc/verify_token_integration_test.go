@@ -118,6 +118,8 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 		UserID:    meta.FromUint64(1001),
 		AccountID: meta.FromUint64(2002),
 		TenantID:  meta.FromUint64(9001),
+		AMR:       []string{string(authentication.AMRPassword)},
+		Claims:    map[string]any{"phone_number": "+8613800138000"},
 	}
 
 	// 与登录成功后的签发路径一致：IssueToken → access_token JWT
@@ -133,6 +135,8 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	require.Equal(t, uint64(9001), parsed.TenantID.Uint64(), "JWT 本地解析应含 tenant_id")
 	require.Equal(t, "1001", parsed.UserID.String())
 	require.Equal(t, "2002", parsed.AccountID.String())
+	require.Equal(t, []string{string(authentication.AMRPassword)}, parsed.AMR)
+	require.Equal(t, "+8613800138000", parsed.Attributes["phone_number"])
 
 	// gRPC VerifyToken
 	grpcSrv := &authServiceServer{tokenSvc: tokenSvc}
@@ -143,6 +147,8 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	require.Equal(t, "1001", gresp.Claims.UserId)
 	require.Equal(t, "2002", gresp.Claims.AccountId)
 	require.Equal(t, "9001", gresp.Claims.TenantId)
+	require.Equal(t, []string{string(authentication.AMRPassword)}, gresp.Claims.Amr)
+	require.Equal(t, "+8613800138000", gresp.Claims.Attributes["phone_number"])
 
 	// REST POST verify（与 gRPC 使用同一 TokenApplicationService）
 	h := authhandler.NewAuthHandler(nil, tokenSvc, nil)
@@ -173,6 +179,8 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	require.Equal(t, gresp.Claims.UserId, tv.Claims.UserID)
 	require.Equal(t, gresp.Claims.AccountId, tv.Claims.AccountID)
 	require.Equal(t, gresp.Claims.TenantId, meta.FromUint64(uint64(*tv.Claims.TenantID)).String())
+	require.Equal(t, gresp.Claims.Amr, tv.Claims.Amr)
+	require.Equal(t, "+8613800138000", tv.Claims.Attributes["phone_number"])
 }
 
 // 可选：gRPC VerifyToken 在 IncludeMetadata 时返回元数据（与 Claims 同源签发链）。
