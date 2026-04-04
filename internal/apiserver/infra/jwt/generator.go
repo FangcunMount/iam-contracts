@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
@@ -52,6 +53,8 @@ type CustomClaims struct {
 // GenerateAccessToken 生成访问令牌（JWT）
 // 使用 JWKS 中的活跃 RSA 密钥进行签名
 func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authentication.Principal, expiresIn time.Duration) (*domain.Token, error) {
+	l := logger.L(ctx)
+	l.Debugw("GenerateAccessToken", "principal", fmt.Sprintf("%+v", principal), "expiresIn", expiresIn)
 	now := time.Now()
 	tokenID := uuid.NewString()
 
@@ -69,20 +72,25 @@ func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authenti
 			NotBefore: now.Unix(),
 		},
 	}
+	l.Debugw("GenerateAccessToken", "claims", claims)
 
 	tokenString, err := g.signClaims(ctx, claims)
 	if err != nil {
+		l.Errorw("GenerateAccessToken", "error", err)
 		return nil, err
 	}
 
-	return domain.NewAccessToken(
+	l.Debugw("GenerateAccessToken", "tokenID", tokenID, "tokenString", tokenString, "principal", fmt.Sprintf("%+v", principal), "expiresIn", expiresIn)
+	token := domain.NewAccessToken(
 		tokenID,
 		tokenString,
 		principal.UserID,
 		principal.AccountID,
 		principal.TenantID,
 		expiresIn,
-	), nil
+	)
+	l.Debugw("GenerateAccessToken", "token", token)
+	return token, nil
 }
 
 // GenerateServiceToken 生成服务间访问令牌（JWT）。

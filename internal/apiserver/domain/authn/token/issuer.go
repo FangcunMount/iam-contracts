@@ -2,6 +2,7 @@ package token
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
@@ -51,6 +52,9 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 		"resource", "token",
 		"user_id", principal.UserID.String(),
 		"account_id", principal.AccountID.String(),
+		"tenant_id", principal.TenantID.String(),
+		"amr", principal.AMR,
+		"claims", principal.Claims,
 	)
 
 	// 生成访问令牌（JWT）
@@ -58,6 +62,7 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 		"action", logger.ActionCreate,
 		"resource", "access_token",
 		"ttl_seconds", s.accessTTL.Seconds(),
+		"principal", fmt.Sprintf("%+v", principal),
 	)
 
 	accessToken, err := s.tokenGenerator.GenerateAccessToken(ctx, principal, s.accessTTL)
@@ -74,6 +79,7 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 		"action", logger.ActionCreate,
 		"resource", "access_token",
 		"token_id", accessToken.ID,
+		"principal", fmt.Sprintf("%+v", principal),
 	)
 
 	// 生成刷新令牌（UUID）
@@ -81,6 +87,7 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 		"action", logger.ActionCreate,
 		"resource", "refresh_token",
 		"ttl_seconds", s.refreshTTL.Seconds(),
+		"principal", fmt.Sprintf("%+v", principal),
 	)
 
 	refreshTokenValue := uuid.New().String()
@@ -98,6 +105,7 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 		"action", logger.ActionCreate,
 		"resource", "refresh_token",
 		"refresh_token_id", refreshToken.ID,
+		"principal", fmt.Sprintf("%+v", principal),
 	)
 
 	if err := s.tokenStore.SaveRefreshToken(ctx, refreshToken); err != nil {
@@ -105,6 +113,7 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 			"action", logger.ActionCreate,
 			"resource", "refresh_token",
 			"error", err.Error(),
+			"principal", fmt.Sprintf("%+v", principal),
 		)
 		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to save refresh token")
 	}
@@ -116,6 +125,7 @@ func (s *TokenIssuer) IssueToken(ctx context.Context, principal *authentication.
 		"access_token_id", accessToken.ID,
 		"refresh_token_id", refreshToken.ID,
 		"result", logger.ResultSuccess,
+		"principal", fmt.Sprintf("%+v", principal),
 	)
 
 	return NewTokenPair(accessToken, refreshToken), nil
