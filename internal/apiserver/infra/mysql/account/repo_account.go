@@ -7,6 +7,7 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
+	authn "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
@@ -171,24 +172,26 @@ func (r *AccountRepository) GetByExternalIDAppId(ctx context.Context, externalID
 
 // FindAccountByUsername 根据用户名查找账户（用于密码认证）
 // 实现 wechatapp.AccountRepository 接口。登录名须与创建运营账号时写入的 auth_accounts.external_id 一致。
-func (r *AccountRepository) FindAccountByUsername(ctx context.Context, tenantID meta.ID, username string) (accountID, userID meta.ID, err error) {
+func (r *AccountRepository) FindAccountByUsername(ctx context.Context, tenantID meta.ID, username string) (*authn.UsernameLoginLookup, error) {
 	_ = tenantID
 	username = strings.TrimSpace(username)
 	if username == "" {
-		z := meta.FromUint64(0)
-		return z, z, nil
+		return nil, nil
 	}
 
 	var po AccountPO
 	if err := r.WithContext(ctx).Where("external_id = ?", username).First(&po).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			z := meta.FromUint64(0)
-			return z, z, nil
+			return nil, nil
 		}
-		z := meta.FromUint64(0)
-		return z, z, fmt.Errorf("failed to find account by username: %w", err)
+		return nil, fmt.Errorf("failed to find account by username: %w", err)
 	}
-	return po.ID, po.UserID, nil
+	return &authn.UsernameLoginLookup{
+		AccountID:      po.ID,
+		UserID:         po.UserID,
+		AccountType:    po.Type,
+		ScopedTenantID: po.ScopedTenantID,
+	}, nil
 }
 
 // GetAccountStatus 获取账户状态（用于检查账户是否锁定/禁用）

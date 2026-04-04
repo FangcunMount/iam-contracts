@@ -78,7 +78,7 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 				"provider", ac.Provider)
 			continue
 		}
-		if err := validateOperationAccountConfig(ac); err != nil {
+		if err := validateOperationAccountConfig(ac, 0); err != nil {
 			return fmt.Errorf("invalid account config %s: %w", ac.Alias, err)
 		}
 
@@ -111,6 +111,7 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 			Email:          user.Email,
 			ExistingUserID: userID,
 			OperaLoginID:   loginExternalID,
+			ScopedTenantID: meta.FromUint64(ac.ScopedTenantID),
 			AccountType:    accountDomain.TypeOpera, // 运营账号类型
 			CredentialType: registerApp.CredTypePassword,
 			Password:       &ac.Password,
@@ -153,10 +154,17 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 	return nil
 }
 
-func validateOperationAccountConfig(ac AccountConfig) error {
+func validateOperationAccountConfig(ac AccountConfig, scopedFallback uint64) error {
 	appID := strings.TrimSpace(ac.AppID)
 	if appID != "" && appID != "opera" {
 		return fmt.Errorf("operation account app_id is fixed to opera, got %q", ac.AppID)
+	}
+	effective := ac.ScopedTenantID
+	if effective == 0 {
+		effective = scopedFallback
+	}
+	if effective == 0 {
+		return fmt.Errorf("operation account requires scoped_tenant_id")
 	}
 	return nil
 }

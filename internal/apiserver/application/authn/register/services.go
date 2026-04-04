@@ -32,6 +32,9 @@ type RegisterRequest struct {
 	// OperaLoginID 运营账号写入 auth_accounts.external_id 的登录名，与密码登录 username 一致；空则由领域按邮箱/手机号推导。
 	OperaLoginID string
 
+	// ScopedTenantID TypeOpera 时必填：运营账号所属租户 ID；其它账户类型须为 0。
+	ScopedTenantID meta.ID
+
 	// ========== 账户类型（必须）==========
 	AccountType domain.AccountType // 账户类型（决定注册流程，如微信小程序需要 code2session）
 

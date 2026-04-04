@@ -119,11 +119,16 @@ func (a *Authenticater) Authenticate(ctx context.Context, scenario Scenario, inp
 		return decision, nil
 	}
 
+	if decision.Principal != nil && decision.Principal.TenantID.IsZero() && !input.TenantID.IsZero() {
+		decision.Principal.TenantID = input.TenantID
+	}
+
 	l.Debugw("认证成功（域层）",
 		"action", logger.ActionLogin,
 		"scenario", string(scenario),
 		"user_id", decision.Principal.UserID.String(),
 		"account_id", decision.Principal.AccountID.String(),
+		"tenant_id", decision.Principal.TenantID.String(),
 	)
 
 	return decision, nil

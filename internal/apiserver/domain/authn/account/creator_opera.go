@@ -28,6 +28,9 @@ func (s *OperaCreatorStrategy) Kind() AccountType {
 
 // PrepareData 准备运营账户创建参数
 func (s *OperaCreatorStrategy) PrepareData(ctx context.Context, input CreationInput) (*CreationParams, error) {
+	if input.ScopedTenantID.IsZero() {
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "opera account requires scoped_tenant_id")
+	}
 	externalID, err := pickOperaExternalID(input)
 	if err != nil {
 		return nil, err
@@ -35,13 +38,14 @@ func (s *OperaCreatorStrategy) PrepareData(ctx context.Context, input CreationIn
 	appID := AppId("opera")
 
 	return &CreationParams{
-		UserID:      input.UserID,
-		AccountType: TypeOpera,
-		AppID:       appID,
-		ExternalID:  externalID,
-		Profile:     input.Profile,
-		Meta:        input.Meta,
-		ParamsJSON:  input.ParamsJSON,
+		UserID:         input.UserID,
+		AccountType:    TypeOpera,
+		AppID:          appID,
+		ExternalID:     externalID,
+		ScopedTenantID: input.ScopedTenantID,
+		Profile:        input.Profile,
+		Meta:           input.Meta,
+		ParamsJSON:     input.ParamsJSON,
 	}, nil
 }
 
@@ -53,7 +57,11 @@ func (s *OperaCreatorStrategy) Create(ctx context.Context, params *CreationParam
 		TypeOpera,
 		params.ExternalID,
 		WithAppID(params.AppID),
+		WithScopedTenantID(params.ScopedTenantID),
 	)
+	if err := account.ValidateScopedTenantInvariant(); err != nil {
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "%v", err)
+	}
 
 	// 设置资料和元数据
 	if len(params.Profile) > 0 {

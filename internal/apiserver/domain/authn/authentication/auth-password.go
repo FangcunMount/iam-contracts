@@ -103,7 +103,7 @@ func (p *PasswordAuthStrategy) Authenticate(ctx context.Context, credential Auth
 	)
 
 	// Step 1: 根据用户名查找账户
-	accountID, userID, err := p.accountRepo.FindAccountByUsername(ctx, passwordCredential.TenantID, passwordCredential.Username)
+	lookup, err := p.accountRepo.FindAccountByUsername(ctx, passwordCredential.TenantID, passwordCredential.Username)
 	if err != nil {
 		// 系统异常（如数据库错误）
 		l.Errorw("查询账户失败",
@@ -113,7 +113,7 @@ func (p *PasswordAuthStrategy) Authenticate(ctx context.Context, credential Auth
 		)
 		return AuthDecision{}, fmt.Errorf("failed to find account: %w", err)
 	}
-	if accountID.IsZero() {
+	if lookup == nil || lookup.AccountID.IsZero() {
 		// 业务失败：账户不存在（用统一的错误码，防止用户名枚举攻击）
 		l.Warnw("账户不存在",
 			"scenario", string(AuthPassword),
@@ -123,6 +123,48 @@ func (p *PasswordAuthStrategy) Authenticate(ctx context.Context, credential Auth
 			OK:      false,
 			ErrCode: ErrInvalidCredential,
 		}, nil
+	}
+	accountID, userID := lookup.AccountID, lookup.UserID
+
+	var principalTenant meta.ID
+	switch lookup.AccountType {
+	case "opera":
+		if lookup.ScopedTenantID.IsZero() {
+			l.Warnw("运营账号未配置 scoped_tenant_id",
+				"scenario", string(AuthPassword),
+				"account_id", accountID.String(),
+			)
+			return AuthDecision{
+				OK:      false,
+				ErrCode: ErrInvalidCredential,
+			}, nil
+		}
+		if !passwordCredential.TenantID.IsZero() && passwordCredential.TenantID != lookup.ScopedTenantID {
+			l.Warnw("登录请求租户与运营账号绑定租户不一致",
+				"scenario", string(AuthPassword),
+				"account_id", accountID.String(),
+				"request_tenant_id", passwordCredential.TenantID.String(),
+				"scoped_tenant_id", lookup.ScopedTenantID.String(),
+			)
+			return AuthDecision{
+				OK:      false,
+				ErrCode: ErrInvalidCredential,
+			}, nil
+		}
+		principalTenant = lookup.ScopedTenantID
+	default:
+		if !lookup.ScopedTenantID.IsZero() {
+			l.Warnw("非运营账号不应设置 scoped_tenant_id",
+				"scenario", string(AuthPassword),
+				"account_id", accountID.String(),
+				"type", lookup.AccountType,
+			)
+			return AuthDecision{
+				OK:      false,
+				ErrCode: ErrInvalidCredential,
+			}, nil
+		}
+		principalTenant = passwordCredential.TenantID
 	}
 
 	l.Debugw("密码认证：步骤2 - 检查账户状态",
@@ -247,7 +289,7 @@ func (p *PasswordAuthStrategy) Authenticate(ctx context.Context, credential Auth
 	principal := &Principal{
 		AccountID: accountID,
 		UserID:    userID,
-		TenantID:  passwordCredential.TenantID,
+		TenantID:  principalTenant,
 		AMR:       []string{string(AMRPassword)},
 		Claims: map[string]any{
 			"auth_time": ctx.Value("request_time"), // 认证时间

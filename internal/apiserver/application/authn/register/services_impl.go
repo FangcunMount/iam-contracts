@@ -54,6 +54,13 @@ func (s *registerApplicationService) Register(ctx context.Context, req RegisterR
 	l := logger.L(ctx)
 	var result *RegisterResult
 
+	if req.AccountType == domain.TypeOpera && req.ScopedTenantID.IsZero() {
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "scoped_tenant_id is required for opera account")
+	}
+	if req.AccountType != domain.TypeOpera && !req.ScopedTenantID.IsZero() {
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "scoped_tenant_id is only valid for opera account")
+	}
+
 	l.Debugw("开始用户注册流程",
 		"action", logger.ActionRegister,
 		"resource", logger.ResourceUser,
@@ -358,11 +365,12 @@ func (s *registerApplicationService) issueCredential(
 // toDomainInput 将应用层DTO转换为领域层输入，必要时查询 AppSecret
 func (s *registerApplicationService) toDomainInput(ctx context.Context, req RegisterRequest, userID meta.ID) (domain.CreationInput, error) {
 	input := domain.CreationInput{
-		UserID:        userID,
-		Phone:         req.Phone,
-		Email:         req.Email,
-		OperaLoginID:  strings.TrimSpace(req.OperaLoginID),
-		AccountType:   req.AccountType,
+		UserID:         userID,
+		Phone:          req.Phone,
+		Email:          req.Email,
+		OperaLoginID:   strings.TrimSpace(req.OperaLoginID),
+		ScopedTenantID: req.ScopedTenantID,
+		AccountType:    req.AccountType,
 		WechatAppID:   req.WechatAppID,
 		WechatJsCode:  req.WechatJsCode,
 		WechatOpenID:  req.WechatOpenID,

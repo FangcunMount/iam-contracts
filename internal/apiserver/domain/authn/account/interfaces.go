@@ -76,6 +76,9 @@ type CreationInput struct {
 	// ========== 账户类型（必须）==========
 	AccountType AccountType // 要创建的账户类型（决定使用哪个策略）
 
+	// ScopedTenantID TypeOpera 时必填：运营账号所属租户；其它类型须为 0。
+	ScopedTenantID meta.ID
+
 	// ========== 微信小程序专用 ==========
 	WechatAppID     *string // 微信AppID（TypeWcMinip 必须）
 	WechatAppSecret *string // 微信AppSecret（用于 code2session，TypeWcMinip 必须）
@@ -101,6 +104,8 @@ type CreationParams struct {
 	AccountType AccountType // 账户类型
 	AppID       AppId       // 应用ID
 	ExternalID  ExternalID  // 外部标识
+	// ScopedTenantID 见 CreationInput（TypeOpera 必填）。
+	ScopedTenantID meta.ID
 
 	// ========== 第三方服务返回的额外信息 ==========
 	OpenID   string                 // 微信 OpenID

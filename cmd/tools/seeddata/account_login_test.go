@@ -129,16 +129,17 @@ func TestValidateOperationAccountConfig(t *testing.T) {
 		account   AccountConfig
 		expectErr bool
 	}{
-		{name: "empty app id", account: AccountConfig{}},
-		{name: "explicit opera app id", account: AccountConfig{AppID: "opera"}},
-		{name: "invalid app id", account: AccountConfig{AppID: "tenant-app"}, expectErr: true},
+		{name: "empty app id", account: AccountConfig{ScopedTenantID: 1}},
+		{name: "explicit opera app id", account: AccountConfig{AppID: "opera", ScopedTenantID: 1}},
+		{name: "invalid app id", account: AccountConfig{AppID: "tenant-app", ScopedTenantID: 1}, expectErr: true},
+		{name: "missing scoped tenant", account: AccountConfig{}, expectErr: true},
 	}
 
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			err := validateOperationAccountConfig(tc.account)
+			err := validateOperationAccountConfig(tc.account, 0)
 			if tc.expectErr && err == nil {
 				t.Fatalf("validateOperationAccountConfig() expected error")
 			}

@@ -26,12 +26,20 @@ type CredentialRepository interface {
 	FindOAuthCredential(ctx context.Context, idpType, appID, idpIdentifier string) (accountID, userID, credentialID meta.ID, err error)
 }
 
+// UsernameLoginLookup 密码登录按用户名在 auth_accounts 上的解析结果。
+type UsernameLoginLookup struct {
+	AccountID      meta.ID
+	UserID         meta.ID
+	AccountType    string // 与 account.AccountType 字符串一致，如 opera、wc-minip
+	ScopedTenantID meta.ID
+}
+
 // AccountRepository 账户仓储（查询账户信息）
 // 职责：提供账户主体信息的查询能力
 type AccountRepository interface {
-	// FindAccountByUsername 根据登录名查找账户（密码登录）：匹配 auth_accounts.external_id（创建账号时已写入）
-	// 返回：账户ID、用户ID
-	FindAccountByUsername(ctx context.Context, tenantID meta.ID, username string) (accountID, userID meta.ID, err error)
+	// FindAccountByUsername 根据登录名查找账户（密码登录）：匹配 auth_accounts.external_id（创建账号时已写入）。
+	// 未找到时返回 (nil, nil)。
+	FindAccountByUsername(ctx context.Context, tenantID meta.ID, username string) (*UsernameLoginLookup, error)
 
 	// GetAccountStatus 获取账户状态（用于检查是否锁定/禁用）
 	// 返回：是否启用、是否锁定

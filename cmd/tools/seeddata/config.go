@@ -86,6 +86,8 @@ type AccountConfig struct {
 	AppID       string `yaml:"app_id"`       // 非 operation 账号的应用ID；operation 固定为 opera
 	Status      *int   `yaml:"status"`       // 账号状态；nil 表示使用领域默认值
 	AccountType string `yaml:"account_type"` // 账号类型(兼容旧配置)
+	// ScopedTenantID operation 账号必填：与 IAM 登录 JWT tenant_id、账号 ScopedTenantID 一致。
+	ScopedTenantID uint64 `yaml:"scoped_tenant_id"`
 }
 
 // TenantBootstrapAdminConfig 显式 tenant bootstrap admin 配置
@@ -97,6 +99,8 @@ type TenantBootstrapAdminConfig struct {
 	BootstrapAccount    AccountConfig              `yaml:"bootstrap_account"`     // bootstrap 运营账号
 	Grants              TenantBootstrapGrantConfig `yaml:"grants"`                // 初始角色授予
 	BootstrapQSOperator bool                       `yaml:"bootstrap_qs_operator"` // 是否调用 QS internal gRPC 自举 operator
+	// ScopedTenantID 可选；为 0 时 ensureSeedOperationAccount 回退使用 qs_org_id 作为运营账号租户作用域。
+	ScopedTenantID uint64 `yaml:"scoped_tenant_id"`
 }
 
 // TenantBootstrapGrantConfig bootstrap 角色授予

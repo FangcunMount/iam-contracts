@@ -48,6 +48,10 @@ func (c *accountCreator) CreateAccount(ctx context.Context, input CreationInput)
 		return nil, nil, perrors.WithCode(code.ErrInvalidArgument, "unsupported account type: %s", input.AccountType)
 	}
 
+	if input.AccountType != TypeOpera && !input.ScopedTenantID.IsZero() {
+		return nil, nil, perrors.WithCode(code.ErrInvalidArgument, "scoped_tenant_id is only valid for opera accounts")
+	}
+
 	// ========== 步骤2: 准备账户创建参数 ==========
 	params, err := strategy.PrepareData(ctx, input)
 	if err != nil {

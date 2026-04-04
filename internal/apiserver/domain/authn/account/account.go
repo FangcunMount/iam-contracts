@@ -1,20 +1,23 @@
 package account
 
 import (
+	"fmt"
+
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // Account 第三方登录账号实体
 type Account struct {
-	ID         meta.ID
-	UserID     meta.ID           // 关联到用户中心
-	Type       AccountType       // 平台类型：wc-minip, wc-offi, wc-com, opera
-	AppID      AppId             // 应用 ID：公众号 appid | 小程序 appid | 企业微信 corpid | 运营后台可为空
-	ExternalID ExternalID        // 外部平台用户标识：公众号/小程序 openid | 企业微信 userid | 运营后台 username
-	UniqueID   UnionID           // 全局唯一标识：公众号/小程序/企业微信 unionid | 运营后台为空
-	Profile    map[string]string // 用户资料：昵称、头像等
-	Meta       map[string]string // 额外元数据
-	Status     AccountStatus     // 账号状态：激活、禁用、存档、删除
+	ID             meta.ID
+	UserID         meta.ID           // 关联到用户中心
+	Type           AccountType       // 平台类型：wc-minip, wc-offi, wc-com, opera
+	AppID          AppId             // 应用 ID：公众号 appid | 小程序 appid | 企业微信 corpid | 运营后台可为空
+	ExternalID     ExternalID        // 外部平台用户标识：公众号/小程序 openid | 企业微信 userid | 运营后台 username
+	UniqueID       UnionID           // 全局唯一标识：公众号/小程序/企业微信 unionid | 运营后台为空
+	ScopedTenantID meta.ID           // ScopedTenantID 仅 TypeOpera 时有效：运营身份所属租户（B 端作用域）；其它类型必须为 0。
+	Profile        map[string]string // 用户资料：昵称、头像等
+	Meta           map[string]string // 额外元数据
+	Status         AccountStatus     // 账号状态：激活、禁用、存档、删除
 }
 
 // ==================== 工厂方法 ====================
@@ -52,6 +55,28 @@ func WithProfile(profile map[string]string) AccountOption {
 }
 func WithMeta(meta map[string]string) AccountOption {
 	return func(a *Account) { a.Meta = meta }
+}
+
+// WithScopedTenantID 设置运营账户租户作用域（仅应与 TypeOpera 同时使用）。
+func WithScopedTenantID(tenantID meta.ID) AccountOption {
+	return func(a *Account) { a.ScopedTenantID = tenantID }
+}
+
+// ValidateScopedTenantInvariant 校验 ScopedTenantID 与账户类型一致。
+func (a *Account) ValidateScopedTenantInvariant() error {
+	if a == nil {
+		return fmt.Errorf("account is nil")
+	}
+	if a.Type == TypeOpera {
+		if a.ScopedTenantID.IsZero() {
+			return fmt.Errorf("opera account requires non-zero ScopedTenantID")
+		}
+		return nil
+	}
+	if !a.ScopedTenantID.IsZero() {
+		return fmt.Errorf("ScopedTenantID is only valid for opera accounts")
+	}
+	return nil
 }
 
 // ==================== 状态查询方法 ====================

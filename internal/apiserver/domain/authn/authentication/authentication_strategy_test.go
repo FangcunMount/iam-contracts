@@ -11,15 +11,32 @@ import (
 
 // local stubs
 type accRepoStub struct {
-	accountID meta.ID
-	userID    meta.ID
-	enabled   bool
-	locked    bool
-	err       error
+	accountID      meta.ID
+	userID         meta.ID
+	accountType    string
+	scopedTenantID meta.ID
+	enabled        bool
+	locked         bool
+	err            error
 }
 
-func (s *accRepoStub) FindAccountByUsername(ctx context.Context, tenantID meta.ID, username string) (meta.ID, meta.ID, error) {
-	return s.accountID, s.userID, s.err
+func (s *accRepoStub) FindAccountByUsername(ctx context.Context, tenantID meta.ID, username string) (*authentication.UsernameLoginLookup, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	if s.accountID.IsZero() {
+		return nil, nil
+	}
+	typ := s.accountType
+	if typ == "" {
+		typ = "wc-minip"
+	}
+	return &authentication.UsernameLoginLookup{
+		AccountID:      s.accountID,
+		UserID:         s.userID,
+		AccountType:    typ,
+		ScopedTenantID: s.scopedTenantID,
+	}, nil
 }
 func (s *accRepoStub) GetAccountStatus(ctx context.Context, accountID meta.ID) (bool, bool, error) {
 	return s.enabled, s.locked, s.err

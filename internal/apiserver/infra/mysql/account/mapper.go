@@ -23,12 +23,13 @@ func (m *Mapper) ToAccountPO(acc *domain.Account) *AccountPO {
 	}
 
 	po := &AccountPO{
-		UserID:     acc.UserID,
-		Type:       string(acc.Type),
-		ExternalID: string(acc.ExternalID),
-		Profile:    mapToJSON(acc.Profile),
-		Meta:       mapToJSON(acc.Meta),
-		Status:     int8(acc.Status),
+		UserID:         acc.UserID,
+		Type:           string(acc.Type),
+		ExternalID:     string(acc.ExternalID),
+		ScopedTenantID: acc.ScopedTenantID,
+		Profile:        mapToJSON(acc.Profile),
+		Meta:           mapToJSON(acc.Meta),
+		Status:         int8(acc.Status),
 	}
 
 	// 设置 ID（如果已存在）
@@ -58,13 +59,14 @@ func (m *Mapper) ToAccountDO(po *AccountPO) *domain.Account {
 	}
 
 	acc := &domain.Account{
-		ID:         po.ID,
-		UserID:     po.UserID,
-		Type:       domain.AccountType(po.Type),
-		ExternalID: domain.ExternalID(po.ExternalID),
-		Profile:    jsonToMap(po.Profile),
-		Meta:       jsonToMap(po.Meta),
-		Status:     domain.AccountStatus(po.Status),
+		ID:             po.ID,
+		UserID:         po.UserID,
+		Type:           domain.AccountType(po.Type),
+		ExternalID:     domain.ExternalID(po.ExternalID),
+		ScopedTenantID: po.ScopedTenantID,
+		Profile:        jsonToMap(po.Profile),
+		Meta:           jsonToMap(po.Meta),
+		Status:         domain.AccountStatus(po.Status),
 	}
 
 	// 设置 AppID

@@ -140,7 +140,7 @@ func seedTenantBootstrapAdmins(ctx context.Context, deps *dependencies, state *s
 		if strings.TrimSpace(accountCfg.UserAlias) == "" {
 			accountCfg.UserAlias = userCfg.Alias
 		}
-		accountID, err := ensureSeedOperationAccount(ctx, deps, authnSupport, accountCfg, userID)
+		accountID, err := ensureSeedOperationAccount(ctx, deps, authnSupport, bootstrap, accountCfg, userID)
 		if err != nil {
 			return fmt.Errorf("ensure bootstrap account %s: %w", accountCfg.Alias, err)
 		}
@@ -222,13 +222,18 @@ func ensureSeedOperationAccount(
 	ctx context.Context,
 	deps *dependencies,
 	support *seedAuthnSupport,
+	bootstrap TenantBootstrapAdminConfig,
 	ac AccountConfig,
 	userIDStr string,
 ) (uint64, error) {
 	if support == nil {
 		return 0, fmt.Errorf("authn support is nil")
 	}
-	if err := validateOperationAccountConfig(ac); err != nil {
+	scopedFallback := bootstrap.ScopedTenantID
+	if scopedFallback == 0 && bootstrap.QSOrgID > 0 {
+		scopedFallback = uint64(bootstrap.QSOrgID)
+	}
+	if err := validateOperationAccountConfig(ac, scopedFallback); err != nil {
 		return 0, err
 	}
 
@@ -242,12 +247,17 @@ func ensureSeedOperationAccount(
 	}
 
 	loginExternalID := accountOperaExternalID(ac, user.Email.String())
+	scopedTenantID := ac.ScopedTenantID
+	if scopedTenantID == 0 {
+		scopedTenantID = scopedFallback
+	}
 	req := registerApp.RegisterRequest{
 		Name:           user.Name,
 		Phone:          user.Phone,
 		Email:          user.Email,
 		ExistingUserID: userID,
 		OperaLoginID:   loginExternalID,
+		ScopedTenantID: meta.FromUint64(scopedTenantID),
 		AccountType:    "opera",
 		CredentialType: registerApp.CredTypePassword,
 		Password:       &ac.Password,
