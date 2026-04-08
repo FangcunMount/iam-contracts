@@ -238,7 +238,7 @@ func main() {
 
 		case stepAuthnBackfill:
 			logger.Infow("🔁 开始认证账号回填...")
-			if err := seedAuthnBackfill(ctx, deps, state); err != nil {
+			if err := seedAuthnBackfill(ctx, deps, state, *workerCountFlag); err != nil {
 				logger.Fatalw("❌ 认证账号回填失败", "error", err)
 			}
 			logger.Infow("✅ 认证账号回填完成")

@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
@@ -121,16 +123,16 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 	return nil
 }
 
-func seedAuthnBackfill(ctx context.Context, deps *dependencies, state *seedContext) error {
+func seedAuthnBackfill(ctx context.Context, deps *dependencies, state *seedContext, workerCount int) error {
 	services := newSeedAuthnServices(deps)
 
 	if err := loadExistingConfiguredUsersIntoState(ctx, deps, state, services.userRepository); err != nil {
 		return err
 	}
-	if err := seedConfiguredOperationAuthn(ctx, deps, state, services); err != nil {
+	if err := seedConfiguredOperationAuthnConcurrent(ctx, deps, state, services, workerCount); err != nil {
 		return err
 	}
-	if err := seedSimulatedWechatAuthnForExistingBusinessUsers(ctx, deps, state, services); err != nil {
+	if err := seedSimulatedWechatAuthnForExistingBusinessUsersConcurrent(ctx, deps, state, services, workerCount); err != nil {
 		return err
 	}
 
@@ -152,9 +154,6 @@ func seedConfiguredOperationAuthn(
 		return nil
 	}
 
-	pepper := os.Getenv("SEEDDATA_PASSWORD_PEPPER")
-	passwordHasher := crypto.NewArgon2Hasher(pepper)
-
 	for _, ac := range config.Accounts {
 		if ac.Provider != "operation" {
 			deps.Logger.Warnw("⚠️  暂不支持的账号类型，跳过",
@@ -175,75 +174,209 @@ func seedConfiguredOperationAuthn(
 			continue
 		}
 
-		userID, err := parseAuthnUserID(userIDStr)
+		accountID, err := ensureConfiguredOperationAccount(ctx, deps, services, ac, userIDStr)
 		if err != nil {
-			return fmt.Errorf("parse user id %s: %w", userIDStr, err)
+			return err
 		}
-
-		user, err := services.userRepository.FindByID(ctx, userID)
-		if err != nil {
-			return fmt.Errorf("get user %s: %w", userID, err)
-		}
-
-		loginExternalID := accountOperaExternalID(ac, user.Email.String())
-		scopedTenantID := ac.ScopedTenantID
-		if scopedTenantID == 0 {
-			scopedTenantID = scopedFallback
-		}
-		req := registerApp.RegisterRequest{
-			Name:           user.Name,
-			Phone:          user.Phone,
-			Email:          user.Email,
-			ExistingUserID: userID,
-			OperaLoginID:   loginExternalID,
-			ScopedTenantID: meta.FromUint64(scopedTenantID),
-			AccountType:    accountDomain.TypeOpera,
-			CredentialType: registerApp.CredTypePassword,
-			Password:       &ac.Password,
-		}
-
-		result, err := services.registerService.Register(ctx, req)
-		if err != nil {
-			if handled, accID, handleErr := handleAuthnConflict(
-				ctx,
-				deps,
-				services.accountRepository,
-				services.credentialRepository,
-				passwordHasher,
-				ac,
-				userID,
-				loginExternalID,
-				err,
-			); handled {
-				if handleErr != nil {
-					return fmt.Errorf("register account %s: %w", ac.Alias, handleErr)
-				}
-				if accID != 0 {
-					if syncErr := syncSeedAccountStatus(ctx, services.accountRepository, ac, meta.FromUint64(accID)); syncErr != nil {
-						return fmt.Errorf("sync account status %s: %w", ac.Alias, syncErr)
-					}
-					state.Accounts[ac.Alias] = accID
-				}
-				continue
-			}
-			return fmt.Errorf("register account %s: %w", ac.Alias, err)
-		}
-
-		if err := syncSeedAccountStatus(ctx, services.accountRepository, ac, result.AccountID); err != nil {
-			return fmt.Errorf("sync account status %s: %w", ac.Alias, err)
-		}
-
-		state.Accounts[ac.Alias] = result.AccountID.Uint64()
-		deps.Logger.Infow("✅ 账号创建成功",
-			"account_alias", ac.Alias,
-			"account_id", result.AccountID.String(),
-			"user_id", result.UserID.String(),
-			"credential_id", result.CredentialID,
-			"is_new_user", result.IsNewUser,
-			"is_new_account", result.IsNewAccount)
+		state.Accounts[ac.Alias] = accountID
 	}
 
 	return nil
+}
+
+func seedConfiguredOperationAuthnConcurrent(
+	ctx context.Context,
+	deps *dependencies,
+	state *seedContext,
+	services *seedAuthnServices,
+	workerCount int,
+) error {
+	type task struct {
+		account   AccountConfig
+		userIDStr string
+	}
+
+	tasks := make([]task, 0, len(deps.Config.Accounts))
+	for _, ac := range deps.Config.Accounts {
+		if ac.Provider != "operation" {
+			continue
+		}
+		userIDStr := state.Users[ac.UserAlias]
+		if userIDStr == "" {
+			deps.Logger.Warnw("⚠️  用户别名未找到，跳过账号回填",
+				"account_alias", ac.Alias,
+				"user_alias", ac.UserAlias)
+			continue
+		}
+		tasks = append(tasks, task{account: ac, userIDStr: userIDStr})
+	}
+	if len(tasks) == 0 {
+		deps.Logger.Infow("⏭️  没有需要回填的 operation 账号")
+		return nil
+	}
+
+	var stateMu sync.Mutex
+	backfillTasks := make([]authnBackfillTask, 0, len(tasks))
+	for _, current := range tasks {
+		current := current
+		backfillTasks = append(backfillTasks, authnBackfillTask{
+			key: current.account.Alias,
+			run: func(ctx context.Context) error {
+				accountID, err := ensureConfiguredOperationAccount(ctx, deps, services, current.account, current.userIDStr)
+				if err != nil {
+					return err
+				}
+				stateMu.Lock()
+				state.Accounts[current.account.Alias] = accountID
+				stateMu.Unlock()
+				return nil
+			},
+		})
+	}
+
+	return runAuthnBackfillTasks(ctx, "operation accounts", workerCount, backfillTasks)
+}
+
+func ensureConfiguredOperationAccount(
+	ctx context.Context,
+	deps *dependencies,
+	services *seedAuthnServices,
+	ac AccountConfig,
+	userIDStr string,
+) (uint64, error) {
+	if ac.Provider != "operation" {
+		return 0, fmt.Errorf("unsupported provider %q", ac.Provider)
+	}
+
+	scopedFallback := resolveOperationScopedTenantID(deps.Config, ac)
+	if err := validateOperationAccountConfig(ac, scopedFallback); err != nil {
+		return 0, fmt.Errorf("invalid account config %s: %w", ac.Alias, err)
+	}
+
+	userID, err := parseAuthnUserID(userIDStr)
+	if err != nil {
+		return 0, fmt.Errorf("parse user id %s: %w", userIDStr, err)
+	}
+
+	user, err := services.userRepository.FindByID(ctx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("get user %s: %w", userID, err)
+	}
+
+	pepper := os.Getenv("SEEDDATA_PASSWORD_PEPPER")
+	passwordHasher := crypto.NewArgon2Hasher(pepper)
+
+	loginExternalID := accountOperaExternalID(ac, user.Email.String())
+	scopedTenantID := ac.ScopedTenantID
+	if scopedTenantID == 0 {
+		scopedTenantID = scopedFallback
+	}
+	existing, credentialExists, err := findExistingOperationAccountWithPasswordCredential(
+		ctx,
+		services.accountRepository,
+		services.credentialRepository,
+		ac,
+		loginExternalID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	if existing != nil && existing.UserID != userID {
+		return 0, fmt.Errorf("operation account %s belongs to another user %s", loginExternalID, existing.UserID.String())
+	}
+	if existing != nil && credentialExists {
+		if err := syncSeedAccountStatus(ctx, services.accountRepository, ac, existing.ID); err != nil {
+			return 0, fmt.Errorf("sync account status %s: %w", ac.Alias, err)
+		}
+		deps.Logger.Infow("⏭️  账号与密码凭据已存在，跳过重复生成",
+			"account_alias", ac.Alias,
+			"account_id", existing.ID.String(),
+			"user_id", existing.UserID.String(),
+			"external_id", loginExternalID)
+		return existing.ID.Uint64(), nil
+	}
+
+	req := registerApp.RegisterRequest{
+		Name:           user.Name,
+		Phone:          user.Phone,
+		Email:          user.Email,
+		ExistingUserID: userID,
+		OperaLoginID:   loginExternalID,
+		ScopedTenantID: meta.FromUint64(scopedTenantID),
+		AccountType:    accountDomain.TypeOpera,
+		CredentialType: registerApp.CredTypePassword,
+		Password:       &ac.Password,
+	}
+
+	result, err := services.registerService.Register(ctx, req)
+	if err != nil {
+		if handled, accID, handleErr := handleAuthnConflict(
+			ctx,
+			deps,
+			services.accountRepository,
+			services.credentialRepository,
+			passwordHasher,
+			ac,
+			userID,
+			loginExternalID,
+			err,
+		); handled {
+			if handleErr != nil {
+				return 0, fmt.Errorf("register account %s: %w", ac.Alias, handleErr)
+			}
+			if accID != 0 {
+				if syncErr := syncSeedAccountStatus(ctx, services.accountRepository, ac, meta.FromUint64(accID)); syncErr != nil {
+					return 0, fmt.Errorf("sync account status %s: %w", ac.Alias, syncErr)
+				}
+			}
+			return accID, nil
+		}
+		return 0, fmt.Errorf("register account %s: %w", ac.Alias, err)
+	}
+
+	if err := syncSeedAccountStatus(ctx, services.accountRepository, ac, result.AccountID); err != nil {
+		return 0, fmt.Errorf("sync account status %s: %w", ac.Alias, err)
+	}
+
+	deps.Logger.Infow("✅ 账号创建成功",
+		"account_alias", ac.Alias,
+		"account_id", result.AccountID.String(),
+		"user_id", result.UserID.String(),
+		"credential_id", result.CredentialID,
+		"is_new_user", result.IsNewUser,
+		"is_new_account", result.IsNewAccount)
+	return result.AccountID.Uint64(), nil
+}
+
+func findExistingOperationAccountWithPasswordCredential(
+	ctx context.Context,
+	accountRepository *accountRepo.AccountRepository,
+	credentialRepository *credentialRepo.Repository,
+	ac AccountConfig,
+	externalID string,
+) (*accountDomain.Account, bool, error) {
+	appID := accountDomain.AppId(ac.AppID)
+	if appID == "" {
+		appID = accountDomain.AppId("opera")
+	}
+
+	existing, err := accountRepository.GetByExternalIDAppId(
+		ctx,
+		accountDomain.ExternalID(externalID),
+		appID,
+	)
+	if err != nil {
+		return nil, false, fmt.Errorf("query existing operation account %s: %w", externalID, err)
+	}
+	if existing == nil {
+		return nil, false, nil
+	}
+
+	credential, err := credentialRepository.GetByAccountIDAndType(ctx, existing.ID, credentialDomain.CredPassword)
+	if err != nil {
+		return nil, false, fmt.Errorf("query existing password credential for account %s: %w", existing.ID.String(), err)
+	}
+	return existing, credential != nil, nil
 }
 
 func validateOperationAccountConfig(ac AccountConfig, scopedFallback uint64) error {
@@ -635,6 +768,206 @@ func seedSimulatedWechatAuthnForExistingBusinessUsers(
 	return nil
 }
 
+func seedSimulatedWechatAuthnForExistingBusinessUsersConcurrent(
+	ctx context.Context,
+	deps *dependencies,
+	state *seedContext,
+	services *seedAuthnServices,
+	workerCount int,
+) error {
+	var pos []userRepo.UserPO
+	if err := deps.DB.WithContext(ctx).
+		Where("id > ? AND deleted_at IS NULL", simulatedWechatBusinessUserIDFloor).
+		Order("id ASC").
+		Find(&pos).Error; err != nil {
+		return fmt.Errorf("list existing business users for authn backfill: %w", err)
+	}
+	if len(pos) == 0 {
+		deps.Logger.Infow("⏭️  没有需要回填微信认证的业务用户")
+		return nil
+	}
+
+	wechatAppID, err := resolveSimulatedWechatMiniProgramAppID(ctx, deps, services.wechatAppRepository)
+	if err != nil {
+		return err
+	}
+
+	deps.Logger.Infow("📱 开始为数据库中已有业务用户回填模拟微信账号",
+		"user_count", len(pos),
+		"wechat_app_internal_id", simulatedWechatAppInternalID,
+		"wechat_app_id", wechatAppID,
+		"worker_count", normalizeBackfillWorkerCount(workerCount))
+
+	mapper := userRepo.NewUserMapper()
+	var stateMu sync.Mutex
+	backfillTasks := make([]authnBackfillTask, 0, len(pos))
+	for idx := range pos {
+		po := pos[idx]
+		backfillTasks = append(backfillTasks, authnBackfillTask{
+			key: strconv.FormatUint(po.ID.Uint64(), 10),
+			run: func(ctx context.Context) error {
+				user := mapper.ToBO(&po)
+				if user == nil {
+					return fmt.Errorf("map existing business user %d to domain user", po.ID.Uint64())
+				}
+
+				stateMu.Lock()
+				userAlias := preferredAuthnBackfillUserAlias(state.Users, user.ID)
+				stateMu.Unlock()
+
+				created, credentialCreated, accountID, err := ensureSimulatedWechatMinipAccount(
+					ctx,
+					deps,
+					services.registerService,
+					services.credentialIssuer,
+					services.accountRepository,
+					services.credentialRepository,
+					user,
+					userAlias,
+					user.ID,
+					wechatAppID,
+				)
+				if err != nil {
+					return fmt.Errorf("ensure simulated wechat authn for existing user %d: %w", user.ID.Uint64(), err)
+				}
+
+				stateMu.Lock()
+				state.Users[userAlias] = strconv.FormatUint(user.ID.Uint64(), 10)
+				accountAlias := simulatedWechatAccountAlias(userAlias)
+				state.Accounts[accountAlias] = accountID
+				stateMu.Unlock()
+
+				deps.Logger.Infow("✅ 已为现有业务用户回填模拟微信账号",
+					"user_alias", userAlias,
+					"user_id", user.ID.Uint64(),
+					"account_alias", simulatedWechatAccountAlias(userAlias),
+					"account_id", accountID,
+					"provider", string(accountDomain.ProviderWeChat),
+					"app_id", wechatAppID,
+					"created", created,
+					"credential_created", credentialCreated)
+				return nil
+			},
+		})
+	}
+
+	return runAuthnBackfillTasks(ctx, "wechat accounts", workerCount, backfillTasks)
+}
+
+type authnBackfillTask struct {
+	key string
+	run func(context.Context) error
+}
+
+func runAuthnBackfillTasks(ctx context.Context, label string, workerCount int, tasks []authnBackfillTask) error {
+	if len(tasks) == 0 {
+		return nil
+	}
+
+	workerCount = normalizeBackfillWorkerCount(workerCount)
+	if workerCount > len(tasks) {
+		workerCount = len(tasks)
+	}
+
+	fmt.Printf("🔁 开始回填 %s (总数: %d, 并发: %d)\n", label, len(tasks), workerCount)
+
+	taskCh := make(chan authnBackfillTask, workerCount*2)
+	var successCount, failCount int64
+	var wg sync.WaitGroup
+	var failedMu sync.Mutex
+	failedDetails := make([]string, 0, 8)
+
+	printAuthnBackfillProgress(label, 0, int64(len(tasks)), 0)
+
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for task := range taskCh {
+				if err := task.run(ctx); err != nil {
+					failedMu.Lock()
+					if len(failedDetails) < 100 {
+						failedDetails = append(failedDetails, fmt.Sprintf("%s: %v", task.key, err))
+					}
+					failedMu.Unlock()
+					failed := atomic.AddInt64(&failCount, 1)
+					success := atomic.LoadInt64(&successCount)
+					printAuthnBackfillProgress(label, success+failed, int64(len(tasks)), failed)
+					continue
+				}
+
+				success := atomic.AddInt64(&successCount, 1)
+				failed := atomic.LoadInt64(&failCount)
+				printAuthnBackfillProgress(label, success+failed, int64(len(tasks)), failed)
+			}
+		}()
+	}
+
+	for _, task := range tasks {
+		select {
+		case <-ctx.Done():
+			close(taskCh)
+			wg.Wait()
+			fmt.Println()
+			return ctx.Err()
+		case taskCh <- task:
+		}
+	}
+	close(taskCh)
+	wg.Wait()
+
+	fmt.Println()
+	if failCount > 0 {
+		failedMu.Lock()
+		if len(failedDetails) > 0 {
+			fmt.Printf("---- %s 回填失败样例 ----\n", label)
+			for i, detail := range failedDetails {
+				if i >= 20 {
+					fmt.Printf("... 共 %d 条失败，已显示 20 条样例\n", len(failedDetails))
+					break
+				}
+				fmt.Printf("%s\n", detail)
+			}
+			fmt.Println("---- 结束 ----")
+		}
+		failedMu.Unlock()
+		return fmt.Errorf("%s partially failed: %d/%d", label, failCount, len(tasks))
+	}
+
+	fmt.Printf("✅ %s 回填完成: %d 条\n", label, successCount)
+	return nil
+}
+
+func normalizeBackfillWorkerCount(workerCount int) int {
+	if workerCount <= 0 {
+		return defaultWorkerCount
+	}
+	return workerCount
+}
+
+func printAuthnBackfillProgress(label string, current, total, failed int64) {
+	if total <= 0 {
+		return
+	}
+
+	const barWidth = 30
+	percent := float64(current) / float64(total)
+	if percent > 1 {
+		percent = 1
+	}
+	filled := int(percent * barWidth)
+	if filled > barWidth {
+		filled = barWidth
+	}
+	bar := strings.Repeat("=", filled) + strings.Repeat(" ", barWidth-filled)
+
+	if failed > 0 {
+		fmt.Printf("\r🔁 %s: [%s] %d/%d (%.1f%%) ⚠️ 失败:%d", label, bar, current, total, percent*100, failed)
+		return
+	}
+	fmt.Printf("\r🔁 %s: [%s] %d/%d (%.1f%%)", label, bar, current, total, percent*100)
+}
+
 func collectSimulatedWechatUserAliases(users map[string]string) ([]string, error) {
 	aliases := make([]string, 0, len(users))
 	for alias, userIDStr := range users {
@@ -756,6 +1089,13 @@ func ensureSimulatedWechatMinipAccount(
 	if existing != nil {
 		if existing.UserID != userID {
 			return false, false, 0, fmt.Errorf("wechat account %s belongs to another user %s", externalID, existing.UserID.String())
+		}
+		credential, credErr := credentialRepository.GetByAccountIDAndType(ctx, existing.ID, credentialDomain.CredOAuthWxMinip)
+		if credErr != nil {
+			return false, false, 0, fmt.Errorf("get wechat credential: %w", credErr)
+		}
+		if credential != nil {
+			return false, false, existing.ID.Uint64(), nil
 		}
 		if err := ensureSimulatedWechatAccountUniqueID(ctx, accountRepository, existing, unionID); err != nil {
 			return false, false, 0, err
