@@ -34,3 +34,14 @@ func TestApplyMockModeDoesNotDuplicateFamilyInit(t *testing.T) {
 		t.Fatalf("applyMockMode() family-init count = %d, want 1", count)
 	}
 }
+
+func TestParseStepsSupportsAuthnBackfill(t *testing.T) {
+	steps := parseSteps("authn-init,authn-backfill,admin-init")
+
+	if len(steps) != 3 {
+		t.Fatalf("parseSteps() len = %d, want 3", len(steps))
+	}
+	if steps[1] != stepAuthnBackfill {
+		t.Fatalf("parseSteps()[1] = %q, want %q", steps[1], stepAuthnBackfill)
+	}
+}

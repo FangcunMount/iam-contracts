@@ -49,3 +49,21 @@ func TestSimulatedWechatIdentityIsDeterministic(t *testing.T) {
 		t.Fatalf("unionID = %q, want seed-wx-unionid-110001", unionID)
 	}
 }
+
+func TestPreferredAuthnBackfillUserAliasPrefersExistingAlias(t *testing.T) {
+	alias := preferredAuthnBackfillUserAlias(map[string]string{
+		"admin": "110001",
+	}, meta.FromUint64(110001))
+
+	if alias != "admin" {
+		t.Fatalf("preferredAuthnBackfillUserAlias() = %q, want admin", alias)
+	}
+}
+
+func TestPreferredAuthnBackfillUserAliasFallsBackToSyntheticAlias(t *testing.T) {
+	alias := preferredAuthnBackfillUserAlias(map[string]string{}, meta.FromUint64(110123))
+
+	if alias != "user_110123" {
+		t.Fatalf("preferredAuthnBackfillUserAlias() = %q, want user_110123", alias)
+	}
+}

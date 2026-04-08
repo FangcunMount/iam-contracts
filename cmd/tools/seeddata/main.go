@@ -53,6 +53,9 @@ const (
 	// ===== 认证授权体系初始化 =====
 	stepAuthnInit seedStep = "authn-init" // 认证授权体系初始化：角色 + 资源 + Casbin策略
 
+	// ===== 认证账号回填 =====
+	stepAuthnBackfill seedStep = "authn-backfill" // 认证账号回填：为数据库中已有用户补齐 account/credential
+
 	// ===== 管理员账号初始化 =====
 	stepAdminInit seedStep = "admin-init" // 管理员账号初始化：创建管理员用户 + 认证账号 + 分配角色权限 + QS员工
 
@@ -116,7 +119,7 @@ func main() {
 	keysDirFlag := flag.String("keys-dir", "./tmp/keys", "Directory to store generated JWKS private keys")
 	casbinModelFlag := flag.String("casbin-model", "configs/casbin_model.conf", "Path to casbin model configuration file")
 	configFileFlag := flag.String("config", "configs/seeddata.yaml", "Path to seed data configuration file")
-	stepsFlag := flag.String("steps", strings.Join(stepListToStrings(defaultSteps), ","), "Comma separated seed steps (system-init,authn-init,tenant-bootstrap-admin,admin-init,family-init)")
+	stepsFlag := flag.String("steps", strings.Join(stepListToStrings(defaultSteps), ","), "Comma separated seed steps (system-init,authn-init,authn-backfill,tenant-bootstrap-admin,admin-init,family-init)")
 	familyCountFlag := flag.Int("family-count", defaultFamilyCount, "Number of families to generate in family seed step")
 	workerCountFlag := flag.Int("worker-count", defaultWorkerCount, "Number of concurrent workers for family seed step")
 	mockFlag := flag.Bool("mock", false, "Append family-init after base seed steps to generate mock family/testee data")
@@ -232,6 +235,13 @@ func main() {
 			}
 
 			logger.Infow("✅ 认证授权体系初始化完成")
+
+		case stepAuthnBackfill:
+			logger.Infow("🔁 开始认证账号回填...")
+			if err := seedAuthnBackfill(ctx, deps, state); err != nil {
+				logger.Fatalw("❌ 认证账号回填失败", "error", err)
+			}
+			logger.Infow("✅ 认证账号回填完成")
 
 		case stepAdminInit:
 			// 【管理员账号初始化】创建管理员并分配权限

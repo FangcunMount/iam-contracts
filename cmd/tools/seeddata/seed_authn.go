@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
@@ -25,6 +26,7 @@ import (
 	wechatInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/wechat"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"gorm.io/gorm"
 )
 
 // ==================== 认证 Seed 函数 ====================
@@ -35,6 +37,46 @@ const (
 	simulatedWechatAppConfigAlias             = "questionnaire_notebook"
 	simulatedWechatAccountAliasSuffix         = "_wechat_account"
 )
+
+type seedAuthnServices struct {
+	registerService      registerApp.RegisterApplicationService
+	credentialIssuer     credentialDomain.Issuer
+	userRepository       userDomain.Repository
+	accountRepository    *accountRepo.AccountRepository
+	credentialRepository *credentialRepo.Repository
+	wechatAppRepository  wechatappDomain.Repository
+}
+
+func newSeedAuthnServices(deps *dependencies) *seedAuthnServices {
+	unitOfWork := authnUOW.NewUnitOfWork(deps.DB)
+	userRepository := userRepo.NewRepository(deps.DB)
+	accountRepository := accountRepo.NewAccountRepository(deps.DB)
+	credentialRepository := credentialRepo.NewRepository(deps.DB)
+	wechatAppRepository := wechatAppRepo.NewWechatAppRepository(deps.DB)
+
+	pepper := os.Getenv("SEEDDATA_PASSWORD_PEPPER")
+	passwordHasher := crypto.NewArgon2Hasher(pepper)
+	credentialIssuer := credentialDomain.NewIssuer(passwordHasher)
+	idp := wechatInfra.NewIdentityProvider(nil, nil)
+
+	registerService := registerApp.NewRegisterApplicationService(
+		unitOfWork,
+		passwordHasher,
+		idp,
+		userRepository,
+		nil,
+		nil,
+	)
+
+	return &seedAuthnServices{
+		registerService:      registerService,
+		credentialIssuer:     credentialIssuer,
+		userRepository:       userRepository,
+		accountRepository:    accountRepository,
+		credentialRepository: credentialRepository,
+		wechatAppRepository:  wechatAppRepository,
+	}
+}
 
 // seedAuthn 创建认证账号数据
 //
@@ -51,41 +93,69 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 		return errors.New("user context is empty; run user step first")
 	}
 
+	if deps.Config == nil {
+		deps.Logger.Warnw("⚠️  配置文件为空，跳过账号初始化")
+		return nil
+	}
+
+	services := newSeedAuthnServices(deps)
+	if err := seedConfiguredOperationAuthn(ctx, deps, state, services); err != nil {
+		return err
+	}
+
+	if err := seedSimulatedWechatAuthn(
+		ctx,
+		deps,
+		state,
+		services.registerService,
+		services.credentialIssuer,
+		services.userRepository,
+		services.accountRepository,
+		services.credentialRepository,
+		services.wechatAppRepository,
+	); err != nil {
+		return err
+	}
+
+	deps.Logger.Infow("✅ 认证账号数据已创建")
+	return nil
+}
+
+func seedAuthnBackfill(ctx context.Context, deps *dependencies, state *seedContext) error {
+	services := newSeedAuthnServices(deps)
+
+	if err := loadExistingConfiguredUsersIntoState(ctx, deps, state, services.userRepository); err != nil {
+		return err
+	}
+	if err := seedConfiguredOperationAuthn(ctx, deps, state, services); err != nil {
+		return err
+	}
+	if err := seedSimulatedWechatAuthnForExistingBusinessUsers(ctx, deps, state, services); err != nil {
+		return err
+	}
+
+	deps.Logger.Infow("✅ 认证账号回填已完成",
+		"configured_users", len(state.Users),
+		"accounts", len(state.Accounts))
+	return nil
+}
+
+func seedConfiguredOperationAuthn(
+	ctx context.Context,
+	deps *dependencies,
+	state *seedContext,
+	services *seedAuthnServices,
+) error {
 	config := deps.Config
 	if config == nil {
 		deps.Logger.Warnw("⚠️  配置文件为空，跳过账号初始化")
 		return nil
 	}
 
-	// 初始化基础设施层
-	unitOfWork := authnUOW.NewUnitOfWork(deps.DB)
-	userRepository := userRepo.NewRepository(deps.DB)
-	accountRepository := accountRepo.NewAccountRepository(deps.DB)
-	credentialRepository := credentialRepo.NewRepository(deps.DB)
-	wechatAppRepository := wechatAppRepo.NewWechatAppRepository(deps.DB)
-
-	// 初始化领域服务（密码哈希器）
-	pepper := os.Getenv("SEEDDATA_PASSWORD_PEPPER") // 与服务端保持一致，默认空字符串
+	pepper := os.Getenv("SEEDDATA_PASSWORD_PEPPER")
 	passwordHasher := crypto.NewArgon2Hasher(pepper)
-	credentialIssuer := credentialDomain.NewIssuer(passwordHasher)
 
-	// 初始化身份提供商（简单实现，用于 seeddata）
-	idp := wechatInfra.NewIdentityProvider(nil, nil)
-
-	// 初始化应用服务
-	// 注意：seed 阶段仅支持密码注册，不需要微信相关功能，因此传入 nil
-	registerService := registerApp.NewRegisterApplicationService(
-		unitOfWork,
-		passwordHasher,
-		idp,
-		userRepository,
-		nil, // wechatAppQuerier - seed 阶段不需要
-		nil, // secretVault - seed 阶段不需要
-	)
-
-	// 从配置文件读取账号数据
 	for _, ac := range config.Accounts {
-		// 当前仅支持 operation 账号（密码登录）
 		if ac.Provider != "operation" {
 			deps.Logger.Warnw("⚠️  暂不支持的账号类型，跳过",
 				"account_alias", ac.Alias,
@@ -96,7 +166,6 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 			return fmt.Errorf("invalid account config %s: %w", ac.Alias, err)
 		}
 
-		// 1. 获取用户基本信息
 		userIDStr := state.Users[ac.UserAlias]
 		if userIDStr == "" {
 			deps.Logger.Warnw("⚠️  用户别名未找到，跳过账号创建",
@@ -105,19 +174,16 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 			continue
 		}
 
-		// 2. 解析用户ID
 		userID, err := parseAuthnUserID(userIDStr)
 		if err != nil {
 			return fmt.Errorf("parse user id %s: %w", userIDStr, err)
 		}
 
-		// 3. 获取用户完整信息（用于注册）
-		user, err := userRepository.FindByID(ctx, userID)
+		user, err := services.userRepository.FindByID(ctx, userID)
 		if err != nil {
 			return fmt.Errorf("get user %s: %w", userID, err)
 		}
 
-		// 4. 执行注册（使用RegisterApplicationService）
 		loginExternalID := accountOperaExternalID(ac, user.Email.String())
 		req := registerApp.RegisterRequest{
 			Name:           user.Name,
@@ -126,20 +192,29 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 			ExistingUserID: userID,
 			OperaLoginID:   loginExternalID,
 			ScopedTenantID: meta.FromUint64(ac.ScopedTenantID),
-			AccountType:    accountDomain.TypeOpera, // 运营账号类型
+			AccountType:    accountDomain.TypeOpera,
 			CredentialType: registerApp.CredTypePassword,
 			Password:       &ac.Password,
 		}
 
-		result, err := registerService.Register(ctx, req)
+		result, err := services.registerService.Register(ctx, req)
 		if err != nil {
-			// 支持重复运行：按策略选择跳过或覆盖
-			if handled, accID, handleErr := handleAuthnConflict(ctx, deps, accountRepository, credentialRepository, passwordHasher, ac, userID, loginExternalID, err); handled {
+			if handled, accID, handleErr := handleAuthnConflict(
+				ctx,
+				deps,
+				services.accountRepository,
+				services.credentialRepository,
+				passwordHasher,
+				ac,
+				userID,
+				loginExternalID,
+				err,
+			); handled {
 				if handleErr != nil {
 					return fmt.Errorf("register account %s: %w", ac.Alias, handleErr)
 				}
 				if accID != 0 {
-					if syncErr := syncSeedAccountStatus(ctx, accountRepository, ac, meta.FromUint64(accID)); syncErr != nil {
+					if syncErr := syncSeedAccountStatus(ctx, services.accountRepository, ac, meta.FromUint64(accID)); syncErr != nil {
 						return fmt.Errorf("sync account status %s: %w", ac.Alias, syncErr)
 					}
 					state.Accounts[ac.Alias] = accID
@@ -149,11 +224,10 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 			return fmt.Errorf("register account %s: %w", ac.Alias, err)
 		}
 
-		if err := syncSeedAccountStatus(ctx, accountRepository, ac, result.AccountID); err != nil {
+		if err := syncSeedAccountStatus(ctx, services.accountRepository, ac, result.AccountID); err != nil {
 			return fmt.Errorf("sync account status %s: %w", ac.Alias, err)
 		}
 
-		// 5. 保存账号ID到状态
 		state.Accounts[ac.Alias] = result.AccountID.Uint64()
 		deps.Logger.Infow("✅ 账号创建成功",
 			"account_alias", ac.Alias,
@@ -164,21 +238,6 @@ func seedAuthn(ctx context.Context, deps *dependencies, state *seedContext) erro
 			"is_new_account", result.IsNewAccount)
 	}
 
-	if err := seedSimulatedWechatAuthn(
-		ctx,
-		deps,
-		state,
-		registerService,
-		credentialIssuer,
-		userRepository,
-		accountRepository,
-		credentialRepository,
-		wechatAppRepository,
-	); err != nil {
-		return err
-	}
-
-	deps.Logger.Infow("✅ 认证账号数据已创建")
 	return nil
 }
 
@@ -317,6 +376,85 @@ func handleAuthnConflict(
 	}
 }
 
+func loadExistingConfiguredUsersIntoState(
+	ctx context.Context,
+	deps *dependencies,
+	state *seedContext,
+	userRepository userDomain.Repository,
+) error {
+	if deps.Config == nil || len(deps.Config.Users) == 0 {
+		return nil
+	}
+
+	resolved := 0
+	for _, uc := range deps.Config.Users {
+		if state.Users[uc.Alias] != "" {
+			continue
+		}
+
+		userID, found, err := resolveExistingConfiguredUserID(ctx, userRepository, uc)
+		if err != nil {
+			return fmt.Errorf("resolve existing configured user %s: %w", uc.Alias, err)
+		}
+		if !found {
+			deps.Logger.Warnw("⚠️  配置用户不存在，跳过认证回填",
+				"user_alias", uc.Alias,
+				"user_id", uc.ID,
+				"phone", uc.Phone)
+			continue
+		}
+
+		state.Users[uc.Alias] = userID
+		resolved++
+	}
+
+	if resolved > 0 {
+		deps.Logger.Infow("📦 已加载可回填的现有配置用户", "count", resolved)
+	}
+	return nil
+}
+
+func resolveExistingConfiguredUserID(
+	ctx context.Context,
+	userRepository userDomain.Repository,
+	cfg UserConfig,
+) (userID string, found bool, err error) {
+	if strings.TrimSpace(cfg.Phone) != "" {
+		phone, phoneErr := meta.NewPhone(cfg.Phone)
+		if phoneErr != nil {
+			return "", false, fmt.Errorf("parse phone %q: %w", cfg.Phone, phoneErr)
+		}
+
+		user, findErr := userRepository.FindByPhone(ctx, phone)
+		if findErr == nil && user != nil {
+			if cfg.ID > 0 && user.ID.Uint64() != cfg.ID {
+				return "", false, fmt.Errorf("user id mismatch for phone %s: existing=%d expected=%d", cfg.Phone, user.ID.Uint64(), cfg.ID)
+			}
+			return strconv.FormatUint(user.ID.Uint64(), 10), true, nil
+		}
+		if findErr != nil && !errors.Is(findErr, gorm.ErrRecordNotFound) {
+			return "", false, findErr
+		}
+	}
+
+	if cfg.ID == 0 {
+		return "", false, nil
+	}
+
+	user, findErr := userRepository.FindByID(ctx, meta.FromUint64(cfg.ID))
+	if findErr != nil {
+		if errors.Is(findErr, gorm.ErrRecordNotFound) {
+			return "", false, nil
+		}
+		return "", false, findErr
+	}
+	if user == nil {
+		return "", false, nil
+	}
+
+	return strconv.FormatUint(user.ID.Uint64(), 10), true, nil
+}
+
 // isAuthnConflictError 识别账号/凭据唯一性冲突
 func isAuthnConflictError(err error) bool {
 	if err == nil {
@@ -408,6 +546,76 @@ func seedSimulatedWechatAuthn(
 	return nil
 }
 
+func seedSimulatedWechatAuthnForExistingBusinessUsers(
+	ctx context.Context,
+	deps *dependencies,
+	state *seedContext,
+	services *seedAuthnServices,
+) error {
+	var pos []userRepo.UserPO
+	if err := deps.DB.WithContext(ctx).
+		Where("id > ? AND deleted_at IS NULL", simulatedWechatBusinessUserIDFloor).
+		Order("id ASC").
+		Find(&pos).Error; err != nil {
+		return fmt.Errorf("list existing business users for authn backfill: %w", err)
+	}
+	if len(pos) == 0 {
+		deps.Logger.Infow("⏭️  没有需要回填微信认证的业务用户")
+		return nil
+	}
+
+	wechatAppID, err := resolveSimulatedWechatMiniProgramAppID(ctx, deps, services.wechatAppRepository)
+	if err != nil {
+		return err
+	}
+
+	deps.Logger.Infow("📱 开始为数据库中已有业务用户回填模拟微信账号",
+		"user_count", len(pos),
+		"wechat_app_internal_id", simulatedWechatAppInternalID,
+		"wechat_app_id", wechatAppID)
+
+	mapper := userRepo.NewUserMapper()
+	for idx := range pos {
+		user := mapper.ToBO(&pos[idx])
+		if user == nil {
+			return fmt.Errorf("map existing business user %d to domain user", pos[idx].ID.Uint64())
+		}
+
+		userAlias := preferredAuthnBackfillUserAlias(state.Users, user.ID)
+		created, credentialCreated, accountID, err := ensureSimulatedWechatMinipAccount(
+			ctx,
+			deps,
+			services.registerService,
+			services.credentialIssuer,
+			services.accountRepository,
+			services.credentialRepository,
+			user,
+			userAlias,
+			user.ID,
+			wechatAppID,
+		)
+		if err != nil {
+			return fmt.Errorf("ensure simulated wechat authn for existing user %d: %w", user.ID.Uint64(), err)
+		}
+
+		state.Users[userAlias] = strconv.FormatUint(user.ID.Uint64(), 10)
+		accountAlias := simulatedWechatAccountAlias(userAlias)
+		state.Accounts[accountAlias] = accountID
+
+		deps.Logger.Infow("✅ 已为现有业务用户回填模拟微信账号",
+			"user_alias", userAlias,
+			"user_id", user.ID.Uint64(),
+			"account_alias", accountAlias,
+			"account_id", accountID,
+			"provider", string(accountDomain.ProviderWeChat),
+			"app_id", wechatAppID,
+			"created", created,
+			"credential_created", credentialCreated)
+	}
+
+	return nil
+}
+
 func collectSimulatedWechatUserAliases(users map[string]string) ([]string, error) {
 	aliases := make([]string, 0, len(users))
 	for alias, userIDStr := range users {
@@ -421,6 +629,20 @@ func collectSimulatedWechatUserAliases(users map[string]string) ([]string, error
 	}
 	sort.Strings(aliases)
 	return aliases, nil
+}
+
+func preferredAuthnBackfillUserAlias(users map[string]string, userID meta.ID) string {
+	target := strconv.FormatUint(userID.Uint64(), 10)
+	for alias, existingID := range users {
+		if existingID == target {
+			return alias
+		}
+	}
+	return discoveredAuthnBackfillUserAlias(userID)
+}
+
+func discoveredAuthnBackfillUserAlias(userID meta.ID) string {
+	return fmt.Sprintf("user_%d", userID.Uint64())
 }
 
 func shouldSeedSimulatedWechatAccount(userID uint64) bool {
