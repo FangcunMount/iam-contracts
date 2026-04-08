@@ -9,6 +9,8 @@ import (
 	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"github.com/FangcunMount/iam-contracts/pkg/tenant"
 )
 
 type loginApplicationService struct {
@@ -76,6 +78,8 @@ func (s *loginApplicationService) Login(ctx context.Context, req LoginRequest) (
 		return nil, s.convertAuthError(decision.ErrCode)
 	}
 
+	ensurePrincipalTenantID(decision.Principal)
+
 	l.Debugw("认证成功，开始颁发令牌",
 		"action", logger.ActionLogin,
 		"scenario", string(scenario),
@@ -117,6 +121,15 @@ func (s *loginApplicationService) Login(ctx context.Context, req LoginRequest) (
 		AccountID: decision.Principal.AccountID,
 		TenantID:  decision.Principal.TenantID,
 	}, nil
+}
+
+// ensurePrincipalTenantID 补齐认证主体的默认 tenant_id。
+// 当前默认业务租户沿用 seeddata / QS 约定的 org_id=1，避免登录后签出的 JWT 仍然携带 0。
+func ensurePrincipalTenantID(principal *authentication.Principal) {
+	if principal == nil || !principal.TenantID.IsZero() {
+		return
+	}
+	principal.TenantID = meta.FromUint64(tenant.DefaultTenantID)
 }
 
 // Logout 登出接口 - 撤销令牌
