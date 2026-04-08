@@ -67,3 +67,30 @@ func TestPreferredAuthnBackfillUserAliasFallsBackToSyntheticAlias(t *testing.T) 
 		t.Fatalf("preferredAuthnBackfillUserAlias() = %q, want user_110123", alias)
 	}
 }
+
+func TestResolveOperationScopedTenantIDPrefersUserOrg(t *testing.T) {
+	cfg := &SeedConfig{
+		Users: []UserConfig{
+			{Alias: "system", OrgID: 1},
+			{Alias: "admin", OrgID: 2},
+		},
+	}
+
+	got := resolveOperationScopedTenantID(cfg, AccountConfig{UserAlias: "admin"})
+	if got != 2 {
+		t.Fatalf("resolveOperationScopedTenantID() = %d, want 2", got)
+	}
+}
+
+func TestResolveOperationScopedTenantIDFallsBackToDefaultOrg(t *testing.T) {
+	cfg := &SeedConfig{
+		Users: []UserConfig{
+			{Alias: "system", OrgID: 1},
+		},
+	}
+
+	got := resolveOperationScopedTenantID(cfg, AccountConfig{UserAlias: "missing"})
+	if got != 1 {
+		t.Fatalf("resolveOperationScopedTenantID() = %d, want 1", got)
+	}
+}

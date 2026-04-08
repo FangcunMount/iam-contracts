@@ -162,7 +162,8 @@ func seedConfiguredOperationAuthn(
 				"provider", ac.Provider)
 			continue
 		}
-		if err := validateOperationAccountConfig(ac, 0); err != nil {
+		scopedFallback := resolveOperationScopedTenantID(config, ac)
+		if err := validateOperationAccountConfig(ac, scopedFallback); err != nil {
 			return fmt.Errorf("invalid account config %s: %w", ac.Alias, err)
 		}
 
@@ -185,13 +186,17 @@ func seedConfiguredOperationAuthn(
 		}
 
 		loginExternalID := accountOperaExternalID(ac, user.Email.String())
+		scopedTenantID := ac.ScopedTenantID
+		if scopedTenantID == 0 {
+			scopedTenantID = scopedFallback
+		}
 		req := registerApp.RegisterRequest{
 			Name:           user.Name,
 			Phone:          user.Phone,
 			Email:          user.Email,
 			ExistingUserID: userID,
 			OperaLoginID:   loginExternalID,
-			ScopedTenantID: meta.FromUint64(ac.ScopedTenantID),
+			ScopedTenantID: meta.FromUint64(scopedTenantID),
 			AccountType:    accountDomain.TypeOpera,
 			CredentialType: registerApp.CredTypePassword,
 			Password:       &ac.Password,
@@ -412,6 +417,20 @@ func loadExistingConfiguredUsersIntoState(
 		deps.Logger.Infow("📦 已加载可回填的现有配置用户", "count", resolved)
 	}
 	return nil
+}
+
+func resolveOperationScopedTenantID(cfg *SeedConfig, ac AccountConfig) uint64 {
+	if ac.ScopedTenantID != 0 {
+		return ac.ScopedTenantID
+	}
+	if cfg != nil {
+		for _, user := range cfg.Users {
+			if user.Alias == ac.UserAlias && user.OrgID > 0 {
+				return uint64(user.OrgID)
+			}
+		}
+	}
+	return resolveDefaultOrgScope(cfg)
 }
 
 func resolveExistingConfiguredUserID(
