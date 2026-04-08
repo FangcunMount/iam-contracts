@@ -51,7 +51,7 @@ const (
 	stepSystemInit seedStep = "system-init" // 系统基础设施初始化：租户 + JWKS密钥 + 微信应用
 
 	// ===== 认证授权体系初始化 =====
-	stepAuthnInit seedStep = "authn-init" // 认证授权体系初始化：认证账号 + 角色 + 资源 + 权限分配 + Casbin策略
+	stepAuthnInit seedStep = "authn-init" // 认证授权体系初始化：角色 + 资源 + Casbin策略
 
 	// ===== 管理员账号初始化 =====
 	stepAdminInit seedStep = "admin-init" // 管理员账号初始化：创建管理员用户 + 认证账号 + 分配角色权限 + QS员工
@@ -117,8 +117,9 @@ func main() {
 	casbinModelFlag := flag.String("casbin-model", "configs/casbin_model.conf", "Path to casbin model configuration file")
 	configFileFlag := flag.String("config", "configs/seeddata.yaml", "Path to seed data configuration file")
 	stepsFlag := flag.String("steps", strings.Join(stepListToStrings(defaultSteps), ","), "Comma separated seed steps (system-init,authn-init,tenant-bootstrap-admin,admin-init,family-init)")
-	familyCountFlag := flag.Int("family-count", 200000, "Number of families to generate in family seed step")
-	workerCountFlag := flag.Int("worker-count", 20, "Number of concurrent workers for family seed step")
+	familyCountFlag := flag.Int("family-count", defaultFamilyCount, "Number of families to generate in family seed step")
+	workerCountFlag := flag.Int("worker-count", defaultWorkerCount, "Number of concurrent workers for family seed step")
+	mockFlag := flag.Bool("mock", false, "Append family-init after base seed steps to generate mock family/testee data")
 	verboseFlag := flag.Bool("verbose", false, "Enable verbose output including SQL logs")
 	devFlag := flag.Bool("dev", false, "Enable development mode: print full runtime logs (verbose) vs stats-only mode")
 	onConflictFlag := flag.String("on-conflict", "skip", "Behavior when data already exists: skip|overwrite|fail")
@@ -178,9 +179,13 @@ func main() {
 
 	// 解析要执行的步骤
 	stepOrder := parseSteps(*stepsFlag)
+	stepOrder = applyMockMode(stepOrder, *mockFlag)
 	ctx := context.Background()
 	state := newSeedContext()
 
+	if *mockFlag {
+		logger.Infow("🧪 mock 模式已启用", "family_count", *familyCountFlag, "worker_count", *workerCountFlag)
+	}
 	logger.Infow("🚀 开始执行 seed 数据脚本", "steps", stepOrder)
 
 	// 按顺序执行各个步骤
@@ -291,6 +296,18 @@ func parseSteps(raw string) []seedStep {
 		steps = append(steps, seedStep(item))
 	}
 	return steps
+}
+
+func applyMockMode(steps []seedStep, enabled bool) []seedStep {
+	if !enabled {
+		return steps
+	}
+	for _, step := range steps {
+		if step == stepFamilyInit {
+			return steps
+		}
+	}
+	return append(append([]seedStep{}, steps...), stepFamilyInit)
 }
 
 // stepListToStrings 将步骤列表转换为字符串列表
