@@ -465,12 +465,14 @@ func (x *TokenMetadata) GetExpiresAt() *timestamppb.Timestamp {
 }
 
 type VerifyTokenRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	AccessToken     string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	ForceRemote     bool                   `protobuf:"varint,2,opt,name=force_remote,json=forceRemote,proto3" json:"force_remote,omitempty"`
-	IncludeMetadata bool                   `protobuf:"varint,3,opt,name=include_metadata,json=includeMetadata,proto3" json:"include_metadata,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken      string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	ForceRemote      bool                   `protobuf:"varint,2,opt,name=force_remote,json=forceRemote,proto3" json:"force_remote,omitempty"`
+	IncludeMetadata  bool                   `protobuf:"varint,3,opt,name=include_metadata,json=includeMetadata,proto3" json:"include_metadata,omitempty"`
+	ExpectedIssuer   string                 `protobuf:"bytes,4,opt,name=expected_issuer,json=expectedIssuer,proto3" json:"expected_issuer,omitempty"`
+	ExpectedAudience []string               `protobuf:"bytes,5,rep,name=expected_audience,json=expectedAudience,proto3" json:"expected_audience,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *VerifyTokenRequest) Reset() {
@@ -522,6 +524,20 @@ func (x *VerifyTokenRequest) GetIncludeMetadata() bool {
 		return x.IncludeMetadata
 	}
 	return false
+}
+
+func (x *VerifyTokenRequest) GetExpectedIssuer() string {
+	if x != nil {
+		return x.ExpectedIssuer
+	}
+	return ""
+}
+
+func (x *VerifyTokenRequest) GetExpectedAudience() []string {
+	if x != nil {
+		return x.ExpectedAudience
+	}
+	return nil
 }
 
 type VerifyTokenResponse struct {
@@ -1138,11 +1154,13 @@ const file_iam_authn_v1_authn_proto_rawDesc = "" +
 	"\x06status\x18\x02 \x01(\x0e2\x19.iam.authn.v1.TokenStatusR\x06status\x127\n" +
 	"\tissued_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bissuedAt\x129\n" +
 	"\n" +
-	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"\x85\x01\n" +
+	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"\xdb\x01\n" +
 	"\x12VerifyTokenRequest\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12!\n" +
 	"\fforce_remote\x18\x02 \x01(\bR\vforceRemote\x12)\n" +
-	"\x10include_metadata\x18\x03 \x01(\bR\x0fincludeMetadata\"\xf1\x01\n" +
+	"\x10include_metadata\x18\x03 \x01(\bR\x0fincludeMetadata\x12'\n" +
+	"\x0fexpected_issuer\x18\x04 \x01(\tR\x0eexpectedIssuer\x12+\n" +
+	"\x11expected_audience\x18\x05 \x03(\tR\x10expectedAudience\"\xf1\x01\n" +
 	"\x13VerifyTokenResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x121\n" +
 	"\x06status\x18\x02 \x01(\x0e2\x19.iam.authn.v1.TokenStatusR\x06status\x121\n" +

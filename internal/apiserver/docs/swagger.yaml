@@ -148,6 +148,12 @@ definitions:
     properties:
       access_token:
         type: string
+      expected_audience:
+        items:
+          type: string
+        type: array
+      expected_issuer:
+        type: string
     required:
     - access_token
     type: object
@@ -308,6 +314,14 @@ definitions:
       account_id:
         description: 账户 ID
         type: string
+      amr:
+        items:
+          type: string
+        type: array
+      attributes:
+        additionalProperties:
+          type: string
+        type: object
       expires_at:
         description: 过期时间
         type: string

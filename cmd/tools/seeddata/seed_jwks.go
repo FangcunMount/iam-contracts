@@ -35,7 +35,7 @@ func seedJWKS(ctx context.Context, deps *dependencies) error {
 	keyManager := jwks.NewKeyManager(keyRepo, keyGenerator)
 
 	keyResolver := crypto.NewPEMPrivateKeyResolver(deps.KeysDir)
-	jwtGenerator := jwt.NewGenerator("iam-seed", keyManager, keyResolver)
+	jwtGenerator := jwt.NewGenerator("iam-seed", nil, keyManager, keyResolver)
 	_ = jwtGenerator // ensure generator initialised for side effects
 
 	manager := jwksApp.NewKeyManagementAppService(keyManager, deps.Logger)

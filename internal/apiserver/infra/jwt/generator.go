@@ -21,21 +21,30 @@ import (
 
 // Generator JWT 令牌生成器（使用 JWKS 的 RSA 密钥签名）
 type Generator struct {
-	issuer          string                  // 颁发者
-	keyMgmt         jwks.Manager            // 密钥管理服务
-	privKeyResolver jwks.PrivateKeyResolver // 私钥解析器
+	issuer              string                  // 颁发者
+	accessTokenAudience []string                // Access Token audience
+	keyMgmt             jwks.Manager            // 密钥管理服务
+	privKeyResolver     jwks.PrivateKeyResolver // 私钥解析器
 }
 
 // NewGenerator 创建 JWT 生成器
 func NewGenerator(
 	issuer string,
+	accessTokenAudience []string,
 	keyMgmt jwks.Manager,
 	privKeyResolver jwks.PrivateKeyResolver,
 ) *Generator {
+	if issuer == "" {
+		issuer = "https://iam.fangcunmount.cn"
+	}
+	if len(accessTokenAudience) == 0 {
+		accessTokenAudience = []string{"qs-api", "collection-api"}
+	}
 	return &Generator{
-		issuer:          issuer,
-		keyMgmt:         keyMgmt,
-		privKeyResolver: privKeyResolver,
+		issuer:              issuer,
+		accessTokenAudience: cloneStrings(accessTokenAudience),
+		keyMgmt:             keyMgmt,
+		privKeyResolver:     privKeyResolver,
 	}
 }
 
@@ -45,10 +54,9 @@ type CustomClaims struct {
 	UserID     string            `json:"user_id,omitempty"`
 	AccountID  string            `json:"account_id,omitempty"`
 	TenantID   string            `json:"tenant_id,omitempty"`
-	Audience   []string          `json:"audience,omitempty"`
 	Attributes map[string]string `json:"attributes,omitempty"`
 	AMR        []string          `json:"amr,omitempty"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // GenerateAccessToken 生成访问令牌（JWT）
@@ -67,13 +75,14 @@ func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authenti
 		TenantID:   principal.TenantID.String(),
 		Attributes: cloneStringMap(attr),
 		AMR:        cloneStrings(principal.AMR),
-		StandardClaims: jwt.StandardClaims{
-			Id:        tokenID,
-			Subject:   principal.UserID.String(), // 添加 sub 字段，设置为 user_id
+		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        tokenID,
+			Subject:   principal.UserID.String(),
 			Issuer:    g.issuer,
-			IssuedAt:  now.Unix(),
-			ExpiresAt: now.Add(expiresIn).Unix(),
-			NotBefore: now.Unix(),
+			Audience:  jwt.ClaimStrings(cloneStrings(g.accessTokenAudience)),
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(expiresIn)),
+			NotBefore: jwt.NewNumericDate(now),
 		},
 	}
 	l.Debugw("GenerateAccessToken", "claims", claims)
@@ -104,15 +113,15 @@ func (g *Generator) GenerateServiceToken(ctx context.Context, subject string, au
 
 	claims := CustomClaims{
 		TokenType:  string(domain.TokenTypeService),
-		Audience:   cloneStrings(audience),
 		Attributes: cloneStringMap(attributes),
-		StandardClaims: jwt.StandardClaims{
-			Id:        tokenID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        tokenID,
 			Subject:   subject,
 			Issuer:    g.issuer,
-			IssuedAt:  now.Unix(),
-			ExpiresAt: now.Add(expiresIn).Unix(),
-			NotBefore: now.Unix(),
+			Audience:  jwt.ClaimStrings(cloneStrings(audience)),
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(expiresIn)),
+			NotBefore: jwt.NewNumericDate(now),
 		},
 	}
 
@@ -208,17 +217,17 @@ func (g *Generator) ParseAccessToken(ctx context.Context, tokenValue string) (*d
 	}
 	return domain.NewTokenClaims(
 		tokenType,
-		claims.Id,
+		claims.ID,
 		claims.Subject,
 		userID,
 		accountID,
 		tenantID,
 		claims.Issuer,
-		claims.Audience,
+		[]string(claims.Audience),
 		claims.Attributes,
 		claims.AMR,
-		time.Unix(claims.IssuedAt, 0),
-		time.Unix(claims.ExpiresAt, 0),
+		numericDateTime(claims.IssuedAt),
+		numericDateTime(claims.ExpiresAt),
 	), nil
 }
 
@@ -277,4 +286,11 @@ func parseStringID(raw string) meta.ID {
 		return meta.FromUint64(0)
 	}
 	return meta.FromUint64(value)
+}
+
+func numericDateTime(v *jwt.NumericDate) time.Time {
+	if v == nil {
+		return time.Time{}
+	}
+	return v.Time
 }

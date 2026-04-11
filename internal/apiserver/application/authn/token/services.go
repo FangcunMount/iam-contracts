@@ -24,7 +24,7 @@ type TokenApplicationService interface {
 	RevokeRefreshToken(ctx context.Context, refreshToken string) error
 
 	// VerifyToken 验证访问令牌
-	VerifyToken(ctx context.Context, accessToken string) (*TokenVerifyResult, error)
+	VerifyToken(ctx context.Context, req VerifyTokenRequest) (*TokenVerifyResult, error)
 }
 
 // ============= DTOs =============
@@ -45,6 +45,13 @@ type TokenIssueResult struct {
 // TokenRefreshResult 令牌刷新结果DTO
 type TokenRefreshResult struct {
 	TokenPair *domain.TokenPair // 新的令牌对
+}
+
+// VerifyTokenRequest 令牌验证请求 DTO。
+type VerifyTokenRequest struct {
+	AccessToken      string
+	ExpectedIssuer   string
+	ExpectedAudience []string
 }
 
 // TokenVerifyResult 令牌验证结果DTO

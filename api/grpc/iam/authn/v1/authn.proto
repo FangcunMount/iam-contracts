@@ -68,6 +68,8 @@ message VerifyTokenRequest {
   string access_token = 1;
   bool force_remote = 2;
   bool include_metadata = 3;
+  string expected_issuer = 4;
+  repeated string expected_audience = 5;
 }
 
 message VerifyTokenResponse {

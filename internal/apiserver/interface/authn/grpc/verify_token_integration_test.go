@@ -37,9 +37,9 @@ func (noopTokenStore) SaveRefreshToken(context.Context, *domaintoken.Token) erro
 func (noopTokenStore) GetRefreshToken(context.Context, string) (*domaintoken.Token, error) {
 	return nil, nil
 }
-func (noopTokenStore) DeleteRefreshToken(context.Context, string) error { return nil }
+func (noopTokenStore) DeleteRefreshToken(context.Context, string) error            { return nil }
 func (noopTokenStore) AddToBlacklist(context.Context, string, time.Duration) error { return nil }
-func (noopTokenStore) IsBlacklisted(context.Context, string) (bool, error) { return false, nil }
+func (noopTokenStore) IsBlacklisted(context.Context, string) (bool, error)         { return false, nil }
 
 type staticPrivResolver struct{ key *rsa.PrivateKey }
 
@@ -50,16 +50,18 @@ func (s *staticPrivResolver) ResolveSigningKey(context.Context, string, string) 
 // fixedKeyManager 仅满足 JWT 签发与验签所需的最小 Manager 行为。
 type fixedKeyManager struct{ active *jwksdomain.Key }
 
-func (m *fixedKeyManager) GetActiveKey(context.Context) (*jwksdomain.Key, error) { return m.active, nil }
+func (m *fixedKeyManager) GetActiveKey(context.Context) (*jwksdomain.Key, error) {
+	return m.active, nil
+}
 func (m *fixedKeyManager) GetKeyByKid(context.Context, string) (*jwksdomain.Key, error) {
 	return m.active, nil
 }
 func (m *fixedKeyManager) CreateKey(context.Context, string, *time.Time, *time.Time) (*jwksdomain.Key, error) {
 	return nil, errJWKSStub
 }
-func (m *fixedKeyManager) RetireKey(context.Context, string) error       { return errJWKSStub }
-func (m *fixedKeyManager) ForceRetireKey(context.Context, string) error { return errJWKSStub }
-func (m *fixedKeyManager) EnterGracePeriod(context.Context, string) error { return errJWKSStub }
+func (m *fixedKeyManager) RetireKey(context.Context, string) error         { return errJWKSStub }
+func (m *fixedKeyManager) ForceRetireKey(context.Context, string) error    { return errJWKSStub }
+func (m *fixedKeyManager) EnterGracePeriod(context.Context, string) error  { return errJWKSStub }
 func (m *fixedKeyManager) CleanupExpiredKeys(context.Context) (int, error) { return 0, errJWKSStub }
 func (m *fixedKeyManager) ListKeys(context.Context, jwksdomain.KeyStatus, int, int) ([]*jwksdomain.Key, int64, error) {
 	return nil, 0, errJWKSStub
@@ -100,7 +102,7 @@ func newTestTokenStack(t *testing.T) (
 		jwksdomain.WithNotAfter(now.Add(time.Hour)),
 	)
 
-	gen := jwt.NewGenerator("https://iam.integration.test", &fixedKeyManager{active: active}, &staticPrivResolver{key: priv})
+	gen := jwt.NewGenerator("https://iam.integration.test", []string{"qs-api", "collection-api"}, &fixedKeyManager{active: active}, &staticPrivResolver{key: priv})
 	store := noopTokenStore{}
 	issuer := domaintoken.NewTokenIssuer(gen, store, time.Hour, 24*time.Hour)
 	verifier := domaintoken.NewTokenVerifyer(gen, store)
@@ -150,6 +152,14 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	require.Equal(t, []string{string(authentication.AMRPassword)}, gresp.Claims.Amr)
 	require.Equal(t, "+8613800138000", gresp.Claims.Attributes["phone_number"])
 
+	gresp, err = grpcSrv.VerifyToken(ctx, &authnv1.VerifyTokenRequest{
+		AccessToken:      access,
+		ExpectedIssuer:   "https://iam.integration.test",
+		ExpectedAudience: []string{"qs-api"},
+	})
+	require.NoError(t, err)
+	require.True(t, gresp.Valid)
+
 	// REST POST verify（与 gRPC 使用同一 TokenApplicationService）
 	h := authhandler.NewAuthHandler(nil, tokenSvc, nil)
 	w := httptest.NewRecorder()
@@ -183,6 +193,35 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	require.Equal(t, "+8613800138000", tv.Claims.Attributes["phone_number"])
 }
 
+func TestIntegration_VerifyToken_RejectsIssuerOrAudienceMismatch(t *testing.T) {
+	ctx := context.Background()
+	tokenSvc, _, issuer := newTestTokenStack(t)
+
+	principal := &authentication.Principal{
+		UserID:    meta.FromUint64(7),
+		AccountID: meta.FromUint64(8),
+		TenantID:  meta.FromUint64(9),
+	}
+	pair, err := issuer.IssueToken(ctx, principal)
+	require.NoError(t, err)
+
+	grpcSrv := &authServiceServer{tokenSvc: tokenSvc}
+
+	respIssuer, err := grpcSrv.VerifyToken(ctx, &authnv1.VerifyTokenRequest{
+		AccessToken:    pair.AccessToken.Value,
+		ExpectedIssuer: "https://issuer.invalid",
+	})
+	require.NoError(t, err)
+	require.False(t, respIssuer.Valid)
+
+	respAudience, err := grpcSrv.VerifyToken(ctx, &authnv1.VerifyTokenRequest{
+		AccessToken:      pair.AccessToken.Value,
+		ExpectedAudience: []string{"wrong-audience"},
+	})
+	require.NoError(t, err)
+	require.False(t, respAudience.Valid)
+}
+
 // 可选：gRPC VerifyToken 在 IncludeMetadata 时返回元数据（与 Claims 同源签发链）。
 func TestIntegration_VerifyToken_GRPC_IncludeMetadata(t *testing.T) {
 	ctx := context.Background()
@@ -198,7 +237,7 @@ func TestIntegration_VerifyToken_GRPC_IncludeMetadata(t *testing.T) {
 
 	grpcSrv := &authServiceServer{tokenSvc: tokenSvc}
 	gresp, err := grpcSrv.VerifyToken(ctx, &authnv1.VerifyTokenRequest{
-		AccessToken:       pair.AccessToken.Value,
+		AccessToken:     pair.AccessToken.Value,
 		IncludeMetadata: true,
 	})
 	require.NoError(t, err)

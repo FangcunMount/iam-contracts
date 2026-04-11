@@ -9,7 +9,7 @@ import (
 var jwtReservedClaimKeys = map[string]struct{}{
 	"token_type": {}, "user_id": {}, "account_id": {}, "tenant_id": {},
 	"jti": {}, "sub": {}, "iss": {}, "aud": {}, "exp": {}, "iat": {}, "nbf": {},
-	"amr": {}, "attributes": {},
+	"amr": {}, "attributes": {}, "audience": {},
 }
 
 // FlattenClaimsForJWT 将 Principal.Claims 转为可写入 JWT `attributes` 的字符串 map。

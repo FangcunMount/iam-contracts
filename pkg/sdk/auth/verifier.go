@@ -102,8 +102,12 @@ func (s *LocalVerifyStrategy) Verify(ctx context.Context, tokenString string, op
 	}
 
 	// Issuer 验证
-	if s.config != nil && s.config.AllowedIssuer != "" {
-		verifyOpts = append(verifyOpts, jwt.WithIssuer(s.config.AllowedIssuer))
+	issuer := opts.ExpectedIssuer
+	if issuer == "" && s.config != nil {
+		issuer = s.config.AllowedIssuer
+	}
+	if issuer != "" {
+		verifyOpts = append(verifyOpts, jwt.WithIssuer(issuer))
 	}
 
 	// 时钟偏差
@@ -185,12 +189,14 @@ func (s *LocalVerifyStrategy) getAllowedAlgorithms() []jwa.SignatureAlgorithm {
 // RemoteVerifyStrategy 远程验证策略（调用 IAM 服务）
 type RemoteVerifyStrategy struct {
 	authClient *Client
+	config     *config.TokenVerifyConfig
 }
 
 // NewRemoteVerifyStrategy 创建远程验证策略
-func NewRemoteVerifyStrategy(authClient *Client) *RemoteVerifyStrategy {
+func NewRemoteVerifyStrategy(authClient *Client, cfg *config.TokenVerifyConfig) *RemoteVerifyStrategy {
 	return &RemoteVerifyStrategy{
 		authClient: authClient,
+		config:     cfg,
 	}
 }
 
@@ -207,7 +213,9 @@ func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, o
 	}
 
 	resp, err := s.authClient.VerifyToken(ctx, &authnv1.VerifyTokenRequest{
-		AccessToken: tokenString,
+		AccessToken:      tokenString,
+		ExpectedIssuer:   s.expectedIssuer(opts),
+		ExpectedAudience: s.expectedAudience(opts),
 	})
 	log.Println("RemoteVerifyStrategy verify token", "resp", resp)
 	if err != nil {
@@ -254,6 +262,26 @@ func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, o
 		Valid:  true,
 		Claims: claims,
 	}, nil
+}
+
+func (s *RemoteVerifyStrategy) expectedAudience(opts *VerifyOptions) []string {
+	if opts != nil && len(opts.ExpectedAudience) > 0 {
+		return append([]string(nil), opts.ExpectedAudience...)
+	}
+	if s.config != nil && len(s.config.AllowedAudience) > 0 {
+		return append([]string(nil), s.config.AllowedAudience...)
+	}
+	return nil
+}
+
+func (s *RemoteVerifyStrategy) expectedIssuer(opts *VerifyOptions) string {
+	if opts != nil && opts.ExpectedIssuer != "" {
+		return opts.ExpectedIssuer
+	}
+	if s.config != nil {
+		return s.config.AllowedIssuer
+	}
+	return ""
 }
 
 // =============================================================================
@@ -435,6 +463,9 @@ type VerifyOptions struct {
 
 	// ExpectedAudience 期望的 audience（覆盖默认配置）
 	ExpectedAudience []string
+
+	// ExpectedIssuer 期望的 issuer（覆盖默认配置）
+	ExpectedIssuer string
 }
 
 // TokenVerifierOption 验证器配置选项
@@ -521,12 +552,12 @@ func (s *StrategySelector) selectRemoteOnly() (VerifyStrategy, error) {
 	if s.authClient == nil {
 		return nil, fmt.Errorf("strategy-selector: auth client required for remote strategy")
 	}
-	return NewRemoteVerifyStrategy(s.authClient), nil
+	return NewRemoteVerifyStrategy(s.authClient, s.cfg), nil
 }
 
 func (s *StrategySelector) selectWithFallback() (VerifyStrategy, error) {
 	localStrategy := NewLocalVerifyStrategy(s.jwksManager, WithLocalConfig(s.cfg))
-	remoteStrategy := NewRemoteVerifyStrategy(s.authClient)
+	remoteStrategy := NewRemoteVerifyStrategy(s.authClient, s.cfg)
 	return NewFallbackVerifyStrategy(localStrategy, remoteStrategy), nil
 }
 
@@ -543,7 +574,7 @@ func (s *StrategySelector) RemoteStrategy() (*RemoteVerifyStrategy, error) {
 	if s.authClient == nil {
 		return nil, fmt.Errorf("strategy-selector: auth client not available")
 	}
-	return NewRemoteVerifyStrategy(s.authClient), nil
+	return NewRemoteVerifyStrategy(s.authClient, s.cfg), nil
 }
 
 // FallbackStrategy 显式获取降级策略

@@ -100,7 +100,9 @@ func (r *LogoutRequest) Validate() error {
 
 // VerifyTokenRequest 验证令牌请求
 type VerifyTokenRequest struct {
-	AccessToken string `json:"access_token" binding:"required"`
+	AccessToken      string   `json:"access_token" binding:"required"`
+	ExpectedIssuer   string   `json:"expected_issuer,omitempty"`
+	ExpectedAudience []string `json:"expected_audience,omitempty"`
 }
 
 // Validate 验证令牌验证请求

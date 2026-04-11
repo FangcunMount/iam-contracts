@@ -58,7 +58,9 @@ func (m *JWTAuthMiddleware) AuthRequired() gin.HandlerFunc {
 		// 不记录完整 token，仅在中央验证处输出必要信息
 
 		// 验证令牌
-		resp, err := m.tokenService.VerifyToken(c.Request.Context(), tokenValue)
+		resp, err := m.tokenService.VerifyToken(c.Request.Context(), token.VerifyTokenRequest{
+			AccessToken: tokenValue,
+		})
 		if err != nil {
 			log.Errorw("token verification request failed",
 				"error", err,
@@ -114,7 +116,9 @@ func (m *JWTAuthMiddleware) AuthOptional() gin.HandlerFunc {
 		}
 
 		// 验证令牌
-		resp, err := m.tokenService.VerifyToken(c.Request.Context(), tokenValue)
+		resp, err := m.tokenService.VerifyToken(c.Request.Context(), token.VerifyTokenRequest{
+			AccessToken: tokenValue,
+		})
 		if err != nil {
 			// 验证失败，允许通过（不设置用户信息）
 			log.Debugw("token verification failed in optional auth",

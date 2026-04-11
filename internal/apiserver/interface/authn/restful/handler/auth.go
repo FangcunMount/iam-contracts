@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,9 +21,9 @@ import (
 // AuthHandler 认证 HTTP 处理器
 type AuthHandler struct {
 	*BaseHandler
-	loginService       login.LoginApplicationService
-	tokenService       token.TokenApplicationService
-	loginPreparation   loginprep.LoginPreparationService
+	loginService     login.LoginApplicationService
+	tokenService     token.TokenApplicationService
+	loginPreparation loginprep.LoginPreparationService
 }
 
 // NewAuthHandler 创建认证处理器
@@ -277,7 +278,11 @@ func (h *AuthHandler) VerifyToken(c *gin.Context) {
 		return
 	}
 
-	result, err := h.tokenService.VerifyToken(c.Request.Context(), reqBody.AccessToken)
+	result, err := h.tokenService.VerifyToken(c.Request.Context(), token.VerifyTokenRequest{
+		AccessToken:      reqBody.AccessToken,
+		ExpectedIssuer:   strings.TrimSpace(reqBody.ExpectedIssuer),
+		ExpectedAudience: append([]string(nil), reqBody.ExpectedAudience...),
+	})
 	if err != nil {
 		h.Error(c, err)
 		return

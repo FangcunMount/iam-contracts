@@ -42,8 +42,8 @@ import (
 // AuthnModule 认证模块
 type AuthnModule struct {
 	// 应用服务
-	AccountService  accountApp.AccountApplicationService
-	RegisterService registerApp.RegisterApplicationService
+	AccountService          accountApp.AccountApplicationService
+	RegisterService         registerApp.RegisterApplicationService
 	LoginService            login.LoginApplicationService
 	LoginPreparationService loginprep.LoginPreparationService
 	TokenService            token.TokenApplicationService
@@ -102,9 +102,9 @@ func (m *AuthnModule) Initialize(params ...interface{}) error {
 
 	// 获取可选依赖
 	var (
-		hasher    authentication.PasswordHasher
-		idpDeps   *IDPModule
-		eventBus  messaging.EventBus
+		hasher   authentication.PasswordHasher
+		idpDeps  *IDPModule
+		eventBus messaging.EventBus
 	)
 	for _, opt := range params[2:] {
 		switch v := opt.(type) {
@@ -279,6 +279,7 @@ func (m *AuthnModule) initializeDomain(infra *infrastructureComponents) *domainC
 	// JWT Generator（依赖 JWKS）
 	infra.jwtGenerator = jwtinfra.NewGenerator(
 		viper.GetString("auth.jwt_issuer"),
+		viper.GetStringSlice("auth.access_token_audience"),
 		domain.keyManager,
 		infra.privKeyResolver,
 	)

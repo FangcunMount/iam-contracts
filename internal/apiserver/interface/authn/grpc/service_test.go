@@ -17,9 +17,10 @@ import (
 )
 
 type tokenServiceStub struct {
-	issueReq tokenApp.IssueServiceTokenRequest
-	issueRes *tokenApp.TokenIssueResult
-	issueErr error
+	issueReq  tokenApp.IssueServiceTokenRequest
+	issueRes  *tokenApp.TokenIssueResult
+	issueErr  error
+	verifyReq tokenApp.VerifyTokenRequest
 }
 
 func (s *tokenServiceStub) IssueServiceToken(ctx context.Context, req tokenApp.IssueServiceTokenRequest) (*tokenApp.TokenIssueResult, error) {
@@ -39,7 +40,8 @@ func (s *tokenServiceStub) RevokeRefreshToken(ctx context.Context, refreshToken 
 	return nil
 }
 
-func (s *tokenServiceStub) VerifyToken(ctx context.Context, accessToken string) (*tokenApp.TokenVerifyResult, error) {
+func (s *tokenServiceStub) VerifyToken(ctx context.Context, req tokenApp.VerifyTokenRequest) (*tokenApp.TokenVerifyResult, error) {
+	s.verifyReq = req
 	return &tokenApp.TokenVerifyResult{
 		Valid: true,
 		Claims: tokenDomain.NewTokenClaims(
@@ -95,4 +97,19 @@ func TestAuthServiceServerIssueServiceTokenValidation(t *testing.T) {
 	_, err := srv.IssueServiceToken(context.Background(), &authnv1.IssueServiceTokenRequest{})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestAuthServiceServerVerifyTokenPassesExpectationGuards(t *testing.T) {
+	stub := &tokenServiceStub{}
+	srv := &authServiceServer{tokenSvc: stub}
+
+	_, err := srv.VerifyToken(context.Background(), &authnv1.VerifyTokenRequest{
+		AccessToken:      "jwt-token",
+		ExpectedIssuer:   "https://iam.fangcunmount.cn",
+		ExpectedAudience: []string{"qs-api"},
+	})
+	require.NoError(t, err)
+	require.Equal(t, "jwt-token", stub.verifyReq.AccessToken)
+	require.Equal(t, "https://iam.fangcunmount.cn", stub.verifyReq.ExpectedIssuer)
+	require.Equal(t, []string{"qs-api"}, stub.verifyReq.ExpectedAudience)
 }

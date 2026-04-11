@@ -70,7 +70,11 @@ func (s *authServiceServer) VerifyToken(ctx context.Context, req *authnv1.Verify
 		return nil, status.Error(codes.InvalidArgument, "access_token is required")
 	}
 
-	result, err := s.tokenSvc.VerifyToken(ctx, req.GetAccessToken())
+	result, err := s.tokenSvc.VerifyToken(ctx, tokenApp.VerifyTokenRequest{
+		AccessToken:      req.GetAccessToken(),
+		ExpectedIssuer:   strings.TrimSpace(req.GetExpectedIssuer()),
+		ExpectedAudience: cloneAudience(req.GetExpectedAudience()),
+	})
 	if err != nil {
 		return nil, toGRPCError(err)
 	}

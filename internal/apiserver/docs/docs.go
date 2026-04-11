@@ -3048,6 +3048,15 @@ const docTemplate = `{
             "properties": {
                 "access_token": {
                     "type": "string"
+                },
+                "expected_audience": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "expected_issuer": {
+                    "type": "string"
                 }
             }
         },
@@ -3283,6 +3292,18 @@ const docTemplate = `{
                 "account_id": {
                     "description": "账户 ID",
                     "type": "string"
+                },
+                "amr": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "attributes": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "expires_at": {
                     "description": "过期时间",
