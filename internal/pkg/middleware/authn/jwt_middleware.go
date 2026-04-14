@@ -9,6 +9,7 @@ import (
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
+	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/security/sanitize"
 	"github.com/FangcunMount/iam-contracts/pkg/core"
@@ -88,16 +89,7 @@ func (m *JWTAuthMiddleware) AuthRequired() gin.HandlerFunc {
 
 		// 将用户信息存入上下文（从 Claims 中读取）
 		if resp.Claims != nil {
-			ctx := context.WithValue(c.Request.Context(), ContextKeyUserID, resp.Claims.UserID)
-			c.Request = c.Request.WithContext(ctx)
-			c.Set(ContextKeyClaims, resp.Claims)
-			uid := resp.Claims.UserID.String()
-			aid := resp.Claims.AccountID.String()
-			tid := resp.Claims.TokenID
-			_ = tid
-			c.Set(ContextKeyUserID, uid)
-			c.Set(ContextKeyAccountID, aid)
-			c.Set(ContextKeyTokenID, tid)
+			applyVerifiedClaims(c, resp.Claims)
 		}
 
 		c.Next()
@@ -147,16 +139,7 @@ func (m *JWTAuthMiddleware) AuthOptional() gin.HandlerFunc {
 
 		// 将用户信息存入上下文（从 Claims 中读取）
 		if resp.Claims != nil {
-			ctx := context.WithValue(c.Request.Context(), ContextKeyUserID, resp.Claims.UserID)
-			c.Request = c.Request.WithContext(ctx)
-			c.Set(ContextKeyClaims, resp.Claims)
-			uid := resp.Claims.UserID.String()
-			aid := resp.Claims.AccountID.String()
-			tid := resp.Claims.TokenID
-			_ = tid
-			c.Set(ContextKeyUserID, uid)
-			c.Set(ContextKeyAccountID, aid)
-			c.Set(ContextKeyTokenID, tid)
+			applyVerifiedClaims(c, resp.Claims)
 		}
 
 		c.Next()
@@ -252,7 +235,7 @@ func (m *JWTAuthMiddleware) RequirePermission(resourceObj, action string) gin.Ha
 
 // TenantIDFromGin 从 gin 上下文解析租户域（Casbin domain），缺省为 tenant.DefaultID。
 func TenantIDFromGin(c *gin.Context) string {
-	tenantID, exists := c.Get("tenant_id")
+	tenantID, exists := c.Get(ContextKeyTenantID)
 	if !exists {
 		return tenant.DefaultID
 	}
@@ -260,6 +243,29 @@ func TenantIDFromGin(c *gin.Context) string {
 		return id
 	}
 	return tenant.DefaultID
+}
+
+func applyVerifiedClaims(c *gin.Context, claims *tokenDomain.TokenClaims) {
+	if c == nil || claims == nil {
+		return
+	}
+
+	ctx := context.WithValue(c.Request.Context(), ContextKeyUserID, claims.UserID)
+	c.Request = c.Request.WithContext(ctx)
+	c.Set(ContextKeyClaims, claims)
+
+	if !claims.UserID.IsZero() {
+		c.Set(ContextKeyUserID, claims.UserID.String())
+	}
+	if !claims.AccountID.IsZero() {
+		c.Set(ContextKeyAccountID, claims.AccountID.String())
+	}
+	if !claims.TenantID.IsZero() {
+		c.Set(ContextKeyTenantID, claims.TenantID.String())
+	}
+	if claims.TokenID != "" {
+		c.Set(ContextKeyTokenID, claims.TokenID)
+	}
 }
 
 // extractToken 从请求中提取令牌
