@@ -56,6 +56,8 @@ services:
       # AuthorizationService - PDP（策略判定）
       - /iam.authz.v1.AuthorizationService/Check
       - /iam.authz.v1.AuthorizationService/GetAuthorizationSnapshot
+      - /iam.authz.v1.AuthorizationService/GrantAssignment
+      - /iam.authz.v1.AuthorizationService/RevokeAssignment
     denied_methods: []
 
   # QS Collection Server - 数据收集服务
