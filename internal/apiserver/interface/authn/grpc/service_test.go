@@ -6,7 +6,9 @@ import (
 	"time"
 
 	authnv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/authn/v1"
+	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/register"
 	tokenApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
+	accountDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
 	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
@@ -21,6 +23,12 @@ type tokenServiceStub struct {
 	issueRes  *tokenApp.TokenIssueResult
 	issueErr  error
 	verifyReq tokenApp.VerifyTokenRequest
+}
+
+type registerServiceStub struct {
+	req registerApp.RegisterRequest
+	res *registerApp.RegisterResult
+	err error
 }
 
 func (s *tokenServiceStub) IssueServiceToken(ctx context.Context, req tokenApp.IssueServiceTokenRequest) (*tokenApp.TokenIssueResult, error) {
@@ -59,6 +67,11 @@ func (s *tokenServiceStub) VerifyToken(ctx context.Context, req tokenApp.VerifyT
 			time.Now().Add(time.Minute),
 		),
 	}, nil
+}
+
+func (s *registerServiceStub) Register(ctx context.Context, req registerApp.RegisterRequest) (*registerApp.RegisterResult, error) {
+	s.req = req
+	return s.res, s.err
 }
 
 func TestAuthServiceServerIssueServiceToken(t *testing.T) {
@@ -112,4 +125,38 @@ func TestAuthServiceServerVerifyTokenPassesExpectationGuards(t *testing.T) {
 	require.Equal(t, "jwt-token", stub.verifyReq.AccessToken)
 	require.Equal(t, "https://iam.fangcunmount.cn", stub.verifyReq.ExpectedIssuer)
 	require.Equal(t, []string{"qs-api"}, stub.verifyReq.ExpectedAudience)
+}
+
+func TestAuthServiceServerRegisterOperationAccount(t *testing.T) {
+	password := "Secret123!"
+	stub := &registerServiceStub{
+		res: &registerApp.RegisterResult{
+			UserID:       meta.FromUint64(101),
+			AccountID:    meta.FromUint64(202),
+			AccountType:  accountDomain.TypeOpera,
+			ExternalID:   accountDomain.ExternalID("staff@example.com"),
+			CredentialID: meta.FromUint64(303),
+			IsNewUser:    true,
+			IsNewAccount: true,
+		},
+	}
+	srv := &authServiceServer{registerSvc: stub}
+
+	resp, err := srv.RegisterOperationAccount(context.Background(), &authnv1.RegisterOperationAccountRequest{
+		Name:           "张三",
+		Phone:          "13800138000",
+		Email:          "staff@example.com",
+		ScopedTenantId: "1",
+		Password:       password,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "101", resp.GetUserId())
+	require.Equal(t, "202", resp.GetAccountId())
+	require.Equal(t, "303", resp.GetCredentialId())
+	require.Equal(t, "staff@example.com", resp.GetExternalId())
+	require.Equal(t, accountDomain.TypeOpera, stub.req.AccountType)
+	require.Equal(t, registerApp.CredTypePassword, stub.req.CredentialType)
+	require.NotNil(t, stub.req.Password)
+	require.Equal(t, password, *stub.req.Password)
+	require.Equal(t, meta.FromUint64(1), stub.req.ScopedTenantID)
 }

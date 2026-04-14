@@ -44,6 +44,7 @@ services:
       
       # AuthService - Token 验证和管理
       - /iam.authn.v1.AuthService/VerifyToken
+      - /iam.authn.v1.AuthService/RegisterOperationAccount
       - /iam.authn.v1.AuthService/RefreshToken
       - /iam.authn.v1.AuthService/IssueServiceToken
       

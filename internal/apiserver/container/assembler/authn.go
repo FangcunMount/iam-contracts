@@ -409,6 +409,7 @@ func (m *AuthnModule) initializeInterface() {
 
 	m.GRPCService = authngrpc.NewService(
 		m.TokenService,
+		m.RegisterService,
 		m.KeyPublishApp,
 	)
 }

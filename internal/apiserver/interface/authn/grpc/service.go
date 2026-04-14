@@ -9,8 +9,11 @@ import (
 	"github.com/FangcunMount/component-base/pkg/errors"
 	authnv1 "github.com/FangcunMount/iam-contracts/api/grpc/iam/authn/v1"
 	jwksApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/jwks"
+	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/register"
 	tokenApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
+	accountDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
 	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -27,11 +30,13 @@ type Service struct {
 // NewService 创建 authn gRPC 服务
 func NewService(
 	tokenSvc tokenApp.TokenApplicationService,
+	registerSvc registerApp.RegisterApplicationService,
 	keyPublish *jwksApp.KeyPublishAppService,
 ) *Service {
 	return &Service{
 		auth: authServiceServer{
-			tokenSvc: tokenSvc,
+			tokenSvc:    tokenSvc,
+			registerSvc: registerSvc,
 		},
 		jwks: jwksServiceServer{
 			keyPublish: keyPublish,
@@ -54,7 +59,8 @@ func (s *Service) Register(server *grpc.Server) {
 
 type authServiceServer struct {
 	authnv1.UnimplementedAuthServiceServer
-	tokenSvc tokenApp.TokenApplicationService
+	tokenSvc    tokenApp.TokenApplicationService
+	registerSvc registerApp.RegisterApplicationService
 }
 
 type jwksServiceServer struct {
@@ -94,6 +100,78 @@ func (s *authServiceServer) VerifyToken(ctx context.Context, req *authnv1.Verify
 		resp.FailureReason = "token invalid or expired"
 	}
 	return resp, nil
+}
+
+func (s *authServiceServer) RegisterOperationAccount(ctx context.Context, req *authnv1.RegisterOperationAccountRequest) (*authnv1.RegisterOperationAccountResponse, error) {
+	if s.registerSvc == nil {
+		return nil, status.Error(codes.Unimplemented, "register service not configured")
+	}
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
+	}
+
+	scopedTenantID, err := meta.ParseID(strings.TrimSpace(req.GetScopedTenantId()))
+	if err != nil || scopedTenantID.IsZero() {
+		return nil, status.Error(codes.InvalidArgument, "scoped_tenant_id is required")
+	}
+
+	password := strings.TrimSpace(req.GetPassword())
+	if password == "" {
+		return nil, status.Error(codes.InvalidArgument, "password is required")
+	}
+
+	name := strings.TrimSpace(req.GetName())
+	existingUserIDText := strings.TrimSpace(req.GetExistingUserId())
+	if existingUserIDText == "" && name == "" {
+		return nil, status.Error(codes.InvalidArgument, "name is required when existing_user_id is empty")
+	}
+
+	existingUserID, err := parseOptionalMetaID(existingUserIDText)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid existing_user_id")
+	}
+
+	var phone meta.Phone
+	phoneText := strings.TrimSpace(req.GetPhone())
+	if phoneText != "" {
+		phone, err = meta.NewPhone(phoneText)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid phone")
+		}
+	}
+
+	var email meta.Email
+	emailText := strings.TrimSpace(req.GetEmail())
+	if emailText != "" {
+		email, err = meta.NewEmail(emailText)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid email")
+		}
+	}
+
+	result, err := s.registerSvc.Register(ctx, registerApp.RegisterRequest{
+		Name:           name,
+		Phone:          phone,
+		Email:          email,
+		ExistingUserID: existingUserID,
+		OperaLoginID:   strings.TrimSpace(req.GetOperaLoginId()),
+		ScopedTenantID: scopedTenantID,
+		AccountType:    accountDomain.TypeOpera,
+		CredentialType: registerApp.CredTypePassword,
+		Password:       &password,
+	})
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	return &authnv1.RegisterOperationAccountResponse{
+		UserId:       result.UserID.String(),
+		AccountId:    result.AccountID.String(),
+		CredentialId: result.CredentialID.String(),
+		ExternalId:   string(result.ExternalID),
+		IsNewUser:    result.IsNewUser,
+		IsNewAccount: result.IsNewAccount,
+	}, nil
 }
 
 func (s *authServiceServer) RefreshToken(ctx context.Context, req *authnv1.RefreshTokenRequest) (*authnv1.RefreshTokenResponse, error) {
@@ -256,6 +334,13 @@ func durationUntil(t time.Time) time.Duration {
 		return 0
 	}
 	return d
+}
+
+func parseOptionalMetaID(text string) (meta.ID, error) {
+	if text == "" {
+		return meta.ZeroID, nil
+	}
+	return meta.ParseID(text)
 }
 
 func toGRPCError(err error) error {

@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_VerifyToken_FullMethodName        = "/iam.authn.v1.AuthService/VerifyToken"
-	AuthService_RefreshToken_FullMethodName       = "/iam.authn.v1.AuthService/RefreshToken"
-	AuthService_RevokeToken_FullMethodName        = "/iam.authn.v1.AuthService/RevokeToken"
-	AuthService_RevokeRefreshToken_FullMethodName = "/iam.authn.v1.AuthService/RevokeRefreshToken"
-	AuthService_IssueServiceToken_FullMethodName  = "/iam.authn.v1.AuthService/IssueServiceToken"
+	AuthService_VerifyToken_FullMethodName              = "/iam.authn.v1.AuthService/VerifyToken"
+	AuthService_RegisterOperationAccount_FullMethodName = "/iam.authn.v1.AuthService/RegisterOperationAccount"
+	AuthService_RefreshToken_FullMethodName             = "/iam.authn.v1.AuthService/RefreshToken"
+	AuthService_RevokeToken_FullMethodName              = "/iam.authn.v1.AuthService/RevokeToken"
+	AuthService_RevokeRefreshToken_FullMethodName       = "/iam.authn.v1.AuthService/RevokeRefreshToken"
+	AuthService_IssueServiceToken_FullMethodName        = "/iam.authn.v1.AuthService/IssueServiceToken"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -31,6 +32,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthServiceClient interface {
 	VerifyToken(ctx context.Context, in *VerifyTokenRequest, opts ...grpc.CallOption) (*VerifyTokenResponse, error)
+	RegisterOperationAccount(ctx context.Context, in *RegisterOperationAccountRequest, opts ...grpc.CallOption) (*RegisterOperationAccountResponse, error)
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*RefreshTokenResponse, error)
 	RevokeToken(ctx context.Context, in *RevokeTokenRequest, opts ...grpc.CallOption) (*RevokeTokenResponse, error)
 	RevokeRefreshToken(ctx context.Context, in *RevokeRefreshTokenRequest, opts ...grpc.CallOption) (*RevokeRefreshTokenResponse, error)
@@ -49,6 +51,16 @@ func (c *authServiceClient) VerifyToken(ctx context.Context, in *VerifyTokenRequ
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VerifyTokenResponse)
 	err := c.cc.Invoke(ctx, AuthService_VerifyToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) RegisterOperationAccount(ctx context.Context, in *RegisterOperationAccountRequest, opts ...grpc.CallOption) (*RegisterOperationAccountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegisterOperationAccountResponse)
+	err := c.cc.Invoke(ctx, AuthService_RegisterOperationAccount_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -100,6 +112,7 @@ func (c *authServiceClient) IssueServiceToken(ctx context.Context, in *IssueServ
 // for forward compatibility.
 type AuthServiceServer interface {
 	VerifyToken(context.Context, *VerifyTokenRequest) (*VerifyTokenResponse, error)
+	RegisterOperationAccount(context.Context, *RegisterOperationAccountRequest) (*RegisterOperationAccountResponse, error)
 	RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error)
 	RevokeToken(context.Context, *RevokeTokenRequest) (*RevokeTokenResponse, error)
 	RevokeRefreshToken(context.Context, *RevokeRefreshTokenRequest) (*RevokeRefreshTokenResponse, error)
@@ -116,6 +129,9 @@ type UnimplementedAuthServiceServer struct{}
 
 func (UnimplementedAuthServiceServer) VerifyToken(context.Context, *VerifyTokenRequest) (*VerifyTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyToken not implemented")
+}
+func (UnimplementedAuthServiceServer) RegisterOperationAccount(context.Context, *RegisterOperationAccountRequest) (*RegisterOperationAccountResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterOperationAccount not implemented")
 }
 func (UnimplementedAuthServiceServer) RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshToken not implemented")
@@ -164,6 +180,24 @@ func _AuthService_VerifyToken_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServiceServer).VerifyToken(ctx, req.(*VerifyTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_RegisterOperationAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterOperationAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).RegisterOperationAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_RegisterOperationAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).RegisterOperationAccount(ctx, req.(*RegisterOperationAccountRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -250,6 +284,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerifyToken",
 			Handler:    _AuthService_VerifyToken_Handler,
+		},
+		{
+			MethodName: "RegisterOperationAccount",
+			Handler:    _AuthService_RegisterOperationAccount_Handler,
 		},
 		{
 			MethodName: "RefreshToken",

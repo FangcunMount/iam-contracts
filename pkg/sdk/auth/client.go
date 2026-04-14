@@ -79,6 +79,15 @@ func (c *Client) VerifyToken(ctx context.Context, req *authnv1.VerifyTokenReques
 	return resp, nil
 }
 
+// RegisterOperationAccount 创建运营后台账号，并按需创建用户、账户和密码凭据。
+func (c *Client) RegisterOperationAccount(ctx context.Context, req *authnv1.RegisterOperationAccountRequest) (*authnv1.RegisterOperationAccountResponse, error) {
+	resp, err := c.authService.RegisterOperationAccount(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err)
+	}
+	return resp, nil
+}
+
 // RefreshToken 使用 Refresh Token 刷新获取新的 Access Token。
 //
 // 参数：

@@ -23,6 +23,10 @@ func (s *authServiceClientStub) VerifyToken(ctx context.Context, in *authnv1.Ver
 	return s.verifyResp, s.verifyErr
 }
 
+func (s *authServiceClientStub) RegisterOperationAccount(context.Context, *authnv1.RegisterOperationAccountRequest, ...grpc.CallOption) (*authnv1.RegisterOperationAccountResponse, error) {
+	return nil, nil
+}
+
 func (s *authServiceClientStub) RefreshToken(context.Context, *authnv1.RefreshTokenRequest, ...grpc.CallOption) (*authnv1.RefreshTokenResponse, error) {
 	return nil, nil
 }

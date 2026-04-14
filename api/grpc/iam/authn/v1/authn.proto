@@ -80,6 +80,25 @@ message VerifyTokenResponse {
   string failure_reason = 5;
 }
 
+message RegisterOperationAccountRequest {
+  string existing_user_id = 1;
+  string name = 2;
+  string phone = 3;
+  string email = 4;
+  string scoped_tenant_id = 5;
+  string opera_login_id = 6;
+  string password = 7;
+}
+
+message RegisterOperationAccountResponse {
+  string user_id = 1;
+  string account_id = 2;
+  string credential_id = 3;
+  string external_id = 4;
+  bool is_new_user = 5;
+  bool is_new_account = 6;
+}
+
 message RefreshTokenRequest {
   string refresh_token = 1;
   map<string, string> context = 2;
@@ -113,6 +132,7 @@ message IssueServiceTokenResponse {
 
 service AuthService {
   rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+  rpc RegisterOperationAccount(RegisterOperationAccountRequest) returns (RegisterOperationAccountResponse);
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
   rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
   rpc RevokeRefreshToken(RevokeRefreshTokenRequest) returns (RevokeRefreshTokenResponse);
