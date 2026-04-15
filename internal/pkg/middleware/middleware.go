@@ -29,7 +29,7 @@ func Options(c *gin.Context) {
 		// 仅本地直连 apiserver 时用；生产由 Nginx 处理 OPTIONS 时不会进到这里
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "authorization, origin, content-type, accept")
+		c.Header("Access-Control-Allow-Headers", "authorization, origin, content-type, accept, tenant_id, tenant-id")
 		c.Header("Allow", "HEAD,GET,POST,PUT,PATCH,DELETE,OPTIONS")
 		c.Header("Content-Type", "application/json")
 		c.AbortWithStatus(http.StatusOK)
