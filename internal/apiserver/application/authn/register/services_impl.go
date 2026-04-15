@@ -371,15 +371,15 @@ func (s *registerApplicationService) toDomainInput(ctx context.Context, req Regi
 		OperaLoginID:   strings.TrimSpace(req.OperaLoginID),
 		ScopedTenantID: req.ScopedTenantID,
 		AccountType:    req.AccountType,
-		WechatAppID:   req.WechatAppID,
-		WechatJsCode:  req.WechatJsCode,
-		WechatOpenID:  req.WechatOpenID,
-		WechatUnionID: req.WechatUnionID,
-		WecomCorpID:   req.WecomCorpID,
-		WecomUserID:   req.WecomUserID,
-		Profile:       req.Profile,
-		Meta:          req.Meta,
-		ParamsJSON:    req.ParamsJSON,
+		WechatAppID:    req.WechatAppID,
+		WechatJsCode:   req.WechatJsCode,
+		WechatOpenID:   req.WechatOpenID,
+		WechatUnionID:  req.WechatUnionID,
+		WecomCorpID:    req.WecomCorpID,
+		WecomUserID:    req.WecomUserID,
+		Profile:        req.Profile,
+		Meta:           req.Meta,
+		ParamsJSON:     req.ParamsJSON,
 	}
 
 	// 如果是微信小程序注册且提供了 JsCode，需要查询 AppSecret
@@ -438,11 +438,7 @@ func (s *registerApplicationService) createOrGetUser(
 				return nil, false, err
 			}
 			if account != nil {
-				user, err := repo.FindByID(ctx, account.UserID)
-				if err != nil {
-					return nil, false, err
-				}
-				return user, false, nil
+				return s.loadOrRepairUserForAccount(ctx, repo, account.UserID, req)
 			}
 		}
 
@@ -455,11 +451,7 @@ func (s *registerApplicationService) createOrGetUser(
 				return nil, false, err
 			}
 			if account != nil {
-				user, err := repo.FindByID(ctx, account.UserID)
-				if err != nil {
-					return nil, false, err
-				}
-				return user, false, nil
+				return s.loadOrRepairUserForAccount(ctx, repo, account.UserID, req)
 			}
 		}
 	}
@@ -492,6 +484,46 @@ func (s *registerApplicationService) createOrGetUser(
 	}
 
 	return user, true, nil
+}
+
+func (s *registerApplicationService) loadOrRepairUserForAccount(
+	ctx context.Context,
+	repo userDomain.Repository,
+	userID meta.ID,
+	req RegisterRequest,
+) (*userDomain.User, bool, error) {
+	user, err := repo.FindByID(ctx, userID)
+	if err == nil {
+		return user, false, nil
+	}
+	if !perrors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, false, err
+	}
+
+	// Self-heal dangling account -> user references. This can happen when the
+	// auth/account side already exists but the corresponding user row was lost.
+	opts := []userDomain.UserOption{userDomain.WithID(userID)}
+	if !req.Email.IsEmpty() {
+		opts = append(opts, userDomain.WithEmail(req.Email))
+	}
+	if nickname := strings.TrimSpace(req.Profile["nickname"]); nickname != "" {
+		opts = append(opts, userDomain.WithNickname(nickname))
+	}
+	recovered, createErr := userDomain.NewUser(req.Name, req.Phone, opts...)
+	if createErr != nil {
+		return nil, false, perrors.WithCode(code.ErrUserBasicInfoInvalid, "failed to recreate missing user: %v", createErr)
+	}
+	if createErr = repo.Create(ctx, recovered); createErr != nil {
+		if perrors.IsCode(createErr, code.ErrUserAlreadyExists) {
+			existing, getErr := repo.FindByID(ctx, userID)
+			if getErr != nil {
+				return nil, false, getErr
+			}
+			return existing, false, nil
+		}
+		return nil, false, perrors.WithCode(code.ErrDatabase, "failed to recreate missing user: %v", createErr)
+	}
+	return recovered, false, nil
 }
 
 // resolveWechatIDs 解析微信小程序的 OpenID 和 UnionID

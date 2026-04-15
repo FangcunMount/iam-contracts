@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"gorm.io/gorm"
 )
 
 // ============= 应用服务实现 =============
@@ -604,6 +607,9 @@ func (s *userQueryApplicationService) GetByID(ctx context.Context, userID string
 				"resource", logger.ResourceUser,
 				"error", err.Error(),
 			)
+			if perrors.Is(err, gorm.ErrRecordNotFound) {
+				return perrors.WithCode(code.ErrUserNotFound, "user(%s) not found", userID)
+			}
 			return err
 		}
 
