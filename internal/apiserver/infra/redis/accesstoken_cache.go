@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	rediskit "github.com/FangcunMount/component-base/pkg/redis"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/FangcunMount/component-base/pkg/log"
@@ -93,23 +94,17 @@ func (c *accessTokenCache) TryLockRefresh(ctx context.Context, appID string, ttl
 
 	lockKey := c.lockKey(appID)
 
-	// 尝试获取分布式锁（使用 SET NX EX）
-	ok, err = c.client.SetNX(ctx, lockKey, "1", ttl).Result()
+	token, ok, err := rediskit.AcquireLease(ctx, c.client, lockKey, ttl)
 	if err != nil {
-		// Redis Hook 已经记录了 SETNX 命令错误，只返回错误即可
 		return false, nil, fmt.Errorf("failed to acquire lock: %w", err)
 	}
 
 	if !ok {
-		// Redis Hook 已经记录了 SETNX 命令返回 false（锁已被持有）
-		// 未获取到锁
 		return false, nil, nil
 	}
 
-	// 获取到锁，返回解锁函数
 	unlock = func() {
-		c.client.Del(context.Background(), lockKey)
-		// Redis Hook 已经记录了 DEL 命令
+		_ = rediskit.ReleaseLease(context.Background(), c.client, lockKey, token)
 	}
 
 	redisInfo(ctx, "access token lock acquired", log.String("lock_key", lockKey), log.Duration("ttl", ttl))

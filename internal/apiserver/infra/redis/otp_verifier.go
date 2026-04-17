@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	rediskit "github.com/FangcunMount/component-base/pkg/redis"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/FangcunMount/component-base/pkg/log"
@@ -18,7 +19,7 @@ type OTPVerifierImpl struct {
 
 // 确保实现了接口
 var (
-	_ authentication.OTPVerifier   = (*OTPVerifierImpl)(nil)
+	_ authentication.OTPVerifier  = (*OTPVerifierImpl)(nil)
 	_ authentication.OTPCodeStore = (*OTPVerifierImpl)(nil)
 	_ authentication.OTPSendGate  = (*OTPVerifierImpl)(nil)
 )
@@ -33,36 +34,21 @@ func NewOTPVerifier(client *redis.Client) *OTPVerifierImpl {
 // scene: OTP使用场景，如 "login", "register", "reset_password"
 // code: 验证码
 func (v *OTPVerifierImpl) VerifyAndConsume(ctx context.Context, phoneE164, scene, code string) bool {
-	// Redis key格式: otp:{scene}:{phone}:{code}
-	// 例如: otp:login:+8613800138000:123456
 	key := otpRedisKey(phoneE164, scene, code)
 
-	// 使用Lua脚本实现原子性的验证+删除操作
-	// 这样可以防止同一个验证码被多次使用（重放攻击）
-	script := `
-		if redis.call("exists", KEYS[1]) == 1 then
-			redis.call("del", KEYS[1])
-			return 1
-		else
-			return 0
-		end
-	`
-
-	result, err := v.client.Eval(ctx, script, []string{key}).Int()
+	result, err := rediskit.ConsumeIfExists(ctx, v.client, key)
 	if err != nil {
-		// Redis Hook 已经记录了 EVAL 命令错误，只返回错误即可
 		return false
 	}
 
-	if result == 1 {
+	if result {
 		redisInfo(ctx, "OTP verified",
 			log.String("scene", scene),
 			log.String("phone", phoneE164),
 		)
 	}
-	// Redis Hook 已经记录了 EVAL 命令执行，不需要记录 OTP not found
 
-	return result == 1
+	return result
 }
 
 func otpRedisKey(phoneE164, scene, code string) string {
