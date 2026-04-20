@@ -51,6 +51,15 @@ type RegisterResult struct {
 	IsNewAccount bool   `json:"isNewAccount"`
 }
 
+// EnsureMockConsumerResult 内部 mock C 端 ensure 结果。
+type EnsureMockConsumerResult struct {
+	UserID       string `json:"user_id"`
+	AccountID    string `json:"account_id"`
+	LoginID      string `json:"login_id"`
+	IsNewUser    bool   `json:"is_new_user"`
+	IsNewAccount bool   `json:"is_new_account"`
+}
+
 // CredentialList 凭据列表响应
 type CredentialList struct {
 	Total int          `json:"total"`

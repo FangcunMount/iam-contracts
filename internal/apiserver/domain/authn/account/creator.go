@@ -24,9 +24,10 @@ var _ AccountCreator = (*accountCreator)(nil)
 func NewAccountCreator(repo Repository, idp authentication.IdentityProvider) AccountCreator {
 	// 注册所有策略
 	strategies := map[AccountType]CreatorStrategy{
-		TypeOpera:   NewOperaCreatorStrategy(),
-		TypeWcMinip: NewWechatMinipCreatorStrategy(idp),
-		TypeWcCom:   NewWecomCreatorStrategy(idp),
+		TypeOpera:        NewOperaCreatorStrategy(),
+		TypeWcMinip:      NewWechatMinipCreatorStrategy(idp),
+		TypeWcCom:        NewWecomCreatorStrategy(idp),
+		TypeMockConsumer: NewMockConsumerCreatorStrategy(),
 	}
 
 	return &accountCreator{

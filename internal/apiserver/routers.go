@@ -3,6 +3,7 @@ package apiserver
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -99,6 +100,15 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 			AdminMiddlewares: adminMiddlewares,
 		})
 		authnhttp.Register(engine)
+		if viper.GetBool("seed_mock_auth.enabled") {
+			secret := strings.TrimSpace(viper.GetString("seed_mock_auth.shared_secret"))
+			if secret == "" {
+				log.Warn("⚠️  seed_mock_auth.enabled=true but seed_mock_auth.shared_secret is empty; internal mock-consumer route not registered")
+			} else {
+				authnhttp.RegisterSeedMock(engine, secret)
+				log.Info("✅ Authn seed mock routes registered")
+			}
+		}
 		log.Info("✅ Authn module routes registered")
 	} else {
 		log.Warn("⚠️  Authn module not initialized, routes not registered")

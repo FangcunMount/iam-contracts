@@ -36,10 +36,11 @@ func (u UnionID) Len() int {
 type AccountType string
 
 const (
-	TypeWcMinip AccountType = "wc-minip" // 微信小程序
-	TypeWcOffi  AccountType = "wc-offi"  // 微信公众号
-	TypeWcCom   AccountType = "wc-com"   // 企业微信
-	TypeOpera   AccountType = "opera"    // 运营后台
+	TypeWcMinip      AccountType = "wc-minip"      // 微信小程序
+	TypeWcOffi       AccountType = "wc-offi"       // 微信公众号
+	TypeWcCom        AccountType = "wc-com"        // 企业微信
+	TypeOpera        AccountType = "opera"         // 运营后台
+	TypeMockConsumer AccountType = "mock-consumer" // 内部 mock C 端
 )
 
 // String 转字符串
@@ -49,7 +50,7 @@ func (a AccountType) String() string {
 
 // Validate 校验账号类型是否合法
 func (a AccountType) Validate() bool {
-	tList := []AccountType{TypeWcMinip, TypeWcOffi, TypeWcCom, TypeOpera}
+	tList := []AccountType{TypeWcMinip, TypeWcOffi, TypeWcCom, TypeOpera, TypeMockConsumer}
 	for _, t := range tList {
 		if a == t {
 			return true

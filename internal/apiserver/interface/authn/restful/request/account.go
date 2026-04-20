@@ -117,6 +117,32 @@ type RegisterWeChatAccountReq struct {
 	Meta     map[string]interface{} `json:"meta,omitempty"`            // 微信元数据（可选）
 }
 
+// EnsureMockConsumerReq 内部 mock C 端账户 ensure 请求。
+type EnsureMockConsumerReq struct {
+	Name     string            `json:"name" binding:"required"`
+	Phone    string            `json:"phone" binding:"required"`
+	Email    string            `json:"email" binding:"required"`
+	Password string            `json:"password" binding:"required"`
+	Profile  map[string]string `json:"profile,omitempty"`
+	Meta     map[string]string `json:"meta,omitempty"`
+}
+
+func (r *EnsureMockConsumerReq) Validate() error {
+	if strings.TrimSpace(r.Name) == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "name is required")
+	}
+	if strings.TrimSpace(r.Phone) == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "phone is required")
+	}
+	if strings.TrimSpace(r.Email) == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "email is required")
+	}
+	if strings.TrimSpace(r.Password) == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "password is required")
+	}
+	return nil
+}
+
 // Validate 保留方法以兼容现有代码，但实际验证由 binding 标签处理
 func (r *RegisterWeChatAccountReq) Validate() error {
 	// binding 标签已经处理了基本验证

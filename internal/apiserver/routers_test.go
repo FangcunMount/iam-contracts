@@ -91,6 +91,44 @@ func TestRouterForcesAdminProtectionForCacheGovernanceDebugRoutesInProduction(t 
 	assertDebugRouteStatus(t, engine, http.MethodGet, "/debug/cache-governance/catalog", http.StatusNotFound, false)
 }
 
+func TestRouterRegistersSeedMockRouteWhenEnabled(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	viper.Set("seed_mock_auth.enabled", true)
+	viper.Set("seed_mock_auth.shared_secret", "test-secret")
+
+	engine := gin.New()
+	c := &container.Container{
+		AuthnModule: &assembler.AuthnModule{
+			AccountHandler: authhandler.NewAccountHandler(nil, nil),
+		},
+	}
+
+	NewRouter(c).RegisterRoutes(engine)
+
+	assertRouteRegistered(t, engine, http.MethodPost, "/api/v1/internal/authn/mock-consumers/ensure")
+}
+
+func TestRouterSkipsSeedMockRouteWithoutSecret(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	viper.Set("seed_mock_auth.enabled", true)
+	viper.Set("seed_mock_auth.shared_secret", "")
+
+	engine := gin.New()
+	c := &container.Container{
+		AuthnModule: &assembler.AuthnModule{
+			AccountHandler: authhandler.NewAccountHandler(nil, nil),
+		},
+	}
+
+	NewRouter(c).RegisterRoutes(engine)
+
+	assertRouteNotRegistered(t, engine, http.MethodPost, "/api/v1/internal/authn/mock-consumers/ensure")
+}
+
 func TestRegisterAdminRoutesRegistersSessionControlRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

@@ -1,9 +1,12 @@
 package restful
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 
 	authhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful/handler"
+	authnMiddleware "github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
 )
 
 // Dependencies describes the external collaborators needed to expose authn endpoints.
@@ -40,6 +43,21 @@ func Register(engine *gin.Engine) {
 
 	// 注册 JWKS 管理端点（管理员接口）
 	registerJWKSAdminEndpoints(api.Group("/admin"), deps.JWKSHandler, deps.AdminMiddlewares...)
+}
+
+// RegisterSeedMock exposes the internal mock-consumer ensure endpoint when explicitly enabled.
+func RegisterSeedMock(engine *gin.Engine, sharedSecret string) {
+	if engine == nil || deps.AccountHandler == nil {
+		return
+	}
+	sharedSecret = strings.TrimSpace(sharedSecret)
+	if sharedSecret == "" {
+		return
+	}
+
+	internal := engine.Group("/api/v1/internal/authn")
+	internal.Use(authnMiddleware.RequireSeedMockSecret(sharedSecret))
+	registerInternalMockConsumerEndpoints(internal, deps.AccountHandler)
 }
 
 // registerAuthEndpointsV2 注册符合 API 文档的认证端点
@@ -117,4 +135,13 @@ func registerAccountEndpoints(v1 *gin.RouterGroup, h *authhandler.AccountHandler
 	// v1.GET("/accounts/by-ref", h.FindAccountByRef)
 	// users := v1.Group("/users")
 	// users.GET("/:userId/accounts", h.ListAccountsByUser)
+}
+
+func registerInternalMockConsumerEndpoints(v1 *gin.RouterGroup, h *authhandler.AccountHandler) {
+	if v1 == nil || h == nil {
+		return
+	}
+
+	mockConsumers := v1.Group("/mock-consumers")
+	mockConsumers.POST("/ensure", h.EnsureMockConsumer)
 }

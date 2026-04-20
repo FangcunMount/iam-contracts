@@ -142,4 +142,19 @@ func TestPasswordAuthStrategy_AllCases(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, d7.OK)
 	require.False(t, d7.ShouldRotate)
+
+	// 7. mock-consumer should follow non-opera branch and not require tenant scope
+	acc8 := &accRepoStub{
+		accountID:   meta.ID(13),
+		userID:      meta.ID(23),
+		accountType: "mock-consumer",
+		enabled:     true,
+	}
+	a8 := makeAuth(acc8, cred6, hasher7)
+	d8, err := a8.Authenticate(ctx, authentication.AuthPassword, authentication.AuthInput{TenantID: meta.ID(0), Username: "guardian@example.com", Password: pass})
+	require.NoError(t, err)
+	require.True(t, d8.OK)
+	require.NotNil(t, d8.Principal)
+	require.Equal(t, meta.ID(13), d8.Principal.AccountID)
+	require.Equal(t, meta.ID(23), d8.Principal.UserID)
 }

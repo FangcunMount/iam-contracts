@@ -141,6 +141,56 @@ func (h *AccountHandler) RegisterWithWeChat(c *gin.Context) {
 	h.Success(c, response)
 }
 
+// EnsureMockConsumer 内部 mock C 端账户 ensure。
+func (h *AccountHandler) EnsureMockConsumer(c *gin.Context) {
+	var reqBody req.EnsureMockConsumerReq
+	if err := h.BindJSON(c, &reqBody); err != nil {
+		h.Error(c, err)
+		return
+	}
+	if err := reqBody.Validate(); err != nil {
+		h.Error(c, err)
+		return
+	}
+
+	phone, err := meta.NewPhone(strings.TrimSpace(reqBody.Phone))
+	if err != nil {
+		h.Error(c, perrors.WithCode(code.ErrInvalidArgument, "invalid phone: %v", err))
+		return
+	}
+	email, err := meta.NewEmail(strings.TrimSpace(reqBody.Email))
+	if err != nil {
+		h.Error(c, perrors.WithCode(code.ErrInvalidArgument, "invalid email: %v", err))
+		return
+	}
+
+	password := strings.TrimSpace(reqBody.Password)
+	registerReq := appRegister.RegisterRequest{
+		Name:           strings.TrimSpace(reqBody.Name),
+		Phone:          phone,
+		Email:          email,
+		AccountType:    domain.TypeMockConsumer,
+		CredentialType: appRegister.CredTypePassword,
+		Password:       &password,
+		Profile:        reqBody.Profile,
+		Meta:           reqBody.Meta,
+	}
+
+	result, err := h.registerService.Register(c.Request.Context(), registerReq)
+	if err != nil {
+		h.Error(c, err)
+		return
+	}
+
+	h.Success(c, resp.EnsureMockConsumerResult{
+		UserID:       result.UserID.String(),
+		AccountID:    result.AccountID.String(),
+		LoginID:      strings.TrimSpace(reqBody.Email),
+		IsNewUser:    result.IsNewUser,
+		IsNewAccount: result.IsNewAccount,
+	})
+}
+
 // parseAccountID 解析账户ID
 func parseAccountID(idStr string) (meta.ID, error) {
 	idStr = strings.TrimSpace(idStr)
