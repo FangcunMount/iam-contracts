@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	rediskit "github.com/FangcunMount/component-base/pkg/redis"
+	redisops "github.com/FangcunMount/component-base/pkg/redis/ops"
+	redisstore "github.com/FangcunMount/component-base/pkg/redis/store"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/FangcunMount/component-base/pkg/log"
@@ -14,7 +15,9 @@ import (
 
 // OTPVerifierImpl OTP验证器的Redis实现
 type OTPVerifierImpl struct {
-	client *redis.Client
+	client    *redis.Client
+	otpCodes  *redisstore.ValueStore[string]
+	sendGates *redisstore.ValueStore[string]
 }
 
 // 确保实现了接口
@@ -26,7 +29,11 @@ var (
 
 // NewOTPVerifier 创建 OTP Redis 适配器（验证、写入、发送频控共用同一实现）
 func NewOTPVerifier(client *redis.Client) *OTPVerifierImpl {
-	return &OTPVerifierImpl{client: client}
+	return &OTPVerifierImpl{
+		client:    client,
+		otpCodes:  newStringStore(client),
+		sendGates: newStringStore(client),
+	}
 }
 
 // VerifyAndConsume 验证OTP并标记为已使用（原子操作，防止重放攻击）
@@ -36,7 +43,7 @@ func NewOTPVerifier(client *redis.Client) *OTPVerifierImpl {
 func (v *OTPVerifierImpl) VerifyAndConsume(ctx context.Context, phoneE164, scene, code string) bool {
 	key := otpRedisKey(phoneE164, scene, code)
 
-	result, err := rediskit.ConsumeIfExists(ctx, v.client, key)
+	result, err := redisops.ConsumeIfExists(ctx, v.client, key)
 	if err != nil {
 		return false
 	}
@@ -51,30 +58,34 @@ func (v *OTPVerifierImpl) VerifyAndConsume(ctx context.Context, phoneE164, scene
 	return result
 }
 
-func otpRedisKey(phoneE164, scene, code string) string {
-	return fmt.Sprintf("otp:%s:%s:%s", scene, phoneE164, code)
-}
-
-func otpSendGateKey(phoneE164, scene string) string {
-	return fmt.Sprintf("otp:sendgate:%s:%s", scene, phoneE164)
-}
-
 // Put 写入待校验 OTP，与 VerifyAndConsume 使用同一 key 规则。
 func (v *OTPVerifierImpl) Put(ctx context.Context, phoneE164, scene, code string, ttl time.Duration) error {
 	key := otpRedisKey(phoneE164, scene, code)
-	return v.client.Set(ctx, key, "1", ttl).Err()
+	storeKey, err := newStoreKey(key)
+	if err != nil {
+		return err
+	}
+	return v.otpCodes.Set(ctx, storeKey, "1", ttl)
 }
 
 // Delete 删除 OTP 键（短信发送失败时回滚）。
 func (v *OTPVerifierImpl) Delete(ctx context.Context, phoneE164, scene, code string) error {
 	key := otpRedisKey(phoneE164, scene, code)
-	return v.client.Del(ctx, key).Err()
+	storeKey, err := newStoreKey(key)
+	if err != nil {
+		return err
+	}
+	return v.otpCodes.Delete(ctx, storeKey)
 }
 
 // TryAcquire 使用 SET NX 实现发送冷却窗口。
 func (v *OTPVerifierImpl) TryAcquire(ctx context.Context, phoneE164, scene string, cooldown time.Duration) (bool, error) {
-	key := otpSendGateKey(phoneE164, scene)
-	ok, err := v.client.SetNX(ctx, key, "1", cooldown).Result()
+	key := otpSendGateRedisKey(phoneE164, scene)
+	storeKey, err := newStoreKey(key)
+	if err != nil {
+		return false, fmt.Errorf("otp send gate: %w", err)
+	}
+	ok, err := v.sendGates.SetIfAbsent(ctx, storeKey, "1", cooldown)
 	if err != nil {
 		return false, fmt.Errorf("otp send gate: %w", err)
 	}

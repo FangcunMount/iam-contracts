@@ -2,12 +2,12 @@ package redis
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
-	rediskit "github.com/FangcunMount/component-base/pkg/redis"
+	redislease "github.com/FangcunMount/component-base/pkg/redis/lease"
+	redisstore "github.com/FangcunMount/component-base/pkg/redis/store"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/FangcunMount/component-base/pkg/log"
@@ -16,8 +16,8 @@ import (
 
 // accessTokenCache 访问令牌缓存实现
 type accessTokenCache struct {
-	client *redis.Client
-	prefix string // 键前缀
+	tokens *redisstore.ValueStore[wechatapp.AppAccessToken]
+	leases *redislease.Service
 }
 
 // 确保实现了接口
@@ -26,8 +26,8 @@ var _ wechatapp.AccessTokenCache = (*accessTokenCache)(nil)
 // NewAccessTokenCache 创建访问令牌缓存实例
 func NewAccessTokenCache(client *redis.Client) wechatapp.AccessTokenCache {
 	return &accessTokenCache{
-		client: client,
-		prefix: "idp:wechat:token:",
+		tokens: newJSONStore[wechatapp.AppAccessToken](client),
+		leases: newLeaseService(client),
 	}
 }
 
@@ -37,24 +37,21 @@ func (c *accessTokenCache) Get(ctx context.Context, appID string) (*wechatapp.Ap
 		return nil, errors.New("appID cannot be empty")
 	}
 
-	key := c.tokenKey(appID)
-	data, err := c.client.Get(ctx, key).Bytes()
+	key := wechatAccessTokenRedisKey(appID)
+	storeKey, err := newStoreKey(key)
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			// Redis Hook 已经记录了 GET 命令，这里不需要再记录 cache miss
-			return nil, nil // 缓存未命中
-		}
-		// Redis Hook 已经记录了命令错误，只返回错误即可
+		return nil, err
+	}
+
+	aat, found, err := c.tokens.Get(ctx, storeKey)
+	if err != nil {
+		redisError(ctx, "failed to load access token", log.String("error", err.Error()), log.String("key", key))
 		return nil, fmt.Errorf("failed to get access token from cache: %w", err)
 	}
-
-	var aat wechatapp.AppAccessToken
-	if err := json.Unmarshal(data, &aat); err != nil {
-		redisError(ctx, "failed to unmarshal access token", log.String("error", err.Error()), log.String("key", key))
-		return nil, fmt.Errorf("failed to unmarshal access token: %w", err)
+	if !found {
+		return nil, nil
 	}
 
-	// Redis Hook 已经记录了 GET 命令成功，这里不需要再记录 cache hit
 	return &aat, nil
 }
 
@@ -67,15 +64,13 @@ func (c *accessTokenCache) Set(ctx context.Context, appID string, aat *wechatapp
 		return errors.New("access token cannot be nil")
 	}
 
-	key := c.tokenKey(appID)
-	data, err := json.Marshal(aat)
+	key := wechatAccessTokenRedisKey(appID)
+	storeKey, err := newStoreKey(key)
 	if err != nil {
-		redisError(ctx, "failed to marshal access token", log.String("error", err.Error()), log.String("app_id", appID))
-		return fmt.Errorf("failed to marshal access token: %w", err)
+		return err
 	}
 
-	if err := c.client.Set(ctx, key, data, ttl).Err(); err != nil {
-		// Redis Hook 已经记录了 SET 命令错误，只返回错误即可
+	if err := c.tokens.Set(ctx, storeKey, *aat, ttl); err != nil {
 		return fmt.Errorf("failed to set access token to cache: %w", err)
 	}
 
@@ -92,31 +87,25 @@ func (c *accessTokenCache) TryLockRefresh(ctx context.Context, appID string, ttl
 		return false, nil, errors.New("appID cannot be empty")
 	}
 
-	lockKey := c.lockKey(appID)
-
-	token, ok, err := rediskit.AcquireLease(ctx, c.client, lockKey, ttl)
+	lockKey := wechatAccessTokenLockRedisKey(appID)
+	leaseKey, err := newLeaseKey(lockKey)
+	if err != nil {
+		return false, nil, err
+	}
+	attempt, err := c.leases.Acquire(ctx, leaseKey, ttl, nil)
 	if err != nil {
 		return false, nil, fmt.Errorf("failed to acquire lock: %w", err)
 	}
 
-	if !ok {
+	if !attempt.Acquired {
 		return false, nil, nil
 	}
 
+	heldLease := attempt.Lease
 	unlock = func() {
-		_ = rediskit.ReleaseLease(context.Background(), c.client, lockKey, token)
+		_ = c.leases.Release(context.Background(), heldLease)
 	}
 
 	redisInfo(ctx, "access token lock acquired", log.String("lock_key", lockKey), log.Duration("ttl", ttl))
 	return true, unlock, nil
-}
-
-// tokenKey 生成令牌缓存键
-func (c *accessTokenCache) tokenKey(appID string) string {
-	return c.prefix + appID
-}
-
-// lockKey 生成刷新锁键
-func (c *accessTokenCache) lockKey(appID string) string {
-	return c.prefix + "lock:" + appID
 }
