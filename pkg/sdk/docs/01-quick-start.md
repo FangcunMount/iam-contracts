@@ -193,7 +193,7 @@ resp, err := client.Auth().RefreshToken(ctx, &authnv1.RefreshTokenRequest{
 
 // 撤销 Token
 _, err := client.Auth().RevokeToken(ctx, &authnv1.RevokeTokenRequest{
-    Token: token,
+    AccessToken: token,
 })
 ```
 

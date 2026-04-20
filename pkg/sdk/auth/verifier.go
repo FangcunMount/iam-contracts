@@ -134,6 +134,7 @@ func (s *LocalVerifyStrategy) Verify(ctx context.Context, tokenString string, op
 	return &VerifyResult{
 		Valid:    true,
 		Claims:   claims,
+		Metadata: buildVerifyMetadataFromClaims(claims),
 		RawToken: token,
 	}, nil
 }
@@ -208,9 +209,14 @@ func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, o
 		logger.L(ctx).Errorw("RemoteVerifyStrategy auth client not configured", "strategy", s.Name())
 		return nil, fmt.Errorf("remote-strategy: auth client not configured")
 	}
+	if opts == nil {
+		opts = &VerifyOptions{}
+	}
 
 	resp, err := s.authClient.VerifyToken(ctx, &authnv1.VerifyTokenRequest{
 		AccessToken:      tokenString,
+		ForceRemote:      opts.ForceRemote,
+		IncludeMetadata:  opts.IncludeMetadata,
 		ExpectedIssuer:   s.expectedIssuer(opts),
 		ExpectedAudience: s.expectedAudience(opts),
 	})
@@ -225,12 +231,15 @@ func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, o
 	}
 
 	claims := &TokenClaims{
+		TokenID:   resp.Claims.TokenId,
 		Subject:   resp.Claims.Subject,
+		SessionID: resp.Claims.SessionId,
 		UserID:    resp.Claims.UserId,
 		AccountID: resp.Claims.AccountId,
 		TenantID:  resp.Claims.TenantId,
 		Issuer:    resp.Claims.Issuer,
 		Audience:  resp.Claims.Audience,
+		AMR:       append([]string(nil), resp.Claims.Amr...),
 		Extra:     make(map[string]interface{}),
 	}
 
@@ -248,9 +257,14 @@ func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, o
 	}
 
 	logger.L(ctx).Debugw("RemoteVerifyStrategy verify success", "strategy", s.Name(), "subject", claims.Subject, "tenant_id", claims.TenantID)
+	metadata := buildVerifyMetadataFromProto(resp.Metadata)
+	if metadata == nil {
+		metadata = buildVerifyMetadataFromClaims(claims)
+	}
 	return &VerifyResult{
-		Valid:  true,
-		Claims: claims,
+		Valid:    true,
+		Claims:   claims,
+		Metadata: metadata,
 	}, nil
 }
 
@@ -377,8 +391,9 @@ func (s *CachingVerifyStrategy) Verify(ctx context.Context, token string, opts *
 
 // TokenVerifier Token 验证器（使用策略模式）
 type TokenVerifier struct {
-	config   *config.TokenVerifyConfig
-	strategy VerifyStrategy
+	config         *config.TokenVerifyConfig
+	strategy       VerifyStrategy
+	remoteStrategy VerifyStrategy
 }
 
 // VerifyResult 验证结果
@@ -389,14 +404,38 @@ type VerifyResult struct {
 	// Claims Token 声明
 	Claims *TokenClaims
 
+	// Metadata Token 元数据
+	Metadata *VerifyMetadata
+
 	// RawToken 原始 JWT Token
 	RawToken jwt.Token
 }
 
+// VerifyMetadata Token 验证元数据。
+type VerifyMetadata struct {
+	// TokenType Token 类型
+	TokenType authnv1.TokenType
+
+	// Status Token 状态
+	Status authnv1.TokenStatus
+
+	// IssuedAt 签发时间
+	IssuedAt time.Time
+
+	// ExpiresAt 过期时间
+	ExpiresAt time.Time
+}
+
 // TokenClaims Token 声明
 type TokenClaims struct {
+	// TokenID JWT jti / token_id
+	TokenID string
+
 	// Subject 主题（通常是用户 ID）
 	Subject string
+
+	// SessionID 认证会话 ID（JWT claim sid）
+	SessionID string
 
 	// Issuer 签发者
 	Issuer string
@@ -595,9 +634,18 @@ func NewTokenVerifier(cfg *config.TokenVerifyConfig, jwksManager *JWKSManager, a
 		return nil, err
 	}
 
+	var remoteStrategy VerifyStrategy
+	if authClient != nil {
+		remoteStrategy, err = selector.RemoteStrategy()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &TokenVerifier{
-		config:   cfg,
-		strategy: strategy,
+		config:         cfg,
+		strategy:       strategy,
+		remoteStrategy: remoteStrategy,
 	}, nil
 }
 
@@ -619,6 +667,13 @@ func (v *TokenVerifier) Verify(ctx context.Context, token string, opts *VerifyOp
 		opts = &VerifyOptions{}
 	}
 
+	if opts.ForceRemote {
+		if v.remoteStrategy == nil {
+			return nil, fmt.Errorf("token verifier: remote strategy not available")
+		}
+		return v.remoteStrategy.Verify(ctx, token, opts)
+	}
+
 	return v.strategy.Verify(ctx, token, opts)
 }
 
@@ -634,6 +689,7 @@ func (v *TokenVerifier) Strategy() VerifyStrategy {
 func extractClaims(token jwt.Token) *TokenClaims {
 	logger.L(context.Background()).Debugw("extractClaims token", "token", token)
 	claims := &TokenClaims{
+		TokenID:   token.JwtID(),
 		Subject:   token.Subject(),
 		Issuer:    token.Issuer(),
 		Audience:  token.Audience(),
@@ -664,6 +720,10 @@ func extractClaims(token jwt.Token) *TokenClaims {
 	if v, ok := token.Get("user_id"); ok {
 		claims.UserID = claimString(v)
 		logger.L(context.Background()).Debugw("extractClaims user_id", "user_id", claims.UserID)
+	}
+	if v, ok := token.Get("sid"); ok {
+		claims.SessionID = claimString(v)
+		logger.L(context.Background()).Debugw("extractClaims session_id", "session_id", claims.SessionID)
 	}
 
 	if v, ok := token.Get("tenant_id"); ok {
@@ -717,6 +777,50 @@ func extractClaims(token jwt.Token) *TokenClaims {
 	}
 
 	return claims
+}
+
+func buildVerifyMetadataFromProto(metadata *authnv1.TokenMetadata) *VerifyMetadata {
+	if metadata == nil {
+		return nil
+	}
+
+	result := &VerifyMetadata{
+		TokenType: metadata.GetTokenType(),
+		Status:    metadata.GetStatus(),
+	}
+	if metadata.GetIssuedAt() != nil {
+		result.IssuedAt = metadata.GetIssuedAt().AsTime()
+	}
+	if metadata.GetExpiresAt() != nil {
+		result.ExpiresAt = metadata.GetExpiresAt().AsTime()
+	}
+	return result
+}
+
+func buildVerifyMetadataFromClaims(claims *TokenClaims) *VerifyMetadata {
+	if claims == nil {
+		return nil
+	}
+
+	return &VerifyMetadata{
+		TokenType: tokenTypeToProto(claims.TokenType),
+		Status:    authnv1.TokenStatus_TOKEN_STATUS_VALID,
+		IssuedAt:  claims.IssuedAt,
+		ExpiresAt: claims.ExpiresAt,
+	}
+}
+
+func tokenTypeToProto(tokenType string) authnv1.TokenType {
+	switch tokenType {
+	case "refresh":
+		return authnv1.TokenType_TOKEN_TYPE_REFRESH
+	case "service":
+		return authnv1.TokenType_TOKEN_TYPE_SERVICE
+	case "", "access":
+		return authnv1.TokenType_TOKEN_TYPE_ACCESS
+	default:
+		return authnv1.TokenType_TOKEN_TYPE_UNSPECIFIED
+	}
 }
 
 func claimString(v interface{}) string {

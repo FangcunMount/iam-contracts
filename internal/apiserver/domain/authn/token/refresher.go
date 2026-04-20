@@ -9,6 +9,7 @@ import (
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/security/sanitize"
 )
@@ -17,20 +18,26 @@ import (
 type TokenRefresher struct {
 	tokenGenerator TokenGenerator // JWT 生成器
 	tokenStore     TokenStore     // 令牌存储（Redis）
-	accessTTL      time.Duration  // 访问令牌有效期
-	refreshTTL     time.Duration  // 刷新令牌有效期
+	sessionManager SessionManager
+	accessChecker  SubjectAccessEvaluator
+	accessTTL      time.Duration // 访问令牌有效期
+	refreshTTL     time.Duration // 刷新令牌有效期
 }
 
 // NewTokenRefresher 创建令牌刷新者
 func NewTokenRefresher(
 	tokenGenerator TokenGenerator,
 	tokenStore TokenStore,
+	sessionManager SessionManager,
+	accessChecker SubjectAccessEvaluator,
 	accessTTL time.Duration,
 	refreshTTL time.Duration,
 ) *TokenRefresher {
 	return &TokenRefresher{
 		tokenGenerator: tokenGenerator,
 		tokenStore:     tokenStore,
+		sessionManager: sessionManager,
+		accessChecker:  accessChecker,
 		accessTTL:      accessTTL,
 		refreshTTL:     refreshTTL,
 	}
@@ -71,6 +78,22 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 			"token_hint", sanitize.MaskToken(refreshTokenValue),
 		)
 		return nil, perrors.WithCode(code.ErrTokenInvalid, "refresh token not found")
+	}
+
+	sess, err := s.sessionManager.Get(ctx, refreshToken.SessionID)
+	if err != nil {
+		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to load session")
+	}
+	if sess == nil || !sess.IsActive() {
+		return nil, perrors.WithCode(code.ErrTokenInvalid, "session has been revoked or expired")
+	}
+
+	decision, err := s.accessChecker.Evaluate(ctx, refreshToken.UserID, refreshToken.AccountID)
+	if err != nil {
+		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to evaluate subject access")
+	}
+	if !decision.IsAllowed() {
+		return nil, subjectAccessError(decision.Status)
 	}
 
 	// 检查刷新令牌是否过期
@@ -114,6 +137,7 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 		UserID:    refreshToken.UserID,
 		AccountID: refreshToken.AccountID,
 		TenantID:  refreshToken.TenantID,
+		SessionID: refreshToken.SessionID,
 		AMR:       amr,
 		Claims:    claims,
 	}
@@ -127,7 +151,7 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 		"refresh_ttl", s.refreshTTL.Seconds(),
 	)
 
-	newTokenPair, err := NewTokenIssuer(s.tokenGenerator, s.tokenStore, s.accessTTL, s.refreshTTL).IssueToken(ctx, principal)
+	newTokenPair, err := NewTokenIssuer(s.tokenGenerator, s.tokenStore, s.sessionManager, s.accessTTL, s.refreshTTL).issueTokenPair(ctx, principal, sess)
 	if err != nil {
 		l.Errorw("颁发新令牌对失败",
 			"action", "refresh",
@@ -146,13 +170,39 @@ func (s *TokenRefresher) RefreshToken(ctx context.Context, refreshTokenValue str
 		)
 	}
 
+	if err := s.sessionManager.Extend(ctx, sess.SessionID, newTokenPair.RefreshToken.ExpiresAt); err != nil {
+		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to extend session ttl")
+	}
+
 	return newTokenPair, nil
 }
 
 // RevokeRefreshToken 撤销刷新令牌
 func (s *TokenRefresher) RevokeRefreshToken(ctx context.Context, refreshTokenValue string) error {
+	refreshToken, err := s.tokenStore.GetRefreshToken(ctx, refreshTokenValue)
+	if err != nil {
+		return perrors.WrapC(err, code.ErrInternalServerError, "failed to load refresh token")
+	}
+	if refreshToken != nil && refreshToken.SessionID != "" {
+		if err := s.sessionManager.Revoke(ctx, refreshToken.SessionID, "refresh_token_revoked", refreshToken.UserID.String()); err != nil {
+			return perrors.WrapC(err, code.ErrInternalServerError, "failed to revoke refresh token session")
+		}
+	}
 	if err := s.tokenStore.DeleteRefreshToken(ctx, refreshTokenValue); err != nil {
 		return perrors.WrapC(err, code.ErrInternalServerError, "failed to revoke refresh token")
 	}
 	return nil
+}
+
+func subjectAccessError(status sessiondomain.SubjectAccessStatus) error {
+	switch status {
+	case sessiondomain.SubjectAccessBlocked:
+		return perrors.WithCode(code.ErrUserBlocked, "user is blocked")
+	case sessiondomain.SubjectAccessDisabled:
+		return perrors.WithCode(code.ErrCredentialDisabled, "account is disabled")
+	case sessiondomain.SubjectAccessLocked:
+		return perrors.WithCode(code.ErrCredentialLocked, "account is locked")
+	default:
+		return perrors.WithCode(code.ErrUserInactive, "subject is inactive")
+	}
 }

@@ -11,7 +11,7 @@
 
 ## 30 秒结论
 
-> **一句话**：当前 HTTP 认证中间件是 `JWTAuthMiddleware`，它的核心职责只有两件事: **取 token 并调用 `TokenService.VerifyToken()` 验证**，然后把最基础的身份字段写入 `gin.Context` / `request.Context`；它今天确实保护了 `identity`、`suggest`、`authz` 管理面和条件式 `admin` 路由，但这种保护仍是**条件式启用**的，而 `RequireRole / RequirePermission` 只有在 `AuthzModule.CasbinAdapter` 也被注入时才真正可用。
+> **一句话**：当前 HTTP 认证中间件是 `JWTAuthMiddleware`，它的核心职责只有两件事：**取 token 并调用权威 `TokenService.VerifyToken()` 验证**，然后把最基础的身份字段写入 `gin.Context` / `request.Context`；它今天确实保护了 `identity`、`suggest`、`authz` 管理面，以及要求 `admin role` 的 `/api/v1/admin/*` 和 `authn/admin/jwks/*`，但这套保护仍是**条件式启用**的，而 `RequireRole / RequirePermission` 只有在 `AuthzModule.CasbinAdapter` 也被注入时才真正可用。
 
 | 主题 | 当前答案 |
 | ---- | ---- |
@@ -19,7 +19,7 @@
 | token 提取顺序 | `Authorization` Header -> query `token` -> cookie `access_token` |
 | 验证入口 | `AuthnModule.TokenService.VerifyToken()` |
 | 成功后写入上下文 | `claims`、`user_id`、`account_id`、`token_id`；`request.Context` 只写 `user_id` |
-| 当前明确受保护的面 | `/api/v1/identity/*`、`/api/v1/suggest/*`、`/api/v1/authz/*`（除 `/health`）、条件式 `/api/v1/admin/*` |
+| 当前明确受保护的面 | `/api/v1/identity/*`、`/api/v1/suggest/*`、`/api/v1/authz/*`（除 `/health`）、条件式 `/api/v1/admin/*`、条件式 `authn/admin/jwks/*` |
 | Casbin 依赖 | `RequireRole / RequirePermission` 需要先注入 `CasbinEnforcer` |
 
 ## 重点速查
@@ -32,8 +32,8 @@
 | 用户域受保护路由 | `/api/v1/identity/*` | [../../internal/apiserver/interface/uc/restful/router.go](../../internal/apiserver/interface/uc/restful/router.go) |
 | Suggest 受保护路由 | `/api/v1/suggest/child` | [../../internal/apiserver/interface/suggest/restful/handler.go](../../internal/apiserver/interface/suggest/restful/handler.go) |
 | Authz 受保护路由 | `/api/v1/authz/*`（`/health` 公开） | [../../internal/apiserver/interface/authz/restful/router.go](../../internal/apiserver/interface/authz/restful/router.go) |
-| 条件式 admin 路由 | `/api/v1/admin/*` | [../../internal/apiserver/routers.go](../../internal/apiserver/routers.go) |
-| 当前未统一挂 JWT 的模块 | `authn / idp` | [../../internal/apiserver/routers.go](../../internal/apiserver/routers.go) |
+| 条件式 admin 路由 | `/api/v1/admin/*`、`/api/v1/authn/admin/jwks/*` | [../../internal/apiserver/routers.go](../../internal/apiserver/routers.go)、[../../internal/apiserver/interface/authn/restful/router.go](../../internal/apiserver/interface/authn/restful/router.go) |
+| 当前未统一挂 JWT 的模块 | `authn` 的公开登录/账户面、`idp` | [../../internal/apiserver/routers.go](../../internal/apiserver/routers.go) |
 
 ## 1. HTTP JWT 中间件在运行时到底扮演什么角色
 
@@ -175,7 +175,7 @@ flowchart TB
     Suggest -->|统一 Use AuthRequired| Protected2["已保护"]
     Authz -->|除 /health 外统一 Use AuthRequired| Protected3["已保护"]
     Admin -->|仅 authMiddleware 存在时统一挂载| Conditional["条件式保护"]
-    Authn -->|公开登录/JWKS 面| Public1["未统一挂中央 JWT"]
+    Authn -->|公开登录/账户面| Public1["未统一挂中央 JWT"]
     IDP -->|当前未统一挂中央 JWT| Public2["未统一挂中央 JWT"]
 ```
 
@@ -188,7 +188,8 @@ flowchart TB
 | `/api/v1/identity/*` | 已在 `api := engine.Group(\"/api/v1/identity\")` 后统一 `Use(deps.AuthMiddleware)` |
 | `/api/v1/suggest/*` | 已在 `group := engine.Group(\"/api/v1/suggest\")` 后统一 `Use(deps.AuthMiddleware)` |
 | `/api/v1/authz/*` | `/health` 公开，其余子路由在 `g := authzGroup.Group(\"\")` 后统一 `Use(authMw)` |
-| `/api/v1/admin/*` | 仅在中央已创建 `authMiddleware` 时统一挂上 |
+| `/api/v1/admin/*` | 仅在中央既创建了 `authMiddleware`、又具备 `RequireRole(\"admin\")` 能力时才注册，并统一挂上 |
+| `/api/v1/authn/admin/jwks/*` | 仅在中央既创建了 `authMiddleware`、又具备 `RequireRole(\"admin\")` 能力时才注册，并统一挂上 |
 
 ### 3.2 当前没有统一挂上的
 
@@ -199,12 +200,13 @@ flowchart TB
 
 ### 3.3 条件式保护今天是什么意思
 
-如果认证模块没初始化成功，当前 router 的行为不是“阻止这些路由注册”，而是：
+如果认证模块或管理员鉴权能力没初始化成功，当前 router 的行为不是“全部阻止路由注册”，而是：
 
 - `user` 模块收到一个 no-op 中间件，仍会注册
 - `suggest` 模块收到一个 no-op 中间件，仍会注册
 - `authz` 模块若中间件为空，会回退到 `c.Next()` 的放行占位
-- `/api/v1/admin/*` 不会挂认证中间件
+- `/api/v1/admin/*` 不会注册
+- `/api/v1/authn/admin/jwks/*` 也不会注册
 
 所以今天更准确的说法是：**这套 HTTP JWT 保护是条件式启用的，不是绝对全局强制的。**
 

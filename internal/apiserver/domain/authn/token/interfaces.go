@@ -26,8 +26,8 @@ type Issuer interface {
 	// IssueServiceToken 签发服务间访问令牌。
 	IssueServiceToken(ctx context.Context, subject string, audience []string, attributes map[string]string, ttl time.Duration) (*TokenPair, error)
 
-	// RevokeToken 撤销令牌
-	RevokeToken(ctx context.Context, tokenValue string) error
+	// RevokeAccessToken 撤销访问令牌，并联动当前会话。
+	RevokeAccessToken(ctx context.Context, tokenValue string) error
 }
 
 // Refresher 令牌刷新端口

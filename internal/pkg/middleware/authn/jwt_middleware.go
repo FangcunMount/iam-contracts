@@ -39,6 +39,11 @@ func NewJWTAuthMiddleware(tokenService token.TokenApplicationService, casbin Cas
 	}
 }
 
+// SupportsRoleCheck 返回当前中间件是否具备角色判定能力。
+func (m *JWTAuthMiddleware) SupportsRoleCheck() bool {
+	return m != nil && m.casbin != nil
+}
+
 // AuthRequired 认证必需中间件
 // 验证请求中的 JWT 令牌,如果无效则返回 401
 func (m *JWTAuthMiddleware) AuthRequired() gin.HandlerFunc {

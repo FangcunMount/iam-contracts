@@ -20,6 +20,7 @@ func TestApplyVerifiedClaimsSetsTenantIDForRoleResolution(t *testing.T) {
 		tokenDomain.TokenTypeAccess,
 		"token-1",
 		"user:110001",
+		"sid-1",
 		meta.ID(110001),
 		meta.ID(613486856213901870),
 		meta.ID(1),

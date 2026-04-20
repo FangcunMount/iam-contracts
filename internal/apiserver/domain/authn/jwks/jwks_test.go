@@ -1,6 +1,7 @@
 package jwks
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -159,4 +160,56 @@ func TestRotationPolicy_Validation(t *testing.T) {
 	p3 := p
 	p3.GracePeriod = p3.RotationInterval
 	assert.Error(t, p3.Validate())
+}
+
+type snapshotTestRepository struct {
+	publishable []*Key
+}
+
+func (r *snapshotTestRepository) Save(context.Context, *Key) error                { return nil }
+func (r *snapshotTestRepository) Update(context.Context, *Key) error              { return nil }
+func (r *snapshotTestRepository) Delete(context.Context, string) error            { return nil }
+func (r *snapshotTestRepository) FindByKid(context.Context, string) (*Key, error) { return nil, nil }
+func (r *snapshotTestRepository) FindByStatus(context.Context, KeyStatus) ([]*Key, error) {
+	return nil, nil
+}
+func (r *snapshotTestRepository) FindPublishable(context.Context) ([]*Key, error) {
+	return r.publishable, nil
+}
+func (r *snapshotTestRepository) FindExpired(context.Context) ([]*Key, error) { return nil, nil }
+func (r *snapshotTestRepository) FindAll(context.Context, int, int) ([]*Key, int64, error) {
+	return nil, 0, nil
+}
+func (r *snapshotTestRepository) CountByStatus(context.Context, KeyStatus) (int64, error) {
+	return 0, nil
+}
+
+func TestKeySetBuilderSnapshotStatus(t *testing.T) {
+	repo := &snapshotTestRepository{
+		publishable: []*Key{
+			NewKey("kid-1", PublicJWK{
+				Kty: "RSA",
+				Use: "sig",
+				Alg: "RS256",
+				Kid: "kid-1",
+				N:   mustStr("n"),
+				E:   mustStr("e"),
+			}),
+		},
+	}
+	builder := NewKeySetBuilder(repo)
+
+	initial := builder.SnapshotStatus()
+	assert.False(t, initial.Cached)
+	assert.Zero(t, initial.KeyCount)
+	assert.Nil(t, initial.LastBuildTime)
+
+	_, tag, err := builder.BuildJWKS(context.Background())
+	require.NoError(t, err)
+
+	snapshot := builder.SnapshotStatus()
+	assert.True(t, snapshot.Cached)
+	assert.Equal(t, 1, snapshot.KeyCount)
+	require.NotNil(t, snapshot.LastBuildTime)
+	assert.Equal(t, tag.ETag, snapshot.CacheTag.ETag)
 }

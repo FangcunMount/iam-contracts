@@ -114,7 +114,7 @@ QS 竖切 **从** JWT 已通过验签、`user_id`/`tenant_id` 已进入上下文
 | ---- | ---- |
 | [05-QS接入IAM.md](./05-QS接入IAM.md) | QS 接入路径总览（SDK、JWKS、gRPC）。 |
 | [03-授权接入与边界.md](./03-授权接入与边界.md) | IAM 授权管理面与单次 PDP；**快照与竖切边界以本文为准**。 |
-| [../05-专题分析/02-授权判定链路--角色&策略&资源&Assignment&Casbin.md](../05-专题分析/02-授权判定链路--角色&策略&资源&Assignment&Casbin.md) | IAM 内部 Casbin 与版本传播细节。 |
+| [../05-专题分析/03-授权判定链路--角色&策略&资源&Assignment&Casbin.md](../05-专题分析/03-授权判定链路--角色&策略&资源&Assignment&Casbin.md) | IAM 内部 Casbin 与版本传播细节。 |
 
 ---
 

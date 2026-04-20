@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
@@ -38,16 +39,63 @@ func (g *genStub) ParseAccessToken(ctx context.Context, tokenValue string) (*tok
 		return nil, errors.New("no token")
 	}
 	// return claims built from g.tok
-	return token.NewTokenClaims(g.tok.Type, g.tok.ID, g.tok.Subject, g.tok.UserID, g.tok.AccountID, g.tok.TenantID, "", g.tok.Audience, g.tok.Attributes, g.tok.AMR, g.tok.IssuedAt, g.tok.ExpiresAt), nil
+	return token.NewTokenClaims(g.tok.Type, g.tok.ID, g.tok.Subject, g.tok.SessionID, g.tok.UserID, g.tok.AccountID, g.tok.TenantID, "", g.tok.Audience, g.tok.Attributes, g.tok.AMR, g.tok.IssuedAt, g.tok.ExpiresAt), nil
+}
+
+type sessionStoreStub struct {
+	sessions map[string]*sessiondomain.Session
+}
+
+func (s *sessionStoreStub) Save(_ context.Context, sess *sessiondomain.Session) error {
+	if s.sessions == nil {
+		s.sessions = make(map[string]*sessiondomain.Session)
+	}
+	s.sessions[sess.SessionID] = sess
+	return nil
+}
+
+func (s *sessionStoreStub) Get(_ context.Context, sessionID string) (*sessiondomain.Session, error) {
+	if s.sessions == nil {
+		return nil, nil
+	}
+	return s.sessions[sessionID], nil
+}
+
+func (s *sessionStoreStub) Revoke(_ context.Context, sessionID string, reason string, revokedBy string) error {
+	if s.sessions == nil {
+		return nil
+	}
+	if sess, ok := s.sessions[sessionID]; ok {
+		sess.Revoke(reason, revokedBy)
+	}
+	return nil
+}
+
+func (s *sessionStoreStub) Extend(_ context.Context, sessionID string, expiresAt time.Time) error {
+	if s.sessions == nil {
+		return nil
+	}
+	if sess, ok := s.sessions[sessionID]; ok {
+		sess.Extend(expiresAt)
+	}
+	return nil
+}
+
+func (s *sessionStoreStub) RevokeByUser(_ context.Context, userID meta.ID, reason string, revokedBy string) error {
+	return nil
+}
+
+func (s *sessionStoreStub) RevokeByAccount(_ context.Context, accountID meta.ID, reason string, revokedBy string) error {
+	return nil
 }
 
 type storeStub struct {
-	saved             *token.Token
-	blacklistedID     string
-	blacklistedExpiry time.Duration
-	saveErr           error
-	blacklistErr      error
-	addCalled         int
+	saved                    *token.Token
+	revokedAccessTokenID     string
+	revokedAccessTokenExpiry time.Duration
+	saveErr                  error
+	revokeMarkErr            error
+	markCalled               int
 }
 
 func (s *storeStub) SaveRefreshToken(ctx context.Context, t *token.Token) error {
@@ -58,13 +106,13 @@ func (s *storeStub) GetRefreshToken(ctx context.Context, tokenValue string) (*to
 	return nil, nil
 }
 func (s *storeStub) DeleteRefreshToken(ctx context.Context, tokenValue string) error { return nil }
-func (s *storeStub) AddToBlacklist(ctx context.Context, tokenID string, expiry time.Duration) error {
-	s.addCalled++
-	s.blacklistedID = tokenID
-	s.blacklistedExpiry = expiry
-	return s.blacklistErr
+func (s *storeStub) MarkAccessTokenRevoked(ctx context.Context, tokenID string, expiry time.Duration) error {
+	s.markCalled++
+	s.revokedAccessTokenID = tokenID
+	s.revokedAccessTokenExpiry = expiry
+	return s.revokeMarkErr
 }
-func (s *storeStub) IsBlacklisted(ctx context.Context, tokenID string) (bool, error) {
+func (s *storeStub) IsAccessTokenRevoked(ctx context.Context, tokenID string) (bool, error) {
 	return false, nil
 }
 
@@ -72,10 +120,11 @@ func TestIssueToken_HappyPathAndGeneratorError(t *testing.T) {
 	acc := &authentication.Principal{AccountID: meta.FromUint64(2), UserID: meta.FromUint64(1), TenantID: meta.FromUint64(0)}
 
 	// happy path
-	access := token.NewAccessToken("aid", "aval", acc.UserID, acc.AccountID, acc.TenantID, time.Minute)
+	sessionManager := sessiondomain.NewManager(&sessionStoreStub{})
+	access := token.NewAccessToken("aid", "aval", "sid-access", acc.UserID, acc.AccountID, acc.TenantID, time.Minute)
 	gen := &genStub{tok: access}
 	store := &storeStub{}
-	issuer := token.NewTokenIssuer(gen, store, time.Minute, time.Hour)
+	issuer := token.NewTokenIssuer(gen, store, sessionManager, time.Minute, time.Hour)
 
 	pair, err := issuer.IssueToken(context.Background(), acc)
 	require.NoError(t, err)
@@ -86,7 +135,7 @@ func TestIssueToken_HappyPathAndGeneratorError(t *testing.T) {
 
 	// generator error
 	genErr := &genStub{err: errors.New("gen fail")}
-	issuer2 := token.NewTokenIssuer(genErr, store, time.Minute, time.Hour)
+	issuer2 := token.NewTokenIssuer(genErr, store, sessionManager, time.Minute, time.Hour)
 	_, err2 := issuer2.IssueToken(context.Background(), acc)
 	require.Error(t, err2)
 }
@@ -95,7 +144,7 @@ func TestIssueServiceToken_HappyPathAndValidation(t *testing.T) {
 	serviceTok := token.NewServiceToken("sid", "sval", "service:qs-server", []string{"iam-service"}, map[string]string{"scope": "internal"}, time.Minute)
 	gen := &genStub{serviceTok: serviceTok}
 	store := &storeStub{}
-	issuer := token.NewTokenIssuer(gen, store, time.Minute, time.Hour)
+	issuer := token.NewTokenIssuer(gen, store, sessiondomain.NewManager(&sessionStoreStub{}), time.Minute, time.Hour)
 
 	pair, err := issuer.IssueServiceToken(context.Background(), "service:qs-server", []string{"iam-service"}, map[string]string{"scope": "internal"}, 0)
 	require.NoError(t, err)
@@ -108,29 +157,29 @@ func TestIssueServiceToken_HappyPathAndValidation(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestRevokeToken_ExpiredAndBlacklist(t *testing.T) {
+func TestRevokeToken_ExpiredAndMarkRevokedAccessToken(t *testing.T) {
 	// expired token: Parse returns claims with past expiry
-	expired := token.NewAccessToken("eid", "eval", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), -time.Minute)
+	expired := token.NewAccessToken("eid", "eval", "sid-expired", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), -time.Minute)
 	gen := &genStub{tok: expired}
 	store := &storeStub{}
-	issuer := token.NewTokenIssuer(gen, store, time.Minute, time.Hour)
+	issuer := token.NewTokenIssuer(gen, store, sessiondomain.NewManager(&sessionStoreStub{}), time.Minute, time.Hour)
 
-	// Revoke should return nil when token already expired (no blacklist)
-	err := issuer.RevokeToken(context.Background(), expired.Value)
+	// Revoke should return nil when token already expired (no revocation marker)
+	err := issuer.RevokeAccessToken(context.Background(), expired.Value)
 	require.NoError(t, err)
-	require.Equal(t, 0, store.addCalled)
+	require.Equal(t, 0, store.markCalled)
 
-	// future token -> blacklist called
-	futureTok := token.NewAccessToken("fid", "fval", meta.FromUint64(9), meta.FromUint64(8), meta.FromUint64(7), time.Hour)
+	// future token -> revocation marker called
+	futureTok := token.NewAccessToken("fid", "fval", "sid-future", meta.FromUint64(9), meta.FromUint64(8), meta.FromUint64(7), time.Hour)
 	gen2 := &genStub{tok: futureTok}
 	store2 := &storeStub{}
-	issuer2 := token.NewTokenIssuer(gen2, store2, time.Minute, time.Hour)
-	err2 := issuer2.RevokeToken(context.Background(), futureTok.Value)
+	issuer2 := token.NewTokenIssuer(gen2, store2, sessiondomain.NewManager(&sessionStoreStub{}), time.Minute, time.Hour)
+	err2 := issuer2.RevokeAccessToken(context.Background(), futureTok.Value)
 	require.NoError(t, err2)
-	require.Equal(t, 1, store2.addCalled)
-	require.Equal(t, futureTok.ID, store2.blacklistedID)
+	require.Equal(t, 1, store2.markCalled)
+	require.Equal(t, futureTok.ID, store2.revokedAccessTokenID)
 	// expiry should be close to RemainingDuration
 	rem := futureTok.RemainingDuration()
 	// allow small delta
-	require.True(t, store2.blacklistedExpiry <= rem+time.Second && store2.blacklistedExpiry >= rem-time.Second)
+	require.True(t, store2.revokedAccessTokenExpiry <= rem+time.Second && store2.revokedAccessTokenExpiry >= rem-time.Second)
 }

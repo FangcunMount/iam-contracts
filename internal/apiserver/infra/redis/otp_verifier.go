@@ -11,6 +11,7 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
+	cacheinfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/cache"
 )
 
 // OTPVerifierImpl OTP验证器的Redis实现
@@ -33,6 +34,14 @@ func NewOTPVerifier(client *redis.Client) *OTPVerifierImpl {
 		client:    client,
 		otpCodes:  newStringStore(client),
 		sendGates: newStringStore(client),
+	}
+}
+
+// FamilyInspectors 返回 OTP 相关缓存族的状态读取器。
+func (v *OTPVerifierImpl) FamilyInspectors() []cacheinfra.FamilyInspector {
+	return []cacheinfra.FamilyInspector{
+		newRedisFamilyInspector(cacheinfra.FamilyAuthnLoginOTP, v.client, "OTP 采用一次性 marker String 存储。"),
+		newRedisFamilyInspector(cacheinfra.FamilyAuthnLoginOTPSendGate, v.client, "发送频控采用 SET NX EX 的 cooldown marker。"),
 	}
 }
 

@@ -102,8 +102,8 @@ func (s *tokenApplicationService) RefreshToken(ctx context.Context, refreshToken
 	}, nil
 }
 
-// RevokeToken 撤销访问令牌
-func (s *tokenApplicationService) RevokeToken(ctx context.Context, accessToken string) error {
+// RevokeAccessToken 撤销访问令牌
+func (s *tokenApplicationService) RevokeAccessToken(ctx context.Context, accessToken string) error {
 	l := logger.L(ctx)
 
 	l.Debugw("开始撤销访问令牌",
@@ -112,7 +112,7 @@ func (s *tokenApplicationService) RevokeToken(ctx context.Context, accessToken s
 		"token_hint", sanitize.MaskToken(accessToken),
 	)
 
-	err := s.tokenIssuer.RevokeToken(ctx, accessToken)
+	err := s.tokenIssuer.RevokeAccessToken(ctx, accessToken)
 	if err != nil {
 		l.Errorw("撤销访问令牌失败",
 			"action", logger.ActionRevoke,

@@ -213,8 +213,8 @@ CREATE TABLE IF NOT EXISTS `auth_sessions`
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='会话表';
 
--- 2.6 Token 黑名单表
-CREATE TABLE IF NOT EXISTS `auth_token_blacklist`
+-- 2.6 已撤销访问令牌表
+CREATE TABLE IF NOT EXISTS `auth_revoked_access_token`
 (
     `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
     `token_id`   VARCHAR(64)     NOT NULL COMMENT 'Token ID (jti)',
@@ -228,7 +228,7 @@ CREATE TABLE IF NOT EXISTS `auth_token_blacklist`
     KEY `idx_user_id` (`user_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='Token 黑名单表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='已撤销访问令牌表';
 
 -- ============================================================================
 -- Module 3: Authorization (Authz)

@@ -4,7 +4,9 @@
 
 ## 30 秒结论
 
-- 当前更推荐的接法是：`SDK + gRPC + 本地 JWKS 验签`，而不是直接手搓一套 IAM 客户端。
+- 当前更推荐的接法是：`SDK + gRPC`，再按一致性要求二选一：
+  - 高频、可接受最终一致撤销语义：`本地 JWKS 验签`
+  - 要求 session revoke / 用户封禁 / 账号禁用即时生效：`IAM 在线 VerifyToken`
 - 如果场景是“网关验证用户 JWT”，优先看 `pkg/sdk` 里的 `TokenVerifier` 和 `JWKS` 配置；如果场景是“后端按 ID 读用户 / 判定监护关系”，优先看 gRPC 与 SDK 的 `Identity()` / `Guardianship()` 客户端。
 - `docs/03-接口与集成` 负责说明“怎么接”；真正的字段、服务和错误语义仍以 `api/rest/*.yaml`、`api/grpc/**/*.proto`、`pkg/sdk/docs/*` 为准。
 - 授权：`authz` 已包含管理面与单次 PDP（REST `POST /authz/check`、gRPC `AuthorizationService/Check`、SDK `Authz()`）；批量/Explain/菜单仍通常需业务侧扩展，见 [03-授权接入与边界.md](./03-授权接入与边界.md)。
@@ -14,8 +16,9 @@
 
 | 场景 | 当前更推荐的入口 | 真实落点 |
 | ---- | ---- | ---- |
-| 先判断 SDK 是否能直接承载场景 | 先看 SDK 价值说明 | [../05-专题分析/04-SDK封装与接入价值.md](../05-专题分析/04-SDK封装与接入价值.md) |
-| 网关或 BFF 校验用户 JWT | SDK `TokenVerifier` + JWKS | [../../pkg/sdk/docs/04-jwt-verification.md](../../pkg/sdk/docs/04-jwt-verification.md)、[../../pkg/sdk/_examples/verifier/main.go](../../pkg/sdk/_examples/verifier/main.go) |
+| 先判断 SDK 是否能直接承载场景 | 先看 SDK 价值说明 | [../05-专题分析/07-SDK封装与接入价值.md](../05-专题分析/07-SDK封装与接入价值.md) |
+| 网关或 BFF 校验用户 JWT（最终一致即可） | SDK `TokenVerifier` + JWKS | [../../pkg/sdk/docs/04-jwt-verification.md](../../pkg/sdk/docs/04-jwt-verification.md)、[../../pkg/sdk/_examples/verifier/main.go](../../pkg/sdk/_examples/verifier/main.go) |
+| 需要 access revoke / session revoke / 用户封禁即时生效 | 在线 `VerifyToken`（SDK / gRPC） | [02-gRPC契约与接入.md](./02-gRPC契约与接入.md)、[../../api/grpc/iam/authn/v1/authn.proto](../../api/grpc/iam/authn/v1/authn.proto) |
 | 后端服务读取用户 / 儿童 / 监护关系 | SDK `Identity()` / `Guardianship()` | [../../pkg/sdk/docs/01-quick-start.md](../../pkg/sdk/docs/01-quick-start.md)、[../../api/grpc/iam/identity/v1/identity.proto](../../api/grpc/iam/identity/v1/identity.proto) |
 | 服务间获取服务 Token | SDK `ServiceAuthHelper` | [../../pkg/sdk/docs/05-service-auth.md](../../pkg/sdk/docs/05-service-auth.md)、[../../api/grpc/iam/authn/v1/authn.proto](../../api/grpc/iam/authn/v1/authn.proto) |
 | 查看 gRPC 合同与 metadata | gRPC 契约解释层 | [02-gRPC契约与接入.md](./02-gRPC契约与接入.md)、[../../api/grpc/README.md](../../api/grpc/README.md) |
@@ -39,13 +42,13 @@
 2. 需要身份明细、儿童信息、监护关系时，再走 IAM 的 gRPC 能力。
 3. 只有在必须走公开 HTTP 合同的地方，再回到 REST。
 
-如果你还在判断“SDK 到底是不是应该优先看的主入口”，先读 [../05-专题分析/04-SDK封装与接入价值.md](../05-专题分析/04-SDK封装与接入价值.md)。
+如果你还在判断“SDK 到底是不是应该优先看的主入口”，先读 [../05-专题分析/07-SDK封装与接入价值.md](../05-专题分析/07-SDK封装与接入价值.md)。
 
 ## 2. 当前更推荐的接法
 
-### 2.1 用户 JWT：优先本地验签，不要每次都远程校验
+### 2.1 用户 JWT：先按一致性要求选“本地验签”还是“在线权威校验”
 
-SDK 已经提供：
+SDK 已经提供本地验签能力：
 
 - `TokenVerifier`
 - `JWKSConfig`
@@ -57,13 +60,26 @@ SDK 已经提供：
 - [../../pkg/sdk/_examples/verifier/main.go](../../pkg/sdk/_examples/verifier/main.go)
 - [../../api/rest/authn.v1.yaml](../../api/rest/authn.v1.yaml) 中的 `/.well-known/jwks.json`
 
-因此当前更稳的口径是：
+但这条路径只能保证：
 
-- 高频请求链路优先本地验签
-- 通过 JWKS 定时刷新公钥
-- 远程校验只作为补充或降级路径
+- 签名合法
+- `exp / nbf` 时间合法
 
-不要把“每次请求都远程调用 `VerifyToken`”讲成推荐姿势。
+它**不能保证即时生效**：
+
+- `revoked_access_token`
+- `session revoke`
+- `user blocked`
+- `account disabled`
+
+因此当前更准确的接入口径是：
+
+| 场景 | 当前建议 |
+| ---- | ---- |
+| 高频请求链路，能接受最终一致撤销语义 | 优先本地 JWKS 验签 |
+| 需要管理员踢人、踢会话、禁用账号立即生效 | 明确接入 IAM 在线 `VerifyToken` |
+
+不要再把“所有网关场景都优先本地验签”讲成无条件推荐。
 
 ### 2.2 身份与监护查询：优先 SDK + gRPC
 
@@ -173,7 +189,7 @@ SDK 当前已经把最常用的服务收成统一入口：
 | 文档 | 说明 |
 | ---- | ---- |
 | [README.md](./README.md) | 接口与集成层入口 |
-| [../05-专题分析/04-SDK封装与接入价值.md](../05-专题分析/04-SDK封装与接入价值.md) | SDK 的主轴定位、封装价值与当前边界 |
+| [../05-专题分析/07-SDK封装与接入价值.md](../05-专题分析/07-SDK封装与接入价值.md) | SDK 的主轴定位、封装价值与当前边界 |
 | [01-REST契约与接入.md](./01-REST契约与接入.md) | REST 路径、公开 JWKS、OpenAPI 校验链 |
 | [02-gRPC契约与接入.md](./02-gRPC契约与接入.md) | gRPC 服务矩阵、metadata、生成与调试 |
 | [03-授权接入与边界.md](./03-授权接入与边界.md) | 授权能力当前能接到什么程度 |

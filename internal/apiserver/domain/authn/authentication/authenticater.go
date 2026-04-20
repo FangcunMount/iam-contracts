@@ -163,7 +163,7 @@ func (f *Authenticater) createStrategy(scenario Scenario) AuthStrategy {
 	case AuthWecom:
 		return NewOAuthWeChatComAuthStrategy(f.credRepo, f.accountRepo, f.idp)
 	case AuthJWTToken:
-		return NewJWTTokenAuthStrategy(f.tokenVerifier, f.accountRepo)
+		return NewJWTTokenAuthStrategy(f.tokenVerifier)
 	default:
 		return nil
 	}

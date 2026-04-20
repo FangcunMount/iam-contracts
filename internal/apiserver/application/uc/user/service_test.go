@@ -280,7 +280,7 @@ func TestUserStatusApplicationService_Activate_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	// 先停用
-	statusService := user.NewUserStatusApplicationService(unitOfWork)
+	statusService := user.NewUserStatusApplicationService(unitOfWork, nil)
 	err = statusService.Deactivate(ctx, created.ID)
 	require.NoError(t, err)
 
@@ -310,7 +310,7 @@ func TestUserStatusApplicationService_Deactivate_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	statusService := user.NewUserStatusApplicationService(unitOfWork)
+	statusService := user.NewUserStatusApplicationService(unitOfWork, nil)
 
 	// Act - 停用
 	err = statusService.Deactivate(ctx, created.ID)
@@ -338,7 +338,7 @@ func TestUserStatusApplicationService_Block_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	statusService := user.NewUserStatusApplicationService(unitOfWork)
+	statusService := user.NewUserStatusApplicationService(unitOfWork, nil)
 
 	// Act - 封禁
 	err = statusService.Block(ctx, created.ID)

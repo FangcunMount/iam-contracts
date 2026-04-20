@@ -26,6 +26,7 @@ func TestTokenApplicationServiceVerifyTokenHonorsExpectedIssuerAndAudience(t *te
 				tokenDomain.TokenTypeAccess,
 				"tid",
 				"user:1",
+				"sid-1",
 				meta.FromUint64(1),
 				meta.FromUint64(2),
 				meta.FromUint64(3),

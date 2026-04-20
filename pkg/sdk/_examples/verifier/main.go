@@ -52,6 +52,7 @@ func main() {
 	if result.Valid {
 		fmt.Printf("Token 有效\n")
 		fmt.Printf("用户 ID: %s\n", result.Claims.UserID)
+		fmt.Printf("会话 ID: %s\n", result.Claims.SessionID)
 		fmt.Printf("租户 ID: %s\n", result.Claims.TenantID)
 		fmt.Printf("过期时间: %s\n", result.Claims.ExpiresAt)
 	}

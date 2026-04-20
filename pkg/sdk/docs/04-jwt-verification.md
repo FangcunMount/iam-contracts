@@ -70,6 +70,7 @@
 5️⃣ 返回结果
    Valid: true
    UserID: "user-123"
+   SessionID: "sid-123"
    Roles: ["admin", "user"]
 ```
 
@@ -77,10 +78,10 @@
 
 | 验证方式 | 延迟 | 可靠性 | 适用场景 |
 | --------- | ------ | ------- | --------- |
-| 🚀 **本地+缓存** | <1ms | ⭐⭐⭐⭐⭐ | 高并发 API |
-| ⚡ **本地验证** | 1-5ms | ⭐⭐⭐⭐ | 常规 API |
-| 🌐 **远程验证** | 20-50ms | ⭐⭐⭐ | 非幂等操作 |
-| 🔄 **Fallback** | 自适应 | ⭐⭐⭐⭐⭐ | 生产推荐 |
+| 🚀 **本地+缓存** | <1ms | ⭐⭐⭐⭐⭐ | 高频、可接受最终一致撤销语义的 API |
+| ⚡ **本地验证** | 1-5ms | ⭐⭐⭐⭐ | 常规高频 API |
+| 🌐 **远程验证** | 20-50ms | ⭐⭐⭐ | 需要权威判断 revoke / session / subject state 的操作 |
+| 🔄 **Fallback** | 自适应 | ⭐⭐⭐⭐⭐ | 生产常用折中方案 |
 
 ### 降级链路
 
@@ -112,6 +113,7 @@ result, _ := verifier.Verify(ctx, token, nil)
 // 3️⃣ 使用结果
 if result.Valid {
     log.Printf("用户: %s, 角色: %v", result.Claims.UserID, result.Claims.Roles)
+    log.Printf("会话: %s", result.Claims.SessionID)
 }
 ```
 
@@ -124,9 +126,26 @@ if result.Valid {
 | 对比项 | 远程验证 | 本地验证 |
 | ------- | --------- | --------- |
 | 性能 | ❌ 50ms+ | ✅ <1ms |
-| 可靠性 | ❌ 依赖IAM服务 | ✅ 本地独立 |
+| 可靠性 | ❌ 依赖 IAM 服务 | ✅ 本地独立 |
 | 网络开销 | ❌ 每次请求 | ✅ 定期刷新 |
-| 适合场景 | 低频操作 | 高频API |
+| 适合场景 | 需要权威状态判断 | 高频 API |
+
+### 本地验签的边界
+
+本地 JWKS 验签当前只能保证：
+
+- 签名正确
+- `exp` / `nbf` / `iss` / `aud` 等本地可判定声明正确
+- JWT 内自带 claims 可直接读取，例如 `user_id`、`account_id`、`tenant_id`、`sid`
+
+但它**不能保证**这些状态的即时生效：
+
+- `revoked_access_token`
+- `session(sid)` 已被 revoke
+- 用户被封禁
+- 账号被禁用或锁定
+
+如果你的业务要求这些状态即时生效，就不要只做本地验签，而应调用在线 `Auth().VerifyToken(...)`。
 
 ---
 
@@ -299,21 +318,28 @@ type JWKSConfig struct {
 
 ```go
 type VerifyResult struct {
-    Valid  bool               // Token 是否有效
-    Claims *StandardClaims    // JWT Claims
-    Source VerifySource       // 验证来源（本地/远程/缓存）
-    Error  string             // 错误信息（如果有）
+    Valid    bool        // Token 是否有效
+    Claims   *TokenClaims
+    RawToken jwt.Token   // 本地验签时可用；远程验证时通常为 nil
 }
 
-type StandardClaims struct {
-    UserID    string    // 用户 ID (sub)
-    Audience  []string  // Audience (aud)
-    Issuer    string    // Issuer (iss)
-    IssuedAt  time.Time // 签发时间 (iat)
-    ExpiresAt time.Time // 过期时间 (exp)
-    NotBefore time.Time // 生效时间 (nbf)
-    Roles     []string  // 角色列表（自定义 claim）
-    Scope     []string  // 权限范围（自定义 claim）
+type TokenClaims struct {
+    TokenID   string
+    Subject   string
+    SessionID string
+    UserID    string
+    AccountID string
+    TenantID  string
+    Issuer    string
+    Audience  []string
+    IssuedAt  time.Time
+    ExpiresAt time.Time
+    NotBefore time.Time
+    Roles     []string
+    Scopes    []string
+    TokenType string
+    AMR       []string
+    Extra     map[string]interface{}
 }
 ```
 
@@ -326,11 +352,6 @@ if err != nil {
     return
 }
 
-if !result.Valid {
-    log.Printf("Token 无效: %s", result.Error)
-    return
-}
-
 // 检查角色
 if contains(result.Claims.Roles, "admin") {
     log.Println("管理员用户")
@@ -340,9 +361,6 @@ if contains(result.Claims.Roles, "admin") {
 if time.Now().After(result.Claims.ExpiresAt) {
     log.Println("Token 已过期")
 }
-
-// 查看验证来源
-log.Printf("验证来源: %s", result.Source) // "local", "remote", "cache"
 ```
 
 ## 高级用法
@@ -359,7 +377,7 @@ jwksManager, err := auth.NewJWKSManager(
     jwksCfg,
     auth.WithCacheEnabled(true),
     auth.WithAuthClient(client.Auth()), // 添加 gRPC 降级
-    auth.WithCircuitBreaker(&observability.CircuitBreakerConfig{
+    auth.WithCircuitBreakerConfig(&sdk.CircuitBreakerConfig{
         FailureThreshold: 3,
         OpenDuration:     30 * time.Second,
     }),
@@ -367,46 +385,37 @@ jwksManager, err := auth.NewJWKSManager(
 defer jwksManager.Stop()
 
 // 手动刷新
-err = jwksManager.Refresh(ctx)
-
-// 获取统计信息
-stats := jwksManager.Stats()
-log.Printf("JWKS Stats: %+v", stats)
+err = jwksManager.ForceRefresh(ctx)
 ```
 
 ### 2. 验证选项
 
 ```go
-// 跳过过期检查
-result, err := verifier.Verify(ctx, token, &auth.VerifyOptions{
-    SkipExpiryCheck: true,
-})
-
 // 自定义 audience 验证
 result, err := verifier.Verify(ctx, token, &auth.VerifyOptions{
-    RequiredAudience: []string{"specific-app"},
+    ExpectedAudience: []string{"specific-app"},
 })
 
-// 获取额外 Claims
+// 远程策略下要求服务端返回 metadata
 result, err := verifier.Verify(ctx, token, &auth.VerifyOptions{
-    ExtractCustomClaims: true,
+    IncludeMetadata: true,
 })
 ```
 
 ### 3. 策略选择
 
 ```go
-// 强制本地验证
-verifier.SetStrategy("local")
+selector := auth.NewStrategySelector(cfg.TokenVerify, jwksManager, client.Auth())
 
-// 强制远程验证
-verifier.SetStrategy("remote")
+localStrategy, _ := selector.LocalStrategy()
+remoteStrategy, _ := selector.RemoteStrategy()
+fallbackStrategy, _ := selector.FallbackStrategy()
 
-// 自动选择（默认）
-verifier.SetStrategy("fallback")
+localVerifier := auth.NewTokenVerifierWithStrategy(localStrategy)
+remoteVerifier := auth.NewTokenVerifierWithStrategy(remoteStrategy)
+fallbackVerifier := auth.NewTokenVerifierWithStrategy(fallbackStrategy)
 
-// 带缓存
-verifier.SetStrategy("caching")
+_, _, _ = localVerifier, remoteVerifier, fallbackVerifier
 ```
 
 ## JWKS 职责链
@@ -425,8 +434,8 @@ JWKS Manager 使用职责链模式，按顺序尝试：
 jwksManager, err := auth.NewJWKSManager(cfg,
     auth.WithCacheEnabled(true),              // 启用内存缓存
     auth.WithAuthClient(client.Auth()),       // gRPC 降级
-    auth.WithSeedCache("/var/cache/jwks"),    // 本地种子缓存
-    auth.WithCircuitBreaker(&observability.CircuitBreakerConfig{
+    auth.WithSeedData(seedJWKSJSON),          // 本地种子数据
+    auth.WithCircuitBreakerConfig(&sdk.CircuitBreakerConfig{
         FailureThreshold: 5,
         OpenDuration:     30 * time.Second,
     }),
@@ -448,19 +457,17 @@ jwksManager, err := auth.NewJWKSManager(cfg,
 ### 2. 使用 CachingVerifyStrategy
 
 ```go
-verifier.SetStrategy("caching")
-
-// 验证结果会被缓存 5 分钟
-result, err := verifier.Verify(ctx, token, &auth.VerifyOptions{
-    CacheTTL: 5 * time.Minute,
-})
+// 当前没有按调用粒度配置 CacheTTL 的 VerifyOptions。
+// 如果你确实需要缓存验证结果，需要自行包装 CachingVerifyStrategy。
+caching := auth.NewCachingVerifyStrategy(delegate, cache, 5*time.Minute)
+verifier := auth.NewTokenVerifierWithStrategy(caching)
 ```
 
 ### 3. 预热缓存
 
 ```go
 // 启动时预热 JWKS
-err := jwksManager.Refresh(ctx)
+err := jwksManager.ForceRefresh(ctx)
 if err != nil {
     log.Printf("预热失败，将在后台刷新: %v", err)
 }
@@ -487,31 +494,19 @@ if err != nil {
     return
 }
 
-if !result.Valid {
-    log.Printf("Token 无效: %s", result.Error)
-    // 可能的原因：签名不匹配、audience 不匹配、issuer 不匹配等
-}
+_ = result
 ```
 
 ## 监控和观测
 
-### 统计信息
+### 当前暴露面
 
-```go
-// JWKS Manager 统计
-stats := jwksManager.Stats()
-log.Printf("刷新次数: %d", stats.RefreshCount)
-log.Printf("成功次数: %d", stats.SuccessCount)
-log.Printf("失败次数: %d", stats.FailureCount)
-log.Printf("上次刷新: %v", stats.LastRefresh)
+当前 SDK 没有对外暴露统一的 `verifier.Stats()` 或 `result.Source`。
 
-// Verifier 统计
-verifyStats := verifier.Stats()
-log.Printf("验证次数: %d", verifyStats.TotalVerifications)
-log.Printf("本地验证: %d", verifyStats.LocalVerifications)
-log.Printf("远程验证: %d", verifyStats.RemoteVerifications)
-log.Printf("缓存命中: %d", verifyStats.CacheHits)
-```
+如果你要做观测，建议分两层：
+
+- 对 `verifier.Verify(...)` 的成功/失败做调用级埋点
+- 对 JWKS 获取链路单独做 HTTP / gRPC / 缓存命中监控
 
 ### Prometheus Metrics
 
@@ -521,16 +516,17 @@ verifyCounter := prometheus.NewCounterVec(
         Name: "jwt_verifications_total",
         Help: "Total JWT verifications",
     },
-    []string{"source", "valid"},
+    []string{"result"},
 )
 prometheus.MustRegister(verifyCounter)
 
 // 验证时记录
-result, err := verifier.Verify(ctx, token, nil)
-verifyCounter.WithLabelValues(
-    string(result.Source),
-    fmt.Sprintf("%t", result.Valid),
-).Inc()
+_, err := verifier.Verify(ctx, token, nil)
+label := "ok"
+if err != nil {
+    label = "error"
+}
+verifyCounter.WithLabelValues(label).Inc()
 ```
 
 ## 生产环境建议
@@ -565,41 +561,29 @@ func setupJWTVerifier(ctx context.Context, client *sdk.Client) (*auth.TokenVerif
         cfg.JWKS,
         auth.WithCacheEnabled(true),
         auth.WithAuthClient(client.Auth()),
-        auth.WithSeedCache("/var/cache/iam/jwks"),
-        auth.WithCircuitBreaker(cfg.CircuitBreaker),
+        auth.WithSeedData(seedJWKSJSON),
+        auth.WithCircuitBreakerConfig(cfg.CircuitBreaker),
     )
     if err != nil {
         return nil, err
     }
 
     // 2. 预热缓存
-    if err := jwksManager.Refresh(ctx); err != nil {
+    if err := jwksManager.ForceRefresh(ctx); err != nil {
         log.Printf("JWKS 预热失败，将在后台刷新: %v", err)
     }
 
     // 3. 创建 Verifier
-    verifier := auth.NewTokenVerifier(
+    verifier, err := auth.NewTokenVerifier(
         cfg.TokenVerify,
         jwksManager,
         client.Auth(),
     )
-
-    // 4. 启动监控
-    go monitorJWKS(jwksManager)
+    if err != nil {
+        return nil, err
+    }
 
     return verifier, nil
-}
-
-func monitorJWKS(manager *auth.JWKSManager) {
-    ticker := time.NewTicker(time.Minute)
-    defer ticker.Stop()
-
-    for range ticker.C {
-        stats := manager.Stats()
-        if stats.FailureCount > 0 {
-            log.Printf("JWKS failures detected: %d", stats.FailureCount)
-        }
-    }
 }
 ```
 
@@ -618,12 +602,13 @@ A: 如果提供了 gRPC 客户端，会自动降级到远程验证。
 A: 使用本地种子缓存：
 
 ```go
-auth.WithSeedCache("/var/cache/iam/jwks-seed.json")
+seedJWKSJSON, _ := os.ReadFile("/var/cache/iam/jwks-seed.json")
+auth.WithSeedData(seedJWKSJSON)
 ```
 
 ### Q: Token 验证性能如何？
 
-A: 本地验证通常在 1ms 以内。使用 CachingStrategy 可进一步优化。
+A: 本地验证通常在 1ms 以内。若需要缓存验证结果，需要自行装配 `CachingVerifyStrategy`。
 
 ## 下一步
 

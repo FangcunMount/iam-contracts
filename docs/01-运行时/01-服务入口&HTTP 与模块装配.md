@@ -16,7 +16,7 @@
 - `createAPIServer()` 会同时构建 HTTP 服务器、gRPC 服务器和数据库管理器；`PrepareRun()` 再初始化数据库、EventBus、容器、路由、gRPC 服务和后台调度器。
 - 容器初始化顺序是：`IDP -> Authn -> User -> Authz -> Suggest`；单个模块初始化失败会记录 warning，但不会立刻让整个进程退出。
 - HTTP 路由由集中式 [../../internal/apiserver/routers.go](../../internal/apiserver/routers.go) 注册，当前主分组是：`authn`、`authz`、`idp`、`identity(user)`、`suggest`，另外还有 `/health`、`/ping`、`/debug/*`、`/swagger`、`/openapi`。
-- 当前 `user`、`authz`、`suggest` 和 `/api/v1/admin/*` 都会消费中央创建的 JWT 中间件；`authn` 以公开登录/JWKS 为主，`idp` 当前仍没有在 router 层统一挂上 `AuthRequired()`。
+- 当前 `user`、`authz`、`suggest`、`/api/v1/admin/*` 和 `authn/admin/jwks/*` 都会消费中央创建的 JWT 中间件；其中 `/api/v1/admin/*` 与 `authn/admin/jwks/*` 要求 `JWT + admin role`，若管理员鉴权能力不可用则按 fail-closed 不注册；`authn` 的公开登录/账户面与 `idp` 当前仍没有在 router 层统一挂上 `AuthRequired()`。
 
 ## 重点速查
 
@@ -142,7 +142,7 @@ flowchart LR
 | `idp` | `/api/v1/idp` | 微信应用管理与令牌相关接口 |
 | `user` | `/api/v1/identity` | me、children、guardianship 等身份接口 |
 | `suggest` | `/api/v1/suggest` | 联想搜索接口 |
-| `admin` | `/api/v1/admin` | 当前仍是 placeholder 路由 |
+| `admin` | `/api/v1/admin` | session revoke 管理动作与保留 placeholder |
 
 另外，JWKS 公开端点在 `authn` 模块里额外挂了：
 
@@ -158,7 +158,8 @@ flowchart LR
 - `user` 模块：作为 `Dependencies.AuthMiddleware` 注入，并对 `/api/v1/identity` 整组生效
 - `authz` 模块：作为 `Dependencies.AuthMiddleware` 注入，并对 `/api/v1/authz` 整组生效（`/health` 例外）
 - `suggest` 模块：作为 `Dependencies.AuthMiddleware` 注入，并对 `/api/v1/suggest` 生效
-- `/api/v1/admin`：如果中间件存在，则整组挂 `AuthRequired()`
+- `/api/v1/admin`：当前要求 `AuthRequired() + RequireRole("admin")`；如果管理员鉴权能力不可用，则整组不注册
+- `/api/v1/authn/admin/jwks`：当前要求 `AuthRequired() + RequireRole("admin")`；如果管理员鉴权能力不可用，则整组不注册
 
 当前没有统一挂上的：
 
@@ -176,7 +177,7 @@ flowchart LR
 - 集中式 HTTP 路由注册
 - 部分模块失败时的降级启动
 - JWT 中间件的中央创建与注入
-- `user / authz / suggest / admin` 这几组运行面都已接入同一套中央 JWT 中间件
+- `user / authz / suggest / admin / authn-admin-jwks` 这几组运行面都已接入同一套中央 JWT 中间件
 
 ### 待补证据
 

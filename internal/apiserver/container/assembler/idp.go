@@ -6,12 +6,14 @@ import (
 	"time"
 
 	redis "github.com/redis/go-redis/v9"
+	wechatCache "github.com/silenceper/wechat/v2/cache"
 	"gorm.io/gorm"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/idp/wechatapp"
 	wechatappDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
+	cacheinfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/cache"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/crypto"
 	infraMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/wechatapp"
 	infraRedis "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/redis"
@@ -52,6 +54,7 @@ type IDPModule struct {
 	secretVault         wechatappDomain.SecretVault
 	wechatAuthProvider  wechatapiPort.AuthProvider
 	wechatTokenProvider *wechatapi.TokenProvider
+	wechatSDKCache      wechatCache.Cache
 }
 
 // NewIDPModule 创建 IDP 模块
@@ -148,6 +151,7 @@ func (m *IDPModule) initializeInfrastructure(
 
 	// 创建微信 SDK 使用的缓存适配器（使用 Redis 作为后端）
 	wechatSDKCache := infraRedis.NewWechatSDKCache(redisClient)
+	m.wechatSDKCache = wechatSDKCache
 	m.wechatAuthProvider = wechatapi.NewAuthProvider(wechatSDKCache)
 	m.wechatTokenProvider = wechatapi.NewTokenProvider(wechatSDKCache)
 
@@ -257,6 +261,14 @@ func (m *IDPModule) SecretVault() wechatappDomain.SecretVault {
 // WechatAuthProvider 返回微信认证基础能力（调用微信 code2Session 等接口）
 func (m *IDPModule) WechatAuthProvider() wechatapiPort.AuthProvider {
 	return m.wechatAuthProvider
+}
+
+// CacheFamilyInspectors 返回 IDP 模块暴露的缓存族状态读取器。
+func (m *IDPModule) CacheFamilyInspectors() []cacheinfra.FamilyInspector {
+	inspectors := make([]cacheinfra.FamilyInspector, 0, 2)
+	inspectors = append(inspectors, infraRedis.AccessTokenCacheInspectors(m.accessTokenCache)...)
+	inspectors = append(inspectors, infraRedis.WechatSDKCacheInspectors(m.wechatSDKCache)...)
+	return inspectors
 }
 
 // ==================== 适配器 ====================

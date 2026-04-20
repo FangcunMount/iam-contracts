@@ -24,7 +24,7 @@
 | gRPC 当前暴露了哪些服务、怎么接入？ | [02-gRPC契约与接入.md](./02-gRPC契约与接入.md) |
 | 授权能力今天到底能接到什么程度？ | [03-授权接入与边界.md](./03-授权接入与边界.md) |
 | 身份与监护关系能力今天到底能接到什么程度？ | [04-身份接入与监护关系边界.md](./04-身份接入与监护关系边界.md) |
-| 为什么 `pkg/sdk` 也应被视为主阅读路径？ | [../05-专题分析/04-SDK封装与接入价值.md](../05-专题分析/04-SDK封装与接入价值.md) |
+| 为什么 `pkg/sdk` 也应被视为主阅读路径？ | [../05-专题分析/07-SDK封装与接入价值.md](../05-专题分析/07-SDK封装与接入价值.md) |
 | 机器契约在哪？ | [../../api/README.md](../../api/README.md)、[../../api/rest/README.md](../../api/rest/README.md)、[../../api/grpc/README.md](../../api/grpc/README.md) |
 | 业务方接 IAM 的流程说明在哪？ | [05-QS接入IAM.md](./05-QS接入IAM.md) |
 | IAM token / 授权快照 / `authz_version` 与 QS 竖切（`CurrentAuthzSnapshot`、capability）边界在哪？ | [06-IAM-QS竖切边界-Token与授权快照.md](./06-IAM-QS竖切边界-Token与授权快照.md) |

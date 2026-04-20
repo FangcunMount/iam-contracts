@@ -229,7 +229,7 @@ flowchart TB
 | Assignment Grant | 先写 `authz_assignments`，再写 Casbin `g` | Casbin 失败时删除刚插入的 assignment |
 | Assignment Revoke | 当前有两条路径，先后顺序不同 | 只有 best-effort 回滚 |
 
-这一条只需要在模块文里点明模式，不需要把完整时序在这里重复展开；长时序见 [../05-专题分析/02-授权判定链路--角色&策略&资源&Assignment&Casbin.md](../05-专题分析/02-授权判定链路--角色&策略&资源&Assignment&Casbin.md)。
+这一条只需要在模块文里点明模式，不需要把完整时序在这里重复展开；长时序见 [../05-专题分析/03-授权判定链路--角色&策略&资源&Assignment&Casbin.md](../05-专题分析/03-授权判定链路--角色&策略&资源&Assignment&Casbin.md)。
 
 ### 核心判定模型：今天的 PDP 以单次 `Check` 为中心
 
@@ -285,7 +285,7 @@ flowchart TB
 - 策略版本通知 topic `iam.authz.policy_version` 只有发布侧；消费闭环需要结合部署和下游代码继续核对。
 - 路由保护依赖 `authn` 中间件与 Casbin 装配，不能把设计意图包装成无条件现状。
 - `tenant_id / user_id` 的默认值、`changed_by / granted_by` 的合同与运行时来源漂移，统一看 [../03-接口与集成/03-授权接入与边界.md](../03-接口与集成/03-授权接入与边界.md)。
-- Policy/Assignment 的长时序、PDP 使用路径和版本传播链，统一看 [../05-专题分析/02-授权判定链路--角色&策略&资源&Assignment&Casbin.md](../05-专题分析/02-授权判定链路--角色&策略&资源&Assignment&Casbin.md)。
+- Policy/Assignment 的长时序、PDP 使用路径和版本传播链，统一看 [../05-专题分析/03-授权判定链路--角色&策略&资源&Assignment&Casbin.md](../05-专题分析/03-授权判定链路--角色&策略&资源&Assignment&Casbin.md)。
 
 ---
 

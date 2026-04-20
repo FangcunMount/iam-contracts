@@ -50,7 +50,6 @@ func newJWTTokenCredential(input AuthInput) (AuthCredential, error) {
 type JWTTokenAuthStrategy struct {
 	scenario      Scenario
 	tokenVerifier TokenVerifier
-	accountRepo   AccountRepository
 }
 
 // 实现认证策略接口
@@ -59,12 +58,10 @@ var _ AuthStrategy = (*JWTTokenAuthStrategy)(nil)
 // NewJWTTokenAuthStrategy 构造函数（注入依赖）
 func NewJWTTokenAuthStrategy(
 	tokenVerifier TokenVerifier,
-	accountRepo AccountRepository,
 ) *JWTTokenAuthStrategy {
 	return &JWTTokenAuthStrategy{
 		scenario:      AuthJWTToken,
 		tokenVerifier: tokenVerifier,
-		accountRepo:   accountRepo,
 	}
 }
 
@@ -75,10 +72,9 @@ func (j *JWTTokenAuthStrategy) Kind() Scenario {
 
 // Authenticate 执行 JWT Token 认证
 // 认证流程：
-// 1. 验证 JWT Token（签名、过期、黑名单）
+// 1. 验证 JWT Token（签名、过期、撤销标记）
 // 2. 从 Token 中提取用户ID、账户ID
-// 3. 检查账户状态（是否锁定/禁用）
-// 4. 返回认证判决
+// 3. 返回认证判决
 func (j *JWTTokenAuthStrategy) Authenticate(ctx context.Context, credential AuthCredential) (AuthDecision, error) {
 	l := logger.L(ctx)
 
@@ -105,45 +101,11 @@ func (j *JWTTokenAuthStrategy) Authenticate(ctx context.Context, credential Auth
 		}, nil
 	}
 
-	l.Debugw("JWT Token认证：步骤2 - 检查账户状态",
+	l.Debugw("JWT Token认证：步骤2 - 构造认证主体",
 		"scenario", string(AuthJWTToken),
 		"user_id", userID.String(),
 		"account_id", accountID.String(),
 	)
-
-	// Step 2: 检查账户状态
-	enabled, locked, err := j.accountRepo.GetAccountStatus(ctx, accountID)
-	if err != nil {
-		// 系统异常
-		l.Errorw("查询账户状态失败",
-			"scenario", string(AuthJWTToken),
-			"account_id", accountID.String(),
-			"error", err.Error(),
-		)
-		return AuthDecision{}, fmt.Errorf("failed to get account status: %w", err)
-	}
-
-	if !enabled {
-		l.Warnw("账户已禁用",
-			"scenario", string(AuthJWTToken),
-			"account_id", accountID.String(),
-		)
-		return AuthDecision{
-			OK:      false,
-			ErrCode: ErrDisabled,
-		}, nil
-	}
-
-	if locked {
-		l.Warnw("账户已锁定",
-			"scenario", string(AuthJWTToken),
-			"account_id", accountID.String(),
-		)
-		return AuthDecision{
-			OK:      false,
-			ErrCode: ErrLocked,
-		}, nil
-	}
 
 	l.Debugw("JWT Token认证成功",
 		"scenario", string(AuthJWTToken),

@@ -7,6 +7,7 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
+	sessiondomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
@@ -398,12 +399,13 @@ func (s *userProfileApplicationService) UpdateIDCard(ctx context.Context, userID
 
 // userStatusApplicationService 用户状态应用服务实现
 type userStatusApplicationService struct {
-	uow uow.UnitOfWork
+	uow            uow.UnitOfWork
+	sessionManager sessiondomain.Manager
 }
 
 // NewUserStatusApplicationService 创建用户状态应用服务
-func NewUserStatusApplicationService(uow uow.UnitOfWork) UserStatusApplicationService {
-	return &userStatusApplicationService{uow: uow}
+func NewUserStatusApplicationService(uow uow.UnitOfWork, sessionManager sessiondomain.Manager) UserStatusApplicationService {
+	return &userStatusApplicationService{uow: uow, sessionManager: sessionManager}
 }
 
 // Activate 激活用户
@@ -559,7 +561,17 @@ func (s *userStatusApplicationService) Block(ctx context.Context, userID string)
 		)
 	}
 
-	return err
+	if err != nil {
+		return err
+	}
+	if s.sessionManager == nil {
+		return nil
+	}
+	id, parseErr := parseUserID(userID)
+	if parseErr != nil {
+		return parseErr
+	}
+	return s.sessionManager.RevokeByUser(ctx, id, "user_blocked", userID)
 }
 
 // ===========================================

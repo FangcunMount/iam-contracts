@@ -146,7 +146,6 @@ func (s *loginApplicationService) Logout(ctx context.Context, req LogoutRequest)
 		return perrors.WithCode(code.ErrInvalidArgument, "either access_token or refresh_token is required")
 	}
 
-	// 优先撤销 RefreshToken（更彻底）
 	if req.RefreshToken != nil && *req.RefreshToken != "" {
 		if err := s.tokenRefresher.RevokeRefreshToken(ctx, *req.RefreshToken); err != nil {
 			l.Errorw("撤销刷新令牌失败",
@@ -160,12 +159,10 @@ func (s *loginApplicationService) Logout(ctx context.Context, req LogoutRequest)
 			"action", logger.ActionLogout,
 			"result", logger.ResultSuccess,
 		)
-		return nil
 	}
 
-	// 撤销 AccessToken
 	if req.AccessToken != nil && *req.AccessToken != "" {
-		if err := s.tokenIssuer.RevokeToken(ctx, *req.AccessToken); err != nil {
+		if err := s.tokenIssuer.RevokeAccessToken(ctx, *req.AccessToken); err != nil {
 			l.Errorw("撤销访问令牌失败",
 				"action", logger.ActionLogout,
 				"error", err.Error(),
@@ -177,9 +174,13 @@ func (s *loginApplicationService) Logout(ctx context.Context, req LogoutRequest)
 			"action", logger.ActionLogout,
 			"result", logger.ResultSuccess,
 		)
-		return nil
 	}
 
+	l.Debugw("当前登录会话已退出",
+		"action", logger.ActionLogout,
+		"resource", "session",
+		"result", logger.ResultSuccess,
+	)
 	return nil
 }
 

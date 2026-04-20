@@ -29,6 +29,7 @@ type Principal struct {
 	AccountID meta.ID
 	UserID    meta.ID
 	TenantID  meta.ID
+	SessionID string
 	AMR       []string
 	Claims    map[string]any
 }

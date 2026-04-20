@@ -13,13 +13,14 @@
 
 ## 30 秒结论
 
-> **一句话**：`iam-contracts` 用统一登录 REST 把请求经 **应用编排 → `Authenticater`（多证认证策略）→ `Principal`**，再由 **`TokenIssuer`** 产出 **Access JWT / Refresh Token / Service Token**；资源方用 **`/.well-known/jwks.json`** 验签，运行时通过 **Verify / Refresh / Revoke / JWT 中间件** 消费 token，JWKS 则在启动时初始化并由轮换调度器维持长期可用。
+> **一句话**：`iam-contracts` 用统一登录 REST 把请求经 **应用编排 → `Authenticater`（多证认证策略）→ `Principal`**，再由 **`SessionManager + TokenIssuer`** 产出带 `sid` 的 **Access JWT / Refresh Token / Service Token**；资源方可以用 **`/.well-known/jwks.json`** 做本地验签，但只有 **在线 `VerifyToken`** 才能同时看到 `revoked_access_token`、`session` 和 `user/account` 当前状态，JWKS 则在启动时初始化并由轮换调度器维持长期可用。
 
 | 主题 | 当前答案 |
 | ---- | ---- |
 | 认证 | `POST /api/v1/authn/login` 统一入口，应用层做输入准备，领域层做认证判决 |
-| Token | Access：JWT + `kid` + `RS256`；Refresh：UUID + Redis + 轮换删旧；Service：JWT，用于服务间调用 |
-| JWT 中间件 | 从 header/query/cookie 取 token，调用 `VerifyToken`，成功后写入 `user_id` / `account_id` / `token_id` |
+| Token | Access：JWT + `kid` + `RS256` + `sid`；Refresh：UUID + Redis + `sid` + 轮换删旧；Service：JWT，用于服务间调用 |
+| Session | 登录后先创建 `Session(sid)`，session revoke 与 subject access state 会进入 Verify / Refresh 主链 |
+| JWT 中间件 | 从 header/query/cookie 取 token，调用权威 `VerifyToken`，成功后写入 `user_id` / `account_id` / `token_id` |
 | JWKS | 发布 `Active + Grace` 公钥，带缓存头；启动时可自动初始化 active key，并每日轮换检查 |
 
 ## 重点速查
@@ -31,7 +32,7 @@
 | 认证判决中心 | `Authenticater.Authenticate` + 多证认证策略 | [../../internal/apiserver/domain/authn/authentication/authenticater.go](../../internal/apiserver/domain/authn/authentication/authenticater.go) |
 | Access / Refresh 签发 | `TokenIssuer` + JWT Generator + Redis TokenStore | [../../internal/apiserver/domain/authn/token/issuer.go](../../internal/apiserver/domain/authn/token/issuer.go)、[../../internal/apiserver/infra/jwt/generator.go](../../internal/apiserver/infra/jwt/generator.go)、[../../internal/apiserver/infra/redis/token-store.go](../../internal/apiserver/infra/redis/token-store.go) |
 | Service Token | gRPC `IssueServiceToken` 已接应用层，标准 assembler 路径下可用 | [../../api/grpc/iam/authn/v1/authn.proto](../../api/grpc/iam/authn/v1/authn.proto)、[../../internal/apiserver/interface/authn/grpc/service.go](../../internal/apiserver/interface/authn/grpc/service.go)、[../../internal/apiserver/container/assembler/authn.go](../../internal/apiserver/container/assembler/authn.go) |
-| Verify / Refresh / Revoke | Verify：验签 + 过期 + 黑名单；Refresh：Redis 恢复主体 + 新 pair + 删旧 refresh；Revoke：refresh 删除或 access 拉黑 | [../../internal/apiserver/domain/authn/token/verifyer.go](../../internal/apiserver/domain/authn/token/verifyer.go)、[../../internal/apiserver/domain/authn/token/refresher.go](../../internal/apiserver/domain/authn/token/refresher.go)、[../../internal/apiserver/domain/authn/token/issuer.go](../../internal/apiserver/domain/authn/token/issuer.go) |
+| Verify / Refresh / Revoke | Verify：验签 + 过期 + access revoke + session + subject access；Refresh：Redis 恢复主体 + 校验 session/subject + 新 pair + 删旧 refresh；Revoke：refresh 删除或 access 写入撤销标记，并联动 session revoke | [../../internal/apiserver/domain/authn/token/verifyer.go](../../internal/apiserver/domain/authn/token/verifyer.go)、[../../internal/apiserver/domain/authn/token/refresher.go](../../internal/apiserver/domain/authn/token/refresher.go)、[../../internal/apiserver/domain/authn/token/issuer.go](../../internal/apiserver/domain/authn/token/issuer.go) |
 | JWT 中间件 | 消费 `VerifyToken`，写入身份上下文，可选再叠加 authz 判定 | [../../internal/pkg/middleware/authn/jwt_middleware.go](../../internal/pkg/middleware/authn/jwt_middleware.go) |
 | JWKS 发布与轮换 | 发布 `/.well-known/jwks.json`；启动时可自动建初始 key；每日凌晨 2 点轮换检查 | [../../internal/apiserver/application/authn/jwks/key_publish.go](../../internal/apiserver/application/authn/jwks/key_publish.go)、[../../internal/apiserver/domain/authn/jwks/keyset_builder.go](../../internal/apiserver/domain/authn/jwks/keyset_builder.go)、[../../internal/apiserver/container/assembler/authn.go](../../internal/apiserver/container/assembler/authn.go)、[../../internal/apiserver/server.go](../../internal/apiserver/server.go) |
 
@@ -163,39 +164,43 @@ sequenceDiagram
 ```mermaid
 flowchart LR
     Principal["Principal"]
+    Session["Session (sid)"]
     Access["Access Token (JWT)"]
     Refresh["Refresh Token (UUID)"]
     Service["Service Token (JWT)"]
     JWKS["JWKS Active + Grace"]
-    Redis["Redis TokenStore"]
+    Redis["Redis TokenStore / SessionStore"]
 
-    Principal -->|"IssueToken"| Access
-    Principal -->|"IssueToken"| Refresh
+    Principal -->|"Create Session"| Session
+    Session -->|"IssueToken"| Access
+    Session -->|"IssueToken"| Refresh
     Principal -.->|"IssueServiceToken"| Service
     Access -->|"kid / RS256"| JWKS
     Service -->|"kid / RS256"| JWKS
     Refresh -->|"save / load / delete"| Redis
-    Access -->|"verify + blacklist"| Redis
+    Access -->|"verify + revoked-access-token + session check"| Redis
 ```
 
 | 类型 | 形态 | 作用 | 校验 / 存储 |
 | ---- | ---- | ---- | ---- |
-| Access Token | JWT | 面向资源访问 | `kid` 找公钥验签 + 过期 + 黑名单 |
-| Refresh Token | UUID | 换新 token pair | Redis 持久化，刷新时恢复主体并删旧 |
+| Access Token | JWT | 面向资源访问 | `kid` 找公钥验签 + 过期 + 撤销标记 |
+| Session | Redis JSON + `sid` | 这次登录的运行时锚点 | 请求校验、刷新、管理员踢会话 |
+| Refresh Token | UUID | 换新 token pair | Redis 持久化，刷新时恢复主体并删旧，并绑定 `sid` |
 | Service Token | JWT | 服务间调用 | 与 Access 同样由 JWT + JWKS 体系承载 |
 
 ### 2.2 Issue：签发
 
-#### 登录签发：`TokenIssuer.IssueToken`
+#### 登录签发：`SessionManager.Create + TokenIssuer.IssueToken`
 
 文件：[issuer.go](../../internal/apiserver/domain/authn/token/issuer.go)
 
 | 步骤 | 内容 |
 | ---- | ---- |
-| 1 | `GenerateAccessToken(principal, accessTTL)` |
-| 2 | 生成 refresh UUID |
-| 3 | `SaveRefreshToken` 到 Redis |
-| 4 | 返回 `TokenPair` |
+| 1 | 先创建 `Session(sid)` |
+| 2 | `GenerateAccessToken(principal, accessTTL)`，claims 带 `sid` |
+| 3 | 生成 refresh UUID，记录里也带 `sid` |
+| 4 | `SaveRefreshToken` 到 Redis |
+| 5 | 返回 `TokenPair` |
 
 `GenerateAccessToken` 的关键点：
 
@@ -204,7 +209,7 @@ flowchart LR
 | 密钥来源 | `jwks.Manager` 的当前 `Active key` |
 | 算法 | `RS256` |
 | Header | 含 `kid` |
-| Claims 最少包含 | `sub`、`iss`、`iat`、`exp`、`nbf`、`user_id`、`account_id`、`token_id/jti` |
+| Claims 最少包含 | `sub`、`iss`、`iat`、`exp`、`nbf`、`user_id`、`account_id`、`token_id/jti`、`sid` |
 
 #### 服务间签发：`IssueServiceToken`
 
@@ -228,12 +233,12 @@ flowchart LR
     Pair --> Refresh["Refresh"]
     Pair --> Revoke["Revoke / Logout"]
 
-    Verify -->|"JWT 验签 + exp + 黑名单"| AccessState["Access 有效 / 无效"]
+    Verify -->|"JWT 验签 + exp + 撤销标记"| AccessState["Access 有效 / 无效"]
     Refresh -->|"Redis 恢复主体 + 新 pair + 删旧 refresh"| Pair
-    Revoke -->|"删 refresh 或拉黑 access token_id"| End["撤销完成"]
+    Revoke -->|"删 refresh 或写入 access token_id 撤销标记"| End["撤销完成"]
 ```
 
-### 2.4 Verify：验签 + 过期 + 黑名单
+### 2.4 Verify：验签 + 过期 + access revoke + session + subject access
 
 文件：[verifyer.go](../../internal/apiserver/domain/authn/token/verifyer.go)
 
@@ -241,11 +246,13 @@ flowchart LR
 | ---- | ---- |
 | 1 | 解析 JWT，按 `kid` 从 `jwks.Manager` 找公钥验签 |
 | 2 | 检查 `exp` |
-| 3 | 检查 Redis 黑名单 |
+| 3 | 检查 Redis `revoked_access_token(jti)` |
+| 4 | 检查 Redis `session(sid)` 是否仍为 `active` |
+| 5 | 检查 `user/account` 当前访问状态 |
 
-三步都通过，才得到有效 `TokenClaims`。
+全部通过，才得到有效 `TokenClaims`。
 
-### 2.5 Refresh：Redis 恢复主体 + 新 pair + 删旧 refresh
+### 2.5 Refresh：Redis 恢复主体 + session/subject 校验 + 新 pair + 删旧 refresh
 
 文件：[refresher.go](../../internal/apiserver/domain/authn/token/refresher.go)
 
@@ -253,20 +260,22 @@ flowchart LR
 | ---- | ---- |
 | 1 | 以 refresh 值从 Redis 加载记录 |
 | 2 | 检查是否过期 |
-| 3 | 恢复 `Principal` |
-| 4 | 签发新 token pair |
-| 5 | 删除旧 refresh |
+| 3 | 检查 `session(sid)` 是否仍为 `active` |
+| 4 | 检查 `user/account` 当前访问状态 |
+| 5 | 签发新 token pair |
+| 6 | 删除旧 refresh |
+| 7 | 延长同一 `session` 的 `expires_at` |
 
 **结论**：refresh 是**轮换式**，不是无限复用同一个 refresh token。
 
-### 2.6 Revoke / Logout：撤销
+### 2.6 Revoke / Logout：撤销与会话失效
 
 | 条件 | 行为 |
 | ---- | ---- |
-| 提供 refresh | 优先删除 refresh 记录 |
-| 仅提供 access | 解析 access，按 `token_id` 写入 Redis 黑名单直到过期 |
+| 提供 refresh | 删除 refresh 记录，并联动 revoke `sid` |
+| 提供 access | 解析 access，按 `token_id` 写入 Redis 撤销标记直到过期，并联动 revoke `sid` |
 
-**结论**：当前支持按 refresh 撤销，也支持按 access token 精准撤销。
+**结论**：当前支持按 refresh 撤销，也支持按 access token 精准撤销，而且二者都会把“这次登录”的 session 一起拉掉。
 
 ## 3. JWT 中间件：Token 如何进入运行时请求链
 
@@ -305,6 +314,7 @@ flowchart LR
 | `account_id` | 当前账户 ID |
 | `token_id` | 当前 token 的唯一标识 |
 | `claims` | 完整 token claims 对象 |
+| `session_id` | 当前没有写入 `gin.Context`；session 语义由在线 verify 链内部消费 |
 
 ### 3.4 与授权中间件的关系
 
@@ -364,7 +374,33 @@ flowchart LR
 
 **结论**：JWKS 解决的是“签发端与验签端如何解耦”，轮换调度器解决的是“这套公钥机制如何长期可运行”。
 
-## 5. 保证与风险边界
+## 5. 在线权威校验 vs 离线 JWKS 本地验签
+
+### 5.1 当前必须明确的边界
+
+如果调用方只做：
+
+- JWKS 拉公钥
+- 本地 JWT 验签
+- `exp / nbf` 时间检查
+
+那它**看不到**：
+
+- `revoked_access_token`
+- `session revoke`
+- `user blocked`
+- `account disabled`
+
+这不是实现缺陷，而是离线验签模型的边界。
+
+### 5.2 当前推荐口径
+
+| 场景 | 当前建议 |
+| ---- | ---- |
+| 高频、低一致性成本的请求校验 | 可以优先本地 JWKS 验签 |
+| 要求踢会话、封禁账号/用户即时生效 | 必须走 IAM 在线 `VerifyToken` |
+
+## 6. 保证与风险边界
 
 这一节只回答两件事：哪些可以对外断言，哪些仍是当前边界。
 
@@ -373,16 +409,19 @@ flowchart LR
 | 登录主入口 | 已实现 | 统一 REST 入口同步完成认证与签 token | [handler/auth.go](../../internal/apiserver/interface/authn/restful/handler/auth.go) |
 | 多证认证策略 | 已实现 | `password / phone_otp / wechat / wecom / jwt_token（内部等）` 通过 `Authenticater` 统一判决 | [authenticater.go](../../internal/apiserver/domain/authn/authentication/authenticater.go) |
 | Access Token | 已实现 | 使用当前 `Active` JWKS key + `RS256` | [generator.go](../../internal/apiserver/infra/jwt/generator.go) |
-| Access 精准撤销 | 已实现 | `token_id/jti` 为 UUID，黑名单按单 token 记录 | [generator.go](../../internal/apiserver/infra/jwt/generator.go)、[token-store.go](../../internal/apiserver/infra/redis/token-store.go) |
+| Access 精准撤销 | 已实现 | `token_id/jti` 为 UUID，撤销标记按单 token 记录 | [generator.go](../../internal/apiserver/infra/jwt/generator.go)、[token-store.go](../../internal/apiserver/infra/redis/token-store.go) |
 | Refresh Token | 已实现 | UUID + Redis + 轮换删旧 | [refresher.go](../../internal/apiserver/domain/authn/token/refresher.go) |
 | Service Token | 已实现 | gRPC 已接应用层，标准 assembler 路径下可签发 | [service.go](../../internal/apiserver/interface/authn/grpc/service.go)、[authn.go](../../internal/apiserver/container/assembler/authn.go) |
-| Token Verify | 已实现 | 验签 + 过期 + 黑名单 | [verifyer.go](../../internal/apiserver/domain/authn/token/verifyer.go) |
+| Token Verify | 已实现 | 验签 + 过期 + 撤销标记 | [verifyer.go](../../internal/apiserver/domain/authn/token/verifyer.go) |
+| Session 语义 | 已实现 | 登录先创建 session；Verify / Refresh 会检查 `sid` | [../../internal/apiserver/domain/authn/session](../../internal/apiserver/domain/authn/session)、[verifyer.go](../../internal/apiserver/domain/authn/token/verifyer.go)、[refresher.go](../../internal/apiserver/domain/authn/token/refresher.go) |
 | JWT 中间件 | 已实现 | 能消费 `VerifyToken` 并写入身份上下文 | [jwt_middleware.go](../../internal/pkg/middleware/authn/jwt_middleware.go) |
 | JWKS 发布 | 已实现 | 发布 `Active + Grace`；返回缓存标签 | [keyset_builder.go](../../internal/apiserver/domain/authn/jwks/keyset_builder.go)、[handler/jwks.go](../../internal/apiserver/interface/authn/restful/handler/jwks.go) |
 | 轮换调度器 | 已实现 | 启动后每日一次轮换检查 | [server.go](../../internal/apiserver/server.go)、[key_rotation_cron_scheduler.go](../../internal/apiserver/infra/scheduler/key_rotation_cron_scheduler.go) |
 | `issuer` / TTL | 待补证据 | assembler 会读 `auth.jwt_issuer`、`auth.access_token_ttl`、`auth.refresh_token_ttl`，但示例 `apiserver.*.yaml` 未配这些键，因此常回落为空 issuer + `15m/7d` 默认 | [authn.go](../../internal/apiserver/container/assembler/authn.go)、[apiserver.dev.yaml](../../configs/apiserver.dev.yaml)、[apiserver.prod.yaml](../../configs/apiserver.prod.yaml) |
 | Verify 返回 claims | 待补证据 | REST / gRPC 合同字段较全，但当前实现仅回填部分 claims | [response/auth.go](../../internal/apiserver/interface/authn/restful/response/auth.go)、[service.go](../../internal/apiserver/interface/authn/grpc/service.go)、[authn.proto](../../api/grpc/iam/authn/v1/authn.proto) |
-| JWKS 管理端保护 | 待补证据 | Swagger 标 `/admin/jwks/*` 为 BearerAuth，但 router 未统一挂 JWT 中间件 | [router.go](../../internal/apiserver/interface/authn/restful/router.go)、[authn.v1.yaml](../../api/rest/authn.v1.yaml) |
+| JWKS 管理端保护 | 已实现 | `/api/v1/authn/admin/jwks/*` 需要 `JWT + admin role`；管理员鉴权不可用时 fail-closed 不注册 | [router.go](../../internal/apiserver/interface/authn/restful/router.go)、[routers.go](../../internal/apiserver/routers.go) |
+| 在线权威校验 | 已实现 | 在线 `VerifyToken` 现在能同时拒绝单 token revoke、session revoke、user/account 状态失效 | [verifyer.go](../../internal/apiserver/domain/authn/token/verifyer.go) |
+| 离线 JWKS 最终一致边界 | 已实现但需明确口径 | 离线 JWKS 只能保证签名与过期，不保证 revoke/session/subject 状态即时生效 | [../../pkg/sdk/docs/04-jwt-verification.md](../../pkg/sdk/docs/04-jwt-verification.md)、[verifyer.go](../../internal/apiserver/domain/authn/token/verifyer.go) |
 | 轮换策略配置化 | 规划改造 | 轮换参数与 cron 仍主要来自代码默认值，而非完整 YAML 配置化 | [vo.go](../../internal/apiserver/domain/authn/jwks/vo.go)、[authn.go](../../internal/apiserver/container/assembler/authn.go) |
 
 ## 继续往下读
@@ -391,6 +430,7 @@ flowchart LR
 | ---- | ---- |
 | [README.md](./README.md) | 专题分析入口 |
 | [../02-业务域/01-authn-认证&Token&JWKS.md](../02-业务域/01-authn-认证&Token&JWKS.md) | 认证域静态结构、边界与配置 |
+| [./02-IAM认证语义拆层--用户状态、会话与Token边界.md](./02-IAM认证语义拆层--用户状态、会话与Token边界.md) | 为什么现在必须区分 subject、session、access token revoke、refresh token |
 | [../03-接口与集成/01-REST契约与接入.md](../03-接口与集成/01-REST契约与接入.md) | REST 契约、路由与验证链 |
 | [../03-接口与集成/02-gRPC契约与接入.md](../03-接口与集成/02-gRPC契约与接入.md) | gRPC 合同、Verify / Refresh / JWKS Service |
 | [../01-运行时/03-HTTP认证中间件与身份上下文.md](../01-运行时/03-HTTP认证中间件与身份上下文.md) | JWT 中间件、上下文与路由保护 |
@@ -407,7 +447,7 @@ flowchart LR
 | Service Token | `rg -n 'IssueServiceToken|token service not configured' internal/apiserver/interface/authn/grpc/service.go` |
 | JWT 与 token_id | `rg -n 'GenerateAccessToken|GenerateServiceToken|tokenID|jti' internal/apiserver/infra/jwt/generator.go` |
 | Refresh 存储与删除 | `rg -n 'SaveRefreshToken|DeleteRefreshToken' internal/apiserver/domain/authn/token internal/apiserver/infra/redis/token-store.go` |
-| 黑名单 | `rg -n 'AddToBlacklist|IsBlacklisted' internal/apiserver/domain/authn/token internal/apiserver/infra/redis/token-store.go` |
+| 撤销标记 | `rg -n 'MarkAccessTokenRevoked|IsAccessTokenRevoked' internal/apiserver/domain/authn/token internal/apiserver/infra/redis/token-store.go` |
 | JWKS 发布 | `rg -n '/\\.well-known/jwks.json|ETag|Last-Modified|Cache-Control' internal/apiserver/interface/authn/restful/handler/jwks.go internal/apiserver/application/authn/jwks` |
 | 轮换调度 | `rg -n 'RotationScheduler|0 2 \\* \\* \\*|key_rotation' internal/apiserver/server.go internal/apiserver/container/assembler/authn.go internal/apiserver/infra/scheduler` |
 

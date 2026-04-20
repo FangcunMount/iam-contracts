@@ -9,8 +9,10 @@ import (
 	redis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	cachegovernance "github.com/FangcunMount/iam-contracts/internal/apiserver/application/cachegovernance"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container/assembler"
 	policyDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
+	cacheinfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/cache"
 	messagingInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/messaging"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
 )
@@ -26,11 +28,12 @@ type Container struct {
 	eventBus messaging.EventBus
 
 	// 业务模块
-	AuthnModule   *assembler.AuthnModule
-	UserModule    *assembler.UserModule
-	AuthzModule   *assembler.AuthzModule
-	IDPModule     *assembler.IDPModule
-	SuggestModule *assembler.SuggestModule
+	AuthnModule            *assembler.AuthnModule
+	UserModule             *assembler.UserModule
+	AuthzModule            *assembler.AuthzModule
+	IDPModule              *assembler.IDPModule
+	SuggestModule          *assembler.SuggestModule
+	CacheGovernanceService *cachegovernance.ReadService
 
 	// IDP 模块加密密钥（32 字节 AES-256）
 	idpEncryptionKey []byte
@@ -96,6 +99,9 @@ func (c *Container) Initialize() error {
 		errors = append(errors, fmt.Errorf("suggest module: %w", err))
 	}
 
+	// 6. 初始化只读缓存治理服务
+	c.initCacheGovernance()
+
 	c.initialized = true
 
 	// 打印初始化状态
@@ -153,6 +159,13 @@ func (c *Container) initUserModule() error {
 	if c.AuthzModule != nil {
 		casbin = c.AuthzModule.CasbinAdapter
 	}
+	if c.AuthnModule != nil {
+		if err := userModule.Initialize(c.mysqlDB, casbin, c.AuthnModule.SessionManager()); err != nil {
+			return fmt.Errorf("failed to initialize user module: %w", err)
+		}
+		c.UserModule = userModule
+		return nil
+	}
 	if err := userModule.Initialize(c.mysqlDB, casbin); err != nil {
 		return fmt.Errorf("failed to initialize user module: %w", err)
 	}
@@ -206,6 +219,21 @@ func (c *Container) initIDPModule() error {
 	}
 	c.IDPModule = idpModule
 	return nil
+}
+
+type cacheInspectorProvider interface {
+	CacheFamilyInspectors() []cacheinfra.FamilyInspector
+}
+
+func (c *Container) initCacheGovernance() {
+	inspectors := make([]cacheinfra.FamilyInspector, 0, 8)
+	for _, provider := range []cacheInspectorProvider{c.AuthnModule, c.IDPModule} {
+		if provider == nil {
+			continue
+		}
+		inspectors = append(inspectors, provider.CacheFamilyInspectors()...)
+	}
+	c.CacheGovernanceService = cachegovernance.NewReadService(inspectors)
 }
 
 // HealthCheck 健康检查

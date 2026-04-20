@@ -24,6 +24,7 @@ type Token struct {
 	Type       TokenType // 令牌类型
 	Value      string    // 令牌值（JWT 字符串或 UUID）
 	Subject    string    // JWT sub，服务令牌或访问令牌的主体
+	SessionID  string    // 认证会话 ID；服务令牌为空
 	UserID     meta.ID   // 关联的用户 ID
 	AccountID  meta.ID
 	TenantID   meta.ID
@@ -38,13 +39,14 @@ type Token struct {
 }
 
 // NewAccessToken 创建访问令牌
-func NewAccessToken(id, value string, userID meta.ID, accountID meta.ID, tenantID meta.ID, expiresIn time.Duration) *Token {
+func NewAccessToken(id, value, sessionID string, userID meta.ID, accountID meta.ID, tenantID meta.ID, expiresIn time.Duration) *Token {
 	now := time.Now()
 	return &Token{
 		ID:        id,
 		Type:      TokenTypeAccess,
 		Value:     value,
 		Subject:   userID.String(),
+		SessionID: sessionID,
 		UserID:    userID,
 		AccountID: accountID,
 		TenantID:  tenantID,
@@ -69,12 +71,13 @@ func NewServiceToken(id, value, subject string, audience []string, attributes ma
 }
 
 // NewRefreshToken 创建刷新令牌
-func NewRefreshToken(id, value string, userID meta.ID, accountID meta.ID, tenantID meta.ID, amr []string, sessionClaims map[string]string, expiresIn time.Duration) *Token {
+func NewRefreshToken(id, value, sessionID string, userID meta.ID, accountID meta.ID, tenantID meta.ID, amr []string, sessionClaims map[string]string, expiresIn time.Duration) *Token {
 	now := time.Now()
 	return &Token{
 		ID:            id,
 		Type:          TokenTypeRefresh,
 		Value:         value,
+		SessionID:     sessionID,
 		UserID:        userID,
 		AccountID:     accountID,
 		TenantID:      tenantID,
@@ -117,23 +120,25 @@ type TokenClaims struct {
 	TokenID    string // 令牌 ID
 	TokenType  TokenType
 	Subject    string
+	SessionID  string
 	UserID     meta.ID // 用户 ID
 	AccountID  meta.ID
 	TenantID   meta.ID
 	Issuer     string
 	Audience   []string
 	Attributes map[string]string
-	AMR        []string // RFC 8693 / OIDC amr
+	AMR        []string  // RFC 8693 / OIDC amr
 	IssuedAt   time.Time // 颁发时间
 	ExpiresAt  time.Time // 过期时间
 }
 
 // NewTokenClaims 创建令牌声明
-func NewTokenClaims(tokenType TokenType, tokenID, subject string, userID meta.ID, accountID meta.ID, tenantID meta.ID, issuer string, audience []string, attributes map[string]string, amr []string, issuedAt, expiresAt time.Time) *TokenClaims {
+func NewTokenClaims(tokenType TokenType, tokenID, subject, sessionID string, userID meta.ID, accountID meta.ID, tenantID meta.ID, issuer string, audience []string, attributes map[string]string, amr []string, issuedAt, expiresAt time.Time) *TokenClaims {
 	return &TokenClaims{
 		TokenID:    tokenID,
 		TokenType:  tokenType,
 		Subject:    subject,
+		SessionID:  sessionID,
 		UserID:     userID,
 		AccountID:  accountID,
 		TenantID:   tenantID,

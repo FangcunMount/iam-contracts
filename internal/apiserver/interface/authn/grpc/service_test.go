@@ -40,7 +40,7 @@ func (s *tokenServiceStub) RefreshToken(ctx context.Context, refreshToken string
 	return nil, nil
 }
 
-func (s *tokenServiceStub) RevokeToken(ctx context.Context, accessToken string) error {
+func (s *tokenServiceStub) RevokeAccessToken(ctx context.Context, accessToken string) error {
 	return nil
 }
 
@@ -56,6 +56,7 @@ func (s *tokenServiceStub) VerifyToken(ctx context.Context, req tokenApp.VerifyT
 			tokenDomain.TokenTypeAccess,
 			"tid",
 			"user:1",
+			"sid-1",
 			meta.FromUint64(1),
 			meta.FromUint64(2),
 			meta.FromUint64(3),

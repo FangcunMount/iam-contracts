@@ -8,9 +8,10 @@ import (
 
 // Dependencies describes the external collaborators needed to expose authn endpoints.
 type Dependencies struct {
-	AuthHandler    *authhandler.AuthHandler    // 新的认证处理器
-	AccountHandler *authhandler.AccountHandler // 账户管理处理器
-	JWKSHandler    *authhandler.JWKSHandler    // JWKS 处理器
+	AuthHandler      *authhandler.AuthHandler    // 新的认证处理器
+	AccountHandler   *authhandler.AccountHandler // 账户管理处理器
+	JWKSHandler      *authhandler.JWKSHandler    // JWKS 处理器
+	AdminMiddlewares []gin.HandlerFunc           // 管理接口中间件
 }
 
 var deps Dependencies
@@ -38,7 +39,7 @@ func Register(engine *gin.Engine) {
 	registerJWKSPublicEndpoints(engine, deps.JWKSHandler)
 
 	// 注册 JWKS 管理端点（管理员接口）
-	registerJWKSAdminEndpoints(api.Group("/admin"), deps.JWKSHandler)
+	registerJWKSAdminEndpoints(api.Group("/admin"), deps.JWKSHandler, deps.AdminMiddlewares...)
 }
 
 // registerAuthEndpointsV2 注册符合 API 文档的认证端点
@@ -68,10 +69,11 @@ func registerJWKSPublicEndpoints(engine *gin.Engine, handler *authhandler.JWKSHa
 }
 
 // registerJWKSAdminEndpoints 注册 JWKS 管理端点
-func registerJWKSAdminEndpoints(admin *gin.RouterGroup, handler *authhandler.JWKSHandler) {
-	if admin == nil || handler == nil {
+func registerJWKSAdminEndpoints(admin *gin.RouterGroup, handler *authhandler.JWKSHandler, middlewares ...gin.HandlerFunc) {
+	if admin == nil || handler == nil || len(middlewares) == 0 {
 		return
 	}
+	admin.Use(middlewares...)
 
 	// JWKS 管理端点（需要管理员权限）
 	jwks := admin.Group("/jwks")

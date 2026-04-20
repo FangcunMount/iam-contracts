@@ -199,7 +199,7 @@ func (s *authServiceServer) RevokeToken(ctx context.Context, req *authnv1.Revoke
 	if req == nil || strings.TrimSpace(req.GetAccessToken()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "access_token is required")
 	}
-	if err := s.tokenSvc.RevokeToken(ctx, req.GetAccessToken()); err != nil {
+	if err := s.tokenSvc.RevokeAccessToken(ctx, req.GetAccessToken()); err != nil {
 		return nil, toGRPCError(err)
 	}
 	return &authnv1.RevokeTokenResponse{}, nil
@@ -299,6 +299,9 @@ func toProtoTokenClaims(claims *tokenDomain.TokenClaims) *authnv1.TokenClaims {
 		Amr:        cloneAudience(claims.AMR),
 		IssuedAt:   timestamppb.New(claims.IssuedAt),
 		ExpiresAt:  timestamppb.New(claims.ExpiresAt),
+	}
+	if claims.SessionID != "" {
+		resp.SessionId = claims.SessionID
 	}
 	if !claims.UserID.IsZero() {
 		resp.UserId = claims.UserID.String()

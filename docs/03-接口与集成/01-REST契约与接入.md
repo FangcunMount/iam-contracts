@@ -89,7 +89,7 @@ flowchart LR
 | 路径族 | 典型路径 | 说明 |
 | ---- | ---- | ---- |
 | Public / Base | `/.well-known/jwks.json`、`/health`、`/ping`、`/api/v1/public/info` | 基础健康检查、公开信息与 JWKS |
-| Authn | `/api/v1/authn/login`、`/api/v1/authn/refresh_token` | 登录、令牌生命周期、账户、JWKS 管理 |
+| Authn | `/api/v1/authn/login`、`/api/v1/authn/refresh_token` | 登录、令牌生命周期、账户、JWKS 管理；其中 `authn/admin/jwks/*` 为管理员控制面 |
 | Identity | `/api/v1/identity/me`、`/api/v1/identity/children/register` | 当前用户、儿童、监护关系 |
 | Authz | `/api/v1/authz/roles`、`/api/v1/authz/policies` | 授权管理面 |
 | IDP | `/api/v1/idp/wechat-apps` | 微信应用管理 |
@@ -118,6 +118,7 @@ flowchart LR
 | ---- | ---- | ---- |
 | `/.well-known/jwks.json` | `已实现`：公开端点，无需 JWT | [../../internal/apiserver/interface/authn/restful/router.go](../../internal/apiserver/interface/authn/restful/router.go) |
 | `/api/v1/authn/*` 登录 / 刷新 / 验证 / 账户 | `已实现`：当前 router 层未统一挂 JWT 中间件 | [../../internal/apiserver/interface/authn/restful/router.go](../../internal/apiserver/interface/authn/restful/router.go) |
+| `/api/v1/authn/admin/jwks/*` | `已实现`：当前要求 `JWT + admin role`；管理员鉴权能力不可用时 fail-closed 不注册 | [../../internal/apiserver/interface/authn/restful/router.go](../../internal/apiserver/interface/authn/restful/router.go)、[../../internal/apiserver/routers.go](../../internal/apiserver/routers.go) |
 | `/api/v1/identity/*` | `已实现`：当前在 `api` 组上统一 `Use(deps.AuthMiddleware)` | [../../internal/apiserver/interface/uc/restful/router.go](../../internal/apiserver/interface/uc/restful/router.go) |
 | `/api/v1/suggest/*` | `已实现`：当前在 `group` 上按依赖注入情况挂 JWT 中间件 | [../../internal/apiserver/interface/suggest/restful/handler.go](../../internal/apiserver/interface/suggest/restful/handler.go) |
 | `/api/v1/authz/*` | `已实现`：`/health` 外当前统一挂 `AuthMiddleware` | [../../internal/apiserver/interface/authz/restful/router.go](../../internal/apiserver/interface/authz/restful/router.go)、[../../internal/apiserver/routers.go](../../internal/apiserver/routers.go) |

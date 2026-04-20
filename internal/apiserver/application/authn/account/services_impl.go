@@ -7,6 +7,7 @@ import (
 	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/account"
+	sessiondomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 	"gorm.io/gorm"
@@ -16,15 +17,16 @@ import (
 
 // accountApplicationService 账户应用服务实现
 type accountApplicationService struct {
-	uow uow.UnitOfWork
+	uow            uow.UnitOfWork
+	sessionManager sessiondomain.Manager
 }
 
 // accountApplicationService 实现 AccountApplicationService 接口
 var _ AccountApplicationService = (*accountApplicationService)(nil)
 
 // NewAccountApplicationService 创建账户应用服务
-func NewAccountApplicationService(uow uow.UnitOfWork) AccountApplicationService {
-	return &accountApplicationService{uow: uow}
+func NewAccountApplicationService(uow uow.UnitOfWork, sessionManager sessiondomain.Manager) AccountApplicationService {
+	return &accountApplicationService{uow: uow, sessionManager: sessionManager}
 }
 
 // GetAccountByID 根据ID获取账户
@@ -198,7 +200,7 @@ func (s *accountApplicationService) EnableAccount(ctx context.Context, accountID
 }
 
 func (s *accountApplicationService) DisableAccount(ctx context.Context, accountID meta.ID) error {
-	return s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
+	if err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
 		// 使用新的 StatusManager 接口
 		statusManager := domain.NewStatusManager(tx.Accounts)
 		account, err := statusManager.Disable(ctx, accountID)
@@ -208,7 +210,13 @@ func (s *accountApplicationService) DisableAccount(ctx context.Context, accountI
 
 		// 持久化状态变更
 		return tx.Accounts.UpdateStatus(ctx, account.ID, account.Status)
-	})
+	}); err != nil {
+		return err
+	}
+	if s.sessionManager == nil {
+		return nil
+	}
+	return s.sessionManager.RevokeByAccount(ctx, accountID, "account_disabled", accountID.String())
 }
 
 func (s *accountApplicationService) ArchiveAccount(ctx context.Context, accountID meta.ID) error {

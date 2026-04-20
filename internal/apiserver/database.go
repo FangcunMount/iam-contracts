@@ -20,8 +20,9 @@ import (
 // DatabaseManager 数据库管理器
 // Redis 客户端用于缓存、令牌等所有用途
 type DatabaseManager struct {
-	config   *config.Config
-	registry *database.Registry
+	config        *config.Config
+	registry      *database.Registry
+	cacheRegistry *database.NamedRedisRegistry
 }
 
 // NewDatabaseManager 创建数据库管理器
@@ -203,7 +204,7 @@ func (dm *DatabaseManager) initMySQL() error {
 // initRedisClients 初始化 Redis 客户端
 func (dm *DatabaseManager) initRedisClients() error {
 	// 初始化 Cache Redis
-	if err := dm.initSingleRedis("cache", database.DatabaseType("redis-cache"), dm.config.RedisOptions.Cache); err != nil {
+	if err := dm.initSingleRedis("cache", dm.config.RedisOptions.Cache); err != nil {
 		log.Warnf("Failed to initialize Cache Redis: %v", err)
 	}
 
@@ -211,7 +212,7 @@ func (dm *DatabaseManager) initRedisClients() error {
 }
 
 // initSingleRedis 初始化单个 Redis 客户端
-func (dm *DatabaseManager) initSingleRedis(instanceName string, dbType database.DatabaseType, opts *options.SingleRedisOptions) error {
+func (dm *DatabaseManager) initSingleRedis(instanceName string, opts *options.SingleRedisOptions) error {
 	if opts == nil {
 		return fmt.Errorf("%s redis options is nil", instanceName)
 	}
@@ -257,17 +258,16 @@ func (dm *DatabaseManager) initSingleRedis(instanceName string, dbType database.
 		SSLInsecureSkipVerify: opts.SSLInsecureSkipVerify,
 	}
 
-	// 创建 Redis 连接
-	redisConn := database.NewRedisConnection(redisConfig)
-
-	// 注册到 Registry（这里会调用 Connect() 方法）
-	if err := dm.registry.Register(dbType, redisConfig, redisConn); err != nil {
-		return fmt.Errorf("failed to register Redis %s: %w", instanceName, err)
+	// 通过 Foundation runtime 管理 Redis 生命周期。
+	registry := database.NewNamedRedisRegistry(redisConfig, nil)
+	if err := registry.Connect(); err != nil {
+		return fmt.Errorf("failed to connect Redis %s: %w", instanceName, err)
 	}
+	dm.cacheRegistry = registry
 
 	// 获取连接的客户端并添加日志钩子
 	if opts.EnableLogging {
-		client, err := dm.getRedisClientFromRegistry(dbType)
+		client, err := dm.getRedisClientFromCacheRegistry()
 		if err != nil {
 			log.Warnf("Failed to get Redis %s client for logging hook: %v", instanceName, err)
 		} else {
@@ -281,9 +281,13 @@ func (dm *DatabaseManager) initSingleRedis(instanceName string, dbType database.
 	return nil
 }
 
-// getRedisClientFromRegistry 从 Registry 获取 Redis 客户端
-func (dm *DatabaseManager) getRedisClientFromRegistry(dbType database.DatabaseType) (*redis.Client, error) {
-	client, err := dm.registry.GetClient(dbType)
+// getRedisClientFromCacheRegistry 从 Foundation runtime 获取缓存 Redis 客户端。
+func (dm *DatabaseManager) getRedisClientFromCacheRegistry() (*redis.Client, error) {
+	if dm.cacheRegistry == nil {
+		return nil, fmt.Errorf("cache redis registry is not initialized")
+	}
+
+	client, err := dm.cacheRegistry.GetClient("")
 	if err != nil {
 		return nil, err
 	}
@@ -321,15 +325,32 @@ func (dm *DatabaseManager) GetMySQLDB() (*gorm.DB, error) {
 // GetCacheRedisClient 获取缓存 Redis 客户端
 // 用于缓存、会话、限流等临时数据
 func (dm *DatabaseManager) GetCacheRedisClient() (*redis.Client, error) {
-	return dm.getRedisClientFromRegistry(database.DatabaseType("redis-cache"))
+	return dm.getRedisClientFromCacheRegistry()
 }
 
 // Close 关闭所有数据库连接
 func (dm *DatabaseManager) Close() error {
-	return dm.registry.Close()
+	var lastErr error
+	if dm.cacheRegistry != nil {
+		if err := dm.cacheRegistry.Close(); err != nil {
+			lastErr = err
+		}
+	}
+	if err := dm.registry.Close(); err != nil {
+		lastErr = err
+	}
+	return lastErr
 }
 
 // HealthCheck 健康检查
 func (dm *DatabaseManager) HealthCheck(ctx context.Context) error {
-	return dm.registry.HealthCheck(ctx)
+	if err := dm.registry.HealthCheck(ctx); err != nil {
+		return err
+	}
+	if dm.cacheRegistry != nil {
+		if err := dm.cacheRegistry.HealthCheck(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }

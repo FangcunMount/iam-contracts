@@ -337,7 +337,7 @@ func (h *AuthHandler) RevokeToken(c *gin.Context) {
 		return
 	}
 
-	if err := h.tokenService.RevokeToken(c.Request.Context(), reqBody.AccessToken); err != nil {
+	if err := h.tokenService.RevokeAccessToken(c.Request.Context(), reqBody.AccessToken); err != nil {
 		h.Error(c, err)
 		return
 	}

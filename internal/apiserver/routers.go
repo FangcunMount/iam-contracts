@@ -5,12 +5,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	openapiFS "github.com/FangcunMount/iam-contracts/api"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
 	authnhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful"
 	authzhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful"
+	cachegovernancehandler "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/cachegovernance/restful/handler"
 	idphttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/idp/restful"
 	suggesthttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/suggest/restful"
 	userhttp "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful"
@@ -20,14 +22,20 @@ import (
 
 // Router 集中的路由管理器
 type Router struct {
-	container *container.Container
-	engine    *gin.Engine // 保存 engine 引用用于调试
+	container              *container.Container
+	engine                 *gin.Engine // 保存 engine 引用用于调试
+	cacheGovernanceHandler *cachegovernancehandler.GovernanceHandler
 }
 
 // NewRouter 创建路由管理器
 func NewRouter(c *container.Container) *Router {
+	var governanceHandler = cachegovernancehandler.NewGovernanceHandler(nil)
+	if c != nil {
+		governanceHandler = cachegovernancehandler.NewGovernanceHandler(c.CacheGovernanceService)
+	}
 	return &Router{
-		container: c,
+		container:              c,
+		cacheGovernanceHandler: governanceHandler,
 	}
 }
 
@@ -42,6 +50,7 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 	r.registerBaseRoutes(engine)
 
 	if r.container == nil {
+		r.registerCacheGovernanceDebugRoutes(engine, nil)
 		fmt.Printf("⚠️  container not initialized, skipped module route registration\n")
 		return
 	}
@@ -61,6 +70,8 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 		log.Warn("Authn module unavailable; routes will be exposed without JWT middleware")
 	}
 
+	r.registerCacheGovernanceDebugRoutes(engine, authMiddleware)
+
 	// User 模块使用新中间件
 	userhttp.Provide(userhttp.Dependencies{
 		Module: r.container.UserModule,
@@ -77,10 +88,15 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 
 	// Authn 模块（公开端点）
 	if r.container.AuthnModule != nil {
+		adminMiddlewares := make([]gin.HandlerFunc, 0, 2)
+		if authMiddleware != nil && authMiddleware.SupportsRoleCheck() {
+			adminMiddlewares = append(adminMiddlewares, authMiddleware.AuthRequired(), authMiddleware.RequireRole("admin"))
+		}
 		authnhttp.Provide(authnhttp.Dependencies{
-			AuthHandler:    r.container.AuthnModule.AuthHandler,
-			AccountHandler: r.container.AuthnModule.AccountHandler,
-			JWKSHandler:    r.container.AuthnModule.JWKSHandler,
+			AuthHandler:      r.container.AuthnModule.AuthHandler,
+			AccountHandler:   r.container.AuthnModule.AccountHandler,
+			JWKSHandler:      r.container.AuthnModule.JWKSHandler,
+			AdminMiddlewares: adminMiddlewares,
 		})
 		authnhttp.Register(engine)
 		log.Info("✅ Authn module routes registered")
@@ -172,21 +188,71 @@ func (r *Router) registerBaseRoutes(engine *gin.Engine) {
 	// admin.Use(r.requireAdminRole()) // 需要实现管理员权限检查中间件
 }
 
+func (r *Router) registerCacheGovernanceDebugRoutes(engine *gin.Engine, authMiddleware *authnMiddleware.JWTAuthMiddleware) {
+	if engine == nil || !r.cacheGovernanceDebugEnabled() {
+		return
+	}
+
+	if !r.cacheGovernanceDebugRequireAdmin() {
+		engine.GET("/debug/cache-governance/catalog", r.debugCacheCatalog)
+		engine.GET("/debug/cache-governance/overview", r.debugCacheOverview)
+		engine.GET("/debug/cache-governance/families/:family", r.debugCacheFamily)
+		return
+	}
+
+	if authMiddleware == nil || !authMiddleware.SupportsRoleCheck() {
+		log.Warn("Skip cache governance debug routes: admin protection enabled but authz middleware is unavailable")
+		return
+	}
+
+	debug := engine.Group("/debug/cache-governance")
+	debug.Use(authMiddleware.AuthRequired(), authMiddleware.RequireRole("admin"))
+	{
+		debug.GET("/catalog", r.debugCacheCatalog)
+		debug.GET("/overview", r.debugCacheOverview)
+		debug.GET("/families/:family", r.debugCacheFamily)
+	}
+}
+
+func (r *Router) cacheGovernanceDebugEnabled() bool {
+	if viper.IsSet("debug.cache_governance.enabled") {
+		return viper.GetBool("debug.cache_governance.enabled")
+	}
+	return viper.GetString("app.mode") != "production"
+}
+
+func (r *Router) cacheGovernanceDebugRequireAdmin() bool {
+	if viper.GetString("app.mode") == "production" {
+		return true
+	}
+	if viper.IsSet("debug.cache_governance.require_admin") {
+		return viper.GetBool("debug.cache_governance.require_admin")
+	}
+	return false
+}
+
 func (r *Router) registerAdminRoutes(engine *gin.Engine, authMiddleware *authnMiddleware.JWTAuthMiddleware) {
 	if engine == nil {
 		return
 	}
+	if authMiddleware == nil || !authMiddleware.SupportsRoleCheck() {
+		log.Warn("Skip admin routes: admin protection middleware is unavailable")
+		return
+	}
 
 	apiV1 := engine.Group("/api/v1")
-	if authMiddleware != nil {
-		apiV1.Use(authMiddleware.AuthRequired())
-	}
+	apiV1.Use(authMiddleware.AuthRequired(), authMiddleware.RequireRole("admin"))
 
 	admin := apiV1.Group("/admin")
 	{
 		admin.GET("/users", r.placeholder)      // 管理员获取所有用户
 		admin.GET("/statistics", r.placeholder) // 系统统计信息
 		admin.GET("/logs", r.placeholder)       // 系统日志
+		if r.container != nil && r.container.AuthnModule != nil && r.container.AuthnModule.SessionAdminHandler != nil {
+			admin.POST("/sessions/:sessionId/revoke", r.container.AuthnModule.SessionAdminHandler.RevokeSession)
+			admin.POST("/accounts/:accountId/sessions/revoke", r.container.AuthnModule.SessionAdminHandler.RevokeAccountSessions)
+			admin.POST("/users/:userId/sessions/revoke", r.container.AuthnModule.SessionAdminHandler.RevokeUserSessions)
+		}
 	}
 }
 
@@ -275,4 +341,16 @@ func (r *Router) debugModules(c *gin.Context) {
 	}
 
 	c.JSON(200, response)
+}
+
+func (r *Router) debugCacheCatalog(c *gin.Context) {
+	r.cacheGovernanceHandler.GetCatalog(c)
+}
+
+func (r *Router) debugCacheOverview(c *gin.Context) {
+	r.cacheGovernanceHandler.GetOverview(c)
+}
+
+func (r *Router) debugCacheFamily(c *gin.Context) {
+	r.cacheGovernanceHandler.GetFamily(c)
 }

@@ -12,10 +12,12 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
+	cacheinfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/cache"
 )
 
 // accessTokenCache 访问令牌缓存实现
 type accessTokenCache struct {
+	client *redis.Client
 	tokens *redisstore.ValueStore[wechatapp.AppAccessToken]
 	leases *redislease.Service
 }
@@ -26,8 +28,16 @@ var _ wechatapp.AccessTokenCache = (*accessTokenCache)(nil)
 // NewAccessTokenCache 创建访问令牌缓存实例
 func NewAccessTokenCache(client *redis.Client) wechatapp.AccessTokenCache {
 	return &accessTokenCache{
+		client: client,
 		tokens: newJSONStore[wechatapp.AppAccessToken](client),
 		leases: newLeaseService(client),
+	}
+}
+
+// FamilyInspectors 返回微信 access token 缓存族的状态读取器。
+func (c *accessTokenCache) FamilyInspectors() []cacheinfra.FamilyInspector {
+	return []cacheinfra.FamilyInspector{
+		newRedisFamilyInspector(cacheinfra.FamilyIDPWechatAccessToken, c.client, "缓存主体为 JSON String，并使用 lease 协调刷新。"),
 	}
 }
 

@@ -21,6 +21,7 @@ func (s *loginTokenIssuerStub) IssueToken(ctx context.Context, principal *authen
 	access := domaintoken.NewAccessToken(
 		"access-id",
 		"access-value",
+		"session-id",
 		principal.UserID,
 		principal.AccountID,
 		principal.TenantID,
@@ -29,6 +30,7 @@ func (s *loginTokenIssuerStub) IssueToken(ctx context.Context, principal *authen
 	refresh := domaintoken.NewRefreshToken(
 		"refresh-id",
 		"refresh-value",
+		"session-id",
 		principal.UserID,
 		principal.AccountID,
 		principal.TenantID,
@@ -43,7 +45,7 @@ func (s *loginTokenIssuerStub) IssueServiceToken(ctx context.Context, subject st
 	return nil, nil
 }
 
-func (s *loginTokenIssuerStub) RevokeToken(ctx context.Context, tokenValue string) error {
+func (s *loginTokenIssuerStub) RevokeAccessToken(ctx context.Context, tokenValue string) error {
 	return nil
 }
 

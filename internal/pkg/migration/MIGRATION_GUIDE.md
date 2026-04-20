@@ -71,7 +71,7 @@
      - `locked_until`: 锁定截止时间（仅 password）
 
 3. **Token 审计表** (`iam_authn_token_audit`)
-   - 替代旧的 `iam_auth_sessions` + `iam_auth_token_blacklist`
+   - 替代旧的 `iam_auth_sessions` + `iam_auth_revoked_access_token`
    - Token 主存储迁移到 Redis，表仅用于审计和长期追踪
    - 记录 Token 签发和撤销历史
 
@@ -81,7 +81,7 @@
 - `iam_auth_wechat_accounts` (已合并到 `iam_authn_accounts`)
 - `iam_auth_operation_accounts` (已合并到 `iam_authn_credentials`)
 - `iam_auth_sessions` (Token 迁移到 Redis)
-- `iam_auth_token_blacklist` (合并到 `iam_authn_token_audit`)
+- `iam_auth_revoked_access_token` (合并到 `iam_authn_token_audit`)
 
 **设计优势**:
 

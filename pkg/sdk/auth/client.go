@@ -18,13 +18,13 @@ import (
 // 使用示例：
 //
 //	resp, err := client.Auth().VerifyToken(ctx, &authnv1.VerifyTokenRequest{
-//	    Token: "eyJhbGciOiJSUzI1NiIs...",
+//	    AccessToken: "eyJhbGciOiJSUzI1NiIs...",
 //	})
 //	if err != nil {
 //	    return err
 //	}
 //	if resp.Valid {
-//	    fmt.Printf("用户ID: %s\n", resp.UserId)
+//	    fmt.Printf("用户ID: %s\n", resp.Claims.UserId)
 //	}
 type Client struct {
 	authService authnv1.AuthServiceClient
@@ -48,28 +48,33 @@ func NewClient(authService authnv1.AuthServiceClient, jwksService authnv1.JWKSSe
 
 // VerifyToken 验证 Access Token 的有效性。
 //
-// 检查 Token 的签名、过期时间、颁发者等信息。
+// 在线校验 Access Token。
+//
+// 当前服务端除了签名与过期外，还会继续检查：
+//   - revoked access token 标记
+//   - session(sid) 是否仍为 active
+//   - user / account 当前访问状态
 //
 // 参数：
 //   - ctx: 请求上下文
-//   - req: 验证请求，包含 Token 字段
+//   - req: 验证请求，包含 AccessToken 字段
 //
 // 返回：
-//   - *authnv1.VerifyTokenResponse: 包含 Valid（布尔值）、UserId、Claims 字段
+//   - *authnv1.VerifyTokenResponse: 包含 Valid、Claims、Metadata、FailureReason 字段
 //   - error: 可能的错误类型包括 InvalidArgument、Unauthenticated
 //
 // 示例：
 //
 //	resp, err := client.Auth().VerifyToken(ctx, &authnv1.VerifyTokenRequest{
-//	    Token: "eyJhbGciOiJSUzI1NiIs...",
+//	    AccessToken: "eyJhbGciOiJSUzI1NiIs...",
 //	})
 //	if err != nil {
 //	    return err
 //	}
 //	if resp.Valid {
-//	    fmt.Printf("用户ID: %s, 角色: %v\n", resp.UserId, resp.Claims["roles"])
+//	    fmt.Printf("用户ID: %s, SessionID: %s\n", resp.Claims.UserId, resp.Claims.SessionId)
 //	} else {
-//	    fmt.Printf("Token 无效: %s\n", resp.Reason)
+//	    fmt.Printf("Token 无效: %s\n", resp.FailureReason)
 //	}
 func (c *Client) VerifyToken(ctx context.Context, req *authnv1.VerifyTokenRequest) (*authnv1.VerifyTokenResponse, error) {
 	resp, err := c.authService.VerifyToken(ctx, req)
@@ -95,7 +100,7 @@ func (c *Client) RegisterOperationAccount(ctx context.Context, req *authnv1.Regi
 //   - req: 刷新请求，包含 RefreshToken 字段
 //
 // 返回：
-//   - *authnv1.RefreshTokenResponse: 包含 AccessToken、RefreshToken（可选）、ExpiresIn 字段
+//   - *authnv1.RefreshTokenResponse: 包含 TokenPair 字段
 //   - error: 可能的错误类型包括 InvalidArgument、Unauthenticated
 //
 // 示例：
@@ -106,7 +111,7 @@ func (c *Client) RegisterOperationAccount(ctx context.Context, req *authnv1.Regi
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("新 Token: %s, 过期时间: %d 秒\n", resp.AccessToken, resp.ExpiresIn)
+//	fmt.Printf("新 Token: %s\n", resp.TokenPair.AccessToken)
 func (c *Client) RefreshToken(ctx context.Context, req *authnv1.RefreshTokenRequest) (*authnv1.RefreshTokenResponse, error) {
 	resp, err := c.authService.RefreshToken(ctx, req)
 	if err != nil {
@@ -121,21 +126,21 @@ func (c *Client) RefreshToken(ctx context.Context, req *authnv1.RefreshTokenRequ
 //
 // 参数：
 //   - ctx: 请求上下文
-//   - req: 撤销请求，包含 Token 字段
+//   - req: 撤销请求，包含 AccessToken 字段
 //
 // 返回：
-//   - *authnv1.RevokeTokenResponse: 包含 Success 和 Message 字段
+//   - *authnv1.RevokeTokenResponse: 空响应，成功即表示撤销完成
 //   - error: 可能的错误类型包括 InvalidArgument、NotFound
 //
 // 示例：
 //
 //	resp, err := client.Auth().RevokeToken(ctx, &authnv1.RevokeTokenRequest{
-//	    Token: "eyJhbGciOiJSUzI1NiIs...",
+//	    AccessToken: "eyJhbGciOiJSUzI1NiIs...",
 //	})
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("Token 撤销结果: %s\n", resp.Message)
+//	_ = resp
 func (c *Client) RevokeToken(ctx context.Context, req *authnv1.RevokeTokenRequest) (*authnv1.RevokeTokenResponse, error) {
 	resp, err := c.authService.RevokeToken(ctx, req)
 	if err != nil {
@@ -153,7 +158,7 @@ func (c *Client) RevokeToken(ctx context.Context, req *authnv1.RevokeTokenReques
 //   - req: 撤销请求，包含 RefreshToken 字段
 //
 // 返回：
-//   - *authnv1.RevokeRefreshTokenResponse: 包含 Success 和 Message 字段
+//   - *authnv1.RevokeRefreshTokenResponse: 空响应，成功即表示撤销完成
 //   - error: 可能的错误类型包括 InvalidArgument、NotFound
 //
 // 示例：
@@ -164,7 +169,7 @@ func (c *Client) RevokeToken(ctx context.Context, req *authnv1.RevokeTokenReques
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("Refresh Token 撤销成功\n")
+//	_ = resp
 func (c *Client) RevokeRefreshToken(ctx context.Context, req *authnv1.RevokeRefreshTokenRequest) (*authnv1.RevokeRefreshTokenResponse, error) {
 	resp, err := c.authService.RevokeRefreshToken(ctx, req)
 	if err != nil {
@@ -213,7 +218,7 @@ func (c *Client) IssueServiceToken(ctx context.Context, req *authnv1.IssueServic
 //   - req: JWKS 请求，通常为空
 //
 // 返回：
-//   - *authnv1.GetJWKSResponse: 包含 Keys（公钥列表）字段
+//   - *authnv1.GetJWKSResponse: 包含 jwks / etag / last_modified 字段
 //   - error: 可能的错误类型包括 Internal
 //
 // 示例：
@@ -222,9 +227,7 @@ func (c *Client) IssueServiceToken(ctx context.Context, req *authnv1.IssueServic
 //	if err != nil {
 //	    return err
 //	}
-//	for _, key := range resp.Keys {
-//	    fmt.Printf("Key ID: %s, Algorithm: %s\n", key.Kid, key.Alg)
-//	}
+//	fmt.Printf("JWKS bytes: %d\n", len(resp.Jwks))
 func (c *Client) GetJWKS(ctx context.Context, req *authnv1.GetJWKSRequest) (*authnv1.GetJWKSResponse, error) {
 	resp, err := c.jwksService.GetJWKS(ctx, req)
 	if err != nil {

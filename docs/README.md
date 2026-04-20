@@ -26,7 +26,10 @@
 | REST / gRPC 合同在哪里？ | [../api/rest/README.md](../api/rest/README.md)、[../api/grpc/README.md](../api/grpc/README.md)、[../api/README.md](../api/README.md) |
 | 业务系统要接授权能力，今天到底能接到什么程度？ | [03-接口与集成/03-授权接入与边界.md](./03-接口与集成/03-授权接入与边界.md) |
 | 业务系统要接身份与监护关系能力，今天到底能接到什么程度？ | [03-接口与集成/04-身份接入与监护关系边界.md](./03-接口与集成/04-身份接入与监护关系边界.md) |
-| 为什么 `pkg/sdk` 也是 IAM 的主阅读路径之一？ | [05-专题分析/04-SDK封装与接入价值.md](./05-专题分析/04-SDK封装与接入价值.md) |
+| 为什么 `pkg/sdk` 也是 IAM 的主阅读路径之一？ | [05-专题分析/07-SDK封装与接入价值.md](./05-专题分析/07-SDK封装与接入价值.md) |
+| IAM 缓存层今天到底怎么设计、治理面已经做到哪里？ | [05-专题分析/05-IAM缓存层--缓存层的设计与治理.md](./05-专题分析/05-IAM缓存层--缓存层的设计与治理.md) |
+| IAM 当前各个 cache family 为什么大多还是 Redis `String`，`revoked_access_token` 为什么不是 `Set`？ | [05-专题分析/06-IAM缓存层--数据结构选择与 Redis 建模判断.md](./05-专题分析/06-IAM缓存层--数据结构选择与 Redis 建模判断.md) |
+| 用户封禁、会话失效、access token 撤销、refresh token 删除到底怎么拆层？ | [05-专题分析/02-IAM认证语义拆层--用户状态、会话与Token边界.md](./05-专题分析/02-IAM认证语义拆层--用户状态、会话与Token边界.md) |
 | 配置、部署、迁移从哪看？ | [04-基础设施与运维/README.md](./04-基础设施与运维/README.md)、[04-基础设施与运维/04-端口&证书与数据库迁移.md](./04-基础设施与运维/04-端口&证书与数据库迁移.md)、`configs/`、`build/docker/`、`scripts/` |
 | 旧认证/授权/用户/基础设施/ops 文档从哪看？ | [_archive/README.md](./_archive/README.md) |
 
@@ -76,16 +79,17 @@
 2. [系统架构总览](./00-概览/01-系统架构总览.md)
 3. [认证、Token、JWKS](./02-业务域/01-authn-认证&Token&JWKS.md)
 4. [认证链专题](./05-专题分析/01-认证链路--从登录请求到 Token 与 JWKS.md)
-5. [角色、策略、资源、Assignment](./02-业务域/02-authz-角色&策略&资源&Assignment.md)
-6. [授权判定链专题](./05-专题分析/02-授权判定链路--角色&策略&资源&Assignment&Casbin.md)
-7. [用户、儿童、Guardianship](./02-业务域/03-user-用户&儿童&Guardianship.md)
-8. [监护关系链专题](./05-专题分析/03-监护关系链路--用户&儿童&Guardianship 的协作.md)
-9. [接口与集成 README](./03-接口与集成/README.md)
+5. [认证语义拆层专题](./05-专题分析/02-IAM认证语义拆层--用户状态、会话与Token边界.md)
+6. [角色、策略、资源、Assignment](./02-业务域/02-authz-角色&策略&资源&Assignment.md)
+7. [授权判定链专题](./05-专题分析/03-授权判定链路--角色&策略&资源&Assignment&Casbin.md)
+8. [用户、儿童、Guardianship](./02-业务域/03-user-用户&儿童&Guardianship.md)
+9. [监护关系链专题](./05-专题分析/03-监护关系链路--用户&儿童&Guardianship 的协作.md)
+10. [接口与集成 README](./03-接口与集成/README.md)
 
 ### 集成方
 
 1. [QS 接入 IAM](./03-接口与集成/05-QS接入IAM.md)
-2. [SDK 封装与接入价值](./05-专题分析/04-SDK封装与接入价值.md)
+2. [SDK 封装与接入价值](./05-专题分析/07-SDK封装与接入价值.md)
 3. [接口与集成 README](./03-接口与集成/README.md)
 4. [授权接入与边界](./03-接口与集成/03-授权接入与边界.md)
 5. [身份接入与监护关系边界](./03-接口与集成/04-身份接入与监护关系边界.md)
@@ -151,9 +155,12 @@
 | ---- | ---- | ---- |
 | [README.md](./05-专题分析/README.md) | 专题分析入口 | 4 min |
 | [01-认证链路--从登录请求到 Token 与 JWKS.md](./05-专题分析/01-认证链路--从登录请求到 Token 与 JWKS.md) | 登录、认证策略、Token 生命周期、JWKS 发布与轮换边界 | 10 min |
-| [02-授权判定链路--角色&策略&资源&Assignment&Casbin.md](./05-专题分析/02-授权判定链路--角色&策略&资源&Assignment&Casbin.md) | 授权管理链、Casbin 模型、策略版本传播与当前判定边界 | 10 min |
-| [03-监护关系链路--用户&儿童&Guardianship 的协作.md](./05-专题分析/03-监护关系链路--用户&儿童&Guardianship 的协作.md) | 建档、授监护、查询判定链，以及当前合同/运行时边界 | 10 min |
-| [04-SDK封装与接入价值.md](./05-专题分析/04-SDK封装与接入价值.md) | SDK 为什么不只是一个 wrapper、它替接入方省了什么，以及当前边界 | 8 min |
+| [02-IAM认证语义拆层--用户状态、会话与Token边界.md](./05-专题分析/02-IAM认证语义拆层--用户状态、会话与Token边界.md) | 用户状态、会话、access token 撤销、refresh token 删除四层语义，以及在线/离线校验边界 | 12 min |
+| [03-授权判定链路--角色&策略&资源&Assignment&Casbin.md](./05-专题分析/03-授权判定链路--角色&策略&资源&Assignment&Casbin.md) | 授权管理链、Casbin 模型、策略版本传播与当前判定边界 | 10 min |
+| [04-监护关系链路--用户&儿童&Guardianship 的协作.md](./05-专题分析/04-监护关系链路--用户&儿童&Guardianship 的协作.md) | 建档、授监护、查询判定链，以及当前合同/运行时边界 | 10 min |
+| [05-IAM缓存层--缓存层的设计与治理.md](./05-专题分析/05-IAM缓存层--缓存层的设计与治理.md) | IAM Cache Layer、cache family、只读治理面与运行边界 | 10 min |
+| [06-IAM缓存层--数据结构选择与 Redis 建模判断.md](./05-专题分析/06-IAM缓存层--数据结构选择与 Redis 建模判断.md) | IAM cache family 的 Redis 建模选择、未来升级条件，以及 `revoked_access_token` 为什么当前不是 `Set` | 10 min |
+| [07-SDK封装与接入价值.md](./05-专题分析/07-SDK封装与接入价值.md) | SDK 为什么不只是一个 wrapper，而是 IAM 的接入产品层 | 8 min |
 
 ### _archive
 

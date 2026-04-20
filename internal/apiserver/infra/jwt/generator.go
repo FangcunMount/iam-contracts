@@ -51,6 +51,7 @@ func NewGenerator(
 // CustomClaims 自定义 JWT Claims
 type CustomClaims struct {
 	TokenType  string            `json:"token_type,omitempty"`
+	SessionID  string            `json:"sid,omitempty"`
 	UserID     string            `json:"user_id,omitempty"`
 	AccountID  string            `json:"account_id,omitempty"`
 	TenantID   string            `json:"tenant_id,omitempty"`
@@ -70,6 +71,7 @@ func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authenti
 	attr := authentication.FlattenClaimsForJWT(principal.Claims)
 	claims := CustomClaims{
 		TokenType:  string(domain.TokenTypeAccess),
+		SessionID:  principal.SessionID,
 		UserID:     principal.UserID.String(),
 		AccountID:  principal.AccountID.String(),
 		TenantID:   principal.TenantID.String(),
@@ -97,6 +99,7 @@ func (g *Generator) GenerateAccessToken(ctx context.Context, principal *authenti
 	token := domain.NewAccessToken(
 		tokenID,
 		tokenString,
+		principal.SessionID,
 		principal.UserID,
 		principal.AccountID,
 		principal.TenantID,
@@ -219,6 +222,7 @@ func (g *Generator) ParseAccessToken(ctx context.Context, tokenValue string) (*d
 		tokenType,
 		claims.ID,
 		claims.Subject,
+		claims.SessionID,
 		userID,
 		accountID,
 		tenantID,

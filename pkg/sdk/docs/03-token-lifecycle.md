@@ -186,7 +186,7 @@ if !resp.Valid {
 
 - 需要直接问 IAM “这个 token 现在还有效吗”
 - 你不想自己做本地验签
-- 你需要服务端对黑名单 / 过期态的最终判断
+- 你需要服务端对 **撤销标记 / session(sid) / user-account 当前状态** 做权威判断
 
 ### 4.2 RefreshToken：用 Refresh Token 换新 TokenPair
 
@@ -314,6 +314,8 @@ _ = resp
 
 - `pkg/sdk` 当前不负责“用户登录拿 TokenPair”
 - `Auth()` 已覆盖 token 生命周期消费面，但不是完整登录 SDK
+- `Auth().VerifyToken(...)` 是**在线权威校验**；它看到的不只是签名和过期，还包括 `revoked_access_token`、`session(sid)`、`user/account` 当前状态
+- 本地 JWKS 验签只能保证签名与时间相关声明；它**不能保证** session revoke、用户封禁、账号禁用的即时生效
 - `IssueServiceToken` 虽已在默认服务端落地，但仍要确认部署版本和模块装配完整
 - `GetJWKS` 是取钥接口，不等于完整本地验签方案；本地验签应看 [JWT 本地验证](./04-jwt-verification.md)
 

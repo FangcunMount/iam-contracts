@@ -17,14 +17,18 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/login"
 	loginprep "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/loginprep"
 	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/register"
+	sessionApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/session"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
 	authnUow "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
+	cachegovernance "github.com/FangcunMount/iam-contracts/internal/apiserver/application/cachegovernance"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
+	sessionDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/session"
 	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	idpPort "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
 	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	authenticationInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/authentication"
+	cacheinfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/cache"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/crypto"
 	jwtinfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/jwt"
 	acctrepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/account"
@@ -47,6 +51,7 @@ type AuthnModule struct {
 	LoginService            login.LoginApplicationService
 	LoginPreparationService loginprep.LoginPreparationService
 	TokenService            token.TokenApplicationService
+	SessionService          sessionApp.SessionApplicationService
 
 	// JWKS 应用服务
 	KeyManagementApp *jwksApp.KeyManagementAppService
@@ -54,9 +59,10 @@ type AuthnModule struct {
 	KeyRotationApp   *jwksApp.KeyRotationAppService
 
 	// HTTP 处理器
-	AccountHandler *authhandler.AccountHandler
-	AuthHandler    *authhandler.AuthHandler
-	JWKSHandler    *authhandler.JWKSHandler
+	AccountHandler      *authhandler.AccountHandler
+	AuthHandler         *authhandler.AuthHandler
+	JWKSHandler         *authhandler.JWKSHandler
+	SessionAdminHandler *authhandler.SessionAdminHandler
 
 	// gRPC 服务
 	GRPCService *authngrpc.Service
@@ -68,6 +74,12 @@ type AuthnModule struct {
 		IsRunning() bool
 		TriggerNow(ctx context.Context) error
 	}
+
+	tokenStoreInspectorSource *redisInfra.RedisStore
+	sessionStoreInspector     *redisInfra.SessionStore
+	otpInspectorSource        *redisInfra.OTPVerifierImpl
+	keySetBuilder             *jwks.KeySetBuilder
+	sessionManager            sessionDomain.Manager
 }
 
 // NewAuthnModule 创建认证模块
@@ -146,12 +158,13 @@ type infrastructureComponents struct {
 	redis      *redis.Client
 	unitOfWork authnUow.UnitOfWork
 
-	accountRepo    authentication.AccountRepository
+	accountRepo    *acctrepo.AccountRepository
 	credentialRepo authentication.CredentialRepository
 	otpVerifier    authentication.OTPVerifier
 	otpRedis       *redisInfra.OTPVerifierImpl
 	idp            authentication.IdentityProvider
 	tokenVerifier  authentication.TokenVerifier
+	accessChecker  sessionDomain.SubjectAccessEvaluator
 
 	// JWKS 相关
 	keyRepo           jwks.Repository
@@ -161,7 +174,8 @@ type infrastructureComponents struct {
 	jwtGenerator      *jwtinfra.Generator
 
 	// Token 存储
-	tokenStore *redisInfra.RedisStore
+	tokenStore   *redisInfra.RedisStore
+	sessionStore *redisInfra.SessionStore
 
 	// User 仓储
 	userRepo userDomain.Repository
@@ -191,6 +205,7 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 	otpRedis := redisInfra.NewOTPVerifier(redisClient)
 	infra.otpVerifier = otpRedis
 	infra.otpRedis = otpRedis
+	m.otpInspectorSource = otpRedis
 
 	// 身份提供商 (微信)
 	// 优先使用 IDP 模块提供的基础设施能力
@@ -222,9 +237,13 @@ func (m *AuthnModule) initializeInfrastructure(db *gorm.DB, redisClient *redis.C
 
 	// Token Store
 	infra.tokenStore = redisInfra.NewRedisStore(redisClient)
+	m.tokenStoreInspectorSource = infra.tokenStore
+	infra.sessionStore = redisInfra.NewSessionStore(redisClient)
+	m.sessionStoreInspector = infra.sessionStore
 
 	// User 仓储（跨模块依赖）
 	infra.userRepo = mysqluser.NewRepository(db)
+	infra.accessChecker = sessionDomain.NewSubjectAccessEvaluator(infra.userRepo, infra.accountRepo)
 
 	return infra
 }
@@ -235,6 +254,7 @@ type domainComponents struct {
 	tokenIssuer    *tokenDomain.TokenIssuer
 	tokenRefresher *tokenDomain.TokenRefresher
 	tokenVerifyer  *tokenDomain.TokenVerifyer
+	sessionManager sessionDomain.Manager
 
 	// JWKS 服务
 	keyManager    *jwks.KeyManager
@@ -249,6 +269,7 @@ func (m *AuthnModule) initializeDomain(infra *infrastructureComponents) *domainC
 	// JWKS 领域服务
 	domain.keyManager = jwks.NewKeyManager(infra.keyRepo, infra.keyGenerator)
 	domain.keySetBuilder = jwks.NewKeySetBuilder(infra.keyRepo)
+	m.keySetBuilder = domain.keySetBuilder
 
 	rotationPolicy := jwks.DefaultRotationPolicy()
 	logger := log.New(log.NewOptions())
@@ -294,9 +315,11 @@ func (m *AuthnModule) initializeDomain(infra *infrastructureComponents) *domainC
 		refreshTTL = 7 * 24 * 60 * 60 * 1000000000 // 7天（纳秒）
 	}
 
-	domain.tokenIssuer = tokenDomain.NewTokenIssuer(infra.jwtGenerator, infra.tokenStore, accessTTL, refreshTTL)
-	domain.tokenRefresher = tokenDomain.NewTokenRefresher(infra.jwtGenerator, infra.tokenStore, accessTTL, refreshTTL)
-	domain.tokenVerifyer = tokenDomain.NewTokenVerifyer(infra.jwtGenerator, infra.tokenStore)
+	domain.sessionManager = sessionDomain.NewManager(infra.sessionStore)
+	m.sessionManager = domain.sessionManager
+	domain.tokenIssuer = tokenDomain.NewTokenIssuer(infra.jwtGenerator, infra.tokenStore, domain.sessionManager, accessTTL, refreshTTL)
+	domain.tokenRefresher = tokenDomain.NewTokenRefresher(infra.jwtGenerator, infra.tokenStore, domain.sessionManager, infra.accessChecker, accessTTL, refreshTTL)
+	domain.tokenVerifyer = tokenDomain.NewTokenVerifyer(infra.jwtGenerator, infra.tokenStore, domain.sessionManager, infra.accessChecker)
 
 	// 创建 TokenVerifier 适配器供 authentication 模块使用
 	infra.tokenVerifier = authenticationInfra.NewTokenVerifierAdapter(domain.tokenVerifyer)
@@ -316,7 +339,7 @@ func (m *AuthnModule) initializeApplication(
 	hasher authentication.PasswordHasher,
 ) error {
 	// 账户应用服务
-	m.AccountService = accountApp.NewAccountApplicationService(infra.unitOfWork)
+	m.AccountService = accountApp.NewAccountApplicationService(infra.unitOfWork, domain.sessionManager)
 
 	// 注册服务
 	m.RegisterService = registerApp.NewRegisterApplicationService(
@@ -379,6 +402,7 @@ func (m *AuthnModule) initializeApplication(
 		domain.tokenRefresher,
 		domain.tokenVerifyer,
 	)
+	m.SessionService = sessionApp.NewSessionApplicationService(domain.sessionManager)
 
 	// JWKS 应用服务
 	logger := log.New(log.NewOptions())
@@ -406,6 +430,7 @@ func (m *AuthnModule) initializeInterface() {
 		m.KeyManagementApp,
 		m.KeyPublishApp,
 	)
+	m.SessionAdminHandler = authhandler.NewSessionAdminHandler(m.SessionService)
 
 	m.GRPCService = authngrpc.NewService(
 		m.TokenService,
@@ -434,4 +459,21 @@ func (m *AuthnModule) Cleanup(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// CacheFamilyInspectors 返回认证模块暴露的缓存族状态读取器。
+func (m *AuthnModule) CacheFamilyInspectors() []cacheinfra.FamilyInspector {
+	inspectors := make([]cacheinfra.FamilyInspector, 0, 8)
+	inspectors = append(inspectors, redisInfra.RedisStoreInspectors(m.tokenStoreInspectorSource)...)
+	inspectors = append(inspectors, redisInfra.SessionStoreInspectors(m.sessionStoreInspector)...)
+	inspectors = append(inspectors, redisInfra.OTPVerifierInspectors(m.otpInspectorSource)...)
+	if m.keySetBuilder != nil {
+		inspectors = append(inspectors, cachegovernance.NewJWKSPublishSnapshotInspector(m.keySetBuilder))
+	}
+	return inspectors
+}
+
+// SessionManager 返回认证模块创建的会话管理器。
+func (m *AuthnModule) SessionManager() sessionDomain.Manager {
+	return m.sessionManager
 }

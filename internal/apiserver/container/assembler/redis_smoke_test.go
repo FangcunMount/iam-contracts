@@ -44,6 +44,9 @@ func TestAuthnModuleInitializeWithRedisAdapters(t *testing.T) {
 	if module.TokenService == nil {
 		t.Fatalf("expected TokenService to be initialized")
 	}
+	if got := len(module.CacheFamilyInspectors()); got != 8 {
+		t.Fatalf("AuthnModule.CacheFamilyInspectors() count = %d, want 8", got)
+	}
 }
 
 func TestIDPModuleInitializeWithRedisAdapters(t *testing.T) {
@@ -68,5 +71,8 @@ func TestIDPModuleInitializeWithRedisAdapters(t *testing.T) {
 	}
 	if module.WechatAppHandler == nil {
 		t.Fatalf("expected WechatAppHandler to be initialized")
+	}
+	if got := len(module.CacheFamilyInspectors()); got != 2 {
+		t.Fatalf("IDPModule.CacheFamilyInspectors() count = %d, want 2", got)
 	}
 }

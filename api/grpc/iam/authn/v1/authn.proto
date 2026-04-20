@@ -42,6 +42,7 @@ message TokenClaims {
   string issuer = 5;
   repeated string audience = 6;
   string tenant_id = 7;
+  string session_id = 8;
   google.protobuf.Timestamp issued_at = 10;
   google.protobuf.Timestamp expires_at = 11;
   map<string, string> attributes = 20;

@@ -10,26 +10,38 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
+	cacheinfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/cache"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
 // RedisStore Redis 令牌存储实现
 type RedisStore struct {
-	refreshTokens    *redisstore.ValueStore[refreshTokenData]
-	blacklistMarkers *redisstore.ValueStore[string]
+	client                    *redis.Client
+	refreshTokens             *redisstore.ValueStore[refreshTokenData]
+	revokedAccessTokenMarkers *redisstore.ValueStore[string]
 }
 
 // NewRedisStore 创建 Redis 令牌存储
 func NewRedisStore(client *redis.Client) *RedisStore {
 	return &RedisStore{
-		refreshTokens:    newJSONStore[refreshTokenData](client),
-		blacklistMarkers: newStringStore(client),
+		client:                    client,
+		refreshTokens:             newJSONStore[refreshTokenData](client),
+		revokedAccessTokenMarkers: newStringStore(client),
+	}
+}
+
+// FamilyInspectors 返回当前适配器暴露的缓存族状态读取器。
+func (s *RedisStore) FamilyInspectors() []cacheinfra.FamilyInspector {
+	return []cacheinfra.FamilyInspector{
+		newRedisFamilyInspector(cacheinfra.FamilyAuthnRefreshToken, s.client, "刷新令牌采用 JSON String 存储。"),
+		newRedisFamilyInspector(cacheinfra.FamilyAuthnRevokedAccessToken, s.client, "已撤销访问令牌采用 marker String 存储。"),
 	}
 }
 
 // refreshTokenData 刷新令牌存储数据结构
 type refreshTokenData struct {
 	TokenID       string            `json:"token_id"`
+	SessionID     string            `json:"session_id"`
 	UserID        uint64            `json:"user_id"`
 	AccountID     uint64            `json:"account_id"`
 	TenantID      uint64            `json:"tenant_id"`
@@ -46,6 +58,7 @@ func (s *RedisStore) SaveRefreshToken(ctx context.Context, token *domain.Token) 
 
 	data := refreshTokenData{
 		TokenID:       token.ID,
+		SessionID:     token.SessionID,
 		UserID:        token.UserID.Uint64(),
 		AccountID:     token.AccountID.Uint64(),
 		TenantID:      token.TenantID.Uint64(),
@@ -103,6 +116,7 @@ func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*d
 	token := domain.NewRefreshToken(
 		data.TokenID,
 		tokenValue,
+		data.SessionID,
 		userID,
 		accountID,
 		tenantID,
@@ -131,35 +145,35 @@ func (s *RedisStore) DeleteRefreshToken(ctx context.Context, tokenValue string) 
 	return nil
 }
 
-// AddToBlacklist 将令牌加入黑名单
-func (s *RedisStore) AddToBlacklist(ctx context.Context, tokenID string, expiry time.Duration) error {
-	key := tokenBlacklistRedisKey(tokenID)
+// MarkAccessTokenRevoked 标记访问令牌已撤销。
+func (s *RedisStore) MarkAccessTokenRevoked(ctx context.Context, tokenID string, expiry time.Duration) error {
+	key := revokedAccessTokenRedisKey(tokenID)
 	storeKey, err := newStoreKey(key)
 	if err != nil {
 		return err
 	}
 
-	// 设置黑名单标记，TTL 为令牌剩余有效期
-	if err := s.blacklistMarkers.Set(ctx, storeKey, "1", expiry); err != nil {
-		return fmt.Errorf("failed to add token to blacklist: %w", err)
+	// 设置撤销标记，TTL 为令牌剩余有效期。
+	if err := s.revokedAccessTokenMarkers.Set(ctx, storeKey, "1", expiry); err != nil {
+		return fmt.Errorf("failed to mark access token revoked: %w", err)
 	}
 
-	redisInfo(ctx, "token blacklisted", log.String("token_id", tokenID), log.Duration("ttl", expiry))
+	redisInfo(ctx, "access token marked revoked", log.String("token_id", tokenID), log.Duration("ttl", expiry))
 	return nil
 }
 
-// IsBlacklisted 检查令牌是否在黑名单中
-func (s *RedisStore) IsBlacklisted(ctx context.Context, tokenID string) (bool, error) {
-	key := tokenBlacklistRedisKey(tokenID)
+// IsAccessTokenRevoked 检查访问令牌是否已撤销。
+func (s *RedisStore) IsAccessTokenRevoked(ctx context.Context, tokenID string) (bool, error) {
+	key := revokedAccessTokenRedisKey(tokenID)
 	storeKey, err := newStoreKey(key)
 	if err != nil {
 		return false, err
 	}
 
-	// 检查 key 是否存在
-	exists, err := s.blacklistMarkers.Exists(ctx, storeKey)
+	// 检查撤销标记是否存在。
+	exists, err := s.revokedAccessTokenMarkers.Exists(ctx, storeKey)
 	if err != nil {
-		return false, fmt.Errorf("failed to check token blacklist: %w", err)
+		return false, fmt.Errorf("failed to check revoked access token marker: %w", err)
 	}
 
 	return exists, nil

@@ -8,7 +8,10 @@ import (
 
 var (
 	refreshTokenKeyspace          = rediskeyspace.New("refresh_token")
-	tokenBlacklistKeyspace        = rediskeyspace.New("token_blacklist")
+	revokedAccessTokenKeyspace    = rediskeyspace.New("revoked_access_token")
+	sessionKeyspace               = rediskeyspace.New("session")
+	userSessionIndexKeyspace      = rediskeyspace.New("user_session_index")
+	accountSessionIndexKeyspace   = rediskeyspace.New("account_session_index")
 	otpKeyspace                   = rediskeyspace.New("otp")
 	otpSendGateKeyspace           = otpKeyspace.Child("sendgate")
 	wechatAccessTokenKeyspace     = rediskeyspace.New("idp").Child("wechat").Child("token")
@@ -19,8 +22,20 @@ func refreshTokenRedisKey(tokenValue string) string {
 	return refreshTokenKeyspace.Prefix(tokenValue)
 }
 
-func tokenBlacklistRedisKey(tokenID string) string {
-	return tokenBlacklistKeyspace.Prefix(tokenID)
+func revokedAccessTokenRedisKey(tokenID string) string {
+	return revokedAccessTokenKeyspace.Prefix(tokenID)
+}
+
+func sessionRedisKey(sessionID string) string {
+	return sessionKeyspace.Prefix(sessionID)
+}
+
+func userSessionIndexRedisKey(userID string) string {
+	return userSessionIndexKeyspace.Prefix(userID)
+}
+
+func accountSessionIndexRedisKey(accountID string) string {
+	return accountSessionIndexKeyspace.Prefix(accountID)
 }
 
 func otpRedisKey(phoneE164, scene, code string) string {

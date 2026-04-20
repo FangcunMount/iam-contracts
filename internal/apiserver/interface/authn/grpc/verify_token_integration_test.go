@@ -18,6 +18,7 @@ import (
 	tokenapp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
 	jwksdomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/jwks"
+	sessiondomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/session"
 	domaintoken "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/infra/jwt"
 	authhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful/handler"
@@ -37,9 +38,74 @@ func (noopTokenStore) SaveRefreshToken(context.Context, *domaintoken.Token) erro
 func (noopTokenStore) GetRefreshToken(context.Context, string) (*domaintoken.Token, error) {
 	return nil, nil
 }
-func (noopTokenStore) DeleteRefreshToken(context.Context, string) error            { return nil }
-func (noopTokenStore) AddToBlacklist(context.Context, string, time.Duration) error { return nil }
-func (noopTokenStore) IsBlacklisted(context.Context, string) (bool, error)         { return false, nil }
+func (noopTokenStore) DeleteRefreshToken(context.Context, string) error { return nil }
+func (noopTokenStore) MarkAccessTokenRevoked(context.Context, string, time.Duration) error {
+	return nil
+}
+func (noopTokenStore) IsAccessTokenRevoked(context.Context, string) (bool, error) { return false, nil }
+
+type memorySessionStore struct {
+	sessions map[string]*sessiondomain.Session
+}
+
+func (s *memorySessionStore) Save(_ context.Context, session *sessiondomain.Session) error {
+	if s.sessions == nil {
+		s.sessions = make(map[string]*sessiondomain.Session)
+	}
+	s.sessions[session.SessionID] = session
+	return nil
+}
+
+func (s *memorySessionStore) Get(_ context.Context, sessionID string) (*sessiondomain.Session, error) {
+	if s.sessions == nil {
+		return nil, nil
+	}
+	return s.sessions[sessionID], nil
+}
+
+func (s *memorySessionStore) Revoke(_ context.Context, sessionID string, reason string, revokedBy string) error {
+	if s.sessions == nil {
+		return nil
+	}
+	if sess, ok := s.sessions[sessionID]; ok {
+		sess.Revoke(reason, revokedBy)
+	}
+	return nil
+}
+
+func (s *memorySessionStore) Extend(_ context.Context, sessionID string, expiresAt time.Time) error {
+	if s.sessions == nil {
+		return nil
+	}
+	if sess, ok := s.sessions[sessionID]; ok {
+		sess.Extend(expiresAt)
+	}
+	return nil
+}
+
+func (s *memorySessionStore) RevokeByUser(_ context.Context, userID meta.ID, reason string, revokedBy string) error {
+	for _, sess := range s.sessions {
+		if sess.UserID == userID {
+			sess.Revoke(reason, revokedBy)
+		}
+	}
+	return nil
+}
+
+func (s *memorySessionStore) RevokeByAccount(_ context.Context, accountID meta.ID, reason string, revokedBy string) error {
+	for _, sess := range s.sessions {
+		if sess.AccountID == accountID {
+			sess.Revoke(reason, revokedBy)
+		}
+	}
+	return nil
+}
+
+type allowAllSubjectAccessEvaluator struct{}
+
+func (allowAllSubjectAccessEvaluator) Evaluate(context.Context, meta.ID, meta.ID) (sessiondomain.SubjectAccessDecision, error) {
+	return sessiondomain.SubjectAccessDecision{Status: sessiondomain.SubjectAccessActive}, nil
+}
 
 type staticPrivResolver struct{ key *rsa.PrivateKey }
 
@@ -104,8 +170,10 @@ func newTestTokenStack(t *testing.T) (
 
 	gen := jwt.NewGenerator("https://iam.integration.test", []string{"qs-api", "collection-api"}, &fixedKeyManager{active: active}, &staticPrivResolver{key: priv})
 	store := noopTokenStore{}
-	issuer := domaintoken.NewTokenIssuer(gen, store, time.Hour, 24*time.Hour)
-	verifier := domaintoken.NewTokenVerifyer(gen, store)
+	sessionStore := &memorySessionStore{}
+	sessionManager := sessiondomain.NewManager(sessionStore)
+	issuer := domaintoken.NewTokenIssuer(gen, store, sessionManager, time.Hour, 24*time.Hour)
+	verifier := domaintoken.NewTokenVerifyer(gen, store, sessionManager, allowAllSubjectAccessEvaluator{})
 	svc := tokenapp.NewTokenApplicationService(issuer, nil, verifier)
 	return svc, gen, issuer
 }

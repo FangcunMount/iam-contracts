@@ -8,11 +8,12 @@ import (
 	appguard "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
 	appuow "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	appuser "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
+	sessiondomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/session"
 	childInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/child"
 	guardianshipInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/guardianship"
 	userInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
 	ucGrpc "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/grpc"
-	identityGrpc 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/grpc/identity"
+	identityGrpc "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/grpc/identity"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/handler"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
@@ -41,9 +42,15 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 		return errors.WithCode(code.ErrModuleInitializationFailed, "database connection is nil")
 	}
 	var casbin authn.CasbinEnforcer
+	var sessionManager sessiondomain.Manager
 	if len(params) > 1 {
-		if c, ok := params[1].(authn.CasbinEnforcer); ok {
-			casbin = c
+		for _, param := range params[1:] {
+			switch v := param.(type) {
+			case authn.CasbinEnforcer:
+				casbin = v
+			case sessiondomain.Manager:
+				sessionManager = v
+			}
 		}
 	}
 
@@ -58,7 +65,7 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 	// 用户应用服务（命令）
 	userAppSrv := appuser.NewUserApplicationService(uow)
 	userProfileAppSrv := appuser.NewUserProfileApplicationService(uow)
-	userStatusSrv := appuser.NewUserStatusApplicationService(uow)
+	userStatusSrv := appuser.NewUserStatusApplicationService(uow, sessionManager)
 
 	// 用户查询服务
 	userQuerySrv := appuser.NewUserQueryApplicationService(uow)

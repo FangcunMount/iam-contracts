@@ -17,8 +17,8 @@ type TokenApplicationService interface {
 	// RefreshToken 刷新访问令牌
 	RefreshToken(ctx context.Context, refreshToken string) (*TokenRefreshResult, error)
 
-	// RevokeToken 撤销访问令牌
-	RevokeToken(ctx context.Context, accessToken string) error
+	// RevokeAccessToken 撤销访问令牌
+	RevokeAccessToken(ctx context.Context, accessToken string) error
 
 	// RevokeRefreshToken 撤销刷新令牌
 	RevokeRefreshToken(ctx context.Context, refreshToken string) error

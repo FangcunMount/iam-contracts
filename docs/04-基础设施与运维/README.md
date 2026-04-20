@@ -18,6 +18,8 @@
 | 构建、运行、测试、swagger、proto、OpenAPI 校验怎么做？ | [03-命令&契约校验与开发流程.md](./03-命令&契约校验与开发流程.md) |
 | 端口、证书、Docker、数据库迁移从哪看？ | [04-端口&证书与数据库迁移.md](./04-端口&证书与数据库迁移.md) |
 | seeddata 和 Collection 集成怎么理解？ | [05-Seeddata 与 Collection 集成补充.md](./05-Seeddata 与 Collection 集成补充.md) |
+| IAM 缓存层今天到底怎么设计、治理面已经做到哪里？ | [../05-专题分析/05-IAM缓存层--缓存层的设计与治理.md](../05-专题分析/05-IAM缓存层--缓存层的设计与治理.md) |
+| IAM 当前各个 cache family 为什么大多还是 Redis `String`，`revoked_access_token` 为什么不是 `Set`？ | [../05-专题分析/06-IAM缓存层--数据结构选择与 Redis 建模判断.md](../05-专题分析/06-IAM缓存层--数据结构选择与 Redis 建模判断.md) |
 | 真实配置和工件入口在哪里？ | [../../configs/](../../configs/)、[../../build/docker/](../../build/docker/)、[../../scripts/](../../scripts/)、[../../Makefile](../../Makefile) |
 
 ## 当前文档
@@ -29,6 +31,12 @@
 | [03-命令&契约校验与开发流程.md](./03-命令&契约校验与开发流程.md) | `Makefile`、swagger / OpenAPI / proto 校验链、开发命令面 |
 | [04-端口&证书与数据库迁移.md](./04-端口&证书与数据库迁移.md) | dev/prod 端口、mTLS 证书、Docker 与 migration 入口 |
 | [05-Seeddata 与 Collection 集成补充.md](./05-Seeddata 与 Collection 集成补充.md) | seed_family 与 Collection testee 创建的补充说明 |
+补充专题：
+
+- [../05-专题分析/05-IAM缓存层--缓存层的设计与治理.md](../05-专题分析/05-IAM缓存层--缓存层的设计与治理.md)
+  - 解释 IAM Cache Layer、family 分工、只读治理面与运行边界
+- [../05-专题分析/06-IAM缓存层--数据结构选择与 Redis 建模判断.md](../05-专题分析/06-IAM缓存层--数据结构选择与 Redis 建模判断.md)
+  - 专门回答“为什么当前 family 大多仍然是 `String`、为什么 `revoked_access_token` 不是 `Set`、为什么 session index 使用 `ZSet`”
 
 ## 与其他层的分工
 

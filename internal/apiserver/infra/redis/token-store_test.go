@@ -25,6 +25,7 @@ func TestRedisStoreRefreshTokenLifecycle(t *testing.T) {
 	refreshToken := domain.NewRefreshToken(
 		"rt-1",
 		"refresh-value",
+		"session-1",
 		meta.FromUint64(1001),
 		meta.FromUint64(2002),
 		meta.FromUint64(3003),
@@ -52,6 +53,9 @@ func TestRedisStoreRefreshTokenLifecycle(t *testing.T) {
 	if payload.TokenID != refreshToken.ID {
 		t.Fatalf("stored token_id = %q, want %q", payload.TokenID, refreshToken.ID)
 	}
+	if payload.SessionID != refreshToken.SessionID {
+		t.Fatalf("stored session_id = %q, want %q", payload.SessionID, refreshToken.SessionID)
+	}
 
 	loaded, err := store.GetRefreshToken(ctx, refreshToken.Value)
 	if err != nil {
@@ -72,7 +76,7 @@ func TestRedisStoreRefreshTokenLifecycle(t *testing.T) {
 	}
 }
 
-func TestRedisStoreBlacklistLifecycle(t *testing.T) {
+func TestRedisStoreRevokedAccessTokenLifecycle(t *testing.T) {
 	mr := miniredis.RunT(t)
 	client := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
 	t.Cleanup(func() {
@@ -83,36 +87,36 @@ func TestRedisStoreBlacklistLifecycle(t *testing.T) {
 	ctx := context.Background()
 	tokenID := "black-token"
 
-	if err := store.AddToBlacklist(ctx, tokenID, 30*time.Minute); err != nil {
-		t.Fatalf("AddToBlacklist() error = %v", err)
+	if err := store.MarkAccessTokenRevoked(ctx, tokenID, 30*time.Minute); err != nil {
+		t.Fatalf("MarkAccessTokenRevoked() error = %v", err)
 	}
 
-	rawKey := tokenBlacklistRedisKey(tokenID)
+	rawKey := revokedAccessTokenRedisKey(tokenID)
 	if !mr.Exists(rawKey) {
-		t.Fatalf("expected blacklist key %q to exist", rawKey)
+		t.Fatalf("expected revoked access token key %q to exist", rawKey)
 	}
 	rawValue, err := mr.Get(rawKey)
 	if err != nil {
 		t.Fatalf("miniredis Get(%q) error = %v", rawKey, err)
 	}
 	if rawValue != "1" {
-		t.Fatalf("blacklist marker = %q, want %q", rawValue, "1")
+		t.Fatalf("revoked access token marker = %q, want %q", rawValue, "1")
 	}
 
-	blacklisted, err := store.IsBlacklisted(ctx, tokenID)
+	revoked, err := store.IsAccessTokenRevoked(ctx, tokenID)
 	if err != nil {
-		t.Fatalf("IsBlacklisted() error = %v", err)
+		t.Fatalf("IsAccessTokenRevoked() error = %v", err)
 	}
-	if !blacklisted {
-		t.Fatalf("expected token to be blacklisted")
+	if !revoked {
+		t.Fatalf("expected token to be marked revoked")
 	}
 
-	blacklisted, err = store.IsBlacklisted(ctx, "missing-token")
+	revoked, err = store.IsAccessTokenRevoked(ctx, "missing-token")
 	if err != nil {
-		t.Fatalf("IsBlacklisted() missing error = %v", err)
+		t.Fatalf("IsAccessTokenRevoked() missing error = %v", err)
 	}
-	if blacklisted {
-		t.Fatalf("expected missing token not to be blacklisted")
+	if revoked {
+		t.Fatalf("expected missing token not to be marked revoked")
 	}
 }
 
@@ -128,6 +132,7 @@ func TestRedisStoreRejectsExpiredRefreshToken(t *testing.T) {
 	expiredToken := domain.NewRefreshToken(
 		"rt-expired",
 		"expired-value",
+		"session-expired",
 		meta.FromUint64(1),
 		meta.FromUint64(2),
 		meta.FromUint64(3),
