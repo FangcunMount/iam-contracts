@@ -156,7 +156,11 @@ func (r *AccountRepository) GetByExternalIDAppId(ctx context.Context, externalID
 		appIDStr := string(appID)
 		query = query.Where("app_id = ?", appIDStr)
 	} else {
-		query = query.Where("app_id IS NULL")
+		// 兼容历史 schema/数据：
+		// - 旧表结构将 app_id 建模为 NOT NULL DEFAULT ''
+		// - 新代码路径有时会按“空 AppID”理解为 NULL
+		// 这里同时兼容两种存储形态，避免查重/复用失真。
+		query = query.Where("(app_id = '' OR app_id IS NULL)")
 	}
 
 	if err := query.First(&po).Error; err != nil {

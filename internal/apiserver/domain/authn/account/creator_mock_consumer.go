@@ -39,6 +39,7 @@ func (s *MockConsumerCreatorStrategy) PrepareData(ctx context.Context, input Cre
 	return &CreationParams{
 		UserID:      input.UserID,
 		AccountType: TypeMockConsumer,
+		AppID:       MockConsumerAppID,
 		ExternalID:  ExternalID(externalID),
 		Profile:     input.Profile,
 		Meta:        input.Meta,
@@ -53,6 +54,7 @@ func (s *MockConsumerCreatorStrategy) Create(ctx context.Context, params *Creati
 		params.UserID,
 		TypeMockConsumer,
 		params.ExternalID,
+		WithAppID(params.AppID),
 	)
 	if err := account.ValidateScopedTenantInvariant(); err != nil {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "%v", err)

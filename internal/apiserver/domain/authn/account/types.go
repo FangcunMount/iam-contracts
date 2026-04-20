@@ -43,6 +43,13 @@ const (
 	TypeMockConsumer AccountType = "mock-consumer" // 内部 mock C 端
 )
 
+const (
+	// MockConsumerAppID 是内部 mock C 端账号固定使用的应用 ID。
+	// 现网 auth_accounts.app_id 仍按非空字段建模，显式设置固定值可避免
+	// NULL/空字符串在不同 schema 或查询分支下造成的兼容性问题。
+	MockConsumerAppID AppId = "mock-consumer"
+)
+
 // String 转字符串
 func (a AccountType) String() string {
 	return string(a)

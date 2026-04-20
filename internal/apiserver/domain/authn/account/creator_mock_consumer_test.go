@@ -22,7 +22,7 @@ func TestMockConsumerCreatorStrategyPrepareDataUsesEmailAsExternalID(t *testing.
 	require.NoError(t, err)
 	require.Equal(t, TypeMockConsumer, params.AccountType)
 	require.Equal(t, ExternalID("guardian@example.com"), params.ExternalID)
-	require.Empty(t, params.AppID)
+	require.Equal(t, MockConsumerAppID, params.AppID)
 }
 
 func TestMockConsumerCreatorStrategyRejectsScopedTenantID(t *testing.T) {
