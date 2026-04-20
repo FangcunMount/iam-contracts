@@ -283,7 +283,7 @@ func buildRetryConfig(retry *config.RetryConfig) string {
 			"backoffMultiplier": %.1f,
 			"retryableStatusCodes": [%s]
 		}
-	}]`, maxAttempts, initialBackoff, maxBackoff, multiplier, formatCodes(codes))
+	}]`, maxAttempts, formatServiceConfigDuration(initialBackoff), formatServiceConfigDuration(maxBackoff), multiplier, formatCodes(codes))
 }
 
 func formatCodes(codes []string) string {
@@ -292,4 +292,30 @@ func formatCodes(codes []string) string {
 		quoted[i] = fmt.Sprintf(`"%s"`, c)
 	}
 	return strings.Join(quoted, ",")
+}
+
+func formatServiceConfigDuration(d time.Duration) string {
+	if d == 0 {
+		return "0s"
+	}
+
+	negative := d < 0
+	if negative {
+		d = -d
+	}
+
+	seconds := d / time.Second
+	nanos := d % time.Second
+	if nanos == 0 {
+		if negative {
+			return fmt.Sprintf("-%ds", seconds)
+		}
+		return fmt.Sprintf("%ds", seconds)
+	}
+
+	fraction := strings.TrimRight(fmt.Sprintf("%09d", nanos), "0")
+	if negative {
+		return fmt.Sprintf("-%d.%ss", seconds, fraction)
+	}
+	return fmt.Sprintf("%d.%ss", seconds, fraction)
 }
