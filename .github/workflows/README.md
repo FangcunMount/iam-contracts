@@ -57,6 +57,8 @@ Health Check (健康验证，最长 150 秒)
 - Docker Registry: ghcr.io
 - Image: `fangcunmount/iam-contracts:latest`
 - 健康检查超时: 150 秒
+- 容器资源配额：直接维护在 `build/docker/docker-compose.prod.yml`
+- 应用连接池与后台任务频率：直接维护在 `configs/apiserver.prod.yaml`
 
 ---
 

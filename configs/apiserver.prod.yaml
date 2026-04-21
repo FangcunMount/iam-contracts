@@ -138,8 +138,8 @@ mysql:
   username: "iam"
   password: "iam_contracts_pass123"
   database: "iam_contracts"
-  max-idle-conns: 10
-  max-open-conns: 100
+  max-idle-conns: 5
+  max-open-conns: 40
   conn-max-lifetime: 3600  # 秒
   log-level: 4 # GORM log level, 1: silent, 2:error, 3:warn, 4:info (生产环境使用 silent)
 
@@ -162,9 +162,9 @@ redis:
     username: ""  # Redis 6.0+ ACL 用户名，留空表示使用 default 用户
     password: ""
     database: 0  # 缓存使用 DB 0
-    max-idle: 200
-    max-active: 500
-    min-idle-conns: 20
+    max-idle: 20
+    max-active: 100
+    min-idle-conns: 5
     timeout: 10
     pool-timeout: 10
     dial-timeout: 5
@@ -216,8 +216,8 @@ sms:
 suggest:
   enable: true
   data_dir: "/app/data/suggest"
-  full_sync_cron: "@every 1h"
-  delta_sync_cron: "@every 5m"
+  full_sync_cron: "@every 6h"
+  delta_sync_cron: "@every 30m"
   max_results: 20
   key_pad_len: 25
   snapshot: true
