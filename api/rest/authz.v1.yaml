@@ -123,7 +123,7 @@ paths:
     post:
       tags:
       - Authorization-Policies
-      summary: 策略判定（Casbin Enforce）
+      summary: 策略判定（Enforce）
       requestBody:
         required: true
         content:
@@ -604,28 +604,6 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
-    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckRequest:
-      properties:
-        action:
-          type: string
-        object:
-          type: string
-        subject_id:
-          type: string
-        subject_type:
-          type: string
-          enum:
-          - user
-          - group
-      required:
-      - action
-      - object
-      type: object
-    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckResponse:
-      properties:
-        allowed:
-          type: boolean
-      type: object
     github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.AddPolicyRequest:
       properties:
         action:
@@ -658,6 +636,26 @@ components:
           type: string
         tenant_id:
           type: string
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckRequest:
+      properties:
+        action:
+          type: string
+        object:
+          type: string
+        subject_id:
+          type: string
+        subject_type:
+          description: SubjectType 可选：user | group；与 SubjectID 同时省略时使用当前 JWT 用户。
+          type: string
+      required:
+      - action
+      - object
+      type: object
+    github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CheckResponse:
+      properties:
+        allowed:
+          type: boolean
       type: object
     github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authz_restful_dto.CreateResourceRequest:
       properties:

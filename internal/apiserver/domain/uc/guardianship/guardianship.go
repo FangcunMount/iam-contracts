@@ -9,10 +9,10 @@ import (
 
 type Relation string // 监护关系
 const (
-	RelSelf         Relation = "self"         // 自己
-	RelParent       Relation = "parent"       // 父母
-	RelGrandparents Relation = "grandparents" // 祖父母
-	RelOther        Relation = "other"        // 其他
+	RelSelf        Relation = "self"        // 自己
+	RelParent      Relation = "parent"      // 父母
+	RelGrandparent Relation = "grandparent" // 祖父母
+	RelOther       Relation = "other"       // 其他
 )
 
 // Guardianship 监护关系

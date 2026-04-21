@@ -38,6 +38,15 @@ func (h *BaseHandler) SuccessResponseWithMessage(c *gin.Context, message string,
 	})
 }
 
+// CreatedResponse 成功创建响应。
+func (h *BaseHandler) CreatedResponse(c *gin.Context, data interface{}) {
+	c.JSON(http.StatusCreated, Response{
+		Code:    0,
+		Message: "success",
+		Data:    data,
+	})
+}
+
 // NoContent 写出 204 No Content 响应
 func (h *BaseHandler) NoContent(c *gin.Context) {
 	c.Status(http.StatusNoContent)
@@ -195,6 +204,11 @@ func (h *BaseHandler) GetQueryParamInt(c *gin.Context, key string, defaultValue 
 // Success 成功响应的简化别名
 func (h *BaseHandler) Success(c *gin.Context, data interface{}) {
 	h.SuccessResponse(c, data)
+}
+
+// Created 创建成功响应的简化别名。
+func (h *BaseHandler) Created(c *gin.Context, data interface{}) {
+	h.CreatedResponse(c, data)
 }
 
 // Error 错误响应的简化别名

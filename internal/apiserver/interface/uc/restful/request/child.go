@@ -14,7 +14,7 @@ type ChildCreateRequest struct {
 // ChildRegisterRequest 注册儿童档案并授予监护
 type ChildRegisterRequest struct {
 	ChildCreateRequest
-	Relation string `json:"relation" binding:"required,oneof=self parent guardian"`
+	Relation string `json:"relation" binding:"required,oneof=self parent grandparent other"`
 }
 
 // ChildUpdateRequest 更新儿童档案请求

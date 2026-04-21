@@ -65,7 +65,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/accounts/wechat/register": {
+        "/authn/accounts/wechat/register": {
             "post": {
                 "description": "使用微信 JS Code 注册新用户，服务端根据 AppID 查询 AppSecret 并自动调用 code2session 获取 OpenID 和 UnionID",
                 "consumes": [
@@ -113,7 +113,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/accounts/{accountId}": {
+        "/authn/accounts/{accountId}": {
             "get": {
                 "description": "根据账户ID获取账户详细信息",
                 "consumes": [
@@ -159,7 +159,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/accounts/{accountId}/disable": {
+        "/authn/accounts/{accountId}/disable": {
             "post": {
                 "description": "将账户标记为禁用，阻止继续认证",
                 "tags": [
@@ -199,7 +199,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/accounts/{accountId}/enable": {
+        "/authn/accounts/{accountId}/enable": {
             "post": {
                 "description": "恢复已禁用的账户",
                 "tags": [
@@ -239,7 +239,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/accounts/{accountId}/profile": {
+        "/authn/accounts/{accountId}/profile": {
             "put": {
                 "description": "更新微信账户的昵称、头像等资料信息",
                 "consumes": [
@@ -294,7 +294,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/accounts/{accountId}/unionid": {
+        "/authn/accounts/{accountId}/unionid": {
             "put": {
                 "description": "将微信账户的 UnionID 与内部账户关联",
                 "consumes": [
@@ -349,7 +349,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/jwks/keys": {
+        "/authn/admin/jwks/keys": {
             "get": {
                 "security": [
                     {
@@ -481,7 +481,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/jwks/keys/cleanup": {
+        "/authn/admin/jwks/keys/cleanup": {
             "post": {
                 "security": [
                     {
@@ -524,7 +524,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/jwks/keys/publishable": {
+        "/authn/admin/jwks/keys/publishable": {
             "get": {
                 "security": [
                     {
@@ -567,7 +567,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/jwks/keys/{kid}": {
+        "/authn/admin/jwks/keys/{kid}": {
             "get": {
                 "security": [
                     {
@@ -631,7 +631,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/jwks/keys/{kid}/force-retire": {
+        "/authn/admin/jwks/keys/{kid}/force-retire": {
             "post": {
                 "security": [
                     {
@@ -692,7 +692,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/jwks/keys/{kid}/grace": {
+        "/authn/admin/jwks/keys/{kid}/grace": {
             "post": {
                 "security": [
                     {
@@ -753,7 +753,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/jwks/keys/{kid}/retire": {
+        "/authn/admin/jwks/keys/{kid}/retire": {
             "post": {
                 "security": [
                     {
@@ -814,53 +814,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/suggest/child": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "支持中文/拼音前缀联想，数字关键词走手机号/ID 精确匹配",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Suggest"
-                ],
-                "summary": "儿童联想搜索",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "关键词；数字=精确匹配手机号/ID，其他=前缀联想",
-                        "name": "k",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "联想结果（按权重降序，去重）",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_domain_suggest.Term"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "参数缺失",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/login": {
+        "/authn/login": {
             "post": {
                 "description": "支持多种登录方式：密码登录、手机验证码登录、微信小程序登录、企业微信登录",
                 "consumes": [
@@ -908,7 +862,40 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/logout": {
+        "/authn/login/prep/phone-otp": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "认证"
+                ],
+                "summary": "登录预准备-发送手机验证码",
+                "parameters": [
+                    {
+                        "description": "手机号",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.PreparePhoneOTPLoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "已受理",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/authn/logout": {
             "post": {
                 "description": "撤销访问令牌和刷新令牌",
                 "consumes": [
@@ -949,7 +936,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/refresh_token": {
+        "/authn/refresh_token": {
             "post": {
                 "description": "使用刷新令牌获取新的访问令牌",
                 "consumes": [
@@ -997,7 +984,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/verify": {
+        "/authn/verify": {
             "post": {
                 "description": "验证访问令牌的有效性并返回声明信息",
                 "consumes": [
@@ -1040,39 +1027,6 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/authn/login/prep/phone-otp": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "认证"
-                ],
-                "summary": "登录预准备-发送手机验证码",
-                "parameters": [
-                    {
-                        "description": "手机号",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.PreparePhoneOTPLoginRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "已受理",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse"
                         }
                     }
                 }
@@ -1976,7 +1930,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/children/register": {
+        "/identity/children/register": {
             "post": {
                 "security": [
                     {
@@ -2039,7 +1993,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/children/search": {
+        "/identity/children/search": {
             "get": {
                 "security": [
                     {
@@ -2113,7 +2067,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/children/{id}": {
+        "/identity/children/{id}": {
             "get": {
                 "security": [
                     {
@@ -2254,7 +2208,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/guardians": {
+        "/identity/guardians": {
             "get": {
                 "security": [
                     {
@@ -2334,7 +2288,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/guardians/grant": {
+        "/identity/guardians/grant": {
             "post": {
                 "security": [
                     {
@@ -2364,7 +2318,7 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "授予成功",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipResponse"
@@ -2384,6 +2338,157 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "监护关系已存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/identity/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取当前登录用户的资料信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Identity-Users"
+                ],
+                "summary": "获取当前用户信息",
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "部分更新当前登录用户的信息，支持更新昵称和联系方式",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Identity-Users"
+                ],
+                "summary": "更新当前用户信息",
+                "parameters": [
+                    {
+                        "description": "更新用户请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.UserUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/identity/me/children": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取当前登录用户作为监护人的所有儿童档案",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Identity-Children"
+                ],
+                "summary": "获取当前用户的儿童档案列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "偏移量",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "每页数量",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildPageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
                         }
@@ -2681,14 +2786,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/me": {
+        "/suggest/child": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取当前登录用户的资料信息",
+                "description": "支持中文/拼音前缀联想，数字关键词走手机号/ID 精确匹配",
                 "consumes": [
                     "application/json"
                 ],
@@ -2696,135 +2801,30 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Identity-Users"
+                    "Suggest"
                 ],
-                "summary": "获取当前用户信息",
-                "responses": {
-                    "200": {
-                        "description": "查询成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "部分更新当前登录用户的信息，支持更新昵称和联系方式",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Identity-Users"
-                ],
-                "summary": "更新当前用户信息",
+                "summary": "儿童联想搜索",
                 "parameters": [
                     {
-                        "description": "更新用户请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.UserUpdateRequest"
-                        }
+                        "type": "string",
+                        "description": "关键词；数字=精确匹配手机号/ID，其他=前缀联想",
+                        "name": "k",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "更新成功",
+                        "description": "联想结果（按权重降序，去重）",
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_domain_suggest.Term"
+                            }
                         }
                     },
                     "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/me/children": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "获取当前登录用户作为监护人的所有儿童档案",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Identity-Children"
-                ],
-                "summary": "获取当前用户的儿童档案列表",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "偏移量",
-                        "name": "offset",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 20,
-                        "description": "每页数量",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "查询成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildPageResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
+                        "description": "参数缺失",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse"
                         }
@@ -3928,7 +3928,8 @@ const docTemplate = `{
                     "enum": [
                         "self",
                         "parent",
-                        "guardian"
+                        "grandparent",
+                        "other"
                     ]
                 },
                 "weightKg": {
@@ -3972,7 +3973,8 @@ const docTemplate = `{
                     "enum": [
                         "self",
                         "parent",
-                        "guardian"
+                        "grandparent",
+                        "other"
                     ]
                 },
                 "userId": {

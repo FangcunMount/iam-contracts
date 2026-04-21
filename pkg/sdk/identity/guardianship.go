@@ -11,7 +11,7 @@ import (
 //
 // 提供监护关系的查询和管理功能，包括：
 //   - 查询监护关系（IsGuardian、ListChildren、ListGuardians）
-//   - 管理监护关系（AddGuardian、UpdateGuardianRelation、RevokeGuardian）
+//   - 管理监护关系（AddGuardian、RevokeGuardian）
 //   - 批量操作（BatchRevokeGuardians、ImportGuardians）
 //
 // 使用示例：
@@ -53,7 +53,7 @@ func NewGuardianshipClient(query identityv1.GuardianshipQueryClient, command ide
 //   - childID: 孩子 ID
 //
 // 返回：
-//   - *identityv1.IsGuardianResponse: 包含 IsGuardian（布尔值）和 Relation（关系详情）字段
+//   - *identityv1.IsGuardianResponse: 包含 IsGuardian（布尔值）和 Guardianship（关系详情）字段
 //   - error: 可能的错误类型包括 InvalidArgument、NotFound、PermissionDenied
 //
 // 示例：
@@ -62,7 +62,7 @@ func NewGuardianshipClient(query identityv1.GuardianshipQueryClient, command ide
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("是监护人: %v, 关系: %s\n", resp.IsGuardian, resp.Relation.RelationType)
+//	fmt.Printf("是监护人: %v, 关系: %s\n", resp.GetIsGuardian(), resp.GetGuardianship().GetRelation().String())
 func (c *GuardianshipClient) IsGuardian(ctx context.Context, userID, childID string) (*identityv1.IsGuardianResponse, error) {
 	resp, err := c.queryService.IsGuardian(ctx, &identityv1.IsGuardianRequest{
 		UserId:  userID,
@@ -76,29 +76,27 @@ func (c *GuardianshipClient) IsGuardian(ctx context.Context, userID, childID str
 
 // ListChildren 列出用户的所有被监护儿童。
 //
-// 支持分页查询和过滤条件。
+// 支持偏移分页。
 //
 // 参数：
 //   - ctx: 请求上下文
-//   - req: 列表请求，包含 UserId、Page、PageSize、Status 等字段
+//   - req: 列表请求，包含 UserId、Page 等字段
 //
 // 返回：
-//   - *identityv1.ListChildrenResponse: 包含 Children（儿童列表）、Total、Page、PageSize 字段
+//   - *identityv1.ListChildrenResponse: 包含 Items（ChildEdge 列表）、Total、Page 字段
 //   - error: 可能的错误类型包括 InvalidArgument、NotFound、PermissionDenied
 //
 // 示例：
 //
 //	resp, err := client.Guardianship().ListChildren(ctx, &identityv1.ListChildrenRequest{
-//	    UserId:   "user-123",
-//	    Page:     1,
-//	    PageSize: 20,
-//	    Status:   "active",
+//	    UserId: "user-123",
+//	    Page:   &identityv1.OffsetPagination{Limit: 20, Offset: 0},
 //	})
 //	if err != nil {
 //	    return err
 //	}
-//	for _, child := range resp.Children {
-//	    fmt.Printf("孩子: %s, 关系: %s\n", child.Name, child.RelationType)
+//	for _, item := range resp.Items {
+//	    fmt.Printf("孩子: %s, 关系: %s\n", item.Child.LegalName, item.Guardianship.Relation.String())
 //	}
 func (c *GuardianshipClient) ListChildren(ctx context.Context, req *identityv1.ListChildrenRequest) (*identityv1.ListChildrenResponse, error) {
 	resp, err := c.queryService.ListChildren(ctx, req)
@@ -117,7 +115,7 @@ func (c *GuardianshipClient) ListChildren(ctx context.Context, req *identityv1.L
 //   - userID: 用户 ID
 //
 // 返回：
-//   - *identityv1.ListChildrenResponse: 包含 Children、Total、Page、PageSize 字段
+//   - *identityv1.ListChildrenResponse: 包含 Items、Total、Page 字段
 //   - error: 可能的错误类型包括 InvalidArgument、NotFound、PermissionDenied
 //
 // 示例：
@@ -127,8 +125,8 @@ func (c *GuardianshipClient) ListChildren(ctx context.Context, req *identityv1.L
 //	    return err
 //	}
 //	fmt.Printf("共有 %d 个孩子\n", resp.Total)
-//	for _, child := range resp.Children {
-//	    fmt.Printf("- %s (ID: %s)\n", child.Name, child.ChildId)
+//	for _, item := range resp.Items {
+//	    fmt.Printf("- %s (ID: %s)\n", item.Child.LegalName, item.Child.Id)
 //	}
 func (c *GuardianshipClient) GetUserChildren(ctx context.Context, userID string) (*identityv1.ListChildrenResponse, error) {
 	resp, err := c.queryService.ListChildren(ctx, &identityv1.ListChildrenRequest{
@@ -142,28 +140,26 @@ func (c *GuardianshipClient) GetUserChildren(ctx context.Context, userID string)
 
 // ListGuardians 列出儿童的所有监护人。
 //
-// 支持分页查询和过滤条件。
+// 返回儿童当前监护关系及监护人详情。
 //
 // 参数：
 //   - ctx: 请求上下文
-//   - req: 列表请求，包含 ChildId、Page、PageSize、Status 等字段
+//   - req: 列表请求，包含 ChildId
 //
 // 返回：
-//   - *identityv1.ListGuardiansResponse: 包含 Guardians（监护人列表）、Total、Page、PageSize 字段
+//   - *identityv1.ListGuardiansResponse: 包含 Items（GuardianshipEdge 列表）、Total 字段
 //   - error: 可能的错误类型包括 InvalidArgument、NotFound、PermissionDenied
 //
 // 示例：
 //
 //	resp, err := client.Guardianship().ListGuardians(ctx, &identityv1.ListGuardiansRequest{
-//	    ChildId:  "child-456",
-//	    Page:     1,
-//	    PageSize: 20,
+//	    ChildId: "child-456",
 //	})
 //	if err != nil {
 //	    return err
 //	}
-//	for _, guardian := range resp.Guardians {
-//	    fmt.Printf("监护人: %s, 关系: %s\n", guardian.Name, guardian.RelationType)
+//	for _, item := range resp.Items {
+//	    fmt.Printf("监护人: %s, 关系: %s\n", item.Guardian.Nickname, item.Guardianship.Relation.String())
 //	}
 func (c *GuardianshipClient) ListGuardians(ctx context.Context, req *identityv1.ListGuardiansRequest) (*identityv1.ListGuardiansResponse, error) {
 	resp, err := c.queryService.ListGuardians(ctx, req)
@@ -177,28 +173,27 @@ func (c *GuardianshipClient) ListGuardians(ctx context.Context, req *identityv1.
 
 // AddGuardian 添加监护关系。
 //
-// 为孩子添加新的监护人，支持多种关系类型（父亲、母亲、祖父母等）。
+// 为孩子添加新的监护人。
 //
 // 参数：
 //   - ctx: 请求上下文
-//   - req: 添加请求，包含 UserId、ChildId、RelationType、Metadata 等字段
+//   - req: 添加请求，包含 UserId、ChildId、Relation、Operator 等字段
 //
 // 返回：
-//   - *identityv1.AddGuardianResponse: 包含 RelationId（新建关系的 ID）和 Success 字段
+//   - *identityv1.AddGuardianResponse: 包含新建的 Guardianship
 //   - error: 可能的错误类型包括 InvalidArgument、AlreadyExists、PermissionDenied
 //
 // 示例：
 //
 //	resp, err := client.Guardianship().AddGuardian(ctx, &identityv1.AddGuardianRequest{
-//	    UserId:       "user-123",
-//	    ChildId:      "child-456",
-//	    RelationType: "father",
-//	    Metadata:     map[string]string{"verified": "true"},
+//	    UserId:   "user-123",
+//	    ChildId:  "child-456",
+//	    Relation: identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_PARENT,
 //	})
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("监护关系创建成功，关系ID: %s\n", resp.RelationId)
+//	fmt.Printf("监护关系创建成功，关系ID: %s\n", resp.GetGuardianship().GetId())
 func (c *GuardianshipClient) AddGuardian(ctx context.Context, req *identityv1.AddGuardianRequest) (*identityv1.AddGuardianResponse, error) {
 	resp, err := c.commandService.AddGuardian(ctx, req)
 	if err != nil {
@@ -213,56 +208,28 @@ func (c *GuardianshipClient) AddGuardian(ctx context.Context, req *identityv1.Ad
 //
 // 参数：
 //   - ctx: 请求上下文
-//   - req: 撤销请求，包含 UserId、ChildId、Reason 等字段
+//   - req: 撤销请求，包含 Target、Reason、Operator 等字段
 //
 // 返回：
-//   - *identityv1.RevokeGuardianResponse: 包含 Success 和 Message 字段
+//   - *identityv1.RevokeGuardianResponse: 包含被撤销的 Guardianship
 //   - error: 可能的错误类型包括 InvalidArgument、NotFound、PermissionDenied
 //
 // 示例：
 //
 //	resp, err := client.Guardianship().RevokeGuardian(ctx, &identityv1.RevokeGuardianRequest{
-//	    UserId:  "user-123",
-//	    ChildId: "child-456",
-//	    Reason:  "用户申请解除监护关系",
+//	    Target: &identityv1.GuardianshipSelector{
+//	        Selector: &identityv1.GuardianshipSelector_Key{
+//	            Key: &identityv1.GuardianshipKey{UserId: "user-123", ChildId: "child-456"},
+//	        },
+//	    },
+//	    Reason: "用户申请解除监护关系",
 //	})
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("撤销结果: %s\n", resp.Message)
+//	fmt.Printf("撤销关系ID: %s\n", resp.GetGuardianship().GetId())
 func (c *GuardianshipClient) RevokeGuardian(ctx context.Context, req *identityv1.RevokeGuardianRequest) (*identityv1.RevokeGuardianResponse, error) {
 	resp, err := c.commandService.RevokeGuardian(ctx, req)
-	if err != nil {
-		return nil, errors.Wrap(err)
-	}
-	return resp, nil
-}
-
-// UpdateGuardianRelation 更新监护关系。
-//
-// 修改现有监护关系的信息，如关系类型、元数据等。
-//
-// 参数：
-//   - ctx: 请求上下文
-//   - req: 更新请求，包含 RelationId、RelationType、Metadata、UpdateMask 等字段
-//
-// 返回：
-//   - *identityv1.UpdateGuardianRelationResponse: 包含更新后的 Relation 对象
-//   - error: 可能的错误类型包括 InvalidArgument、NotFound、PermissionDenied
-//
-// 示例：
-//
-//	resp, err := client.Guardianship().UpdateGuardianRelation(ctx, &identityv1.UpdateGuardianRelationRequest{
-//	    RelationId:   "rel-789",
-//	    RelationType: "stepfather",
-//	    Metadata:     map[string]string{"verified": "true", "updated_at": "2024-01-01"},
-//	})
-//	if err != nil {
-//	    return err
-//	}
-//	fmt.Printf("关系更新成功: %+v\n", resp.Relation)
-func (c *GuardianshipClient) UpdateGuardianRelation(ctx context.Context, req *identityv1.UpdateGuardianRelationRequest) (*identityv1.UpdateGuardianRelationResponse, error) {
-	resp, err := c.commandService.UpdateGuardianRelation(ctx, req)
 	if err != nil {
 		return nil, errors.Wrap(err)
 	}
@@ -275,26 +242,27 @@ func (c *GuardianshipClient) UpdateGuardianRelation(ctx context.Context, req *id
 //
 // 参数：
 //   - ctx: 请求上下文
-//   - req: 批量撤销请求，包含 RelationIds（关系 ID 列表）和 Reason 字段
+//   - req: 批量撤销请求，包含 Targets 和 Reason 字段
 //
 // 返回：
-//   - *identityv1.BatchRevokeGuardiansResponse: 包含 SuccessCount、FailureCount、Results（详细结果）字段
+//   - *identityv1.BatchRevokeGuardiansResponse: 包含 Revoked 和 Failures 字段
 //   - error: 如果整个请求失败则返回错误，部分失败不返回错误
 //
 // 示例：
 //
 //	resp, err := client.Guardianship().BatchRevokeGuardians(ctx, &identityv1.BatchRevokeGuardiansRequest{
-//	    RelationIds: []string{"rel-1", "rel-2", "rel-3"},
-//	    Reason:      "批量清理过期监护关系",
+//	    Targets: []*identityv1.GuardianshipSelector{
+//	        {Selector: &identityv1.GuardianshipSelector_GuardianshipId{GuardianshipId: "rel-1"}},
+//	        {Selector: &identityv1.GuardianshipSelector_GuardianshipId{GuardianshipId: "rel-2"}},
+//	    },
+//	    Reason: "批量清理过期监护关系",
 //	})
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("成功: %d, 失败: %d\n", resp.SuccessCount, resp.FailureCount)
-//	for _, result := range resp.Results {
-//	    if !result.Success {
-//	        fmt.Printf("关系 %s 撤销失败: %s\n", result.RelationId, result.Error)
-//	    }
+//	fmt.Printf("成功: %d, 失败: %d\n", len(resp.Revoked), len(resp.Failures))
+//	for _, failure := range resp.Failures {
+//	    fmt.Printf("撤销失败: %s\n", failure.Error)
 //	}
 func (c *GuardianshipClient) BatchRevokeGuardians(ctx context.Context, req *identityv1.BatchRevokeGuardiansRequest) (*identityv1.BatchRevokeGuardiansResponse, error) {
 	resp, err := c.commandService.BatchRevokeGuardians(ctx, req)
@@ -310,25 +278,24 @@ func (c *GuardianshipClient) BatchRevokeGuardians(ctx context.Context, req *iden
 //
 // 参数：
 //   - ctx: 请求上下文
-//   - req: 批量导入请求，包含 Relations（关系列表）和 SkipDuplicates 字段
+//   - req: 批量导入请求，包含 Records 和 Operator 字段
 //
 // 返回：
-//   - *identityv1.ImportGuardiansResponse: 包含 SuccessCount、FailureCount、SkippedCount、Results 字段
+//   - *identityv1.ImportGuardiansResponse: 包含 Created 和 Failures 字段
 //   - error: 如果整个请求失败则返回错误，部分失败不返回错误
 //
 // 示例：
 //
 //	resp, err := client.Guardianship().ImportGuardians(ctx, &identityv1.ImportGuardiansRequest{
-//	    Relations: []*identityv1.GuardianRelationInput{
-//	        {UserId: "user-1", ChildId: "child-1", RelationType: "father"},
-//	        {UserId: "user-2", ChildId: "child-2", RelationType: "mother"},
+//	    Records: []*identityv1.ImportGuardianRecord{
+//	        {UserId: "user-1", ChildId: "child-1", Relation: identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_PARENT},
+//	        {UserId: "user-2", ChildId: "child-2", Relation: identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_OTHER},
 //	    },
-//	    SkipDuplicates: true,
 //	})
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("成功: %d, 失败: %d, 跳过: %d\n", resp.SuccessCount, resp.FailureCount, resp.SkippedCount)
+//	fmt.Printf("成功: %d, 失败: %d\n", len(resp.Created), len(resp.Failures))
 func (c *GuardianshipClient) ImportGuardians(ctx context.Context, req *identityv1.ImportGuardiansRequest) (*identityv1.ImportGuardiansResponse, error) {
 	resp, err := c.commandService.ImportGuardians(ctx, req)
 	if err != nil {

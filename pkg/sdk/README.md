@@ -567,7 +567,7 @@ func main() {
         handleError(err)
         return
     }
-    log.Printf("User: %s, Status: %s", user.GetProfile().GetDisplayName(), user.GetStatus())
+    log.Printf("User: %s, Status: %s", user.GetUser().GetNickname(), user.GetUser().GetStatus().String())
 
     // 示例 3: 监护关系检查
     isGuardian, err := client.Guardianship().IsGuardian(ctx, "parent-123", "child-456")
@@ -575,7 +575,7 @@ func main() {
         handleError(err)
         return
     }
-    log.Printf("Is guardian: %v", isGuardian)
+    log.Printf("Is guardian: %v", isGuardian.GetIsGuardian())
 
     log.Println("IAM SDK initialized successfully")
     <-ctx.Done()

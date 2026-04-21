@@ -3,6 +3,7 @@ package guardianship
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
@@ -62,7 +63,7 @@ func (s *guardianshipApplicationService) AddGuardian(ctx context.Context, dto Ad
 		}
 
 		// 转换关系
-		relation := parseRelation(dto.Relation)
+		relation := ParseRelation(dto.Relation)
 
 		// 调用领域服务添加监护人
 		guardianship, err := managerService.AddGuardian(ctx, userID, childID, relation)
@@ -364,6 +365,15 @@ func (s *guardianshipQueryApplicationService) IsGuardian(ctx context.Context, us
 
 // GetByUserIDAndChildID 查询监护关系
 func (s *guardianshipQueryApplicationService) GetByUserIDAndChildID(ctx context.Context, userID string, childID string) (*GuardianshipResult, error) {
+	return s.getByUserIDAndChildID(ctx, userID, childID, false)
+}
+
+// GetByUserIDAndChildIDIncludingRevoked 查询监护关系（包含已撤销）
+func (s *guardianshipQueryApplicationService) GetByUserIDAndChildIDIncludingRevoked(ctx context.Context, userID string, childID string) (*GuardianshipResult, error) {
+	return s.getByUserIDAndChildID(ctx, userID, childID, true)
+}
+
+func (s *guardianshipQueryApplicationService) getByUserIDAndChildID(ctx context.Context, userID string, childID string, includeRevoked bool) (*GuardianshipResult, error) {
 	var result *GuardianshipResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
@@ -378,7 +388,12 @@ func (s *guardianshipQueryApplicationService) GetByUserIDAndChildID(ctx context.
 			return err
 		}
 
-		guardianship, err := tx.Guardianships.FindByUserIDAndChildID(ctx, userIDObj, childIDObj)
+		var guardianship *gsshipdomain.Guardianship
+		if includeRevoked {
+			guardianship, err = tx.Guardianships.FindByUserIDAndChildIDIncludingRevoked(ctx, userIDObj, childIDObj)
+		} else {
+			guardianship, err = tx.Guardianships.FindByUserIDAndChildID(ctx, userIDObj, childIDObj)
+		}
 		if err != nil {
 			return err
 		}
@@ -398,6 +413,15 @@ func (s *guardianshipQueryApplicationService) GetByUserIDAndChildID(ctx context.
 
 // ListChildrenByUserID 列出用户监护的所有儿童
 func (s *guardianshipQueryApplicationService) ListChildrenByUserID(ctx context.Context, userID string) ([]*GuardianshipResult, error) {
+	return s.listChildrenByUserID(ctx, userID, false)
+}
+
+// ListChildrenByUserIDIncludingRevoked 列出用户监护的所有儿童（包含已撤销）
+func (s *guardianshipQueryApplicationService) ListChildrenByUserIDIncludingRevoked(ctx context.Context, userID string) ([]*GuardianshipResult, error) {
+	return s.listChildrenByUserID(ctx, userID, true)
+}
+
+func (s *guardianshipQueryApplicationService) listChildrenByUserID(ctx context.Context, userID string, includeRevoked bool) ([]*GuardianshipResult, error) {
 	var results []*GuardianshipResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
@@ -407,7 +431,12 @@ func (s *guardianshipQueryApplicationService) ListChildrenByUserID(ctx context.C
 			return err
 		}
 
-		guardianships, err := tx.Guardianships.FindByUserID(ctx, userIDObj)
+		var guardianships []*gsshipdomain.Guardianship
+		if includeRevoked {
+			guardianships, err = tx.Guardianships.FindByUserIDIncludingRevoked(ctx, userIDObj)
+		} else {
+			guardianships, err = tx.Guardianships.FindByUserID(ctx, userIDObj)
+		}
 		if err != nil {
 			return err
 		}
@@ -433,6 +462,15 @@ func (s *guardianshipQueryApplicationService) ListChildrenByUserID(ctx context.C
 
 // ListGuardiansByChildID 列出儿童的所有监护人
 func (s *guardianshipQueryApplicationService) ListGuardiansByChildID(ctx context.Context, childID string) ([]*GuardianshipResult, error) {
+	return s.listGuardiansByChildID(ctx, childID, false)
+}
+
+// ListGuardiansByChildIDIncludingRevoked 列出儿童的所有监护人（包含已撤销）
+func (s *guardianshipQueryApplicationService) ListGuardiansByChildIDIncludingRevoked(ctx context.Context, childID string) ([]*GuardianshipResult, error) {
+	return s.listGuardiansByChildID(ctx, childID, true)
+}
+
+func (s *guardianshipQueryApplicationService) listGuardiansByChildID(ctx context.Context, childID string, includeRevoked bool) ([]*GuardianshipResult, error) {
 	var results []*GuardianshipResult
 
 	err := s.uow.WithinTx(ctx, func(tx uow.TxRepositories) error {
@@ -442,7 +480,12 @@ func (s *guardianshipQueryApplicationService) ListGuardiansByChildID(ctx context
 			return err
 		}
 
-		guardianships, err := tx.Guardianships.FindByChildID(ctx, childIDObj)
+		var guardianships []*gsshipdomain.Guardianship
+		if includeRevoked {
+			guardianships, err = tx.Guardianships.FindByChildIDIncludingRevoked(ctx, childIDObj)
+		} else {
+			guardianships, err = tx.Guardianships.FindByChildID(ctx, childIDObj)
+		}
 		if err != nil {
 			return err
 		}
@@ -490,18 +533,6 @@ func parseChildID(childID string) (meta.ID, error) {
 	return meta.FromUint64(id), nil
 }
 
-// parseRelation 解析关系字符串
-func parseRelation(relation string) gsshipdomain.Relation {
-	switch relation {
-	case "parent", "父母":
-		return gsshipdomain.RelParent
-	case "grandparents", "祖父母":
-		return gsshipdomain.RelGrandparents
-	default:
-		return gsshipdomain.RelOther
-	}
-}
-
 // toGuardianshipResult 将领域实体转换为 DTO
 func toGuardianshipResult(guardianship *gsshipdomain.Guardianship, child *childdomain.Child) *GuardianshipResult {
 	if guardianship == nil {
@@ -513,7 +544,10 @@ func toGuardianshipResult(guardianship *gsshipdomain.Guardianship, child *childd
 		UserID:        guardianship.User.String(),
 		ChildID:       guardianship.Child.String(),
 		Relation:      string(guardianship.Rel), // Relation 是 string 类型
-		EstablishedAt: guardianship.EstablishedAt.Format("2006-01-02 15:04:05"),
+		EstablishedAt: guardianship.EstablishedAt.Format(time.RFC3339),
+	}
+	if guardianship.RevokedAt != nil && !guardianship.RevokedAt.IsZero() {
+		result.RevokedAt = guardianship.RevokedAt.Format(time.RFC3339)
 	}
 
 	// 添加儿童信息

@@ -6,6 +6,7 @@ import (
 	"github.com/FangcunMount/component-base/pkg/errors"
 	appchild "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/child"
 	appguard "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
+	appregistration "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/registration"
 	appuow "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	appuser "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
 	sessiondomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/session"
@@ -83,6 +84,9 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 	// 监护关系查询服务
 	guardQuerySrv := appguard.NewGuardianshipQueryApplicationService(uow)
 
+	// 组合注册服务（单事务创建 child + guardianship）
+	registrationAppSrv := appregistration.NewChildRegistrationService(uow)
+
 	// 初始化 handler 层
 	m.UserHandler = handler.NewUserHandler(
 		userAppSrv,
@@ -94,7 +98,7 @@ func (m *UserModule) Initialize(params ...interface{}) error {
 	m.ChildHandler = handler.NewChildHandler(
 		childAppSrv,
 		childProfileAppSrv,
-		guardAppSrv,
+		registrationAppSrv,
 		guardQuerySrv,
 		childQuerySrv,
 	)

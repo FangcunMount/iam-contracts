@@ -145,9 +145,17 @@ func TestGuardianshipApplicationService_RemoveGuardian_Success(t *testing.T) {
 	// 验证监护关系是否已移除
 	queryService := guardianship.NewGuardianshipQueryApplicationService(unitOfWork)
 	result, err := queryService.GetByUserIDAndChildID(ctx, userResult.ID, childResult.ID)
-	// 监护关系应该仍然存在但状态为已撤销
+	require.Error(t, err)
+	assert.Nil(t, result)
+
+	historical, err := queryService.GetByUserIDAndChildIDIncludingRevoked(ctx, userResult.ID, childResult.ID)
 	require.NoError(t, err)
-	assert.NotNil(t, result)
+	require.NotNil(t, historical)
+	assert.NotEmpty(t, historical.RevokedAt)
+
+	isGuardian, err := queryService.IsGuardian(ctx, userResult.ID, childResult.ID)
+	require.NoError(t, err)
+	assert.False(t, isGuardian)
 }
 
 func TestGuardianshipApplicationService_RemoveGuardian_NotFound(t *testing.T) {
@@ -251,7 +259,7 @@ func TestGuardianshipQueryApplicationService_GetByUserIDAndChildID_Success(t *te
 	err = guardianshipService.AddGuardian(ctx, guardianship.AddGuardianDTO{
 		UserID:   userResult.ID,
 		ChildID:  childResult.ID,
-		Relation: "grandparents",
+		Relation: "grandparent",
 	})
 	require.NoError(t, err)
 
@@ -467,4 +475,48 @@ func TestGuardianshipApplicationService_AddGuardian_ConcurrentPersistence_10(t *
 
 	// 现在数据库层已添加唯一约束，期望只有一条监护关系被成功持久化
 	require.Equal(t, 1, len(results))
+}
+
+func TestGuardianshipQueryApplicationService_ListChildrenByUserID_ExcludesRevokedByDefault(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	unitOfWork := uow.NewUnitOfWork(db)
+	ctx := context.Background()
+
+	userService := user.NewUserApplicationService(unitOfWork)
+	userResult, err := userService.Register(ctx, user.RegisterUserDTO{
+		Name:  "赵十",
+		Phone: "13800138110",
+		Email: "zhao10@test.com",
+	})
+	require.NoError(t, err)
+
+	childService := child.NewChildApplicationService(unitOfWork)
+	childResult, err := childService.Register(ctx, child.RegisterChildDTO{
+		Name:     "小舟",
+		Gender:   1,
+		Birthday: "2020-10-10",
+	})
+	require.NoError(t, err)
+
+	guardianshipService := guardianship.NewGuardianshipApplicationService(unitOfWork)
+	require.NoError(t, guardianshipService.AddGuardian(ctx, guardianship.AddGuardianDTO{
+		UserID:   userResult.ID,
+		ChildID:  childResult.ID,
+		Relation: "parent",
+	}))
+	require.NoError(t, guardianshipService.RemoveGuardian(ctx, guardianship.RemoveGuardianDTO{
+		UserID:  userResult.ID,
+		ChildID: childResult.ID,
+	}))
+
+	queryService := guardianship.NewGuardianshipQueryApplicationService(unitOfWork)
+
+	activeOnly, err := queryService.ListChildrenByUserID(ctx, userResult.ID)
+	require.NoError(t, err)
+	assert.Len(t, activeOnly, 0)
+
+	withRevoked, err := queryService.ListChildrenByUserIDIncludingRevoked(ctx, userResult.ID)
+	require.NoError(t, err)
+	require.Len(t, withRevoked, 1)
+	assert.NotEmpty(t, withRevoked[0].RevokedAt)
 }

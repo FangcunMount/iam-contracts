@@ -36,9 +36,8 @@ api/grpc/
 | --------- | ------------ | ----------- |
 | `IdentityRead` | 运营、OA、消息 | 获取/搜索用户与儿童 (`GetUser/BatchGetUsers/SearchUsers/GetChild/BatchGetChildren`) |
 | `GuardianshipQuery` | 运营、消息 | 读取监护关系 (`IsGuardian/ListChildren/ListGuardians`) |
-| `GuardianshipCommand` | OA、运营 | 写入监护关系 (`Add/Update/Revoke/BatchRevoke/Import`) |
-| `IdentityLifecycle` | OA、自动化 | 账号生命周期 (`Create/Update/Deactivate/Block/LinkExternalIdentity`) |
-| `IdentityStream` (可选) | 消息、审计 | 订阅用户/监护事件 (`SubscribeUserEvents/SubscribeGuardianshipEvents`) |
+| `GuardianshipCommand` | OA、运营 | 写入监护关系 (`Add/Revoke/BatchRevoke/Import`) |
+| `IdentityLifecycle` | OA、自动化 | 账号生命周期 (`Create/Update/Deactivate/Block`) |
 | `AuthService` | 业务服务、网关 | 认证能力 (`VerifyToken/RefreshToken/RevokeToken/RevokeRefreshToken/IssueServiceToken`) |
 | `JWKSService` | SDK、业务服务 | gRPC 方式获取 JWKS |
 
@@ -64,8 +63,6 @@ api/grpc/
 - **ChildEdge**：`Child + Guardianship`，用于“用户监护的儿童”列表。
 - **GuardianshipEdge**：`Guardianship + User`，用于“儿童的监护人”列表。
 - **OperatorContext**：写接口必填，记录操作者、渠道、理由，服务端据此落审计日志。
-- **事件**：`UserEvent`、`GuardianshipEvent` 描述事件类型、快照与发生时间，供流式订阅。
-
 完整字段定义见 `identity.proto`。
 
 ---
@@ -87,7 +84,6 @@ api/grpc/
 ### GuardianshipCommand
 
 - `AddGuardian`：创建监护关系，需要 `OperatorContext`。
-- `UpdateGuardianRelation`：调整监护关系类型。
 - `RevokeGuardian / BatchRevokeGuardians`：撤销单条或批量关系，可通过 guardianship_id 或 (user_id, child_id) 指定。
 - `ImportGuardians`：批量导入线下数据，支持部分成功。
 
@@ -96,12 +92,11 @@ api/grpc/
 - `CreateUser`：创建账号（昵称/手机号/邮箱/外部身份等）。
 - `UpdateUser`：更新账号基础资料。
 - `DeactivateUser` / `BlockUser`：停用或封禁账号。
-- `LinkExternalIdentity`：绑定第三方身份（如 SSO/CRM）。
 
-### IdentityStream（可选）
+### 当前边界
 
-- `SubscribeUserEvents`：Server streaming，推送用户创建、更新、状态变更等事件。
-- `SubscribeGuardianshipEvents`：推送监护关系新增/更新/撤销事件。
+- 当前运行时只注册 `IdentityRead`、`GuardianshipQuery`、`GuardianshipCommand`、`IdentityLifecycle`。
+- 当前没有对外开放事件订阅型 gRPC，也不再保留未实现但可见的占位 RPC。
 
 ---
 
@@ -200,6 +195,6 @@ grpcurl \
 
 ## 🚧 下一步
 
-- 依据合同落地 `internal/apiserver/interface/uc/grpc/identity` 实现。
+- 持续用 proto 生成与契约校验约束实现面，避免再次出现“合同大于运行时”的漂移。
 - 引入 proto lint（buf 等）与 ABI 兼容性检查。
 - 生成多语言 SDK，方便其它系统复用。

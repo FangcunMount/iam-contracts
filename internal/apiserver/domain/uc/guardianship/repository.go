@@ -14,8 +14,11 @@ type Repository interface {
 	Create(ctx context.Context, guardianship *Guardianship) error
 	FindByID(ctx context.Context, id meta.ID) (*Guardianship, error)
 	FindByChildID(ctx context.Context, id meta.ID) (guardianships []*Guardianship, err error)
+	FindByChildIDIncludingRevoked(ctx context.Context, id meta.ID) (guardianships []*Guardianship, err error)
 	FindByUserID(ctx context.Context, id meta.ID) (guardianships []*Guardianship, err error)
+	FindByUserIDIncludingRevoked(ctx context.Context, id meta.ID) (guardianships []*Guardianship, err error)
 	FindByUserIDAndChildID(ctx context.Context, userID meta.ID, childID meta.ID) (*Guardianship, error)
+	FindByUserIDAndChildIDIncludingRevoked(ctx context.Context, userID meta.ID, childID meta.ID) (*Guardianship, error)
 	IsGuardian(ctx context.Context, userID meta.ID, childID meta.ID) (bool, error)
 	Update(ctx context.Context, guardianship *Guardianship) error
 }

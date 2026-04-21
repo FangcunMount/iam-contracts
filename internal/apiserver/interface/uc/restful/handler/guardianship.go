@@ -37,12 +37,12 @@ func NewGuardianshipHandler(
 // @Accept json
 // @Produce json
 // @Param request body requestdto.GuardianGrantRequest true "授予监护请求"
-// @Success 200 {object} responsedto.GuardianshipResponse "授予成功"
+// @Success 201 {object} responsedto.GuardianshipResponse "授予成功"
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 409 {object} core.ErrResponse "监护关系已存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /guardians/grant [post]
+// @Router /identity/guardians/grant [post]
 // @Security BearerAuth
 func (h *GuardianshipHandler) Grant(c *gin.Context) {
 	var req requestdto.GuardianGrantRequest
@@ -69,7 +69,7 @@ func (h *GuardianshipHandler) Grant(c *gin.Context) {
 		return
 	}
 
-	h.Success(c, guardResultToResponse(result))
+	h.Created(c, guardResultToResponse(result))
 }
 
 // List 查询监护关系
@@ -87,7 +87,7 @@ func (h *GuardianshipHandler) Grant(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /guardians [get]
+// @Router /identity/guardians [get]
 // @Security BearerAuth
 func (h *GuardianshipHandler) List(c *gin.Context) {
 	var req requestdto.GuardianshipListQuery
@@ -101,8 +101,7 @@ func (h *GuardianshipHandler) List(c *gin.Context) {
 
 	switch {
 	case req.UserID != "" && req.ChildID != "":
-		// 查询特定用户和儿童的监护关系
-		result, qerr := h.guardQuery.GetByUserIDAndChildID(c.Request.Context(), req.UserID, req.ChildID)
+		result, qerr := h.getByUserIDAndChildID(c, req)
 		if qerr != nil {
 			h.Error(c, qerr)
 			return
@@ -113,11 +112,9 @@ func (h *GuardianshipHandler) List(c *gin.Context) {
 			results = []*appguard.GuardianshipResult{}
 		}
 	case req.UserID != "":
-		// 查询用户的所有监护关系
-		results, err = h.guardQuery.ListChildrenByUserID(c.Request.Context(), req.UserID)
+		results, err = h.listChildrenByUserID(c, req)
 	case req.ChildID != "":
-		// 查询儿童的所有监护人
-		results, err = h.guardQuery.ListGuardiansByChildID(c.Request.Context(), req.ChildID)
+		results, err = h.listGuardiansByChildID(c, req)
 	default:
 		results = []*appguard.GuardianshipResult{}
 	}
@@ -127,11 +124,9 @@ func (h *GuardianshipHandler) List(c *gin.Context) {
 		return
 	}
 
-	// 过滤和分页
-	filtered := filterGuardianshipResults(results, req.Active)
-	total := len(filtered)
+	total := len(results)
 	items := make([]responsedto.GuardianshipResponse, 0, total)
-	for _, g := range filtered {
+	for _, g := range results {
 		if g == nil {
 			continue
 		}
@@ -163,6 +158,9 @@ func guardResultToResponse(result *appguard.GuardianshipResult) responsedto.Guar
 		Relation: result.Relation,
 		Since:    parseGuardTime(result.EstablishedAt),
 	}
+	if revokedAt := parseOptionalTime(result.RevokedAt); revokedAt != nil {
+		resp.RevokedAt = revokedAt
+	}
 
 	return resp
 }
@@ -170,24 +168,34 @@ func guardResultToResponse(result *appguard.GuardianshipResult) responsedto.Guar
 // parseGuardTime 解析时间字符串
 func parseGuardTime(timeStr string) time.Time {
 	if timeStr == "" {
-		return time.Now()
+		return time.Time{}
 	}
 	t, err := time.Parse(time.RFC3339, timeStr)
 	if err != nil {
-		return time.Now()
+		return time.Time{}
 	}
 	return t
 }
 
-// filterGuardianshipResults 过滤监护关系（活跃/已撤销）
-func filterGuardianshipResults(items []*appguard.GuardianshipResult, active *bool) []*appguard.GuardianshipResult {
-	if active == nil {
-		return items
+func (h *GuardianshipHandler) getByUserIDAndChildID(c *gin.Context, req requestdto.GuardianshipListQuery) (*appguard.GuardianshipResult, error) {
+	if req.Active != nil && !*req.Active {
+		return h.guardQuery.GetByUserIDAndChildIDIncludingRevoked(c.Request.Context(), req.UserID, req.ChildID)
 	}
+	return h.guardQuery.GetByUserIDAndChildID(c.Request.Context(), req.UserID, req.ChildID)
+}
 
-	// GuardianshipResult 中没有 IsActive 字段，这里简化处理
-	// 如果需要过滤，可以根据 RevokedAt 判断
-	return items
+func (h *GuardianshipHandler) listChildrenByUserID(c *gin.Context, req requestdto.GuardianshipListQuery) ([]*appguard.GuardianshipResult, error) {
+	if req.Active != nil && !*req.Active {
+		return h.guardQuery.ListChildrenByUserIDIncludingRevoked(c.Request.Context(), req.UserID)
+	}
+	return h.guardQuery.ListChildrenByUserID(c.Request.Context(), req.UserID)
+}
+
+func (h *GuardianshipHandler) listGuardiansByChildID(c *gin.Context, req requestdto.GuardianshipListQuery) ([]*appguard.GuardianshipResult, error) {
+	if req.Active != nil && !*req.Active {
+		return h.guardQuery.ListGuardiansByChildIDIncludingRevoked(c.Request.Context(), req.ChildID)
+	}
+	return h.guardQuery.ListGuardiansByChildID(c.Request.Context(), req.ChildID)
 }
 
 // sliceGuardianships 分页切片

@@ -129,38 +129,22 @@ curl -X GET https://api.example.com/.well-known/jwks.json
 
 | 分组 | 端点 | 方法 | 说明 |
 | ------ | ------ | ------ | ------ |
-| **用户** | `/api/v1/users` | POST | 创建用户（管理员） |
-| | `/api/v1/users/{userId}` | GET | 查询用户详情 |
-| | `/api/v1/users/{userId}` | PATCH | 更新用户信息 |
-| | `/api/v1/users/profile` | GET | 获取当前用户资料 |
-| **儿童** | `/api/v1/children/register` | POST | 注册儿童（建档+授监护） |
-| | `/api/v1/children` | POST | 仅建档（不授监护） |
-| | `/api/v1/children/{childId}` | GET | 查询儿童档案 |
-| | `/api/v1/children/{childId}` | PATCH | 更新儿童档案 |
-| | `/api/v1/children/search` | GET | 搜索相似儿童 |
-| | `/api/v1/me/children` | GET | 我的孩子列表 |
-| **监护** | `/api/v1/guardians/grant` | POST | 授予监护关系 |
-| | `/api/v1/guardians/revoke` | POST | 撤销监护关系 |
-| | `/api/v1/guardians` | GET | 查询监护关系 |
+| **用户** | `/api/v1/identity/me` | GET | 获取当前用户资料 |
+| | `/api/v1/identity/me` | PATCH | 更新当前用户资料 |
+| **儿童** | `/api/v1/identity/children/register` | POST | 注册儿童（建档+授监护） |
+| | `/api/v1/identity/children/{id}` | GET | 查询儿童档案 |
+| | `/api/v1/identity/children/{id}` | PATCH | 更新儿童档案 |
+| | `/api/v1/identity/children/search` | GET | 搜索相似儿童 |
+| | `/api/v1/identity/me/children` | GET | 我的孩子列表 |
+| **监护** | `/api/v1/identity/guardians/grant` | POST | 授予监护关系 |
+| | `/api/v1/identity/guardians` | GET | 查询监护关系 |
 
-#### 用户管理示例
+#### 当前用户示例
 
-**创建用户**:
+**查询当前用户**:
 
 ```bash
-curl -X POST https://api.example.com/api/v1/users \
-  -H "Authorization: Bearer <admin_token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nickname": "张三",
-    "status": "active"
-  }'
-```
-
-**查询用户**:
-
-```bash
-curl -X GET https://api.example.com/api/v1/users/usr_1234567890 \
+curl -X GET https://api.example.com/api/v1/identity/me \
   -H "Authorization: Bearer <token>"
 ```
 
@@ -168,12 +152,15 @@ curl -X GET https://api.example.com/api/v1/users/usr_1234567890 \
 
 ```json
 {
-  "id": "usr_1234567890",
+  "id": "1234567890",
   "nickname": "张三",
-  "avatar": "https://cdn.example.com/avatars/usr_1234567890.jpg",
   "status": "active",
-  "created_at": "2024-10-29T10:00:00Z",
-  "updated_at": "2024-10-29T10:00:00Z"
+  "contacts": [
+    {
+      "type": "phone",
+      "value": "138****8000"
+    }
+  ]
 }
 ```
 
@@ -182,16 +169,16 @@ curl -X GET https://api.example.com/api/v1/users/usr_1234567890 \
 **注册儿童（推荐方式，自动建立监护关系）**:
 
 ```bash
-curl -X POST https://api.example.com/api/v1/children/register \
+curl -X POST https://api.example.com/api/v1/identity/children/register \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -H "X-Idempotency-Key: uuid-12345678-90ab-cdef-1234-567890abcdef" \
   -d '{
-    "legal_name": "小明",
+    "legalName": "小明",
     "gender": 1,
     "dob": "2020-05-15",
-    "id_type": "id_card",
-    "id_card": "110101202005150012",
+    "idType": "id_card",
+    "idNo": "110101202005150012",
     "relation": "parent"
   }'
 ```
@@ -202,17 +189,16 @@ curl -X POST https://api.example.com/api/v1/children/register \
 {
   "child": {
     "id": "chd_9876543210",
-    "legal_name": "小明",
+    "legalName": "小明",
     "gender": 1,
     "dob": "2020-05-15",
-    "id_type": "id_card",
-    "id_masked": "1101012020051***12",
-    "created_at": "2024-10-29T11:00:00Z"
+    "idType": "id_card",
+    "idMasked": "1101012020051***12"
   },
   "guardianship": {
     "id": 12345,
-    "user_id": "usr_1234567890",
-    "child_id": "chd_9876543210",
+    "userId": "usr_1234567890",
+    "childId": "chd_9876543210",
     "relation": "parent",
     "since": "2024-10-29T11:00:00Z"
   }
@@ -222,7 +208,7 @@ curl -X POST https://api.example.com/api/v1/children/register \
 **查询我的孩子**:
 
 ```bash
-curl -X GET https://api.example.com/api/v1/me/children?limit=20&offset=0 \
+curl -X GET https://api.example.com/api/v1/identity/me/children?limit=20&offset=0 \
   -H "Authorization: Bearer <token>"
 ```
 
@@ -234,19 +220,19 @@ curl -X GET https://api.example.com/api/v1/me/children?limit=20&offset=0 \
   "items": [
     {
       "id": "chd_9876543210",
-      "legal_name": "小明",
+      "legalName": "小明",
       "gender": 1,
       "dob": "2020-05-15",
-      "id_masked": "1101012020051***12",
-      "height_cm": 105,
-      "weight_kg": "18.5"
+      "idMasked": "1101012020051***12",
+      "heightCm": 105,
+      "weightKg": "18.5"
     },
     {
       "id": "chd_1111111111",
-      "legal_name": "小红",
+      "legalName": "小红",
       "gender": 2,
       "dob": "2021-03-20",
-      "id_masked": "1101012021032***45"
+      "idMasked": "1101012021032***45"
     }
   ]
 }
@@ -255,7 +241,7 @@ curl -X GET https://api.example.com/api/v1/me/children?limit=20&offset=0 \
 **搜索相似儿童（防重复建档）**:
 
 ```bash
-curl -X GET "https://api.example.com/api/v1/children/search?legal_name=小明&gender=1&dob=2020-05-15" \
+curl -X GET "https://api.example.com/api/v1/identity/children/search?name=小明&dob=2020-05-15" \
   -H "Authorization: Bearer <token>"
 ```
 
@@ -264,25 +250,13 @@ curl -X GET "https://api.example.com/api/v1/children/search?legal_name=小明&ge
 **授予监护关系**:
 
 ```bash
-curl -X POST https://api.example.com/api/v1/guardians/grant \
+curl -X POST https://api.example.com/api/v1/identity/guardians/grant \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": "usr_0987654321",
-    "child_id": "chd_9876543210",
-    "relation": "guardian"
-  }'
-```
-
-**撤销监护关系**:
-
-```bash
-curl -X POST https://api.example.com/api/v1/guardians/revoke \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "usr_0987654321",
-    "child_id": "chd_9876543210"
+    "userId": "usr_0987654321",
+    "childId": "chd_9876543210",
+    "relation": "grandparent"
   }'
 ```
 
@@ -290,15 +264,15 @@ curl -X POST https://api.example.com/api/v1/guardians/revoke \
 
 ```bash
 # 查询用户的所有监护儿童
-curl -X GET "https://api.example.com/api/v1/guardians?user_id=usr_1234567890&active=true" \
+curl -X GET "https://api.example.com/api/v1/identity/guardians?user_id=usr_1234567890&active=true" \
   -H "Authorization: Bearer <token>"
 
 # 查询儿童的所有监护人
-curl -X GET "https://api.example.com/api/v1/guardians?child_id=chd_9876543210" \
+curl -X GET "https://api.example.com/api/v1/identity/guardians?child_id=chd_9876543210" \
   -H "Authorization: Bearer <token>"
 
-# 查询特定监护关系
-curl -X GET "https://api.example.com/api/v1/guardians?user_id=usr_1234567890&child_id=chd_9876543210" \
+# 查询特定监护关系（active=false 时包含已撤销关系）
+curl -X GET "https://api.example.com/api/v1/identity/guardians?user_id=usr_1234567890&child_id=chd_9876543210&active=false" \
   -H "Authorization: Bearer <token>"
 ```
 
@@ -310,11 +284,11 @@ curl -X GET "https://api.example.com/api/v1/guardians?user_id=usr_1234567890&chi
   "items": [
     {
       "id": 12345,
-      "user_id": "usr_1234567890",
-      "child_id": "chd_9876543210",
+      "userId": "usr_1234567890",
+      "childId": "chd_9876543210",
       "relation": "parent",
       "since": "2024-10-29T11:00:00Z",
-      "revoked_at": null
+      "revokedAt": null
     }
   ]
 }
@@ -356,7 +330,7 @@ curl -X GET "https://api.example.com/api/v1/guardians?user_id=usr_1234567890&chi
 ### 使用 JWT 访问 API
 
 ```bash
-curl -X GET https://api.example.com/api/v1/users/usr_1234567890 \
+curl -X GET https://api.example.com/api/v1/identity/me \
   -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
@@ -369,7 +343,7 @@ curl -X GET https://api.example.com/api/v1/users/usr_1234567890 \
 所有 `POST` 请求都应提供幂等键：
 
 ```bash
-curl -X POST https://api.example.com/api/v1/children/register \
+curl -X POST https://api.example.com/api/v1/identity/children/register \
   -H "X-Idempotency-Key: $(uuidgen)" \
   -H "Authorization: Bearer <token>" \
   ...
@@ -380,7 +354,7 @@ curl -X POST https://api.example.com/api/v1/children/register \
 建议所有请求携带追踪 ID：
 
 ```bash
-curl -X GET https://api.example.com/api/v1/users/usr_123 \
+curl -X GET https://api.example.com/api/v1/identity/me \
   -H "X-Request-Id: $(uuidgen)" \
   -H "Authorization: Bearer <token>"
 ```
@@ -451,40 +425,38 @@ curl -o iam-api.postman_environment.json \
 # 完整流程测试脚本
 
 # 1. 登录
-TOKEN=$(curl -s -X POST https://api.example.com/api/v1/auth/login \
+TOKEN=$(curl -s -X POST https://api.example.com/api/v1/authn/login \
   -H "Content-Type: application/json" \
   -d '{"account_type":"operation","username":"admin","password":"admin123"}' \
   | jq -r '.access_token')
 
 echo "Token: $TOKEN"
 
-# 2. 创建用户
-USER_ID=$(curl -s -X POST https://api.example.com/api/v1/users \
+# 2. 查看当前用户
+USER_ID=$(curl -s -X GET https://api.example.com/api/v1/identity/me \
   -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"nickname":"测试用户"}' \
   | jq -r '.id')
 
-echo "User ID: $USER_ID"
+echo "Current User ID: $USER_ID"
 
 # 3. 注册儿童
-CHILD_RESPONSE=$(curl -s -X POST https://api.example.com/api/v1/children/register \
+CHILD_RESPONSE=$(curl -s -X POST https://api.example.com/api/v1/identity/children/register \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -H "X-Idempotency-Key: $(uuidgen)" \
   -d '{
-    "legal_name": "测试儿童",
+    "legalName": "测试儿童",
     "gender": 1,
     "dob": "2020-01-01",
-    "id_type": "id_card",
-    "id_card": "110101202001010012",
+    "idType": "id_card",
+    "idNo": "110101202001010012",
     "relation": "parent"
   }')
 
 echo "Child Response: $CHILD_RESPONSE"
 
 # 4. 查询我的孩子
-curl -s -X GET https://api.example.com/api/v1/me/children \
+curl -s -X GET https://api.example.com/api/v1/identity/me/children \
   -H "Authorization: Bearer $TOKEN" \
   | jq .
 ```

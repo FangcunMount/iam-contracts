@@ -50,7 +50,7 @@ func NewUserHandler(
 // @Success 200 {object} responsedto.UserResponse "查询成功"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /me [get]
+// @Router /identity/me [get]
 // @Security BearerAuth
 func (h *UserHandler) GetUserProfile(c *gin.Context) {
 	rawUserID, exists := c.Get("user_id")
@@ -85,7 +85,7 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /me [patch]
+// @Router /identity/me [patch]
 // @Security BearerAuth
 func (h *UserHandler) PatchUser(c *gin.Context) {
 	rawUserID, exists := c.Get("user_id")

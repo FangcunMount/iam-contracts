@@ -2,6 +2,7 @@ package identity
 
 import (
 	"strconv"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -144,8 +145,8 @@ func guardianshipResultToProto(result *guardianshipApp.GuardianshipResult) *iden
 		UserId:    result.UserID,
 		ChildId:   result.ChildID,
 		Relation:  stringToProtoRelation(result.Relation),
-		Since:     nil, // 需要解析时间字符串
-		RevokedAt: nil,
+		Since:     parseTimestamp(result.EstablishedAt),
+		RevokedAt: parseTimestamp(result.RevokedAt),
 	}
 }
 
@@ -177,13 +178,24 @@ func relationToProto(relation guardianshipDomain.Relation) identityv1.Guardiansh
 		return identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_SELF
 	case guardianshipDomain.RelParent:
 		return identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_PARENT
-	case guardianshipDomain.RelGrandparents:
+	case guardianshipDomain.RelGrandparent:
 		return identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_GRANDPARENT
 	case guardianshipDomain.RelOther:
 		return identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_OTHER
 	default:
 		return identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_UNSPECIFIED
 	}
+}
+
+func parseTimestamp(value string) *timestamppb.Timestamp {
+	if value == "" {
+		return nil
+	}
+	t, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return nil
+	}
+	return timestamppb.New(t)
 }
 
 // ============= 错误转换 =============

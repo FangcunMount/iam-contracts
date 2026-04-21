@@ -58,11 +58,13 @@ func NewService(
 			userQuerySvc:         userQuerySvc,
 		},
 		guardianshipCmd: guardianshipCommandServer{
-			guardianshipSvc: guardianshipSvc,
-			guardRepo:       guardRepo,
+			guardianshipSvc:      guardianshipSvc,
+			guardianshipQuerySvc: guardianshipQuerySvc,
+			guardRepo:            guardRepo,
 		},
 		identityLifecycle: identityLifecycleServer{
 			userSvc:        userSvc,
+			userQuerySvc:   userQuerySvc,
 			userProfileSvc: userProfileSvc,
 			userStatusSvc:  userStatusSvc,
 		},
@@ -100,14 +102,16 @@ type guardianshipQueryServer struct {
 // guardianshipCommandServer 监护关系命令服务（写操作）
 type guardianshipCommandServer struct {
 	identityv1.UnimplementedGuardianshipCommandServer
-	guardianshipSvc guardianshipApp.GuardianshipApplicationService
-	guardRepo       guardianshipDomain.Repository
+	guardianshipSvc      guardianshipApp.GuardianshipApplicationService
+	guardianshipQuerySvc guardianshipApp.GuardianshipQueryApplicationService
+	guardRepo            guardianshipDomain.Repository
 }
 
 // identityLifecycleServer 身份生命周期服务（用户管理）
 type identityLifecycleServer struct {
 	identityv1.UnimplementedIdentityLifecycleServer
 	userSvc        userApp.UserApplicationService
+	userQuerySvc   userApp.UserQueryApplicationService
 	userProfileSvc userApp.UserProfileApplicationService
 	userStatusSvc  userApp.UserStatusApplicationService
 }

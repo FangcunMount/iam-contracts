@@ -11,9 +11,9 @@
 - 用户域的主问题只有两个：先维护“人”和“儿童”这两类身份对象，再维护“谁和哪个儿童是什么关系”的 `Guardianship`。
 - 模块内最重要的对象是：`User / Child / Guardianship`。
 - 当前用户域既有 REST，也有 gRPC：REST 偏“当前登录用户上下文”，gRPC 偏“服务间显式传 ID”。
-- `children/register` 的当前真实写链是“先建 child，再建 guardianship”的两段事务，不是原子闭环。
+- `children/register` 的当前真实写链已经收口为单事务组合用例，是原子闭环。
 - 查询与访问控制大多先从 guardianship 关系出发，再回查 child 或 user。
-- 统一事件清单：**N/A**。本仓库没有 `configs/events.yaml`；`identity.proto` 虽有 stream 合同，但运行时未注册 `IdentityStream`。
+- 统一事件清单：**N/A**。本仓库没有 `configs/events.yaml`；当前对外 identity 合同也不再保留事件订阅型 gRPC。
 
 | 主题 | 当前答案 |
 | ---- | ---- |
@@ -209,27 +209,30 @@ flowchart TB
 - “我的孩子”不是 `User.children` 直接展开
 - “能不能看某个 child”本质上先看 guardianship 是否存在
 
-### 核心写模型：`children/register` 仍是两段事务
+### 核心写模型：`children/register` 已收口为单事务
 
-**结论**：`children/register` 当前不是一个原子闭环，而是 handler 串起的两段独立事务。
+**结论**：`children/register` 当前已经是一个原子闭环，由组合用例在同一个 `UnitOfWork` 事务内完成 child + guardianship 创建。
 
 ```mermaid
 sequenceDiagram
   participant H as ChildHandler
-  participant C as ChildApplicationService
-  participant G as GuardianshipApplicationService
+  participant UC as ChildRegistrationService
+  participant UOW as UnitOfWork
+  participant C as ChildrenRepo
+  participant G as GuardianshipsRepo
 
-  H->>C: Register (tx1)
-  C-->>H: ChildResult
-  H->>G: AddGuardian (tx2)
-  G-->>H: GuardianshipResult / err
+  H->>UC: RegisterChildWithGuardian
+  UC->>UOW: WithinTx(...)
+  UOW->>C: Create child
+  UOW->>G: Create guardianship
+  UC-->>H: ChildResult + GuardianshipResult
 ```
 
 当前顺序是：
 
-1. `childApp.Register(...)`
-2. `guardApp.AddGuardian(...)`
-3. 再查一次关系组回包
+1. 在同一事务里创建 `Child`
+2. 在同一事务里建立 `Guardianship`
+3. 返回聚合后的 child + guardianship 响应
 
 **设计边界**：
 
@@ -270,24 +273,24 @@ sequenceDiagram
 
 | 方法 | 当前是否显式过滤 `revoked_at` |
 | ---- | ---- |
-| `FindByUserIDAndChildID` | 否 |
-| `FindByUserID` | 否 |
-| `FindByChildID` | 否 |
-| `IsGuardian` | 否 |
+| `FindByUserIDAndChildID` | 是 |
+| `FindByUserID` | 是 |
+| `FindByChildID` | 是 |
+| `IsGuardian` | 是 |
 
 这意味着今天更准确的说法是：
 
 - 模型上已经有“撤销关系”
-- 但查询链和判定链还没有把它统一收口
+- 公共查询链和判定链默认已经统一收口到 active-only，历史语义要走显式 `IncludingRevoked` 路径
 
 ---
 
 ## 边界与注意事项
 
-- `GET /identity/guardians` 的合同与 handler 存在，但 router 还没注册；这是接口层边界，不应在模块文里包装成已对外暴露能力。详见 [../03-接口与集成/04-身份接入与监护关系边界.md](../03-接口与集成/04-身份接入与监护关系边界.md)。
-- `children/register` 的两段事务、`revoked_at` 的读链缺口、relation 漂移等，统一在专题层继续展开，不在这里重复铺完整时序。
+- `GET /identity/guardians` 现在已经注册到 router；详见 [../03-接口与集成/04-身份接入与监护关系边界.md](../03-接口与集成/04-身份接入与监护关系边界.md)。
+- `children/register` 现在已经收口为单事务组合用例；运行时细节统一在专题层继续展开。
 - 旧设计稿中的邀请码、主/次监护人、复杂家庭关系规则，都不是当前代码的默认事实。
-- `identity.proto` 里仍有 `IdentityStream` 与部分未实现方法，不能因为合同存在就当成当前运行面已开放。
+- 当前 identity proto / SDK / ACL / README 已同步移除未实现但可见的占位 RPC。
 
 ---
 
@@ -297,9 +300,9 @@ sequenceDiagram
 | ------ | ---- | ---- |
 | 模块装配 | `internal/apiserver/container/assembler/user.go` | `UserModule`、UoW、REST handler、gRPC 聚合 |
 | REST 路由 | `internal/apiserver/interface/uc/restful/router.go` | `/api/v1/identity` 路由组 |
-| REST child 写链 | `internal/apiserver/interface/uc/restful/handler/child.go` | `children/register` 两段事务起点 |
-| REST guardianship | `internal/apiserver/interface/uc/restful/handler/guardianship.go` | `grant` 与未接通的 `list` |
+| REST child 写链 | `internal/apiserver/interface/uc/restful/handler/child.go` | `children/register` 单事务组合用例入口 |
+| REST guardianship | `internal/apiserver/interface/uc/restful/handler/guardianship.go` | `grant` 与 `list` |
 | gRPC 聚合 | `internal/apiserver/interface/uc/grpc/identity/service.go` | 4 个服务注册 |
 | 领域模型 | `internal/apiserver/domain/uc/` | `user / child / guardianship` |
-| guardianship 仓储 | `internal/apiserver/infra/mysql/guardianship/repo.go` | `revoked_at` 查询边界 |
+| guardianship 仓储 | `internal/apiserver/infra/mysql/guardianship/repo.go` | active-only 默认查询与历史查询分流 |
 | 真值契约 | `api/rest/identity.v1.yaml`、`api/grpc/iam/identity/v1/identity.proto` | REST / gRPC 合同 |

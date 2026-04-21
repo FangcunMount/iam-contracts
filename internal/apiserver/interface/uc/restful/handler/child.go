@@ -10,6 +10,7 @@ import (
 
 	appchild "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/child"
 	appguard "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
+	appregistration "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/registration"
 	requestdto "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/request"
 	responsedto "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/response"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
@@ -19,28 +20,28 @@ import (
 // ChildHandler 儿童档案 REST 处理器
 type ChildHandler struct {
 	*BaseHandler
-	childApp   appchild.ChildApplicationService
-	profileApp appchild.ChildProfileApplicationService
-	guardApp   appguard.GuardianshipApplicationService
-	guardQuery appguard.GuardianshipQueryApplicationService
-	childQuery appchild.ChildQueryApplicationService
+	childApp        appchild.ChildApplicationService
+	profileApp      appchild.ChildProfileApplicationService
+	registrationApp appregistration.ChildRegistrationService
+	guardQuery      appguard.GuardianshipQueryApplicationService
+	childQuery      appchild.ChildQueryApplicationService
 }
 
 // NewChildHandler 创建儿童档案处理器
 func NewChildHandler(
 	childApp appchild.ChildApplicationService,
 	profileApp appchild.ChildProfileApplicationService,
-	guardApp appguard.GuardianshipApplicationService,
+	registrationApp appregistration.ChildRegistrationService,
 	guardQuery appguard.GuardianshipQueryApplicationService,
 	childQuery appchild.ChildQueryApplicationService,
 ) *ChildHandler {
 	return &ChildHandler{
-		BaseHandler: NewBaseHandler(),
-		childApp:    childApp,
-		profileApp:  profileApp,
-		guardApp:    guardApp,
-		guardQuery:  guardQuery,
-		childQuery:  childQuery,
+		BaseHandler:     NewBaseHandler(),
+		childApp:        childApp,
+		profileApp:      profileApp,
+		registrationApp: registrationApp,
+		guardQuery:      guardQuery,
+		childQuery:      childQuery,
 	}
 }
 
@@ -55,7 +56,7 @@ func NewChildHandler(
 // @Success 200 {object} responsedto.ChildPageResponse "查询成功"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /me/children [get]
+// @Router /identity/me/children [get]
 // @Security BearerAuth
 func (h *ChildHandler) ListMyChildren(c *gin.Context) {
 	var query requestdto.ChildListQuery
@@ -115,7 +116,7 @@ func (h *ChildHandler) ListMyChildren(c *gin.Context) {
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 409 {object} core.ErrResponse "儿童已存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /children/register [post]
+// @Router /identity/children/register [post]
 // @Security BearerAuth
 func (h *ChildHandler) RegisterChild(c *gin.Context) {
 	var req requestdto.ChildRegisterRequest
@@ -130,44 +131,26 @@ func (h *ChildHandler) RegisterChild(c *gin.Context) {
 		return
 	}
 
-	// 1. 先注册儿童
 	gender := uint8(0)
 	if req.Gender != nil {
 		gender = *req.Gender
 	}
-	childDTO := appchild.RegisterChildDTO{
+	result, err := h.registrationApp.RegisterChildWithGuardian(c.Request.Context(), appregistration.RegisterChildWithGuardianDTO{
+		UserID:   rawUserID,
 		Name:     strings.TrimSpace(req.LegalName),
 		Gender:   gender,
 		Birthday: strings.TrimSpace(req.DOB),
 		IDCard:   strings.TrimSpace(req.IDNo),
 		Height:   parseHeightCm(req.HeightCm),
 		Weight:   parseWeightKg(req.WeightKg),
-	}
-
-	childResult, err := h.childApp.Register(c.Request.Context(), childDTO)
-	if err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	// 2. 建立监护关系
-	guardDTO := appguard.AddGuardianDTO{
-		UserID:   rawUserID,
-		ChildID:  childResult.ID,
 		Relation: req.Relation,
-	}
-
-	if err := h.guardApp.AddGuardian(c.Request.Context(), guardDTO); err != nil {
-		h.Error(c, err)
-		return
-	}
-
-	// 3. 查询监护关系
-	guardResult, err := h.guardQuery.GetByUserIDAndChildID(c.Request.Context(), rawUserID, childResult.ID)
+	})
 	if err != nil {
 		h.Error(c, err)
 		return
 	}
+	childResult := result.Child
+	guardResult := result.Guardianship
 
 	// 构建响应
 	childResp := responsedto.ChildResponse{
@@ -186,8 +169,11 @@ func (h *ChildHandler) RegisterChild(c *gin.Context) {
 		Relation: guardResult.Relation,
 		Since:    parseTime(guardResult.EstablishedAt),
 	}
+	if revokedAt := parseOptionalTime(guardResult.RevokedAt); revokedAt != nil {
+		guardResp.RevokedAt = revokedAt
+	}
 
-	h.Success(c, responsedto.ChildRegisterResponse{
+	h.Created(c, responsedto.ChildRegisterResponse{
 		Child:        childResp,
 		Guardianship: guardResp,
 	})
@@ -206,7 +192,7 @@ func (h *ChildHandler) RegisterChild(c *gin.Context) {
 // @Failure 403 {object} core.ErrResponse "无权限访问此儿童"
 // @Failure 404 {object} core.ErrResponse "儿童不存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /children/{id} [get]
+// @Router /identity/children/{id} [get]
 // @Security BearerAuth
 func (h *ChildHandler) GetChild(c *gin.Context) {
 	childID := c.Param("id")
@@ -261,7 +247,7 @@ func (h *ChildHandler) GetChild(c *gin.Context) {
 // @Failure 403 {object} core.ErrResponse "无权限修改此儿童"
 // @Failure 404 {object} core.ErrResponse "儿童不存在"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /children/{id} [patch]
+// @Router /identity/children/{id} [patch]
 // @Security BearerAuth
 func (h *ChildHandler) PatchChild(c *gin.Context) {
 	childID := c.Param("id")
@@ -371,7 +357,7 @@ func (h *ChildHandler) PatchChild(c *gin.Context) {
 // @Failure 400 {object} core.ErrResponse "参数错误"
 // @Failure 401 {object} core.ErrResponse "未授权"
 // @Failure 500 {object} core.ErrResponse "服务器内部错误"
-// @Router /children/search [get]
+// @Router /identity/children/search [get]
 // @Security BearerAuth
 func (h *ChildHandler) SearchChildren(c *gin.Context) {
 	var query requestdto.ChildSearchQuery
@@ -500,7 +486,18 @@ func parseTime(timeStr string) time.Time {
 	}
 	t, err := time.Parse(time.RFC3339, timeStr)
 	if err != nil {
-		return time.Now()
+		return time.Time{}
 	}
 	return t
+}
+
+func parseOptionalTime(timeStr string) *time.Time {
+	if timeStr == "" {
+		return nil
+	}
+	parsed := parseTime(timeStr)
+	if parsed.IsZero() {
+		return nil
+	}
+	return &parsed
 }

@@ -240,115 +240,6 @@ func (GuardianshipRelation) EnumDescriptor() ([]byte, []int) {
 	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{3}
 }
 
-// 用户事件类型
-type UserEventType int32
-
-const (
-	UserEventType_USER_EVENT_TYPE_UNSPECIFIED     UserEventType = 0
-	UserEventType_USER_EVENT_TYPE_CREATED         UserEventType = 1
-	UserEventType_USER_EVENT_TYPE_UPDATED         UserEventType = 2
-	UserEventType_USER_EVENT_TYPE_STATUS_CHANGED  UserEventType = 3
-	UserEventType_USER_EVENT_TYPE_EXTERNAL_LINKED UserEventType = 4
-)
-
-// Enum value maps for UserEventType.
-var (
-	UserEventType_name = map[int32]string{
-		0: "USER_EVENT_TYPE_UNSPECIFIED",
-		1: "USER_EVENT_TYPE_CREATED",
-		2: "USER_EVENT_TYPE_UPDATED",
-		3: "USER_EVENT_TYPE_STATUS_CHANGED",
-		4: "USER_EVENT_TYPE_EXTERNAL_LINKED",
-	}
-	UserEventType_value = map[string]int32{
-		"USER_EVENT_TYPE_UNSPECIFIED":     0,
-		"USER_EVENT_TYPE_CREATED":         1,
-		"USER_EVENT_TYPE_UPDATED":         2,
-		"USER_EVENT_TYPE_STATUS_CHANGED":  3,
-		"USER_EVENT_TYPE_EXTERNAL_LINKED": 4,
-	}
-)
-
-func (x UserEventType) Enum() *UserEventType {
-	p := new(UserEventType)
-	*p = x
-	return p
-}
-
-func (x UserEventType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (UserEventType) Descriptor() protoreflect.EnumDescriptor {
-	return file_iam_identity_v1_identity_proto_enumTypes[4].Descriptor()
-}
-
-func (UserEventType) Type() protoreflect.EnumType {
-	return &file_iam_identity_v1_identity_proto_enumTypes[4]
-}
-
-func (x UserEventType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use UserEventType.Descriptor instead.
-func (UserEventType) EnumDescriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{4}
-}
-
-// 监护关系事件类型
-type GuardianshipEventType int32
-
-const (
-	GuardianshipEventType_GUARDIANSHIP_EVENT_TYPE_UNSPECIFIED GuardianshipEventType = 0
-	GuardianshipEventType_GUARDIANSHIP_EVENT_TYPE_CREATED     GuardianshipEventType = 1
-	GuardianshipEventType_GUARDIANSHIP_EVENT_TYPE_UPDATED     GuardianshipEventType = 2
-	GuardianshipEventType_GUARDIANSHIP_EVENT_TYPE_REVOKED     GuardianshipEventType = 3
-)
-
-// Enum value maps for GuardianshipEventType.
-var (
-	GuardianshipEventType_name = map[int32]string{
-		0: "GUARDIANSHIP_EVENT_TYPE_UNSPECIFIED",
-		1: "GUARDIANSHIP_EVENT_TYPE_CREATED",
-		2: "GUARDIANSHIP_EVENT_TYPE_UPDATED",
-		3: "GUARDIANSHIP_EVENT_TYPE_REVOKED",
-	}
-	GuardianshipEventType_value = map[string]int32{
-		"GUARDIANSHIP_EVENT_TYPE_UNSPECIFIED": 0,
-		"GUARDIANSHIP_EVENT_TYPE_CREATED":     1,
-		"GUARDIANSHIP_EVENT_TYPE_UPDATED":     2,
-		"GUARDIANSHIP_EVENT_TYPE_REVOKED":     3,
-	}
-)
-
-func (x GuardianshipEventType) Enum() *GuardianshipEventType {
-	p := new(GuardianshipEventType)
-	*p = x
-	return p
-}
-
-func (x GuardianshipEventType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (GuardianshipEventType) Descriptor() protoreflect.EnumDescriptor {
-	return file_iam_identity_v1_identity_proto_enumTypes[5].Descriptor()
-}
-
-func (GuardianshipEventType) Type() protoreflect.EnumType {
-	return &file_iam_identity_v1_identity_proto_enumTypes[5]
-}
-
-func (x GuardianshipEventType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use GuardianshipEventType.Descriptor instead.
-func (GuardianshipEventType) EnumDescriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{5}
-}
-
 // 经校验的联系方式
 type VerifiedContact struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -2150,110 +2041,6 @@ func (x *AddGuardianResponse) GetGuardianship() *Guardianship {
 	return nil
 }
 
-type UpdateGuardianRelationRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	GuardianshipId string                 `protobuf:"bytes,1,opt,name=guardianship_id,json=guardianshipId,proto3" json:"guardianship_id,omitempty"`
-	Relation       GuardianshipRelation   `protobuf:"varint,2,opt,name=relation,proto3,enum=iam.identity.v1.GuardianshipRelation" json:"relation,omitempty"`
-	Operator       *OperatorContext       `protobuf:"bytes,10,opt,name=operator,proto3" json:"operator,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *UpdateGuardianRelationRequest) Reset() {
-	*x = UpdateGuardianRelationRequest{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[31]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateGuardianRelationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateGuardianRelationRequest) ProtoMessage() {}
-
-func (x *UpdateGuardianRelationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[31]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateGuardianRelationRequest.ProtoReflect.Descriptor instead.
-func (*UpdateGuardianRelationRequest) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{31}
-}
-
-func (x *UpdateGuardianRelationRequest) GetGuardianshipId() string {
-	if x != nil {
-		return x.GuardianshipId
-	}
-	return ""
-}
-
-func (x *UpdateGuardianRelationRequest) GetRelation() GuardianshipRelation {
-	if x != nil {
-		return x.Relation
-	}
-	return GuardianshipRelation_GUARDIANSHIP_RELATION_UNSPECIFIED
-}
-
-func (x *UpdateGuardianRelationRequest) GetOperator() *OperatorContext {
-	if x != nil {
-		return x.Operator
-	}
-	return nil
-}
-
-type UpdateGuardianRelationResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Guardianship  *Guardianship          `protobuf:"bytes,1,opt,name=guardianship,proto3" json:"guardianship,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateGuardianRelationResponse) Reset() {
-	*x = UpdateGuardianRelationResponse{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[32]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateGuardianRelationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateGuardianRelationResponse) ProtoMessage() {}
-
-func (x *UpdateGuardianRelationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[32]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateGuardianRelationResponse.ProtoReflect.Descriptor instead.
-func (*UpdateGuardianRelationResponse) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{32}
-}
-
-func (x *UpdateGuardianRelationResponse) GetGuardianship() *Guardianship {
-	if x != nil {
-		return x.Guardianship
-	}
-	return nil
-}
-
 type RevokeGuardianRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Target        *GuardianshipSelector  `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
@@ -2265,7 +2052,7 @@ type RevokeGuardianRequest struct {
 
 func (x *RevokeGuardianRequest) Reset() {
 	*x = RevokeGuardianRequest{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[33]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2277,7 +2064,7 @@ func (x *RevokeGuardianRequest) String() string {
 func (*RevokeGuardianRequest) ProtoMessage() {}
 
 func (x *RevokeGuardianRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[33]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2290,7 +2077,7 @@ func (x *RevokeGuardianRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeGuardianRequest.ProtoReflect.Descriptor instead.
 func (*RevokeGuardianRequest) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{33}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *RevokeGuardianRequest) GetTarget() *GuardianshipSelector {
@@ -2323,7 +2110,7 @@ type RevokeGuardianResponse struct {
 
 func (x *RevokeGuardianResponse) Reset() {
 	*x = RevokeGuardianResponse{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[34]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2335,7 +2122,7 @@ func (x *RevokeGuardianResponse) String() string {
 func (*RevokeGuardianResponse) ProtoMessage() {}
 
 func (x *RevokeGuardianResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[34]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2348,7 +2135,7 @@ func (x *RevokeGuardianResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeGuardianResponse.ProtoReflect.Descriptor instead.
 func (*RevokeGuardianResponse) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{34}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *RevokeGuardianResponse) GetGuardianship() *Guardianship {
@@ -2369,7 +2156,7 @@ type BatchRevokeGuardiansRequest struct {
 
 func (x *BatchRevokeGuardiansRequest) Reset() {
 	*x = BatchRevokeGuardiansRequest{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[35]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2381,7 +2168,7 @@ func (x *BatchRevokeGuardiansRequest) String() string {
 func (*BatchRevokeGuardiansRequest) ProtoMessage() {}
 
 func (x *BatchRevokeGuardiansRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[35]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2394,7 +2181,7 @@ func (x *BatchRevokeGuardiansRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchRevokeGuardiansRequest.ProtoReflect.Descriptor instead.
 func (*BatchRevokeGuardiansRequest) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{35}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *BatchRevokeGuardiansRequest) GetTargets() []*GuardianshipSelector {
@@ -2428,7 +2215,7 @@ type BatchRevokeGuardiansResponse struct {
 
 func (x *BatchRevokeGuardiansResponse) Reset() {
 	*x = BatchRevokeGuardiansResponse{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[36]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2440,7 +2227,7 @@ func (x *BatchRevokeGuardiansResponse) String() string {
 func (*BatchRevokeGuardiansResponse) ProtoMessage() {}
 
 func (x *BatchRevokeGuardiansResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[36]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2453,7 +2240,7 @@ func (x *BatchRevokeGuardiansResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchRevokeGuardiansResponse.ProtoReflect.Descriptor instead.
 func (*BatchRevokeGuardiansResponse) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{36}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *BatchRevokeGuardiansResponse) GetRevoked() []*Guardianship {
@@ -2480,7 +2267,7 @@ type FailedGuardianshipFailure struct {
 
 func (x *FailedGuardianshipFailure) Reset() {
 	*x = FailedGuardianshipFailure{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[37]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2492,7 +2279,7 @@ func (x *FailedGuardianshipFailure) String() string {
 func (*FailedGuardianshipFailure) ProtoMessage() {}
 
 func (x *FailedGuardianshipFailure) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[37]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2505,7 +2292,7 @@ func (x *FailedGuardianshipFailure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FailedGuardianshipFailure.ProtoReflect.Descriptor instead.
 func (*FailedGuardianshipFailure) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{37}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *FailedGuardianshipFailure) GetTarget() *GuardianshipSelector {
@@ -2533,7 +2320,7 @@ type ImportGuardianRecord struct {
 
 func (x *ImportGuardianRecord) Reset() {
 	*x = ImportGuardianRecord{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[38]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2545,7 +2332,7 @@ func (x *ImportGuardianRecord) String() string {
 func (*ImportGuardianRecord) ProtoMessage() {}
 
 func (x *ImportGuardianRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[38]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2558,7 +2345,7 @@ func (x *ImportGuardianRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportGuardianRecord.ProtoReflect.Descriptor instead.
 func (*ImportGuardianRecord) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{38}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *ImportGuardianRecord) GetUserId() string {
@@ -2592,7 +2379,7 @@ type ImportGuardiansRequest struct {
 
 func (x *ImportGuardiansRequest) Reset() {
 	*x = ImportGuardiansRequest{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[39]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2604,7 +2391,7 @@ func (x *ImportGuardiansRequest) String() string {
 func (*ImportGuardiansRequest) ProtoMessage() {}
 
 func (x *ImportGuardiansRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[39]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2617,7 +2404,7 @@ func (x *ImportGuardiansRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportGuardiansRequest.ProtoReflect.Descriptor instead.
 func (*ImportGuardiansRequest) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{39}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ImportGuardiansRequest) GetRecords() []*ImportGuardianRecord {
@@ -2644,7 +2431,7 @@ type ImportGuardiansResponse struct {
 
 func (x *ImportGuardiansResponse) Reset() {
 	*x = ImportGuardiansResponse{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[40]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2656,7 +2443,7 @@ func (x *ImportGuardiansResponse) String() string {
 func (*ImportGuardiansResponse) ProtoMessage() {}
 
 func (x *ImportGuardiansResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[40]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2669,7 +2456,7 @@ func (x *ImportGuardiansResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportGuardiansResponse.ProtoReflect.Descriptor instead.
 func (*ImportGuardiansResponse) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{40}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ImportGuardiansResponse) GetCreated() []*Guardianship {
@@ -2696,7 +2483,7 @@ type FailedImportGuardian struct {
 
 func (x *FailedImportGuardian) Reset() {
 	*x = FailedImportGuardian{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[41]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2708,7 +2495,7 @@ func (x *FailedImportGuardian) String() string {
 func (*FailedImportGuardian) ProtoMessage() {}
 
 func (x *FailedImportGuardian) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[41]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2721,7 +2508,7 @@ func (x *FailedImportGuardian) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FailedImportGuardian.ProtoReflect.Descriptor instead.
 func (*FailedImportGuardian) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{41}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *FailedImportGuardian) GetRecord() *ImportGuardianRecord {
@@ -2753,7 +2540,7 @@ type CreateUserRequest struct {
 
 func (x *CreateUserRequest) Reset() {
 	*x = CreateUserRequest{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[42]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2765,7 +2552,7 @@ func (x *CreateUserRequest) String() string {
 func (*CreateUserRequest) ProtoMessage() {}
 
 func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[42]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2778,7 +2565,7 @@ func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUserRequest.ProtoReflect.Descriptor instead.
 func (*CreateUserRequest) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{42}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *CreateUserRequest) GetNickname() string {
@@ -2839,7 +2626,7 @@ type CreateUserResponse struct {
 
 func (x *CreateUserResponse) Reset() {
 	*x = CreateUserResponse{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[43]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2851,7 +2638,7 @@ func (x *CreateUserResponse) String() string {
 func (*CreateUserResponse) ProtoMessage() {}
 
 func (x *CreateUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[43]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2864,7 +2651,7 @@ func (x *CreateUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUserResponse.ProtoReflect.Descriptor instead.
 func (*CreateUserResponse) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{43}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *CreateUserResponse) GetUser() *User {
@@ -2890,7 +2677,7 @@ type UpdateUserRequest struct {
 
 func (x *UpdateUserRequest) Reset() {
 	*x = UpdateUserRequest{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[44]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2902,7 +2689,7 @@ func (x *UpdateUserRequest) String() string {
 func (*UpdateUserRequest) ProtoMessage() {}
 
 func (x *UpdateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[44]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2915,7 +2702,7 @@ func (x *UpdateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateUserRequest.ProtoReflect.Descriptor instead.
 func (*UpdateUserRequest) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{44}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *UpdateUserRequest) GetUserId() string {
@@ -2983,7 +2770,7 @@ type UpdateUserResponse struct {
 
 func (x *UpdateUserResponse) Reset() {
 	*x = UpdateUserResponse{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[45]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2995,7 +2782,7 @@ func (x *UpdateUserResponse) String() string {
 func (*UpdateUserResponse) ProtoMessage() {}
 
 func (x *UpdateUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[45]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3008,7 +2795,7 @@ func (x *UpdateUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateUserResponse.ProtoReflect.Descriptor instead.
 func (*UpdateUserResponse) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{45}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *UpdateUserResponse) GetUser() *User {
@@ -3029,7 +2816,7 @@ type ChangeUserStatusRequest struct {
 
 func (x *ChangeUserStatusRequest) Reset() {
 	*x = ChangeUserStatusRequest{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[46]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3041,7 +2828,7 @@ func (x *ChangeUserStatusRequest) String() string {
 func (*ChangeUserStatusRequest) ProtoMessage() {}
 
 func (x *ChangeUserStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[46]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3054,7 +2841,7 @@ func (x *ChangeUserStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangeUserStatusRequest.ProtoReflect.Descriptor instead.
 func (*ChangeUserStatusRequest) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{46}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *ChangeUserStatusRequest) GetUserId() string {
@@ -3087,7 +2874,7 @@ type UserOperationResponse struct {
 
 func (x *UserOperationResponse) Reset() {
 	*x = UserOperationResponse{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[47]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3099,7 +2886,7 @@ func (x *UserOperationResponse) String() string {
 func (*UserOperationResponse) ProtoMessage() {}
 
 func (x *UserOperationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[47]
+	mi := &file_iam_identity_v1_identity_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3112,7 +2899,7 @@ func (x *UserOperationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserOperationResponse.ProtoReflect.Descriptor instead.
 func (*UserOperationResponse) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{47}
+	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *UserOperationResponse) GetUser() *User {
@@ -3120,366 +2907,6 @@ func (x *UserOperationResponse) GetUser() *User {
 		return x.User
 	}
 	return nil
-}
-
-type LinkExternalIdentityRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	UserId           string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	ExternalIdentity *ExternalIdentity      `protobuf:"bytes,2,opt,name=external_identity,json=externalIdentity,proto3" json:"external_identity,omitempty"`
-	Operator         *OperatorContext       `protobuf:"bytes,10,opt,name=operator,proto3" json:"operator,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *LinkExternalIdentityRequest) Reset() {
-	*x = LinkExternalIdentityRequest{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[48]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LinkExternalIdentityRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LinkExternalIdentityRequest) ProtoMessage() {}
-
-func (x *LinkExternalIdentityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[48]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LinkExternalIdentityRequest.ProtoReflect.Descriptor instead.
-func (*LinkExternalIdentityRequest) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{48}
-}
-
-func (x *LinkExternalIdentityRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *LinkExternalIdentityRequest) GetExternalIdentity() *ExternalIdentity {
-	if x != nil {
-		return x.ExternalIdentity
-	}
-	return nil
-}
-
-func (x *LinkExternalIdentityRequest) GetOperator() *OperatorContext {
-	if x != nil {
-		return x.Operator
-	}
-	return nil
-}
-
-type LinkExternalIdentityResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LinkExternalIdentityResponse) Reset() {
-	*x = LinkExternalIdentityResponse{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[49]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LinkExternalIdentityResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LinkExternalIdentityResponse) ProtoMessage() {}
-
-func (x *LinkExternalIdentityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[49]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LinkExternalIdentityResponse.ProtoReflect.Descriptor instead.
-func (*LinkExternalIdentityResponse) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{49}
-}
-
-func (x *LinkExternalIdentityResponse) GetUser() *User {
-	if x != nil {
-		return x.User
-	}
-	return nil
-}
-
-type SubscribeUserEventsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Types         []UserEventType        `protobuf:"varint,1,rep,packed,name=types,proto3,enum=iam.identity.v1.UserEventType" json:"types,omitempty"`
-	FromEventId   string                 `protobuf:"bytes,2,opt,name=from_event_id,json=fromEventId,proto3" json:"from_event_id,omitempty"` // 可选：从某个事件游标续传
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SubscribeUserEventsRequest) Reset() {
-	*x = SubscribeUserEventsRequest{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[50]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubscribeUserEventsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubscribeUserEventsRequest) ProtoMessage() {}
-
-func (x *SubscribeUserEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[50]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SubscribeUserEventsRequest.ProtoReflect.Descriptor instead.
-func (*SubscribeUserEventsRequest) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{50}
-}
-
-func (x *SubscribeUserEventsRequest) GetTypes() []UserEventType {
-	if x != nil {
-		return x.Types
-	}
-	return nil
-}
-
-func (x *SubscribeUserEventsRequest) GetFromEventId() string {
-	if x != nil {
-		return x.FromEventId
-	}
-	return ""
-}
-
-type UserEvent struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
-	Type          UserEventType          `protobuf:"varint,2,opt,name=type,proto3,enum=iam.identity.v1.UserEventType" json:"type,omitempty"`
-	User          *User                  `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
-	OccurredAt    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
-	TraceId       string                 `protobuf:"bytes,5,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UserEvent) Reset() {
-	*x = UserEvent{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[51]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UserEvent) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UserEvent) ProtoMessage() {}
-
-func (x *UserEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[51]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UserEvent.ProtoReflect.Descriptor instead.
-func (*UserEvent) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{51}
-}
-
-func (x *UserEvent) GetEventId() string {
-	if x != nil {
-		return x.EventId
-	}
-	return ""
-}
-
-func (x *UserEvent) GetType() UserEventType {
-	if x != nil {
-		return x.Type
-	}
-	return UserEventType_USER_EVENT_TYPE_UNSPECIFIED
-}
-
-func (x *UserEvent) GetUser() *User {
-	if x != nil {
-		return x.User
-	}
-	return nil
-}
-
-func (x *UserEvent) GetOccurredAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.OccurredAt
-	}
-	return nil
-}
-
-func (x *UserEvent) GetTraceId() string {
-	if x != nil {
-		return x.TraceId
-	}
-	return ""
-}
-
-type SubscribeGuardianshipEventsRequest struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	Types         []GuardianshipEventType `protobuf:"varint,1,rep,packed,name=types,proto3,enum=iam.identity.v1.GuardianshipEventType" json:"types,omitempty"`
-	FromEventId   string                  `protobuf:"bytes,2,opt,name=from_event_id,json=fromEventId,proto3" json:"from_event_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SubscribeGuardianshipEventsRequest) Reset() {
-	*x = SubscribeGuardianshipEventsRequest{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[52]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubscribeGuardianshipEventsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubscribeGuardianshipEventsRequest) ProtoMessage() {}
-
-func (x *SubscribeGuardianshipEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[52]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SubscribeGuardianshipEventsRequest.ProtoReflect.Descriptor instead.
-func (*SubscribeGuardianshipEventsRequest) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{52}
-}
-
-func (x *SubscribeGuardianshipEventsRequest) GetTypes() []GuardianshipEventType {
-	if x != nil {
-		return x.Types
-	}
-	return nil
-}
-
-func (x *SubscribeGuardianshipEventsRequest) GetFromEventId() string {
-	if x != nil {
-		return x.FromEventId
-	}
-	return ""
-}
-
-type GuardianshipEvent struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
-	Type          GuardianshipEventType  `protobuf:"varint,2,opt,name=type,proto3,enum=iam.identity.v1.GuardianshipEventType" json:"type,omitempty"`
-	Guardianship  *Guardianship          `protobuf:"bytes,3,opt,name=guardianship,proto3" json:"guardianship,omitempty"`
-	OccurredAt    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
-	TraceId       string                 `protobuf:"bytes,5,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GuardianshipEvent) Reset() {
-	*x = GuardianshipEvent{}
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[53]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GuardianshipEvent) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GuardianshipEvent) ProtoMessage() {}
-
-func (x *GuardianshipEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_identity_v1_identity_proto_msgTypes[53]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GuardianshipEvent.ProtoReflect.Descriptor instead.
-func (*GuardianshipEvent) Descriptor() ([]byte, []int) {
-	return file_iam_identity_v1_identity_proto_rawDescGZIP(), []int{53}
-}
-
-func (x *GuardianshipEvent) GetEventId() string {
-	if x != nil {
-		return x.EventId
-	}
-	return ""
-}
-
-func (x *GuardianshipEvent) GetType() GuardianshipEventType {
-	if x != nil {
-		return x.Type
-	}
-	return GuardianshipEventType_GUARDIANSHIP_EVENT_TYPE_UNSPECIFIED
-}
-
-func (x *GuardianshipEvent) GetGuardianship() *Guardianship {
-	if x != nil {
-		return x.Guardianship
-	}
-	return nil
-}
-
-func (x *GuardianshipEvent) GetOccurredAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.OccurredAt
-	}
-	return nil
-}
-
-func (x *GuardianshipEvent) GetTraceId() string {
-	if x != nil {
-		return x.TraceId
-	}
-	return ""
 }
 
 var File_iam_identity_v1_identity_proto protoreflect.FileDescriptor
@@ -3620,13 +3047,6 @@ const file_iam_identity_v1_identity_proto_rawDesc = "" +
 	"\boperator\x18\n" +
 	" \x01(\v2 .iam.identity.v1.OperatorContextR\boperator\"X\n" +
 	"\x13AddGuardianResponse\x12A\n" +
-	"\fguardianship\x18\x01 \x01(\v2\x1d.iam.identity.v1.GuardianshipR\fguardianship\"\xc9\x01\n" +
-	"\x1dUpdateGuardianRelationRequest\x12'\n" +
-	"\x0fguardianship_id\x18\x01 \x01(\tR\x0eguardianshipId\x12A\n" +
-	"\brelation\x18\x02 \x01(\x0e2%.iam.identity.v1.GuardianshipRelationR\brelation\x12<\n" +
-	"\boperator\x18\n" +
-	" \x01(\v2 .iam.identity.v1.OperatorContextR\boperator\"c\n" +
-	"\x1eUpdateGuardianRelationResponse\x12A\n" +
 	"\fguardianship\x18\x01 \x01(\v2\x1d.iam.identity.v1.GuardianshipR\fguardianship\"\xac\x01\n" +
 	"\x15RevokeGuardianRequest\x12=\n" +
 	"\x06target\x18\x01 \x01(\v2%.iam.identity.v1.GuardianshipSelectorR\x06target\x12\x16\n" +
@@ -3691,34 +3111,7 @@ const file_iam_identity_v1_identity_proto_rawDesc = "" +
 	"\boperator\x18\n" +
 	" \x01(\v2 .iam.identity.v1.OperatorContextR\boperator\"B\n" +
 	"\x15UserOperationResponse\x12)\n" +
-	"\x04user\x18\x01 \x01(\v2\x15.iam.identity.v1.UserR\x04user\"\xc4\x01\n" +
-	"\x1bLinkExternalIdentityRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\x12N\n" +
-	"\x11external_identity\x18\x02 \x01(\v2!.iam.identity.v1.ExternalIdentityR\x10externalIdentity\x12<\n" +
-	"\boperator\x18\n" +
-	" \x01(\v2 .iam.identity.v1.OperatorContextR\boperator\"I\n" +
-	"\x1cLinkExternalIdentityResponse\x12)\n" +
-	"\x04user\x18\x01 \x01(\v2\x15.iam.identity.v1.UserR\x04user\"v\n" +
-	"\x1aSubscribeUserEventsRequest\x124\n" +
-	"\x05types\x18\x01 \x03(\x0e2\x1e.iam.identity.v1.UserEventTypeR\x05types\x12\"\n" +
-	"\rfrom_event_id\x18\x02 \x01(\tR\vfromEventId\"\xdd\x01\n" +
-	"\tUserEvent\x12\x19\n" +
-	"\bevent_id\x18\x01 \x01(\tR\aeventId\x122\n" +
-	"\x04type\x18\x02 \x01(\x0e2\x1e.iam.identity.v1.UserEventTypeR\x04type\x12)\n" +
-	"\x04user\x18\x03 \x01(\v2\x15.iam.identity.v1.UserR\x04user\x12;\n" +
-	"\voccurred_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"occurredAt\x12\x19\n" +
-	"\btrace_id\x18\x05 \x01(\tR\atraceId\"\x86\x01\n" +
-	"\"SubscribeGuardianshipEventsRequest\x12<\n" +
-	"\x05types\x18\x01 \x03(\x0e2&.iam.identity.v1.GuardianshipEventTypeR\x05types\x12\"\n" +
-	"\rfrom_event_id\x18\x02 \x01(\tR\vfromEventId\"\x85\x02\n" +
-	"\x11GuardianshipEvent\x12\x19\n" +
-	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12:\n" +
-	"\x04type\x18\x02 \x01(\x0e2&.iam.identity.v1.GuardianshipEventTypeR\x04type\x12A\n" +
-	"\fguardianship\x18\x03 \x01(\v2\x1d.iam.identity.v1.GuardianshipR\fguardianship\x12;\n" +
-	"\voccurred_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"occurredAt\x12\x19\n" +
-	"\btrace_id\x18\x05 \x01(\tR\atraceId*t\n" +
+	"\x04user\x18\x01 \x01(\v2\x15.iam.identity.v1.UserR\x04user*t\n" +
 	"\n" +
 	"UserStatus\x12\x1b\n" +
 	"\x17USER_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
@@ -3742,18 +3135,7 @@ const file_iam_identity_v1_identity_proto_rawDesc = "" +
 	"\x1cGUARDIANSHIP_RELATION_PARENT\x10\x02\x12%\n" +
 	"!GUARDIANSHIP_RELATION_GRANDPARENT\x10\x03\x12\x1f\n" +
 	"\x1bGUARDIANSHIP_RELATION_OTHER\x10\n" +
-	"*\xb3\x01\n" +
-	"\rUserEventType\x12\x1f\n" +
-	"\x1bUSER_EVENT_TYPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
-	"\x17USER_EVENT_TYPE_CREATED\x10\x01\x12\x1b\n" +
-	"\x17USER_EVENT_TYPE_UPDATED\x10\x02\x12\"\n" +
-	"\x1eUSER_EVENT_TYPE_STATUS_CHANGED\x10\x03\x12#\n" +
-	"\x1fUSER_EVENT_TYPE_EXTERNAL_LINKED\x10\x04*\xaf\x01\n" +
-	"\x15GuardianshipEventType\x12'\n" +
-	"#GUARDIANSHIP_EVENT_TYPE_UNSPECIFIED\x10\x00\x12#\n" +
-	"\x1fGUARDIANSHIP_EVENT_TYPE_CREATED\x10\x01\x12#\n" +
-	"\x1fGUARDIANSHIP_EVENT_TYPE_UPDATED\x10\x02\x12#\n" +
-	"\x1fGUARDIANSHIP_EVENT_TYPE_REVOKED\x10\x032\xd0\x03\n" +
+	"2\xd0\x03\n" +
 	"\fIdentityRead\x12L\n" +
 	"\aGetUser\x12\x1f.iam.identity.v1.GetUserRequest\x1a .iam.identity.v1.GetUserResponse\x12^\n" +
 	"\rBatchGetUsers\x12%.iam.identity.v1.BatchGetUsersRequest\x1a&.iam.identity.v1.BatchGetUsersResponse\x12X\n" +
@@ -3764,24 +3146,19 @@ const file_iam_identity_v1_identity_proto_rawDesc = "" +
 	"\n" +
 	"IsGuardian\x12\".iam.identity.v1.IsGuardianRequest\x1a#.iam.identity.v1.IsGuardianResponse\x12[\n" +
 	"\fListChildren\x12$.iam.identity.v1.ListChildrenRequest\x1a%.iam.identity.v1.ListChildrenResponse\x12^\n" +
-	"\rListGuardians\x12%.iam.identity.v1.ListGuardiansRequest\x1a&.iam.identity.v1.ListGuardiansResponse2\xa8\x04\n" +
+	"\rListGuardians\x12%.iam.identity.v1.ListGuardiansRequest\x1a&.iam.identity.v1.ListGuardiansResponse2\xad\x03\n" +
 	"\x13GuardianshipCommand\x12X\n" +
-	"\vAddGuardian\x12#.iam.identity.v1.AddGuardianRequest\x1a$.iam.identity.v1.AddGuardianResponse\x12y\n" +
-	"\x16UpdateGuardianRelation\x12..iam.identity.v1.UpdateGuardianRelationRequest\x1a/.iam.identity.v1.UpdateGuardianRelationResponse\x12a\n" +
+	"\vAddGuardian\x12#.iam.identity.v1.AddGuardianRequest\x1a$.iam.identity.v1.AddGuardianResponse\x12a\n" +
 	"\x0eRevokeGuardian\x12&.iam.identity.v1.RevokeGuardianRequest\x1a'.iam.identity.v1.RevokeGuardianResponse\x12s\n" +
 	"\x14BatchRevokeGuardians\x12,.iam.identity.v1.BatchRevokeGuardiansRequest\x1a-.iam.identity.v1.BatchRevokeGuardiansResponse\x12d\n" +
-	"\x0fImportGuardians\x12'.iam.identity.v1.ImportGuardiansRequest\x1a(.iam.identity.v1.ImportGuardiansResponse2\xf9\x03\n" +
+	"\x0fImportGuardians\x12'.iam.identity.v1.ImportGuardiansRequest\x1a(.iam.identity.v1.ImportGuardiansResponse2\x84\x03\n" +
 	"\x11IdentityLifecycle\x12U\n" +
 	"\n" +
 	"CreateUser\x12\".iam.identity.v1.CreateUserRequest\x1a#.iam.identity.v1.CreateUserResponse\x12U\n" +
 	"\n" +
 	"UpdateUser\x12\".iam.identity.v1.UpdateUserRequest\x1a#.iam.identity.v1.UpdateUserResponse\x12b\n" +
 	"\x0eDeactivateUser\x12(.iam.identity.v1.ChangeUserStatusRequest\x1a&.iam.identity.v1.UserOperationResponse\x12]\n" +
-	"\tBlockUser\x12(.iam.identity.v1.ChangeUserStatusRequest\x1a&.iam.identity.v1.UserOperationResponse\x12s\n" +
-	"\x14LinkExternalIdentity\x12,.iam.identity.v1.LinkExternalIdentityRequest\x1a-.iam.identity.v1.LinkExternalIdentityResponse2\xec\x01\n" +
-	"\x0eIdentityStream\x12`\n" +
-	"\x13SubscribeUserEvents\x12+.iam.identity.v1.SubscribeUserEventsRequest\x1a\x1a.iam.identity.v1.UserEvent0\x01\x12x\n" +
-	"\x1bSubscribeGuardianshipEvents\x123.iam.identity.v1.SubscribeGuardianshipEventsRequest\x1a\".iam.identity.v1.GuardianshipEvent0\x01BKZIgithub.com/FangcunMount/iam-contracts/api/grpc/iam/identity/v1;identityv1b\x06proto3"
+	"\tBlockUser\x12(.iam.identity.v1.ChangeUserStatusRequest\x1a&.iam.identity.v1.UserOperationResponseBKZIgithub.com/FangcunMount/iam-contracts/api/grpc/iam/identity/v1;identityv1b\x06proto3"
 
 var (
 	file_iam_identity_v1_identity_proto_rawDescOnce sync.Once
@@ -3795,192 +3172,160 @@ func file_iam_identity_v1_identity_proto_rawDescGZIP() []byte {
 	return file_iam_identity_v1_identity_proto_rawDescData
 }
 
-var file_iam_identity_v1_identity_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_iam_identity_v1_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 55)
+var file_iam_identity_v1_identity_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_iam_identity_v1_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
 var file_iam_identity_v1_identity_proto_goTypes = []any{
-	(UserStatus)(0),                            // 0: iam.identity.v1.UserStatus
-	(ContactType)(0),                           // 1: iam.identity.v1.ContactType
-	(Gender)(0),                                // 2: iam.identity.v1.Gender
-	(GuardianshipRelation)(0),                  // 3: iam.identity.v1.GuardianshipRelation
-	(UserEventType)(0),                         // 4: iam.identity.v1.UserEventType
-	(GuardianshipEventType)(0),                 // 5: iam.identity.v1.GuardianshipEventType
-	(*VerifiedContact)(nil),                    // 6: iam.identity.v1.VerifiedContact
-	(*IdentityDocument)(nil),                   // 7: iam.identity.v1.IdentityDocument
-	(*PhysicalStats)(nil),                      // 8: iam.identity.v1.PhysicalStats
-	(*ExternalIdentity)(nil),                   // 9: iam.identity.v1.ExternalIdentity
-	(*OperatorContext)(nil),                    // 10: iam.identity.v1.OperatorContext
-	(*OffsetPagination)(nil),                   // 11: iam.identity.v1.OffsetPagination
-	(*User)(nil),                               // 12: iam.identity.v1.User
-	(*Child)(nil),                              // 13: iam.identity.v1.Child
-	(*Guardianship)(nil),                       // 14: iam.identity.v1.Guardianship
-	(*ChildEdge)(nil),                          // 15: iam.identity.v1.ChildEdge
-	(*GuardianshipEdge)(nil),                   // 16: iam.identity.v1.GuardianshipEdge
-	(*GuardianshipKey)(nil),                    // 17: iam.identity.v1.GuardianshipKey
-	(*GuardianshipSelector)(nil),               // 18: iam.identity.v1.GuardianshipSelector
-	(*GetUserRequest)(nil),                     // 19: iam.identity.v1.GetUserRequest
-	(*GetUserResponse)(nil),                    // 20: iam.identity.v1.GetUserResponse
-	(*BatchGetUsersRequest)(nil),               // 21: iam.identity.v1.BatchGetUsersRequest
-	(*BatchGetUsersResponse)(nil),              // 22: iam.identity.v1.BatchGetUsersResponse
-	(*SearchUsersRequest)(nil),                 // 23: iam.identity.v1.SearchUsersRequest
-	(*SearchUsersResponse)(nil),                // 24: iam.identity.v1.SearchUsersResponse
-	(*GetChildRequest)(nil),                    // 25: iam.identity.v1.GetChildRequest
-	(*GetChildResponse)(nil),                   // 26: iam.identity.v1.GetChildResponse
-	(*BatchGetChildrenRequest)(nil),            // 27: iam.identity.v1.BatchGetChildrenRequest
-	(*BatchGetChildrenResponse)(nil),           // 28: iam.identity.v1.BatchGetChildrenResponse
-	(*ListChildrenRequest)(nil),                // 29: iam.identity.v1.ListChildrenRequest
-	(*ListChildrenResponse)(nil),               // 30: iam.identity.v1.ListChildrenResponse
-	(*ListGuardiansRequest)(nil),               // 31: iam.identity.v1.ListGuardiansRequest
-	(*ListGuardiansResponse)(nil),              // 32: iam.identity.v1.ListGuardiansResponse
-	(*IsGuardianRequest)(nil),                  // 33: iam.identity.v1.IsGuardianRequest
-	(*IsGuardianResponse)(nil),                 // 34: iam.identity.v1.IsGuardianResponse
-	(*AddGuardianRequest)(nil),                 // 35: iam.identity.v1.AddGuardianRequest
-	(*AddGuardianResponse)(nil),                // 36: iam.identity.v1.AddGuardianResponse
-	(*UpdateGuardianRelationRequest)(nil),      // 37: iam.identity.v1.UpdateGuardianRelationRequest
-	(*UpdateGuardianRelationResponse)(nil),     // 38: iam.identity.v1.UpdateGuardianRelationResponse
-	(*RevokeGuardianRequest)(nil),              // 39: iam.identity.v1.RevokeGuardianRequest
-	(*RevokeGuardianResponse)(nil),             // 40: iam.identity.v1.RevokeGuardianResponse
-	(*BatchRevokeGuardiansRequest)(nil),        // 41: iam.identity.v1.BatchRevokeGuardiansRequest
-	(*BatchRevokeGuardiansResponse)(nil),       // 42: iam.identity.v1.BatchRevokeGuardiansResponse
-	(*FailedGuardianshipFailure)(nil),          // 43: iam.identity.v1.FailedGuardianshipFailure
-	(*ImportGuardianRecord)(nil),               // 44: iam.identity.v1.ImportGuardianRecord
-	(*ImportGuardiansRequest)(nil),             // 45: iam.identity.v1.ImportGuardiansRequest
-	(*ImportGuardiansResponse)(nil),            // 46: iam.identity.v1.ImportGuardiansResponse
-	(*FailedImportGuardian)(nil),               // 47: iam.identity.v1.FailedImportGuardian
-	(*CreateUserRequest)(nil),                  // 48: iam.identity.v1.CreateUserRequest
-	(*CreateUserResponse)(nil),                 // 49: iam.identity.v1.CreateUserResponse
-	(*UpdateUserRequest)(nil),                  // 50: iam.identity.v1.UpdateUserRequest
-	(*UpdateUserResponse)(nil),                 // 51: iam.identity.v1.UpdateUserResponse
-	(*ChangeUserStatusRequest)(nil),            // 52: iam.identity.v1.ChangeUserStatusRequest
-	(*UserOperationResponse)(nil),              // 53: iam.identity.v1.UserOperationResponse
-	(*LinkExternalIdentityRequest)(nil),        // 54: iam.identity.v1.LinkExternalIdentityRequest
-	(*LinkExternalIdentityResponse)(nil),       // 55: iam.identity.v1.LinkExternalIdentityResponse
-	(*SubscribeUserEventsRequest)(nil),         // 56: iam.identity.v1.SubscribeUserEventsRequest
-	(*UserEvent)(nil),                          // 57: iam.identity.v1.UserEvent
-	(*SubscribeGuardianshipEventsRequest)(nil), // 58: iam.identity.v1.SubscribeGuardianshipEventsRequest
-	(*GuardianshipEvent)(nil),                  // 59: iam.identity.v1.GuardianshipEvent
-	nil,                                        // 60: iam.identity.v1.OperatorContext.ExtraEntry
-	(*timestamppb.Timestamp)(nil),              // 61: google.protobuf.Timestamp
+	(UserStatus)(0),                      // 0: iam.identity.v1.UserStatus
+	(ContactType)(0),                     // 1: iam.identity.v1.ContactType
+	(Gender)(0),                          // 2: iam.identity.v1.Gender
+	(GuardianshipRelation)(0),            // 3: iam.identity.v1.GuardianshipRelation
+	(*VerifiedContact)(nil),              // 4: iam.identity.v1.VerifiedContact
+	(*IdentityDocument)(nil),             // 5: iam.identity.v1.IdentityDocument
+	(*PhysicalStats)(nil),                // 6: iam.identity.v1.PhysicalStats
+	(*ExternalIdentity)(nil),             // 7: iam.identity.v1.ExternalIdentity
+	(*OperatorContext)(nil),              // 8: iam.identity.v1.OperatorContext
+	(*OffsetPagination)(nil),             // 9: iam.identity.v1.OffsetPagination
+	(*User)(nil),                         // 10: iam.identity.v1.User
+	(*Child)(nil),                        // 11: iam.identity.v1.Child
+	(*Guardianship)(nil),                 // 12: iam.identity.v1.Guardianship
+	(*ChildEdge)(nil),                    // 13: iam.identity.v1.ChildEdge
+	(*GuardianshipEdge)(nil),             // 14: iam.identity.v1.GuardianshipEdge
+	(*GuardianshipKey)(nil),              // 15: iam.identity.v1.GuardianshipKey
+	(*GuardianshipSelector)(nil),         // 16: iam.identity.v1.GuardianshipSelector
+	(*GetUserRequest)(nil),               // 17: iam.identity.v1.GetUserRequest
+	(*GetUserResponse)(nil),              // 18: iam.identity.v1.GetUserResponse
+	(*BatchGetUsersRequest)(nil),         // 19: iam.identity.v1.BatchGetUsersRequest
+	(*BatchGetUsersResponse)(nil),        // 20: iam.identity.v1.BatchGetUsersResponse
+	(*SearchUsersRequest)(nil),           // 21: iam.identity.v1.SearchUsersRequest
+	(*SearchUsersResponse)(nil),          // 22: iam.identity.v1.SearchUsersResponse
+	(*GetChildRequest)(nil),              // 23: iam.identity.v1.GetChildRequest
+	(*GetChildResponse)(nil),             // 24: iam.identity.v1.GetChildResponse
+	(*BatchGetChildrenRequest)(nil),      // 25: iam.identity.v1.BatchGetChildrenRequest
+	(*BatchGetChildrenResponse)(nil),     // 26: iam.identity.v1.BatchGetChildrenResponse
+	(*ListChildrenRequest)(nil),          // 27: iam.identity.v1.ListChildrenRequest
+	(*ListChildrenResponse)(nil),         // 28: iam.identity.v1.ListChildrenResponse
+	(*ListGuardiansRequest)(nil),         // 29: iam.identity.v1.ListGuardiansRequest
+	(*ListGuardiansResponse)(nil),        // 30: iam.identity.v1.ListGuardiansResponse
+	(*IsGuardianRequest)(nil),            // 31: iam.identity.v1.IsGuardianRequest
+	(*IsGuardianResponse)(nil),           // 32: iam.identity.v1.IsGuardianResponse
+	(*AddGuardianRequest)(nil),           // 33: iam.identity.v1.AddGuardianRequest
+	(*AddGuardianResponse)(nil),          // 34: iam.identity.v1.AddGuardianResponse
+	(*RevokeGuardianRequest)(nil),        // 35: iam.identity.v1.RevokeGuardianRequest
+	(*RevokeGuardianResponse)(nil),       // 36: iam.identity.v1.RevokeGuardianResponse
+	(*BatchRevokeGuardiansRequest)(nil),  // 37: iam.identity.v1.BatchRevokeGuardiansRequest
+	(*BatchRevokeGuardiansResponse)(nil), // 38: iam.identity.v1.BatchRevokeGuardiansResponse
+	(*FailedGuardianshipFailure)(nil),    // 39: iam.identity.v1.FailedGuardianshipFailure
+	(*ImportGuardianRecord)(nil),         // 40: iam.identity.v1.ImportGuardianRecord
+	(*ImportGuardiansRequest)(nil),       // 41: iam.identity.v1.ImportGuardiansRequest
+	(*ImportGuardiansResponse)(nil),      // 42: iam.identity.v1.ImportGuardiansResponse
+	(*FailedImportGuardian)(nil),         // 43: iam.identity.v1.FailedImportGuardian
+	(*CreateUserRequest)(nil),            // 44: iam.identity.v1.CreateUserRequest
+	(*CreateUserResponse)(nil),           // 45: iam.identity.v1.CreateUserResponse
+	(*UpdateUserRequest)(nil),            // 46: iam.identity.v1.UpdateUserRequest
+	(*UpdateUserResponse)(nil),           // 47: iam.identity.v1.UpdateUserResponse
+	(*ChangeUserStatusRequest)(nil),      // 48: iam.identity.v1.ChangeUserStatusRequest
+	(*UserOperationResponse)(nil),        // 49: iam.identity.v1.UserOperationResponse
+	nil,                                  // 50: iam.identity.v1.OperatorContext.ExtraEntry
+	(*timestamppb.Timestamp)(nil),        // 51: google.protobuf.Timestamp
 }
 var file_iam_identity_v1_identity_proto_depIdxs = []int32{
 	1,  // 0: iam.identity.v1.VerifiedContact.type:type_name -> iam.identity.v1.ContactType
-	61, // 1: iam.identity.v1.VerifiedContact.verified_at:type_name -> google.protobuf.Timestamp
-	60, // 2: iam.identity.v1.OperatorContext.extra:type_name -> iam.identity.v1.OperatorContext.ExtraEntry
+	51, // 1: iam.identity.v1.VerifiedContact.verified_at:type_name -> google.protobuf.Timestamp
+	50, // 2: iam.identity.v1.OperatorContext.extra:type_name -> iam.identity.v1.OperatorContext.ExtraEntry
 	0,  // 3: iam.identity.v1.User.status:type_name -> iam.identity.v1.UserStatus
-	6,  // 4: iam.identity.v1.User.contacts:type_name -> iam.identity.v1.VerifiedContact
-	9,  // 5: iam.identity.v1.User.external_identities:type_name -> iam.identity.v1.ExternalIdentity
-	61, // 6: iam.identity.v1.User.created_at:type_name -> google.protobuf.Timestamp
-	61, // 7: iam.identity.v1.User.updated_at:type_name -> google.protobuf.Timestamp
+	4,  // 4: iam.identity.v1.User.contacts:type_name -> iam.identity.v1.VerifiedContact
+	7,  // 5: iam.identity.v1.User.external_identities:type_name -> iam.identity.v1.ExternalIdentity
+	51, // 6: iam.identity.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	51, // 7: iam.identity.v1.User.updated_at:type_name -> google.protobuf.Timestamp
 	2,  // 8: iam.identity.v1.Child.gender:type_name -> iam.identity.v1.Gender
-	7,  // 9: iam.identity.v1.Child.identity:type_name -> iam.identity.v1.IdentityDocument
-	8,  // 10: iam.identity.v1.Child.stats:type_name -> iam.identity.v1.PhysicalStats
-	61, // 11: iam.identity.v1.Child.created_at:type_name -> google.protobuf.Timestamp
-	61, // 12: iam.identity.v1.Child.updated_at:type_name -> google.protobuf.Timestamp
+	5,  // 9: iam.identity.v1.Child.identity:type_name -> iam.identity.v1.IdentityDocument
+	6,  // 10: iam.identity.v1.Child.stats:type_name -> iam.identity.v1.PhysicalStats
+	51, // 11: iam.identity.v1.Child.created_at:type_name -> google.protobuf.Timestamp
+	51, // 12: iam.identity.v1.Child.updated_at:type_name -> google.protobuf.Timestamp
 	3,  // 13: iam.identity.v1.Guardianship.relation:type_name -> iam.identity.v1.GuardianshipRelation
-	61, // 14: iam.identity.v1.Guardianship.since:type_name -> google.protobuf.Timestamp
-	61, // 15: iam.identity.v1.Guardianship.revoked_at:type_name -> google.protobuf.Timestamp
-	13, // 16: iam.identity.v1.ChildEdge.child:type_name -> iam.identity.v1.Child
-	14, // 17: iam.identity.v1.ChildEdge.guardianship:type_name -> iam.identity.v1.Guardianship
-	14, // 18: iam.identity.v1.GuardianshipEdge.guardianship:type_name -> iam.identity.v1.Guardianship
-	12, // 19: iam.identity.v1.GuardianshipEdge.guardian:type_name -> iam.identity.v1.User
-	17, // 20: iam.identity.v1.GuardianshipSelector.key:type_name -> iam.identity.v1.GuardianshipKey
-	12, // 21: iam.identity.v1.GetUserResponse.user:type_name -> iam.identity.v1.User
-	12, // 22: iam.identity.v1.BatchGetUsersResponse.users:type_name -> iam.identity.v1.User
-	11, // 23: iam.identity.v1.SearchUsersRequest.page:type_name -> iam.identity.v1.OffsetPagination
-	11, // 24: iam.identity.v1.SearchUsersResponse.page:type_name -> iam.identity.v1.OffsetPagination
-	12, // 25: iam.identity.v1.SearchUsersResponse.users:type_name -> iam.identity.v1.User
-	13, // 26: iam.identity.v1.GetChildResponse.child:type_name -> iam.identity.v1.Child
-	13, // 27: iam.identity.v1.BatchGetChildrenResponse.children:type_name -> iam.identity.v1.Child
-	11, // 28: iam.identity.v1.ListChildrenRequest.page:type_name -> iam.identity.v1.OffsetPagination
-	11, // 29: iam.identity.v1.ListChildrenResponse.page:type_name -> iam.identity.v1.OffsetPagination
-	15, // 30: iam.identity.v1.ListChildrenResponse.items:type_name -> iam.identity.v1.ChildEdge
-	16, // 31: iam.identity.v1.ListGuardiansResponse.items:type_name -> iam.identity.v1.GuardianshipEdge
-	14, // 32: iam.identity.v1.IsGuardianResponse.guardianship:type_name -> iam.identity.v1.Guardianship
+	51, // 14: iam.identity.v1.Guardianship.since:type_name -> google.protobuf.Timestamp
+	51, // 15: iam.identity.v1.Guardianship.revoked_at:type_name -> google.protobuf.Timestamp
+	11, // 16: iam.identity.v1.ChildEdge.child:type_name -> iam.identity.v1.Child
+	12, // 17: iam.identity.v1.ChildEdge.guardianship:type_name -> iam.identity.v1.Guardianship
+	12, // 18: iam.identity.v1.GuardianshipEdge.guardianship:type_name -> iam.identity.v1.Guardianship
+	10, // 19: iam.identity.v1.GuardianshipEdge.guardian:type_name -> iam.identity.v1.User
+	15, // 20: iam.identity.v1.GuardianshipSelector.key:type_name -> iam.identity.v1.GuardianshipKey
+	10, // 21: iam.identity.v1.GetUserResponse.user:type_name -> iam.identity.v1.User
+	10, // 22: iam.identity.v1.BatchGetUsersResponse.users:type_name -> iam.identity.v1.User
+	9,  // 23: iam.identity.v1.SearchUsersRequest.page:type_name -> iam.identity.v1.OffsetPagination
+	9,  // 24: iam.identity.v1.SearchUsersResponse.page:type_name -> iam.identity.v1.OffsetPagination
+	10, // 25: iam.identity.v1.SearchUsersResponse.users:type_name -> iam.identity.v1.User
+	11, // 26: iam.identity.v1.GetChildResponse.child:type_name -> iam.identity.v1.Child
+	11, // 27: iam.identity.v1.BatchGetChildrenResponse.children:type_name -> iam.identity.v1.Child
+	9,  // 28: iam.identity.v1.ListChildrenRequest.page:type_name -> iam.identity.v1.OffsetPagination
+	9,  // 29: iam.identity.v1.ListChildrenResponse.page:type_name -> iam.identity.v1.OffsetPagination
+	13, // 30: iam.identity.v1.ListChildrenResponse.items:type_name -> iam.identity.v1.ChildEdge
+	14, // 31: iam.identity.v1.ListGuardiansResponse.items:type_name -> iam.identity.v1.GuardianshipEdge
+	12, // 32: iam.identity.v1.IsGuardianResponse.guardianship:type_name -> iam.identity.v1.Guardianship
 	3,  // 33: iam.identity.v1.AddGuardianRequest.relation:type_name -> iam.identity.v1.GuardianshipRelation
-	10, // 34: iam.identity.v1.AddGuardianRequest.operator:type_name -> iam.identity.v1.OperatorContext
-	14, // 35: iam.identity.v1.AddGuardianResponse.guardianship:type_name -> iam.identity.v1.Guardianship
-	3,  // 36: iam.identity.v1.UpdateGuardianRelationRequest.relation:type_name -> iam.identity.v1.GuardianshipRelation
-	10, // 37: iam.identity.v1.UpdateGuardianRelationRequest.operator:type_name -> iam.identity.v1.OperatorContext
-	14, // 38: iam.identity.v1.UpdateGuardianRelationResponse.guardianship:type_name -> iam.identity.v1.Guardianship
-	18, // 39: iam.identity.v1.RevokeGuardianRequest.target:type_name -> iam.identity.v1.GuardianshipSelector
-	10, // 40: iam.identity.v1.RevokeGuardianRequest.operator:type_name -> iam.identity.v1.OperatorContext
-	14, // 41: iam.identity.v1.RevokeGuardianResponse.guardianship:type_name -> iam.identity.v1.Guardianship
-	18, // 42: iam.identity.v1.BatchRevokeGuardiansRequest.targets:type_name -> iam.identity.v1.GuardianshipSelector
-	10, // 43: iam.identity.v1.BatchRevokeGuardiansRequest.operator:type_name -> iam.identity.v1.OperatorContext
-	14, // 44: iam.identity.v1.BatchRevokeGuardiansResponse.revoked:type_name -> iam.identity.v1.Guardianship
-	43, // 45: iam.identity.v1.BatchRevokeGuardiansResponse.failures:type_name -> iam.identity.v1.FailedGuardianshipFailure
-	18, // 46: iam.identity.v1.FailedGuardianshipFailure.target:type_name -> iam.identity.v1.GuardianshipSelector
-	3,  // 47: iam.identity.v1.ImportGuardianRecord.relation:type_name -> iam.identity.v1.GuardianshipRelation
-	44, // 48: iam.identity.v1.ImportGuardiansRequest.records:type_name -> iam.identity.v1.ImportGuardianRecord
-	10, // 49: iam.identity.v1.ImportGuardiansRequest.operator:type_name -> iam.identity.v1.OperatorContext
-	14, // 50: iam.identity.v1.ImportGuardiansResponse.created:type_name -> iam.identity.v1.Guardianship
-	47, // 51: iam.identity.v1.ImportGuardiansResponse.failures:type_name -> iam.identity.v1.FailedImportGuardian
-	44, // 52: iam.identity.v1.FailedImportGuardian.record:type_name -> iam.identity.v1.ImportGuardianRecord
-	6,  // 53: iam.identity.v1.CreateUserRequest.contacts:type_name -> iam.identity.v1.VerifiedContact
-	9,  // 54: iam.identity.v1.CreateUserRequest.external_identities:type_name -> iam.identity.v1.ExternalIdentity
-	10, // 55: iam.identity.v1.CreateUserRequest.operator:type_name -> iam.identity.v1.OperatorContext
-	12, // 56: iam.identity.v1.CreateUserResponse.user:type_name -> iam.identity.v1.User
-	6,  // 57: iam.identity.v1.UpdateUserRequest.contacts:type_name -> iam.identity.v1.VerifiedContact
-	9,  // 58: iam.identity.v1.UpdateUserRequest.external_identities:type_name -> iam.identity.v1.ExternalIdentity
-	10, // 59: iam.identity.v1.UpdateUserRequest.operator:type_name -> iam.identity.v1.OperatorContext
-	12, // 60: iam.identity.v1.UpdateUserResponse.user:type_name -> iam.identity.v1.User
-	10, // 61: iam.identity.v1.ChangeUserStatusRequest.operator:type_name -> iam.identity.v1.OperatorContext
-	12, // 62: iam.identity.v1.UserOperationResponse.user:type_name -> iam.identity.v1.User
-	9,  // 63: iam.identity.v1.LinkExternalIdentityRequest.external_identity:type_name -> iam.identity.v1.ExternalIdentity
-	10, // 64: iam.identity.v1.LinkExternalIdentityRequest.operator:type_name -> iam.identity.v1.OperatorContext
-	12, // 65: iam.identity.v1.LinkExternalIdentityResponse.user:type_name -> iam.identity.v1.User
-	4,  // 66: iam.identity.v1.SubscribeUserEventsRequest.types:type_name -> iam.identity.v1.UserEventType
-	4,  // 67: iam.identity.v1.UserEvent.type:type_name -> iam.identity.v1.UserEventType
-	12, // 68: iam.identity.v1.UserEvent.user:type_name -> iam.identity.v1.User
-	61, // 69: iam.identity.v1.UserEvent.occurred_at:type_name -> google.protobuf.Timestamp
-	5,  // 70: iam.identity.v1.SubscribeGuardianshipEventsRequest.types:type_name -> iam.identity.v1.GuardianshipEventType
-	5,  // 71: iam.identity.v1.GuardianshipEvent.type:type_name -> iam.identity.v1.GuardianshipEventType
-	14, // 72: iam.identity.v1.GuardianshipEvent.guardianship:type_name -> iam.identity.v1.Guardianship
-	61, // 73: iam.identity.v1.GuardianshipEvent.occurred_at:type_name -> google.protobuf.Timestamp
-	19, // 74: iam.identity.v1.IdentityRead.GetUser:input_type -> iam.identity.v1.GetUserRequest
-	21, // 75: iam.identity.v1.IdentityRead.BatchGetUsers:input_type -> iam.identity.v1.BatchGetUsersRequest
-	23, // 76: iam.identity.v1.IdentityRead.SearchUsers:input_type -> iam.identity.v1.SearchUsersRequest
-	25, // 77: iam.identity.v1.IdentityRead.GetChild:input_type -> iam.identity.v1.GetChildRequest
-	27, // 78: iam.identity.v1.IdentityRead.BatchGetChildren:input_type -> iam.identity.v1.BatchGetChildrenRequest
-	33, // 79: iam.identity.v1.GuardianshipQuery.IsGuardian:input_type -> iam.identity.v1.IsGuardianRequest
-	29, // 80: iam.identity.v1.GuardianshipQuery.ListChildren:input_type -> iam.identity.v1.ListChildrenRequest
-	31, // 81: iam.identity.v1.GuardianshipQuery.ListGuardians:input_type -> iam.identity.v1.ListGuardiansRequest
-	35, // 82: iam.identity.v1.GuardianshipCommand.AddGuardian:input_type -> iam.identity.v1.AddGuardianRequest
-	37, // 83: iam.identity.v1.GuardianshipCommand.UpdateGuardianRelation:input_type -> iam.identity.v1.UpdateGuardianRelationRequest
-	39, // 84: iam.identity.v1.GuardianshipCommand.RevokeGuardian:input_type -> iam.identity.v1.RevokeGuardianRequest
-	41, // 85: iam.identity.v1.GuardianshipCommand.BatchRevokeGuardians:input_type -> iam.identity.v1.BatchRevokeGuardiansRequest
-	45, // 86: iam.identity.v1.GuardianshipCommand.ImportGuardians:input_type -> iam.identity.v1.ImportGuardiansRequest
-	48, // 87: iam.identity.v1.IdentityLifecycle.CreateUser:input_type -> iam.identity.v1.CreateUserRequest
-	50, // 88: iam.identity.v1.IdentityLifecycle.UpdateUser:input_type -> iam.identity.v1.UpdateUserRequest
-	52, // 89: iam.identity.v1.IdentityLifecycle.DeactivateUser:input_type -> iam.identity.v1.ChangeUserStatusRequest
-	52, // 90: iam.identity.v1.IdentityLifecycle.BlockUser:input_type -> iam.identity.v1.ChangeUserStatusRequest
-	54, // 91: iam.identity.v1.IdentityLifecycle.LinkExternalIdentity:input_type -> iam.identity.v1.LinkExternalIdentityRequest
-	56, // 92: iam.identity.v1.IdentityStream.SubscribeUserEvents:input_type -> iam.identity.v1.SubscribeUserEventsRequest
-	58, // 93: iam.identity.v1.IdentityStream.SubscribeGuardianshipEvents:input_type -> iam.identity.v1.SubscribeGuardianshipEventsRequest
-	20, // 94: iam.identity.v1.IdentityRead.GetUser:output_type -> iam.identity.v1.GetUserResponse
-	22, // 95: iam.identity.v1.IdentityRead.BatchGetUsers:output_type -> iam.identity.v1.BatchGetUsersResponse
-	24, // 96: iam.identity.v1.IdentityRead.SearchUsers:output_type -> iam.identity.v1.SearchUsersResponse
-	26, // 97: iam.identity.v1.IdentityRead.GetChild:output_type -> iam.identity.v1.GetChildResponse
-	28, // 98: iam.identity.v1.IdentityRead.BatchGetChildren:output_type -> iam.identity.v1.BatchGetChildrenResponse
-	34, // 99: iam.identity.v1.GuardianshipQuery.IsGuardian:output_type -> iam.identity.v1.IsGuardianResponse
-	30, // 100: iam.identity.v1.GuardianshipQuery.ListChildren:output_type -> iam.identity.v1.ListChildrenResponse
-	32, // 101: iam.identity.v1.GuardianshipQuery.ListGuardians:output_type -> iam.identity.v1.ListGuardiansResponse
-	36, // 102: iam.identity.v1.GuardianshipCommand.AddGuardian:output_type -> iam.identity.v1.AddGuardianResponse
-	38, // 103: iam.identity.v1.GuardianshipCommand.UpdateGuardianRelation:output_type -> iam.identity.v1.UpdateGuardianRelationResponse
-	40, // 104: iam.identity.v1.GuardianshipCommand.RevokeGuardian:output_type -> iam.identity.v1.RevokeGuardianResponse
-	42, // 105: iam.identity.v1.GuardianshipCommand.BatchRevokeGuardians:output_type -> iam.identity.v1.BatchRevokeGuardiansResponse
-	46, // 106: iam.identity.v1.GuardianshipCommand.ImportGuardians:output_type -> iam.identity.v1.ImportGuardiansResponse
-	49, // 107: iam.identity.v1.IdentityLifecycle.CreateUser:output_type -> iam.identity.v1.CreateUserResponse
-	51, // 108: iam.identity.v1.IdentityLifecycle.UpdateUser:output_type -> iam.identity.v1.UpdateUserResponse
-	53, // 109: iam.identity.v1.IdentityLifecycle.DeactivateUser:output_type -> iam.identity.v1.UserOperationResponse
-	53, // 110: iam.identity.v1.IdentityLifecycle.BlockUser:output_type -> iam.identity.v1.UserOperationResponse
-	55, // 111: iam.identity.v1.IdentityLifecycle.LinkExternalIdentity:output_type -> iam.identity.v1.LinkExternalIdentityResponse
-	57, // 112: iam.identity.v1.IdentityStream.SubscribeUserEvents:output_type -> iam.identity.v1.UserEvent
-	59, // 113: iam.identity.v1.IdentityStream.SubscribeGuardianshipEvents:output_type -> iam.identity.v1.GuardianshipEvent
-	94, // [94:114] is the sub-list for method output_type
-	74, // [74:94] is the sub-list for method input_type
-	74, // [74:74] is the sub-list for extension type_name
-	74, // [74:74] is the sub-list for extension extendee
-	0,  // [0:74] is the sub-list for field type_name
+	8,  // 34: iam.identity.v1.AddGuardianRequest.operator:type_name -> iam.identity.v1.OperatorContext
+	12, // 35: iam.identity.v1.AddGuardianResponse.guardianship:type_name -> iam.identity.v1.Guardianship
+	16, // 36: iam.identity.v1.RevokeGuardianRequest.target:type_name -> iam.identity.v1.GuardianshipSelector
+	8,  // 37: iam.identity.v1.RevokeGuardianRequest.operator:type_name -> iam.identity.v1.OperatorContext
+	12, // 38: iam.identity.v1.RevokeGuardianResponse.guardianship:type_name -> iam.identity.v1.Guardianship
+	16, // 39: iam.identity.v1.BatchRevokeGuardiansRequest.targets:type_name -> iam.identity.v1.GuardianshipSelector
+	8,  // 40: iam.identity.v1.BatchRevokeGuardiansRequest.operator:type_name -> iam.identity.v1.OperatorContext
+	12, // 41: iam.identity.v1.BatchRevokeGuardiansResponse.revoked:type_name -> iam.identity.v1.Guardianship
+	39, // 42: iam.identity.v1.BatchRevokeGuardiansResponse.failures:type_name -> iam.identity.v1.FailedGuardianshipFailure
+	16, // 43: iam.identity.v1.FailedGuardianshipFailure.target:type_name -> iam.identity.v1.GuardianshipSelector
+	3,  // 44: iam.identity.v1.ImportGuardianRecord.relation:type_name -> iam.identity.v1.GuardianshipRelation
+	40, // 45: iam.identity.v1.ImportGuardiansRequest.records:type_name -> iam.identity.v1.ImportGuardianRecord
+	8,  // 46: iam.identity.v1.ImportGuardiansRequest.operator:type_name -> iam.identity.v1.OperatorContext
+	12, // 47: iam.identity.v1.ImportGuardiansResponse.created:type_name -> iam.identity.v1.Guardianship
+	43, // 48: iam.identity.v1.ImportGuardiansResponse.failures:type_name -> iam.identity.v1.FailedImportGuardian
+	40, // 49: iam.identity.v1.FailedImportGuardian.record:type_name -> iam.identity.v1.ImportGuardianRecord
+	4,  // 50: iam.identity.v1.CreateUserRequest.contacts:type_name -> iam.identity.v1.VerifiedContact
+	7,  // 51: iam.identity.v1.CreateUserRequest.external_identities:type_name -> iam.identity.v1.ExternalIdentity
+	8,  // 52: iam.identity.v1.CreateUserRequest.operator:type_name -> iam.identity.v1.OperatorContext
+	10, // 53: iam.identity.v1.CreateUserResponse.user:type_name -> iam.identity.v1.User
+	4,  // 54: iam.identity.v1.UpdateUserRequest.contacts:type_name -> iam.identity.v1.VerifiedContact
+	7,  // 55: iam.identity.v1.UpdateUserRequest.external_identities:type_name -> iam.identity.v1.ExternalIdentity
+	8,  // 56: iam.identity.v1.UpdateUserRequest.operator:type_name -> iam.identity.v1.OperatorContext
+	10, // 57: iam.identity.v1.UpdateUserResponse.user:type_name -> iam.identity.v1.User
+	8,  // 58: iam.identity.v1.ChangeUserStatusRequest.operator:type_name -> iam.identity.v1.OperatorContext
+	10, // 59: iam.identity.v1.UserOperationResponse.user:type_name -> iam.identity.v1.User
+	17, // 60: iam.identity.v1.IdentityRead.GetUser:input_type -> iam.identity.v1.GetUserRequest
+	19, // 61: iam.identity.v1.IdentityRead.BatchGetUsers:input_type -> iam.identity.v1.BatchGetUsersRequest
+	21, // 62: iam.identity.v1.IdentityRead.SearchUsers:input_type -> iam.identity.v1.SearchUsersRequest
+	23, // 63: iam.identity.v1.IdentityRead.GetChild:input_type -> iam.identity.v1.GetChildRequest
+	25, // 64: iam.identity.v1.IdentityRead.BatchGetChildren:input_type -> iam.identity.v1.BatchGetChildrenRequest
+	31, // 65: iam.identity.v1.GuardianshipQuery.IsGuardian:input_type -> iam.identity.v1.IsGuardianRequest
+	27, // 66: iam.identity.v1.GuardianshipQuery.ListChildren:input_type -> iam.identity.v1.ListChildrenRequest
+	29, // 67: iam.identity.v1.GuardianshipQuery.ListGuardians:input_type -> iam.identity.v1.ListGuardiansRequest
+	33, // 68: iam.identity.v1.GuardianshipCommand.AddGuardian:input_type -> iam.identity.v1.AddGuardianRequest
+	35, // 69: iam.identity.v1.GuardianshipCommand.RevokeGuardian:input_type -> iam.identity.v1.RevokeGuardianRequest
+	37, // 70: iam.identity.v1.GuardianshipCommand.BatchRevokeGuardians:input_type -> iam.identity.v1.BatchRevokeGuardiansRequest
+	41, // 71: iam.identity.v1.GuardianshipCommand.ImportGuardians:input_type -> iam.identity.v1.ImportGuardiansRequest
+	44, // 72: iam.identity.v1.IdentityLifecycle.CreateUser:input_type -> iam.identity.v1.CreateUserRequest
+	46, // 73: iam.identity.v1.IdentityLifecycle.UpdateUser:input_type -> iam.identity.v1.UpdateUserRequest
+	48, // 74: iam.identity.v1.IdentityLifecycle.DeactivateUser:input_type -> iam.identity.v1.ChangeUserStatusRequest
+	48, // 75: iam.identity.v1.IdentityLifecycle.BlockUser:input_type -> iam.identity.v1.ChangeUserStatusRequest
+	18, // 76: iam.identity.v1.IdentityRead.GetUser:output_type -> iam.identity.v1.GetUserResponse
+	20, // 77: iam.identity.v1.IdentityRead.BatchGetUsers:output_type -> iam.identity.v1.BatchGetUsersResponse
+	22, // 78: iam.identity.v1.IdentityRead.SearchUsers:output_type -> iam.identity.v1.SearchUsersResponse
+	24, // 79: iam.identity.v1.IdentityRead.GetChild:output_type -> iam.identity.v1.GetChildResponse
+	26, // 80: iam.identity.v1.IdentityRead.BatchGetChildren:output_type -> iam.identity.v1.BatchGetChildrenResponse
+	32, // 81: iam.identity.v1.GuardianshipQuery.IsGuardian:output_type -> iam.identity.v1.IsGuardianResponse
+	28, // 82: iam.identity.v1.GuardianshipQuery.ListChildren:output_type -> iam.identity.v1.ListChildrenResponse
+	30, // 83: iam.identity.v1.GuardianshipQuery.ListGuardians:output_type -> iam.identity.v1.ListGuardiansResponse
+	34, // 84: iam.identity.v1.GuardianshipCommand.AddGuardian:output_type -> iam.identity.v1.AddGuardianResponse
+	36, // 85: iam.identity.v1.GuardianshipCommand.RevokeGuardian:output_type -> iam.identity.v1.RevokeGuardianResponse
+	38, // 86: iam.identity.v1.GuardianshipCommand.BatchRevokeGuardians:output_type -> iam.identity.v1.BatchRevokeGuardiansResponse
+	42, // 87: iam.identity.v1.GuardianshipCommand.ImportGuardians:output_type -> iam.identity.v1.ImportGuardiansResponse
+	45, // 88: iam.identity.v1.IdentityLifecycle.CreateUser:output_type -> iam.identity.v1.CreateUserResponse
+	47, // 89: iam.identity.v1.IdentityLifecycle.UpdateUser:output_type -> iam.identity.v1.UpdateUserResponse
+	49, // 90: iam.identity.v1.IdentityLifecycle.DeactivateUser:output_type -> iam.identity.v1.UserOperationResponse
+	49, // 91: iam.identity.v1.IdentityLifecycle.BlockUser:output_type -> iam.identity.v1.UserOperationResponse
+	76, // [76:92] is the sub-list for method output_type
+	60, // [60:76] is the sub-list for method input_type
+	60, // [60:60] is the sub-list for extension type_name
+	60, // [60:60] is the sub-list for extension extendee
+	0,  // [0:60] is the sub-list for field type_name
 }
 
 func init() { file_iam_identity_v1_identity_proto_init() }
@@ -3997,10 +3342,10 @@ func file_iam_identity_v1_identity_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_iam_identity_v1_identity_proto_rawDesc), len(file_iam_identity_v1_identity_proto_rawDesc)),
-			NumEnums:      6,
-			NumMessages:   55,
+			NumEnums:      4,
+			NumMessages:   47,
 			NumExtensions: 0,
-			NumServices:   5,
+			NumServices:   4,
 		},
 		GoTypes:           file_iam_identity_v1_identity_proto_goTypes,
 		DependencyIndexes: file_iam_identity_v1_identity_proto_depIdxs,

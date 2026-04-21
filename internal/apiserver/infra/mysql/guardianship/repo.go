@@ -59,8 +59,21 @@ func (r *Repository) FindByID(ctx context.Context, id meta.ID) (*domain.Guardian
 
 // FindByChildID 根据儿童 ID 查找监护关系
 func (r *Repository) FindByChildID(ctx context.Context, id meta.ID) ([]*domain.Guardianship, error) {
+	return r.findByChildID(ctx, id, false)
+}
+
+// FindByChildIDIncludingRevoked 根据儿童 ID 查找监护关系（包含已撤销）
+func (r *Repository) FindByChildIDIncludingRevoked(ctx context.Context, id meta.ID) ([]*domain.Guardianship, error) {
+	return r.findByChildID(ctx, id, true)
+}
+
+func (r *Repository) findByChildID(ctx context.Context, id meta.ID, includeRevoked bool) ([]*domain.Guardianship, error) {
 	var pos []*GuardianshipPO
-	if err := r.WithContext(ctx).Where("child_id = ?", id.Uint64()).Find(&pos).Error; err != nil {
+	query := r.WithContext(ctx).Where("child_id = ?", id.Uint64())
+	if !includeRevoked {
+		query = query.Where("revoked_at IS NULL")
+	}
+	if err := query.Find(&pos).Error; err != nil {
 		return nil, err
 	}
 
@@ -69,8 +82,21 @@ func (r *Repository) FindByChildID(ctx context.Context, id meta.ID) ([]*domain.G
 
 // FindByUserID 根据监护人 ID 查找监护关系
 func (r *Repository) FindByUserID(ctx context.Context, id meta.ID) ([]*domain.Guardianship, error) {
+	return r.findByUserID(ctx, id, false)
+}
+
+// FindByUserIDIncludingRevoked 根据监护人 ID 查找监护关系（包含已撤销）
+func (r *Repository) FindByUserIDIncludingRevoked(ctx context.Context, id meta.ID) ([]*domain.Guardianship, error) {
+	return r.findByUserID(ctx, id, true)
+}
+
+func (r *Repository) findByUserID(ctx context.Context, id meta.ID, includeRevoked bool) ([]*domain.Guardianship, error) {
 	var pos []*GuardianshipPO
-	if err := r.WithContext(ctx).Where("user_id = ?", id.Uint64()).Find(&pos).Error; err != nil {
+	query := r.WithContext(ctx).Where("user_id = ?", id.Uint64())
+	if !includeRevoked {
+		query = query.Where("revoked_at IS NULL")
+	}
+	if err := query.Find(&pos).Error; err != nil {
 		return nil, err
 	}
 
@@ -79,8 +105,21 @@ func (r *Repository) FindByUserID(ctx context.Context, id meta.ID) ([]*domain.Gu
 
 // FindByUserIDAndChildID 根据监护人 ID 和儿童 ID 查找监护关系
 func (r *Repository) FindByUserIDAndChildID(ctx context.Context, userID meta.ID, childID meta.ID) (*domain.Guardianship, error) {
+	return r.findByUserIDAndChildID(ctx, userID, childID, false)
+}
+
+// FindByUserIDAndChildIDIncludingRevoked 根据监护人 ID 和儿童 ID 查找监护关系（包含已撤销）
+func (r *Repository) FindByUserIDAndChildIDIncludingRevoked(ctx context.Context, userID meta.ID, childID meta.ID) (*domain.Guardianship, error) {
+	return r.findByUserIDAndChildID(ctx, userID, childID, true)
+}
+
+func (r *Repository) findByUserIDAndChildID(ctx context.Context, userID meta.ID, childID meta.ID, includeRevoked bool) (*domain.Guardianship, error) {
 	var po GuardianshipPO
-	if err := r.WithContext(ctx).Where("user_id = ? AND child_id = ?", userID.Uint64(), childID.Uint64()).First(&po).Error; err != nil {
+	query := r.WithContext(ctx).Where("user_id = ? AND child_id = ?", userID.Uint64(), childID.Uint64())
+	if !includeRevoked {
+		query = query.Where("revoked_at IS NULL")
+	}
+	if err := query.First(&po).Error; err != nil {
 		return nil, err
 	}
 
@@ -95,7 +134,7 @@ func (r *Repository) FindByUserIDAndChildID(ctx context.Context, userID meta.ID,
 func (r *Repository) IsGuardian(ctx context.Context, userID meta.ID, childID meta.ID) (bool, error) {
 	var count int64
 	if err := r.WithContext(ctx).Model(&GuardianshipPO{}).
-		Where("user_id = ? AND child_id = ?", userID.Uint64(), childID.Uint64()).
+		Where("user_id = ? AND child_id = ? AND revoked_at IS NULL", userID.Uint64(), childID.Uint64()).
 		Count(&count).Error; err != nil {
 		return false, err
 	}

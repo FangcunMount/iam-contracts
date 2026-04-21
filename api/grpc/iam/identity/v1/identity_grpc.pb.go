@@ -451,11 +451,10 @@ var GuardianshipQuery_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	GuardianshipCommand_AddGuardian_FullMethodName            = "/iam.identity.v1.GuardianshipCommand/AddGuardian"
-	GuardianshipCommand_UpdateGuardianRelation_FullMethodName = "/iam.identity.v1.GuardianshipCommand/UpdateGuardianRelation"
-	GuardianshipCommand_RevokeGuardian_FullMethodName         = "/iam.identity.v1.GuardianshipCommand/RevokeGuardian"
-	GuardianshipCommand_BatchRevokeGuardians_FullMethodName   = "/iam.identity.v1.GuardianshipCommand/BatchRevokeGuardians"
-	GuardianshipCommand_ImportGuardians_FullMethodName        = "/iam.identity.v1.GuardianshipCommand/ImportGuardians"
+	GuardianshipCommand_AddGuardian_FullMethodName          = "/iam.identity.v1.GuardianshipCommand/AddGuardian"
+	GuardianshipCommand_RevokeGuardian_FullMethodName       = "/iam.identity.v1.GuardianshipCommand/RevokeGuardian"
+	GuardianshipCommand_BatchRevokeGuardians_FullMethodName = "/iam.identity.v1.GuardianshipCommand/BatchRevokeGuardians"
+	GuardianshipCommand_ImportGuardians_FullMethodName      = "/iam.identity.v1.GuardianshipCommand/ImportGuardians"
 )
 
 // GuardianshipCommandClient is the client API for GuardianshipCommand service.
@@ -463,7 +462,6 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GuardianshipCommandClient interface {
 	AddGuardian(ctx context.Context, in *AddGuardianRequest, opts ...grpc.CallOption) (*AddGuardianResponse, error)
-	UpdateGuardianRelation(ctx context.Context, in *UpdateGuardianRelationRequest, opts ...grpc.CallOption) (*UpdateGuardianRelationResponse, error)
 	RevokeGuardian(ctx context.Context, in *RevokeGuardianRequest, opts ...grpc.CallOption) (*RevokeGuardianResponse, error)
 	BatchRevokeGuardians(ctx context.Context, in *BatchRevokeGuardiansRequest, opts ...grpc.CallOption) (*BatchRevokeGuardiansResponse, error)
 	ImportGuardians(ctx context.Context, in *ImportGuardiansRequest, opts ...grpc.CallOption) (*ImportGuardiansResponse, error)
@@ -481,16 +479,6 @@ func (c *guardianshipCommandClient) AddGuardian(ctx context.Context, in *AddGuar
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AddGuardianResponse)
 	err := c.cc.Invoke(ctx, GuardianshipCommand_AddGuardian_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *guardianshipCommandClient) UpdateGuardianRelation(ctx context.Context, in *UpdateGuardianRelationRequest, opts ...grpc.CallOption) (*UpdateGuardianRelationResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateGuardianRelationResponse)
-	err := c.cc.Invoke(ctx, GuardianshipCommand_UpdateGuardianRelation_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -532,7 +520,6 @@ func (c *guardianshipCommandClient) ImportGuardians(ctx context.Context, in *Imp
 // for forward compatibility.
 type GuardianshipCommandServer interface {
 	AddGuardian(context.Context, *AddGuardianRequest) (*AddGuardianResponse, error)
-	UpdateGuardianRelation(context.Context, *UpdateGuardianRelationRequest) (*UpdateGuardianRelationResponse, error)
 	RevokeGuardian(context.Context, *RevokeGuardianRequest) (*RevokeGuardianResponse, error)
 	BatchRevokeGuardians(context.Context, *BatchRevokeGuardiansRequest) (*BatchRevokeGuardiansResponse, error)
 	ImportGuardians(context.Context, *ImportGuardiansRequest) (*ImportGuardiansResponse, error)
@@ -548,9 +535,6 @@ type UnimplementedGuardianshipCommandServer struct{}
 
 func (UnimplementedGuardianshipCommandServer) AddGuardian(context.Context, *AddGuardianRequest) (*AddGuardianResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddGuardian not implemented")
-}
-func (UnimplementedGuardianshipCommandServer) UpdateGuardianRelation(context.Context, *UpdateGuardianRelationRequest) (*UpdateGuardianRelationResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateGuardianRelation not implemented")
 }
 func (UnimplementedGuardianshipCommandServer) RevokeGuardian(context.Context, *RevokeGuardianRequest) (*RevokeGuardianResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RevokeGuardian not implemented")
@@ -596,24 +580,6 @@ func _GuardianshipCommand_AddGuardian_Handler(srv interface{}, ctx context.Conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GuardianshipCommandServer).AddGuardian(ctx, req.(*AddGuardianRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _GuardianshipCommand_UpdateGuardianRelation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateGuardianRelationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GuardianshipCommandServer).UpdateGuardianRelation(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: GuardianshipCommand_UpdateGuardianRelation_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GuardianshipCommandServer).UpdateGuardianRelation(ctx, req.(*UpdateGuardianRelationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -684,10 +650,6 @@ var GuardianshipCommand_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _GuardianshipCommand_AddGuardian_Handler,
 		},
 		{
-			MethodName: "UpdateGuardianRelation",
-			Handler:    _GuardianshipCommand_UpdateGuardianRelation_Handler,
-		},
-		{
 			MethodName: "RevokeGuardian",
 			Handler:    _GuardianshipCommand_RevokeGuardian_Handler,
 		},
@@ -705,11 +667,10 @@ var GuardianshipCommand_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	IdentityLifecycle_CreateUser_FullMethodName           = "/iam.identity.v1.IdentityLifecycle/CreateUser"
-	IdentityLifecycle_UpdateUser_FullMethodName           = "/iam.identity.v1.IdentityLifecycle/UpdateUser"
-	IdentityLifecycle_DeactivateUser_FullMethodName       = "/iam.identity.v1.IdentityLifecycle/DeactivateUser"
-	IdentityLifecycle_BlockUser_FullMethodName            = "/iam.identity.v1.IdentityLifecycle/BlockUser"
-	IdentityLifecycle_LinkExternalIdentity_FullMethodName = "/iam.identity.v1.IdentityLifecycle/LinkExternalIdentity"
+	IdentityLifecycle_CreateUser_FullMethodName     = "/iam.identity.v1.IdentityLifecycle/CreateUser"
+	IdentityLifecycle_UpdateUser_FullMethodName     = "/iam.identity.v1.IdentityLifecycle/UpdateUser"
+	IdentityLifecycle_DeactivateUser_FullMethodName = "/iam.identity.v1.IdentityLifecycle/DeactivateUser"
+	IdentityLifecycle_BlockUser_FullMethodName      = "/iam.identity.v1.IdentityLifecycle/BlockUser"
 )
 
 // IdentityLifecycleClient is the client API for IdentityLifecycle service.
@@ -720,7 +681,6 @@ type IdentityLifecycleClient interface {
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
 	DeactivateUser(ctx context.Context, in *ChangeUserStatusRequest, opts ...grpc.CallOption) (*UserOperationResponse, error)
 	BlockUser(ctx context.Context, in *ChangeUserStatusRequest, opts ...grpc.CallOption) (*UserOperationResponse, error)
-	LinkExternalIdentity(ctx context.Context, in *LinkExternalIdentityRequest, opts ...grpc.CallOption) (*LinkExternalIdentityResponse, error)
 }
 
 type identityLifecycleClient struct {
@@ -771,16 +731,6 @@ func (c *identityLifecycleClient) BlockUser(ctx context.Context, in *ChangeUserS
 	return out, nil
 }
 
-func (c *identityLifecycleClient) LinkExternalIdentity(ctx context.Context, in *LinkExternalIdentityRequest, opts ...grpc.CallOption) (*LinkExternalIdentityResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(LinkExternalIdentityResponse)
-	err := c.cc.Invoke(ctx, IdentityLifecycle_LinkExternalIdentity_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // IdentityLifecycleServer is the server API for IdentityLifecycle service.
 // All implementations must embed UnimplementedIdentityLifecycleServer
 // for forward compatibility.
@@ -789,7 +739,6 @@ type IdentityLifecycleServer interface {
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
 	DeactivateUser(context.Context, *ChangeUserStatusRequest) (*UserOperationResponse, error)
 	BlockUser(context.Context, *ChangeUserStatusRequest) (*UserOperationResponse, error)
-	LinkExternalIdentity(context.Context, *LinkExternalIdentityRequest) (*LinkExternalIdentityResponse, error)
 	mustEmbedUnimplementedIdentityLifecycleServer()
 }
 
@@ -811,9 +760,6 @@ func (UnimplementedIdentityLifecycleServer) DeactivateUser(context.Context, *Cha
 }
 func (UnimplementedIdentityLifecycleServer) BlockUser(context.Context, *ChangeUserStatusRequest) (*UserOperationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BlockUser not implemented")
-}
-func (UnimplementedIdentityLifecycleServer) LinkExternalIdentity(context.Context, *LinkExternalIdentityRequest) (*LinkExternalIdentityResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LinkExternalIdentity not implemented")
 }
 func (UnimplementedIdentityLifecycleServer) mustEmbedUnimplementedIdentityLifecycleServer() {}
 func (UnimplementedIdentityLifecycleServer) testEmbeddedByValue()                           {}
@@ -908,24 +854,6 @@ func _IdentityLifecycle_BlockUser_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IdentityLifecycle_LinkExternalIdentity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LinkExternalIdentityRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IdentityLifecycleServer).LinkExternalIdentity(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IdentityLifecycle_LinkExternalIdentity_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityLifecycleServer).LinkExternalIdentity(ctx, req.(*LinkExternalIdentityRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // IdentityLifecycle_ServiceDesc is the grpc.ServiceDesc for IdentityLifecycle service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -949,157 +877,7 @@ var IdentityLifecycle_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "BlockUser",
 			Handler:    _IdentityLifecycle_BlockUser_Handler,
 		},
-		{
-			MethodName: "LinkExternalIdentity",
-			Handler:    _IdentityLifecycle_LinkExternalIdentity_Handler,
-		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "iam/identity/v1/identity.proto",
-}
-
-const (
-	IdentityStream_SubscribeUserEvents_FullMethodName         = "/iam.identity.v1.IdentityStream/SubscribeUserEvents"
-	IdentityStream_SubscribeGuardianshipEvents_FullMethodName = "/iam.identity.v1.IdentityStream/SubscribeGuardianshipEvents"
-)
-
-// IdentityStreamClient is the client API for IdentityStream service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type IdentityStreamClient interface {
-	SubscribeUserEvents(ctx context.Context, in *SubscribeUserEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[UserEvent], error)
-	SubscribeGuardianshipEvents(ctx context.Context, in *SubscribeGuardianshipEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GuardianshipEvent], error)
-}
-
-type identityStreamClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewIdentityStreamClient(cc grpc.ClientConnInterface) IdentityStreamClient {
-	return &identityStreamClient{cc}
-}
-
-func (c *identityStreamClient) SubscribeUserEvents(ctx context.Context, in *SubscribeUserEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[UserEvent], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &IdentityStream_ServiceDesc.Streams[0], IdentityStream_SubscribeUserEvents_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[SubscribeUserEventsRequest, UserEvent]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type IdentityStream_SubscribeUserEventsClient = grpc.ServerStreamingClient[UserEvent]
-
-func (c *identityStreamClient) SubscribeGuardianshipEvents(ctx context.Context, in *SubscribeGuardianshipEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GuardianshipEvent], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &IdentityStream_ServiceDesc.Streams[1], IdentityStream_SubscribeGuardianshipEvents_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[SubscribeGuardianshipEventsRequest, GuardianshipEvent]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type IdentityStream_SubscribeGuardianshipEventsClient = grpc.ServerStreamingClient[GuardianshipEvent]
-
-// IdentityStreamServer is the server API for IdentityStream service.
-// All implementations must embed UnimplementedIdentityStreamServer
-// for forward compatibility.
-type IdentityStreamServer interface {
-	SubscribeUserEvents(*SubscribeUserEventsRequest, grpc.ServerStreamingServer[UserEvent]) error
-	SubscribeGuardianshipEvents(*SubscribeGuardianshipEventsRequest, grpc.ServerStreamingServer[GuardianshipEvent]) error
-	mustEmbedUnimplementedIdentityStreamServer()
-}
-
-// UnimplementedIdentityStreamServer must be embedded to have
-// forward compatible implementations.
-//
-// NOTE: this should be embedded by value instead of pointer to avoid a nil
-// pointer dereference when methods are called.
-type UnimplementedIdentityStreamServer struct{}
-
-func (UnimplementedIdentityStreamServer) SubscribeUserEvents(*SubscribeUserEventsRequest, grpc.ServerStreamingServer[UserEvent]) error {
-	return status.Errorf(codes.Unimplemented, "method SubscribeUserEvents not implemented")
-}
-func (UnimplementedIdentityStreamServer) SubscribeGuardianshipEvents(*SubscribeGuardianshipEventsRequest, grpc.ServerStreamingServer[GuardianshipEvent]) error {
-	return status.Errorf(codes.Unimplemented, "method SubscribeGuardianshipEvents not implemented")
-}
-func (UnimplementedIdentityStreamServer) mustEmbedUnimplementedIdentityStreamServer() {}
-func (UnimplementedIdentityStreamServer) testEmbeddedByValue()                        {}
-
-// UnsafeIdentityStreamServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to IdentityStreamServer will
-// result in compilation errors.
-type UnsafeIdentityStreamServer interface {
-	mustEmbedUnimplementedIdentityStreamServer()
-}
-
-func RegisterIdentityStreamServer(s grpc.ServiceRegistrar, srv IdentityStreamServer) {
-	// If the following call pancis, it indicates UnimplementedIdentityStreamServer was
-	// embedded by pointer and is nil.  This will cause panics if an
-	// unimplemented method is ever invoked, so we test this at initialization
-	// time to prevent it from happening at runtime later due to I/O.
-	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
-		t.testEmbeddedByValue()
-	}
-	s.RegisterService(&IdentityStream_ServiceDesc, srv)
-}
-
-func _IdentityStream_SubscribeUserEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SubscribeUserEventsRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(IdentityStreamServer).SubscribeUserEvents(m, &grpc.GenericServerStream[SubscribeUserEventsRequest, UserEvent]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type IdentityStream_SubscribeUserEventsServer = grpc.ServerStreamingServer[UserEvent]
-
-func _IdentityStream_SubscribeGuardianshipEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SubscribeGuardianshipEventsRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(IdentityStreamServer).SubscribeGuardianshipEvents(m, &grpc.GenericServerStream[SubscribeGuardianshipEventsRequest, GuardianshipEvent]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type IdentityStream_SubscribeGuardianshipEventsServer = grpc.ServerStreamingServer[GuardianshipEvent]
-
-// IdentityStream_ServiceDesc is the grpc.ServiceDesc for IdentityStream service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var IdentityStream_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "iam.identity.v1.IdentityStream",
-	HandlerType: (*IdentityStreamServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "SubscribeUserEvents",
-			Handler:       _IdentityStream_SubscribeUserEvents_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "SubscribeGuardianshipEvents",
-			Handler:       _IdentityStream_SubscribeGuardianshipEvents_Handler,
-			ServerStreams: true,
-		},
-	},
 	Metadata: "iam/identity/v1/identity.proto",
 }

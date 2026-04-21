@@ -20,10 +20,16 @@ type GuardianshipQueryApplicationService interface {
 	IsGuardian(ctx context.Context, userID string, childID string) (bool, error)
 	// GetByUserIDAndChildID 查询监护关系
 	GetByUserIDAndChildID(ctx context.Context, userID string, childID string) (*GuardianshipResult, error)
+	// GetByUserIDAndChildIDIncludingRevoked 查询监护关系（包含已撤销）
+	GetByUserIDAndChildIDIncludingRevoked(ctx context.Context, userID string, childID string) (*GuardianshipResult, error)
 	// ListChildrenByUserID 列出用户监护的所有儿童
 	ListChildrenByUserID(ctx context.Context, userID string) ([]*GuardianshipResult, error)
+	// ListChildrenByUserIDIncludingRevoked 列出用户监护的所有儿童（包含已撤销）
+	ListChildrenByUserIDIncludingRevoked(ctx context.Context, userID string) ([]*GuardianshipResult, error)
 	// ListGuardiansByChildID 列出儿童的所有监护人
 	ListGuardiansByChildID(ctx context.Context, childID string) ([]*GuardianshipResult, error)
+	// ListGuardiansByChildIDIncludingRevoked 列出儿童的所有监护人（包含已撤销）
+	ListGuardiansByChildIDIncludingRevoked(ctx context.Context, childID string) ([]*GuardianshipResult, error)
 }
 
 // ============= DTOs =============
@@ -32,7 +38,7 @@ type GuardianshipQueryApplicationService interface {
 type AddGuardianDTO struct {
 	UserID   string // 用户 ID
 	ChildID  string // 儿童 ID
-	Relation string // 关系（parent/grandparents/other）
+	Relation string // 关系（self/parent/grandparent/other）
 }
 
 // RemoveGuardianDTO 移除监护人 DTO
@@ -48,6 +54,7 @@ type GuardianshipResult struct {
 	ChildID       string // 儿童 ID
 	Relation      string // 关系
 	EstablishedAt string // 建立时间
+	RevokedAt     string // 撤销时间（为空表示未撤销）
 	// 可选：包含儿童信息
 	ChildName     string // 儿童姓名
 	ChildGender   uint8  // 儿童性别（0=其他，1=男，2=女）

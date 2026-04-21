@@ -744,7 +744,8 @@ definitions:
         enum:
         - self
         - parent
-        - guardian
+        - grandparent
+        - other
         type: string
       weightKg:
         type: string
@@ -775,7 +776,8 @@ definitions:
         enum:
         - self
         - parent
-        - guardian
+        - grandparent
+        - other
         type: string
       userId:
         type: string
@@ -967,7 +969,7 @@ paths:
       summary: 获取 JWKS
       tags:
       - Authentication-JWKS
-  /accounts/{accountId}:
+  /authn/accounts/{accountId}:
     get:
       consumes:
       - application/json
@@ -998,7 +1000,7 @@ paths:
       summary: 获取账户信息
       tags:
       - 账户管理
-  /accounts/{accountId}/disable:
+  /authn/accounts/{accountId}/disable:
     post:
       description: 将账户标记为禁用，阻止继续认证
       parameters:
@@ -1025,7 +1027,7 @@ paths:
       summary: 禁用账户
       tags:
       - 账户管理
-  /accounts/{accountId}/enable:
+  /authn/accounts/{accountId}/enable:
     post:
       description: 恢复已禁用的账户
       parameters:
@@ -1052,7 +1054,7 @@ paths:
       summary: 启用账户
       tags:
       - 账户管理
-  /accounts/{accountId}/profile:
+  /authn/accounts/{accountId}/profile:
     put:
       consumes:
       - application/json
@@ -1089,7 +1091,7 @@ paths:
       summary: 更新账户资料
       tags:
       - 账户管理
-  /accounts/{accountId}/unionid:
+  /authn/accounts/{accountId}/unionid:
     put:
       consumes:
       - application/json
@@ -1126,7 +1128,7 @@ paths:
       summary: 设置账户 UnionID
       tags:
       - 账户管理
-  /accounts/wechat/register:
+  /authn/accounts/wechat/register:
     post:
       consumes:
       - application/json
@@ -1159,7 +1161,7 @@ paths:
       summary: 微信用户注册
       tags:
       - 账户管理
-  /admin/jwks/keys:
+  /authn/admin/jwks/keys:
     get:
       description: 分页列出所有密钥
       parameters:
@@ -1244,7 +1246,7 @@ paths:
       summary: 创建密钥
       tags:
       - Authentication-JWKS
-  /admin/jwks/keys/{kid}:
+  /authn/admin/jwks/keys/{kid}:
     get:
       description: 根据 kid 获取密钥详细信息
       parameters:
@@ -1285,7 +1287,7 @@ paths:
       summary: 获取密钥详情
       tags:
       - Authentication-JWKS
-  /admin/jwks/keys/{kid}/force-retire:
+  /authn/admin/jwks/keys/{kid}/force-retire:
     post:
       description: 强制将任何状态的密钥转为 Retired（用于紧急情况）
       parameters:
@@ -1324,7 +1326,7 @@ paths:
       summary: 强制退役密钥
       tags:
       - Authentication-JWKS
-  /admin/jwks/keys/{kid}/grace:
+  /authn/admin/jwks/keys/{kid}/grace:
     post:
       description: 将密钥状态从 Active 转为 Grace
       parameters:
@@ -1363,7 +1365,7 @@ paths:
       summary: 进入宽限期
       tags:
       - Authentication-JWKS
-  /admin/jwks/keys/{kid}/retire:
+  /authn/admin/jwks/keys/{kid}/retire:
     post:
       description: 将密钥状态从 Grace 转为 Retired
       parameters:
@@ -1402,7 +1404,7 @@ paths:
       summary: 退役密钥
       tags:
       - Authentication-JWKS
-  /admin/jwks/keys/cleanup:
+  /authn/admin/jwks/keys/cleanup:
     post:
       description: 删除已过期的 Retired 密钥
       produces:
@@ -1429,7 +1431,7 @@ paths:
       summary: 清理过期密钥
       tags:
       - Authentication-JWKS
-  /admin/jwks/keys/publishable:
+  /authn/admin/jwks/keys/publishable:
     get:
       description: 获取当前会被发布到 JWKS 的密钥列表（用于预览或调试）
       produces:
@@ -1456,36 +1458,7 @@ paths:
       summary: 获取可发布的密钥
       tags:
       - Authentication-JWKS
-  /api/v1/suggest/child:
-    get:
-      consumes:
-      - application/json
-      description: 支持中文/拼音前缀联想，数字关键词走手机号/ID 精确匹配
-      parameters:
-      - description: 关键词；数字=精确匹配手机号/ID，其他=前缀联想
-        in: query
-        name: k
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 联想结果（按权重降序，去重）
-          schema:
-            items:
-              $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_domain_suggest.Term'
-            type: array
-        "400":
-          description: 参数缺失
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 儿童联想搜索
-      tags:
-      - Suggest
-  /auth/login:
+  /authn/login:
     post:
       consumes:
       - application/json
@@ -1517,7 +1490,28 @@ paths:
       summary: 用户登录
       tags:
       - 认证
-  /auth/logout:
+  /authn/login/prep/phone-otp:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 手机号
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.PreparePhoneOTPLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 已受理
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse'
+      summary: 登录预准备-发送手机验证码
+      tags:
+      - 认证
+  /authn/logout:
     post:
       consumes:
       - application/json
@@ -1544,7 +1538,7 @@ paths:
       summary: 用户登出
       tags:
       - 认证
-  /auth/refresh_token:
+  /authn/refresh_token:
     post:
       consumes:
       - application/json
@@ -1576,7 +1570,7 @@ paths:
       summary: 刷新访问令牌
       tags:
       - 认证
-  /auth/verify:
+  /authn/verify:
     post:
       consumes:
       - application/json
@@ -1606,27 +1600,6 @@ paths:
             additionalProperties: true
             type: object
       summary: 验证访问令牌
-      tags:
-      - 认证
-  /authn/login/prep/phone-otp:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: 手机号
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_request.PreparePhoneOTPLoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 已受理
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_authn_restful_response.MessageResponse'
-      summary: 登录预准备-发送手机验证码
       tags:
       - 认证
   /authz/assignments/{id}:
@@ -2166,7 +2139,7 @@ paths:
       summary: 获取角色的策略列表
       tags:
       - Authorization-Policies
-  /children/{id}:
+  /identity/children/{id}:
     get:
       consumes:
       - application/json
@@ -2257,7 +2230,7 @@ paths:
       summary: 更新儿童档案（仅限自己监护的孩子）
       tags:
       - Identity-Children
-  /children/register:
+  /identity/children/register:
     post:
       consumes:
       - application/json
@@ -2297,7 +2270,7 @@ paths:
       summary: 注册儿童档案并建立监护关系
       tags:
       - Identity-Children
-  /children/search:
+  /identity/children/search:
     get:
       consumes:
       - application/json
@@ -2345,7 +2318,7 @@ paths:
       summary: 搜索儿童
       tags:
       - Identity-Children
-  /guardians:
+  /identity/guardians:
     get:
       consumes:
       - application/json
@@ -2397,7 +2370,7 @@ paths:
       summary: 查询监护关系
       tags:
       - Identity-Guardianship
-  /guardians/grant:
+  /identity/guardians/grant:
     post:
       consumes:
       - application/json
@@ -2412,7 +2385,7 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "201":
           description: 授予成功
           schema:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.GuardianshipResponse'
@@ -2437,6 +2410,102 @@ paths:
       summary: 授予监护关系
       tags:
       - Identity-Guardianship
+  /identity/me:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前登录用户的资料信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取当前用户信息
+      tags:
+      - Identity-Users
+    patch:
+      consumes:
+      - application/json
+      description: 部分更新当前登录用户的信息，支持更新昵称和联系方式
+      parameters:
+      - description: 更新用户请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.UserUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 更新当前用户信息
+      tags:
+      - Identity-Users
+  /identity/me/children:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前登录用户作为监护人的所有儿童档案
+      parameters:
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: 20
+        description: 每页数量
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildPageResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取当前用户的儿童档案列表
+      tags:
+      - Identity-Children
   /idp/wechat-apps:
     post:
       consumes:
@@ -2621,102 +2690,35 @@ paths:
       summary: 轮换消息加解密密钥
       tags:
       - IDP-Wechat
-  /me:
+  /suggest/child:
     get:
       consumes:
       - application/json
-      description: 获取当前登录用户的资料信息
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 查询成功
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "500":
-          description: 服务器内部错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 获取当前用户信息
-      tags:
-      - Identity-Users
-    patch:
-      consumes:
-      - application/json
-      description: 部分更新当前登录用户的信息，支持更新昵称和联系方式
+      description: 支持中文/拼音前缀联想，数字关键词走手机号/ID 精确匹配
       parameters:
-      - description: 更新用户请求
-        in: body
-        name: request
+      - description: 关键词；数字=精确匹配手机号/ID，其他=前缀联想
+        in: query
+        name: k
         required: true
-        schema:
-          $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.UserUpdateRequest'
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: 更新成功
+          description: 联想结果（按权重降序，去重）
           schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.UserResponse'
+            items:
+              $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_domain_suggest.Term'
+            type: array
         "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "500":
-          description: 服务器内部错误
+          description: 参数缺失
           schema:
             $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
       security:
       - BearerAuth: []
-      summary: 更新当前用户信息
+      summary: 儿童联想搜索
       tags:
-      - Identity-Users
-  /me/children:
-    get:
-      consumes:
-      - application/json
-      description: 获取当前登录用户作为监护人的所有儿童档案
-      parameters:
-      - default: 0
-        description: 偏移量
-        in: query
-        name: offset
-        type: integer
-      - default: 20
-        description: 每页数量
-        in: query
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 查询成功
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_response.ChildPageResponse'
-        "401":
-          description: 未授权
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-        "500":
-          description: 服务器内部错误
-          schema:
-            $ref: '#/definitions/github_com_FangcunMount_iam-contracts_pkg_core.ErrResponse'
-      security:
-      - BearerAuth: []
-      summary: 获取当前用户的儿童档案列表
-      tags:
-      - Identity-Children
+      - Suggest
 securityDefinitions:
   BearerAuth:
     description: 'JWT 认证令牌，格式: Bearer {access_token}'

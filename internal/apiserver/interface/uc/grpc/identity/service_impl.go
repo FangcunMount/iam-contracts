@@ -267,16 +267,6 @@ func (s *guardianshipCommandServer) AddGuardian(ctx context.Context, req *identi
 	}, nil
 }
 
-// UpdateGuardianRelation 更新监护关系类型
-func (s *guardianshipCommandServer) UpdateGuardianRelation(ctx context.Context, req *identityv1.UpdateGuardianRelationRequest) (*identityv1.UpdateGuardianRelationResponse, error) {
-	if req == nil || strings.TrimSpace(req.GetGuardianshipId()) == "" {
-		return nil, status.Error(codes.InvalidArgument, "guardianship_id is required")
-	}
-
-	// 暂不支持更新关系类型
-	return nil, status.Error(codes.Unimplemented, "update guardianship relation not implemented")
-}
-
 // RevokeGuardian 撤销监护关系
 func (s *guardianshipCommandServer) RevokeGuardian(ctx context.Context, req *identityv1.RevokeGuardianRequest) (*identityv1.RevokeGuardianResponse, error) {
 	if req == nil || req.GetTarget() == nil {
@@ -316,7 +306,14 @@ func (s *guardianshipCommandServer) RevokeGuardian(ctx context.Context, req *ide
 		return nil, toGRPCError(err)
 	}
 
-	return &identityv1.RevokeGuardianResponse{}, nil
+	guardianship, err := s.guardianshipQuerySvc.GetByUserIDAndChildIDIncludingRevoked(ctx, userID, childID)
+	if err != nil {
+		return &identityv1.RevokeGuardianResponse{}, nil
+	}
+
+	return &identityv1.RevokeGuardianResponse{
+		Guardianship: guardianshipResultToProto(guardianship),
+	}, nil
 }
 
 // BatchRevokeGuardians 批量撤销监护关系
@@ -337,12 +334,16 @@ func (s *guardianshipCommandServer) BatchRevokeGuardians(ctx context.Context, re
 			Operator: req.GetOperator(),
 		}
 
-		_, err := s.RevokeGuardian(ctx, revokeReq)
+		revokeResp, err := s.RevokeGuardian(ctx, revokeReq)
 		if err != nil {
 			resp.Failures = append(resp.Failures, &identityv1.FailedGuardianshipFailure{
 				Target: target,
 				Error:  err.Error(),
 			})
+			continue
+		}
+		if revokeResp != nil && revokeResp.Guardianship != nil {
+			resp.Revoked = append(resp.Revoked, revokeResp.Guardianship)
 		}
 	}
 
@@ -437,9 +438,9 @@ func (s *identityLifecycleServer) UpdateUser(ctx context.Context, req *identityv
 	}
 
 	// 查询更新后的用户
-	result, err := s.userSvc.Register(ctx, userApp.RegisterUserDTO{}) // 这里需要一个查询接口
+	result, err := s.userQuerySvc.GetByID(ctx, req.GetUserId())
 	if err != nil {
-		return &identityv1.UpdateUserResponse{}, nil
+		return nil, toGRPCError(err)
 	}
 
 	return &identityv1.UpdateUserResponse{
@@ -458,7 +459,7 @@ func (s *identityLifecycleServer) DeactivateUser(ctx context.Context, req *ident
 		return nil, toGRPCError(err)
 	}
 
-	return &identityv1.UserOperationResponse{}, nil
+	return s.buildUserOperationResponse(ctx, req.GetUserId())
 }
 
 // BlockUser 封禁用户
@@ -472,17 +473,17 @@ func (s *identityLifecycleServer) BlockUser(ctx context.Context, req *identityv1
 		return nil, toGRPCError(err)
 	}
 
-	return &identityv1.UserOperationResponse{}, nil
+	return s.buildUserOperationResponse(ctx, req.GetUserId())
 }
 
-// LinkExternalIdentity 绑定外部身份
-func (s *identityLifecycleServer) LinkExternalIdentity(ctx context.Context, req *identityv1.LinkExternalIdentityRequest) (*identityv1.LinkExternalIdentityResponse, error) {
-	if req == nil || strings.TrimSpace(req.GetUserId()) == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+func (s *identityLifecycleServer) buildUserOperationResponse(ctx context.Context, userID string) (*identityv1.UserOperationResponse, error) {
+	result, err := s.userQuerySvc.GetByID(ctx, userID)
+	if err != nil {
+		return nil, toGRPCError(err)
 	}
-
-	// 暂不支持
-	return nil, status.Error(codes.Unimplemented, "link external identity not implemented")
+	return &identityv1.UserOperationResponse{
+		User: userResultToProto(result),
+	}, nil
 }
 
 // ============= 辅助函数 =============
@@ -495,7 +496,7 @@ func protoRelationToString(relation identityv1.GuardianshipRelation) string {
 	case identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_PARENT:
 		return "parent"
 	case identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_GRANDPARENT:
-		return "grandparent"
+		return guardianshipApp.NormalizeRelation("grandparent")
 	case identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_OTHER:
 		return "other"
 	default:
@@ -510,7 +511,7 @@ func stringToProtoRelation(relation string) identityv1.GuardianshipRelation {
 		return identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_SELF
 	case "parent":
 		return identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_PARENT
-	case "grandparent", "grandparents":
+	case "grandparent":
 		return identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_GRANDPARENT
 	case "other":
 		return identityv1.GuardianshipRelation_GUARDIANSHIP_RELATION_OTHER

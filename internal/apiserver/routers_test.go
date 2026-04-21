@@ -15,6 +15,7 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container/assembler"
 	authhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful/handler"
+	uchandler "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/handler"
 	authnMiddleware "github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
 )
 
@@ -161,6 +162,25 @@ func TestRegisterAdminRoutesFailsClosedWithoutAdminProtection(t *testing.T) {
 	assertRouteNotRegistered(t, engine, http.MethodPost, "/api/v1/admin/sessions/:sessionId/revoke")
 	assertRouteNotRegistered(t, engine, http.MethodPost, "/api/v1/admin/accounts/:accountId/sessions/revoke")
 	assertRouteNotRegistered(t, engine, http.MethodPost, "/api/v1/admin/users/:userId/sessions/revoke")
+}
+
+func TestRouterRegistersIdentityGuardiansRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	engine := gin.New()
+	c := &container.Container{
+		UserModule: &assembler.UserModule{
+			UserHandler:         uchandler.NewUserHandler(nil, nil, nil, nil),
+			ChildHandler:        uchandler.NewChildHandler(nil, nil, nil, nil, nil),
+			GuardianshipHandler: uchandler.NewGuardianshipHandler(nil, nil),
+		},
+	}
+
+	NewRouter(c).RegisterRoutes(engine)
+
+	assertRouteRegistered(t, engine, http.MethodGet, "/api/v1/identity/guardians")
+	assertRouteRegistered(t, engine, http.MethodPost, "/api/v1/identity/guardians/grant")
+	assertRouteRegistered(t, engine, http.MethodPost, "/api/v1/identity/children/register")
 }
 
 func assertDebugRouteStatus(t *testing.T, engine *gin.Engine, method, path string, wantStatus int, wantJSON bool) {

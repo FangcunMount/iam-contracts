@@ -29,10 +29,19 @@ func (s *stubGuardianshipRepo) FindByChildID(ctx context.Context, id meta.ID) ([
 	}
 	return s.childrenResults[id.Uint64()], nil
 }
+func (s *stubGuardianshipRepo) FindByChildIDIncludingRevoked(ctx context.Context, id meta.ID) ([]*Guardianship, error) {
+	return s.FindByChildID(ctx, id)
+}
 func (s *stubGuardianshipRepo) FindByUserID(context.Context, meta.ID) ([]*Guardianship, error) {
 	return nil, nil
 }
+func (s *stubGuardianshipRepo) FindByUserIDIncludingRevoked(context.Context, meta.ID) ([]*Guardianship, error) {
+	return nil, nil
+}
 func (s *stubGuardianshipRepo) FindByUserIDAndChildID(context.Context, meta.ID, meta.ID) (*Guardianship, error) {
+	return nil, nil
+}
+func (s *stubGuardianshipRepo) FindByUserIDAndChildIDIncludingRevoked(context.Context, meta.ID, meta.ID) (*Guardianship, error) {
 	return nil, nil
 }
 func (s *stubGuardianshipRepo) IsGuardian(context.Context, meta.ID, meta.ID) (bool, error) {
@@ -59,10 +68,19 @@ func (s *seqGuardRepo) FindByChildID(ctx context.Context, id meta.ID) ([]*Guardi
 	}
 	return s.responses[len(s.responses)-1], nil
 }
+func (s *seqGuardRepo) FindByChildIDIncludingRevoked(ctx context.Context, id meta.ID) ([]*Guardianship, error) {
+	return s.FindByChildID(ctx, id)
+}
 func (s *seqGuardRepo) FindByUserID(context.Context, meta.ID) ([]*Guardianship, error) {
 	return nil, nil
 }
+func (s *seqGuardRepo) FindByUserIDIncludingRevoked(context.Context, meta.ID) ([]*Guardianship, error) {
+	return nil, nil
+}
 func (s *seqGuardRepo) FindByUserIDAndChildID(context.Context, meta.ID, meta.ID) (*Guardianship, error) {
+	return nil, nil
+}
+func (s *seqGuardRepo) FindByUserIDAndChildIDIncludingRevoked(context.Context, meta.ID, meta.ID) (*Guardianship, error) {
 	return nil, nil
 }
 func (s *seqGuardRepo) IsGuardian(context.Context, meta.ID, meta.ID) (bool, error) { return false, nil }

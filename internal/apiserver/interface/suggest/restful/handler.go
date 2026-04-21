@@ -59,7 +59,7 @@ func NewHandler(svc *appsuggest.Service) *Handler {
 // @Param k query string true "关键词；数字=精确匹配手机号/ID，其他=前缀联想"
 // @Success 200 {array} suggest.Term "联想结果（按权重降序，去重）"
 // @Failure 400 {object} core.ErrResponse "参数缺失"
-// @Router /api/v1/suggest/child [get]
+// @Router /suggest/child [get]
 // @Security BearerAuth
 func (h *Handler) Child(c *gin.Context) {
 	var query struct {

@@ -294,7 +294,7 @@ paths:
             schema:
               $ref: '#/components/schemas/github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.GuardianGrantRequest'
       responses:
-        '200':
+        '201':
           description: 授予成功
           content:
             application/json:
@@ -512,7 +512,8 @@ components:
           enum:
           - self
           - parent
-          - guardian
+          - grandparent
+          - other
           type: string
         weightKg:
           type: string
@@ -543,7 +544,8 @@ components:
           enum:
           - self
           - parent
-          - guardian
+          - grandparent
+          - other
           type: string
         userId:
           type: string

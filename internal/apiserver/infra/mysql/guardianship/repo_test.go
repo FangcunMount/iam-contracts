@@ -3,12 +3,14 @@ package guardianship
 import (
 	"context"
 	"testing"
+	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/guardianship"
 	testhelpers "github.com/FangcunMount/iam-contracts/internal/apiserver/testhelpers"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,4 +47,51 @@ func TestRepository_Create_DuplicateReturnsBusinessError(t *testing.T) {
 
 	// We expect the error to be wrapped with the registered business code
 	require.True(t, perrors.IsCode(err, code.ErrIdentityGuardianshipExists), "error must be mapped to ErrIdentityGuardianshipExists")
+}
+
+func TestRepository_DefaultQueriesExcludeRevokedGuardianships(t *testing.T) {
+	db := testhelpers.SetupTempSQLiteDB(t)
+	require.NoError(t, db.AutoMigrate(&GuardianshipPO{}))
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	record := &guardianship.Guardianship{
+		User:          meta.FromUint64(1001),
+		Child:         meta.FromUint64(2002),
+		Rel:           guardianship.RelParent,
+		EstablishedAt: time.Now().Add(-time.Hour),
+	}
+	require.NoError(t, repo.Create(ctx, record))
+
+	record.Revoke(time.Now())
+	require.NoError(t, repo.Update(ctx, record))
+
+	_, err := repo.FindByUserIDAndChildID(ctx, record.User, record.Child)
+	require.Error(t, err)
+
+	historical, err := repo.FindByUserIDAndChildIDIncludingRevoked(ctx, record.User, record.Child)
+	require.NoError(t, err)
+	require.NotNil(t, historical)
+	require.NotNil(t, historical.RevokedAt)
+
+	activeByUser, err := repo.FindByUserID(ctx, record.User)
+	require.NoError(t, err)
+	assert.Len(t, activeByUser, 0)
+
+	withRevokedByUser, err := repo.FindByUserIDIncludingRevoked(ctx, record.User)
+	require.NoError(t, err)
+	assert.Len(t, withRevokedByUser, 1)
+
+	activeByChild, err := repo.FindByChildID(ctx, record.Child)
+	require.NoError(t, err)
+	assert.Len(t, activeByChild, 0)
+
+	withRevokedByChild, err := repo.FindByChildIDIncludingRevoked(ctx, record.Child)
+	require.NoError(t, err)
+	assert.Len(t, withRevokedByChild, 1)
+
+	isGuardian, err := repo.IsGuardian(ctx, record.User, record.Child)
+	require.NoError(t, err)
+	assert.False(t, isGuardian)
 }

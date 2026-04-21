@@ -32,7 +32,6 @@ services:
       
       # GuardianshipCommand - 监护关系管理
       - /iam.identity.v1.GuardianshipCommand/AddGuardian
-      - /iam.identity.v1.GuardianshipCommand/UpdateGuardianRelation
       - /iam.identity.v1.GuardianshipCommand/RevokeGuardian
       - /iam.identity.v1.GuardianshipCommand/BatchRevokeGuardians
       - /iam.identity.v1.GuardianshipCommand/ImportGuardians
@@ -40,7 +39,8 @@ services:
       # IdentityLifecycle - 用户生命周期管理
       - /iam.identity.v1.IdentityLifecycle/CreateUser
       - /iam.identity.v1.IdentityLifecycle/UpdateUser
-      - /iam.identity.v1.IdentityLifecycle/LinkExternalIdentity
+      - /iam.identity.v1.IdentityLifecycle/DeactivateUser
+      - /iam.identity.v1.IdentityLifecycle/BlockUser
       
       # AuthService - Token 验证和管理
       - /iam.authn.v1.AuthService/VerifyToken
@@ -80,7 +80,6 @@ services:
       
       # GuardianshipCommand - 监护关系管理
       - /iam.identity.v1.GuardianshipCommand/AddGuardian
-      - /iam.identity.v1.GuardianshipCommand/UpdateGuardianRelation
       - /iam.identity.v1.GuardianshipCommand/RevokeGuardian
       - /iam.identity.v1.GuardianshipCommand/BatchRevokeGuardians
       - /iam.identity.v1.GuardianshipCommand/ImportGuardians
@@ -88,7 +87,8 @@ services:
       # IdentityLifecycle - 用户生命周期管理
       - /iam.identity.v1.IdentityLifecycle/CreateUser
       - /iam.identity.v1.IdentityLifecycle/UpdateUser
-      - /iam.identity.v1.IdentityLifecycle/LinkExternalIdentity
+      - /iam.identity.v1.IdentityLifecycle/DeactivateUser
+      - /iam.identity.v1.IdentityLifecycle/BlockUser
       
       # AuthService - Token 验证和管理
       - /iam.authn.v1.AuthService/VerifyToken
@@ -113,10 +113,10 @@ services:
       - /iam.identity.v1.GuardianshipQuery/*
       - /iam.identity.v1.GuardianshipCommand/*
       - /iam.identity.v1.IdentityLifecycle/*
-      - /iam.identity.v1.IdentityStream/*
       # 所有 Authn 服务方法
       - /iam.authn.v1.AuthService/*
       - /iam.authn.v1.JWKSService/*
+      - /iam.idp.v1.IDPService/*
       - /iam.authz.v1.AuthorizationService/*
 
   # 运维工具
@@ -125,33 +125,31 @@ services:
     description: "运维工具，用于密钥轮换、Token 撤销等运维操作"
     allowed_methods:
       # Authn 运维操作
-      - /iam.authn.v1.AuthnService/RotateKeys
-      - /iam.authn.v1.AuthnService/RevokeToken
-      - /iam.authn.v1.AuthnService/RevokeAllUserTokens
-      - /iam.authn.v1.AuthnService/GetKeyRotationStatus
+      - /iam.authn.v1.AuthService/RevokeToken
+      - /iam.authn.v1.AuthService/RevokeRefreshToken
+      - /iam.authn.v1.AuthService/IssueServiceToken
       # Identity 运维操作
-      - /iam.identity.v1.IdentityService/BlockUser
-      - /iam.identity.v1.IdentityService/UnblockUser
-      - /iam.identity.v1.IdentityService/DeleteUser
+      - /iam.identity.v1.IdentityLifecycle/DeactivateUser
+      - /iam.identity.v1.IdentityLifecycle/BlockUser
       # 健康检查
       - /grpc.health.v1.Health/Check
 
   # 事件消费服务
   - service_name: event-consumer
-    enabled: true
-    description: "事件消费服务，用于订阅用户和监护关系变更事件"
-    allowed_methods:
-      - /iam.identity.v1.IdentityService/WatchUserEvents
-      - /iam.identity.v1.IdentityService/WatchGuardianshipEvents
+    enabled: false
+    description: "当前未开放 identity gRPC Stream 接口，事件消费方暂无可授权的订阅方法"
+    allowed_methods: []
 
   # 报表服务
   - service_name: reporting
     enabled: true
     description: "报表服务，仅允许读取统计数据"
     allowed_methods:
-      - /iam.identity.v1.IdentityService/GetUserStats
-      - /iam.identity.v1.IdentityService/GetGuardianshipStats
-      - /iam.authn.v1.AuthnService/GetTokenStats
+      - /iam.identity.v1.IdentityRead/BatchGetUsers
+      - /iam.identity.v1.IdentityRead/BatchGetChildren
+      - /iam.identity.v1.GuardianshipQuery/ListChildren
+      - /iam.identity.v1.GuardianshipQuery/ListGuardians
+      - /iam.authz.v1.AuthorizationService/GetAuthorizationSnapshot
 
 # 服务凭证配置（用于应用层鉴权）
 # ============================================================================

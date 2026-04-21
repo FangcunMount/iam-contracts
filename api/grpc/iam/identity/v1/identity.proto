@@ -42,23 +42,6 @@ enum GuardianshipRelation {
   GUARDIANSHIP_RELATION_OTHER = 10;
 }
 
-// 用户事件类型
-enum UserEventType {
-  USER_EVENT_TYPE_UNSPECIFIED = 0;
-  USER_EVENT_TYPE_CREATED = 1;
-  USER_EVENT_TYPE_UPDATED = 2;
-  USER_EVENT_TYPE_STATUS_CHANGED = 3;
-  USER_EVENT_TYPE_EXTERNAL_LINKED = 4;
-}
-
-// 监护关系事件类型
-enum GuardianshipEventType {
-  GUARDIANSHIP_EVENT_TYPE_UNSPECIFIED = 0;
-  GUARDIANSHIP_EVENT_TYPE_CREATED = 1;
-  GUARDIANSHIP_EVENT_TYPE_UPDATED = 2;
-  GUARDIANSHIP_EVENT_TYPE_REVOKED = 3;
-}
-
 // ============= Value Objects =============
 
 // 经校验的联系方式
@@ -225,13 +208,6 @@ message AddGuardianRequest {
 }
 message AddGuardianResponse { Guardianship guardianship = 1; }
 
-message UpdateGuardianRelationRequest {
-  string guardianship_id = 1;
-  GuardianshipRelation relation = 2;
-  OperatorContext operator = 10;
-}
-message UpdateGuardianRelationResponse { Guardianship guardianship = 1; }
-
 message RevokeGuardianRequest {
   GuardianshipSelector target = 1;
   string reason = 2;
@@ -304,39 +280,6 @@ message ChangeUserStatusRequest {
 }
 message UserOperationResponse { User user = 1; }
 
-message LinkExternalIdentityRequest {
-  string user_id = 1;
-  ExternalIdentity external_identity = 2;
-  OperatorContext operator = 10;
-}
-message LinkExternalIdentityResponse { User user = 1; }
-
-// ============= Event streaming =============
-
-message SubscribeUserEventsRequest {
-  repeated UserEventType types = 1;
-  string from_event_id = 2; // 可选：从某个事件游标续传
-}
-message UserEvent {
-  string event_id = 1;
-  UserEventType type = 2;
-  User user = 3;
-  google.protobuf.Timestamp occurred_at = 4;
-  string trace_id = 5;
-}
-
-message SubscribeGuardianshipEventsRequest {
-  repeated GuardianshipEventType types = 1;
-  string from_event_id = 2;
-}
-message GuardianshipEvent {
-  string event_id = 1;
-  GuardianshipEventType type = 2;
-  Guardianship guardianship = 3;
-  google.protobuf.Timestamp occurred_at = 4;
-  string trace_id = 5;
-}
-
 // ============= Services =============
 
 service IdentityRead {
@@ -355,7 +298,6 @@ service GuardianshipQuery {
 
 service GuardianshipCommand {
   rpc AddGuardian(AddGuardianRequest) returns (AddGuardianResponse);
-  rpc UpdateGuardianRelation(UpdateGuardianRelationRequest) returns (UpdateGuardianRelationResponse);
   rpc RevokeGuardian(RevokeGuardianRequest) returns (RevokeGuardianResponse);
   rpc BatchRevokeGuardians(BatchRevokeGuardiansRequest) returns (BatchRevokeGuardiansResponse);
   rpc ImportGuardians(ImportGuardiansRequest) returns (ImportGuardiansResponse);
@@ -366,10 +308,4 @@ service IdentityLifecycle {
   rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
   rpc DeactivateUser(ChangeUserStatusRequest) returns (UserOperationResponse);
   rpc BlockUser(ChangeUserStatusRequest) returns (UserOperationResponse);
-  rpc LinkExternalIdentity(LinkExternalIdentityRequest) returns (LinkExternalIdentityResponse);
-}
-
-service IdentityStream {
-  rpc SubscribeUserEvents(SubscribeUserEventsRequest) returns (stream UserEvent);
-  rpc SubscribeGuardianshipEvents(SubscribeGuardianshipEventsRequest) returns (stream GuardianshipEvent);
 }

@@ -19,6 +19,7 @@ REST_SPECS = [
     ROOT / "api/rest/identity.v1.yaml",
     ROOT / "api/rest/authz.v1.yaml",
     ROOT / "api/rest/idp.v1.yaml",
+    ROOT / "api/rest/suggest.v1.yaml",
 ]
 IGNORE_ROUTES = {
     "get /v1/authz/health",

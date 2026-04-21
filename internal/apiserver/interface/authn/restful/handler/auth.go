@@ -50,7 +50,7 @@ func NewAuthHandler(
 // @Success 200 {object} resp.TokenPair "登录成功，返回访问令牌和刷新令牌"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 401 {object} map[string]interface{} "认证失败"
-// @Router /auth/login [post]
+// @Router /authn/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var reqBody req.LoginRequest
 	if err := h.BindJSON(c, &reqBody); err != nil {
@@ -196,7 +196,7 @@ func (h *AuthHandler) executeLogin(c *gin.Context, loginReq login.LoginRequest) 
 // @Param request body req.LogoutRequest true "登出请求"
 // @Success 200 {object} resp.MessageResponse "登出成功"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
-// @Router /auth/logout [post]
+// @Router /authn/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	var reqBody req.LogoutRequest
 	if err := h.BindJSON(c, &reqBody); err != nil {
@@ -232,7 +232,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // @Success 200 {object} resp.TokenPair "刷新成功，返回新的访问令牌"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 401 {object} map[string]interface{} "刷新令牌无效或已过期"
-// @Router /auth/refresh_token [post]
+// @Router /authn/refresh_token [post]
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var reqBody req.RefreshTokenRequest
 	if err := h.BindJSON(c, &reqBody); err != nil {
@@ -265,7 +265,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // @Success 200 {object} resp.TokenVerifyResponse "验证成功"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 401 {object} map[string]interface{} "令牌无效"
-// @Router /auth/verify [post]
+// @Router /authn/verify [post]
 func (h *AuthHandler) VerifyToken(c *gin.Context) {
 	var reqBody req.VerifyTokenRequest
 	if err := h.BindJSON(c, &reqBody); err != nil {

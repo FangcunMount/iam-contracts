@@ -13,7 +13,6 @@ import (
 // 提供用户和孩子身份的管理功能，包括：
 //   - 读取操作（GetUser、BatchGetUsers、SearchUsers、GetChild、BatchGetChildren）
 //   - 生命周期操作（CreateUser、UpdateUser、DeactivateUser、BlockUser）
-//   - 外部身份关联（LinkExternalIdentity）
 //
 // 使用示例：
 //
@@ -21,7 +20,7 @@ import (
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("用户: %s, 手机: %s\n", resp.User.Name, resp.User.Phone)
+//	fmt.Printf("用户: %s, 状态: %s\n", resp.GetUser().GetNickname(), resp.GetUser().GetStatus().String())
 type Client struct {
 	readService      identityv1.IdentityReadClient
 	lifecycleService identityv1.IdentityLifecycleClient
@@ -51,7 +50,7 @@ func NewClient(read identityv1.IdentityReadClient, lifecycle identityv1.Identity
 //   - userID: 用户 ID
 //
 // 返回：
-//   - *identityv1.GetUserResponse: 包含 User 对象，包含姓名、手机、状态等信息
+//   - *identityv1.GetUserResponse: 包含 User 对象，常用字段有 nickname、status、contacts
 //   - error: 可能的错误类型包括 InvalidArgument、NotFound、PermissionDenied
 //
 // 示例：
@@ -60,7 +59,7 @@ func NewClient(read identityv1.IdentityReadClient, lifecycle identityv1.Identity
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("用户: %s (%s)\n", resp.User.Name, resp.User.Phone)
+//	fmt.Printf("用户: %s (%s)\n", resp.GetUser().GetNickname(), resp.GetUser().GetStatus().String())
 func (c *Client) GetUser(ctx context.Context, userID string) (*identityv1.GetUserResponse, error) {
 	resp, err := c.readService.GetUser(ctx, &identityv1.GetUserRequest{
 		UserId: userID,
@@ -80,7 +79,7 @@ func (c *Client) GetUser(ctx context.Context, userID string) (*identityv1.GetUse
 //   - userIDs: 用户 ID 列表
 //
 // 返回：
-//   - *identityv1.BatchGetUsersResponse: 包含 Users（用户列表）和 NotFound（未找到的 ID）
+//   - *identityv1.BatchGetUsersResponse: 包含 Users（用户列表）和 NotFoundIds（未找到的 ID）
 //   - error: 可能的错误类型包括 InvalidArgument、PermissionDenied
 //
 // 示例：
@@ -90,8 +89,8 @@ func (c *Client) GetUser(ctx context.Context, userID string) (*identityv1.GetUse
 //	    return err
 //	}
 //	fmt.Printf("找到 %d 个用户\n", len(resp.Users))
-//	if len(resp.NotFound) > 0 {
-//	    fmt.Printf("未找到: %v\n", resp.NotFound)
+//	if len(resp.NotFoundIds) > 0 {
+//	    fmt.Printf("未找到: %v\n", resp.NotFoundIds)
 //	}
 func (c *Client) BatchGetUsers(ctx context.Context, userIDs []string) (*identityv1.BatchGetUsersResponse, error) {
 	resp, err := c.readService.BatchGetUsers(ctx, &identityv1.BatchGetUsersRequest{
@@ -105,23 +104,21 @@ func (c *Client) BatchGetUsers(ctx context.Context, userIDs []string) (*identity
 
 // SearchUsers 搜索用户。
 //
-// 根据关键词、手机、状态等条件搜索用户，支持分页。
+// 根据关键词、手机号或邮箱搜索用户，支持偏移分页。
 //
 // 参数：
 //   - ctx: 请求上下文
-//   - req: 搜索请求，包含 Query、Phone、Status、Page、PageSize 等字段
+//   - req: 搜索请求，包含 Keyword、Phones、Emails、Page 等字段
 //
 // 返回：
-//   - *identityv1.SearchUsersResponse: 包含 Users、Total、Page、PageSize 字段
+//   - *identityv1.SearchUsersResponse: 包含 Users、Total、Page 字段
 //   - error: 可能的错误类型包括 InvalidArgument、PermissionDenied
 //
 // 示例：
 //
 //	resp, err := client.Identity().SearchUsers(ctx, &identityv1.SearchUsersRequest{
-//	    Query:    "张三",
-//	    Status:   "active",
-//	    Page:     1,
-//	    PageSize: 20,
+//	    Keyword: "张三",
+//	    Page:    &identityv1.OffsetPagination{Limit: 20, Offset: 0},
 //	})
 //	if err != nil {
 //	    return err
@@ -142,7 +139,7 @@ func (c *Client) SearchUsers(ctx context.Context, req *identityv1.SearchUsersReq
 //   - childID: 孩子 ID
 //
 // 返回：
-//   - *identityv1.GetChildResponse: 包含 Child 对象，包含姓名、出生日期、性别等信息
+//   - *identityv1.GetChildResponse: 包含 Child 对象，常用字段有 legal_name、dob、gender
 //   - error: 可能的错误类型包括 InvalidArgument、NotFound、PermissionDenied
 //
 // 示例：
@@ -151,7 +148,7 @@ func (c *Client) SearchUsers(ctx context.Context, req *identityv1.SearchUsersReq
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("孩子: %s, 年龄: %d\n", resp.Child.Name, resp.Child.Age)
+//	fmt.Printf("孩子: %s, 生日: %s\n", resp.GetChild().GetLegalName(), resp.GetChild().GetDob())
 func (c *Client) GetChild(ctx context.Context, childID string) (*identityv1.GetChildResponse, error) {
 	resp, err := c.readService.GetChild(ctx, &identityv1.GetChildRequest{
 		ChildId: childID,
@@ -197,7 +194,7 @@ func (c *Client) BatchGetChildren(ctx context.Context, childIDs []string) (*iden
 //
 // 参数：
 //   - ctx: 请求上下文
-//   - req: 创建请求，包含 Name、Phone、Gender、Avatar 等字段
+//   - req: 创建请求，包含 Nickname、Phone、Email 等字段
 //
 // 返回：
 //   - *identityv1.CreateUserResponse: 包含新创建的 User 对象
@@ -206,14 +203,14 @@ func (c *Client) BatchGetChildren(ctx context.Context, childIDs []string) (*iden
 // 示例：
 //
 //	resp, err := client.Identity().CreateUser(ctx, &identityv1.CreateUserRequest{
-//	    Name:   "张三",
-//	    Phone:  "13800138000",
-//	    Gender: "male",
+//	    Nickname: "张三",
+//	    Phone:    "13800138000",
+//	    Email:    "zhangsan@example.com",
 //	})
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("用户创建成功，ID: %s\n", resp.User.UserId)
+//	fmt.Printf("用户创建成功，ID: %s\n", resp.GetUser().GetId())
 func (c *Client) CreateUser(ctx context.Context, req *identityv1.CreateUserRequest) (*identityv1.CreateUserResponse, error) {
 	resp, err := c.lifecycleService.CreateUser(ctx, req)
 	if err != nil {
@@ -226,7 +223,7 @@ func (c *Client) CreateUser(ctx context.Context, req *identityv1.CreateUserReque
 //
 // 参数：
 //   - ctx: 请求上下文
-//   - req: 更新请求，包含 UserId、Name、Avatar、UpdateMask 等字段
+//   - req: 更新请求，包含 UserId、Nickname、Phone、Email 等字段
 //
 // 返回：
 //   - *identityv1.UpdateUserResponse: 包含更新后的 User 对象
@@ -235,9 +232,9 @@ func (c *Client) CreateUser(ctx context.Context, req *identityv1.CreateUserReque
 // 示例：
 //
 //	resp, err := client.Identity().UpdateUser(ctx, &identityv1.UpdateUserRequest{
-//	    UserId: "user-123",
-//	    Name:   "李四",
-//	    Avatar: "https://example.com/avatar.jpg",
+//	    UserId:   "user-123",
+//	    Nickname: "李四",
+//	    Phone:    "13800138001",
 //	})
 //	if err != nil {
 //	    return err
@@ -260,7 +257,7 @@ func (c *Client) UpdateUser(ctx context.Context, req *identityv1.UpdateUserReque
 //   - req: 状态变更请求，包含 UserId、Reason 等字段
 //
 // 返回：
-//   - *identityv1.UserOperationResponse: 包含 Success 和 Message 字段
+//   - *identityv1.UserOperationResponse: 包含变更后的 User 对象
 //   - error: 可能的错误类型包括 InvalidArgument、NotFound、PermissionDenied
 //
 // 示例：
@@ -272,7 +269,7 @@ func (c *Client) UpdateUser(ctx context.Context, req *identityv1.UpdateUserReque
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("用户停用成功\n")
+//	fmt.Printf("用户停用后状态: %s\n", resp.GetUser().GetStatus().String())
 func (c *Client) DeactivateUser(ctx context.Context, req *identityv1.ChangeUserStatusRequest) (*identityv1.UserOperationResponse, error) {
 	resp, err := c.lifecycleService.DeactivateUser(ctx, req)
 	if err != nil {
@@ -290,7 +287,7 @@ func (c *Client) DeactivateUser(ctx context.Context, req *identityv1.ChangeUserS
 //   - req: 状态变更请求，包含 UserId、Reason 等字段
 //
 // 返回：
-//   - *identityv1.UserOperationResponse: 包含 Success 和 Message 字段
+//   - *identityv1.UserOperationResponse: 包含变更后的 User 对象
 //   - error: 可能的错误类型包括 InvalidArgument、NotFound、PermissionDenied
 //
 // 示例：
@@ -302,41 +299,9 @@ func (c *Client) DeactivateUser(ctx context.Context, req *identityv1.ChangeUserS
 //	if err != nil {
 //	    return err
 //	}
-//	fmt.Printf("用户封禁成功\n")
+//	fmt.Printf("用户封禁后状态: %s\n", resp.GetUser().GetStatus().String())
 func (c *Client) BlockUser(ctx context.Context, req *identityv1.ChangeUserStatusRequest) (*identityv1.UserOperationResponse, error) {
 	resp, err := c.lifecycleService.BlockUser(ctx, req)
-	if err != nil {
-		return nil, errors.Wrap(err)
-	}
-	return resp, nil
-}
-
-// LinkExternalIdentity 关联外部身份。
-//
-// 将用户与第三方平台身份（微信、支付宝等）关联。
-//
-// 参数：
-//   - ctx: 请求上下文
-//   - req: 关联请求，包含 UserId、Provider（如 "wechat"）、ExternalId、Metadata 等字段
-//
-// 返回：
-//   - *identityv1.LinkExternalIdentityResponse: 包含 Success 和 LinkId（关联记录 ID）
-//   - error: 可能的错误类型包括 InvalidArgument、AlreadyExists、NotFound、PermissionDenied
-//
-// 示例：
-//
-//	resp, err := client.Identity().LinkExternalIdentity(ctx, &identityv1.LinkExternalIdentityRequest{
-//	    UserId:     "user-123",
-//	    Provider:   "wechat",
-//	    ExternalId: "wx_openid_abc123",
-//	    Metadata:   map[string]string{"union_id": "wx_unionid_xyz"},
-//	})
-//	if err != nil {
-//	    return err
-//	}
-//	fmt.Printf("微信身份关联成功，关联ID: %s\n", resp.LinkId)
-func (c *Client) LinkExternalIdentity(ctx context.Context, req *identityv1.LinkExternalIdentityRequest) (*identityv1.LinkExternalIdentityResponse, error) {
-	resp, err := c.lifecycleService.LinkExternalIdentity(ctx, req)
 	if err != nil {
 		return nil, errors.Wrap(err)
 	}
