@@ -11,6 +11,7 @@ import (
 	registerApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/register"
 	authnUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/uow"
 	assignmentApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/assignment"
+	authzUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/uow"
 	ucUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/uow"
 	userApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/user"
 	authnAuth "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/authentication"
@@ -22,7 +23,6 @@ import (
 	accountRepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/account"
 	assignmentMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/assignment"
 	credentialRepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/credential"
-	policyMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/policy"
 	roleMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/role"
 	userRepo "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
 	wechatInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/wechat"
@@ -80,14 +80,11 @@ func seedTenantBootstrapAdmins(ctx context.Context, deps *dependencies, state *s
 	}
 
 	assignmentRepo := assignmentMysql.NewAssignmentRepository(deps.DB)
-	policyVersionRepo := policyMysql.NewPolicyVersionRepository(deps.DB)
-	assignmentManager := assignmentDomain.NewValidator(assignmentRepo, roleRepo)
+	assignmentManager := assignmentDomain.NewValidator(assignmentRepo, roleRepo, userRepo.NewRepository(deps.DB))
 	assignmentCommander := assignmentApp.NewAssignmentCommandService(
 		assignmentManager,
-		assignmentRepo,
-		roleRepo,
+		authzUOW.NewUnitOfWork(deps.DB),
 		casbinPort,
-		policyVersionRepo,
 		nil,
 	)
 	assignmentQueryer := assignmentApp.NewAssignmentQueryService(assignmentManager, assignmentRepo)

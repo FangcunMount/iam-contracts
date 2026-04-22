@@ -7,9 +7,10 @@ import (
 
 // ServerRunOptions 在运行的通用服务器选项
 type ServerRunOptions struct {
-	Mode        string   `json:"mode"        mapstructure:"mode"`
-	Healthz     bool     `json:"healthz"     mapstructure:"healthz"`
-	Middlewares []string `json:"middlewares" mapstructure:"middlewares"`
+	Mode                 string   `json:"mode" mapstructure:"mode"`
+	Healthz              bool     `json:"healthz" mapstructure:"healthz"`
+	Middlewares          []string `json:"middlewares" mapstructure:"middlewares"`
+	AllowDegradedStartup bool     `json:"allowDegradedStartup" mapstructure:"allow-degraded-startup"`
 }
 
 // NewServerRunOptions 简单工厂方法，创建在运行的服务器选项
@@ -17,9 +18,10 @@ func NewServerRunOptions() *ServerRunOptions {
 	defaults := server.NewConfig()
 
 	return &ServerRunOptions{
-		Mode:        defaults.Mode,
-		Healthz:     defaults.Healthz,
-		Middlewares: defaults.Middlewares,
+		Mode:                 defaults.Mode,
+		Healthz:              defaults.Healthz,
+		Middlewares:          defaults.Middlewares,
+		AllowDegradedStartup: false,
 	}
 }
 
@@ -51,4 +53,7 @@ func (s *ServerRunOptions) AddFlags(fs *pflag.FlagSet) {
 
 	fs.StringSliceVar(&s.Middlewares, "server.middlewares", s.Middlewares, ""+
 		"List of allowed middlewares for server, comma separated. If this list is empty default middlewares will be used.")
+
+	fs.BoolVar(&s.AllowDegradedStartup, "server.allow-degraded-startup", s.AllowDegradedStartup, ""+
+		"Allow partial startup when critical modules are unavailable. This is rejected in production/release mode.")
 }

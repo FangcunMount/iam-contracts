@@ -5,16 +5,17 @@ import (
 	"context"
 )
 
+// RuleStore 持久化 Casbin 规则事实到数据库。
+type RuleStore interface {
+	AddPolicy(ctx context.Context, rules ...PolicyRule) error
+	RemovePolicy(ctx context.Context, rules ...PolicyRule) error
+	AddGroupingPolicy(ctx context.Context, rules ...GroupingRule) error
+	RemoveGroupingPolicy(ctx context.Context, rules ...GroupingRule) error
+}
+
 // CasbinAdapter Casbin 策略操作接口（Driven Port - 外部服务）
 type CasbinAdapter interface {
-	// AddPolicy 添加 p 规则
-	AddPolicy(ctx context.Context, rules ...PolicyRule) error
-	// RemovePolicy 删除 p 规则
-	RemovePolicy(ctx context.Context, rules ...PolicyRule) error
-	// AddGroupingPolicy 添加 g 规则
-	AddGroupingPolicy(ctx context.Context, rules ...GroupingRule) error
-	// RemoveGroupingPolicy 删除 g 规则
-	RemoveGroupingPolicy(ctx context.Context, rules ...GroupingRule) error
+	RuleStore
 	// GetPoliciesByRole 获取角色的所有 p 规则
 	GetPoliciesByRole(ctx context.Context, role, domain string) ([]PolicyRule, error)
 	// GetGroupingsBySubject 获取主体的所有 g 规则

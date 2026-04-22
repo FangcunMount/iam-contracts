@@ -98,7 +98,6 @@ paths:
           type: string
           enum:
           - user
-          - group
       - name: subject_id
         in: query
         description: 主体ID
@@ -618,7 +617,6 @@ components:
           type: string
       required:
       - action
-      - changed_by
       - resource_id
       - role_id
       type: object
@@ -646,7 +644,7 @@ components:
         subject_id:
           type: string
         subject_type:
-          description: SubjectType 可选：user | group；与 SubjectID 同时省略时使用当前 JWT 用户。
+          description: SubjectType 可选：任意主体类型字符串；与 SubjectID 同时省略时使用当前 JWT 用户。
           type: string
       required:
       - action
@@ -707,10 +705,8 @@ components:
         subject_type:
           enum:
           - user
-          - group
           type: string
       required:
-      - granted_by
       - role_id
       - subject_id
       - subject_type
@@ -765,7 +761,6 @@ components:
           type: string
       required:
       - action
-      - changed_by
       - resource_id
       - role_id
       type: object
@@ -807,7 +802,6 @@ components:
         subject_type:
           enum:
           - user
-          - group
           type: string
       required:
       - role_id

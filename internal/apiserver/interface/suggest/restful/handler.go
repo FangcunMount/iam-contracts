@@ -23,14 +23,12 @@ func Provide(d Dependencies) {
 
 // Register registers routes onto the engine.
 func Register(engine *gin.Engine) {
-	if engine == nil || deps.Service == nil {
+	if engine == nil || deps.Service == nil || deps.AuthMiddleware == nil {
 		return
 	}
 
 	group := engine.Group("/api/v1/suggest")
-	if deps.AuthMiddleware != nil {
-		group.Use(deps.AuthMiddleware)
-	}
+	group.Use(deps.AuthMiddleware)
 
 	h := NewHandler(deps.Service)
 	group.GET("/child", h.Child)

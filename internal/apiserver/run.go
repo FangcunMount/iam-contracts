@@ -9,5 +9,10 @@ func Run(cfg *config.Config) error {
 		return err
 	}
 
-	return server.PrepareRun().Run()
+	prepared, err := server.PrepareRun()
+	if err != nil {
+		return err
+	}
+
+	return prepared.Run()
 }

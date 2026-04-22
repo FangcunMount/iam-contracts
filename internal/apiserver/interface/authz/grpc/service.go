@@ -173,10 +173,8 @@ func parseSubject(subject string) (assignmentDomain.SubjectType, string, error) 
 	switch parts[0] {
 	case string(assignmentDomain.SubjectTypeUser):
 		return assignmentDomain.SubjectTypeUser, parts[1], nil
-	case string(assignmentDomain.SubjectTypeService):
-		return assignmentDomain.SubjectTypeService, parts[1], nil
 	default:
-		return "", "", status.Errorf(codes.InvalidArgument, "unsupported subject type: %s", parts[0])
+		return "", "", status.Errorf(codes.InvalidArgument, "unsupported subject type for assignment writes: %s", parts[0])
 	}
 }
 

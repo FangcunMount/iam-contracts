@@ -29,8 +29,6 @@ func convertToSubjectType(s string) (assignmentDomain.SubjectType, error) {
 	switch s {
 	case "user":
 		return assignmentDomain.SubjectTypeUser, nil
-	case "group":
-		return assignmentDomain.SubjectTypeGroup, nil
 	default:
 		return "", errors.WithCode(code.ErrInvalidArgument, "无效的主体类型: %s", s)
 	}
@@ -51,8 +49,16 @@ func (h *AssignmentHandler) GrantRole(c *gin.Context) {
 		return
 	}
 
-	tenantID := getTenantID(c)
-	grantedBy := getUserID(c)
+	tenantID, err := getTenantID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
+	grantedBy, err := getUserID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
 
 	subjectType, err := convertToSubjectType(req.SubjectType)
 	if err != nil {
@@ -92,7 +98,11 @@ func (h *AssignmentHandler) RevokeRole(c *gin.Context) {
 		return
 	}
 
-	tenantID := getTenantID(c)
+	tenantID, err := getTenantID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
 
 	subjectType, err := convertToSubjectType(req.SubjectType)
 	if err != nil {
@@ -129,7 +139,11 @@ func (h *AssignmentHandler) RevokeRoleByID(c *gin.Context) {
 		return
 	}
 
-	tenantID := getTenantID(c)
+	tenantID, err := getTenantID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
 
 	cmd := assignmentDomain.RevokeByIDCommand{
 		AssignmentID: assignmentDomain.NewAssignmentID(assignmentID.Uint64()),
@@ -149,7 +163,7 @@ func (h *AssignmentHandler) RevokeRoleByID(c *gin.Context) {
 // @Summary 列出主体的角色分配
 // @Tags Authorization-Assignments
 // @Produce json
-// @Param subject_type query string true "主体类型" Enums(user, group)
+// @Param subject_type query string true "主体类型" Enums(user)
 // @Param subject_id query string true "主体ID"
 // @Success 200 {object} dto.Response{data=[]dto.AssignmentResponse}
 // @Router /authz/assignments/subject [get]
@@ -162,7 +176,11 @@ func (h *AssignmentHandler) ListAssignmentsBySubject(c *gin.Context) {
 		return
 	}
 
-	tenantID := getTenantID(c)
+	tenantID, err := getTenantID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
 
 	subjectType, err := convertToSubjectType(subjectTypeStr)
 	if err != nil {
@@ -204,7 +222,11 @@ func (h *AssignmentHandler) ListAssignmentsByRole(c *gin.Context) {
 		return
 	}
 
-	tenantID := getTenantID(c)
+	tenantID, err := getTenantID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
 
 	query := assignmentDomain.ListByRoleQuery{
 		RoleID:   roleID.Uint64(),

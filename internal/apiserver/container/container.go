@@ -47,12 +47,6 @@ type Container struct {
 // eventBus: 消息总线（可选，用于事件驱动，传 nil 则不使用消息队列）
 // encryptionKey: IDP 模块使用的加密密钥（32 字节 AES-256），传 nil 则使用默认密钥
 func NewContainer(mysqlDB *gorm.DB, redisClient *redis.Client, eventBus messaging.EventBus, encryptionKey []byte) *Container {
-	// 如果未提供加密密钥，使用默认密钥（仅用于开发环境）
-	if encryptionKey == nil {
-		// 默认密钥：32 字节（仅供开发使用，生产环境必须提供真实密钥）
-		encryptionKey = []byte("0123456789abcdef0123456789abcdef")
-	}
-
 	return &Container{
 		mysqlDB:          mysqlDB,
 		redisClient:      redisClient,

@@ -5,8 +5,10 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/role"
+	userDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/uc/user"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"gorm.io/gorm"
 )
 
 // AssignmentManager 赋权管理器（领域服务）
@@ -18,16 +20,19 @@ import (
 type validator struct {
 	assignmentRepo Repository
 	roleRepo       role.Repository
+	userRepo       userDomain.Repository
 }
 
 // NewAssignmentManager 创建赋权管理器
 func NewValidator(
 	assignmentRepo Repository,
 	roleRepo role.Repository,
+	userRepo userDomain.Repository,
 ) *validator {
 	return &validator{
 		assignmentRepo: assignmentRepo,
 		roleRepo:       roleRepo,
+		userRepo:       userRepo,
 	}
 }
 
@@ -35,6 +40,9 @@ func NewValidator(
 func (v *validator) ValidateGrantCommand(cmd GrantCommand) error {
 	if cmd.SubjectType == "" {
 		return errors.WithCode(code.ErrInvalidArgument, "主体类型不能为空")
+	}
+	if err := validateWritableSubjectType(cmd.SubjectType); err != nil {
+		return err
 	}
 	if cmd.SubjectID == "" {
 		return errors.WithCode(code.ErrInvalidArgument, "主体ID不能为空")
@@ -55,6 +63,9 @@ func (v *validator) ValidateGrantCommand(cmd GrantCommand) error {
 func (v *validator) ValidateRevokeCommand(cmd RevokeCommand) error {
 	if cmd.SubjectType == "" {
 		return errors.WithCode(code.ErrInvalidArgument, "主体类型不能为空")
+	}
+	if err := validateWritableSubjectType(cmd.SubjectType); err != nil {
+		return err
 	}
 	if cmd.SubjectID == "" {
 		return errors.WithCode(code.ErrInvalidArgument, "主体ID不能为空")
@@ -137,9 +148,26 @@ func (v *validator) CheckRoleExists(ctx context.Context, roleID uint64, tenantID
 
 // CheckSubjectExists 检查主体是否存在
 func (v *validator) CheckSubjectExists(ctx context.Context, subjectType SubjectType, subjectID, tenantID string) error {
-	// TODO: 实现主体存在性检查
-	// 这需要根据 subjectType 调用不同的仓储
-	// 暂时返回 nil
+	if err := validateWritableSubjectType(subjectType); err != nil {
+		return err
+	}
+	if v.userRepo == nil {
+		return errors.WithCode(code.ErrInternalServerError, "用户仓储未配置")
+	}
+	userID, err := meta.ParseID(subjectID)
+	if err != nil || userID.IsZero() {
+		return errors.WithCode(code.ErrInvalidArgument, "主体ID格式错误")
+	}
+	userExists, err := v.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		if errors.IsCode(err, code.ErrUserNotFound) || err == gorm.ErrRecordNotFound {
+			return errors.WithCode(code.ErrUserNotFound, "用户不存在")
+		}
+		return errors.Wrap(err, "检查用户存在性失败")
+	}
+	if userExists == nil {
+		return errors.WithCode(code.ErrUserNotFound, "用户不存在")
+	}
 	return nil
 }
 
@@ -248,4 +276,11 @@ func (v *validator) ValidateListByRoleQuery(roleID uint64, tenantID string) erro
 		return errors.WithCode(code.ErrInvalidArgument, "租户ID不能为空")
 	}
 	return nil
+}
+
+func validateWritableSubjectType(subjectType SubjectType) error {
+	if subjectType == SubjectTypeUser {
+		return nil
+	}
+	return errors.WithCode(code.ErrInvalidArgument, "主体类型 %s 当前不支持写操作，仅支持 user", subjectType)
 }

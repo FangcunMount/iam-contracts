@@ -45,7 +45,11 @@ func (h *CheckHandler) Check(c *gin.Context) {
 		return
 	}
 
-	dom := getTenantID(c)
+	dom, err := getTenantID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
 	allowed, err := h.casbin.Enforce(c.Request.Context(), sub, dom, req.Object, req.Action)
 	if err != nil {
 		handleError(c, err)
@@ -58,13 +62,13 @@ func (h *CheckHandler) Check(c *gin.Context) {
 func resolveSubject(c *gin.Context, req dto.CheckRequest) (string, bool) {
 	if req.SubjectID != "" && req.SubjectType != "" {
 		st := assignmentDomain.SubjectType(req.SubjectType)
-		if st != assignmentDomain.SubjectTypeUser && st != assignmentDomain.SubjectTypeGroup {
+		if st == "" {
 			return "", false
 		}
 		return st.String() + ":" + req.SubjectID, true
 	}
-	uid := getUserID(c)
-	if uid == "" || uid == "system" {
+	uid, err := getUserID(c)
+	if err != nil || uid == "" {
 		return "", false
 	}
 	return "user:" + uid, true

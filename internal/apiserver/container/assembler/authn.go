@@ -101,15 +101,15 @@ func (m *AuthnModule) Initialize(params ...interface{}) error {
 	}
 
 	db, ok := params[0].(*gorm.DB)
-	if !ok {
+	if !ok || db == nil {
 		log.Errorf("params[0] must be *gorm.DB")
-		return fmt.Errorf("invalid db parameter type")
+		return fmt.Errorf("invalid db parameter")
 	}
 
 	redisClient, ok := params[1].(*redis.Client)
-	if !ok {
+	if !ok || redisClient == nil {
 		log.Errorf("params[1] must be *redis.Client")
-		return fmt.Errorf("invalid redis parameter type")
+		return fmt.Errorf("invalid redis parameter")
 	}
 
 	// 获取可选依赖

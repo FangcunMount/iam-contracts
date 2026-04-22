@@ -40,8 +40,16 @@ func (h *PolicyHandler) AddPolicyRule(c *gin.Context) {
 		return
 	}
 
-	tenantID := getTenantID(c)
-	changedBy := getUserID(c)
+	tenantID, err := getTenantID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
+	changedBy, err := getUserID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
 
 	roleID := req.RoleID
 	resourceID := req.ResourceID
@@ -64,7 +72,7 @@ func (h *PolicyHandler) AddPolicyRule(c *gin.Context) {
 		Reason:     req.Reason,
 	}
 
-	err := h.commander.AddPolicyRule(c.Request.Context(), cmd)
+	err = h.commander.AddPolicyRule(c.Request.Context(), cmd)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -88,8 +96,16 @@ func (h *PolicyHandler) RemovePolicyRule(c *gin.Context) {
 		return
 	}
 
-	tenantID := getTenantID(c)
-	changedBy := getUserID(c)
+	tenantID, err := getTenantID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
+	changedBy, err := getUserID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
 
 	roleID := req.RoleID
 	resourceID := req.ResourceID
@@ -112,7 +128,7 @@ func (h *PolicyHandler) RemovePolicyRule(c *gin.Context) {
 		Reason:     req.Reason,
 	}
 
-	err := h.commander.RemovePolicyRule(c.Request.Context(), cmd)
+	err = h.commander.RemovePolicyRule(c.Request.Context(), cmd)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -135,7 +151,11 @@ func (h *PolicyHandler) GetPoliciesByRole(c *gin.Context) {
 		return
 	}
 
-	tenantID := getTenantID(c)
+	tenantID, err := getTenantID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
 
 	query := policyDomain.GetPoliciesByRoleQuery{
 		RoleID:   roleID.Uint64(),
@@ -168,7 +188,11 @@ func (h *PolicyHandler) GetPoliciesByRole(c *gin.Context) {
 // @Success 200 {object} dto.Response{data=dto.PolicyVersionResponse}
 // @Router /authz/policies/version [get]
 func (h *PolicyHandler) GetCurrentVersion(c *gin.Context) {
-	tenantID := getTenantID(c)
+	tenantID, err := getTenantID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
 
 	query := policyDomain.GetCurrentVersionQuery{
 		TenantID: tenantID,

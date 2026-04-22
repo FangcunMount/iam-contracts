@@ -4,9 +4,11 @@ package handler
 import (
 	"net/http"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/gin-gonic/gin"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/dto"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/pkg/core"
 )
 
@@ -22,21 +24,29 @@ func NewBaseHandler() *BaseHandler {
 	}
 }
 
-// getTenantID 从上下文中获取租户ID
-// 实际项目中应该从 JWT token 或 header 中提取
-func getTenantID(c *gin.Context) string {
-	// 使用公共方法
-	return core.NewBaseHandler().GetTenantID(c)
+// getTenantID 从上下文中获取租户ID。
+func getTenantID(c *gin.Context) (string, error) {
+	if c == nil {
+		return "", perrors.WithCode(code.ErrTokenInvalid, "request context is nil")
+	}
+	tenantID, exists := c.Get("tenant_id")
+	if !exists {
+		return "", perrors.WithCode(code.ErrTokenInvalid, "tenant id not found in context")
+	}
+	id, ok := tenantID.(string)
+	if !ok || id == "" {
+		return "", perrors.WithCode(code.ErrTokenInvalid, "tenant id not found in context")
+	}
+	return id, nil
 }
 
-// getUserID 从上下文中获取用户ID
-// 实际项目中应该从 JWT token 中提取
-func getUserID(c *gin.Context) string {
+// getUserID 从上下文中获取用户ID。
+func getUserID(c *gin.Context) (string, error) {
 	userID, _ := core.NewBaseHandler().GetUserID(c)
 	if userID == "" {
-		return "system" // 默认用户（开发环境）
+		return "", perrors.WithCode(code.ErrTokenInvalid, "user id not found in context")
 	}
-	return userID
+	return userID, nil
 }
 
 // handleError 统一错误处理 (authz 模块特定的错误格式)

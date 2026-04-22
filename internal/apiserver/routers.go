@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -68,7 +69,7 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 			casbin,
 		)
 	} else {
-		log.Warn("Authn module unavailable; routes will be exposed without JWT middleware")
+		log.Warn("Authn module unavailable; protected routes will not be registered")
 	}
 
 	r.registerCacheGovernanceDebugRoutes(engine, authMiddleware)
@@ -77,20 +78,6 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 	if authMiddleware != nil && authMiddleware.SupportsRoleCheck() {
 		adminMiddlewares = append(adminMiddlewares, authMiddleware.AuthRequired(), authMiddleware.RequirePlatformAdmin())
 	}
-
-	// User 模块使用新中间件
-	userhttp.Provide(userhttp.Dependencies{
-		Module: r.container.UserModule,
-		AuthMiddleware: func() gin.HandlerFunc {
-			if authMiddleware != nil {
-				return authMiddleware.AuthRequired()
-			}
-			// 如果认证中间件未初始化，返回一个空的中间件
-			return func(c *gin.Context) {
-				c.Next()
-			}
-		}(),
-	})
 
 	// Authn 模块（公开端点）
 	if r.container.AuthnModule != nil {
@@ -116,22 +103,19 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 	}
 
 	// Authz 模块（授权管理 + PDP）
-	if r.container.AuthzModule != nil {
+	if r.container.AuthzModule != nil && authMiddleware != nil {
 		authzhttp.Provide(authzhttp.Dependencies{
 			RoleHandler:       r.container.AuthzModule.RoleHandler,
 			AssignmentHandler: r.container.AuthzModule.AssignmentHandler,
 			PolicyHandler:     r.container.AuthzModule.PolicyHandler,
 			ResourceHandler:   r.container.AuthzModule.ResourceHandler,
 			CheckHandler:      r.container.AuthzModule.CheckHandler,
-			AuthMiddleware: func() gin.HandlerFunc {
-				if authMiddleware != nil {
-					return authMiddleware.AuthRequired()
-				}
-				return func(c *gin.Context) { c.Next() }
-			}(),
+			AuthMiddleware:    authMiddleware.AuthRequired(),
 		})
 		authzhttp.Register(engine)
 		log.Info("✅ Authz module routes registered")
+	} else if r.container.AuthzModule != nil {
+		log.Warn("⚠️  Authz module initialized but JWT middleware unavailable; protected routes not registered")
 	} else {
 		log.Warn("⚠️  Authz module not initialized, routes not registered")
 	}
@@ -149,23 +133,30 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 		log.Warn("⚠️  IDP module not initialized, routes not registered")
 	}
 
-	// User 模块路由始终注册
-	userhttp.Register(engine)
-	log.Info("✅ User module routes registered")
+	// User 模块（受 JWT 保护）
+	if r.container.UserModule != nil && authMiddleware != nil {
+		userhttp.Provide(userhttp.Dependencies{
+			Module:         r.container.UserModule,
+			AuthMiddleware: authMiddleware.AuthRequired(),
+		})
+		userhttp.Register(engine)
+		log.Info("✅ User module routes registered")
+	} else if r.container.UserModule != nil {
+		log.Warn("⚠️  User module initialized but JWT middleware unavailable; protected routes not registered")
+	} else {
+		log.Warn("⚠️  User module not initialized, routes not registered")
+	}
 
 	// Suggest 模块（依赖 Service 和可选认证）
-	if r.container.SuggestModule != nil && r.container.SuggestModule.Service != nil {
+	if r.container.SuggestModule != nil && r.container.SuggestModule.Service != nil && authMiddleware != nil {
 		suggesthttp.Provide(suggesthttp.Dependencies{
-			Service: r.container.SuggestModule.Service,
-			AuthMiddleware: func() gin.HandlerFunc {
-				if authMiddleware != nil {
-					return authMiddleware.AuthRequired()
-				}
-				return func(c *gin.Context) { c.Next() }
-			}(),
+			Service:        r.container.SuggestModule.Service,
+			AuthMiddleware: authMiddleware.AuthRequired(),
 		})
 		suggesthttp.Register(engine)
 		log.Info("✅ Suggest module routes registered")
+	} else if r.container.SuggestModule != nil && r.container.SuggestModule.Service != nil {
+		log.Warn("⚠️  Suggest module initialized but JWT middleware unavailable; protected routes not registered")
 	} else {
 		log.Warn("⚠️  Suggest module not initialized or disabled, routes not registered")
 	}
@@ -280,13 +271,37 @@ func (r *Router) placeholder(c *gin.Context) {
 
 // healthCheck 健康检查处理函数
 func (r *Router) healthCheck(c *gin.Context) {
+	authEnabled := r.container != nil && r.container.AuthnModule != nil && r.container.AuthnModule.TokenService != nil
+	authzRuntimeHealthy := true
+	authzRuntimeError := ""
+	var authzReloadedAt time.Time
+
+	if r.container != nil && r.container.AuthzModule != nil && r.container.AuthzModule.CasbinAdapter != nil {
+		if reporter, ok := r.container.AuthzModule.CasbinAdapter.(interface {
+			ReloadHealth() (bool, error, time.Time)
+		}); ok {
+			var err error
+			authzRuntimeHealthy, err, authzReloadedAt = reporter.ReloadHealth()
+			if err != nil {
+				authzRuntimeError = err.Error()
+			}
+		}
+	}
+
+	status := "healthy"
+	statusCode := http.StatusOK
+	if !authEnabled || !authzRuntimeHealthy {
+		status = "degraded"
+		statusCode = http.StatusServiceUnavailable
+	}
+
 	response := gin.H{
-		"status":       "healthy",
+		"status":       status,
 		"version":      "1.0.0",
 		"discovery":    "auto",
 		"architecture": "hexagonal",
 		"router":       "centralized",
-		"auth":         "enabled", // 新增认证状态
+		"auth":         map[bool]string{true: "enabled", false: "disabled"}[authEnabled],
 		"components": gin.H{
 			"domain":      "user",
 			"ports":       "storage",
@@ -295,12 +310,22 @@ func (r *Router) healthCheck(c *gin.Context) {
 		},
 		"auth_system": gin.H{
 			"type":    "jwt",
-			"enabled": true,
+			"enabled": authEnabled,
 			"module":  "authn (DDD 4-layer)",
+		},
+		"authz_runtime": gin.H{
+			"healthy":    authzRuntimeHealthy,
+			"last_error": authzRuntimeError,
+			"reloaded_at": func() string {
+				if authzReloadedAt.IsZero() {
+					return ""
+				}
+				return authzReloadedAt.Format(time.RFC3339)
+			}(),
 		},
 	}
 
-	c.JSON(200, response)
+	c.JSON(statusCode, response)
 }
 
 // ping 简单的连通性测试

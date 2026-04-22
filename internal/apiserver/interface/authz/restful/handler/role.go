@@ -44,7 +44,11 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 		return
 	}
 
-	tenantID := getTenantID(c)
+	tenantID, err := getTenantID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
 
 	cmd := roleDomain.CreateRoleCommand{
 		Name:        req.Name,
@@ -159,7 +163,11 @@ func (h *RoleHandler) ListRoles(c *gin.Context) {
 		return
 	}
 
-	tenantID := getTenantID(c)
+	tenantID, err := getTenantID(c)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
 
 	listQuery := roleDomain.ListRolesQuery{
 		TenantID: tenantID,

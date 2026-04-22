@@ -11,6 +11,7 @@ import (
 
 	assignmentApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/assignment"
 	resourceApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/resource"
+	authzUOW "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/uow"
 	assignmentDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
 	policyDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
 	resourceDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
@@ -19,6 +20,7 @@ import (
 	policyMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/policy"
 	resourceMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/resource"
 	roleMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/role"
+	userMysql "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
 )
 
 const (
@@ -186,14 +188,12 @@ func seedRoleAssignments(ctx context.Context, deps *dependencies, state *seedCon
 
 	roleRepo := roleMysql.NewRoleRepository(deps.DB)
 	assignmentRepo := assignmentMysql.NewAssignmentRepository(deps.DB)
-	policyVersionRepo := policyMysql.NewPolicyVersionRepository(deps.DB)
-	assignmentManager := assignmentDomain.NewValidator(assignmentRepo, roleRepo)
+	userRepo := userMysql.NewRepository(deps.DB)
+	assignmentManager := assignmentDomain.NewValidator(assignmentRepo, roleRepo, userRepo)
 	assignmentCommander := assignmentApp.NewAssignmentCommandService(
 		assignmentManager,
-		assignmentRepo,
-		roleRepo,
+		authzUOW.NewUnitOfWork(deps.DB),
 		casbinPort,
-		policyVersionRepo,
 		nil,
 	)
 	assignmentQueryer := assignmentApp.NewAssignmentQueryService(assignmentManager, assignmentRepo)

@@ -11,10 +11,13 @@ import (
 	"github.com/spf13/viper"
 
 	sessionapp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/session"
+	tokenapp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authn/token"
 	cachegovernance "github.com/FangcunMount/iam-contracts/internal/apiserver/application/cachegovernance"
+	appsuggest "github.com/FangcunMount/iam-contracts/internal/apiserver/application/suggest"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container/assembler"
 	authhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authn/restful/handler"
+	authzhandler "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/handler"
 	uchandler "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/handler"
 	authnMiddleware "github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
 )
@@ -169,6 +172,9 @@ func TestRouterRegistersIdentityGuardiansRoutes(t *testing.T) {
 
 	engine := gin.New()
 	c := &container.Container{
+		AuthnModule: &assembler.AuthnModule{
+			TokenService: tokenServiceStub{},
+		},
 		UserModule: &assembler.UserModule{
 			UserHandler:         uchandler.NewUserHandler(nil, nil, nil, nil),
 			ChildHandler:        uchandler.NewChildHandler(nil, nil, nil, nil, nil),
@@ -181,6 +187,37 @@ func TestRouterRegistersIdentityGuardiansRoutes(t *testing.T) {
 	assertRouteRegistered(t, engine, http.MethodGet, "/api/v1/identity/guardians")
 	assertRouteRegistered(t, engine, http.MethodPost, "/api/v1/identity/guardians/grant")
 	assertRouteRegistered(t, engine, http.MethodPost, "/api/v1/identity/children/register")
+}
+
+func TestRouterSkipsProtectedRoutesWithoutJWTMiddleware(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	engine := gin.New()
+	c := &container.Container{
+		UserModule: &assembler.UserModule{
+			UserHandler:         uchandler.NewUserHandler(nil, nil, nil, nil),
+			ChildHandler:        uchandler.NewChildHandler(nil, nil, nil, nil, nil),
+			GuardianshipHandler: uchandler.NewGuardianshipHandler(nil, nil),
+		},
+		AuthzModule: &assembler.AuthzModule{
+			RoleHandler:       authzhandler.NewRoleHandler(nil, nil),
+			AssignmentHandler: authzhandler.NewAssignmentHandler(nil, nil),
+			PolicyHandler:     authzhandler.NewPolicyHandler(nil, nil),
+			ResourceHandler:   authzhandler.NewResourceHandler(nil, nil),
+			CheckHandler:      authzhandler.NewCheckHandler(nil),
+		},
+		SuggestModule: &assembler.SuggestModule{
+			Service: appsuggest.NewService(appsuggest.Config{}),
+		},
+	}
+
+	NewRouter(c).RegisterRoutes(engine)
+
+	assertRouteNotRegistered(t, engine, http.MethodGet, "/api/v1/identity/guardians")
+	assertRouteNotRegistered(t, engine, http.MethodPost, "/api/v1/identity/children/register")
+	assertRouteNotRegistered(t, engine, http.MethodGet, "/api/v1/suggest/child")
+	assertRouteNotRegistered(t, engine, http.MethodGet, "/api/v1/authz/roles")
+	assertRouteNotRegistered(t, engine, http.MethodGet, "/api/v1/authz/health")
 }
 
 func assertDebugRouteStatus(t *testing.T, engine *gin.Engine, method, path string, wantStatus int, wantJSON bool) {
@@ -243,3 +280,27 @@ func (casbinStub) Enforce(_ context.Context, _, _, _, _ string) (bool, error) {
 func (casbinStub) GetRolesForUser(_ context.Context, _, _ string) ([]string, error) {
 	return []string{"role:admin"}, nil
 }
+
+type tokenServiceStub struct{}
+
+func (tokenServiceStub) IssueServiceToken(context.Context, tokenapp.IssueServiceTokenRequest) (*tokenapp.TokenIssueResult, error) {
+	return nil, nil
+}
+
+func (tokenServiceStub) RefreshToken(context.Context, string) (*tokenapp.TokenRefreshResult, error) {
+	return nil, nil
+}
+
+func (tokenServiceStub) RevokeAccessToken(context.Context, string) error {
+	return nil
+}
+
+func (tokenServiceStub) RevokeRefreshToken(context.Context, string) error {
+	return nil
+}
+
+func (tokenServiceStub) VerifyToken(context.Context, tokenapp.VerifyTokenRequest) (*tokenapp.TokenVerifyResult, error) {
+	return &tokenapp.TokenVerifyResult{Valid: true}, nil
+}
+
+var _ tokenapp.TokenApplicationService = tokenServiceStub{}

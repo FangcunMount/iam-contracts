@@ -3,6 +3,7 @@ package casbin
 import (
 	"context"
 	"sync"
+	"time"
 
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
 	"github.com/casbin/casbin/v2"
@@ -12,8 +13,10 @@ import (
 
 // CasbinAdapter Casbin 适配器实现
 type CasbinAdapter struct {
-	enforcer *casbin.CachedEnforcer
-	mu       sync.RWMutex
+	enforcer      *casbin.CachedEnforcer
+	mu            sync.RWMutex
+	lastReloadErr error
+	lastReloadAt  time.Time
 }
 
 var _ domain.CasbinAdapter = (*CasbinAdapter)(nil)
@@ -30,8 +33,8 @@ func NewCasbinAdapter(db *gorm.DB, modelPath string) (domain.CasbinAdapter, erro
 		return nil, err
 	}
 
-	// 启用自动保存（每次策略变更自动持久化）
-	enforcer.EnableAutoSave(true)
+	// DB 是授权事实源；运行时 Enforcer 只负责内存加载与判定。
+	enforcer.EnableAutoSave(false)
 
 	// 加载策略
 	if err := enforcer.LoadPolicy(); err != nil {
@@ -150,10 +153,15 @@ func (c *CasbinAdapter) GetGroupingsBySubject(ctx context.Context, subject, doma
 
 // LoadPolicy 重新加载策略（用于缓存刷新）
 func (c *CasbinAdapter) LoadPolicy(ctx context.Context) error {
+	_ = ctx
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	return c.enforcer.LoadPolicy()
+	_ = c.enforcer.InvalidateCache()
+	err := c.enforcer.LoadPolicy()
+	c.lastReloadAt = time.Now()
+	c.lastReloadErr = err
+	return err
 }
 
 // Enforce 执行 Casbin 判定。
@@ -217,4 +225,11 @@ func (c *CasbinAdapter) Enforcer() *casbin.CachedEnforcer {
 // InvalidateCache 清除缓存
 func (c *CasbinAdapter) InvalidateCache() {
 	_ = c.enforcer.InvalidateCache()
+}
+
+// ReloadHealth 返回最近一次策略加载结果。
+func (c *CasbinAdapter) ReloadHealth() (bool, error, time.Time) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.lastReloadErr == nil, c.lastReloadErr, c.lastReloadAt
 }

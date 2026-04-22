@@ -383,7 +383,6 @@ definitions:
         type: string
     required:
     - action
-    - changed_by
     - resource_id
     - role_id
     type: object
@@ -411,7 +410,7 @@ definitions:
       subject_id:
         type: string
       subject_type:
-        description: SubjectType 可选：user | group；与 SubjectID 同时省略时使用当前 JWT 用户。
+        description: SubjectType 可选：任意主体类型字符串；与 SubjectID 同时省略时使用当前 JWT 用户。
         type: string
     required:
     - action
@@ -472,10 +471,8 @@ definitions:
       subject_type:
         enum:
         - user
-        - group
         type: string
     required:
-    - granted_by
     - role_id
     - subject_id
     - subject_type
@@ -530,7 +527,6 @@ definitions:
         type: string
     required:
     - action
-    - changed_by
     - resource_id
     - role_id
     type: object
@@ -572,7 +568,6 @@ definitions:
       subject_type:
         enum:
         - user
-        - group
         type: string
     required:
     - role_id
@@ -784,7 +779,6 @@ definitions:
     required:
     - childId
     - relation
-    - userId
     type: object
   github_com_FangcunMount_iam-contracts_internal_apiserver_interface_uc_restful_request.UserContactUpsert:
     properties:
@@ -2322,13 +2316,13 @@ paths:
     get:
       consumes:
       - application/json
-      description: 查询用户或儿童的监护关系列表
+      description: 查询当前登录用户视角下的监护关系；省略 user_id 时默认当前用户，按 child_id 查询前要求当前用户对该儿童存在活跃监护关系。
       parameters:
-      - description: 用户 ID
+      - description: 当前用户 ID；省略时默认当前登录用户，不支持跨用户查询
         in: query
         name: user_id
         type: string
-      - description: 儿童 ID
+      - description: 儿童 ID；仅当当前用户对该儿童存在活跃监护关系时可查询
         in: query
         name: child_id
         type: string
@@ -2374,7 +2368,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 将用户设置为儿童的监护人
+      description: 将当前登录用户设置为儿童的监护人；如传 userId，必须与当前登录用户一致
       parameters:
       - description: 授予监护请求
         in: body

@@ -22,6 +22,7 @@ import (
 
 // apiServer 定义了 API 服务器的基本结构（六边形架构版本）
 type apiServer struct {
+	cfg *config.Config
 	// 优雅关闭管理器
 	gs *shutdown.GracefulShutdown
 	// 通用 API 服务器
@@ -64,6 +65,7 @@ func createAPIServer(cfg *config.Config) (*apiServer, error) {
 
 	// 创建 API 服务器实例
 	server := &apiServer{
+		cfg:              cfg,
 		gs:               gs,
 		genericAPIServer: genericServer,
 		dbManager:        dbManager,
@@ -74,37 +76,59 @@ func createAPIServer(cfg *config.Config) (*apiServer, error) {
 }
 
 // PrepareRun 准备运行 API 服务器（六边形架构版本）
-func (s *apiServer) PrepareRun() preparedAPIServer {
+func (s *apiServer) PrepareRun() (preparedAPIServer, error) {
+	mode := runtimeMode(s.cfg)
+	viper.Set("app.mode", appModeFromServerMode(mode))
+	degradedAllowed := degradedStartupAllowed(s.cfg)
+
 	// 初始化数据库连接（包括双 Redis 客户端）
 	if err := s.dbManager.Initialize(); err != nil {
-		log.Warnf("Failed to initialize database: %v", err)
+		if !degradedAllowed {
+			return preparedAPIServer{}, fmt.Errorf("initialize database: %w", err)
+		}
+		log.Warnw("degraded startup: database initialization failed", "error", err, "mode", mode)
 	}
 
 	// 获取 MySQL 数据库连接
 	mysqlDB, err := s.dbManager.GetMySQLDB()
 	if err != nil {
-		log.Warnf("Failed to get MySQL connection: %v", err)
-		mysqlDB = nil // 设置为nil，允许应用在没有MySQL的情况下运行
+		if !degradedAllowed {
+			return preparedAPIServer{}, fmt.Errorf("mysql unavailable: %w", err)
+		}
+		log.Warnw("degraded startup: MySQL unavailable", "error", err, "mode", mode)
+		mysqlDB = nil
 	}
 
 	// 从 DatabaseManager 获取双 Redis 客户端
 	cacheClient, err := s.dbManager.GetCacheRedisClient()
 	if err != nil {
-		log.Warnf("Failed to get Cache Redis client: %v", err)
-		cacheClient = nil // 允许在没有 Cache Redis 的情况下运行
+		if !degradedAllowed {
+			return preparedAPIServer{}, fmt.Errorf("cache redis unavailable: %w", err)
+		}
+		log.Warnw("degraded startup: cache redis unavailable", "error", err, "mode", mode)
+		cacheClient = nil
 	}
 
 	// 获取 IDP 模块加密密钥（从配置或环境变量读取）
-	idpEncryptionKey, err := loadIDPEncryptionKey()
+	idpEncryptionKey, configured, err := loadIDPEncryptionKey()
 	if err != nil {
-		log.Warnf("Failed to parse IDP encryption key: %v", err)
+		if !degradedAllowed {
+			return preparedAPIServer{}, fmt.Errorf("parse idp encryption key: %w", err)
+		}
+		log.Warnw("degraded startup: invalid idp encryption key", "error", err, "mode", mode)
+	}
+	if !configured {
+		if !degradedAllowed {
+			return preparedAPIServer{}, fmt.Errorf("idp.encryption-key is required")
+		}
+		log.Warnw("degraded startup: idp.encryption-key missing", "mode", mode)
 	}
 
 	// 创建 EventBus（如果配置启用了 NSQ）
 	eventBus, err := s.createEventBus()
 	if err != nil {
-		log.Warnf("Failed to create EventBus: %v", err)
-		eventBus = nil // 允许在没有 EventBus 的情况下运行
+		log.Warnw("event bus unavailable; continue without notifier", "error", err)
+		eventBus = nil
 	}
 
 	// 创建六边形架构容器（传入 MySQL、Redis、EventBus 和 IDP 加密密钥）
@@ -112,8 +136,14 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 
 	// 初始化容器中的所有组件
 	if err := s.container.Initialize(); err != nil {
-		log.Warnf("Failed to initialize hexagonal architecture container: %v", err)
-		// 不返回错误，允许应用在没有完整容器的情况下运行
+		if !degradedAllowed {
+			return preparedAPIServer{}, fmt.Errorf("initialize container: %w", err)
+		}
+		log.Warnw("degraded startup: container initialization incomplete", "error", err, "mode", mode)
+	}
+
+	if err := s.validateCriticalModules(degradedAllowed); err != nil {
+		return preparedAPIServer{}, err
 	}
 
 	// 创建并初始化路由器
@@ -132,17 +162,7 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 		log.Infow("Key rotation scheduler initialized", "description", "periodic key rotation scheduler started")
 	}
 
-	log.Info("🏗️  Hexagonal Architecture initialized successfully!")
-	log.Info("   📦 Domain: user")
-	log.Info("   🔌 Ports: storage")
-	log.Info("   🔧 Adapters: mysql, http, grpc")
-	log.Info("   📋 Application Services: user_service")
-
-	if mysqlDB != nil {
-		log.Info("   🗄️  Storage Mode: MySQL")
-	} else {
-		log.Info("   🗄️  Storage Mode: No Database (Demo Mode)")
-	}
+	log.Infow("hexagonal architecture initialized", "mode", mode, "degraded_startup_allowed", degradedAllowed)
 
 	// 添加关闭回调
 	s.gs.AddShutdownCallback(shutdown.ShutdownFunc(func(string) error {
@@ -182,7 +202,7 @@ func (s *apiServer) PrepareRun() preparedAPIServer {
 		return nil
 	}))
 
-	return preparedAPIServer{s}
+	return preparedAPIServer{s}, nil
 }
 
 // registerGRPCServices 注册所有 gRPC 服务到 gRPC 服务器
@@ -228,10 +248,10 @@ func (s *apiServer) registerGRPCServices() {
 }
 
 // loadIDPEncryptionKey 解析 IDP 加密密钥，支持 base64、base64url、hex 或纯 32 字节字符串
-func loadIDPEncryptionKey() ([]byte, error) {
+func loadIDPEncryptionKey() ([]byte, bool, error) {
 	secret := strings.TrimSpace(viper.GetString("idp.encryption-key"))
 	if secret == "" {
-		return nil, nil
+		return nil, false, nil
 	}
 
 	type decoder struct {
@@ -250,7 +270,7 @@ func loadIDPEncryptionKey() ([]byte, error) {
 	for _, d := range decoders {
 		if decoded, err := d.decode(secret); err == nil {
 			if len(decoded) == 32 {
-				return decoded, nil
+				return decoded, true, nil
 			}
 			log.Warnf("IDP encryption key decoded via %s but length was %d bytes, expected 32", d.name, len(decoded))
 		}
@@ -258,10 +278,73 @@ func loadIDPEncryptionKey() ([]byte, error) {
 
 	// 最后尝试直接使用原始字符串字节序列
 	if len(secret) == 32 {
-		return []byte(secret), nil
+		return []byte(secret), true, nil
 	}
 
-	return nil, fmt.Errorf("invalid encryption key: unable to decode to 32 bytes")
+	return nil, true, fmt.Errorf("invalid encryption key: unable to decode to 32 bytes")
+}
+
+func (s *apiServer) validateCriticalModules(degradedAllowed bool) error {
+	if s.container == nil {
+		return fmt.Errorf("container is nil")
+	}
+
+	missing := make([]string, 0, 4)
+	if s.container.IDPModule == nil {
+		missing = append(missing, "idp")
+	}
+	if s.container.AuthnModule == nil {
+		missing = append(missing, "authn")
+	}
+	if s.container.AuthzModule == nil {
+		missing = append(missing, "authz")
+	}
+	if s.container.UserModule == nil {
+		missing = append(missing, "user")
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	if !degradedAllowed {
+		return fmt.Errorf("critical modules unavailable: %s", strings.Join(missing, ", "))
+	}
+
+	log.Warnw("degraded startup: critical modules unavailable", "modules", missing)
+	return nil
+}
+
+func degradedStartupAllowed(cfg *config.Config) bool {
+	if cfg == nil || cfg.GenericServerRunOptions == nil || !cfg.GenericServerRunOptions.AllowDegradedStartup {
+		return false
+	}
+	return !isProductionLike(runtimeMode(cfg))
+}
+
+func runtimeMode(cfg *config.Config) string {
+	if cfg == nil || cfg.GenericServerRunOptions == nil {
+		return "release"
+	}
+	return strings.ToLower(strings.TrimSpace(cfg.GenericServerRunOptions.Mode))
+}
+
+func isProductionLike(mode string) bool {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "release", "production":
+		return true
+	default:
+		return false
+	}
+}
+
+func appModeFromServerMode(mode string) string {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "release", "production":
+		return "production"
+	case "test":
+		return "test"
+	default:
+		return "development"
+	}
 }
 
 // Run 运行 API 服务器

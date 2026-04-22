@@ -14,7 +14,7 @@ type Dependencies struct {
 	PolicyHandler     *handler.PolicyHandler
 	ResourceHandler   *handler.ResourceHandler
 	CheckHandler      *handler.CheckHandler
-	// AuthMiddleware 保护除 /health 外的管理面与 PDP；若为空则使用放行占位。
+	// AuthMiddleware 保护除 /health 外的管理面与 PDP；若为空则不注册受保护路由。
 	AuthMiddleware gin.HandlerFunc
 }
 
@@ -44,12 +44,11 @@ func Register(engine *gin.Engine) {
 			return
 		}
 
-		authMw := deps.AuthMiddleware
-		if authMw == nil {
-			authMw = func(c *gin.Context) { c.Next() }
+		if deps.AuthMiddleware == nil {
+			return
 		}
 		g := authzGroup.Group("")
-		g.Use(authMw)
+		g.Use(deps.AuthMiddleware)
 
 		// PDP：策略判定
 		if deps.CheckHandler != nil {

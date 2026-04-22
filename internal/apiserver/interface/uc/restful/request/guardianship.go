@@ -2,7 +2,7 @@ package request
 
 // GuardianGrantRequest 授予监护请求
 type GuardianGrantRequest struct {
-	UserID   string `json:"userId" binding:"required"`
+	UserID   string `json:"userId"`
 	ChildID  string `json:"childId" binding:"required"`
 	Relation string `json:"relation" binding:"required,oneof=self parent grandparent other"`
 }

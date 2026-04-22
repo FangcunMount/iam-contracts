@@ -21,16 +21,12 @@ func Provide(d Dependencies) {
 
 // Register exposes the UC module REST endpoints on the supplied engine.
 func Register(engine *gin.Engine) {
-	if engine == nil || deps.Module == nil {
+	if engine == nil || deps.Module == nil || deps.AuthMiddleware == nil {
 		return
 	}
 
 	api := engine.Group("/api/v1/identity")
-
-	// 受保护的端点（需要认证）
-	if deps.AuthMiddleware != nil {
-		api.Use(deps.AuthMiddleware)
-	}
+	api.Use(deps.AuthMiddleware)
 
 	registerUserRoutes(api, deps.Module)
 	registerChildRoutes(api, deps.Module)

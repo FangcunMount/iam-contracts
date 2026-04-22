@@ -3,11 +3,13 @@ package handler
 import (
 	"time"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/gin-gonic/gin"
 
 	appguard "github.com/FangcunMount/iam-contracts/internal/apiserver/application/uc/guardianship"
 	requestdto "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/request"
 	responsedto "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/uc/restful/response"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	_ "github.com/FangcunMount/iam-contracts/pkg/core" // imported for swagger
 )
 
@@ -51,8 +53,18 @@ func (h *GuardianshipHandler) Grant(c *gin.Context) {
 		return
 	}
 
+	currentUserID, ok := h.GetUserID(c)
+	if !ok {
+		h.ErrorWithCode(c, code.ErrTokenInvalid, "user id not found in context")
+		return
+	}
+	if req.UserID != "" && req.UserID != currentUserID {
+		h.ErrorWithCode(c, code.ErrPermissionDenied, "cannot grant guardianship for another user")
+		return
+	}
+
 	dto := appguard.AddGuardianDTO{
-		UserID:   req.UserID,
+		UserID:   currentUserID,
 		ChildID:  req.ChildID,
 		Relation: req.Relation,
 	}
@@ -63,7 +75,7 @@ func (h *GuardianshipHandler) Grant(c *gin.Context) {
 	}
 
 	// 查询返回监护关系
-	result, err := h.guardQuery.GetByUserIDAndChildID(c.Request.Context(), req.UserID, req.ChildID)
+	result, err := h.guardQuery.GetByUserIDAndChildID(c.Request.Context(), currentUserID, req.ChildID)
 	if err != nil {
 		h.Error(c, err)
 		return
@@ -96,11 +108,27 @@ func (h *GuardianshipHandler) List(c *gin.Context) {
 		return
 	}
 
+	currentUserID, ok := h.GetUserID(c)
+	if !ok {
+		h.ErrorWithCode(c, code.ErrTokenInvalid, "user id not found in context")
+		return
+	}
+	if req.UserID != "" && req.UserID != currentUserID {
+		h.ErrorWithCode(c, code.ErrPermissionDenied, "cannot query guardianships for another user")
+		return
+	}
+
+	req.UserID = currentUserID
+
 	var results []*appguard.GuardianshipResult
 	var err error
 
 	switch {
 	case req.UserID != "" && req.ChildID != "":
+		if err := h.ensureActiveGuardianAccess(c, currentUserID, req.ChildID); err != nil {
+			h.Error(c, err)
+			return
+		}
 		result, qerr := h.getByUserIDAndChildID(c, req)
 		if qerr != nil {
 			h.Error(c, qerr)
@@ -114,9 +142,13 @@ func (h *GuardianshipHandler) List(c *gin.Context) {
 	case req.UserID != "":
 		results, err = h.listChildrenByUserID(c, req)
 	case req.ChildID != "":
+		if err := h.ensureActiveGuardianAccess(c, currentUserID, req.ChildID); err != nil {
+			h.Error(c, err)
+			return
+		}
 		results, err = h.listGuardiansByChildID(c, req)
 	default:
-		results = []*appguard.GuardianshipResult{}
+		results, err = h.listChildrenByUserID(c, req)
 	}
 
 	if err != nil {
@@ -196,6 +228,13 @@ func (h *GuardianshipHandler) listGuardiansByChildID(c *gin.Context, req request
 		return h.guardQuery.ListGuardiansByChildIDIncludingRevoked(c.Request.Context(), req.ChildID)
 	}
 	return h.guardQuery.ListGuardiansByChildID(c.Request.Context(), req.ChildID)
+}
+
+func (h *GuardianshipHandler) ensureActiveGuardianAccess(c *gin.Context, userID, childID string) error {
+	if _, err := h.guardQuery.GetByUserIDAndChildID(c.Request.Context(), userID, childID); err != nil {
+		return perrors.WithCode(code.ErrPermissionDenied, "you are not an active guardian of this child")
+	}
+	return nil
 }
 
 // sliceGuardianships 分页切片

@@ -9,6 +9,7 @@ import (
 	policyApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/policy"
 	resourceApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/resource"
 	roleApp "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/role"
+	authzUow "github.com/FangcunMount/iam-contracts/internal/apiserver/application/authz/uow"
 	assignmentDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/assignment"
 	policyDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/policy"
 	resourceDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authz/resource"
@@ -18,6 +19,7 @@ import (
 	policyInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/policy"
 	resourceInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/resource"
 	roleInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/role"
+	userInfra "github.com/FangcunMount/iam-contracts/internal/apiserver/infra/mysql/user"
 	authzgrpc "github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/grpc"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/authz/restful/handler"
 )
@@ -61,6 +63,8 @@ func (m *AuthzModule) Initialize(db *gorm.DB, versionNotifier policyDomain.Versi
 	assignmentRepository := assignmentInfra.NewAssignmentRepository(db)
 	resourceRepository := resourceInfra.NewResourceRepository(db)
 	policyVersionRepository := policyInfra.NewPolicyVersionRepository(db)
+	userRepository := userInfra.NewRepository(db)
+	unitOfWork := authzUow.NewUnitOfWork(db)
 
 	// 3. 初始化领域服务
 	// Resource 模块
@@ -70,7 +74,7 @@ func (m *AuthzModule) Initialize(db *gorm.DB, versionNotifier policyDomain.Versi
 	// Policy 模块
 	policyManager := policyDomain.NewValidator(roleRepository, resourceRepository)
 	// Assignment 模块
-	assignmentManager := assignmentDomain.NewValidator(assignmentRepository, roleRepository)
+	assignmentManager := assignmentDomain.NewValidator(assignmentRepository, roleRepository, userRepository)
 
 	// 4. 初始化应用服务 - CQRS 分离
 	// Resource 模块
@@ -80,15 +84,13 @@ func (m *AuthzModule) Initialize(db *gorm.DB, versionNotifier policyDomain.Versi
 	roleCommander := roleApp.NewRoleCommandService(roleManager, roleRepository)
 	roleQueryer := roleApp.NewRoleQueryService(roleRepository)
 	// Policy 模块
-	policyCommander := policyApp.NewPolicyCommandService(policyManager, policyVersionRepository, casbinAdapter, versionNotifier, roleRepository, resourceRepository)
+	policyCommander := policyApp.NewPolicyCommandService(policyManager, unitOfWork, casbinAdapter, versionNotifier)
 	policyQueryer := policyApp.NewPolicyQueryService(policyVersionRepository, casbinAdapter, roleRepository)
 	// Assignment 模块
 	assignmentCommander := assignmentApp.NewAssignmentCommandService(
 		assignmentManager,
-		assignmentRepository,
-		roleRepository,
+		unitOfWork,
 		casbinAdapter,
-		policyVersionRepository,
 		versionNotifier,
 	)
 	assignmentQueryer := assignmentApp.NewAssignmentQueryService(assignmentManager, assignmentRepository)

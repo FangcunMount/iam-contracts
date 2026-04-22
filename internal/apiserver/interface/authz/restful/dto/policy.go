@@ -8,7 +8,7 @@ type AddPolicyRequest struct {
 	RoleID     meta.ID `json:"role_id" binding:"required" swaggertype:"string"`
 	ResourceID meta.ID `json:"resource_id" binding:"required" swaggertype:"string"`
 	Action     string  `json:"action" binding:"required"`
-	ChangedBy  string  `json:"changed_by" binding:"required"`
+	ChangedBy  string  `json:"changed_by,omitempty"`
 	Reason     string  `json:"reason"`
 }
 
@@ -17,7 +17,7 @@ type RemovePolicyRequest struct {
 	RoleID     meta.ID `json:"role_id" binding:"required" swaggertype:"string"`
 	ResourceID meta.ID `json:"resource_id" binding:"required" swaggertype:"string"`
 	Action     string  `json:"action" binding:"required"`
-	ChangedBy  string  `json:"changed_by" binding:"required"`
+	ChangedBy  string  `json:"changed_by,omitempty"`
 	Reason     string  `json:"reason"`
 }
 
