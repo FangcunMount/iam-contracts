@@ -127,7 +127,7 @@ func (r *KeyRepository) FindExpired(ctx context.Context) ([]*domain.Key, error) 
 }
 
 // FindAll 查询所有密钥（分页）
-func (r *KeyRepository) FindAll(ctx context.Context, offset, limit int) ([]*domain.Key, int64, error) {
+func (r *KeyRepository) FindAll(ctx context.Context, limit, offset int) ([]*domain.Key, int64, error) {
 	var pos []*KeyPO
 	var total int64
 
@@ -138,11 +138,13 @@ func (r *KeyRepository) FindAll(ctx context.Context, offset, limit int) ([]*doma
 
 	// 查询数据
 	query := r.WithContext(ctx).
-		Order("created_at DESC").
-		Offset(offset)
+		Order("created_at DESC")
 
 	if limit > 0 {
 		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
 	}
 
 	err := query.Find(&pos).Error

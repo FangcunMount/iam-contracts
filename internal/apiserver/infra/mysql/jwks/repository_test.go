@@ -317,11 +317,18 @@ func TestKeyRepository_FindAll(t *testing.T) {
 			wantCount: 2,
 			wantTotal: 5,
 		},
+		{
+			name:      "仅 offset 也能工作",
+			offset:    2,
+			limit:     0,
+			wantCount: 3,
+			wantTotal: 5,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			keys, total, err := repo.FindAll(ctx, tt.offset, tt.limit)
+			keys, total, err := repo.FindAll(ctx, tt.limit, tt.offset)
 			require.NoError(t, err)
 			assert.Len(t, keys, tt.wantCount)
 			assert.Equal(t, tt.wantTotal, total)
