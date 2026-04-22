@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/application/idp/wechatapp"
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/container"
@@ -42,23 +43,14 @@ func seedWechatApps(ctx context.Context, deps *dependencies) error {
 
 	deps.Logger.Infow("📋 开始创建微信应用数据...", "count", len(config.WechatApps))
 
-	// 🔑 读取并解码加密密钥
-	var encryptionKey []byte
-	if config.EncryptionKey != "" {
-		// 尝试 Base64 解码
-		decoded, err := base64.StdEncoding.DecodeString(config.EncryptionKey)
-		if err == nil && len(decoded) == 32 {
-			encryptionKey = decoded
-			deps.Logger.Debugw("🔐 使用配置文件中的加密密钥（Base64解码）", "key_length", len(encryptionKey))
-		} else if len(config.EncryptionKey) == 32 {
-			// 如果不是 Base64，尝试直接使用（假设是32字节字符串）
-			encryptionKey = []byte(config.EncryptionKey)
-			deps.Logger.Debugw("🔐 使用配置文件中的加密密钥（原始字符串）", "key_length", len(encryptionKey))
-		} else {
-			return fmt.Errorf("invalid encryption key: must be 32 bytes or base64-encoded 32 bytes")
-		}
+	encryptionKey, err := resolveWechatAppEncryptionKey(config)
+	if err != nil {
+		return err
+	}
+	if len(encryptionKey) == 32 {
+		deps.Logger.Debugw("🔐 使用配置文件中的加密密钥", "key_length", len(encryptionKey))
 	} else {
-		deps.Logger.Warnw("⚠️  未配置加密密钥，将使用默认密钥（仅用于开发环境）")
+		deps.Logger.Warnw("⚠️  未配置加密密钥，当前仅同步微信应用元数据，不应写入任何密钥类凭据")
 	}
 
 	// 初始化容器和 IDP 模块（传递加密密钥）
@@ -147,4 +139,29 @@ func seedWechatApps(ctx context.Context, deps *dependencies) error {
 
 	deps.Logger.Infow("✅ 微信应用数据创建完成", "count", len(apps))
 	return nil
+}
+
+func resolveWechatAppEncryptionKey(config *SeedConfig) ([]byte, error) {
+	if config == nil {
+		return nil, nil
+	}
+
+	rawKey := strings.TrimSpace(config.EncryptionKey)
+	if rawKey == "" {
+		for _, app := range config.WechatApps {
+			if strings.TrimSpace(app.AppSecret) != "" {
+				return nil, fmt.Errorf("encryption_key is required when wechat_apps[%s].app_secret is configured", app.Alias)
+			}
+		}
+		return nil, nil
+	}
+
+	if decoded, err := base64.StdEncoding.DecodeString(rawKey); err == nil && len(decoded) == 32 {
+		return decoded, nil
+	}
+	if len(rawKey) == 32 {
+		return []byte(rawKey), nil
+	}
+
+	return nil, fmt.Errorf("invalid encryption key: must be 32 bytes or base64-encoded 32 bytes")
 }
