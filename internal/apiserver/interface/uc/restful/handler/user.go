@@ -14,6 +14,7 @@ import (
 	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/middleware/authn"
 	_ "github.com/FangcunMount/iam-contracts/pkg/core" // imported for swagger
+	"github.com/FangcunMount/iam-contracts/pkg/tenant"
 )
 
 // UserHandler 基础用户 REST 处理器
@@ -160,26 +161,39 @@ func (h *UserHandler) resolveRoles(c *gin.Context, userID string) []string {
 		return nil
 	}
 	sub := "user:" + userID
-	dom := authn.TenantIDFromGin(c)
-	raw, err := h.casbin.GetRolesForUser(c.Request.Context(), sub, dom)
-	if err != nil {
-		log.Debugw("me: GetRolesForUser failed", "sub", sub, "domain", dom, "error", err)
-		return nil
+	domains := []string{authn.TenantIDFromGin(c)}
+	if domains[0] != tenant.PlatformID {
+		domains = append(domains, tenant.PlatformID)
 	}
-	if len(raw) == 0 {
-		log.Debugw("me: no casbin roles", "sub", sub, "domain", dom)
-		return nil
-	}
-	out := make([]string, 0, len(raw))
-	for _, r := range raw {
-		r = strings.TrimSpace(r)
-		if r == "" {
+
+	seen := make(map[string]struct{}, 4)
+	out := make([]string, 0, 4)
+	for idx, dom := range domains {
+		raw, err := h.casbin.GetRolesForUser(c.Request.Context(), sub, dom)
+		if err != nil {
+			log.Debugw("me: GetRolesForUser failed", "sub", sub, "domain", dom, "error", err)
+			if idx == 0 {
+				return nil
+			}
 			continue
 		}
-		if strings.HasPrefix(r, "role:") {
-			r = strings.TrimPrefix(r, "role:")
+		if len(raw) == 0 {
+			if idx == 0 {
+				log.Debugw("me: no casbin roles", "sub", sub, "domain", dom)
+			}
+			continue
 		}
-		out = append(out, r)
+		for _, r := range raw {
+			r = authn.NormalizeRoleName(r)
+			if r == "" {
+				continue
+			}
+			if _, exists := seen[r]; exists {
+				continue
+			}
+			seen[r] = struct{}{}
+			out = append(out, r)
+		}
 	}
 	if len(out) == 0 {
 		return nil

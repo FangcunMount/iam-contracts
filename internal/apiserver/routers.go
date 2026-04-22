@@ -75,7 +75,7 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 
 	adminMiddlewares := make([]gin.HandlerFunc, 0, 2)
 	if authMiddleware != nil && authMiddleware.SupportsRoleCheck() {
-		adminMiddlewares = append(adminMiddlewares, authMiddleware.AuthRequired(), authMiddleware.RequireRole("admin"))
+		adminMiddlewares = append(adminMiddlewares, authMiddleware.AuthRequired(), authMiddleware.RequirePlatformAdmin())
 	}
 
 	// User 模块使用新中间件
@@ -218,7 +218,7 @@ func (r *Router) registerCacheGovernanceDebugRoutes(engine *gin.Engine, authMidd
 	}
 
 	debug := engine.Group("/debug/cache-governance")
-	debug.Use(authMiddleware.AuthRequired(), authMiddleware.RequireRole("admin"))
+	debug.Use(authMiddleware.AuthRequired(), authMiddleware.RequirePlatformAdmin())
 	{
 		debug.GET("/catalog", r.debugCacheCatalog)
 		debug.GET("/overview", r.debugCacheOverview)
@@ -253,7 +253,7 @@ func (r *Router) registerAdminRoutes(engine *gin.Engine, authMiddleware *authnMi
 	}
 
 	apiV1 := engine.Group("/api/v1")
-	apiV1.Use(authMiddleware.AuthRequired(), authMiddleware.RequireRole("admin"))
+	apiV1.Use(authMiddleware.AuthRequired(), authMiddleware.RequirePlatformAdmin())
 
 	admin := apiV1.Group("/admin")
 	{

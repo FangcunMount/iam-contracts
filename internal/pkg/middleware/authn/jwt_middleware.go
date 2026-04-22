@@ -199,6 +199,55 @@ func (m *JWTAuthMiddleware) RequireRole(roleNames ...string) gin.HandlerFunc {
 	}
 }
 
+// RequirePlatformAdmin 要求用户在当前 domain 或 platform domain 中具备平台管理员角色。
+// 必须在 AuthRequired 之后使用。
+func (m *JWTAuthMiddleware) RequirePlatformAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if m.casbin == nil {
+			core.WriteResponse(c, errors.WithCode(code.ErrInternalServerError, "Authorization engine not configured"), nil)
+			c.Abort()
+			return
+		}
+		userID, ok := c.Get(ContextKeyUserID)
+		if !ok {
+			core.WriteResponse(c, errors.WithCode(code.ErrUnauthorized, "Not authenticated"), nil)
+			c.Abort()
+			return
+		}
+		uid, ok := userID.(string)
+		if !ok || uid == "" {
+			core.WriteResponse(c, errors.WithCode(code.ErrUnauthorized, "Not authenticated"), nil)
+			c.Abort()
+			return
+		}
+
+		sub := "user:" + uid
+		domains := []string{TenantIDFromGin(c)}
+		if domains[0] != tenant.PlatformID {
+			domains = append(domains, tenant.PlatformID)
+		}
+
+		for _, dom := range domains {
+			roles, err := m.casbin.GetRolesForUser(c.Request.Context(), sub, dom)
+			if err != nil {
+				log.Errorw("casbin GetRolesForUser failed", "error", err, "sub", sub, "dom", dom)
+				core.WriteResponse(c, errors.WithCode(code.ErrInternalServerError, "Authorization check failed"), nil)
+				c.Abort()
+				return
+			}
+			for _, got := range roles {
+				if IsPlatformAdminRole(got) {
+					c.Next()
+					return
+				}
+			}
+		}
+
+		core.WriteResponse(c, errors.WithCode(code.ErrPermissionDenied, "Forbidden"), nil)
+		c.Abort()
+	}
+}
+
 // RequirePermission 对资源键与动作执行 Casbin Enforce（与 PDP 一致）。
 // 必须在 AuthRequired 之后使用。
 func (m *JWTAuthMiddleware) RequirePermission(resourceObj, action string) gin.HandlerFunc {

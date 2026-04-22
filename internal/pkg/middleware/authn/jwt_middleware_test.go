@@ -1,7 +1,10 @@
 package authn
 
 import (
+	"context"
+	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
@@ -9,6 +12,7 @@ import (
 
 	tokenDomain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
+	"github.com/FangcunMount/iam-contracts/pkg/tenant"
 )
 
 func TestApplyVerifiedClaimsSetsTenantIDForRoleResolution(t *testing.T) {
@@ -46,4 +50,86 @@ func TestApplyVerifiedClaimsSetsTenantIDForRoleResolution(t *testing.T) {
 	if got, exists := c.Get(ContextKeyTokenID); !exists || got != "token-1" {
 		t.Fatalf("gin token_id = %v exists=%v, want %q", got, exists, "token-1")
 	}
+}
+
+func TestRequirePlatformAdminAllowsSuperAdminFromPlatformDomain(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	engine := gin.New()
+	engine.Use(func(c *gin.Context) {
+		c.Set(ContextKeyUserID, "10001")
+		c.Set(ContextKeyTenantID, "1")
+		c.Next()
+	})
+
+	middleware := NewJWTAuthMiddleware(nil, casbinRoleStub{
+		rolesByDomain: map[string][]string{
+			"1":               {"role:qs:admin"},
+			tenant.PlatformID: {"role:super_admin"},
+		},
+	})
+
+	engine.GET("/protected", middleware.RequirePlatformAdmin(), func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	recorder := httptest.NewRecorder()
+	engine.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusNoContent, recorder.Body.String())
+	}
+}
+
+func TestRequirePlatformAdminRejectsTenantOnlyRoles(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	engine := gin.New()
+	engine.Use(func(c *gin.Context) {
+		c.Set(ContextKeyUserID, "10001")
+		c.Set(ContextKeyTenantID, "1")
+		c.Next()
+	})
+
+	middleware := NewJWTAuthMiddleware(nil, casbinRoleStub{
+		rolesByDomain: map[string][]string{
+			"1": {"role:qs:admin"},
+		},
+	})
+
+	engine.GET("/protected", middleware.RequirePlatformAdmin(), func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	recorder := httptest.NewRecorder()
+	engine.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusForbidden, recorder.Body.String())
+	}
+}
+
+func TestNormalizeRoleName(t *testing.T) {
+	got := []string{
+		NormalizeRoleName("role:super_admin"),
+		NormalizeRoleName(" iam:admin "),
+	}
+	want := []string{"super_admin", "iam:admin"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("NormalizeRoleName() = %#v, want %#v", got, want)
+	}
+}
+
+type casbinRoleStub struct {
+	rolesByDomain map[string][]string
+}
+
+func (s casbinRoleStub) Enforce(_ context.Context, _, _, _, _ string) (bool, error) {
+	return true, nil
+}
+
+func (s casbinRoleStub) GetRolesForUser(_ context.Context, _, domain string) ([]string, error) {
+	return append([]string(nil), s.rolesByDomain[domain]...), nil
 }
