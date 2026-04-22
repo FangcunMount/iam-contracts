@@ -125,7 +125,7 @@ mysql:
   host: "127.0.0.1:3306"
   username: "infra_dev"        # 对应 build/docker/infra/dev.env -> MYSQL_USER
   password: "dev_pass_123"     # 对应 build/docker/infra/dev.env -> MYSQL_PASSWORD
-  database: "iam_contracts"
+  database: "iam"
   max-idle-conns: 10
   max-open-conns: 100
   conn-max-lifetime: 3600  # 秒
@@ -137,7 +137,7 @@ mysql:
 migration:
   enabled: true  # 开发环境启用自动迁移
   autoseed: true  # 开发环境自动加载种子数据
-  database: "iam_contracts"
+  database: "iam"
 
 # ----------------------------------------------------------------------------
 # 3.3 Redis 配置

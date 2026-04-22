@@ -72,7 +72,7 @@ import (
 
 func main() {
     // 1. 连接数据库
-    db, err := sql.Open("mysql", "user:pass@tcp(localhost:3306)/iam_contracts")
+    db, err := sql.Open("mysql", "user:pass@tcp(localhost:3306)/iam")
     if err != nil {
         panic(err)
     }
@@ -82,7 +82,7 @@ func main() {
     cfg := &migration.Config{
         Enabled:  true,              // 启用自动迁移
         AutoSeed: false,             // 生产环境设为 false
-        Database: "iam_contracts",   // 数据库名称
+        Database: "iam",   // 数据库名称
     }
 
     // 3. 创建迁移器并执行
@@ -145,7 +145,7 @@ err = migrator.Rollback()
 mysql:
   host: ${MYSQL_HOST:127.0.0.1}
   port: ${MYSQL_PORT:3306}
-  database: ${MYSQL_DATABASE:iam_contracts}
+  database: ${MYSQL_DATABASE:iam}
   username: ${MYSQL_USER:root}
   password: ${MYSQL_PASSWORD:}
 
@@ -198,7 +198,7 @@ mysql> SELECT * FROM schema_migrations;
 
    ```bash
    # 迁移前自动备份
-   mysqldump iam_contracts > backup_$(date +%Y%m%d_%H%M%S).sql
+   mysqldump iam > backup_$(date +%Y%m%d_%H%M%S).sql
    ```
 
 2. **权限分离**

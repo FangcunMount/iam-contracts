@@ -16,7 +16,7 @@ func NewMigrationOptions() *MigrationOptions {
 	return &MigrationOptions{
 		Enabled:  true,  // 默认启用自动迁移
 		AutoSeed: false, // 默认不加载种子数据
-		Database: "iam_contracts",
+			Database: "iam",
 	}
 }
 

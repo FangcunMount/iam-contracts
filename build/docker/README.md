@@ -120,7 +120,7 @@ docker run -d \
 cat > .env <<EOF
 MYSQL_HOST=your-rds.mysql.rds.aliyuncs.com
 MYSQL_PORT=3306
-MYSQL_DATABASE=iam_contracts
+MYSQL_DATABASE=iam
 MYSQL_USER=iam
 MYSQL_PASSWORD=PLEASE_CHANGE_ME
 REDIS_CACHE_HOST=redis-cache

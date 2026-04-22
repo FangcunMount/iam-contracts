@@ -10,11 +10,11 @@
 -- ============================================================================
 
 -- Create database
-CREATE DATABASE IF NOT EXISTS `contracts`
+CREATE DATABASE IF NOT EXISTS `iam`
     DEFAULT CHARACTER SET utf8mb4
     DEFAULT COLLATE utf8mb4_unicode_ci;
 
-USE `contracts`;
+USE `iam`;
 
 -- ============================================================================
 -- Module 1: User Center (UC) 用户中心

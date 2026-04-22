@@ -98,7 +98,7 @@ if [ "$MYSQL_RUNNING" = false ] && [ "$USE_DOCKER" = true ]; then
         --name mysql \
         -p 3306:3306 \
         -e MYSQL_ROOT_PASSWORD=root \
-        -e MYSQL_DATABASE=iam_contracts \
+        -e MYSQL_DATABASE=iam \
         -e MYSQL_USER=iam \
         -e MYSQL_PASSWORD=iam123 \
         mysql:8.0 \
@@ -198,7 +198,7 @@ echo "  - HTTP 端口: 18081"
 echo "  - HTTPS 端口: 18441"
 echo "  - MySQL: 127.0.0.1:3306"
 echo "  - Redis: 127.0.0.1:6379"
-echo "  - 数据库: iam_contracts"
+echo "  - 数据库: iam"
 print_success "配置文件检查完成"
 
 # ============================================================================
@@ -212,7 +212,7 @@ echo ""
 print_info "数据库连接信息:"
 echo "  MySQL:"
 echo "    - 主机: 127.0.0.1:3306"
-echo "    - 数据库: iam_contracts"
+echo "    - 数据库: iam"
 echo "    - 用户: root"
 echo "    - 密码: root"
 echo ""

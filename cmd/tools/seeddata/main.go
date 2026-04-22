@@ -112,7 +112,7 @@ func newSeedContext() *seedContext {
 
 func main() {
 	// 解析命令行参数
-	dsnFlag := flag.String("dsn", "", "MySQL DSN, e.g. user:pass@tcp(host:3306)/iam_contracts?parseTime=true&loc=Local")
+	dsnFlag := flag.String("dsn", "", "MySQL DSN, e.g. user:pass@tcp(host:3306)/iam?parseTime=true&loc=Local")
 	redisCacheFlag := flag.String("redis-cache", "", "Cache Redis address host:port (optional, for caching, sessions, rate limiting)")
 	redisCacheUsernameFlag := flag.String("redis-cache-username", "", "Cache Redis username (optional, for Redis 6.0+ ACL)")
 	redisCachePasswordFlag := flag.String("redis-cache-password", "", "Cache Redis password (optional)")

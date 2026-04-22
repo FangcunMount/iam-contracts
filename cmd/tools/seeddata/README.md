@@ -33,7 +33,7 @@ IAM 系统数据库初始化和种子数据填充工具。
 ```bash
 # 使用命令行参数(完整示例)
 go run ./cmd/tools/seeddata \
-  --dsn "root:password@tcp(localhost:3306)/iam_contracts?parseTime=true&loc=Local" \
+  --dsn "root:password@tcp(localhost:3306)/iam?parseTime=true&loc=Local" \
   --redis-cache "redis-cache:6379" \
   --redis-cache-username "app" \
   --redis-cache-password "your_cache_password" \
@@ -43,10 +43,10 @@ go run ./cmd/tools/seeddata \
 
 # 最小配置(只使用必需参数)
 go run ./cmd/tools/seeddata \
-  --dsn "root:password@tcp(localhost:3306)/iam_contracts?parseTime=true&loc=Local"
+  --dsn "root:password@tcp(localhost:3306)/iam?parseTime=true&loc=Local"
 
 # 使用环境变量
-export IAM_SEEDER_DSN="root:password@tcp(localhost:3306)/iam_contracts?parseTime=true&loc=Local"
+export IAM_SEEDER_DSN="root:password@tcp(localhost:3306)/iam?parseTime=true&loc=Local"
 export IAM_SEEDER_REDIS_CACHE="redis-cache:6379"
 export IAM_SEEDER_REDIS_CACHE_PASSWORD="your_cache_password"
 go run ./cmd/tools/seeddata

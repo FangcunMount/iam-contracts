@@ -556,7 +556,7 @@ DB_HOST ?= 127.0.0.1
 DB_PORT ?= 3306
 DB_USER ?= root
 DB_PASSWORD ?=
-DB_NAME ?= iam_contracts
+DB_NAME ?= iam
 
 # 注意: db-init, db-migrate, db-seed, db-reset 已弃用
 # 请使用以下新命令:

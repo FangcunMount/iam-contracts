@@ -131,7 +131,7 @@ migrate -path internal/pkg/migration/migrations \
 1. **备份数据库**
 
    ```bash
-   mysqldump -u root -p iam_contracts > backup_before_v2.sql
+   mysqldump -u root -p iam > backup_before_v2.sql
    ```
 
 2. **准备数据迁移脚本**（如果需要保留数据）
@@ -192,7 +192,7 @@ migrate -path internal/pkg/migration/migrations \
    ```bash
    make db-rollback
    # 或恢复备份
-   mysql -u root -p iam_contracts < backup_before_v2.sql
+   mysql -u root -p iam < backup_before_v2.sql
    ```
 
 ## 迁移文件命名规范
@@ -238,7 +238,7 @@ make db-migrate
 如果回滚后需要恢复数据，使用之前的备份：
 
 ```bash
-mysql -u root -p iam_contracts < backup_before_v2.sql
+mysql -u root -p iam < backup_before_v2.sql
 ```
 
 ## 相关文档

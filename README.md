@@ -105,7 +105,7 @@ make build-tools
 make db-seed DB_USER=root DB_PASSWORD=yourpassword
 
 # 或直接使用 seeddata 工具
-./tmp/seeddata --dsn "root:yourpassword@tcp(127.0.0.1:3306)/iam_contracts?parseTime=true&loc=Local"
+./tmp/seeddata --dsn "root:yourpassword@tcp(127.0.0.1:3306)/iam?parseTime=true&loc=Local"
 ```
 
 **数据库迁移文件位置**: `internal/pkg/migration/migrations/`  

@@ -24,18 +24,18 @@ with `go run`.
 ```bash
 # Seed all data (recommended)
 go run ./cmd/tools/seeddata \
-  --dsn "user:pass@tcp(127.0.0.1:3306)/iam_contracts?parseTime=true&loc=Local" \
+  --dsn "user:pass@tcp(127.0.0.1:3306)/iam?parseTime=true&loc=Local" \
   --config configs/seeddata.yaml
 
 # Seed specific steps only
 go run ./cmd/tools/seeddata \
-  --dsn "user:pass@tcp(127.0.0.1:3306)/iam_contracts?parseTime=true&loc=Local" \
+  --dsn "user:pass@tcp(127.0.0.1:3306)/iam?parseTime=true&loc=Local" \
   --config configs/seeddata.yaml \
   --steps "tenants,user,wechatapp"
 
 # Seed WeChat apps only
 go run ./cmd/tools/seeddata \
-  --dsn "user:pass@tcp(127.0.0.1:3306)/iam_contracts?parseTime=true&loc=Local" \
+  --dsn "user:pass@tcp(127.0.0.1:3306)/iam?parseTime=true&loc=Local" \
   --config configs/seeddata.yaml \
   --steps "wechatapp"
 ```
@@ -43,7 +43,7 @@ go run ./cmd/tools/seeddata \
 ### Legacy individual commands (deprecated)
 
 ```bash
-export IAM_SEEDER_DSN='user:pass@tcp(127.0.0.1:3306)/iam_contracts?parseTime=true&loc=Local'
+export IAM_SEEDER_DSN='user:pass@tcp(127.0.0.1:3306)/iam?parseTime=true&loc=Local'
 go run ./cmd/tools/seed-tenants
 go run ./cmd/tools/seed-user-center
 go run ./cmd/tools/seed-auth-accounts
