@@ -71,6 +71,12 @@ func (s *WechatRepoStub) GetByID(ctx context.Context, id idutil.ID) (*wechatapp.
 func (s *WechatRepoStub) GetByAppID(ctx context.Context, appID string) (*wechatapp.WechatApp, error) {
 	return s.Existing, s.Err
 }
+func (s *WechatRepoStub) List(ctx context.Context, filter wechatapp.ListFilter) ([]*wechatapp.WechatApp, error) {
+	if s.Existing == nil {
+		return nil, s.Err
+	}
+	return []*wechatapp.WechatApp{s.Existing}, s.Err
+}
 func (s *WechatRepoStub) Update(ctx context.Context, app *wechatapp.WechatApp) error { return nil }
 
 // ChildRepoStub is a stub for child.Repository used in tests.

@@ -4,6 +4,7 @@ package restful
 import (
 	"net/http"
 
+	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/gin-gonic/gin"
 
 	"github.com/FangcunMount/iam-contracts/internal/apiserver/interface/idp/restful/handler"
@@ -12,6 +13,7 @@ import (
 // Dependencies IDP 模块的依赖
 type Dependencies struct {
 	WechatAppHandler *handler.WechatAppHandler
+	AdminMiddlewares []gin.HandlerFunc
 	// WechatAuthHandler 已移除 - 认证功能由 authn 模块统一提供
 }
 
@@ -52,12 +54,27 @@ func Register(engine *gin.Engine) {
 
 		// ============ 微信应用管理 ============
 		wechatApps := idpGroup.Group("/wechat-apps")
+		if len(deps.AdminMiddlewares) == 0 {
+			log.Warn("IDP wechat-app management routes are not registered because admin middlewares are unavailable")
+			return
+		}
+		wechatApps.Use(deps.AdminMiddlewares...)
 		{
+			// 列表查询
+			wechatApps.GET("", deps.WechatAppHandler.ListWechatApps)
+
 			// 创建微信应用
 			wechatApps.POST("", deps.WechatAppHandler.CreateWechatApp)
 
 			// 查询微信应用
 			wechatApps.GET("/:app_id", deps.WechatAppHandler.GetWechatApp)
+
+			// 更新微信应用基础信息
+			wechatApps.PATCH("/:app_id", deps.WechatAppHandler.UpdateWechatApp)
+
+			// 启用/禁用微信应用
+			wechatApps.POST("/:app_id/enable", deps.WechatAppHandler.EnableWechatApp)
+			wechatApps.POST("/:app_id/disable", deps.WechatAppHandler.DisableWechatApp)
 
 			// 获取访问令牌
 			wechatApps.GET("/:app_id/access-token", deps.WechatAppHandler.GetAccessToken)

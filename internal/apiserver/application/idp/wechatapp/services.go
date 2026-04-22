@@ -14,6 +14,14 @@ type WechatAppApplicationService interface {
 	CreateApp(ctx context.Context, dto CreateWechatAppDTO) (*WechatAppResult, error)
 	// GetApp 查询微信应用
 	GetApp(ctx context.Context, appID string) (*WechatAppResult, error)
+	// ListApps 列出微信应用
+	ListApps(ctx context.Context, filter ListWechatAppsFilter) ([]*WechatAppResult, error)
+	// UpdateApp 更新微信应用基础信息
+	UpdateApp(ctx context.Context, appID string, dto UpdateWechatAppDTO) (*WechatAppResult, error)
+	// EnableApp 启用微信应用
+	EnableApp(ctx context.Context, appID string) (*WechatAppResult, error)
+	// DisableApp 禁用微信应用
+	DisableApp(ctx context.Context, appID string) (*WechatAppResult, error)
 }
 
 // WechatAppCredentialApplicationService 微信应用凭据应用服务
@@ -40,6 +48,18 @@ type CreateWechatAppDTO struct {
 	Name      string         // 应用名称（必填）
 	Type      domain.AppType // 应用类型（必填：MiniProgram/MP）
 	AppSecret string         // AppSecret（可选，创建时设置）
+}
+
+// ListWechatAppsFilter 微信应用列表过滤条件。
+type ListWechatAppsFilter struct {
+	Type   *domain.AppType
+	Status *domain.Status
+}
+
+// UpdateWechatAppDTO 更新微信应用基础信息 DTO。
+type UpdateWechatAppDTO struct {
+	Name *string
+	Type *domain.AppType
 }
 
 // WechatAppResult 微信应用结果 DTO

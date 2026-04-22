@@ -17,7 +17,14 @@ type Repository interface {
 	// 查询接口
 	GetByID(ctx context.Context, id idutil.ID) (*WechatApp, error)
 	GetByAppID(ctx context.Context, appID string) (*WechatApp, error)
+	List(ctx context.Context, filter ListFilter) ([]*WechatApp, error)
 
 	// 更新接口
 	Update(ctx context.Context, app *WechatApp) error
+}
+
+// ListFilter 微信应用列表过滤条件。
+type ListFilter struct {
+	Type   *AppType
+	Status *Status
 }

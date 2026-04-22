@@ -26,8 +26,7 @@ var _ wechatapp.Repository = (*wechatAppRepository)(nil)
 func NewWechatAppRepository(db *gorm.DB) wechatapp.Repository {
 	base := dbmysql.NewBaseRepository[*WechatAppPO](db)
 	base.SetErrorTranslator(dbmysql.NewDuplicateToTranslator(func(e error) error {
-		// no dedicated code exists for wechat app duplicates; map to generic invalid-argument
-		return perrors.WithCode(code.ErrInvalidArgument, "wechat app already exists")
+		return perrors.WithCode(code.ErrWechatAppAlreadyExists, "wechat app already exists")
 	}))
 
 	return &wechatAppRepository{dbConn: db, BaseRepository: base}
@@ -60,6 +59,28 @@ func (r *wechatAppRepository) GetByID(ctx context.Context, id idutil.ID) (*wecha
 		return nil, nil
 	}
 	return po.ToDomain(), nil
+}
+
+// List 查询微信应用列表。
+func (r *wechatAppRepository) List(ctx context.Context, filter wechatapp.ListFilter) ([]*wechatapp.WechatApp, error) {
+	query := r.dbConn.WithContext(ctx).Model(&WechatAppPO{})
+	if filter.Type != nil {
+		query = query.Where("type = ?", string(*filter.Type))
+	}
+	if filter.Status != nil {
+		query = query.Where("status = ?", string(*filter.Status))
+	}
+
+	var pos []*WechatAppPO
+	if err := query.Order("app_id ASC").Find(&pos).Error; err != nil {
+		return nil, fmt.Errorf("failed to list wechat apps: %w", err)
+	}
+
+	apps := make([]*wechatapp.WechatApp, 0, len(pos))
+	for _, po := range pos {
+		apps = append(apps, po.ToDomain())
+	}
+	return apps, nil
 }
 
 // GetByAppID 根据 AppID 查询微信应用

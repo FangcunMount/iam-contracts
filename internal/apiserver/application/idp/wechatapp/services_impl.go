@@ -3,11 +3,14 @@ package wechatapp
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
 	domain "github.com/FangcunMount/iam-contracts/internal/apiserver/domain/idp/wechatapp"
+	"github.com/FangcunMount/iam-contracts/internal/pkg/code"
 	"github.com/FangcunMount/iam-contracts/internal/pkg/meta"
 )
 
@@ -128,7 +131,7 @@ func (s *wechatAppApplicationService) GetApp(ctx context.Context, appID string) 
 			"resource", "wechat_app",
 			"app_id", appID,
 		)
-		return nil, fmt.Errorf("wechat app not found: %s", appID)
+		return nil, perrors.WithCode(code.ErrWechatAppNotFound, "wechat app not found: %s", appID)
 	}
 
 	l.Debugw("查询微信应用成功",
@@ -139,6 +142,87 @@ func (s *wechatAppApplicationService) GetApp(ctx context.Context, appID string) 
 	)
 
 	return toWechatAppResult(app), nil
+}
+
+// ListApps 列出微信应用。
+func (s *wechatAppApplicationService) ListApps(ctx context.Context, filter ListWechatAppsFilter) ([]*WechatAppResult, error) {
+	l := logger.L(ctx)
+	l.Debugw("列出微信应用",
+		"action", logger.ActionRead,
+		"resource", "wechat_app",
+	)
+
+	apps, err := s.repo.List(ctx, domain.ListFilter{
+		Type:   filter.Type,
+		Status: filter.Status,
+	})
+	if err != nil {
+		l.Errorw("列出微信应用失败",
+			"action", logger.ActionRead,
+			"resource", "wechat_app",
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
+		return nil, fmt.Errorf("failed to list wechat apps: %w", err)
+	}
+
+	results := make([]*WechatAppResult, 0, len(apps))
+	for _, app := range apps {
+		results = append(results, toWechatAppResult(app))
+	}
+	return results, nil
+}
+
+// UpdateApp 更新微信应用基础信息。
+func (s *wechatAppApplicationService) UpdateApp(ctx context.Context, appID string, dto UpdateWechatAppDTO) (*WechatAppResult, error) {
+	l := logger.L(ctx)
+	l.Debugw("更新微信应用基础信息",
+		"action", logger.ActionUpdate,
+		"resource", "wechat_app",
+		"app_id", appID,
+	)
+
+	if dto.Name == nil && dto.Type == nil {
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "at least one field must be updated")
+	}
+
+	app, err := s.getAppForMutation(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	if dto.Name != nil {
+		name := strings.TrimSpace(*dto.Name)
+		if name == "" {
+			return nil, perrors.WithCode(code.ErrInvalidArgument, "name cannot be empty")
+		}
+		app.Name = name
+	}
+	if dto.Type != nil {
+		app.Type = *dto.Type
+	}
+
+	if err := s.repo.Update(ctx, app); err != nil {
+		l.Errorw("更新微信应用失败",
+			"action", logger.ActionUpdate,
+			"resource", "wechat_app",
+			"app_id", appID,
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
+		return nil, fmt.Errorf("failed to update wechat app: %w", err)
+	}
+	return toWechatAppResult(app), nil
+}
+
+// EnableApp 启用微信应用。
+func (s *wechatAppApplicationService) EnableApp(ctx context.Context, appID string) (*WechatAppResult, error) {
+	return s.changeAppStatus(ctx, appID, domain.StatusEnabled)
+}
+
+// DisableApp 禁用微信应用。
+func (s *wechatAppApplicationService) DisableApp(ctx context.Context, appID string) (*WechatAppResult, error) {
+	return s.changeAppStatus(ctx, appID, domain.StatusDisabled)
 }
 
 // =========================================================
@@ -187,7 +271,7 @@ func (s *wechatAppCredentialApplicationService) RotateAuthSecret(ctx context.Con
 			"resource", "wechat_app_credential",
 			"app_id", appID,
 		)
-		return fmt.Errorf("wechat app not found: %s", appID)
+		return perrors.WithCode(code.ErrWechatAppNotFound, "wechat app not found: %s", appID)
 	}
 
 	// 确保凭据结构已初始化
@@ -253,7 +337,7 @@ func (s *wechatAppCredentialApplicationService) RotateMsgSecret(ctx context.Cont
 			"resource", "wechat_app_credential",
 			"app_id", appID,
 		)
-		return fmt.Errorf("wechat app not found: %s", appID)
+		return perrors.WithCode(code.ErrWechatAppNotFound, "wechat app not found: %s", appID)
 	}
 
 	// 确保凭据结构已初始化
@@ -291,6 +375,54 @@ func (s *wechatAppCredentialApplicationService) RotateMsgSecret(ctx context.Cont
 	)
 
 	return nil
+}
+
+func (s *wechatAppApplicationService) getAppForMutation(ctx context.Context, appID string) (*domain.WechatApp, error) {
+	app, err := s.repo.GetByAppID(ctx, appID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query wechat app: %w", err)
+	}
+	if app == nil {
+		return nil, perrors.WithCode(code.ErrWechatAppNotFound, "wechat app not found: %s", appID)
+	}
+	return app, nil
+}
+
+func (s *wechatAppApplicationService) changeAppStatus(ctx context.Context, appID string, status domain.Status) (*WechatAppResult, error) {
+	l := logger.L(ctx)
+	l.Debugw("切换微信应用状态",
+		"action", logger.ActionUpdate,
+		"resource", "wechat_app",
+		"app_id", appID,
+		"status", status,
+	)
+
+	app, err := s.getAppForMutation(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	switch status {
+	case domain.StatusEnabled:
+		app.Enable()
+	case domain.StatusDisabled:
+		app.Disable()
+	default:
+		return nil, perrors.WithCode(code.ErrWechatAppStatusInvalid, "unsupported app status: %s", status)
+	}
+
+	if err := s.repo.Update(ctx, app); err != nil {
+		l.Errorw("切换微信应用状态失败",
+			"action", logger.ActionUpdate,
+			"resource", "wechat_app",
+			"app_id", appID,
+			"status", status,
+			"error", err.Error(),
+			"result", logger.ResultFailed,
+		)
+		return nil, fmt.Errorf("failed to update wechat app status: %w", err)
+	}
+	return toWechatAppResult(app), nil
 }
 
 // ======================================================

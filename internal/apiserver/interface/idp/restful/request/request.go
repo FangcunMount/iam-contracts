@@ -1,19 +1,31 @@
 // Package request 定义 IDP 模块 REST API 请求结构
 package request
 
+// ListWechatAppsRequest 微信应用列表请求（Query 参数）。
+type ListWechatAppsRequest struct {
+	Type   string `form:"type"`
+	Status string `form:"status"`
+}
+
 // ============= 微信应用管理请求 =============
 
 // CreateWechatAppRequest 创建微信应用请求
 type CreateWechatAppRequest struct {
 	AppID     string `json:"app_id" binding:"required"`      // 微信应用 ID（必填）
 	Name      string `json:"name" binding:"required"`        // 应用名称（必填）
-	Type      string `json:"type" binding:"required"`        // 应用类型（MiniProgram/OfficialAccount，必填）
+	Type      string `json:"type" binding:"required"`        // 应用类型（MiniProgram/MP，必填）
 	AppSecret string `json:"app_secret" binding:"omitempty"` // AppSecret（可选，创建时设置）
 }
 
 // GetWechatAppRequest 查询微信应用请求（URI 参数）
 type GetWechatAppRequest struct {
 	AppID string `uri:"app_id" binding:"required"` // 微信应用 ID
+}
+
+// UpdateWechatAppRequest 更新微信应用基础信息请求。
+type UpdateWechatAppRequest struct {
+	Name *string `json:"name"`
+	Type *string `json:"type"`
 }
 
 // RotateAuthSecretRequest 轮换认证密钥请求

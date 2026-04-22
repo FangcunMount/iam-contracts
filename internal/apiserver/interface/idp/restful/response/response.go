@@ -8,8 +8,14 @@ type WechatAppResponse struct {
 	ID     string `json:"id"`     // 内部 ID
 	AppID  string `json:"app_id"` // 微信应用 ID
 	Name   string `json:"name"`   // 应用名称
-	Type   string `json:"type"`   // 应用类型（MiniProgram/OfficialAccount）
-	Status string `json:"status"` // 应用状态（Active/Inactive）
+	Type   string `json:"type"`   // 应用类型（MiniProgram/MP）
+	Status string `json:"status"` // 应用状态（Enabled/Disabled/Archived）
+}
+
+// WechatAppListResponse 微信应用列表响应。
+type WechatAppListResponse struct {
+	Total int                  `json:"total"`
+	Items []*WechatAppResponse `json:"items"`
 }
 
 // AccessTokenResponse 访问令牌响应

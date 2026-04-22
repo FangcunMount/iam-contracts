@@ -73,6 +73,11 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 
 	r.registerCacheGovernanceDebugRoutes(engine, authMiddleware)
 
+	adminMiddlewares := make([]gin.HandlerFunc, 0, 2)
+	if authMiddleware != nil && authMiddleware.SupportsRoleCheck() {
+		adminMiddlewares = append(adminMiddlewares, authMiddleware.AuthRequired(), authMiddleware.RequireRole("admin"))
+	}
+
 	// User 模块使用新中间件
 	userhttp.Provide(userhttp.Dependencies{
 		Module: r.container.UserModule,
@@ -89,10 +94,6 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 
 	// Authn 模块（公开端点）
 	if r.container.AuthnModule != nil {
-		adminMiddlewares := make([]gin.HandlerFunc, 0, 2)
-		if authMiddleware != nil && authMiddleware.SupportsRoleCheck() {
-			adminMiddlewares = append(adminMiddlewares, authMiddleware.AuthRequired(), authMiddleware.RequireRole("admin"))
-		}
 		authnhttp.Provide(authnhttp.Dependencies{
 			AuthHandler:      r.container.AuthnModule.AuthHandler,
 			AccountHandler:   r.container.AuthnModule.AccountHandler,
@@ -139,6 +140,7 @@ func (r *Router) RegisterRoutes(engine *gin.Engine) {
 	if r.container.IDPModule != nil {
 		idphttp.Provide(idphttp.Dependencies{
 			WechatAppHandler: r.container.IDPModule.WechatAppHandler,
+			AdminMiddlewares: adminMiddlewares,
 			// WechatAuthHandler 已移除 - 认证由 authn 模块统一提供
 		})
 		idphttp.Register(engine)

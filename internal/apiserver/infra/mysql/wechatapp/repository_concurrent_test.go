@@ -20,7 +20,7 @@ import (
 )
 
 // 并发创建相同的 wechat app（相同 app_id），期望只有 1 条记录被写入，
-// 其余并发请求因唯一约束被 translator 映射为业务错误 code.ErrInvalidArgument。
+// 其余并发请求因唯一约束被 translator 映射为业务错误 code.ErrWechatAppAlreadyExists。
 func TestWechatAppRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 	var db *gorm.DB
 	var err error
@@ -91,7 +91,7 @@ func TestWechatAppRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 
 		var ue error = e
 		for ue != nil {
-			if perrors.IsCode(ue, code.ErrInvalidArgument) {
+			if perrors.IsCode(ue, code.ErrWechatAppAlreadyExists) {
 				mappedCount++
 				break
 			}
@@ -100,7 +100,7 @@ func TestWechatAppRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 	}
 
 	require.Equal(t, 1, success, "only one create should succeed")
-	require.GreaterOrEqual(t, mappedCount, 1, "at least one error should be mapped to ErrInvalidArgument")
+	require.GreaterOrEqual(t, mappedCount, 1, "at least one error should be mapped to ErrWechatAppAlreadyExists")
 
 	var cnt int64
 	require.NoError(t, db.Model(&WechatAppPO{}).
