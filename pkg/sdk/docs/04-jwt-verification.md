@@ -100,10 +100,13 @@
 ### 3 行代码开始
 
 ```go
-// 1️⃣ 创建验证器
-verifier, _ := sdk.NewTokenVerifier(
-    &sdk.TokenVerifyConfig{AllowedAudience: []string{"my-app"}},
+// 1️⃣ 创建 JWKS 管理器和验证器
+jwksManager, _ := authjwks.NewJWKSManager(
     &sdk.JWKSConfig{URL: "https://iam.example.com/.well-known/jwks.json"},
+)
+verifier, _ := authverifier.NewTokenVerifier(
+    &sdk.TokenVerifyConfig{AllowedAudience: []string{"my-app"}},
+    jwksManager,
     nil,
 )
 
@@ -178,22 +181,39 @@ JWKSManager (Chain of Responsibility 模式)
 
 - 已存在 `ctx`
 - 需要远程降级时已创建 `client`
-- 已按需导入 `sdk`、`auth`、`errors`、`observability`
+- 已按需导入 `sdk`、`authjwks`、`authverifier`
 - 应用配置型片段里的 `cfg` 指代你自己的聚合配置对象，至少包含 `JWKS`、`TokenVerify`、`CircuitBreaker` 等字段
 
 文档里保留的是**最小可理解片段**；如果你需要 `package main + import + 启动代码` 的完整版本，直接看上面的 `_examples/verifier/main.go`。
 
+下面涉及 SDK 认证子包时，统一约定这些 import 别名：
+
+```go
+import (
+    sdk "github.com/FangcunMount/iam-contracts/pkg/sdk"
+    authjwks "github.com/FangcunMount/iam-contracts/pkg/sdk/auth/jwks"
+    authverifier "github.com/FangcunMount/iam-contracts/pkg/sdk/auth/verifier"
+)
+```
+
 ### 1. 最简配置
 
 ```go
-verifier, err := sdk.NewTokenVerifier(
+jwksManager, err := authjwks.NewJWKSManager(
+    &sdk.JWKSConfig{
+        URL: "https://iam.example.com/.well-known/jwks.json",
+    },
+)
+if err != nil {
+    return err
+}
+
+verifier, err := authverifier.NewTokenVerifier(
     &sdk.TokenVerifyConfig{
         AllowedAudience: []string{"my-app"},
         AllowedIssuer:   "https://iam.example.com",
     },
-    &sdk.JWKSConfig{
-        URL: "https://iam.example.com/.well-known/jwks.json",
-    },
+    jwksManager,
     nil, // 不需要 gRPC 客户端
 )
 result, err := verifier.Verify(ctx, accessToken, nil)
@@ -210,17 +230,25 @@ client, err := sdk.NewClient(ctx, &sdk.Config{
     },
 })
 
-verifier, err := sdk.NewTokenVerifier(
+jwksManager, err := authjwks.NewJWKSManager(
+    &sdk.JWKSConfig{
+        URL:             "https://iam.example.com/.well-known/jwks.json",
+        RefreshInterval: 5 * time.Minute,
+    },
+    authjwks.WithAuthClient(client.Auth()),
+)
+if err != nil {
+    return err
+}
+
+verifier, err := authverifier.NewTokenVerifier(
     &sdk.TokenVerifyConfig{
         AllowedAudience:         []string{"my-app"},
         AllowedIssuer:           "https://iam.example.com",
         ForceRemoteVerification: false,
     },
-    &sdk.JWKSConfig{
-        URL:             "https://iam.example.com/.well-known/jwks.json",
-        RefreshInterval: 5 * time.Minute,
-    },
-    client,
+    jwksManager,
+    client.Auth(),
 )
 ```
 
@@ -373,11 +401,11 @@ jwksCfg := &sdk.JWKSConfig{
     RefreshInterval: 5 * time.Minute,
 }
 
-jwksManager, err := auth.NewJWKSManager(
+jwksManager, err := authjwks.NewJWKSManager(
     jwksCfg,
-    auth.WithCacheEnabled(true),
-    auth.WithAuthClient(client.Auth()), // 添加 gRPC 降级
-    auth.WithCircuitBreakerConfig(&sdk.CircuitBreakerConfig{
+    authjwks.WithCacheEnabled(true),
+    authjwks.WithAuthClient(client.Auth()), // 添加 gRPC 降级
+    authjwks.WithCircuitBreakerConfig(&sdk.CircuitBreakerConfig{
         FailureThreshold: 3,
         OpenDuration:     30 * time.Second,
     }),
@@ -392,12 +420,12 @@ err = jwksManager.ForceRefresh(ctx)
 
 ```go
 // 自定义 audience 验证
-result, err := verifier.Verify(ctx, token, &auth.VerifyOptions{
+result, err := verifier.Verify(ctx, token, &authverifier.VerifyOptions{
     ExpectedAudience: []string{"specific-app"},
 })
 
 // 远程策略下要求服务端返回 metadata
-result, err := verifier.Verify(ctx, token, &auth.VerifyOptions{
+result, err := verifier.Verify(ctx, token, &authverifier.VerifyOptions{
     IncludeMetadata: true,
 })
 ```
@@ -405,15 +433,15 @@ result, err := verifier.Verify(ctx, token, &auth.VerifyOptions{
 ### 3. 策略选择
 
 ```go
-selector := auth.NewStrategySelector(cfg.TokenVerify, jwksManager, client.Auth())
+selector := authverifier.NewStrategySelector(cfg.TokenVerify, jwksManager, client.Auth())
 
 localStrategy, _ := selector.LocalStrategy()
 remoteStrategy, _ := selector.RemoteStrategy()
 fallbackStrategy, _ := selector.FallbackStrategy()
 
-localVerifier := auth.NewTokenVerifierWithStrategy(localStrategy)
-remoteVerifier := auth.NewTokenVerifierWithStrategy(remoteStrategy)
-fallbackVerifier := auth.NewTokenVerifierWithStrategy(fallbackStrategy)
+localVerifier := authverifier.NewTokenVerifierWithStrategy(localStrategy)
+remoteVerifier := authverifier.NewTokenVerifierWithStrategy(remoteStrategy)
+fallbackVerifier := authverifier.NewTokenVerifierWithStrategy(fallbackStrategy)
 
 _, _, _ = localVerifier, remoteVerifier, fallbackVerifier
 ```
@@ -431,11 +459,11 @@ JWKS Manager 使用职责链模式，按顺序尝试：
 ### 配置职责链
 
 ```go
-jwksManager, err := auth.NewJWKSManager(cfg,
-    auth.WithCacheEnabled(true),              // 启用内存缓存
-    auth.WithAuthClient(client.Auth()),       // gRPC 降级
-    auth.WithSeedData(seedJWKSJSON),          // 本地种子数据
-    auth.WithCircuitBreakerConfig(&sdk.CircuitBreakerConfig{
+jwksManager, err := authjwks.NewJWKSManager(cfg,
+    authjwks.WithCacheEnabled(true),          // 启用内存缓存
+    authjwks.WithAuthClient(client.Auth()),   // gRPC 降级
+    authjwks.WithSeedData(seedJWKSJSON),      // 本地种子数据
+    authjwks.WithCircuitBreakerConfig(&sdk.CircuitBreakerConfig{
         FailureThreshold: 5,
         OpenDuration:     30 * time.Second,
     }),
@@ -459,8 +487,8 @@ jwksManager, err := auth.NewJWKSManager(cfg,
 ```go
 // 当前没有按调用粒度配置 CacheTTL 的 VerifyOptions。
 // 如果你确实需要缓存验证结果，需要自行包装 CachingVerifyStrategy。
-caching := auth.NewCachingVerifyStrategy(delegate, cache, 5*time.Minute)
-verifier := auth.NewTokenVerifierWithStrategy(caching)
+caching := authverifier.NewCachingVerifyStrategy(delegate, cache, 5*time.Minute)
+verifier := authverifier.NewTokenVerifierWithStrategy(caching)
 ```
 
 ### 3. 预热缓存
@@ -557,12 +585,12 @@ verifyCounter.WithLabelValues(label).Inc()
 ```go
 func setupJWTVerifier(ctx context.Context, client *sdk.Client) (*auth.TokenVerifier, error) {
     // 1. 创建 JWKS Manager
-    jwksManager, err := auth.NewJWKSManager(
+    jwksManager, err := authjwks.NewJWKSManager(
         cfg.JWKS,
-        auth.WithCacheEnabled(true),
-        auth.WithAuthClient(client.Auth()),
-        auth.WithSeedData(seedJWKSJSON),
-        auth.WithCircuitBreakerConfig(cfg.CircuitBreaker),
+        authjwks.WithCacheEnabled(true),
+        authjwks.WithAuthClient(client.Auth()),
+        authjwks.WithSeedData(seedJWKSJSON),
+        authjwks.WithCircuitBreakerConfig(cfg.CircuitBreaker),
     )
     if err != nil {
         return nil, err
@@ -574,7 +602,7 @@ func setupJWTVerifier(ctx context.Context, client *sdk.Client) (*auth.TokenVerif
     }
 
     // 3. 创建 Verifier
-    verifier, err := auth.NewTokenVerifier(
+    verifier, err := authverifier.NewTokenVerifier(
         cfg.TokenVerify,
         jwksManager,
         client.Auth(),
@@ -603,7 +631,7 @@ A: 使用本地种子缓存：
 
 ```go
 seedJWKSJSON, _ := os.ReadFile("/var/cache/iam/jwks-seed.json")
-auth.WithSeedData(seedJWKSJSON)
+authjwks.WithSeedData(seedJWKSJSON)
 ```
 
 ### Q: Token 验证性能如何？

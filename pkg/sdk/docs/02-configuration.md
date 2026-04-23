@@ -14,9 +14,9 @@
     Timeout          Keepalive        CircuitBreaker
                                       
         ↓               ↓               ↓
-    高级功能         可观测性          特性开关
-    JWKS             Metrics          LoadBalancer
-    Metadata         Tracing          
+    高级功能         内置链路开关       特性开关
+    JWKS             Observability    LoadBalancer
+    Metadata         Hook Options
 ```
 
 ### 配置层次
@@ -55,7 +55,7 @@
 | 🧪 **测试环境** | `Endpoint` + `TLS.InsecureSkipVerify` | 30秒 |
 | 🏢 **生产环境** | `Endpoint` + `TLS` + `Retry` + `CircuitBreaker` | 5分钟 |
 | ⚡ **高性能** | + `JWKS` + `Keepalive` | 10分钟 |
-| 🔍 **可观测** | + `Observability` + `Metrics` | 15分钟 |
+| 🔍 **可观测** | + `Observability` + `WithMetricsCollector` / `WithTracingHook` | 15分钟 |
 
 ### 配置模板
 
@@ -126,7 +126,7 @@ type Config struct {
     // 熔断器配置
     CircuitBreaker  *CircuitBreakerConfig
     
-    // 可观测性配置
+    // 可观测性默认链路开关
     Observability   *ObservabilityConfig
     
     // 默认元数据
@@ -264,7 +264,7 @@ Retry: &RetryConfig{
 
 ### 方法级重试配置（高级）
 
-当前还没有独立的“高级重试”文档；现阶段以 [SDK 总览](../README.md) 和 [`transport/retry.go`](../transport/retry.go) 为准。
+当前 SDK 只把 **全局** `RetryConfig` 作为公开稳定面。更细粒度的方法级 retry / timeout DSL 已经收回内部实现，不再承诺为公开 API；如果你需要更细控制，优先拆分调用路径或通过自定义 interceptor 解决。
 
 ## JWKS 配置
 
@@ -355,6 +355,24 @@ Observability: &ObservabilityConfig{
 }
 ```
 
+`ObservabilityConfig` 只控制 SDK 内置默认链路是否启用 request-id / metrics / tracing / circuit breaker。
+
+当前默认语义是保守的：
+
+- 如果 `Config.Observability == nil`，SDK 不会自动注册 request-id / metrics / tracing / circuit breaker 拦截器。
+- 如果你希望启用一组标准 observability 能力，可以显式使用 `sdk.DefaultObservabilityConfig()`。
+
+如果你要接自己的监控或追踪系统，不再直接 import 低层 observability 包，而是实现两个稳定接口并通过 option 注入：
+
+```go
+cfg.Observability = sdk.DefaultObservabilityConfig()
+
+client, err := sdk.NewClient(ctx, cfg,
+    sdk.WithMetricsCollector(myMetrics),
+    sdk.WithTracingHook(myTracing),
+)
+```
+
 ## 负载均衡
 
 支持两种负载均衡策略：
@@ -378,11 +396,19 @@ LoadBalancer: "round_robin"
 | `IAM_TLS_CLIENT_CERT` | `TLS.ClientCert` | - |
 | `IAM_TLS_CLIENT_KEY` | `TLS.ClientKey` | - |
 | `IAM_TLS_SERVER_NAME` | `TLS.ServerName` | - |
-| `IAM_TLS_INSECURE_SKIP_VERIFY` | `TLS.InsecureSkipVerify` | `false` |
+| `IAM_TLS_SKIP_VERIFY` | `TLS.InsecureSkipVerify` | `false` |
 | `IAM_RETRY_ENABLED` | `Retry.Enabled` | `true` |
 | `IAM_RETRY_MAX_ATTEMPTS` | `Retry.MaxAttempts` | `3` |
+| `IAM_KEEPALIVE_ENABLED` | `Keepalive` section | disabled |
+| `IAM_KEEPALIVE_TIME` | `Keepalive.Time` | `30s` |
+| `IAM_KEEPALIVE_TIMEOUT` | `Keepalive.Timeout` | `10s` |
 | `IAM_JWKS_URL` | `JWKS.URL` | - |
 | `IAM_JWKS_REFRESH_INTERVAL` | `JWKS.RefreshInterval` | `5m` |
+| `IAM_CIRCUIT_BREAKER_ENABLED` | `CircuitBreaker` section | disabled |
+| `IAM_CIRCUIT_BREAKER_FAILURE_THRESHOLD` | `CircuitBreaker.FailureThreshold` | `5` |
+| `IAM_OBSERVABILITY_ENABLED` | `Observability` section | disabled |
+| `IAM_OBSERVABILITY_ENABLE_METRICS` | `Observability.EnableMetrics` | `false` |
+| `IAM_OBSERVABILITY_ENABLE_REQUEST_ID` | `Observability.EnableRequestID` | `false` |
 | `IAM_LOAD_BALANCER` | `LoadBalancer` | `round_robin` |
 
 ### 使用环境变量
@@ -397,6 +423,8 @@ export IAM_TLS_ENABLED="true"
 export IAM_TLS_CA_CERT="/etc/iam/certs/ca.crt"
 export IAM_TIMEOUT="30s"
 export IAM_RETRY_MAX_ATTEMPTS="5"
+export IAM_OBSERVABILITY_ENABLED="true"
+export IAM_OBSERVABILITY_ENABLE_METRICS="true"
 ```
 
 ```go
@@ -449,6 +477,7 @@ iam:
     enable_circuit_breaker: true
     enable_request_id: true
     metrics_namespace: "myapp"
+    metrics_subsystem: "iam_client"
     service_name: "my-service"
 ```
 
@@ -499,6 +528,12 @@ if err != nil {
 - 超时时间为负数
 - 重试次数小于 1
 - 负载均衡策略不是 `round_robin` / `pick_first`
+
+补充说明：
+
+- `ConfigFromEnv` 主要覆盖基础、TLS、Retry、JWKS 这些常用字段。
+- `config.FromViper(...)` 可以加载 YAML 中的 Keepalive、CircuitBreaker、Observability 段。
+- 自定义 metrics / tracing collector 始终通过 `sdk.WithMetricsCollector(...)`、`sdk.WithTracingHook(...)` 注入。
 
 ## 下一步
 

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	sdk "github.com/FangcunMount/iam-contracts/pkg/sdk"
+	authjwks "github.com/FangcunMount/iam-contracts/pkg/sdk/auth/jwks"
+	authverifier "github.com/FangcunMount/iam-contracts/pkg/sdk/auth/verifier"
 )
 
 func main() {
@@ -22,20 +24,30 @@ func main() {
 	}
 	defer client.Close()
 
-	// 方式1：创建本地 Token 验证器（推荐高频场景）
-	verifier, err := sdk.NewTokenVerifier(
-		&sdk.TokenVerifyConfig{
-			AllowedAudience: []string{"my-app"},
-			AllowedIssuer:   "https://iam.example.com",
-			ClockSkew:       5 * time.Minute,
-		},
+	// 方式1：创建 JWKS 管理器 + Token 验证器（推荐高频场景）
+	jwksManager, err := authjwks.NewJWKSManager(
 		&sdk.JWKSConfig{
 			URL:             "https://iam.example.com/.well-known/jwks.json",
 			RefreshInterval: 5 * time.Minute,
 			RequestTimeout:  5 * time.Second,
 			FallbackOnError: true,
 		},
-		client, // 可选：用于远程验证降级
+		authjwks.WithCacheEnabled(true),
+		authjwks.WithAuthClient(client.Auth()),
+	)
+	if err != nil {
+		log.Fatalf("创建 JWKS 管理器失败: %v", err)
+	}
+	defer jwksManager.Stop()
+
+	verifier, err := authverifier.NewTokenVerifier(
+		&sdk.TokenVerifyConfig{
+			AllowedAudience: []string{"my-app"},
+			AllowedIssuer:   "https://iam.example.com",
+			ClockSkew:       5 * time.Minute,
+		},
+		jwksManager,
+		client.Auth(), // 可选：用于远程验证降级
 	)
 	if err != nil {
 		log.Fatalf("创建验证器失败: %v", err)

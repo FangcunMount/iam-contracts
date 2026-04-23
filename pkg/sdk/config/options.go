@@ -1,15 +1,25 @@
 package config
 
-import "google.golang.org/grpc"
+import (
+	"context"
+	"time"
+
+	"google.golang.org/grpc"
+)
 
 // ClientOption 客户端选项函数
 type ClientOption func(*ClientOptions)
 
-// TracingHook Tracing 钩子接口（与 observability 包解耦）
+// MetricsCollector 自定义指标收集器接口。
+type MetricsCollector interface {
+	RecordRequest(method string, code string, duration time.Duration)
+}
+
+// TracingHook Tracing 钩子接口。
 type TracingHook interface {
-	StartSpan(ctx interface{}, name string) (interface{}, func())
-	SetAttributes(ctx interface{}, attrs map[string]string)
-	RecordError(ctx interface{}, err error)
+	StartSpan(ctx context.Context, name string) (context.Context, func())
+	SetAttributes(ctx context.Context, attrs map[string]string)
+	RecordError(ctx context.Context, err error)
 }
 
 // ClientOptions 客户端选项集合
@@ -19,10 +29,10 @@ type ClientOptions struct {
 	DialOptions        []grpc.DialOption
 
 	// TracingHook 用户提供的 Tracing 钩子
-	TracingHook interface{}
+	TracingHook TracingHook
 
 	// MetricsCollector 用户提供的 Metrics 收集器（覆盖默认）
-	MetricsCollector interface{}
+	MetricsCollector MetricsCollector
 
 	// DisableDefaultInterceptors 禁用默认拦截器
 	DisableDefaultInterceptors bool
@@ -50,14 +60,14 @@ func WithDialOptions(opts ...grpc.DialOption) ClientOption {
 }
 
 // WithTracingHook 设置 Tracing 钩子
-func WithTracingHook(hook interface{}) ClientOption {
+func WithTracingHook(hook TracingHook) ClientOption {
 	return func(o *ClientOptions) {
 		o.TracingHook = hook
 	}
 }
 
 // WithMetricsCollector 设置自定义 Metrics 收集器
-func WithMetricsCollector(collector interface{}) ClientOption {
+func WithMetricsCollector(collector MetricsCollector) ClientOption {
 	return func(o *ClientOptions) {
 		o.MetricsCollector = collector
 	}

@@ -17,6 +17,8 @@
 | 主题 | 当前结论 |
 | ---- | ---- |
 | SDK 定位 | 统一接入层，不是新的契约真值层 |
+| 公开稳定面 | `sdk / config / auth/client / auth/jwks / auth/verifier / auth/serviceauth / authz / identity / idp / errors` |
+| 低层 plumbing | `transport / observability` 已收回 `pkg/sdk/internal/...` |
 | 权威在线校验入口 | `Auth().VerifyToken(...)` |
 | 本地验证入口 | `TokenVerifier` + `JWKSManager` |
 | `VerifyToken` 当前字段 | 已包含 `session_id / token_id / amr` |
@@ -26,9 +28,9 @@
 
 | 想回答的问题 | 先看哪里 |
 | ---- | ---- |
-| SDK 总入口与子客户端 | [../../pkg/sdk/sdk.go](../../pkg/sdk/sdk.go) |
-| 在线 token 生命周期消费 | [../../pkg/sdk/auth/client.go](../../pkg/sdk/auth/client.go) |
-| 本地 verifier / JWKS | [../../pkg/sdk/auth/verifier.go](../../pkg/sdk/auth/verifier.go)、[../../pkg/sdk/auth/jwks.go](../../pkg/sdk/auth/jwks.go) |
+| SDK 总入口与子客户端 | [../../pkg/sdk/client.go](../../pkg/sdk/client.go)、[../../pkg/sdk/aliases.go](../../pkg/sdk/aliases.go) |
+| 在线 token 生命周期消费 | [../../pkg/sdk/auth/client/client.go](../../pkg/sdk/auth/client/client.go) |
+| 本地 verifier / JWKS | [../../pkg/sdk/auth/verifier/constructor.go](../../pkg/sdk/auth/verifier/constructor.go)、[../../pkg/sdk/auth/verifier/runtime.go](../../pkg/sdk/auth/verifier/runtime.go)、[../../pkg/sdk/auth/jwks/manager.go](../../pkg/sdk/auth/jwks/manager.go)、[../../pkg/sdk/auth/jwks/builder.go](../../pkg/sdk/auth/jwks/builder.go) |
 | SDK 文档主入口 | [../../pkg/sdk/docs/README.md](../../pkg/sdk/docs/README.md) |
 | 在线 verify 与本地验签边界 | [../../pkg/sdk/docs/04-jwt-verification.md](../../pkg/sdk/docs/04-jwt-verification.md) |
 | 服务间认证 | [../../pkg/sdk/docs/05-service-auth.md](../../pkg/sdk/docs/05-service-auth.md) |
@@ -104,6 +106,23 @@ SDK 不只是远程 `Auth()`；它还提供：
 
 所以 SDK 的真正价值，是把“接 IAM”这件事从零散工具函数收成稳定的接入产品层。
 
+### 2.4 SDK 公开面已经收口
+
+这轮重构之后，SDK 对外承诺的边界已经更清楚了：
+
+- 继续公开：`pkg/sdk`、`pkg/sdk/config`、`pkg/sdk/auth/client`、`pkg/sdk/auth/jwks`、`pkg/sdk/auth/verifier`、`pkg/sdk/auth/serviceauth`、`pkg/sdk/authz`、`pkg/sdk/identity`、`pkg/sdk/idp`、`pkg/sdk/errors`
+- 收回内部：`pkg/sdk/transport`、`pkg/sdk/observability`、高级错误分析 / matcher / handler
+
+这意味着接入方今天应该优先依赖：
+
+- `sdk.NewClient(...)`
+- `sdk.WithMetricsCollector(...)`
+- `sdk.WithTracingHook(...)`
+- `cfg.Observability = sdk.DefaultObservabilityConfig()`
+- `pkg/sdk/errors` 的稳定谓词与映射函数
+
+而不是继续直接 import 低层 plumbing 包。
+
 ## 3. 在线权威校验 vs 本地 JWKS 验签
 
 这是当前 SDK 最重要的边界。
@@ -168,7 +187,8 @@ flowchart TD
 
 - `api/grpc/iam/authn/v1/authn.proto`
 - `internal/apiserver/interface/authn/grpc/service.go`
-- `pkg/sdk/auth/verifier.go`
+- `pkg/sdk/auth/verifier/claims.go`
+- `pkg/sdk/auth/verifier/verify_metadata.go`
 
 ### 4.2 本地 verifier 已能提取 `sid` 与 `jti`
 

@@ -1468,12 +1468,11 @@ func (s *GuardianshipService) RegisterChild(ctx context.Context, dto RegisterChi
 
 1. **JWT 验证**：优先本地 JWKS 验签
    ```go
-   // 获取 JWKS
-   resp, _ := http.Get("http://iam-apiserver/.well-known/jwks.json")
-   
-   // 本地验签
-   verifier := sdk.NewTokenVerifier(jwks)
-   claims, err := verifier.Verify(accessToken)
+   jwksManager, _ := authjwks.NewJWKSManager(&sdk.JWKSConfig{
+       URL: "http://iam-apiserver/.well-known/jwks.json",
+   })
+   verifier, _ := authverifier.NewTokenVerifier(&sdk.TokenVerifyConfig{}, jwksManager, nil)
+   result, err := verifier.Verify(ctx, accessToken, nil)
    ```
 
 2. **身份查询**：使用 gRPC SDK

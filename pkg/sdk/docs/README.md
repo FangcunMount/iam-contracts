@@ -12,7 +12,7 @@
 - `pkg/sdk/docs/*` 负责解释思路、参数、边界和最小可理解示例。
 - `pkg/sdk/_examples/*` 负责放完整可运行程序。
 - 如果你第一次接 IAM SDK，先看 [快速开始](./01-quick-start.md)。
-- SDK 文档现在按“接入基础 → Token 主轴 → 授权判定”的顺序组织。
+- SDK 文档现在按“接入基础 → Token 主轴 → 授权判定 → 迁移说明”的顺序组织。
 - 如果你已经知道要做什么，直接按下面的“我想...”跳转。
 
 ## 推荐阅读顺序
@@ -28,9 +28,10 @@
 4. [JWT 本地验证](./04-jwt-verification.md)
 5. [服务间认证](./05-service-auth.md)
 
-### 第三层：再接授权判定
+### 第三层：再接授权判定与迁移
 
 6. [授权判定（PDP）](./06-authz.md)
+7. [迁移说明](./07-migration-breaking-changes.md)
 
 ## 📚 文档列表
 
@@ -82,6 +83,12 @@
    - `subject / domain / object / action` 组织方式
    - 当前能力边界
 
+7. **[迁移说明](./07-migration-breaking-changes.md)**
+   - 本轮 breaking change
+   - `transport` / `observability` 下线说明
+   - `errors` 公开面收口
+   - 替代入口与迁移示例
+
 ## 📌 当前文档边界
 
 目前 `pkg/sdk/docs/` 已覆盖这些稳定主题：
@@ -92,6 +99,7 @@
 - JWT 本地验证
 - 服务间认证
 - 授权判定（PDP）
+- 迁移说明
 
 其它主题如果尚未单独成文，以这些事实入口为准：
 
@@ -105,11 +113,12 @@
 | 我想... | 先看 | 说明 |
 | ------- | ---- | ---- |
 | 快速开始使用 SDK | [快速开始](./01-quick-start.md) | 一屏建立心智模型，再看最简示例 |
-| 配置开发 / 测试 / 生产环境 | [配置详解](./02-configuration.md) | 看 `Config`、TLS、超时、重试、熔断 |
+| 配置开发 / 测试 / 生产环境 | [配置详解](./02-configuration.md) | 看 `Config`、TLS、超时、重试、hook 注入 |
 | 搞清 token 怎么校验 / 刷新 / 撤销 | [Token 生命周期](./03-token-lifecycle.md) | 先建立 token 消费面的总心智模型 |
 | 本地验证 JWT | [JWT 本地验证](./04-jwt-verification.md) | 看 verifier、JWKS、降级策略 |
 | 实现服务间认证 | [服务间认证](./05-service-auth.md) | 看 helper、自动刷新、回退策略 |
 | 做单次权限判定 | [授权判定（PDP）](./06-authz.md) | 看 `Authz().Check()` / `Allow()` |
+| 从旧 SDK 低层包迁移 | [迁移说明](./07-migration-breaking-changes.md) | 看公开面收口与替代入口 |
 | 直接复制完整程序 | [示例索引](../_examples/README.md) | 进入 `_examples` 看可运行代码 |
 
 ## 📖 文档约定
@@ -127,4 +136,5 @@
 
 ## 📝 更新日志
 
+- **2026-04-23**: 新增迁移说明，收口 SDK 公开面到 `sdk / config / auth / authz / identity / idp / errors`
 - **2026-03-27**: 收正索引页，明确 docs / `_examples` 分工，并纳入授权判定与 Token 生命周期文档

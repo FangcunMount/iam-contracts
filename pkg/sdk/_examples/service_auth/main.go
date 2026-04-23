@@ -7,6 +7,7 @@ import (
 	"time"
 
 	sdk "github.com/FangcunMount/iam-contracts/pkg/sdk"
+	authserviceauth "github.com/FangcunMount/iam-contracts/pkg/sdk/auth/serviceauth"
 )
 
 func main() {
@@ -22,12 +23,12 @@ func main() {
 	defer client.Close()
 
 	// 创建服务间认证助手
-	authHelper, err := sdk.NewServiceAuthHelper(&sdk.ServiceAuthConfig{
+	authHelper, err := authserviceauth.NewServiceAuthHelper(&sdk.ServiceAuthConfig{
 		ServiceID:      "qs-service",            // 当前服务标识
 		TargetAudience: []string{"iam-service"}, // 目标服务
 		TokenTTL:       time.Hour,               // Token 有效期
 		RefreshBefore:  5 * time.Minute,         // 提前刷新时间
-	}, client)
+	}, client.Auth())
 	if err != nil {
 		log.Fatalf("创建认证助手失败: %v", err)
 	}

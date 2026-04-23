@@ -124,14 +124,14 @@ Jitter 机制:
 
 ```go
 // 1️⃣ 创建助手
-helper, _ := sdk.NewServiceAuthHelper(
+helper, _ := authserviceauth.NewServiceAuthHelper(
     &sdk.ServiceAuthConfig{
         ServiceID: "my-service",
         TargetAudience: []string{"target-service"},
         TokenTTL: time.Hour,
         RefreshBefore: 5 * time.Minute,
     },
-    client,
+    client.Auth(),
 )
 defer helper.Stop()
 
@@ -185,10 +185,19 @@ conn, _ := grpc.Dial("target-service:8081",
 
 - 已存在 `ctx`
 - 已创建 `client`
-- 已按需导入 `sdk`、`auth`、`errors`
+- 已按需导入 `sdk`、`authserviceauth`
 - 进阶片段里的 `serviceAuthCfg` 指代已经准备好的 `*sdk.ServiceAuthConfig`
 
 需要完整的 `package main + import + 启动逻辑` 时，直接看 `_examples/service_auth/main.go`。
+
+下面涉及服务认证子包时，统一约定这些 import 别名：
+
+```go
+import (
+    sdk "github.com/FangcunMount/iam-contracts/pkg/sdk"
+    authserviceauth "github.com/FangcunMount/iam-contracts/pkg/sdk/auth/serviceauth"
+)
+```
 
 ### 基础用法
 
@@ -201,14 +210,14 @@ client, err := sdk.NewClient(ctx, &sdk.Config{
     },
 })
 
-helper, err := sdk.NewServiceAuthHelper(
+helper, err := authserviceauth.NewServiceAuthHelper(
     &sdk.ServiceAuthConfig{
         ServiceID:      "my-service",
         TargetAudience: []string{"iam-service"},
         TokenTTL:       time.Hour,
         RefreshBefore:  5 * time.Minute,
     },
-    client,
+    client.Auth(),
 )
 defer helper.Stop()
 
@@ -294,7 +303,7 @@ type RefreshStrategy struct {
 ### 自定义刷新策略
 
 ```go
-refreshStrategy := &auth.RefreshStrategy{
+refreshStrategy := &authserviceauth.RefreshStrategy{
     JitterRatio:         0.15,              // 增加抖动
     MinBackoff:          2 * time.Second,
     MaxBackoff:          120 * time.Second,
@@ -323,10 +332,10 @@ refreshStrategy := &auth.RefreshStrategy{
     },
 }
 
-helper, err := sdk.NewServiceAuthHelper(
+helper, err := authserviceauth.NewServiceAuthHelper(
     serviceAuthCfg,
-    client,
-    auth.WithRefreshStrategy(refreshStrategy),
+    client.Auth(),
+    authserviceauth.WithRefreshStrategy(refreshStrategy),
 )
 ```
 
@@ -388,7 +397,7 @@ Normal (恢复)
 ### 示例 1: HTTP 请求中间件
 
 ```go
-func authMiddleware(helper *auth.ServiceAuthHelper) gin.HandlerFunc {
+func authMiddleware(helper *authserviceauth.ServiceAuthHelper) gin.HandlerFunc {
     return func(c *gin.Context) {
         token, err := helper.GetToken(c.Request.Context())
         if err != nil {
@@ -410,7 +419,7 @@ r.Use(authMiddleware(helper))
 ### 示例 2: gRPC 拦截器
 
 ```go
-func serviceAuthInterceptor(helper *auth.ServiceAuthHelper) grpc.UnaryClientInterceptor {
+func serviceAuthInterceptor(helper *authserviceauth.ServiceAuthHelper) grpc.UnaryClientInterceptor {
     return func(
         ctx context.Context,
         method string,
@@ -438,7 +447,7 @@ conn, err := grpc.Dial(
 ### 示例 3: 批量调用
 
 ```go
-func batchCallWithAuth(ctx context.Context, helper *auth.ServiceAuthHelper, userIDs []string) error {
+func batchCallWithAuth(ctx context.Context, helper *authserviceauth.ServiceAuthHelper, userIDs []string) error {
     return helper.CallWithAuth(ctx, func(authCtx context.Context) error {
         for _, userID := range userIDs {
             user, err := client.Identity().GetUser(authCtx, userID)
@@ -460,11 +469,11 @@ func batchCallWithAuth(ctx context.Context, helper *auth.ServiceAuthHelper, user
 // 当前状态
 state := helper.State()
 switch state {
-case auth.RefreshStateNormal:
+case authserviceauth.RefreshStateNormal:
     log.Println("正常状态")
-case auth.RefreshStateRetrying:
+case authserviceauth.RefreshStateRetrying:
     log.Println("重试中")
-case auth.RefreshStateCircuitOpen:
+case authserviceauth.RefreshStateCircuitOpen:
     log.Println("熔断中")
 }
 
@@ -496,7 +505,7 @@ go func() {
         metrics.TokenRefreshConsecutiveFailures.Set(float64(stats.ConsecutiveFailures))
         
         // 告警
-        if stats.State == auth.RefreshStateCircuitOpen {
+        if stats.State == authserviceauth.RefreshStateCircuitOpen {
             alert.Send("ServiceAuth circuit breaker opened!")
         }
         
@@ -551,7 +560,7 @@ if err != nil {
 ### 2. 启用回调监控
 
 ```go
-refreshStrategy := &auth.RefreshStrategy{
+refreshStrategy := &authserviceauth.RefreshStrategy{
     OnRefreshSuccess: func(token string, expiresIn time.Duration) {
         metrics.TokenRefreshSuccess.Inc()
         log.Printf("Token 刷新成功: expires_in=%v", expiresIn)
@@ -578,17 +587,17 @@ refreshStrategy := &auth.RefreshStrategy{
     },
 }
 
-helper, err := sdk.NewServiceAuthHelper(
+helper, err := authserviceauth.NewServiceAuthHelper(
     serviceAuthCfg,
-    client,
-    auth.WithRefreshStrategy(refreshStrategy),
+    client.Auth(),
+    authserviceauth.WithRefreshStrategy(refreshStrategy),
 )
 ```
 
 ### 3. 优雅关闭
 
 ```go
-func gracefulShutdown(helper *auth.ServiceAuthHelper) {
+func gracefulShutdown(helper *authserviceauth.ServiceAuthHelper) {
     // 监听关闭信号
     sigCh := make(chan os.Signal, 1)
     signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
@@ -609,11 +618,11 @@ func gracefulShutdown(helper *auth.ServiceAuthHelper) {
 ### 4. 健康检查
 
 ```go
-func healthCheck(helper *auth.ServiceAuthHelper) bool {
+func healthCheck(helper *authserviceauth.ServiceAuthHelper) bool {
     stats := helper.Stats()
     
     // 检查状态
-    if stats.State == auth.RefreshStateCircuitOpen {
+    if stats.State == authserviceauth.RefreshStateCircuitOpen {
         return false
     }
     
@@ -669,9 +678,9 @@ A: 使用 mock 客户端：
 
 ```go
 // 测试时禁用自动刷新
-helper, _ := auth.NewServiceAuthHelperWithCallbacks(
+helper, _ := authserviceauth.NewServiceAuthHelperWithCallbacks(
     serviceAuthCfg,
-    mockClient,
+    mockClient.Auth(),
     nil, // 不需要回调
     nil,
 )
