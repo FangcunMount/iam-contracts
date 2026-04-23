@@ -280,9 +280,9 @@ func (m *AuthnModule) initializeDomain(infra *infrastructureComponents) *domainC
 		logger,
 	)
 
-	// Auto-initialize JWKS: ensure there's at least one active key (useful for dev/autoseed)
-	// 条件：配置允许自动初始化（jwks.auto_init 或 migration.autoseed 或 dev 模式）
-	if viper.GetBool("jwks.auto_init") || viper.GetBool("migration.autoseed") || viper.GetString("app.mode") == "development" {
+	// Auto-initialize JWKS: ensure there's at least one active key in development
+	// or when jwks.auto_init is explicitly enabled.
+	if viper.GetBool("jwks.auto_init") || viper.GetString("app.mode") == "development" {
 		ctx := context.Background()
 		if _, err := domain.keyManager.GetActiveKey(ctx); err != nil {
 			// 没有 active key，尝试创建一个

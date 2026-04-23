@@ -368,7 +368,7 @@ flowchart LR
 | 项 | 内容 |
 | ---- | ---- |
 | 组装内容 | `KeyManager`、`KeySetBuilder`、`KeyRotation`、JWT Generator、JWKS 应用服务、`RotationScheduler` |
-| 自动初始化 | 开发 / autoseed 等场景下，无 active key 时可自动创建 `RS256` active key |
+| 自动初始化 | 开发模式或显式开启 `jwks.auto_init` 时，无 active key 可自动创建 `RS256` active key |
 | 默认轮换参数 | `RotationInterval=30d`、`GracePeriod=7d`、`MaxKeysInJWKS=3` |
 | 调度 | assembler 内 cron 默认 `0 2 * * *`，即每日凌晨 2 点检查 |
 

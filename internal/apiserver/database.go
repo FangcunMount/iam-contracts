@@ -121,7 +121,6 @@ func (dm *DatabaseManager) runMigrations() error {
 	// 创建迁移器
 	migrator := migration.NewMigrator(sqlDB, &migration.Config{
 		Enabled:  dm.config.MigrationOptions.Enabled,
-		AutoSeed: dm.config.MigrationOptions.AutoSeed,
 		Database: dm.config.MigrationOptions.Database,
 	})
 

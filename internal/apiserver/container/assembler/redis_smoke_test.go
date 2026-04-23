@@ -15,7 +15,6 @@ func TestAuthnModuleInitializeWithRedisAdapters(t *testing.T) {
 	viper.Reset()
 	t.Cleanup(viper.Reset)
 	viper.Set("jwks.auto_init", false)
-	viper.Set("migration.autoseed", false)
 	viper.Set("app.mode", "test")
 	viper.Set("sms.provider", "log")
 	viper.Set("sms.login_otp_ttl", "5m")

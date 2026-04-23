@@ -293,7 +293,6 @@ flowchart TB
 | `auth.refresh_token_ttl` | Refresh TTL | 默认 7 天 |
 | `jwks.keys_dir` | 私钥目录 | 未配置时按工作目录解析 |
 | `jwks.auto_init` | 无 active key 时自动初始化 | 可参与自动建钥判断 |
-| `migration.autoseed` | 影响是否自动建初始 key | 与 `jwks.auto_init`、`app.mode=development` 一起生效 |
 | `app.mode` | 运行模式 | `development` 会参与 JWKS 自动初始化逻辑 |
 
 ---

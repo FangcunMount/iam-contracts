@@ -65,7 +65,7 @@ COLOR_RED := \033[31m
 # ============================================================================
 
 .PHONY: help version debug
-.PHONY: build build-apiserver build-tools clean
+.PHONY: build build-apiserver clean
 .PHONY: run run-apiserver stop stop-apiserver restart restart-apiserver
 .PHONY: status status-apiserver logs logs-apiserver health health-check
 .PHONY: dev dev-apiserver dev-stop dev-status dev-logs
@@ -76,7 +76,7 @@ COLOR_RED := \033[31m
 .PHONY: install install-tools create-dirs
 .PHONY: up down re st log
 .PHONY: api-validate
-.PHONY: db-seed db-connect db-status db-backup
+.PHONY: db-bootstrap db-connect db-status db-backup
 .PHONY: docker-mysql-up docker-mysql-down docker-mysql-clean docker-mysql-logs
 .PHONY: cert-gen cert-test cert-verify test-dev-config
 .PHONY: grpc-cert-verify grpc-cert-info
@@ -148,12 +148,6 @@ build-apiserver: ## 构建 API 服务器
 	@$(MAKE) create-dirs
 	@$(GO_BUILD) $(GO_LDFLAGS) -o $(APISERVER_BIN) ./cmd/apiserver/
 	@echo "$(COLOR_GREEN)✅ API 服务器构建完成: $(APISERVER_BIN)$(COLOR_RESET)"
-
-build-tools: ## 构建工具（seeddata等）
-	@echo "$(COLOR_BOLD)$(COLOR_BLUE)🔧 构建工具...$(COLOR_RESET)"
-	@$(MAKE) create-dirs
-	@$(GO_BUILD) -o tmp/seeddata ./cmd/tools/seeddata
-	@echo "$(COLOR_GREEN)✅ 工具构建完成: tmp/seeddata$(COLOR_RESET)"
 
 # =============================================================================
 # 服务运行管理
@@ -558,19 +552,19 @@ DB_USER ?= root
 DB_PASSWORD ?=
 DB_NAME ?= iam
 
-# 注意: db-init, db-migrate, db-seed, db-reset 已弃用
+# 注意: db-init, db-migrate, db-reset 已弃用
 # 请使用以下新命令:
 # - 数据库迁移: 应用程序启动时自动执行 (internal/pkg/migration)
-# - 种子数据: make seed-data 或 ./tmp/seeddata
+# - 系统 bootstrap 基线数据: migration 000005 或 make db-bootstrap
 
-db-seed: ## 加载种子数据（使用新的 seeddata 工具）
-	@echo "$(COLOR_BOLD)$(COLOR_BLUE)🌱 加载种子数据...$(COLOR_RESET)"
-	@if [ ! -f tmp/seeddata ]; then \
-		echo "$(COLOR_YELLOW)⚠️  seeddata 工具未找到，正在编译...$(COLOR_RESET)"; \
-		$(MAKE) build-tools; \
+db-bootstrap: ## 重新应用系统 bootstrap 基线数据（幂等 SQL）
+	@echo "$(COLOR_BOLD)$(COLOR_BLUE)🧱 应用系统 bootstrap 数据...$(COLOR_RESET)"
+	@if [ -n "$(DB_PASSWORD)" ]; then \
+		mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -p$(DB_PASSWORD) $(DB_NAME) < configs/mysql/bootstrap.sql; \
+	else \
+		mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) $(DB_NAME) < configs/mysql/bootstrap.sql; \
 	fi
-	@./tmp/seeddata --dsn "$(DB_USER):$(DB_PASSWORD)@tcp($(DB_HOST):$(DB_PORT))/$(DB_NAME)?parseTime=true&loc=Local"
-	@echo "$(COLOR_GREEN)✅ 种子数据加载完成$(COLOR_RESET)"
+	@echo "$(COLOR_GREEN)✅ 系统 bootstrap 数据已应用$(COLOR_RESET)"
 
 db-connect: ## 连接到数据库
 	@echo "$(COLOR_CYAN)🔌 连接到数据库 $(DB_NAME)...$(COLOR_RESET)"

@@ -147,7 +147,7 @@
 | [02-CQRS模式实践.md](./04-基础设施与运维/02-CQRS模式实践.md) | 当前 CQRS 的真实形态与读写边界 | 8 min |
 | [03-命令&契约校验与开发流程.md](./04-基础设施与运维/03-命令&契约校验与开发流程.md) | `Makefile`、swagger / OpenAPI / proto 校验链与开发流程 | 10 min |
 | [04-端口&证书与数据库迁移.md](./04-基础设施与运维/04-端口&证书与数据库迁移.md) | 端口、mTLS、Docker、migration 入口 | 10 min |
-| [05-Seeddata 与 Collection 集成补充.md](./04-基础设施与运维/05-Seeddata 与 Collection 集成补充.md) | seeddata 与 Collection 集成补充 | 6 min |
+| [05-SQL Bootstrap 与初始化数据.md](./04-基础设施与运维/05-SQL%20Bootstrap%20与初始化数据.md) | schema.sql、bootstrap.sql 与 migration 的职责分工 | 6 min |
 
 ### 05-专题分析
 

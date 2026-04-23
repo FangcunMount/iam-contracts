@@ -19,7 +19,6 @@ var migrations embed.FS
 // Config 迁移配置
 type Config struct {
 	Enabled  bool   // 是否启用自动迁移
-	AutoSeed bool   // 是否自动加载种子数据
 	Database string // 数据库名称
 }
 

@@ -124,7 +124,7 @@ func (s *loginApplicationService) Login(ctx context.Context, req LoginRequest) (
 }
 
 // ensurePrincipalTenantID 补齐认证主体的默认 tenant_id。
-// 当前默认业务租户沿用 seeddata / QS 约定的 org_id=1，避免登录后签出的 JWT 仍然携带 0。
+// 当前默认业务租户沿用 system bootstrap / QS 约定的 org_id=1，避免登录后签出的 JWT 仍然携带 0。
 func ensurePrincipalTenantID(principal *authentication.Principal) {
 	if principal == nil || !principal.TenantID.IsZero() {
 		return

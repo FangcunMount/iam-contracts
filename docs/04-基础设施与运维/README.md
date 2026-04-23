@@ -4,7 +4,7 @@
 
 ## 30 秒结论
 
-- `04-基础设施与运维` 现在承接两类内容：一类是六边形架构、CQRS 这类横切技术机制；另一类是 `Makefile`、端口、证书、迁移、Docker、seeddata 这类交付与维护入口。
+- `04-基础设施与运维` 现在承接两类内容：一类是六边形架构、CQRS 这类横切技术机制；另一类是 `Makefile`、端口、证书、迁移、Docker、SQL bootstrap 这类交付与维护入口。
 - 现行主路径已经切到这一层；旧 `docs/04-基础设施/` 和 `docs/ops/` 只保留为历史资料并归入 `_archive/`。
 - 这组文档不重复解释业务域流程，也不替代 `api/` 契约；它更关心“代码为什么这样分层”“系统如何被启动、校验、部署、迁移”。
 - 如果只先读 3 篇，建议按这个顺序：`六边形架构实践 -> 命令、契约校验与开发流程 -> 端口、证书与数据库迁移`。
@@ -17,7 +17,7 @@
 | CQRS 在当前代码里怎么落地？ | [02-CQRS模式实践.md](./02-CQRS模式实践.md) |
 | 构建、运行、测试、swagger、proto、OpenAPI 校验怎么做？ | [03-命令&契约校验与开发流程.md](./03-命令&契约校验与开发流程.md) |
 | 端口、证书、Docker、数据库迁移从哪看？ | [04-端口&证书与数据库迁移.md](./04-端口&证书与数据库迁移.md) |
-| seeddata 和 Collection 集成怎么理解？ | [05-Seeddata 与 Collection 集成补充.md](./05-Seeddata 与 Collection 集成补充.md) |
+| 系统 bootstrap 基线数据现在如何管理？ | [05-SQL Bootstrap 与初始化数据.md](./05-SQL Bootstrap 与初始化数据.md) |
 | IAM 缓存层今天到底怎么设计、治理面已经做到哪里？ | [../05-专题分析/05-IAM缓存层--缓存层的设计与治理.md](../05-专题分析/05-IAM缓存层--缓存层的设计与治理.md) |
 | IAM 当前各个 cache family 为什么大多还是 Redis `String`，`revoked_access_token` 为什么不是 `Set`？ | [../05-专题分析/06-IAM缓存层--数据结构选择与 Redis 建模判断.md](../05-专题分析/06-IAM缓存层--数据结构选择与 Redis 建模判断.md) |
 | 真实配置和工件入口在哪里？ | [../../configs/](../../configs/)、[../../build/docker/](../../build/docker/)、[../../scripts/](../../scripts/)、[../../Makefile](../../Makefile) |
@@ -30,7 +30,7 @@
 | [02-CQRS模式实践.md](./02-CQRS模式实践.md) | 当前 CQRS 的真实形态与读写边界 |
 | [03-命令&契约校验与开发流程.md](./03-命令&契约校验与开发流程.md) | `Makefile`、swagger / OpenAPI / proto 校验链、开发命令面 |
 | [04-端口&证书与数据库迁移.md](./04-端口&证书与数据库迁移.md) | dev/prod 端口、mTLS 证书、Docker 与 migration 入口 |
-| [05-Seeddata 与 Collection 集成补充.md](./05-Seeddata 与 Collection 集成补充.md) | seed_family 与 Collection testee 创建的补充说明 |
+| [05-SQL Bootstrap 与初始化数据.md](./05-SQL Bootstrap 与初始化数据.md) | schema.sql、bootstrap.sql 与 migration 的职责分工 |
 补充专题：
 
 - [../05-专题分析/05-IAM缓存层--缓存层的设计与治理.md](../05-专题分析/05-IAM缓存层--缓存层的设计与治理.md)

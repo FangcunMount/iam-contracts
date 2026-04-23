@@ -95,28 +95,18 @@ make docker-mysql-up
 
 #### 4. 初始化数据库
 
-数据库迁移在应用程序启动时自动执行。如需手动加载种子数据:
+数据库迁移在应用程序启动时自动执行，并会通过 migration 自动写入系统 bootstrap 基线数据。
+如需手动重放这组幂等初始化 SQL，可执行：
 
 ```bash
-# 构建 seeddata 工具
-make build-tools
-
-# 加载种子数据（需要先启动数据库）
-make db-seed DB_USER=root DB_PASSWORD=yourpassword
-
-# 或直接使用 seeddata 工具
-./tmp/seeddata --dsn "root:yourpassword@tcp(127.0.0.1:3306)/iam?parseTime=true&loc=Local"
+make db-bootstrap DB_USER=root DB_PASSWORD=yourpassword
 ```
 
 **数据库迁移文件位置**: `internal/pkg/migration/migrations/`  
-**种子数据配置文件**: `configs/seeddata.yaml`
+**手工初始化 SQL**:
 
-**默认种子数据账户**:
-
-- 系统管理员: `admin` / `Admin@123`
-- 测试用户: `zhangsan` / `Pass@123`
-
-⚠️ **安全提示**: 生产环境部署后请立即修改默认密码！
+- `configs/mysql/schema.sql`：完整表结构基线
+- `configs/mysql/bootstrap.sql`：系统 bootstrap 真值（租户、基础用户/账号、角色、资源、策略、字典）
 
 #### 5. 构建项目
 
@@ -147,11 +137,6 @@ make status
 # 健康检查
 curl http://localhost:9080/healthz
 # 输出: {"status":"ok"}
-
-# 测试登录（使用默认账户）
-curl -X POST http://localhost:9080/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
 
 # 获取 JWKS 公钥
 curl http://localhost:9080/.well-known/jwks.json

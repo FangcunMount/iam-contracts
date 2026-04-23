@@ -37,8 +37,8 @@ migration/
 ├── migrations/             # 迁移 SQL 文件（嵌入到二进制）
 │   ├── 000001_init_schema.up.sql      # 初始化表结构
 │   ├── 000001_init_schema.down.sql    # 回滚表结构
-│   ├── 000002_seed_data.up.sql        # 种子数据
-│   ├── 000002_seed_data.down.sql      # 回滚种子数据
+│   ├── 000005_bootstrap_system_data.up.sql   # 最小系统初始化数据
+│   ├── 000005_bootstrap_system_data.down.sql # 回滚最小系统初始化数据
 │   └── ...
 └── README.md               # 本文件
 ```
@@ -81,7 +81,6 @@ func main() {
     // 2. 配置迁移器
     cfg := &migration.Config{
         Enabled:  true,              // 启用自动迁移
-        AutoSeed: false,             // 生产环境设为 false
         Database: "iam",   // 数据库名称
     }
 
@@ -151,7 +150,6 @@ mysql:
 
 migration:
   enabled: ${MIGRATION_ENABLED:true}
-  auto-seed: ${MIGRATION_AUTO_SEED:false}
 ```
 
 ### Docker 部署
@@ -229,6 +227,7 @@ go run cmd/apiserver/apiserver.go
 - [golang-migrate 官方文档](https://github.com/golang-migrate/migrate)
 - [数据库迁移指南](../../../docs/DATABASE_MIGRATION_GUIDE.md)
 - [Schema 定义](../../../configs/mysql/schema.sql)
+- [Bootstrap 数据](../../../configs/mysql/bootstrap.sql)
 
 ## ❓ 常见问题
 
