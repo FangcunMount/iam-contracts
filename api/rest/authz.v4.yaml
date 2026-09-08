@@ -737,7 +737,7 @@ paths:
       tags:
       - Authorization-Grants
       summary: 查询角色 PermissionGrant
-      description: 查询指定角色在当前租户下的有效 PermissionGrant
+      description: 查询指定可见角色的有效 PermissionGrant
       operationId: listRolePermissionGrants
       parameters:
       - name: id
