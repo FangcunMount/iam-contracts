@@ -63,7 +63,7 @@ func TestSessionForRefreshDoesNotInventMissingHistoricalAuthTime(t *testing.T) {
 	require.True(t, restored.AuthContext.AuthenticatedAt.IsZero())
 }
 
-func TestAccessTokenIssueContextKeepsAuthContextAuthenticatedAt(t *testing.T) {
+func TestAccessTokenClaimsProjectionKeepsAuthContextAuthenticatedAt(t *testing.T) {
 	authenticatedAt := time.Unix(1700000200, 0).UTC()
 	sess := &sessiondomain.Session{
 		SessionID: "sid-1", UserID: meta.FromUint64(10), LoginIdentityID: meta.FromUint64(20),
@@ -71,7 +71,7 @@ func TestAccessTokenIssueContextKeepsAuthContextAuthenticatedAt(t *testing.T) {
 		AuthContext:  authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, authenticatedAt),
 		CreatedAt:    time.Unix(1, 0).UTC(),
 	}
-	got := accessTokenSubjectFromSession(sess)
+	got := accessTokenClaimsFromSession(sess)
 	require.Equal(t, authenticatedAt, got.AuthenticatedAt)
 }
 
@@ -85,7 +85,7 @@ func TestSessionForRefreshRestoresLegacyContextWithoutMutatingLoadedSession(t *t
 	require.NotSame(t, sess, restored)
 	require.Empty(t, sess.AuthContext.Method)
 	require.Empty(t, sess.TokenContext.TenantDomain)
-	subject := accessTokenSubjectFromSession(restored)
+	subject := accessTokenClaimsFromSession(restored)
 	require.Equal(t, "sid", subject.SessionID)
 	require.Equal(t, "legacy", subject.TenantDomain)
 	require.Equal(t, []string{"pwd"}, subject.AMR)

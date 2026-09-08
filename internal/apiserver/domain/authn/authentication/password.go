@@ -11,18 +11,18 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
-// ====================== 认证凭据（认证所需的数据） ========================
+// ====================== 身份核验证明（请求级输入） ========================
 
-// PasswordProofSpec 密码认证凭据规范，用于构造 PasswordProof 实例
+// PasswordProofSpec 密码身份核验证明规格，用于构造 PasswordProof 实例
 type PasswordProofSpec struct {
-	RealmTenantID meta.ID
+	RealmTenantID meta.ID // username 身份命名空间，不代表租户成员关系
 	Username      string
 	Password      string
 }
 
-// PasswordProof 用户名+密码认证凭据
+// PasswordProof 用户名+密码身份核验证明
 type PasswordProof struct {
-	RealmTenantID meta.ID
+	RealmTenantID meta.ID // username 身份命名空间，不代表租户成员关系
 	Username      string
 	Password      string
 }
@@ -30,12 +30,12 @@ type PasswordProof struct {
 // 确保 PasswordProof 实现了 IdentityProof 接口
 var _ IdentityProof = (*PasswordProof)(nil)
 
-// CredentialKind 返回认证凭据类型
+// CredentialKind 返回身份核验证明类型
 func (c *PasswordProof) CredentialKind() CredentialKind {
 	return CredentialKindPassword
 }
 
-// NewPasswordProof 构造密码认证凭据
+// NewPasswordProof 构造密码身份核验证明
 func NewPasswordProof(spec PasswordProofSpec) (IdentityProof, error) {
 	if spec.Username == "" {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "username is required for password authentication")
@@ -91,7 +91,7 @@ func (p *PasswordAuthStrategy) Kind() CredentialKind {
 // 5. 检查是否需要密码rehash（算法升级）
 // 6. 返回身份核验决策
 func (p *PasswordAuthStrategy) Authenticate(ctx context.Context, credential IdentityProof) (AuthDecision, error) {
-	// 断言认证凭据类型
+	// 断言身份核验证明类型
 	passwordCredential, ok := credential.(*PasswordProof)
 	if !ok {
 		return AuthDecision{}, fmt.Errorf("password strategy expects *PasswordProof, got %T", credential)
@@ -177,7 +177,7 @@ func (p *PasswordAuthStrategy) Authenticate(ctx context.Context, credential Iden
 	// 尝试生成升级后的密码 hash
 	rotation := p.rotationMaterial(storedHash, plaintextWithPepper)
 	// 构造身份核验成功决策
-	return p.buildPasswordSuccessDecision(ctx, passwordCredential, lookup, loginIdentityID, userID, credentialID, rotation), nil
+	return p.buildPasswordSuccessDecision(lookup, loginIdentityID, userID, credentialID, rotation), nil
 }
 
 // ================= 辅助方法 ========================
@@ -212,8 +212,6 @@ func (p *PasswordAuthStrategy) rotationMaterial(storedHash string, plaintextWith
 }
 
 func (p *PasswordAuthStrategy) buildPasswordSuccessDecision(
-	ctx context.Context,
-	credential *PasswordProof,
 	lookup *LoginIdentityLookup,
 	loginIdentityID meta.ID,
 	userID meta.ID,

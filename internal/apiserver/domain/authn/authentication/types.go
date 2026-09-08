@@ -86,7 +86,7 @@ func RestoreAuthenticationContext(method Method, realm string, amr []AMR, authen
 	}
 }
 
-// CredentialKind 认证凭据类型
+// CredentialKind 身份核验证明类型
 type CredentialKind string
 
 const (

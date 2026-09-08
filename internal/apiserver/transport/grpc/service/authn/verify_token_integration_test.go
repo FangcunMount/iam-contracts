@@ -270,7 +270,7 @@ func TestIntegration_VerifyToken_RejectsIssuerOrAudienceMismatch(t *testing.T) {
 	principal := &authentication.Principal{
 		UserID:          meta.FromUint64(7),
 		LoginIdentityID: meta.FromUint64(8),
-		}
+	}
 	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{})
 	require.NoError(t, err)
 
@@ -299,7 +299,7 @@ func TestIntegration_VerifyToken_GRPC_IncludeMetadata(t *testing.T) {
 	principal := &authentication.Principal{
 		UserID:          meta.FromUint64(42),
 		LoginIdentityID: meta.FromUint64(43),
-		}
+	}
 	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{})
 	require.NoError(t, err)
 
@@ -315,7 +315,7 @@ func TestIntegration_VerifyToken_GRPC_IncludeMetadata(t *testing.T) {
 
 func issueForTest(t *testing.T, ctx context.Context, tokens testTokenStack, p *authentication.Principal, c sessiondomain.TokenContext) (*tokenapp.TokenPair, error) {
 	t.Helper()
-	sess, err := tokens.creator.Create(ctx, p, c)
+	sess, err := tokens.creator.Create(ctx, p, sessiondomain.CreationContext{TokenContext: c})
 	if err != nil {
 		return nil, err
 	}

@@ -11,16 +11,17 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
-// ====================== 认证凭据（认证所需的数据） ========================
+// ====================== 身份核验证明（请求级输入） ========================
 
-// WechatMiniProofSpec 微信小程序认证凭据规范
+// WechatMiniProofSpec 微信小程序身份核验证明规格
 type WechatMiniProofSpec struct {
 	AppID   string
 	OpenID  string
 	UnionID string
 }
 
-// WechatMiniProof 微信小程序认证凭据
+// WechatMiniProof 微信小程序身份核验证明
+// 此输入仅由已完成 IDP 核验的外部身份映射构造；构造函数不执行外部验真。
 type WechatMiniProof struct {
 	AppID   string
 	OpenID  string
@@ -30,7 +31,7 @@ type WechatMiniProof struct {
 // 确保 WechatMiniProof 实现了 IdentityProof 接口
 var _ IdentityProof = (*WechatMiniProof)(nil)
 
-// CredentialKind 返回认证凭据类型
+// CredentialKind 返回身份核验证明类型
 func (c *WechatMiniProof) CredentialKind() CredentialKind {
 	return CredentialKindWechatMinip
 }
@@ -81,7 +82,7 @@ func (o *OAuthWechatMinipAuthStrategy) Kind() CredentialKind {
 // 2. 检查 LoginIdentity 状态
 // 3. 返回身份核验决策
 func (o *OAuthWechatMinipAuthStrategy) Authenticate(ctx context.Context, credential IdentityProof) (AuthDecision, error) {
-	// 断言认证凭据类型
+	// 断言身份核验证明类型
 	wechatCred, ok := credential.(*WechatMiniProof)
 	if !ok {
 		return AuthDecision{}, fmt.Errorf("wechat minip strategy expects *WechatMiniProof, got %T", credential)
@@ -112,7 +113,7 @@ func (o *OAuthWechatMinipAuthStrategy) Authenticate(ctx context.Context, credent
 	}
 
 	// 构造身份核验成功决策
-	return o.buildWechatMinipSuccessDecision(ctx, wechatCred, identity, lookup.LoginIdentityID, lookup.UserID, meta.ZeroID), nil
+	return o.buildWechatMinipSuccessDecision(wechatCred, lookup.LoginIdentityID, lookup.UserID), nil
 }
 
 // wechatMinipIdentity 微信小程序身份
@@ -138,12 +139,9 @@ func (o *OAuthWechatMinipAuthStrategy) findWechatMinipIdentity(
 
 // buildWechatMinipSuccessDecision 身份核验成功，构造Principal
 func (o *OAuthWechatMinipAuthStrategy) buildWechatMinipSuccessDecision(
-	ctx context.Context,
 	credential *WechatMiniProof,
-	identity wechatMinipIdentity,
 	loginIdentityID meta.ID,
 	userID meta.ID,
-	credentialID meta.ID,
 ) AuthDecision {
 	principal := &Principal{
 		LoginIdentityID: loginIdentityID,

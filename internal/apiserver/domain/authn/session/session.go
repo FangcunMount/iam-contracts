@@ -26,7 +26,7 @@ type Session struct {
 	// —— 身份信息 —— //
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-	TenantID        meta.ID // 租户ID
+	TenantID        meta.ID // 历史请求租户值，不表示已核验租户归属
 
 	// —— 认证信息 —— //
 	AuthContext  authentication.AuthenticationContext

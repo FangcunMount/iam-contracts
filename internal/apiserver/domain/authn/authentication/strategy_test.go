@@ -87,7 +87,7 @@ func TestPasswordAuthStrategy_AllCases(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, d5.OK)
 	require.Equal(t, code.ErrInvalidCredentials, d5.Code)
-	require.Equal(t, meta.FromUint64(100), d5.CredentialID)
+	require.Equal(t, meta.FromUint64(100), d5.CredentialUpdate.CredentialID)
 	require.Equal(t, authentication.CredentialEffectRecordFailure, d5.CredentialUpdate.Effect)
 
 	// 5. disabled password credential
@@ -101,7 +101,7 @@ func TestPasswordAuthStrategy_AllCases(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, dDisabled.OK)
 	require.Equal(t, code.ErrCredentialDisabled, dDisabled.Code)
-	require.Equal(t, meta.FromUint64(101), dDisabled.CredentialID)
+	require.Equal(t, meta.FromUint64(101), dDisabled.CredentialUpdate.CredentialID)
 
 	// 6. locked password credential
 	lockedUntil := time.Now().Add(time.Hour)
@@ -115,9 +115,9 @@ func TestPasswordAuthStrategy_AllCases(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, dLocked.OK)
 	require.Equal(t, code.ErrCredentialLocked, dLocked.Code)
-	require.Equal(t, meta.FromUint64(102), dLocked.CredentialID)
+	require.Equal(t, meta.FromUint64(102), dLocked.CredentialUpdate.CredentialID)
 
-	// 7. success, need rehash -> ShouldRotate true and NewMaterial set
+	// 7. 身份核验成功且需要 rehash 时，返回完整的材料轮换意图。
 	pepper := "pep"
 	pass := "pwd"
 	stored := pass + pepper

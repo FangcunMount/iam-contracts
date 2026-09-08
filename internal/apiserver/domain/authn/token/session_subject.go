@@ -11,8 +11,8 @@ import (
 	"github.com/FangcunMount/iam/v4/pkg/tenant"
 )
 
-// accessTokenSubjectFromSession 投影会话中已确定的身份、认证和签发上下文。
-func accessTokenSubjectFromSession(sess *sessiondomain.Session) *AccessTokenIssueContext {
+// accessTokenClaimsFromSession 投影会话中已确定的身份、认证和签发上下文。
+func accessTokenClaimsFromSession(sess *sessiondomain.Session) AccessTokenClaims {
 	tokenContext := sess.TokenContext.Clone()
 	if tokenContext.TenantDomain == "" {
 		tokenContext.TenantDomain = tenant.DefaultID
@@ -21,13 +21,9 @@ func accessTokenSubjectFromSession(sess *sessiondomain.Session) *AccessTokenIssu
 	if authenticatedAt.IsZero() {
 		authenticatedAt = sess.CreatedAt
 	}
-	orgID := ""
-	if !tokenContext.OrgID.IsZero() {
-		orgID = tokenContext.OrgID.String()
-	}
-	return &AccessTokenIssueContext{
+	return AccessTokenClaims{
 		UserID: sess.UserID, LoginIdentityID: sess.LoginIdentityID, SessionID: sess.SessionID,
-		TenantID: sess.TenantID, TenantDomain: tokenContext.TenantDomain, OrgID: orgID,
+		Subject: sess.UserID.String(), TenantDomain: tokenContext.TenantDomain, OrgID: tokenContext.OrgID,
 		AMR: sess.AuthContext.AMRStrings(), AuthenticatedAt: authenticatedAt, Attributes: tokenContext.Attributes,
 	}
 }

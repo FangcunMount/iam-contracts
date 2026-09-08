@@ -6,7 +6,6 @@ import (
 
 	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
 	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // Store 持久化 RefreshToken、消费事实与 Bearer Token 撤销事实。
@@ -36,21 +35,6 @@ type AccessTokenEncoder interface {
 // Recipient audience and online authentication state are checked by Verifier.
 type AccessTokenSignatureVerifier interface {
 	VerifySignatureAndClaims(context.Context, string) (*AccessTokenClaims, error)
-}
-
-// AccessTokenIssueContext 是访问令牌编码的签发输入，不是 JWT sub 或完整 Claims Set。
-// 领域层完成投影后，JWT adapter 只负责序列化，不再从任意 Claims 推断授权域。
-type AccessTokenIssueContext struct {
-	UserID          meta.ID
-	LoginIdentityID meta.ID
-	TenantID        meta.ID
-	SessionID       string
-	TenantDomain    string
-	OrgID           string
-	AMR             []string
-	AuthenticatedAt time.Time
-	// Attributes 是已经过准入的对外附加字段，不再代表任意 Principal.Claims。
-	Attributes map[string]string
 }
 
 // LegacyAuthenticationContextSnapshotDecoder 只负责读取迁移前 RefreshToken 中的认证上下文快照。

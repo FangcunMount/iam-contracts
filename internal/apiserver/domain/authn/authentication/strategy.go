@@ -2,9 +2,9 @@ package authentication
 
 import "context"
 
-// IdentityProof 认证凭据接口。
+// IdentityProof 身份核验证明接口。
 type IdentityProof interface {
-	// CredentialKind 返回认证凭据类型
+	// CredentialKind 返回身份核验证明类型
 	CredentialKind() CredentialKind
 }
 

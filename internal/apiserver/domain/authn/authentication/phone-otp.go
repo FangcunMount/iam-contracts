@@ -11,15 +11,15 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
-// ====================== 认证凭据（认证所需的数据） ========================
+// ====================== 身份核验证明（请求级输入） ========================
 
-// PhoneOTPProofSpec 手机号验证码认证凭据规格
+// PhoneOTPProofSpec 手机号验证码身份核验证明规格
 type PhoneOTPProofSpec struct {
 	PhoneE164 string // 手机号
 	OTP       string // 验证码
 }
 
-// PhoneOTPProof 认证凭据（手机号+验证码）
+// PhoneOTPProof 身份核验证明（手机号+验证码）
 type PhoneOTPProof struct {
 	PhoneE164 string // 手机号
 	OTP       string // 验证码
@@ -28,12 +28,12 @@ type PhoneOTPProof struct {
 // 确保 PhoneOTPProof 实现了 IdentityProof 接口
 var _ IdentityProof = (*PhoneOTPProof)(nil)
 
-// CredentialKind 返回认证凭据类型
+// CredentialKind 返回身份核验证明类型
 func (c *PhoneOTPProof) CredentialKind() CredentialKind {
 	return CredentialKindPhoneOTP
 }
 
-// NewPhoneOTPProof 构造手机号验证码认证凭据
+// NewPhoneOTPProof 构造手机号验证码身份核验证明
 func NewPhoneOTPProof(spec PhoneOTPProofSpec) (IdentityProof, error) {
 	if spec.PhoneE164 == "" {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "phone number is required for phone otp authentication")
@@ -83,7 +83,7 @@ func (p *PhoneOTPAuthStrategy) Kind() CredentialKind {
 // 3. 检查 LoginIdentity 状态
 // 4. 返回身份核验决策
 func (p *PhoneOTPAuthStrategy) Authenticate(ctx context.Context, credential IdentityProof) (AuthDecision, error) {
-	// 断言认证凭据类型
+	// 断言身份核验证明类型
 	otpCredential, ok := credential.(*PhoneOTPProof)
 	if !ok {
 		return AuthDecision{}, fmt.Errorf("phone otp strategy expects *PhoneOTPProof, got %T", credential)
@@ -129,11 +129,8 @@ func (p *PhoneOTPAuthStrategy) Authenticate(ctx context.Context, credential Iden
 
 	// 构造身份核验成功决策
 	return p.buildPhoneOTPSuccessDecision(
-		ctx,
-		otpCredential,
 		lookup.LoginIdentityID,
 		lookup.UserID,
-		meta.ZeroID,
 	), nil
 }
 
@@ -144,11 +141,8 @@ func (p *PhoneOTPAuthStrategy) verifyLoginOTP(ctx context.Context, credential *P
 
 // buildPhoneOTPSuccessDecision 身份核验成功，构造Principal
 func (p *PhoneOTPAuthStrategy) buildPhoneOTPSuccessDecision(
-	ctx context.Context,
-	credential *PhoneOTPProof,
 	loginIdentityID meta.ID,
 	userID meta.ID,
-	credentialID meta.ID,
 ) AuthDecision {
 	principal := &Principal{
 		LoginIdentityID: loginIdentityID,

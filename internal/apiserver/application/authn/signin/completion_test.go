@@ -32,7 +32,7 @@ func TestSignInCompletionRequiresAdmissionBeforeCreatingAuthenticationState(t *t
 		AdmissionPolicy: policy, SessionCreator: creator, SessionRevoker: &recordingSessionRevoker{}, TokenSetMinter: minter, RefreshTokenSaver: saver,
 	})
 
-	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.CreationContext{})
+	result, err := establisher.completeLogin(context.Background(), principal, sessiondomain.CreationContext{})
 
 	require.Nil(t, result)
 	require.Equal(t, code.ErrUserBlocked, perrors.ParseCoder(err).Code())
@@ -51,7 +51,7 @@ func TestSignInCompletionDoesNotCreateAuthenticationStateWhenAdmissionCannotBeEv
 		SessionCreator:  creator,
 	})
 
-	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.CreationContext{})
+	result, err := establisher.completeLogin(context.Background(), principal, sessiondomain.CreationContext{})
 
 	require.Nil(t, result)
 	var evaluation *admissiondomain.EvaluationError
@@ -80,7 +80,7 @@ func TestSignInCompletionCreatesResultAndPersistsInitialRefreshToken(t *testing.
 	})
 
 	tokenContext := sessiondomain.TokenContext{TenantDomain: "fangcun", OrgID: meta.FromUint64(42)}
-	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.CreationContext{TokenContext: tokenContext})
+	result, err := establisher.completeLogin(context.Background(), principal, sessiondomain.CreationContext{TokenContext: tokenContext})
 
 	require.NoError(t, err)
 	require.Equal(t, tokenContext, creator.tokenContext)
@@ -194,7 +194,7 @@ func TestSignInCompletionCompensatesFailedEstablishmentEvenAfterRequestCancellat
 				})
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
-				result, err := establisher.completeAuthentication(ctx, principal, sessiondomain.CreationContext{})
+				result, err := establisher.completeLogin(ctx, principal, sessiondomain.CreationContext{})
 				require.Nil(t, result)
 				require.Error(t, err)
 				if stage != "incomplete" {
@@ -218,7 +218,7 @@ func TestSignInCompletionRequiresCompensationBeforeCreatingSession(t *testing.T)
 		AdmissionPolicy: admissionPolicyStub{decision: admissiondomain.Admit(admissiondomain.Subject{})},
 		SessionCreator:  creator, TokenSetMinter: &recordingTokenSetMinter{}, RefreshTokenSaver: &recordingRefreshTokenSaver{},
 	})
-	_, err := establisher.completeAuthentication(context.Background(), testPrincipal(), sessiondomain.CreationContext{})
+	_, err := establisher.completeLogin(context.Background(), testPrincipal(), sessiondomain.CreationContext{})
 	require.Error(t, err)
 	require.False(t, creator.called)
 }
@@ -235,7 +235,7 @@ func TestSignInCompletionRejectsMismatchedSessionBeforeMintingAndCompensates(t *
 		SessionCreator:  &recordingSessionCreator{session: sess}, SessionRevoker: revoker,
 		TokenSetMinter: minter, RefreshTokenSaver: saver,
 	})
-	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.CreationContext{})
+	result, err := establisher.completeLogin(context.Background(), principal, sessiondomain.CreationContext{})
 	require.Error(t, err)
 	require.Nil(t, result)
 	require.False(t, minter.called)
@@ -257,4 +257,20 @@ func newCompletionForTest(d completionTestDependencies) *SignIn {
 		issuer = tokenapp.NewInitialTokenIssuer(d.TokenSetMinter, d.RefreshTokenSaver)
 	}
 	return New(Dependencies{AdmissionPolicy: d.AdmissionPolicy, SessionCreator: d.SessionCreator, SessionRevoker: d.SessionRevoker, TokenIssuer: issuer})
+}
+
+func TestCompleteLoginCompensatesRequestedTenantMismatch(t *testing.T) {
+	principal := testPrincipal()
+	sess := testSession(principal)
+	revoker := &recordingSessionRevoker{}
+	minter := &recordingTokenSetMinter{}
+	establisher := newCompletionForTest(completionTestDependencies{
+		AdmissionPolicy: admissionPolicyStub{decision: admissiondomain.Admit(admissiondomain.Subject{UserID: principal.UserID, LoginIdentityID: principal.LoginIdentityID})}, SessionCreator: &recordingSessionCreator{session: sess}, SessionRevoker: revoker,
+		TokenSetMinter: minter, RefreshTokenSaver: &recordingRefreshTokenSaver{},
+	})
+	result, err := establisher.completeLogin(context.Background(), principal, sessiondomain.CreationContext{RequestedTenantID: meta.FromUint64(42)})
+	require.Error(t, err)
+	require.Nil(t, result)
+	require.Equal(t, sess.SessionID, revoker.sessionID)
+	require.False(t, minter.called)
 }

@@ -296,8 +296,8 @@ func authnLinkingProviderKey(provider loginidentity.Provider, realm, identifier 
 type authnInitialTokenIssuerStub struct{}
 
 func (s *authnInitialTokenIssuerStub) IssueInitialTokens(_ context.Context, principal *sessiondomain.Session) (*tokenApp.TokenPair, error) {
-	access := tokenApp.NewAccessToken("access-id", "access-token", "session-id", principal.UserID, principal.LoginIdentityID, meta.FromUint64(3), time.Now(), time.Now().Add(time.Minute))
-	refresh := tokenApp.NewRefreshToken("refresh-id", "refresh-token", "session-id", principal.UserID, principal.LoginIdentityID, meta.FromUint64(3), time.Now(), time.Now().Add(time.Hour))
+	access := tokenApp.NewAccessToken("access-id", "access-token", "session-id", principal.UserID, principal.LoginIdentityID, principal.TenantID, time.Now(), time.Now().Add(time.Minute))
+	refresh := tokenApp.NewRefreshToken("refresh-id", "refresh-token", "session-id", principal.UserID, principal.LoginIdentityID, principal.TenantID, time.Now(), time.Now().Add(time.Hour))
 	return tokenApp.NewTokenPair(access, refresh), nil
 }
 

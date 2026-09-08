@@ -64,6 +64,7 @@ func TestCreatorCreateCapsInitialExpiryBySessionMaxTTL(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, session)
 	require.Same(t, session, store.session)
+	require.Equal(t, meta.FromUint64(3), session.TenantID)
 	require.WithinDuration(t, now.Add(24*time.Hour), session.ExpiresAt, time.Second)
 }
 

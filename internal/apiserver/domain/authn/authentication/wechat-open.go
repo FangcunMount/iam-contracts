@@ -11,14 +11,15 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
-// WechatOpenProofSpec 微信开放平台认证凭据规范
+// WechatOpenProofSpec 微信开放平台身份核验证明规格
 type WechatOpenProofSpec struct {
 	AppID   string
 	OpenID  string
 	UnionID string
 }
 
-// WechatOpenProof 微信开放平台认证凭据
+// WechatOpenProof 微信开放平台身份核验证明
+// 此输入仅由已完成 IDP 核验的外部身份映射构造；构造函数不执行外部验真。
 type WechatOpenProof struct {
 	AppID   string
 	OpenID  string
@@ -28,12 +29,12 @@ type WechatOpenProof struct {
 // 确保 WechatOpenProof 实现了 IdentityProof 接口
 var _ IdentityProof = (*WechatOpenProof)(nil)
 
-// CredentialKind 返回认证凭据类型
+// CredentialKind 返回身份核验证明类型
 func (c *WechatOpenProof) CredentialKind() CredentialKind {
 	return CredentialKindWechatOpen
 }
 
-// NewWechatOpenProof 构造微信开放平台认证凭据
+// NewWechatOpenProof 构造微信开放平台身份核验证明
 func NewWechatOpenProof(spec WechatOpenProofSpec) (IdentityProof, error) {
 	if spec.AppID == "" {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "wechat appid is required for wechat authentication")
@@ -80,7 +81,7 @@ func (o *OAuthWechatOpenAuthStrategy) Kind() CredentialKind {
 // 2. 检查 LoginIdentity 状态
 // 3. 返回身份核验决策
 func (o *OAuthWechatOpenAuthStrategy) Authenticate(ctx context.Context, credential IdentityProof) (AuthDecision, error) {
-	// 断言认证凭据类型
+	// 断言身份核验证明类型
 	wechatCred, ok := credential.(*WechatOpenProof)
 	if !ok {
 		return AuthDecision{}, fmt.Errorf("wechat open strategy expects *WechatOpenProof, got %T", credential)
@@ -111,7 +112,7 @@ func (o *OAuthWechatOpenAuthStrategy) Authenticate(ctx context.Context, credenti
 	}
 
 	// 构造身份核验成功决策
-	return o.buildWechatOpenSuccessDecision(ctx, wechatCred, identity, lookup.LoginIdentityID, lookup.UserID, meta.ZeroID), nil
+	return o.buildWechatOpenSuccessDecision(wechatCred, lookup.LoginIdentityID, lookup.UserID), nil
 }
 
 // wechatOpenIdentity 微信开放平台身份
@@ -133,7 +134,7 @@ func (o *OAuthWechatOpenAuthStrategy) findWechatOpenIdentity(ctx context.Context
 }
 
 // buildWechatOpenSuccessDecision 身份核验成功，构造Principal
-func (o *OAuthWechatOpenAuthStrategy) buildWechatOpenSuccessDecision(ctx context.Context, credential *WechatOpenProof, identity wechatOpenIdentity, loginIdentityID meta.ID, userID meta.ID, credentialID meta.ID) AuthDecision {
+func (o *OAuthWechatOpenAuthStrategy) buildWechatOpenSuccessDecision(credential *WechatOpenProof, loginIdentityID meta.ID, userID meta.ID) AuthDecision {
 	// 构造Principal
 	principal := &Principal{
 		LoginIdentityID: loginIdentityID,

@@ -21,12 +21,12 @@ func TestCodecAccessTokenUsesRegisteredAudienceAndParseRoundTrips(t *testing.T) 
 	t.Parallel()
 
 	generator, signingKey := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api", "collection-api"})
-	subject := &tokendomain.AccessTokenIssueContext{
+	subject := &tokendomain.AccessTokenClaims{
 		LoginIdentityID: meta.MustFromUint64(1001),
 		UserID:          meta.MustFromUint64(1002),
 		SessionID:       "sid-1002",
 		TenantDomain:    "fangcun",
-		OrgID:           "1",
+		OrgID:           meta.FromUint64(1),
 		AMR:             []string{"pwd"},
 		Attributes:      map[string]string{"display_name": "seed-user"},
 	}
@@ -56,7 +56,7 @@ func TestCodecTokenUsesJWSCompactHeaderPayloadSignatureContract(t *testing.T) {
 	t.Parallel()
 
 	generator, _ := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
-	token, err := issueTestAccessToken(generator, context.Background(), &tokendomain.AccessTokenIssueContext{
+	token, err := issueTestAccessToken(generator, context.Background(), &tokendomain.AccessTokenClaims{
 		LoginIdentityID: meta.MustFromUint64(1001),
 		UserID:          meta.MustFromUint64(1002),
 		SessionID:       "sid-1002",
@@ -94,7 +94,7 @@ func TestCodecLegacyNumericTenantIDDoesNotInferOrg(t *testing.T) {
 	t.Parallel()
 
 	generator, _ := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
-	token, err := issueTestAccessToken(generator, context.Background(), &tokendomain.AccessTokenIssueContext{
+	token, err := issueTestAccessToken(generator, context.Background(), &tokendomain.AccessTokenClaims{
 		UserID:          meta.MustFromUint64(1002),
 		LoginIdentityID: meta.MustFromUint64(1001),
 		SessionID:       "sid-1002",
@@ -193,7 +193,7 @@ func TestCodecFailsClosedWhenActiveKeyAlgorithmIsNotRS256(t *testing.T) {
 	generator, _ := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
 	generator.keySource.(*signingKeySourceStub).algorithm = "RS384"
 
-	token, err := issueTestAccessToken(generator, context.Background(), &tokendomain.AccessTokenIssueContext{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), SessionID: "sid"}, time.Minute)
+	token, err := issueTestAccessToken(generator, context.Background(), &tokendomain.AccessTokenClaims{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), SessionID: "sid"}, time.Minute)
 	require.Error(t, err)
 	require.Nil(t, token)
 }
@@ -202,7 +202,7 @@ func TestCodecOmitsSensitiveAttributesAndAuthMethodRealm(t *testing.T) {
 	t.Parallel()
 
 	generator, signingKey := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
-	token, err := issueTestAccessToken(generator, context.Background(), &tokendomain.AccessTokenIssueContext{
+	token, err := issueTestAccessToken(generator, context.Background(), &tokendomain.AccessTokenClaims{
 		UserID:          meta.MustFromUint64(1002),
 		LoginIdentityID: meta.MustFromUint64(1001),
 		SessionID:       "sid-1002",
@@ -341,9 +341,9 @@ type testCodec struct {
 	audience []string
 }
 
-func issueTestAccessToken(g *testCodec, ctx context.Context, subject *tokendomain.AccessTokenIssueContext, ttl time.Duration) (*tokendomain.AccessToken, error) {
+func issueTestAccessToken(g *testCodec, ctx context.Context, subject *tokendomain.AccessTokenClaims, ttl time.Duration) (*tokendomain.AccessToken, error) {
 	now := time.Now().UTC().Truncate(time.Second)
-	orgID := parseStringID(subject.OrgID)
+	orgID := subject.OrgID
 	claims, err := tokendomain.NewAccessTokenClaims(tokendomain.AccessTokenClaims{
 		TokenID: "test-token", Subject: subject.UserID.String(), UserID: subject.UserID,
 		LoginIdentityID: subject.LoginIdentityID, SessionID: subject.SessionID, TenantDomain: subject.TenantDomain,
@@ -357,5 +357,5 @@ func issueTestAccessToken(g *testCodec, ctx context.Context, subject *tokendomai
 	if err != nil {
 		return nil, err
 	}
-	return tokendomain.NewAccessToken(claims.TokenID, value, subject.SessionID, subject.UserID, subject.LoginIdentityID, subject.TenantID, claims.IssuedAt, claims.ExpiresAt), nil
+	return tokendomain.NewAccessToken(claims.TokenID, value, subject.SessionID, subject.UserID, subject.LoginIdentityID, meta.ZeroID, claims.IssuedAt, claims.ExpiresAt), nil
 }

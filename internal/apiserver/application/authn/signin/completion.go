@@ -14,8 +14,8 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
-// completeAuthentication 编排登录准入、会话建立和令牌颁发，并负责失败补偿。
-func (s *SignIn) completeAuthentication(ctx context.Context, principal *authentication.Principal, creationContext sessiondomain.CreationContext) (*Result, error) {
+// completeLogin 编排登录准入、会话建立和令牌颁发，并负责失败补偿。
+func (s *SignIn) completeLogin(ctx context.Context, principal *authentication.Principal, creationContext sessiondomain.CreationContext) (*Result, error) {
 	// 参数校验
 	if principal == nil {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "principal is required")
@@ -56,6 +56,12 @@ func (s *SignIn) completeAuthentication(ctx context.Context, principal *authenti
 		return nil, perrors.WithCode(code.ErrInternalServerError, "session creator returned no session")
 	}
 
+	// 请求租户与核验主体分开校验，保持历史非零租户一致性约束。
+	if !creationContext.RequestedTenantID.IsZero() && !sess.TenantID.IsZero() && creationContext.RequestedTenantID != sess.TenantID {
+		cause := perrors.WithCode(code.ErrInvalidArgument, "requested tenant does not match session")
+		return nil, s.revokeFailedEstablishment(ctx, sess.SessionID, principal.UserID.String(), cause)
+	}
+
 	if err := validatePrincipalSessionAlignment(principal, sess); err != nil {
 		return nil, s.revokeFailedEstablishment(ctx, sess.SessionID, principal.UserID.String(), err)
 	}
@@ -70,7 +76,7 @@ func (s *SignIn) completeAuthentication(ctx context.Context, principal *authenti
 		return nil, s.revokeFailedEstablishment(ctx, sess.SessionID, principal.UserID.String(), cause)
 	}
 	logger.L(ctx).Debugw("登录成功", "action", logger.ActionLogin, "user_id", principal.UserID.String(), "session_id", sess.SessionID, "result", "success")
-	return ResultFromSession(principal, sess, tokenPair), nil
+	return resultFromSession(principal, sess, tokenPair), nil
 }
 
 // 客户端取消请求不能取消补偿；补偿有独立的短超时，并保留两阶段错误供排障。

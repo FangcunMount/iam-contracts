@@ -6,5 +6,4 @@ type Store = tokendomain.Store
 type AccessTokenEncoder = tokendomain.AccessTokenEncoder
 type AccessTokenSignatureVerifier = tokendomain.AccessTokenSignatureVerifier
 type IssuanceConfig = tokendomain.IssuanceConfig
-type AccessTokenIssueContext = tokendomain.AccessTokenIssueContext
 type LegacyAuthenticationContextSnapshotDecoder = tokendomain.LegacyAuthenticationContextSnapshotDecoder

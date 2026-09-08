@@ -24,7 +24,7 @@ type LoginIdentityRepository interface {
 	IsLoginIdentityActive(ctx context.Context, loginIdentityID meta.ID) (bool, error)
 }
 
-// LoginIdentityCredentialRepository 凭据仓储（查询认证凭据）
+// LoginIdentityCredentialRepository 凭据仓储（查询身份核验证明）
 // 职责：提供 LoginIdentity 绑定的长期认证材料查询能力
 type LoginIdentityCredentialRepository interface {
 	// -- 查询密码凭据 ——

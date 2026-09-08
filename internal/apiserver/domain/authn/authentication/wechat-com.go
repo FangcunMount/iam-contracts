@@ -11,16 +11,17 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
-// ====================== 认证凭据（认证所需的数据） ========================
+// ====================== 身份核验证明（请求级输入） ========================
 
-// WecomProofSpec 企业微信认证凭据规范，用于构造 WecomProof 实例
+// WecomProofSpec 企业微信身份核验证明规格，用于构造 WecomProof 实例
 type WecomProofSpec struct {
 	CorpID         string
 	ProviderUserID string
 	OpenUserID     string
 }
 
-// WecomProof 企业微信认证凭据
+// WecomProof 企业微信身份核验证明
+// 此输入仅由已完成 IDP 核验的外部身份映射构造；构造函数不执行外部验真。
 type WecomProof struct {
 	CorpID         string
 	ProviderUserID string
@@ -30,7 +31,7 @@ type WecomProof struct {
 // 确保 WecomProof 实现了 IdentityProof 接口
 var _ IdentityProof = (*WecomProof)(nil)
 
-// CredentialKind 返回认证凭据类型
+// CredentialKind 返回身份核验证明类型
 func (c *WecomProof) CredentialKind() CredentialKind {
 	return CredentialKindWecom
 }
@@ -81,7 +82,7 @@ func (o *OAuthWeChatComAuthStrategy) Kind() CredentialKind {
 // 2. 检查 LoginIdentity 状态
 // 3. 返回身份核验决策
 func (o *OAuthWeChatComAuthStrategy) Authenticate(ctx context.Context, credential IdentityProof) (AuthDecision, error) {
-	// 断言认证凭据类型
+	// 断言身份核验证明类型
 	wecomCred, ok := credential.(*WecomProof)
 	if !ok {
 		return AuthDecision{}, fmt.Errorf("wecom strategy expects *WecomProof, got %T", credential)
@@ -112,7 +113,7 @@ func (o *OAuthWeChatComAuthStrategy) Authenticate(ctx context.Context, credentia
 	}
 
 	// 构造身份核验成功决策
-	return o.buildWecomSuccessDecision(ctx, wecomCred, identity, lookup.LoginIdentityID, lookup.UserID, meta.ZeroID), nil
+	return o.buildWecomSuccessDecision(wecomCred, lookup.LoginIdentityID, lookup.UserID), nil
 }
 
 // wecomIdentity 企业微信身份
@@ -141,12 +142,9 @@ func (o *OAuthWeChatComAuthStrategy) findWecomIdentity(
 
 // buildWecomSuccessDecision 身份核验成功，构造Principal
 func (o *OAuthWeChatComAuthStrategy) buildWecomSuccessDecision(
-	ctx context.Context,
 	credential *WecomProof,
-	identity wecomIdentity,
 	loginIdentityID meta.ID,
 	userID meta.ID,
-	credentialID meta.ID,
 ) AuthDecision {
 	principal := &Principal{
 		LoginIdentityID: loginIdentityID,

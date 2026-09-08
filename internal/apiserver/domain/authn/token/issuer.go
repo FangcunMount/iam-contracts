@@ -57,16 +57,15 @@ func (s *tokenSetMinter) MintTokenSet(ctx context.Context, sess *sessiondomain.S
 		audienceFailures.WithLabelValues("configuration_error").Inc()
 		return nil, perrors.WrapC(err, code.ErrInternalServerError, "invalid issuance config")
 	}
-	subject := accessTokenSubjectFromSession(sess)
 	now := s.now().UTC()
 	issuedAt := now.Truncate(time.Second)
-	claims, err := NewAccessTokenClaims(AccessTokenClaims{
-		TokenID: uuid.NewString(), Subject: subject.UserID.String(), SessionID: subject.SessionID,
-		UserID: subject.UserID, LoginIdentityID: subject.LoginIdentityID, OrgID: sess.TokenContext.OrgID,
-		TenantDomain: subject.TenantDomain, AMR: subject.AMR, Attributes: subject.Attributes,
-		AuthenticatedAt: subject.AuthenticatedAt, Issuer: s.config.Issuer, Audience: s.config.Audience,
-		IssuedAt: issuedAt, NotBefore: issuedAt, ExpiresAt: now.Add(s.config.AccessTTL).Truncate(time.Second),
-	})
+	draft := accessTokenClaimsFromSession(sess)
+	draft.TokenID = uuid.NewString()
+	draft.Issuer = s.config.Issuer
+	draft.Audience = s.config.Audience
+	draft.IssuedAt, draft.NotBefore = issuedAt, issuedAt
+	draft.ExpiresAt = now.Add(s.config.AccessTTL).Truncate(time.Second)
+	claims, err := NewAccessTokenClaims(draft)
 	if err != nil {
 		return nil, perrors.WrapC(err, code.ErrInternalServerError, "invalid access claims")
 	}
@@ -77,7 +76,7 @@ func (s *tokenSetMinter) MintTokenSet(ctx context.Context, sess *sessiondomain.S
 	accessToken := NewAccessToken(claims.TokenID, value, sess.SessionID, sess.UserID, sess.LoginIdentityID, sess.TenantID, claims.IssuedAt, claims.ExpiresAt)
 
 	// 颁发刷新令牌
-	refreshToken, err := s.issueRefreshToken(subject, sess, now)
+	refreshToken, err := s.issueRefreshToken(sess, now)
 	if err != nil {
 		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to generate refresh token")
 	}
@@ -87,7 +86,7 @@ func (s *tokenSetMinter) MintTokenSet(ctx context.Context, sess *sessiondomain.S
 }
 
 // issueRefreshToken 颁发刷新令牌。
-func (s *tokenSetMinter) issueRefreshToken(subject *AccessTokenIssueContext, sess *sessiondomain.Session, now time.Time) (*RefreshToken, error) {
+func (s *tokenSetMinter) issueRefreshToken(sess *sessiondomain.Session, now time.Time) (*RefreshToken, error) {
 	// 计算刷新令牌过期时间
 	refreshExpiresAt, err := s.refreshExpirer.NextRefreshExpiresAt(now, sess)
 	if err != nil {
@@ -95,8 +94,8 @@ func (s *tokenSetMinter) issueRefreshToken(subject *AccessTokenIssueContext, ses
 	}
 	// 颁发刷新令牌
 	token := NewRefreshToken(
-		uuid.NewString(), uuid.NewString(), sess.SessionID, subject.UserID, subject.LoginIdentityID,
-		subject.TenantID, now, refreshExpiresAt,
+		uuid.NewString(), uuid.NewString(), sess.SessionID, sess.UserID, sess.LoginIdentityID,
+		sess.TenantID, now, refreshExpiresAt,
 	)
 	// 返回刷新令牌
 	return token, nil

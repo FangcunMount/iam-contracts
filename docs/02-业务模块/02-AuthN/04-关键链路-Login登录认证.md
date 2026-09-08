@@ -29,7 +29,7 @@ sequenceDiagram
     S->>M: Select(request)
     M-->>S: method and typed payload
     S->>F: Build(selection)
-    F-->>S: AuthCredential or stage error
+    F-->>S: IdentityProof or stage error
     break proof build failed
         S-->>T: stage error
     end
@@ -71,7 +71,7 @@ sequenceDiagram
 | 阶段 | 当前责任 | 不能推导出的保证 |
 | --- | --- | --- |
 | Method Registry | 选择公开允许的方法并校验 payload 形状 | 方法被识别不代表证明已验证 |
-| Proof Factory | 构造 AuthCredential；外部登录时解析 code/state | 手机号 builder 不消费 OTP |
+| Proof Factory | 构造 IdentityProof；外部登录时解析 code/state | 手机号 builder 不消费 OTP |
 | Authenticator / Strategy | 检查证明和 LoginIdentity，生成决策 | 不读取完整 User 写模型，不承担资源授权 |
 | CredentialRecorder | 将 CredentialEffect 映射为仓储状态迁移 | 存储失败不能继续颁发 |
 | SignIn | Admission、Session、mint、保存初始 RefreshToken | 跨步骤补偿不等于全局事务 |
@@ -82,8 +82,8 @@ SignIn 在应用层分别调用 AdmissionPolicy、SessionCreator 和 InitialToke
 
 | 路径 | 应用 proof 阶段 | 领域策略阶段 |
 | --- | --- | --- |
-| 用户名密码 | 构造 PasswordCredential | 查 LoginIdentity 和 Credential，检查状态/锁定，再验证哈希 |
-| 手机 OTP | 构造 PhoneOTPCredential，保留手机号和 OTP 输入 | 调用 OTP 端口消费证明，再查手机号 LoginIdentity |
+| 用户名密码 | 构造 PasswordProof | 查 LoginIdentity 和 Credential，检查状态/锁定，再验证哈希 |
+| 手机 OTP | 构造 PhoneOTPProof，保留手机号和 OTP 输入 | 调用 OTP 端口消费证明，再查手机号 LoginIdentity |
 | 微信/企微等外部证明 | IDP Resolver 交换 code；扫码路径验证消费 OAuth state | 用已解析的外部标识定位 LoginIdentity，检查状态并生成 Principal |
 
 外部 provider 的 openid/unionid/userid 不等于 IAM UserID，IDP AppToken 不等于 IAM AccessToken。认证输入、长期 Credential、短期 Challenge 和运行时 Principal 的生命周期不能合并。
@@ -158,7 +158,7 @@ sequenceDiagram
 
 ## 4. Principal、认证时间与 Admission
 
-Principal 是运行时结果，持有 UserID、LoginIdentityID、TenantID 和 `AuthenticationContext{Method, Realm, AMR, AuthenticatedAt}`。不包含 SessionID 或 TokenContext。独立签发上下文由登录应用准备并交给 Session 保存。它不携带 User/Profile 写模型、密码材料、provider token 或完整权限事实。
+Principal 是运行时结果，持有 UserID、LoginIdentityID 和 `AuthenticationContext{Method, Realm, AMR, AuthenticatedAt}`。不包含 SessionID 或 TokenContext。独立签发上下文由登录应用准备并交给 Session 保存。它不携带 User/Profile 写模型、密码材料、provider token 或完整权限事实。
 
 `auth_time` 表示原始认证发生时刻，不是请求到达时间或 token 刷新时间。Session 保存后续续期的权威上下文，访问令牌使用类型化投影，不任意透传 Principal.Claims。新 JWT 不写 auth_method/realm；JOSE 字段、公开 claims 和历史兼容见 [Session、Token 与 JWKS](03-Session-Token与JWKS.md)。
 

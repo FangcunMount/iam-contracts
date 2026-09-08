@@ -54,9 +54,6 @@ type AccessToken struct {
 	TokenMetadata
 	Value string // 已颁发的凭证值，不属于元数据。
 
-	// —— 主体信息 —— //
-	Subject string // 令牌主题
-
 	// —— 会话信息 —— //
 	SessionID       string  // 会话ID
 	UserID          meta.ID // 用户ID
@@ -65,13 +62,16 @@ type AccessToken struct {
 
 }
 
+// Subject 从用户身份派生，避免保存第二套可变主体事实。
+func (t *AccessToken) Subject() string { return t.UserID.String() }
+
 func (*AccessToken) Kind() TokenType { return TokenTypeAccess }
 
 // NewAccessToken 创建访问令牌。
 func NewAccessToken(id, value, sessionID string, userID, loginIdentityID, tenantID meta.ID, issuedAt, expiresAt time.Time) *AccessToken {
 	return &AccessToken{
 		TokenMetadata: TokenMetadata{ID: id, IssuedAt: issuedAt, ExpiresAt: expiresAt},
-		Value:         value, Subject: userID.String(), SessionID: sessionID,
+		Value:         value, SessionID: sessionID,
 		UserID: userID, LoginIdentityID: loginIdentityID, TenantID: tenantID,
 	}
 }
@@ -173,7 +173,9 @@ type AccessTokenClaims struct {
 
 // NewAccessTokenClaims 仅规范化并校验声明不变量，不执行验签。
 func NewAccessTokenClaims(claims AccessTokenClaims) (*AccessTokenClaims, error) {
-	claims.TokenType = TokenTypeAccess
+	if claims.TokenType == "" {
+		claims.TokenType = TokenTypeAccess
+	}
 	claims.normalize()
 	if err := claims.Validate(); err != nil {
 		return nil, err

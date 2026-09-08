@@ -45,7 +45,7 @@ func (a *Authenticator) Authenticate(ctx context.Context, proof IdentityProof) (
 		return AuthDecision{}, perrors.WithCode(code.ErrInvalidArgument, "authentication credential is required")
 	}
 
-	// 获取认证凭据类型
+	// 获取身份核验证明类型
 	credentialKind := proof.CredentialKind()
 	if credentialKind == "" {
 		return AuthDecision{}, perrors.WithCode(code.ErrInvalidArgument, "unsupported authentication credential kind: %s", credentialKind)

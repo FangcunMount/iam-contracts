@@ -10,7 +10,6 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
 	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/FangcunMount/iam/v4/pkg/tenant"
 )
 
@@ -64,7 +63,11 @@ func (s *SignIn) Execute(ctx context.Context, cmd method.LoginRequest) (*Result,
 	}
 
 	// 身份核验成功后继续登录准入、会话建立与令牌颁发；全部完成才算登录成功。
-	return s.completeLogin(ctx, decision.Principal, cmd.TenantID)
+	result, err := s.completeLogin(ctx, decision.Principal, sessiondomain.CreationContext{RequestedTenantID: cmd.TenantID, TokenContext: sessiondomain.TokenContext{TenantDomain: tenant.DefaultID}})
+	if err != nil {
+		return nil, wrapStageError(err, code.ErrAuthenticationFailed, "failed to issue authentication grant")
+	}
+	return result, nil
 }
 
 // ensureReady 确保依赖已准备好
@@ -117,21 +120,6 @@ func (s *SignIn) authenticate(ctx context.Context, credential authentication.Ide
 
 	// 返回身份核验决策
 	return decision, nil
-}
-
-// issueTokenPair 签发 TokenPair
-// 参数：ctx 上下文, p 认证主体
-// 返回：登录结果, 错误
-// 职责：签发 TokenPair，返回登录结果
-func (s *SignIn) completeLogin(ctx context.Context, p *authentication.Principal, requestedTenantID meta.ID) (*Result, error) {
-	// 签发 TokenPair
-	result, err := s.completeAuthentication(ctx, p, sessiondomain.CreationContext{RequestedTenantID: requestedTenantID, TokenContext: sessiondomain.TokenContext{TenantDomain: tenant.DefaultID}})
-	if err != nil {
-		return nil, wrapStageError(err, code.ErrAuthenticationFailed, "failed to issue authentication grant")
-	}
-
-	// 由认证主体构造登录结果
-	return result, nil
 }
 
 // recordCredential 记录认证结果

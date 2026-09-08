@@ -76,7 +76,7 @@ func tokenFromAccess(token *tokendomain.AccessToken) *IssuedTokenDTO {
 		return nil
 	}
 	return &IssuedTokenDTO{
-		ID: token.ID, Type: TokenTypeAccess, Value: token.Value, Subject: token.Subject,
+		ID: token.ID, Type: TokenTypeAccess, Value: token.Value, Subject: token.Subject(),
 		SessionID: token.SessionID, UserID: token.UserID, LoginIdentityID: token.LoginIdentityID,
 		TenantID: token.TenantID,
 		IssuedAt: token.IssuedAt, ExpiresAt: token.ExpiresAt,
