@@ -5,19 +5,20 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
+
 	"github.com/FangcunMount/component-base/pkg/grpc/interceptors"
-	authzv3 "github.com/FangcunMount/iam/v4/api/grpc/iam/authz/v3"
-	assignmentApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignment"
-	assignmentadmission "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignmentadmission"
-	authzapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	objectattributeadmission "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/objectattributeadmission"
-	authorizationdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	iamgrpc "github.com/FangcunMount/iam/v4/internal/pkg/grpc"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	authzv4 "github.com/FangcunMount/iam/v5/api/grpc/iam/authz/v4"
+	assignmentApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
+	assignmentadmission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
+	authzapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	objectattributeadmission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/objectattributeadmission"
+	authorizationdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	iamgrpc "github.com/FangcunMount/iam/v5/internal/pkg/grpc"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,7 +29,7 @@ type authorizationChecker interface {
 }
 
 type authorizationSnapshotReader interface {
-	Read(context.Context, subject.Ref, string, string) (authzapp.SubjectSnapshot, error)
+	Read(context.Context, subject.Ref, string) (authzapp.SubjectSnapshot, error)
 }
 
 type Service struct{ srv authorizationServer }
@@ -51,11 +52,11 @@ func (s *Service) Register(server *grpc.Server) {
 	if s == nil || server == nil {
 		return
 	}
-	authzv3.RegisterAuthorizationServiceServer(server, &s.srv)
+	authzv4.RegisterAuthorizationServiceServer(server, &s.srv)
 }
 
 type authorizationServer struct {
-	authzv3.UnimplementedAuthorizationServiceServer
+	authzv4.UnimplementedAuthorizationServiceServer
 	checker                  authorizationChecker
 	snapshotReader           authorizationSnapshotReader
 	assignments              assignmentApp.NamedCommands
@@ -63,7 +64,7 @@ type authorizationServer struct {
 	objectAttributeAdmission objectattributeadmission.Policy
 }
 
-func (s *authorizationServer) Check(ctx context.Context, req *authzv3.CheckRequest) (*authzv3.CheckResponse, error) {
+func (s *authorizationServer) Check(ctx context.Context, req *authzv4.CheckRequest) (*authzv4.CheckResponse, error) {
 	callerService, err := requireServiceIdentity(ctx)
 	if err != nil {
 		return nil, err
@@ -71,7 +72,7 @@ func (s *authorizationServer) Check(ctx context.Context, req *authzv3.CheckReque
 	if s.checker == nil {
 		return nil, status.Error(codes.Unavailable, "authorization runtime is unavailable")
 	}
-	if req == nil || strings.TrimSpace(req.Subject) == "" || strings.TrimSpace(req.Domain) == "" || strings.TrimSpace(req.Resource) == "" || strings.TrimSpace(req.Action) == "" {
+	if req == nil || strings.TrimSpace(req.Subject) == "" || strings.TrimSpace(req.Resource) == "" || strings.TrimSpace(req.Action) == "" {
 		return nil, status.Error(codes.InvalidArgument, "subject, domain, resource, and action are required")
 	}
 	sub, err := parseSubjectKey(req.Subject)
@@ -82,7 +83,7 @@ func (s *authorizationServer) Check(ctx context.Context, req *authzv3.CheckReque
 	if err != nil {
 		return nil, err
 	}
-	request, err := authorizationdomain.NewRequest(sub, req.Domain, req.Resource, req.Action, object)
+	request, err := authorizationdomain.NewRequest(sub, req.Resource, req.Action, object)
 	if err != nil {
 		return nil, iamgrpc.ToStatusError(err)
 	}
@@ -90,50 +91,50 @@ func (s *authorizationServer) Check(ctx context.Context, req *authzv3.CheckReque
 	if err != nil {
 		return nil, iamgrpc.ToStatusError(err)
 	}
-	return &authzv3.CheckResponse{
+	return &authzv4.CheckResponse{
 		Allowed: decision.Allowed, Reason: toProtoReason(decision.Reason), DenyCode: decision.DenyCode,
 		MatchedGrantId: decision.MatchedGrantID.String(), MatchedRole: decision.MatchedRole,
 		PolicyVersion: decision.PolicyVersion, MissingAttributeKeys: decision.MissingAttributeKeys,
 	}, nil
 }
 
-func (s *authorizationServer) GetAuthorizationSnapshot(ctx context.Context, req *authzv3.GetAuthorizationSnapshotRequest) (*authzv3.GetAuthorizationSnapshotResponse, error) {
+func (s *authorizationServer) GetAuthorizationSnapshot(ctx context.Context, req *authzv4.GetAuthorizationSnapshotRequest) (*authzv4.GetAuthorizationSnapshotResponse, error) {
 	if _, err := requireServiceIdentity(ctx); err != nil {
 		return nil, err
 	}
 	if s.snapshotReader == nil {
 		return nil, status.Error(codes.Unavailable, "authorization snapshot service is unavailable")
 	}
-	if req == nil || strings.TrimSpace(req.Subject) == "" || strings.TrimSpace(req.Domain) == "" || strings.TrimSpace(req.AppName) == "" {
+	if req == nil || strings.TrimSpace(req.Subject) == "" || strings.TrimSpace(req.AppName) == "" {
 		return nil, status.Error(codes.InvalidArgument, "subject, domain, and app_name are required")
 	}
 	sub, err := parseSubjectKey(req.Subject)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	snapshot, err := s.snapshotReader.Read(ctx, sub, req.Domain, req.AppName)
+	snapshot, err := s.snapshotReader.Read(ctx, sub, req.AppName)
 	if err != nil {
 		return nil, iamgrpc.ToStatusError(err)
 	}
-	return &authzv3.GetAuthorizationSnapshotResponse{
+	return &authzv4.GetAuthorizationSnapshotResponse{
 		Roles: snapshot.EffectiveRoles, DirectRoles: snapshot.DirectRoles,
 		Permissions:   toProtoPermissions(snapshot.Permissions),
 		PolicyVersion: snapshot.PolicyVersion,
 	}, nil
 }
 
-func (s *authorizationServer) GrantAssignment(ctx context.Context, req *authzv3.GrantAssignmentRequest) (*authzv3.GrantAssignmentResponse, error) {
+func (s *authorizationServer) GrantAssignment(ctx context.Context, req *authzv4.GrantAssignmentRequest) (*authzv4.GrantAssignmentResponse, error) {
 	if _, err := requireServiceIdentity(ctx); err != nil {
 		return nil, err
 	}
 	if s.assignments == nil {
 		return nil, status.Error(codes.Unavailable, "assignment service is unavailable")
 	}
-	if req == nil || req.Subject == "" || req.Domain == "" || req.RoleName == "" {
+	if req == nil || req.Subject == "" || req.RoleName == "" {
 		return nil, status.Error(codes.InvalidArgument, "subject, domain, and role_name are required")
 	}
 	admissionRequest, err := newAssignmentAdmissionRequest(
-		assignmentadmission.OperationGrant, req.Subject, req.Domain, req.RoleName, req.GrantedBy,
+		assignmentadmission.OperationGrant, req.Subject, req.RoleName, req.GrantedBy,
 	)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -145,29 +146,29 @@ func (s *authorizationServer) GrantAssignment(ctx context.Context, req *authzv3.
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	cmd, err := assignmentApp.NewGrantByRoleNameCommand(sub, req.Domain, req.RoleName, req.GrantedBy)
+	cmd, err := assignmentApp.NewGrantByRoleNameCommand(sub, req.RoleName, req.GrantedBy)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	policyVersion, err := s.assignments.GrantByRoleName(ctx, cmd)
+	policyVersion, err := s.assignments.GrantByRoleName(authenticatedManagementContext(ctx), cmd)
 	if err != nil {
 		return nil, iamgrpc.ToStatusError(err)
 	}
-	return &authzv3.GrantAssignmentResponse{PolicyVersion: policyVersion}, nil
+	return &authzv4.GrantAssignmentResponse{PolicyVersion: policyVersion}, nil
 }
 
-func (s *authorizationServer) RevokeAssignment(ctx context.Context, req *authzv3.RevokeAssignmentRequest) (*authzv3.RevokeAssignmentResponse, error) {
+func (s *authorizationServer) RevokeAssignment(ctx context.Context, req *authzv4.RevokeAssignmentRequest) (*authzv4.RevokeAssignmentResponse, error) {
 	if _, err := requireServiceIdentity(ctx); err != nil {
 		return nil, err
 	}
 	if s.assignments == nil {
 		return nil, status.Error(codes.Unavailable, "assignment service is unavailable")
 	}
-	if req == nil || req.Subject == "" || req.Domain == "" || req.RoleName == "" {
+	if req == nil || req.Subject == "" || req.RoleName == "" {
 		return nil, status.Error(codes.InvalidArgument, "subject, domain, and role_name are required")
 	}
 	admissionRequest, err := newAssignmentAdmissionRequest(
-		assignmentadmission.OperationRevoke, req.Subject, req.Domain, req.RoleName, req.RevokedBy,
+		assignmentadmission.OperationRevoke, req.Subject, req.RoleName, req.RevokedBy,
 	)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -180,25 +181,25 @@ func (s *authorizationServer) RevokeAssignment(ctx context.Context, req *authzv3
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	cmd, err := assignmentApp.NewRevokeByRoleNameCommand(sub, req.Domain, req.RoleName, revokeActor(req.RevokedBy, callerService), req.Reason)
+	cmd, err := assignmentApp.NewRevokeByRoleNameCommand(sub, req.RoleName, revokeActor(req.RevokedBy, callerService), req.Reason)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	policyVersion, err := s.assignments.RevokeByRoleName(ctx, cmd)
+	policyVersion, err := s.assignments.RevokeByRoleName(authenticatedManagementContext(ctx), cmd)
 	if err != nil {
 		return nil, iamgrpc.ToStatusError(err)
 	}
-	return &authzv3.RevokeAssignmentResponse{PolicyVersion: policyVersion}, nil
+	return &authzv4.RevokeAssignmentResponse{PolicyVersion: policyVersion}, nil
 }
 
-func (s *authorizationServer) ReplaceManagedAssignments(ctx context.Context, req *authzv3.ReplaceManagedAssignmentsRequest) (*authzv3.ReplaceManagedAssignmentsResponse, error) {
+func (s *authorizationServer) ReplaceManagedAssignments(ctx context.Context, req *authzv4.ReplaceManagedAssignmentsRequest) (*authzv4.ReplaceManagedAssignmentsResponse, error) {
 	if _, err := requireServiceIdentity(ctx); err != nil {
 		return nil, err
 	}
 	if s.assignments == nil {
 		return nil, status.Error(codes.Unavailable, "assignment service is unavailable")
 	}
-	if req == nil || strings.TrimSpace(req.Subject) == "" || strings.TrimSpace(req.Domain) == "" || strings.TrimSpace(req.ChangedBy) == "" {
+	if req == nil || strings.TrimSpace(req.Subject) == "" || strings.TrimSpace(req.ChangedBy) == "" {
 		return nil, status.Error(codes.InvalidArgument, "subject, domain, and changed_by are required")
 	}
 	replacementRequest, err := replacementAdmissionRequest(req)
@@ -214,21 +215,21 @@ func (s *authorizationServer) ReplaceManagedAssignments(ctx context.Context, req
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 	cmd, err := assignmentApp.NewReplaceManagedAssignmentsCommand(
-		sub, req.Domain, req.RoleNames, managedRoles, req.ChangedBy, req.Reason,
+		sub, req.RoleNames, managedRoles, req.ChangedBy, req.Reason,
 	)
 	if err != nil {
 		return nil, iamgrpc.ToStatusError(err)
 	}
-	result, err := s.assignments.ReplaceManagedAssignments(ctx, cmd)
+	result, err := s.assignments.ReplaceManagedAssignments(authenticatedManagementContext(ctx), cmd)
 	if err != nil {
 		return nil, iamgrpc.ToStatusError(err)
 	}
-	return &authzv3.ReplaceManagedAssignmentsResponse{
+	return &authzv4.ReplaceManagedAssignmentsResponse{
 		DirectRoles: result.DirectRoles, PolicyVersion: result.PolicyVersion, Changed: result.Changed,
 	}, nil
 }
 
-func parseObjectContext(callerService, resourceKey string, input *authzv3.ObjectContext, admission objectattributeadmission.Policy) (authorizationdomain.ObjectContext, error) {
+func parseObjectContext(callerService, resourceKey string, input *authzv4.ObjectContext, admission objectattributeadmission.Policy) (authorizationdomain.ObjectContext, error) {
 	if input == nil {
 		return authorizationdomain.NewObjectContext("", nil)
 	}
@@ -259,11 +260,11 @@ func parseObjectContext(callerService, resourceKey string, input *authzv3.Object
 			}
 		}
 		switch value := item.Value.(type) {
-		case *authzv3.ObjectAttribute_StringValue:
+		case *authzv4.ObjectAttribute_StringValue:
 			attributes[key] = constraint.StringValue(value.StringValue)
-		case *authzv3.ObjectAttribute_Int64Value:
+		case *authzv4.ObjectAttribute_Int64Value:
 			attributes[key] = constraint.Int64Value(value.Int64Value)
-		case *authzv3.ObjectAttribute_BoolValue:
+		case *authzv4.ObjectAttribute_BoolValue:
 			attributes[key] = constraint.BoolValue(value.BoolValue)
 		default:
 			return authorizationdomain.ObjectContext{}, status.Error(codes.InvalidArgument, "unsupported object attribute value")
@@ -342,13 +343,9 @@ func admitAssignmentReplacement(ctx context.Context, policy assignmentadmission.
 
 func newAssignmentAdmissionRequest(
 	operation assignmentadmission.Operation,
-	subjectValue, domainValue, roleNameValue, delegatedActor string,
+	subjectValue, roleNameValue, delegatedActor string,
 ) (assignmentadmission.Request, error) {
 	sub, err := subject.ParseRef(subjectValue)
-	if err != nil {
-		return assignmentadmission.Request{}, err
-	}
-	domain, err := tenant.NewID(domainValue)
 	if err != nil {
 		return assignmentadmission.Request{}, err
 	}
@@ -359,18 +356,13 @@ func newAssignmentAdmissionRequest(
 	return assignmentadmission.Request{
 		Operation:      operation,
 		Subject:        sub,
-		Domain:         domain,
 		RoleName:       roleName,
 		DelegatedActor: delegatedActor,
 	}, nil
 }
 
-func replacementAdmissionRequest(req *authzv3.ReplaceManagedAssignmentsRequest) (assignmentadmission.ReplacementRequest, error) {
+func replacementAdmissionRequest(req *authzv4.ReplaceManagedAssignmentsRequest) (assignmentadmission.ReplacementRequest, error) {
 	sub, err := subject.ParseRef(req.Subject)
-	if err != nil {
-		return assignmentadmission.ReplacementRequest{}, err
-	}
-	domain, err := tenant.NewID(req.Domain)
 	if err != nil {
 		return assignmentadmission.ReplacementRequest{}, err
 	}
@@ -384,7 +376,6 @@ func replacementAdmissionRequest(req *authzv3.ReplaceManagedAssignmentsRequest) 
 	}
 	return assignmentadmission.ReplacementRequest{
 		Subject:        sub,
-		Domain:         domain,
 		RoleNames:      roleNames,
 		DelegatedActor: req.ChangedBy,
 	}, nil
@@ -402,30 +393,38 @@ func parseSubjectKey(value string) (subject.Ref, error) {
 	return subject.NewRef(subject.Type(parts[0]), id)
 }
 
-func toProtoPermissions(entries []authzapp.PermissionEntry) []*authzv3.PermissionEntry {
-	permissions := make([]*authzv3.PermissionEntry, 0, len(entries))
+func toProtoPermissions(entries []authzapp.PermissionEntry) []*authzv4.PermissionEntry {
+	permissions := make([]*authzv4.PermissionEntry, 0, len(entries))
 	for _, entry := range entries {
-		mode := authzv3.AuthorizationMode_OBJECT_CHECK_REQUIRED
+		mode := authzv4.AuthorizationMode_OBJECT_CHECK_REQUIRED
 		if entry.Mode == authzapp.ModeUnconditional {
-			mode = authzv3.AuthorizationMode_UNCONDITIONAL
+			mode = authzv4.AuthorizationMode_UNCONDITIONAL
 		}
-		permissions = append(permissions, &authzv3.PermissionEntry{Resource: entry.Resource, Action: entry.Action, Mode: mode})
+		permissions = append(permissions, &authzv4.PermissionEntry{Resource: entry.Resource, Action: entry.Action, Mode: mode})
 	}
 	return permissions
 }
 
-func toProtoReason(reason authorizationdomain.Reason) authzv3.DecisionReason {
+func toProtoReason(reason authorizationdomain.Reason) authzv4.DecisionReason {
 	switch reason {
 	case authorizationdomain.ReasonAllowed:
-		return authzv3.DecisionReason_ALLOWED
+		return authzv4.DecisionReason_ALLOWED
 	case authorizationdomain.ReasonAttributeMissing:
-		return authzv3.DecisionReason_ATTRIBUTE_MISSING
+		return authzv4.DecisionReason_ATTRIBUTE_MISSING
 	case authorizationdomain.ReasonNotMatched:
-		return authzv3.DecisionReason_NOT_MATCHED
+		return authzv4.DecisionReason_NOT_MATCHED
 	default:
-		return authzv3.DecisionReason_DECISION_REASON_UNSPECIFIED
+		return authzv4.DecisionReason_DECISION_REASON_UNSPECIFIED
 	}
 }
 
-var _ authzv3.AuthorizationServiceServer = (*authorizationServer)(nil)
+var _ authzv4.AuthorizationServiceServer = (*authorizationServer)(nil)
 var _ authorizationChecker = (*authzapp.DecisionService)(nil)
+
+func authenticatedManagementContext(ctx context.Context) context.Context {
+	service, err := requireServiceIdentity(ctx)
+	if err != nil {
+		return ctx
+	}
+	return management.WithAuthenticatedService(ctx, service)
+}

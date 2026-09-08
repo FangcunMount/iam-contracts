@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	pkgauth "github.com/FangcunMount/iam/v4/pkg/auth"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	pkgauth "github.com/FangcunMount/iam/v5/pkg/auth"
 	jwtv4 "github.com/golang-jwt/jwt/v4"
 )
 
@@ -55,15 +55,15 @@ func NewSignedJWTCodec(issuer string, keySource JWSKeySource) *SignedJWTCodec {
 
 // jwtPayloadClaims 是 JWT Payload 的 wire model，不向领域层泄漏。
 type jwtPayloadClaims struct {
-	TokenType       string            `json:"token_type,omitempty"`
-	SessionID       string            `json:"sid,omitempty"`
-	UserID          string            `json:"user_id,omitempty"`
-	LoginIdentityID string            `json:"login_identity_id,omitempty"`
-	OrgID           string            `json:"org_id,omitempty"`
-	TenantDomain    string            `json:"tenant_id,omitempty"`
-	AuthTime        int64             `json:"auth_time,omitempty"`
-	Attributes      map[string]string `json:"attributes,omitempty"`
-	AMR             []string          `json:"amr,omitempty"`
+	TokenType       string `json:"token_type,omitempty"`
+	SessionID       string `json:"sid,omitempty"`
+	UserID          string `json:"user_id,omitempty"`
+	LoginIdentityID string `json:"login_identity_id,omitempty"`
+	OrgID           string `json:"org_id,omitempty"`
+
+	AuthTime   int64             `json:"auth_time,omitempty"`
+	Attributes map[string]string `json:"attributes,omitempty"`
+	AMR        []string          `json:"amr,omitempty"`
 	jwtv4.RegisteredClaims
 }
 
@@ -92,7 +92,7 @@ func (g *SignedJWTCodec) EncodeAccessToken(ctx context.Context, claims *tokendom
 	return g.signClaims(ctx, jwtPayloadClaims{
 		TokenType: string(claims.TokenType), SessionID: claims.SessionID,
 		UserID: claims.UserID.String(), LoginIdentityID: claims.LoginIdentityID.String(),
-		OrgID: orgID, TenantDomain: claims.TenantDomain, AuthTime: authTime,
+		OrgID: orgID, AuthTime: authTime,
 		Attributes: attributes, AMR: cloneStrings(claims.AMR),
 		RegisteredClaims: jwtv4.RegisteredClaims{
 			ID: claims.TokenID, Subject: claims.Subject, Issuer: claims.Issuer,
@@ -178,7 +178,6 @@ func (g *SignedJWTCodec) VerifySignatureAndClaims(ctx context.Context, tokenValu
 	// 解析组织 ID
 	orgID := parseStringID(claims.OrgID)
 	// 解析租户 ID
-	tenantDomain, _ := parseTenantIDClaim(claims.TenantDomain)
 	attributes := cloneStringMap(claims.Attributes)
 	authTime := time.Time{}
 	if claims.AuthTime > 0 {
@@ -200,7 +199,7 @@ func (g *SignedJWTCodec) VerifySignatureAndClaims(ctx context.Context, tokenValu
 	verified := tokendomain.AccessTokenClaims{
 		TokenID: claims.ID, TokenType: tokenType, Subject: claims.Subject, SessionID: claims.SessionID,
 		UserID: parseStringID(claims.UserID), LoginIdentityID: loginIdentityID,
-		OrgID: orgID, TenantDomain: tenantDomain, Issuer: claims.Issuer,
+		OrgID: orgID, Issuer: claims.Issuer,
 		Audience: []string(claims.Audience), Attributes: attributes, AMR: claims.AMR,
 		AuthenticatedAt: authTime, IssuedAt: numericDateTime(claims.IssuedAt),
 		NotBefore: numericDateTime(claims.NotBefore), ExpiresAt: numericDateTime(claims.ExpiresAt),

@@ -3,7 +3,7 @@ package permissiongrant_test
 import (
 	"testing"
 
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/stretchr/testify/require"
 )
 

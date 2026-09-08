@@ -4,14 +4,17 @@ import (
 	"context"
 	"strings"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
-	"github.com/FangcunMount/iam/v4/pkg/core"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/requestctx"
+	"github.com/FangcunMount/iam/v5/pkg/core"
 )
 
 // JWTAuthMiddleware JWT 认证中间件
@@ -89,6 +92,9 @@ func applyVerifiedClaims(c *gin.Context, claims *token.TokenClaims) {
 	}
 
 	ctx := context.WithValue(c.Request.Context(), requestctx.KeyUserID, claims.UserID)
+	if sub, err := subject.NewUserRef(claims.UserID); err == nil {
+		ctx = management.WithAuthenticatedUser(ctx, sub)
+	}
 	c.Request = c.Request.WithContext(ctx)
 	requestctx.SetClaims(c, claims)
 
@@ -97,9 +103,6 @@ func applyVerifiedClaims(c *gin.Context, claims *token.TokenClaims) {
 	}
 	if !claims.LoginIdentityID.IsZero() {
 		requestctx.SetLoginIdentityID(c, claims.LoginIdentityID)
-	}
-	if domain := claims.TenantDomain; domain != "" {
-		requestctx.SetTenantID(c, domain)
 	}
 	if !claims.OrgID.IsZero() {
 		requestctx.SetOrgID(c, claims.OrgID.Uint64())

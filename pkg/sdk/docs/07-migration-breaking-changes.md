@@ -15,7 +15,7 @@
 
 ## 30 秒结论
 
-- `v4.0.0` 的 Go module 路径是 `github.com/FangcunMount/iam/v4`；调用方必须同时更新依赖版本和 import path
+- `v4.0.0` 的 Go module 路径是 `github.com/FangcunMount/iam/v5`；调用方必须同时更新依赖版本和 import path
 - REST URL、OpenAPI 版本/component ID 和 gRPC proto package 继续保持 v2；Go module major 升级不等于 wire 契约升级
 - 公开稳定入口现在固定为：`pkg/sdk`、`pkg/sdk/config`、`pkg/sdk/auth/client`、`pkg/sdk/auth/loginv2`、`pkg/sdk/auth/jwks`、`pkg/sdk/auth/verifier`、`pkg/sdk/authz`、`pkg/sdk/identity`、`pkg/sdk/idp`、`pkg/sdk/errors`
 - 历史 v2 import `github.com/FangcunMount/iam/v2/pkg/sdk/transport` 和 `github.com/FangcunMount/iam/v2/pkg/sdk/observability` 已分别移入 `pkg/sdk/internal/transport` 与 `pkg/sdk/internal/observability`，不再对外公开
@@ -117,8 +117,8 @@ gRPC `VerifyToken` 响应的 `TokenClaims` 已增加 `org_id` 字段（field 22�
 
 这些 wire 契约在 v2 阶段完成整理，并在 Go SDK v3 中原样保留；本轮只升级 Go module major，不发布 REST/gRPC v3。
 
-- gRPC 登录新增 `iam.authn.v2.AuthService.Login`，请求继续使用 `auth_method + method_payload`。
-- Go SDK `pkg/sdk/auth/client.Client` 新增 `Login(ctx, *authnv2.LoginRequest)`。
+- gRPC 登录新增 `iam.authn.v3.AuthService.Login`，请求继续使用 `auth_method + method_payload`。
+- Go SDK `pkg/sdk/auth/client.Client` 新增 `Login(ctx, *authnv3.LoginRequest)`。
 - IDP v2 gRPC 新增 `GetWechatAccessToken` 和 `RefreshWechatAccessToken`，Go SDK `pkg/sdk/idp.Client` 同步新增同名方法。
 - ProfileLink v2 gRPC `ListProfilesRequest` 和 `ListProfileLinksRequest` 新增 `include_revoked`；Go SDK 透传 proto 字段，并提供 `GetUserProfilesIncludingRevoked` 便捷方法。
 - REST ProfileLink 列表使用 `include_revoked` query 参数；旧 `active` 参数已退役。
@@ -150,7 +150,7 @@ _ = transport.RequestIDInterceptor
 新写法：
 
 ```go
-import sdk "github.com/FangcunMount/iam/v4/pkg/sdk"
+import sdk "github.com/FangcunMount/iam/v5/pkg/sdk"
 
 ctx = sdk.WithRequestID(ctx, "req-123")
 ```
@@ -201,8 +201,8 @@ verifier, err := sdk.NewTokenVerifier(verifyCfg, jwksCfg, client)
 新写法：
 
 ```go
-import authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
-import authverifier "github.com/FangcunMount/iam/v4/pkg/sdk/auth/verifier"
+import authjwks "github.com/FangcunMount/iam/v5/pkg/sdk/auth/jwks"
+import authverifier "github.com/FangcunMount/iam/v5/pkg/sdk/auth/verifier"
 
 jwksManager, err := authjwks.NewJWKSManager(jwksCfg,
     authjwks.WithCacheEnabled(true),
@@ -256,7 +256,7 @@ default:
 
 ## 建议的迁移顺序
 
-1. 将 `go.mod` 依赖升级为 `github.com/FangcunMount/iam/v4 v3.0.0`，并把 IAM import 的 `/v2/` 统一改为 `/v3/`
+1. 将 `go.mod` 依赖升级为 `github.com/FangcunMount/iam/v5 v3.0.0`，并把 IAM import 的 `/v2/` 统一改为 `/v3/`
 2. 删除 `TokenClaims.TenantID` 读取，按语义改用 `AuthorizationDomain()` 或 `BusinessOrgID()`
 3. 删除 `JWKSStats` 引用，改用 fetcher `Stats()`、熔断器 `State()` 或应用级 metrics collector
 4. 运行 `go mod tidy`、全量测试和实际 IAM 集成验证；不要改 REST URL 或 `iam.*.v2` proto package

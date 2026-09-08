@@ -5,15 +5,15 @@ import (
 	"encoding/json"
 	"strings"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	sessionApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/session"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	sessionApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/session"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // Login implements the v2 explicit auth_method + method_payload login contract.
-func (s *authServiceServer) Login(ctx context.Context, req *authnv2.LoginRequest) (*authnv2.LoginResponse, error) {
+func (s *authServiceServer) Login(ctx context.Context, req *authnv3.LoginRequest) (*authnv3.LoginResponse, error) {
 	if s.sessionSvc == nil {
 		return nil, status.Error(codes.Unimplemented, "login service not configured")
 	}
@@ -41,7 +41,7 @@ func (s *authServiceServer) Login(ctx context.Context, req *authnv2.LoginRequest
 		return nil, toGRPCError(err)
 	}
 	if result == nil {
-		return &authnv2.LoginResponse{}, nil
+		return &authnv3.LoginResponse{}, nil
 	}
-	return &authnv2.LoginResponse{TokenPair: toProtoTokenPair(result.TokenPair)}, nil
+	return &authnv3.LoginResponse{TokenPair: toProtoTokenPair(result.TokenPair)}, nil
 }

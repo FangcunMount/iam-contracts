@@ -4,8 +4,8 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // IDCardUniquenessChecker 检查 Profile 身份证跨实体唯一性规则。

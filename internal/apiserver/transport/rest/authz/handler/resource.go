@@ -4,10 +4,10 @@ package handler
 import (
 	"strconv"
 
-	resourceApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/resource"
-	resourceDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/dto"
+	resourceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/resource"
+	resourceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authz/dto"
 	"github.com/gin-gonic/gin"
 )
 
@@ -40,7 +40,7 @@ func NewResourceHandler(
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
 // @Description Catalog writes require a matching platform Grant for the authenticated actor.
 // @Failure 403 {object} dto.ErrorResponse "Platform catalog permission required"
-// @Router /v3/authz/resources [post]
+// @Router /v4/authz/resources [post]
 func (h *ResourceHandler) CreateResource(c *gin.Context) {
 	var req dto.CreateResourceRequest
 	if !bindJSON(c, &req) {
@@ -61,17 +61,12 @@ func (h *ResourceHandler) CreateResource(c *gin.Context) {
 		handleError(c, err)
 		return
 	}
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
 	userID, err := getUserID(c)
 	if err != nil {
 		handleError(c, err)
 		return
 	}
-	cmd.TenantID, cmd.ChangedBy = tenantID, userID.String()
+	cmd.ChangedBy = userID.String()
 	cmd.Actor, err = subject.NewUserRef(userID)
 	if err != nil {
 		handleError(c, err)
@@ -98,7 +93,7 @@ func (h *ResourceHandler) CreateResource(c *gin.Context) {
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
 // @Description Catalog writes require a matching platform Grant for the authenticated actor.
 // @Failure 403 {object} dto.ErrorResponse "Platform catalog permission required"
-// @Router /v3/authz/resources/{id} [put]
+// @Router /v4/authz/resources/{id} [put]
 func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 	resourceID, ok := parseIDParam(c, "id", "资源ID格式错误")
 	if !ok {
@@ -121,17 +116,12 @@ func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 		handleError(c, err)
 		return
 	}
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
 	userID, err := getUserID(c)
 	if err != nil {
 		handleError(c, err)
 		return
 	}
-	cmd.TenantID, cmd.ChangedBy = tenantID, userID.String()
+	cmd.ChangedBy = userID.String()
 	cmd.Actor, err = subject.NewUserRef(userID)
 	if err != nil {
 		handleError(c, err)
@@ -155,18 +145,13 @@ func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
 // @Description Catalog writes require a matching platform Grant for the authenticated actor.
 // @Failure 403 {object} dto.ErrorResponse "Platform catalog permission required"
-// @Router /v3/authz/resources/{id} [delete]
+// @Router /v4/authz/resources/{id} [delete]
 func (h *ResourceHandler) DeleteResource(c *gin.Context) {
 	resourceID, ok := parseIDParam(c, "id", "资源ID格式错误")
 	if !ok {
 		return
 	}
 
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
 	userID, err := getUserID(c)
 	if err != nil {
 		handleError(c, err)
@@ -178,7 +163,7 @@ func (h *ResourceHandler) DeleteResource(c *gin.Context) {
 		return
 	}
 	if err := h.commander.DeleteResource(c.Request.Context(), resourceApp.DeleteResourceCommand{
-		ID: resourceDomain.NewResourceID(resourceID.Uint64()), TenantID: tenantID, ChangedBy: userID.String(), Actor: actor,
+		ID: resourceDomain.NewResourceID(resourceID.Uint64()), ChangedBy: userID.String(), Actor: actor,
 	}); err != nil {
 		handleError(c, err)
 		return
@@ -194,7 +179,7 @@ func (h *ResourceHandler) DeleteResource(c *gin.Context) {
 // @Param id path string true "资源ID"
 // @Success 200 {object} dto.Response{data=dto.ResourceResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/resources/{id} [get]
+// @Router /v4/authz/resources/{id} [get]
 func (h *ResourceHandler) GetResource(c *gin.Context) {
 	resourceID, ok := parseIDParam(c, "id", "资源ID格式错误")
 	if !ok {
@@ -217,7 +202,7 @@ func (h *ResourceHandler) GetResource(c *gin.Context) {
 // @Param key path string true "资源键"
 // @Success 200 {object} dto.Response{data=dto.ResourceResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/resources/key/{key} [get]
+// @Router /v4/authz/resources/key/{key} [get]
 func (h *ResourceHandler) GetResourceByKey(c *gin.Context) {
 	key := c.Param("key")
 
@@ -241,7 +226,7 @@ func (h *ResourceHandler) GetResourceByKey(c *gin.Context) {
 // @Param limit query int false "每页数量" default(10)
 // @Success 200 {object} dto.ListResponse{data=[]dto.ResourceResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/resources [get]
+// @Router /v4/authz/resources [get]
 func (h *ResourceHandler) ListResources(c *gin.Context) {
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
@@ -279,7 +264,7 @@ func (h *ResourceHandler) ListResources(c *gin.Context) {
 // @Param request body dto.ValidateActionRequest true "验证动作请求"
 // @Success 200 {object} dto.Response{data=dto.ValidateActionResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/resources/validate-action [post]
+// @Router /v4/authz/resources/validate-action [post]
 func (h *ResourceHandler) ValidateAction(c *gin.Context) {
 	var req dto.ValidateActionRequest
 	if !bindJSON(c, &req) {

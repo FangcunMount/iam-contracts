@@ -9,12 +9,12 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	repo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/permissiongrant"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	repo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 	gormmysql "gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
@@ -66,9 +66,9 @@ func TestRepositoryHistoricalRevokedGrantMySQLConcurrencyRegression(t *testing.T
 	require.EqualValues(t, 1, result.RowsAffected)
 
 	repository := repo.NewRepository(db)
-	_, err = repository.ListByRole(context.Background(), meta.FromUint64(10), "tenant-a")
+	_, err = repository.ListByRole(context.Background(), meta.FromUint64(10))
 	require.Error(t, err)
-	active, err := repository.ListActiveByTenant(context.Background(), "tenant-a")
+	active, err := repository.ListActive(context.Background())
 	require.NoError(t, err)
 	require.Len(t, active, 1)
 }
@@ -101,7 +101,7 @@ func TestRepositoryAtomicRevokeClassifiesConcurrentSnapshotAsAlreadyRevokedMySQL
 		require.NoError(t, db.Unscoped().Where("tenant_id = ?", tenantID).Delete(&repo.GrantPO{}).Error)
 	})
 	repository := repo.NewRepository(db)
-	grant := mustGrantForTenant(t, tenantID)
+	grant := mustGrantForTenant(t)
 	require.NoError(t, repository.Create(context.Background(), &grant))
 
 	tx1 := db.Begin()
@@ -118,12 +118,12 @@ func TestRepositoryAtomicRevokeClassifiesConcurrentSnapshotAsAlreadyRevokedMySQL
 	_, err = repo2.FindByID(context.Background(), grant.ID)
 	require.NoError(t, err)
 
-	outcome, err := repo1.AtomicRevoke(context.Background(), grant.ID, tenantID)
+	outcome, err := repo1.AtomicRevoke(context.Background(), grant.ID)
 	require.NoError(t, err)
 	require.Equal(t, domain.RevokeOutcomeRevoked, outcome)
 	require.NoError(t, tx1.Commit().Error)
 
-	outcome, err = repo2.AtomicRevoke(context.Background(), grant.ID, tenantID)
+	outcome, err = repo2.AtomicRevoke(context.Background(), grant.ID)
 	require.NoError(t, err)
 	require.Equal(t, domain.RevokeOutcomeAlreadyRevoked, outcome)
 	require.NoError(t, tx2.Commit().Error)
@@ -141,26 +141,26 @@ func testRepositoryCreatesRevokesAndAllowsRegrant(t *testing.T, db *gorm.DB) {
 	err := repository.Create(ctx, &duplicate)
 	require.True(t, perrors.IsCode(err, code.ErrPermissionGrantAlreadyExists))
 
-	outcome, err := repository.AtomicRevoke(ctx, first.ID, "tenant-a")
+	outcome, err := repository.AtomicRevoke(ctx, first.ID)
 	require.NoError(t, err)
 	require.Equal(t, domain.RevokeOutcomeRevoked, outcome)
 	second := mustGrant(t)
 	require.NoError(t, repository.Create(ctx, &second))
 
-	active, err := repository.ListActiveByTenant(ctx, "tenant-a")
+	active, err := repository.ListActive(ctx)
 	require.NoError(t, err)
 	require.Len(t, active, 1)
 	require.Equal(t, second.ID, active[0].ID)
 }
 
 func mustGrant(t *testing.T) domain.Grant {
-	return mustGrantForTenant(t, "tenant-a")
+	return mustGrantForTenant(t)
 }
 
-func mustGrantForTenant(t *testing.T, tenantID string) domain.Grant {
+func mustGrantForTenant(t *testing.T) domain.Grant {
 	t.Helper()
 	grant, err := domain.New(
-		meta.FromUint64(10), tenantID, resource.NewResourceID(20),
+		meta.FromUint64(10), resource.NewResourceID(20),
 		"qs:evaluation:collection:assessments", "retry", constraint.Empty(), "operator-1",
 	)
 	require.NoError(t, err)

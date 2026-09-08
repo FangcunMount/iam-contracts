@@ -204,8 +204,8 @@ gRPC 面向可信服务间调用，当前发布 v2 proto。
 契约入口：
 
 - [api/grpc/README.md](api/grpc/README.md)
-- [api/grpc/iam/authn/v2/authn.proto](api/grpc/iam/authn/v2/authn.proto)
-- [api/grpc/iam/authz/v3/authz.proto](api/grpc/iam/authz/v3/authz.proto)
+- [api/grpc/iam/authn/v3/authn.proto](api/grpc/iam/authn/v3/authn.proto)
+- [api/grpc/iam/authz/v4/authz.proto](api/grpc/iam/authz/v4/authz.proto)
 - [api/grpc/iam/identity/v2/identity.proto](api/grpc/iam/identity/v2/identity.proto)
 - [api/grpc/iam/idp/v2/idp.proto](api/grpc/iam/idp/v2/idp.proto)
 
@@ -227,8 +227,8 @@ import (
     "context"
     "log"
 
-    authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-    sdk "github.com/FangcunMount/iam/v4/pkg/sdk"
+    authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+    sdk "github.com/FangcunMount/iam/v5/pkg/sdk"
 )
 
 func main() {
@@ -242,7 +242,7 @@ func main() {
     }
     defer client.Close()
 
-    resp, err := client.Auth().VerifyToken(ctx, &authnv2.VerifyTokenRequest{
+    resp, err := client.Auth().VerifyToken(ctx, &authnv3.VerifyTokenRequest{
         AccessToken: "jwt-token",
     })
     if err != nil {

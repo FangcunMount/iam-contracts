@@ -3,15 +3,14 @@ package permissiongrant
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -43,13 +42,10 @@ func (r *Repository) Create(ctx context.Context, grant *domain.Grant) error {
 	})
 }
 
-func (r *Repository) AtomicRevoke(ctx context.Context, id meta.ID, tenantID string) (domain.RevokeOutcome, error) {
+func (r *Repository) AtomicRevoke(ctx context.Context, id meta.ID) (domain.RevokeOutcome, error) {
 	now := time.Now()
 	query := r.WithContext(ctx).Model(&GrantPO{}).
 		Where("id = ? AND revoked_at IS NULL", id.Uint64())
-	if strings.TrimSpace(tenantID) != "" {
-		query = query.Where("tenant_id = ?", strings.TrimSpace(tenantID))
-	}
 	result := query.Updates(map[string]any{
 		"revoked_at": now,
 		"updated_at": now,
@@ -68,9 +64,6 @@ func (r *Repository) AtomicRevoke(ctx context.Context, id meta.ID, tenantID stri
 		findQuery = findQuery.Clauses(clause.Locking{Strength: "UPDATE"})
 	}
 	findQuery = findQuery.Where("id = ?", id.Uint64())
-	if strings.TrimSpace(tenantID) != "" {
-		findQuery = findQuery.Where("tenant_id = ?", strings.TrimSpace(tenantID))
-	}
 	if err := findQuery.First(&po).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return domain.RevokeOutcomeNotFound, nil
@@ -91,12 +84,12 @@ func (r *Repository) FindByID(ctx context.Context, id meta.ID) (*domain.Grant, e
 	return r.mapper.ToBO(po)
 }
 
-func (r *Repository) ListByRole(ctx context.Context, roleID meta.ID, tenantID string) ([]*domain.Grant, error) {
-	return r.list(ctx, "tenant_id = ? AND role_id = ?", tenantID, roleID.Uint64())
+func (r *Repository) ListByRole(ctx context.Context, roleID meta.ID) ([]*domain.Grant, error) {
+	return r.list(ctx, "role_id = ?", roleID.Uint64())
 }
 
-func (r *Repository) ListActiveByTenant(ctx context.Context, tenantID string) ([]*domain.Grant, error) {
-	return r.list(ctx, "tenant_id = ? AND revoked_at IS NULL", tenantID)
+func (r *Repository) ListActive(ctx context.Context) ([]*domain.Grant, error) {
+	return r.list(ctx, "revoked_at IS NULL")
 }
 
 func (r *Repository) ListActiveByResource(ctx context.Context, resourceID resource.ResourceID) ([]*domain.Grant, error) {

@@ -4,10 +4,10 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	profilDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/profile"
-	profileLinkDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/profilelink"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	profilDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/profile"
+	profileLinkDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/profilelink"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // profileCreationInfo 档案信息

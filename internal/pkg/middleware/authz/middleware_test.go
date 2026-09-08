@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
-	"github.com/FangcunMount/iam/v4/pkg/tenant"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/requestctx"
+	"github.com/FangcunMount/iam/v5/pkg/tenant"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,11 +20,11 @@ type routePermissionCheckerStub struct {
 	errorsByTenant  map[string]error
 }
 
-func (s routePermissionCheckerStub) CheckRoutePermission(_ context.Context, _, tenantID, _, _ string) (bool, error) {
+func (s routePermissionCheckerStub) CheckRoutePermission(_ context.Context, _, _, _ string) (bool, error) {
 	return s.allowedByTenant[tenantID], s.errorsByTenant[tenantID]
 }
 
-func TestRequirePermissionOrGlobal(t *testing.T) {
+func TestRequirePermission(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -52,13 +52,13 @@ func TestRequirePermissionOrGlobal(t *testing.T) {
 			if tc.withUser {
 				engine.Use(func(c *gin.Context) {
 					requestctx.SetUserID(c, meta.FromUint64(10001))
-					requestctx.SetTenantID(c, tenant.DefaultID)
+					requestctx.SetTenantID(c)
 					c.Next()
 				})
 			}
 			middleware := NewMiddleware(tc.checker)
 			engine.GET("/protected",
-				middleware.RequirePermissionOrGlobal("iam:authz:collection:roles", "read"),
+				middleware.RequirePermission("iam:authz:collection:roles", "read"),
 				func(c *gin.Context) { c.Status(http.StatusNoContent) },
 			)
 

@@ -65,7 +65,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/admin/jwks/keys": {
+        "/v3/authn/admin/jwks/keys": {
             "get": {
                 "security": [
                     {
@@ -197,7 +197,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/admin/jwks/keys/cleanup": {
+        "/v3/authn/admin/jwks/keys/cleanup": {
             "post": {
                 "security": [
                     {
@@ -240,7 +240,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/admin/jwks/keys/publishable": {
+        "/v3/authn/admin/jwks/keys/publishable": {
             "get": {
                 "security": [
                     {
@@ -283,7 +283,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/admin/jwks/keys/{kid}": {
+        "/v3/authn/admin/jwks/keys/{kid}": {
             "get": {
                 "security": [
                     {
@@ -347,7 +347,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/admin/jwks/keys/{kid}/force-retire": {
+        "/v3/authn/admin/jwks/keys/{kid}/force-retire": {
             "post": {
                 "security": [
                     {
@@ -408,7 +408,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/admin/jwks/keys/{kid}/retire": {
+        "/v3/authn/admin/jwks/keys/{kid}/retire": {
             "post": {
                 "security": [
                     {
@@ -469,7 +469,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/challenges/phone-otp": {
+        "/v3/authn/challenges/phone-otp": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -502,7 +502,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/login": {
+        "/v3/authn/login": {
             "post": {
                 "description": "使用 auth_method 明确选择认证方式，method_payload 按认证方式解析。v2 只开放 password、phone_otp、wechat、wechat_scan、wecom。",
                 "consumes": [
@@ -550,7 +550,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/login-identities": {
+        "/v3/authn/login-identities": {
             "get": {
                 "security": [
                     {
@@ -574,7 +574,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/login-identities/phone": {
+        "/v3/authn/login-identities/phone": {
             "post": {
                 "security": [
                     {
@@ -612,7 +612,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/login-identities/phone/challenge": {
+        "/v3/authn/login-identities/phone/challenge": {
             "post": {
                 "security": [
                     {
@@ -650,7 +650,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/login-identities/wechat-miniprogram": {
+        "/v3/authn/login-identities/wechat-miniprogram": {
             "post": {
                 "security": [
                     {
@@ -688,7 +688,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/login-identities/wechat-open": {
+        "/v3/authn/login-identities/wechat-open": {
             "post": {
                 "security": [
                     {
@@ -726,7 +726,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/login-identities/wechat-open/authorize": {
+        "/v3/authn/login-identities/wechat-open/authorize": {
             "post": {
                 "security": [
                     {
@@ -763,7 +763,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/login-identities/wecom": {
+        "/v3/authn/login-identities/wecom": {
             "post": {
                 "security": [
                     {
@@ -801,7 +801,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/login-identities/{id}": {
+        "/v3/authn/login-identities/{id}": {
             "delete": {
                 "security": [
                     {
@@ -834,7 +834,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/logout": {
+        "/v3/authn/logout": {
             "post": {
                 "description": "撤销访问令牌和刷新令牌",
                 "consumes": [
@@ -875,7 +875,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/refresh_token": {
+        "/v3/authn/refresh_token": {
             "post": {
                 "description": "使用刷新令牌获取新的访问令牌",
                 "consumes": [
@@ -923,7 +923,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/signups/wechat-miniprogram": {
+        "/v3/authn/signups/wechat-miniprogram": {
             "post": {
                 "description": "通过微信小程序 code 建立 User 与 LoginIdentity 绑定。",
                 "consumes": [
@@ -971,7 +971,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/verify": {
+        "/v3/authn/verify": {
             "post": {
                 "description": "验证访问令牌的有效性并返回声明信息",
                 "consumes": [
@@ -1019,7 +1019,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/authn/wechat-open/authorize": {
+        "/v3/authn/wechat-open/authorize": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -1962,7 +1962,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/assignments/grant": {
+        "/v4/authz/assignments/grant": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -2013,7 +2013,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/assignments/revoke": {
+        "/v4/authz/assignments/revoke": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -2052,7 +2052,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/assignments/subject": {
+        "/v4/authz/assignments/subject": {
             "get": {
                 "produces": [
                     "application/json"
@@ -2111,7 +2111,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/assignments/{id}": {
+        "/v4/authz/assignments/{id}": {
             "delete": {
                 "tags": [
                     "Authorization-Assignments"
@@ -2142,7 +2142,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/grants": {
+        "/v4/authz/grants": {
             "post": {
                 "description": "为指定角色创建不可变的精确资源、单一动作及可选对象属性约束授权",
                 "consumes": [
@@ -2195,7 +2195,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/grants/{id}": {
+        "/v4/authz/grants/{id}": {
             "delete": {
                 "description": "按 Grant ID 撤销授权事实，不原地修改既有 Grant",
                 "consumes": [
@@ -2242,7 +2242,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/resources": {
+        "/v4/authz/resources": {
             "get": {
                 "produces": [
                     "application/json"
@@ -2372,7 +2372,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/resources/key/{key}": {
+        "/v4/authz/resources/key/{key}": {
             "get": {
                 "produces": [
                     "application/json"
@@ -2418,7 +2418,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/resources/validate-action": {
+        "/v4/authz/resources/validate-action": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -2469,7 +2469,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/resources/{id}": {
+        "/v4/authz/resources/{id}": {
             "get": {
                 "produces": [
                     "application/json"
@@ -2614,7 +2614,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/role-inheritances": {
+        "/v4/authz/role-inheritances": {
             "get": {
                 "description": "查询当前租户中的有效角色继承，可按获得能力的角色过滤",
                 "produces": [
@@ -2715,7 +2715,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/role-inheritances/{id}": {
+        "/v4/authz/role-inheritances/{id}": {
             "delete": {
                 "description": "按继承关系 ID 撤销当前租户中的有效角色继承",
                 "consumes": [
@@ -2762,7 +2762,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/roles": {
+        "/v4/authz/roles": {
             "get": {
                 "produces": [
                     "application/json"
@@ -2867,7 +2867,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/roles/{id}": {
+        "/v4/authz/roles/{id}": {
             "get": {
                 "description": "Role details are restricted to the authenticated request tenant, including platform callers.",
                 "produces": [
@@ -3005,7 +3005,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/roles/{id}/assignments": {
+        "/v4/authz/roles/{id}/assignments": {
             "get": {
                 "produces": [
                     "application/json"
@@ -3054,7 +3054,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v3/authz/roles/{id}/grants": {
+        "/v4/authz/roles/{id}/grants": {
             "get": {
                 "description": "查询指定角色在当前租户下的有效 PermissionGrant",
                 "produces": [

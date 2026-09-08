@@ -3,9 +3,9 @@ package search_test
 import (
 	"testing"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/search"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/profile"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/search"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/visibility"
 )
 
 func TestAdmissionPolicyMatrix(t *testing.T) {

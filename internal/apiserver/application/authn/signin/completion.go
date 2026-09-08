@@ -7,11 +7,11 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
-	admissionapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/admission"
-	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	admissionapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/admission"
+	admissiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // completeLogin 编排登录准入、会话建立和令牌颁发，并负责失败补偿。

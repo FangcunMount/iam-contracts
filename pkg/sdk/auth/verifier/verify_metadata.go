@@ -1,8 +1,8 @@
 package verifier
 
-import authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+import authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
 
-func buildVerifyMetadataFromProto(metadata *authnv2.TokenMetadata) *VerifyMetadata {
+func buildVerifyMetadataFromProto(metadata *authnv3.TokenMetadata) *VerifyMetadata {
 	if metadata == nil {
 		return nil
 	}
@@ -25,19 +25,19 @@ func buildVerifyMetadataFromClaims(claims *TokenClaims) *VerifyMetadata {
 	}
 	return &VerifyMetadata{
 		TokenType: tokenTypeToProto(claims.TokenType),
-		Status:    authnv2.TokenStatus_TOKEN_STATUS_VALID,
+		Status:    authnv3.TokenStatus_TOKEN_STATUS_VALID,
 		IssuedAt:  claims.IssuedAt,
 		ExpiresAt: claims.ExpiresAt,
 	}
 }
 
-func tokenTypeToProto(tokenType string) authnv2.TokenType {
+func tokenTypeToProto(tokenType string) authnv3.TokenType {
 	switch tokenType {
 	case "refresh":
-		return authnv2.TokenType_TOKEN_TYPE_REFRESH
+		return authnv3.TokenType_TOKEN_TYPE_REFRESH
 	case "", "access":
-		return authnv2.TokenType_TOKEN_TYPE_ACCESS
+		return authnv3.TokenType_TOKEN_TYPE_ACCESS
 	default:
-		return authnv2.TokenType_TOKEN_TYPE_UNSPECIFIED
+		return authnv3.TokenType_TOKEN_TYPE_UNSPECIFIED
 	}
 }

@@ -3,12 +3,12 @@ package authz
 import (
 	"context"
 
-	authzv3 "github.com/FangcunMount/iam/v4/api/grpc/iam/authz/v3"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/errors"
+	authzv4 "github.com/FangcunMount/iam/v5/api/grpc/iam/authz/v4"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/errors"
 )
 
 // GrantAssignment 为主体授予角色。
-func (c *Client) GrantAssignment(ctx context.Context, req *authzv3.GrantAssignmentRequest) (*authzv3.GrantAssignmentResponse, error) {
+func (c *Client) GrantAssignment(ctx context.Context, req *authzv4.GrantAssignmentRequest) (*authzv4.GrantAssignmentResponse, error) {
 	resp, err := c.authorizationService.GrantAssignment(ctx, req)
 	if err != nil {
 		return nil, errors.Wrap(err)
@@ -17,7 +17,7 @@ func (c *Client) GrantAssignment(ctx context.Context, req *authzv3.GrantAssignme
 }
 
 // RevokeAssignment 撤销主体上的角色。
-func (c *Client) RevokeAssignment(ctx context.Context, req *authzv3.RevokeAssignmentRequest) (*authzv3.RevokeAssignmentResponse, error) {
+func (c *Client) RevokeAssignment(ctx context.Context, req *authzv4.RevokeAssignmentRequest) (*authzv4.RevokeAssignmentResponse, error) {
 	resp, err := c.authorizationService.RevokeAssignment(ctx, req)
 	if err != nil {
 		return nil, errors.Wrap(err)
@@ -27,7 +27,7 @@ func (c *Client) RevokeAssignment(ctx context.Context, req *authzv3.RevokeAssign
 
 // ReplaceManagedAssignments atomically replaces only the role set delegated to
 // the authenticated calling service. Assignments owned by other services are preserved.
-func (c *Client) ReplaceManagedAssignments(ctx context.Context, req *authzv3.ReplaceManagedAssignmentsRequest) (*authzv3.ReplaceManagedAssignmentsResponse, error) {
+func (c *Client) ReplaceManagedAssignments(ctx context.Context, req *authzv4.ReplaceManagedAssignmentsRequest) (*authzv4.ReplaceManagedAssignmentsResponse, error) {
 	resp, err := c.authorizationService.ReplaceManagedAssignments(ctx, req)
 	if err != nil {
 		return nil, errors.Wrap(err)

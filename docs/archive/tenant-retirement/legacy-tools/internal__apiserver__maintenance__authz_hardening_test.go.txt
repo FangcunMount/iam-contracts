@@ -38,6 +38,9 @@ func seedHardening(t *testing.T, db *gorm.DB) (*objectattributeadmission.Registr
 	for _, tenant := range []string{"platform", "a", "b"} {
 		r, err := role.NewRole("operator", "Operator", tenant)
 		require.NoError(t, err)
+		if tenant == "platform" {
+			r.ManagementProtection = role.ManagementProtected
+		}
 		require.NoError(t, roles.Create(ctx, &r))
 		grant, err := permissiongrant.NewSystem(r.ID, tenant, resource.ResourceID{}, catalog.KeyString(), "*", constraint.Empty(), "seed")
 		require.NoError(t, err)

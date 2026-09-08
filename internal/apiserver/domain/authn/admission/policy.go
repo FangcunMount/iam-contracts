@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	loginidentitydomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/useraccess"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	loginidentitydomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/useraccess"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // Policy 是 AuthN 的登录准入策略。

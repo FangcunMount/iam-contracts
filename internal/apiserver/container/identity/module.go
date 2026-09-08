@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	appprofile "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/profile"
-	appprofilelink "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/profilelink"
-	appuser "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/user"
-	sessionrevocation "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/sessionrevocation"
-	mysqlIdentityUow "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/uow/identity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	appprofile "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/profile"
+	appprofilelink "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/profilelink"
+	appuser "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/user"
+	sessionrevocation "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/sessionrevocation"
+	mysqlIdentityUow "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/uow/identity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // IdentityModule 身份模块

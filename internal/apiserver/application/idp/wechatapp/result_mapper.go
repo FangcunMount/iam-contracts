@@ -1,6 +1,6 @@
 package wechatapp
 
-import domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/wechatapp"
+import domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/wechatapp"
 
 func toWechatAppResult(app *domain.WechatApp) *WechatAppResult {
 	if app == nil {

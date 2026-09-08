@@ -3,13 +3,13 @@ package authn
 import (
 	"context"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	linkingApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	linkingApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/linking"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func (s *loginIdentityServiceServer) ListLoginIdentities(ctx context.Context, req *authnv2.ListLoginIdentitiesRequest) (*authnv2.ListLoginIdentitiesResponse, error) {
+func (s *loginIdentityServiceServer) ListLoginIdentities(ctx context.Context, req *authnv3.ListLoginIdentitiesRequest) (*authnv3.ListLoginIdentitiesResponse, error) {
 	if s.linking == nil {
 		return nil, status.Error(codes.Unimplemented, "login identity service not configured")
 	}
@@ -21,14 +21,14 @@ func (s *loginIdentityServiceServer) ListLoginIdentities(ctx context.Context, re
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
-	out := make([]*authnv2.LoginIdentity, 0, len(identities))
+	out := make([]*authnv3.LoginIdentity, 0, len(identities))
 	for _, identity := range identities {
 		out = append(out, toProtoLoginIdentityView(identity))
 	}
-	return &authnv2.ListLoginIdentitiesResponse{Items: out}, nil
+	return &authnv3.ListLoginIdentitiesResponse{Items: out}, nil
 }
 
-func (s *loginIdentityServiceServer) SendPhoneLinkChallenge(ctx context.Context, req *authnv2.SendPhoneLinkChallengeRequest) (*authnv2.MessageResponse, error) {
+func (s *loginIdentityServiceServer) SendPhoneLinkChallenge(ctx context.Context, req *authnv3.SendPhoneLinkChallengeRequest) (*authnv3.MessageResponse, error) {
 	if s.linking == nil {
 		return nil, status.Error(codes.Unimplemented, "login identity service not configured")
 	}
@@ -41,10 +41,10 @@ func (s *loginIdentityServiceServer) SendPhoneLinkChallenge(ctx context.Context,
 	if err := s.phoneLinkOTPSender.SendPhoneLinkOTP(ctx, req.GetPhone()); err != nil {
 		return nil, toGRPCError(err)
 	}
-	return &authnv2.MessageResponse{Message: "verification code sent"}, nil
+	return &authnv3.MessageResponse{Message: "verification code sent"}, nil
 }
 
-func (s *loginIdentityServiceServer) LinkPhone(ctx context.Context, req *authnv2.LinkPhoneRequest) (*authnv2.LinkLoginIdentityResponse, error) {
+func (s *loginIdentityServiceServer) LinkPhone(ctx context.Context, req *authnv3.LinkPhoneRequest) (*authnv3.LinkLoginIdentityResponse, error) {
 	if s.linking == nil {
 		return nil, status.Error(codes.Unimplemented, "login identity service not configured")
 	}
@@ -66,7 +66,7 @@ func (s *loginIdentityServiceServer) LinkPhone(ctx context.Context, req *authnv2
 	return toProtoLinkResult(result), nil
 }
 
-func (s *loginIdentityServiceServer) LinkWechatMiniProgram(ctx context.Context, req *authnv2.LinkWechatMiniProgramRequest) (*authnv2.LinkLoginIdentityResponse, error) {
+func (s *loginIdentityServiceServer) LinkWechatMiniProgram(ctx context.Context, req *authnv3.LinkWechatMiniProgramRequest) (*authnv3.LinkLoginIdentityResponse, error) {
 	if s.linking == nil {
 		return nil, status.Error(codes.Unimplemented, "login identity service not configured")
 	}
@@ -88,7 +88,7 @@ func (s *loginIdentityServiceServer) LinkWechatMiniProgram(ctx context.Context, 
 	return toProtoLinkResult(result), nil
 }
 
-func (s *loginIdentityServiceServer) LinkWecom(ctx context.Context, req *authnv2.LinkWecomRequest) (*authnv2.LinkLoginIdentityResponse, error) {
+func (s *loginIdentityServiceServer) LinkWecom(ctx context.Context, req *authnv3.LinkWecomRequest) (*authnv3.LinkLoginIdentityResponse, error) {
 	if s.linking == nil {
 		return nil, status.Error(codes.Unimplemented, "login identity service not configured")
 	}
@@ -110,7 +110,7 @@ func (s *loginIdentityServiceServer) LinkWecom(ctx context.Context, req *authnv2
 	return toProtoLinkResult(result), nil
 }
 
-func (s *loginIdentityServiceServer) UnlinkLoginIdentity(ctx context.Context, req *authnv2.UnlinkLoginIdentityRequest) (*authnv2.MessageResponse, error) {
+func (s *loginIdentityServiceServer) UnlinkLoginIdentity(ctx context.Context, req *authnv3.UnlinkLoginIdentityRequest) (*authnv3.MessageResponse, error) {
 	if s.linking == nil {
 		return nil, status.Error(codes.Unimplemented, "login identity service not configured")
 	}
@@ -130,5 +130,5 @@ func (s *loginIdentityServiceServer) UnlinkLoginIdentity(ctx context.Context, re
 	}); err != nil {
 		return nil, toGRPCError(err)
 	}
-	return &authnv2.MessageResponse{Message: "login identity unlinked"}, nil
+	return &authnv3.MessageResponse{Message: "login identity unlinked"}, nil
 }

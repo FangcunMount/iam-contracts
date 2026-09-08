@@ -5,19 +5,19 @@ import (
 
 	redis "github.com/redis/go-redis/v9"
 
-	linkingapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
-	signupapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signup"
-	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	cachegovernance "github.com/FangcunMount/iam/v4/internal/apiserver/application/cachegovernance"
-	readinessapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/readiness"
-	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
-	authhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/handler"
-	authzhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/handler"
-	uchandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/identity/handler"
-	idphandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/idp/handler"
-	suggesthttp "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/suggest"
-	authzMiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authz"
-	genericapiserver "github.com/FangcunMount/iam/v4/internal/pkg/server"
+	linkingapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/linking"
+	signupapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signup"
+	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	cachegovernance "github.com/FangcunMount/iam/v5/internal/apiserver/application/cachegovernance"
+	readinessapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/readiness"
+	appquery "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/queryprofile"
+	authhandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/handler"
+	authzhandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authz/handler"
+	uchandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/identity/handler"
+	idphandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/idp/handler"
+	suggesthttp "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/suggest"
+	authzMiddleware "github.com/FangcunMount/iam/v5/internal/pkg/middleware/authz"
+	genericapiserver "github.com/FangcunMount/iam/v5/internal/pkg/server"
 )
 
 // RouterOptions 路由选项

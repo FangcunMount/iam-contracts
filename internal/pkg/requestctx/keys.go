@@ -3,14 +3,13 @@ package requestctx
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 const (
 	KeyClaims          = "claims"
 	KeyUserID          = "user_id"
 	KeyLoginIdentityID = "login_identity_id"
-	KeyTenantID        = "tenant_id"
 	KeyOrgID           = "org_id"
 	KeyTokenID         = "token_id"
 	KeyRequestID       = "request_id"

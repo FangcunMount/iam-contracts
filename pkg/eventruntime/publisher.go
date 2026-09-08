@@ -6,9 +6,9 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/component-base/pkg/messaging"
-	"github.com/FangcunMount/iam/v4/pkg/event"
-	"github.com/FangcunMount/iam/v4/pkg/eventcatalog"
-	"github.com/FangcunMount/iam/v4/pkg/eventmessaging"
+	"github.com/FangcunMount/iam/v5/pkg/event"
+	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
+	"github.com/FangcunMount/iam/v5/pkg/eventmessaging"
 )
 
 type PublishMode string

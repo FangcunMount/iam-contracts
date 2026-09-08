@@ -4,12 +4,12 @@ import (
 	redis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/container/idp"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/useraccess"
-	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
-	genericapiserver "github.com/FangcunMount/iam/v4/internal/pkg/server"
-	"github.com/FangcunMount/iam/v4/pkg/event"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/container/idp"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/useraccess"
+	apiserveroptions "github.com/FangcunMount/iam/v5/internal/apiserver/options"
+	genericapiserver "github.com/FangcunMount/iam/v5/internal/pkg/server"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 )
 
 // AuthnModuleDeps contains the runtime dependencies required to assemble the

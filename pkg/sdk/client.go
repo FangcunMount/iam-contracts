@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	authzv3 "github.com/FangcunMount/iam/v4/api/grpc/iam/authz/v3"
-	idpv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/idp/v2"
-	authclient "github.com/FangcunMount/iam/v4/pkg/sdk/auth/client"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/authz"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/identity"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/idp"
-	internaltransport "github.com/FangcunMount/iam/v4/pkg/sdk/internal/transport"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	authzv4 "github.com/FangcunMount/iam/v5/api/grpc/iam/authz/v4"
+	idpv2 "github.com/FangcunMount/iam/v5/api/grpc/iam/idp/v2"
+	authclient "github.com/FangcunMount/iam/v5/pkg/sdk/auth/client"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/authz"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/config"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/identity"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/idp"
+	internaltransport "github.com/FangcunMount/iam/v5/pkg/sdk/internal/transport"
 	"google.golang.org/grpc"
 )
 
@@ -63,11 +63,11 @@ func NewClient(ctx context.Context, cfg *Config, opts ...ClientOption) (*Client,
 }
 
 func (c *Client) initSubClients() {
-	authService := authnv2.NewAuthServiceClient(c.conn)
-	authSignupService := authnv2.NewAuthSignupServiceClient(c.conn)
-	authChallengeService := authnv2.NewAuthChallengeServiceClient(c.conn)
-	loginIdentityService := authnv2.NewLoginIdentityServiceClient(c.conn)
-	jwksService := authnv2.NewJWKSServiceClient(c.conn)
+	authService := authnv3.NewAuthServiceClient(c.conn)
+	authSignupService := authnv3.NewAuthSignupServiceClient(c.conn)
+	authChallengeService := authnv3.NewAuthChallengeServiceClient(c.conn)
+	loginIdentityService := authnv3.NewLoginIdentityServiceClient(c.conn)
+	jwksService := authnv3.NewJWKSServiceClient(c.conn)
 	c.authClient = authclient.NewClient(
 		authService,
 		jwksService,
@@ -76,7 +76,7 @@ func (c *Client) initSubClients() {
 		loginIdentityService,
 	)
 
-	authorizationService := authzv3.NewAuthorizationServiceClient(c.conn)
+	authorizationService := authzv4.NewAuthorizationServiceClient(c.conn)
 	c.authzClient = authz.NewClient(authorizationService)
 
 	c.identityClient = identity.NewClientFromConn(c.conn)

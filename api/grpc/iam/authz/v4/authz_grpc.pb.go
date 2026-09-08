@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v5.29.3
-// source: iam/authz/v3/authz.proto
+// source: iam/authz/v4/authz.proto
 
-package authzv3
+package authzv4
 
 import (
 	context "context"
@@ -19,11 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthorizationService_Check_FullMethodName                     = "/iam.authz.v3.AuthorizationService/Check"
-	AuthorizationService_GetAuthorizationSnapshot_FullMethodName  = "/iam.authz.v3.AuthorizationService/GetAuthorizationSnapshot"
-	AuthorizationService_GrantAssignment_FullMethodName           = "/iam.authz.v3.AuthorizationService/GrantAssignment"
-	AuthorizationService_RevokeAssignment_FullMethodName          = "/iam.authz.v3.AuthorizationService/RevokeAssignment"
-	AuthorizationService_ReplaceManagedAssignments_FullMethodName = "/iam.authz.v3.AuthorizationService/ReplaceManagedAssignments"
+	AuthorizationService_Check_FullMethodName                     = "/iam.authz.v4.AuthorizationService/Check"
+	AuthorizationService_GetAuthorizationSnapshot_FullMethodName  = "/iam.authz.v4.AuthorizationService/GetAuthorizationSnapshot"
+	AuthorizationService_GrantAssignment_FullMethodName           = "/iam.authz.v4.AuthorizationService/GrantAssignment"
+	AuthorizationService_RevokeAssignment_FullMethodName          = "/iam.authz.v4.AuthorizationService/RevokeAssignment"
+	AuthorizationService_ReplaceManagedAssignments_FullMethodName = "/iam.authz.v4.AuthorizationService/ReplaceManagedAssignments"
 )
 
 // AuthorizationServiceClient is the client API for AuthorizationService service.
@@ -244,7 +244,7 @@ func _AuthorizationService_ReplaceManagedAssignments_Handler(srv interface{}, ct
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AuthorizationService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "iam.authz.v3.AuthorizationService",
+	ServiceName: "iam.authz.v4.AuthorizationService",
 	HandlerType: (*AuthorizationServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -269,5 +269,5 @@ var AuthorizationService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "iam/authz/v3/authz.proto",
+	Metadata: "iam/authz/v4/authz.proto",
 }

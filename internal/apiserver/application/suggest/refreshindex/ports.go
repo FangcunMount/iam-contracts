@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	domainprofile "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
+	domainprofile "github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/profile"
 )
 
 // ProjectionSource 提供索引刷新所需的 Full/Delta 数据。

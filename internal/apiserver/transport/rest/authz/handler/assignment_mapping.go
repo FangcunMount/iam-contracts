@@ -1,9 +1,9 @@
 package handler
 
 import (
-	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/dto"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	assignmentDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authz/dto"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // toAssignmentResponse 转换为响应对象
@@ -13,7 +13,7 @@ func (h *AssignmentHandler) toAssignmentResponse(a *assignmentDomain.Assignment)
 		SubjectType: a.SubjectTypeString(),
 		SubjectID:   a.SubjectID,
 		RoleID:      a.RoleID,
-		TenantID:    a.TenantIDString(),
-		GrantedBy:   a.GrantedBy,
+
+		GrantedBy: a.GrantedBy,
 	}
 }

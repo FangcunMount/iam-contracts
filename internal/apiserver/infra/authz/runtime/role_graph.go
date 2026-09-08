@@ -4,100 +4,77 @@ import (
 	"sort"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-type roleNameSet map[role.Name]struct{}
+type roleIDSet map[meta.ID]struct{}
 
 // roleGraphBuilder owns the mutable construction phase. build converts every
 // set into a stable slice so the published roleGraph is read-only.
 type roleGraphBuilder struct {
-	directRoles    map[tenant.ID]map[subject.Ref]roleNameSet
-	inheritedRoles map[tenant.ID]map[role.Name]roleNameSet
+	directRoles    map[subject.Ref]roleIDSet
+	inheritedRoles map[meta.ID]roleIDSet
 }
 
 func newRoleGraphBuilder() *roleGraphBuilder {
-	return &roleGraphBuilder{
-		directRoles:    make(map[tenant.ID]map[subject.Ref]roleNameSet),
-		inheritedRoles: make(map[tenant.ID]map[role.Name]roleNameSet),
-	}
+	return &roleGraphBuilder{directRoles: make(map[subject.Ref]roleIDSet), inheritedRoles: make(map[meta.ID]roleIDSet)}
 }
-
-func (b *roleGraphBuilder) addAssignment(sub subject.Ref, roleName role.Name, tenantID tenant.ID) {
-	if b.directRoles[tenantID] == nil {
-		b.directRoles[tenantID] = make(map[subject.Ref]roleNameSet)
+func (b *roleGraphBuilder) addAssignment(sub subject.Ref, id meta.ID) {
+	if b.directRoles[sub] == nil {
+		b.directRoles[sub] = make(roleIDSet)
 	}
-	if b.directRoles[tenantID][sub] == nil {
-		b.directRoles[tenantID][sub] = make(roleNameSet)
-	}
-	b.directRoles[tenantID][sub][roleName] = struct{}{}
+	b.directRoles[sub][id] = struct{}{}
 }
-
-func (b *roleGraphBuilder) addInheritance(child, parent role.Name, tenantID tenant.ID) {
-	if b.inheritedRoles[tenantID] == nil {
-		b.inheritedRoles[tenantID] = make(map[role.Name]roleNameSet)
+func (b *roleGraphBuilder) addInheritance(child, parent meta.ID) {
+	if b.inheritedRoles[child] == nil {
+		b.inheritedRoles[child] = make(roleIDSet)
 	}
-	if b.inheritedRoles[tenantID][child] == nil {
-		b.inheritedRoles[tenantID][child] = make(roleNameSet)
-	}
-	b.inheritedRoles[tenantID][child][parent] = struct{}{}
+	b.inheritedRoles[child][parent] = struct{}{}
 }
-
 func (b *roleGraphBuilder) build(maxHierarchyLevel int) *roleGraph {
-	graph := &roleGraph{
-		maxHierarchyLevel: maxHierarchyLevel,
-		directRoles:       make(map[tenant.ID]map[subject.Ref][]role.Name, len(b.directRoles)),
-		inheritedRoles:    make(map[tenant.ID]map[role.Name][]role.Name, len(b.inheritedRoles)),
+	g := &roleGraph{maxHierarchyLevel: maxHierarchyLevel, directRoles: make(map[subject.Ref][]meta.ID), inheritedRoles: make(map[meta.ID][]meta.ID)}
+	for sub, ids := range b.directRoles {
+		g.directRoles[sub] = sortedRoleIDs(ids)
 	}
-	for tenantID, rolesBySubject := range b.directRoles {
-		graph.directRoles[tenantID] = make(map[subject.Ref][]role.Name, len(rolesBySubject))
-		for sub, roles := range rolesBySubject {
-			graph.directRoles[tenantID][sub] = sortedRoleNames(roles)
-		}
+	for child, parents := range b.inheritedRoles {
+		g.inheritedRoles[child] = sortedRoleIDs(parents)
 	}
-	for tenantID, parentsByRole := range b.inheritedRoles {
-		graph.inheritedRoles[tenantID] = make(map[role.Name][]role.Name, len(parentsByRole))
-		for child, parents := range parentsByRole {
-			graph.inheritedRoles[tenantID][child] = sortedRoleNames(parents)
-		}
-	}
-	return graph
+	return g
 }
 
 // roleGraph is the immutable runtime projection of Subject -> Role and
 // Role -> inherited Role facts for one published authorization snapshot.
 type roleGraph struct {
 	maxHierarchyLevel int
-	directRoles       map[tenant.ID]map[subject.Ref][]role.Name
-	inheritedRoles    map[tenant.ID]map[role.Name][]role.Name
+	directRoles       map[subject.Ref][]meta.ID
+	inheritedRoles    map[meta.ID][]meta.ID
 }
 
 var _ authorization.RoleResolver = (*roleGraph)(nil)
 
-func (g *roleGraph) DirectRoles(sub subject.Ref, tenantID tenant.ID) ([]role.Name, error) {
+func (g *roleGraph) DirectRoles(sub subject.Ref) ([]meta.ID, error) {
 	if g == nil {
 		return nil, perrors.WithCode(code.ErrInternalServerError, "authorization role resolver is unavailable")
 	}
-	return cloneRoleNames(g.directRoles[tenantID][sub]), nil
+	return cloneRoleIDs(g.directRoles[sub]), nil
 }
 
-func (g *roleGraph) EffectiveRoles(sub subject.Ref, tenantID tenant.ID) ([]role.Name, error) {
+func (g *roleGraph) EffectiveRoles(sub subject.Ref) ([]meta.ID, error) {
 	if g == nil {
 		return nil, perrors.WithCode(code.ErrInternalServerError, "authorization role resolver is unavailable")
 	}
 	if g.maxHierarchyLevel <= 0 {
-		return make([]role.Name, 0), nil
+		return make([]meta.ID, 0), nil
 	}
 
-	frontier := g.directRoles[tenantID][sub]
-	seen := make(roleNameSet)
-	effective := make([]role.Name, 0, len(frontier))
+	frontier := g.directRoles[sub]
+	seen := make(roleIDSet)
+	effective := make([]meta.ID, 0, len(frontier))
 	for level := 0; level < g.maxHierarchyLevel && len(frontier) > 0; level++ {
-		next := make(roleNameSet)
+		next := make(roleIDSet)
 		for _, current := range frontier {
 			if _, exists := seen[current]; exists {
 				continue
@@ -106,36 +83,36 @@ func (g *roleGraph) EffectiveRoles(sub subject.Ref, tenantID tenant.ID) ([]role.
 			effective = append(effective, current)
 		}
 		for _, current := range frontier {
-			for _, parent := range g.inheritedRoles[tenantID][current] {
+			for _, parent := range g.inheritedRoles[current] {
 				if _, exists := seen[parent]; !exists {
 					next[parent] = struct{}{}
 				}
 			}
 		}
-		frontier = sortedRoleNames(next)
+		frontier = sortedRoleIDs(next)
 	}
 	if len(frontier) > 0 {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "role hierarchy exceeds maximum depth")
 	}
 	sort.Slice(effective, func(i, j int) bool {
-		return effective[i].String() < effective[j].String()
+		return effective[i] < effective[j]
 	})
 	return effective, nil
 }
 
-func sortedRoleNames(values roleNameSet) []role.Name {
-	result := make([]role.Name, 0, len(values))
+func sortedRoleIDs(values roleIDSet) []meta.ID {
+	result := make([]meta.ID, 0, len(values))
 	for value := range values {
 		result = append(result, value)
 	}
 	sort.Slice(result, func(i, j int) bool {
-		return result[i].String() < result[j].String()
+		return result[i] < result[j]
 	})
 	return result
 }
 
-func cloneRoleNames(values []role.Name) []role.Name {
-	result := make([]role.Name, len(values))
+func cloneRoleIDs(values []meta.ID) []meta.ID {
+	result := make([]meta.ID, len(values))
 	copy(result, values)
 	return result
 }

@@ -104,17 +104,17 @@ ON DUPLICATE KEY UPDATE `name`       = VALUES(`name`),
 -- ----------------------------------------------------------------------------
 -- Roles
 -- ----------------------------------------------------------------------------
-INSERT INTO `authz_roles` (`id`, `name`, `display_name`, `tenant_id`, `is_system`, `description`, `created_at`,
+INSERT INTO `authz_roles` (`management_protection`, `id`, `name`, `display_name`, `tenant_id`, `is_system`, `description`, `created_at`,
                            `updated_at`, `created_by`, `updated_by`, `deleted_by`, `version`)
-VALUES (900000001, 'super_admin', '平台超级管理员', 'platform', 1, '平台控制面的根角色', NOW(), NOW(), 0, 0, 0, 1),
-       (1, 'super_admin', '租户超级管理员', 'fangcun', 1, '方寸默认租户的超级管理员角色', NOW(), NOW(), 0, 0, 0, 1),
-       (2, 'tenant_admin', '租户管理员', 'fangcun', 1, '管理本租户内的所有资源', NOW(), NOW(), 0, 0, 0, 1),
-       (3, 'user', '普通用户', 'fangcun', 1, '普通用户权限', NOW(), NOW(), 0, 0, 0, 1),
-       (900000101, 'qs:admin', 'QS管理员', 'fangcun', 1, 'QS服务所有资源的管理权限', NOW(), NOW(), 0, 0, 0, 1),
-       (900000102, 'qs:content_manager', '内容管理员', 'fangcun', 1, '问卷、量表和常模表的管理权限', NOW(), NOW(), 0, 0, 0, 1),
-       (900000103, 'qs:evaluator', '评估员', 'fangcun', 1, '测评执行、批量评估及仅 adhoc 测评重试', NOW(), NOW(), 0, 0, 0, 1),
-       (900000104, 'qs:staff', '普通员工', 'fangcun', 1, '基本查看权限', NOW(), NOW(), 0, 0, 0, 1),
-       (900000105, 'qs:evaluation_plan_manager', '测评计划管理员', 'fangcun', 1, '测评计划的管理权限', NOW(), NOW(), 0, 0, 0,
+VALUES ('protected', 900000001, 'super_admin', '平台超级管理员', 'platform', 1, '平台控制面的根角色', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 1, 'super_admin', '租户超级管理员', 'fangcun', 1, '方寸默认租户的超级管理员角色', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 2, 'tenant_admin', '租户管理员', 'fangcun', 1, '管理本租户内的所有资源', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 3, 'user', '普通用户', 'fangcun', 1, '普通用户权限', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000101, 'qs:admin', 'QS管理员', 'fangcun', 1, 'QS服务所有资源的管理权限', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000102, 'qs:content_manager', '内容管理员', 'fangcun', 1, '问卷、量表和常模表的管理权限', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000103, 'qs:evaluator', '评估员', 'fangcun', 1, '测评执行、批量评估及仅 adhoc 测评重试', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000104, 'qs:staff', '普通员工', 'fangcun', 1, '基本查看权限', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000105, 'qs:evaluation_plan_manager', '测评计划管理员', 'fangcun', 1, '测评计划的管理权限', NOW(), NOW(), 0, 0, 0,
         1)
 ON DUPLICATE KEY UPDATE `display_name` = VALUES(`display_name`),
                         `tenant_id`    = VALUES(`tenant_id`),

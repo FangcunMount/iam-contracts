@@ -3,7 +3,7 @@ package credential
 import (
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // AuthenticationTransitionKind 认证状态迁移类型。

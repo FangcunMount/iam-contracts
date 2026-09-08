@@ -3,32 +3,31 @@ package role
 import (
 	"testing"
 
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCreateRoleCommandUsesValueObjects(t *testing.T) {
 	t.Parallel()
 
-	cmd, err := NewCreateRoleCommand(" iam:admin ", " Admin ", " tenant-a ", "desc")
+	cmd, err := NewCreateRoleCommand(" iam:admin ", " Admin ", "desc")
 
 	require.NoError(t, err)
 	require.Equal(t, "iam:admin", cmd.NameString())
 	require.Equal(t, "Admin", cmd.DisplayName)
-	require.Equal(t, "tenant-a", cmd.TenantIDString())
 	require.Equal(t, "desc", cmd.Description)
 }
 
 func TestCreateRoleCommandRejectsInvalidValues(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewCreateRoleCommand("", "Admin", "tenant-a", "")
+	_, err := NewCreateRoleCommand("", "Admin", "")
 	require.Error(t, err)
 
-	_, err = NewCreateRoleCommand("admin", "", "tenant-a", "")
+	_, err = NewCreateRoleCommand("admin", "", "")
 	require.Error(t, err)
 
-	_, err = NewCreateRoleCommand("admin", "Admin", "", "")
+	_, err = NewCreateRoleCommand("admin", "Admin", "")
 	require.Error(t, err)
 }
 
@@ -50,10 +49,9 @@ func TestUpdateRoleCommandCopiesOptionalFields(t *testing.T) {
 func TestListRolesQueryUsesTenantValueObject(t *testing.T) {
 	t.Parallel()
 
-	query, err := NewListRolesQuery(" tenant-a ", 2, 5)
+	query, err := NewListRolesQuery(2, 5)
 
 	require.NoError(t, err)
-	require.Equal(t, "tenant-a", query.TenantIDString())
 	require.Equal(t, 2, query.Offset)
 	require.Equal(t, 5, query.Limit)
 }

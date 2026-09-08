@@ -3,7 +3,7 @@ package permissiongrant
 import (
 	"context"
 
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // RevokeOutcome describes the result of an atomic revoke attempt.
@@ -17,7 +17,7 @@ const (
 
 // AtomicRevoker performs tenant-scoped revoke operations with explicit outcomes.
 type AtomicRevoker interface {
-	AtomicRevoke(ctx context.Context, id meta.ID, tenantID string) (RevokeOutcome, error)
+	AtomicRevoke(ctx context.Context, id meta.ID) (RevokeOutcome, error)
 }
 
 // AppliesVersionChange reports whether a revoke outcome should publish policy versions.

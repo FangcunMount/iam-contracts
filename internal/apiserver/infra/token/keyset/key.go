@@ -1,12 +1,12 @@
 package keyset
 
 import (
-	pkgauth "github.com/FangcunMount/iam/v4/pkg/auth"
+	pkgauth "github.com/FangcunMount/iam/v5/pkg/auth"
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	signingkeydomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/signingkey"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	signingkeydomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/signingkey"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 type KeyStatus = signingkeydomain.Status

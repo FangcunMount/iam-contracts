@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	credDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/credential"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	credDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/credential"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // CredentialEffect 描述认证后对长期凭据的副作用。

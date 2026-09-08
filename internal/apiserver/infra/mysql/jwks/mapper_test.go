@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/infra/token/keyset"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/infra/token/keyset"
 	"github.com/stretchr/testify/require"
 )
 

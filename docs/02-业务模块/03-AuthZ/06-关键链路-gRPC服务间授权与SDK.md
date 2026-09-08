@@ -1,6 +1,6 @@
 # 关键链路：gRPC 服务间授权与 SDK
 
-> 状态：已实现 · 本文以 `iam.authz.v3.AuthorizationService` proto、gRPC 服务、拦截器/ACL、Assignment constraints 与 Go SDK 为依据。
+> 状态：已实现 · 本文以 `iam.authz.v4.AuthorizationService` proto、gRPC 服务、拦截器/ACL、Assignment constraints 与 Go SDK 为依据。
 
 ## 结论
 
@@ -22,7 +22,7 @@ REST v3 不提供 Check。外部业务服务不应下载 Role/Grant 后自行实
 | `RevokeAssignment` | 增量写 | subject、domain、role_name、revoked_by/reason | policy version | 同上 |
 | `ReplaceManagedAssignments` | 集合写 | subject、domain、role_names、changed_by/reason | managed target subset、version、changed | service identity + method ACL + explicit managed role set |
 
-proto `api/grpc/iam/authz/v3/authz.proto` 是 RPC 名、字段号、枚举值与响应形状的机器真相源。
+proto `api/grpc/iam/authz/v4/authz.proto` 是 RPC 名、字段号、枚举值与响应形状的机器真相源。
 `api/grpc/README.md` 与 `pkg/sdk/docs/06-authz.md` 只做使用说明，不能重新定义契约。
 
 ## 服务身份是所有 RPC 的前置条件

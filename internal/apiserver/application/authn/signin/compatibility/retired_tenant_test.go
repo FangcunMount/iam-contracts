@@ -2,9 +2,10 @@ package compatibility
 
 import (
 	"encoding/json"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPasswordLoginIgnoresRetiredNumericTenant(t *testing.T) {

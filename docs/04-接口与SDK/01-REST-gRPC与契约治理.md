@@ -38,7 +38,7 @@ Proto 位于：
 
 ```text
 api/grpc/iam/{authn,identity,idp}/v2/*.proto
-api/grpc/iam/authz/v3/*.proto
+api/grpc/iam/authz/v4/*.proto
 ```
 
 `container.grpcRegistrations()` 只收集 available module 的 registration，`transport/grpc.Registry` 完成注册后才将服务标为 SERVING。

@@ -5,21 +5,20 @@ import (
 	"fmt"
 	"testing"
 
-	assignmentapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignment"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/testutil"
-	assignmentdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/pkg/event"
+	assignmentapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/testutil"
+	assignmentdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 	"github.com/stretchr/testify/require"
 )
 
 type recordingResolver struct{ calls int }
 
 func (*recordingResolver) Supports(kind subject.Type) bool { return kind == subject.TypeUser }
-func (r *recordingResolver) Resolve(context.Context, subject.Ref, tenant.ID) error {
+func (r *recordingResolver) Resolve(context.Context, subject.Ref) error {
 	r.calls++
 	return nil
 }
@@ -34,28 +33,27 @@ func TestIDAndNameGrantShareResolverTransactionAndRollback(t *testing.T) {
 	fixture := testutil.NewAssignmentFixture(t, resolver)
 	ctx := context.Background()
 	roles := fixture.Roles
-	r, err := role.NewRole("reader", "Reader", "a")
+	r, err := role.NewRole("reader", "Reader")
 	require.NoError(t, err)
 	require.NoError(t, roles.Create(ctx, &r))
 	validator := assignmentdomain.NewValidatorWithSubjectResolver(roles, resolver)
 	service := assignmentapp.NewCommandService(validator, roles, fixture.UnitOfWork, nil)
-	cmd, err := assignmentapp.NewGrantCommand(assignmentdomain.SubjectTypeUser, meta.ID(1), r.ID, "a", "seed")
+	cmd, err := assignmentapp.NewGrantCommand(assignmentdomain.SubjectTypeUser, meta.ID(1), r.ID, "seed")
 	require.NoError(t, err)
 	granted, err := service.Grant(ctx, cmd)
 	require.NoError(t, err)
 	require.Equal(t, r.ID, granted.RoleID)
 	sub, err := subject.NewUserRef(meta.ID(2))
 	require.NoError(t, err)
-	version, err := service.GrantByRoleName(ctx, assignmentapp.GrantByRoleNameCommand{Subject: sub, TenantID: "a", RoleName: r.Name.String(), GrantedBy: "seed"})
+	version, err := service.GrantByRoleName(ctx, assignmentapp.GrantByRoleNameCommand{Subject: sub, RoleName: r.Name.String(), GrantedBy: "seed"})
 	require.NoError(t, err)
 	require.EqualValues(t, 2, version)
 	require.Equal(t, 2, resolver.calls)
-	assignments, err := fixture.Assignments.ListByRole(ctx, r.ID, "a")
+	assignments, err := fixture.Assignments.ListByRole(ctx, r.ID)
 	require.NoError(t, err)
 	require.Len(t, assignments, 2)
 	for _, a := range assignments {
 		require.Equal(t, r.ID, a.RoleID)
-		require.Equal(t, tenant.ID("a"), a.TenantID)
 	}
 	require.EqualValues(t, 2, fixture.OutboxCount(t))
 	failed := assignmentapp.NewCommandService(validator, roles, fixture.WithEventStager(rejectedEvent{}), nil)
@@ -64,9 +62,9 @@ func TestIDAndNameGrantShareResolverTransactionAndRollback(t *testing.T) {
 	require.Error(t, err)
 	sub, err = subject.NewUserRef(meta.ID(4))
 	require.NoError(t, err)
-	_, err = failed.GrantByRoleName(ctx, assignmentapp.GrantByRoleNameCommand{Subject: sub, TenantID: "a", RoleName: r.Name.String(), GrantedBy: "seed"})
+	_, err = failed.GrantByRoleName(ctx, assignmentapp.GrantByRoleNameCommand{Subject: sub, RoleName: r.Name.String(), GrantedBy: "seed"})
 	require.Error(t, err)
-	assignments, err = fixture.Assignments.ListByRole(ctx, r.ID, "a")
+	assignments, err = fixture.Assignments.ListByRole(ctx, r.ID)
 	require.NoError(t, err)
 	require.Len(t, assignments, 2)
 	require.EqualValues(t, 2, fixture.OutboxCount(t))

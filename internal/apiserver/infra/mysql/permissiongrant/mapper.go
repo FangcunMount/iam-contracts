@@ -1,10 +1,10 @@
 package permissiongrant
 
 import (
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 type Mapper struct{}
@@ -18,7 +18,7 @@ func (Mapper) ToPO(grant *domain.Grant) (*GrantPO, error) {
 		return nil, err
 	}
 	po := &GrantPO{
-		TenantID:        grant.TenantIDString(),
+
 		RoleID:          grant.RoleID.Uint64(),
 		ResourcePattern: grant.ResourcePatternString(),
 		Action:          grant.ActionString(),
@@ -51,7 +51,7 @@ func (Mapper) ToBO(po *GrantPO) (*domain.Grant, error) {
 	}
 	grant, err := domain.Restore(
 		meta.FromUint64(po.RoleID),
-		po.TenantID,
+
 		resourceID,
 		po.ResourcePattern,
 		po.Action,

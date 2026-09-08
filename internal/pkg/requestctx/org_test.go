@@ -7,9 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/pkg/tenant"
+	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 func TestBusinessOrgIDFromOrgClaimOnly(t *testing.T) {
@@ -28,8 +27,8 @@ func TestBusinessOrgIDFromOrgClaimOnly(t *testing.T) {
 	t.Run("numeric tenant domain does not imply org", func(t *testing.T) {
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Request = httptest.NewRequest("GET", "/", nil)
-		SetTenantID(c, "1")
-		SetClaims(c, &tokenapp.TokenClaims{TenantDomain: tenant.DefaultID})
+		SetTenantID(c)
+		SetClaims(c, &tokenapp.TokenClaims{})
 		_, ok := BusinessOrgID(c)
 		require.False(t, ok)
 	})

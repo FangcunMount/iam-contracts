@@ -7,20 +7,20 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/subjectresolver"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/subjectresolver"
 
-	assignmentApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignment"
-	authzAppUOW "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/uow"
-	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
-	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	assignmentRepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/assignment"
-	policyRepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/policy"
-	roleRepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/role"
-	authzUOW "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/uow/authz"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/pkg/event"
+	assignmentApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
+	authzAppUOW "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
+	assignmentDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	roleDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	assignmentRepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/assignment"
+	policyRepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
+	roleRepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
+	authzUOW "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/uow/authz"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/testhelpers"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,7 +47,7 @@ func TestReplaceManagedAssignmentsIsAtomicAndPreservesUnmanagedRoles(t *testing.
 	managed := []string{"qs:staff", "qs:evaluator", "qs:content_manager"}
 
 	cmd, err := assignmentApp.NewReplaceManagedAssignmentsCommand(
-		sub, "fangcun", []string{"qs:staff", "qs:content_manager"}, managed,
+		sub, []string{"qs:staff", "qs:content_manager"}, managed,
 		"user:200", "staff role update",
 	)
 	require.NoError(t, err)
@@ -68,14 +68,14 @@ func TestReplaceManagedAssignmentsIsAtomicAndPreservesUnmanagedRoles(t *testing.
 
 	stager.SetError(errors.New("outbox unavailable"))
 	rollbackCmd, err := assignmentApp.NewReplaceManagedAssignmentsCommand(
-		sub, "fangcun", []string{"qs:evaluator"}, managed,
+		sub, []string{"qs:evaluator"}, managed,
 		"user:200", "rollback proof",
 	)
 	require.NoError(t, err)
 	_, err = service.ReplaceManagedAssignments(ctx, rollbackCmd)
 	require.ErrorContains(t, err, "outbox unavailable")
 	require.Equal(t, []string{"qs:content_manager", "qs:staff", "tenant_admin"}, assignedRoleNames(t, ctx, assignments, roles, userID))
-	current, err := policyRepo.NewPolicyVersionRepository(db).GetCurrent(ctx, "fangcun")
+	current, err := policyRepo.NewPolicyVersionRepository(db).GetCurrent(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, current)
 	require.EqualValues(t, 1, current.Version, "failed replacement must roll back the policy version")
@@ -151,17 +151,17 @@ func (r *lockingAssignmentReadRepository) ListBySubjectForUpdate(
 	ctx context.Context,
 	subjectType assignmentDomain.SubjectType,
 	subjectID meta.ID,
-	tenantID string,
+
 ) ([]*assignmentDomain.Assignment, error) {
 	r.onLockingRead()
-	return r.Repository.ListBySubjectForUpdate(ctx, subjectType, subjectID, tenantID)
+	return r.Repository.ListBySubjectForUpdate(ctx, subjectType, subjectID)
 }
 
 func seedRoles(t *testing.T, ctx context.Context, repo roleDomain.Repository, names ...string) map[string]*roleDomain.Role {
 	t.Helper()
 	result := make(map[string]*roleDomain.Role, len(names))
 	for _, name := range names {
-		role, err := roleDomain.NewRole(name, name, "fangcun")
+		role, err := roleDomain.NewRole(name, name)
 		require.NoError(t, err)
 		require.NoError(t, repo.Create(ctx, &role))
 		copyRole := role
@@ -173,7 +173,7 @@ func seedRoles(t *testing.T, ctx context.Context, repo roleDomain.Repository, na
 func seedAssignment(t *testing.T, ctx context.Context, repo assignmentDomain.Repository, subjectID, roleID meta.ID) {
 	t.Helper()
 	assignment, err := assignmentDomain.NewAssignment(
-		assignmentDomain.SubjectTypeUser, subjectID, roleID, "fangcun", assignmentDomain.WithGrantedBy("seed"),
+		assignmentDomain.SubjectTypeUser, subjectID, roleID, assignmentDomain.WithGrantedBy("seed"),
 	)
 	require.NoError(t, err)
 	require.NoError(t, repo.Create(ctx, &assignment))
@@ -187,7 +187,7 @@ func assignedRoleNames(
 	subjectID meta.ID,
 ) []string {
 	t.Helper()
-	rows, err := assignments.ListBySubject(ctx, assignmentDomain.SubjectTypeUser, subjectID, "fangcun")
+	rows, err := assignments.ListBySubject(ctx, assignmentDomain.SubjectTypeUser, subjectID)
 	require.NoError(t, err)
 	names := make([]string, 0, len(rows))
 	for _, assignment := range rows {

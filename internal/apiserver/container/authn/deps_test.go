@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/container/idp"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/useraccess"
-	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/pkg/event"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/container/idp"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/useraccess"
+	apiserveroptions "github.com/FangcunMount/iam/v5/internal/apiserver/options"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 	redis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )

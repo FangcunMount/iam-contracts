@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	user "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/user"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	user "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/user"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/testhelpers"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 func TestUniquenessChecker_CheckPhoneUniqueSuccess(t *testing.T) {

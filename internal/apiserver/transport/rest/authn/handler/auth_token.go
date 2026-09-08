@@ -6,10 +6,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	req "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/request"
-	resp "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/response"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	req "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/request"
+	resp "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/response"
 )
 
 // Logout 登出
@@ -21,7 +21,7 @@ import (
 // @Param request body req.LogoutRequest true "登出请求"
 // @Success 200 {object} resp.MessageResponse "登出成功"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
-// @Router /v2/authn/logout [post]
+// @Router /v3/authn/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	var reqBody req.LogoutRequest
 	if err := h.BindJSON(c, &reqBody); err != nil {
@@ -57,7 +57,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // @Success 200 {object} resp.TokenPair "刷新成功，返回新的访问令牌"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 401 {object} map[string]interface{} "刷新令牌无效或已过期"
-// @Router /v2/authn/refresh_token [post]
+// @Router /v3/authn/refresh_token [post]
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var reqBody req.RefreshTokenRequest
 	if err := h.BindJSON(c, &reqBody); err != nil {
@@ -90,7 +90,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // @Success 200 {object} resp.TokenVerifyResponse "验证成功"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 401 {object} map[string]interface{} "令牌无效"
-// @Router /v2/authn/verify [post]
+// @Router /v3/authn/verify [post]
 func (h *AuthHandler) VerifyToken(c *gin.Context) {
 	var reqBody req.VerifyTokenRequest
 	if err := h.BindJSON(c, &reqBody); err != nil {
@@ -136,7 +136,7 @@ func (h *AuthHandler) VerifyToken(c *gin.Context) {
 		response.Claims = &resp.TokenClaims{
 			UserID:          result.Claims.UserID.String(),
 			LoginIdentityID: result.Claims.LoginIdentityID.String(),
-			TenantDomain:    result.Claims.TenantDomain,
+
 			OrgID:           orgID,
 			Subject:         result.Claims.Subject,
 			SessionID:       result.Claims.SessionID,

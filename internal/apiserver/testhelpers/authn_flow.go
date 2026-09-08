@@ -2,10 +2,11 @@ package testhelpers
 
 import (
 	"context"
-	admission "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	session "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	"time"
+
+	admission "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	session "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
 )
 
 // AuthnFlow provides in-memory admission and session collaborators for application tests.

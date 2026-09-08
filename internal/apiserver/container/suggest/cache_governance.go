@@ -3,9 +3,9 @@ package suggest
 import (
 	"context"
 
-	cachegovernance "github.com/FangcunMount/iam/v4/internal/apiserver/application/cachegovernance"
-	cachemodel "github.com/FangcunMount/iam/v4/internal/apiserver/cache"
-	suggestratelimit "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/ratelimit"
+	cachegovernance "github.com/FangcunMount/iam/v5/internal/apiserver/application/cachegovernance"
+	cachemodel "github.com/FangcunMount/iam/v5/internal/apiserver/cache"
+	suggestratelimit "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/ratelimit"
 )
 
 // CacheFamilyInspectors 返回当前实际启用的 Suggest 限流缓存族。

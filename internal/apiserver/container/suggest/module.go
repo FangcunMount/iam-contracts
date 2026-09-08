@@ -8,15 +8,15 @@ import (
 	"github.com/robfig/cron/v3"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
-	apprefresh "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/refreshindex"
-	mysqlsuggest "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/suggest"
-	suggestauthz "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/authorization"
-	suggestmemory "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/index/memory"
-	suggestmetrics "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/metrics"
-	suggestratelimit "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/ratelimit"
-	suggestvisibility "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/visibility"
-	genericapiserver "github.com/FangcunMount/iam/v4/internal/pkg/server"
+	appquery "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/queryprofile"
+	apprefresh "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/refreshindex"
+	mysqlsuggest "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/suggest"
+	suggestauthz "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/authorization"
+	suggestmemory "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/index/memory"
+	suggestmetrics "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/metrics"
+	suggestratelimit "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/ratelimit"
+	suggestvisibility "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/visibility"
+	genericapiserver "github.com/FangcunMount/iam/v5/internal/pkg/server"
 )
 
 // SuggestModule 联想搜索模块

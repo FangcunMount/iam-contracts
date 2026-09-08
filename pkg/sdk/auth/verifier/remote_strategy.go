@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/FangcunMount/component-base/pkg/logger"
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/config"
 )
 
 // RemoteVerifyStrategy 远程验证策略（调用 IAM 服务）。
@@ -41,7 +41,7 @@ func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, o
 		return nil, err
 	}
 
-	resp, err := s.authClient.VerifyToken(ctx, &authnv2.VerifyTokenRequest{
+	resp, err := s.authClient.VerifyToken(ctx, &authnv3.VerifyTokenRequest{
 		AccessToken:        tokenString,
 		ForceRemote:        opts.ForceRemote,
 		IncludeMetadata:    opts.IncludeMetadata,
@@ -77,10 +77,7 @@ func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, o
 		Attributes:      cloneStringMapValues(resp.Claims.Attributes),
 		Extra:           make(map[string]interface{}),
 	}
-	applyTenantAndOrg(claims, resp.Claims.TenantId, resp.Claims.OrgId)
-	if resp.Claims.GetTenantDomain() != "" {
-		claims.TenantDomain = resp.Claims.GetTenantDomain()
-	}
+	applyOrg(claims, resp.Claims.OrgId)
 	if resp.Claims.ExpiresAt != nil {
 		claims.ExpiresAt = resp.Claims.ExpiresAt.AsTime()
 	}
@@ -103,7 +100,7 @@ func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, o
 		return nil, err
 	}
 
-	logger.L(ctx).Debugw("RemoteVerifyStrategy verify success", "strategy", s.Name(), "subject", claims.Subject, "tenant_domain", claims.TenantDomain, "org_id", claims.OrgID)
+	logger.L(ctx).Debugw("RemoteVerifyStrategy verify success", "strategy", s.Name(), "subject", claims.Subject, "org_id", claims.OrgID)
 	if resp.Metadata != nil {
 		if err := policy.validateTokenType(protoTokenTypeString(resp.Metadata.TokenType)); err != nil {
 			return nil, err
@@ -131,20 +128,20 @@ func cloneStringMapValues(in map[string]string) map[string]string {
 	return out
 }
 
-func acceptedProtoTokenTypes(opts *VerifyOptions) []authnv2.TokenType {
+func acceptedProtoTokenTypes(opts *VerifyOptions) []authnv3.TokenType {
 	if opts != nil && len(opts.AllowedTokenTypes) > 0 {
-		return append([]authnv2.TokenType(nil), opts.AllowedTokenTypes...)
+		return append([]authnv3.TokenType(nil), opts.AllowedTokenTypes...)
 	}
-	return []authnv2.TokenType{authnv2.TokenType_TOKEN_TYPE_ACCESS}
+	return []authnv3.TokenType{authnv3.TokenType_TOKEN_TYPE_ACCESS}
 }
 
-func protoTokenTypeString(tokenType authnv2.TokenType) string {
+func protoTokenTypeString(tokenType authnv3.TokenType) string {
 	switch tokenType {
-	case authnv2.TokenType_TOKEN_TYPE_REFRESH:
+	case authnv3.TokenType_TOKEN_TYPE_REFRESH:
 		return "refresh"
-	case authnv2.TokenType_TOKEN_TYPE_ACCESS:
+	case authnv3.TokenType_TOKEN_TYPE_ACCESS:
 		return "access"
-	case authnv2.TokenType_TOKEN_TYPE_UNSPECIFIED:
+	case authnv3.TokenType_TOKEN_TYPE_UNSPECIFIED:
 		return "access" // Only the absent legacy type retains compatibility.
 	default:
 		return "invalid"

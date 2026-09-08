@@ -3,7 +3,7 @@ package authn
 import (
 	"testing"
 
-	genericapiserver "github.com/FangcunMount/iam/v4/internal/pkg/server"
+	genericapiserver "github.com/FangcunMount/iam/v5/internal/pkg/server"
 )
 
 func TestShouldAutoInitializeJWKS(t *testing.T) {

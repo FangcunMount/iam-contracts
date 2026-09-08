@@ -4,15 +4,15 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	assignment "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	assignment "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAssignmentCreate(t *testing.T) {
-	a, err := assignment.NewAssignment(assignment.SubjectTypeUser, meta.FromUint64(1), meta.FromUint64(42), "tenant", assignment.WithID(assignment.NewAssignmentID(5)), assignment.WithGrantedBy("admin"))
+	a, err := assignment.NewAssignment(assignment.SubjectTypeUser, meta.FromUint64(1), meta.FromUint64(42), assignment.WithID(assignment.NewAssignmentID(5)), assignment.WithGrantedBy("admin"))
 	require.NoError(t, err)
 	assert.Equal(t, assignment.SubjectTypeUser, a.SubjectType)
 	assert.Equal(t, meta.FromUint64(1), a.SubjectID)
@@ -37,7 +37,7 @@ func TestAssignmentCreateRejectsInvalidState(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := assignment.NewAssignment(tt.subjectType, tt.subjectID, tt.roleID, tt.tenantID, assignment.WithGrantedBy(tt.grantedBy))
+			_, err := assignment.NewAssignment(tt.subjectType, tt.subjectID, tt.roleID, assignment.WithGrantedBy(tt.grantedBy))
 			assert.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 		})
 	}

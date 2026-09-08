@@ -4,11 +4,10 @@ import (
 	"context"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // Validator 赋权规则验证器（领域服务）。
@@ -37,7 +36,7 @@ func (v *validator) ValidateGrantParameters(
 	subjectType SubjectType,
 	subjectID meta.ID,
 	roleID meta.ID,
-	tenantID string,
+
 	grantedBy string,
 ) error {
 	if subjectType == "" {
@@ -52,9 +51,6 @@ func (v *validator) ValidateGrantParameters(
 	if roleID.IsZero() {
 		return errors.WithCode(code.ErrInvalidArgument, "角色ID不能为空")
 	}
-	if tenantID == "" {
-		return errors.WithCode(code.ErrInvalidArgument, "租户ID不能为空")
-	}
 	if grantedBy == "" {
 		return errors.WithCode(code.ErrInvalidArgument, "授权人不能为空")
 	}
@@ -66,7 +62,7 @@ func (v *validator) ValidateRevokeParameters(
 	subjectType SubjectType,
 	subjectID meta.ID,
 	roleID meta.ID,
-	tenantID string,
+
 ) error {
 	if subjectType == "" {
 		return errors.WithCode(code.ErrInvalidArgument, "主体类型不能为空")
@@ -80,15 +76,12 @@ func (v *validator) ValidateRevokeParameters(
 	if roleID.IsZero() {
 		return errors.WithCode(code.ErrInvalidArgument, "角色ID不能为空")
 	}
-	if tenantID == "" {
-		return errors.WithCode(code.ErrInvalidArgument, "租户ID不能为空")
-	}
 	return nil
 }
 
 // CheckRoleExists 检查角色是否存在
-func (v *validator) CheckRoleExists(ctx context.Context, roleID meta.ID, tenantID string) error {
-	roleExists, err := v.roleRepo.FindByID(ctx, roleID)
+func (v *validator) CheckRoleExists(ctx context.Context, roleID meta.ID) error {
+	_, err := v.roleRepo.FindByID(ctx, roleID)
 	if err != nil {
 		if errors.IsCode(err, code.ErrRoleNotFound) {
 			return errors.WithCode(code.ErrRoleNotFound, "角色不存在")
@@ -96,27 +89,19 @@ func (v *validator) CheckRoleExists(ctx context.Context, roleID meta.ID, tenantI
 		return errors.Wrap(err, "检查角色存在性失败")
 	}
 
-	if !roleExists.BelongsToTenant(tenantID) {
-		return errors.WithCode(code.ErrPermissionDenied, "角色不属于当前租户")
-	}
-
 	return nil
 }
 
 // CheckSubjectExists 检查主体是否存在
-func (v *validator) CheckSubjectExists(ctx context.Context, subjectType SubjectType, subjectID meta.ID, tenantID string) error {
+func (v *validator) CheckSubjectExists(ctx context.Context, subjectType SubjectType, subjectID meta.ID) error {
 	sub, err := subject.NewRef(subject.Type(subjectType), subjectID)
-	if err != nil {
-		return err
-	}
-	tenantIDValue, err := tenant.NewID(tenantID)
 	if err != nil {
 		return err
 	}
 	if v.subjectResolver == nil {
 		return errors.WithCode(code.ErrInternalServerError, "主体解析器未配置")
 	}
-	return v.subjectResolver.Resolve(ctx, sub, tenantIDValue)
+	return v.subjectResolver.Resolve(ctx, sub)
 }
 
 func validateWritableSubjectType(subjectType SubjectType) error {

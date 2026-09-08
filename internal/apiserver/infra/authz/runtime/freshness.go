@@ -7,7 +7,7 @@ import (
 )
 
 type VersionSource interface {
-	ReadVersions(context.Context) (map[string]int64, error)
+	ReadVersion(context.Context) (int64, error)
 }
 
 func (r *Runtime) freshnessAge() time.Duration {
@@ -40,12 +40,7 @@ func (r *Runtime) publish(snapshot *Snapshot, began time.Time) {
 	r.current.Store(snapshot)
 }
 func (r *Runtime) coversTargets(snapshot *Snapshot) bool {
-	for tenantID, version := range r.health.targets {
-		if snapshot.versions[tenantID] < version {
-			return false
-		}
-	}
-	return true
+	return snapshot.version >= r.health.target
 }
 func (r *Runtime) confirm(snapshot *Snapshot, began time.Time) {
 	r.health.mu.Lock()
@@ -77,19 +72,12 @@ func (r *Runtime) Reconcile(ctx context.Context) (resultErr error) {
 	if !ok {
 		return fmt.Errorf("authorization version source unavailable")
 	}
-	versions, err := source.ReadVersions(ctx)
+	version, err := source.ReadVersion(ctx)
 	if err != nil {
 		return err
 	}
 	r.health.mu.Lock()
-	if r.health.targets == nil {
-		r.health.targets = make(map[string]int64)
-	}
-	for tenantID, version := range versions {
-		if version > r.health.targets[tenantID] {
-			r.health.targets[tenantID] = version
-		}
-	}
+	r.health.target = max(r.health.target, version)
 	r.health.mu.Unlock()
 	snapshot := r.current.Load()
 	if snapshot == nil || r.health.versionLag(snapshot) > 0 {
@@ -101,10 +89,8 @@ func (r *Runtime) Reconcile(ctx context.Context) (resultErr error) {
 		}
 		return nil
 	}
-	for tenantID, version := range snapshot.versions {
-		if versions[tenantID] < version {
-			return fmt.Errorf("durable authorization version regressed for tenant %s", tenantID)
-		}
+	if version < snapshot.version {
+		return fmt.Errorf("durable authorization version regressed")
 	}
 	if err := ctx.Err(); err != nil {
 		return err
@@ -114,9 +100,9 @@ func (r *Runtime) Reconcile(ctx context.Context) (resultErr error) {
 	return nil
 }
 
-func (r *Runtime) PolicyVersionLoaded(tenantID string, version int64) bool {
+func (r *Runtime) PolicyVersionLoaded(version int64) bool {
 	s := r.current.Load()
-	return s != nil && s.versions[tenantID] >= version
+	return s != nil && s.version >= version
 }
 func (r *Runtime) SyncConfig() Config { return r.config }
 func (r *Runtime) RequireSync() {

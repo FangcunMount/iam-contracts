@@ -4,10 +4,9 @@ import (
 	"context"
 	"strconv"
 
-	authorizationapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
-	"github.com/FangcunMount/iam/v4/pkg/tenant"
+	authorizationapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	appquery "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/queryprofile"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/visibility"
 )
 
 // FactsReader 从 AuthZ 查询 Suggest 授权事实。
@@ -31,35 +30,31 @@ func (r *FactsReader) ReadAuthorizationFacts(
 	sub := "user:" + strconv.FormatInt(principal.OperatorID, 10)
 
 	listAllowed, err := r.permissions.CheckRoutePermission(
-		ctx, sub, tenant.PlatformID, appquery.ResourceIAMProfileCollection, appquery.ActionList,
+		ctx, sub, appquery.ResourceIAMProfileCollection, "list_all",
 	)
 	if err != nil {
 		return visibility.AuthorizationFacts{}, err
 	}
 	if listAllowed {
 		mobileAllowed, err := r.permissions.CheckRoutePermission(
-			ctx, sub, tenant.PlatformID, appquery.ResourceIAMProfileCollection, appquery.ActionSearchByMobile,
+			ctx, sub, appquery.ResourceIAMProfileCollection, "search_by_mobile_all",
 		)
 		if err != nil {
 			return visibility.AuthorizationFacts{}, err
 		}
 		return visibility.AuthorizationFacts{
-			PlatformListAllowed:         true,
-			PlatformMobileSearchAllowed: mobileAllowed,
+			AllProfilesAllowed:             true,
+			AllProfilesMobileSearchAllowed: mobileAllowed,
 		}, nil
 	}
 
-	tenantDom := principal.TenantDomain
-	if tenantDom == "" {
-		tenantDom = tenant.DefaultID
-	}
 	mobileOK, err := r.permissions.CheckRoutePermission(
-		ctx, sub, tenantDom, appquery.ResourceIAMProfileCollection, appquery.ActionSearchByMobile,
+		ctx, sub, appquery.ResourceIAMProfileCollection, appquery.ActionSearchByMobile,
 	)
 	if err != nil {
 		return visibility.AuthorizationFacts{}, err
 	}
-	return visibility.AuthorizationFacts{TenantMobileSearchAllowed: mobileOK}, nil
+	return visibility.AuthorizationFacts{ScopedMobileSearchAllowed: mobileOK}, nil
 }
 
 var _ appquery.AuthorizationFactsReader = (*FactsReader)(nil)

@@ -3,17 +3,16 @@ package policy
 import (
 	"time"
 
-	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	base "github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	base "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 
 // PolicyVersionPO 策略版本持久化对象
 type PolicyVersionPO struct {
 	base.AuditFields
-	TenantID      string `gorm:"column:tenant_id;type:varchar(64);not null;uniqueIndex:idx_tenant_version,priority:1"`
-	PolicyVersion int64  `gorm:"column:policy_version;type:bigint;not null;uniqueIndex:idx_tenant_version,priority:2"`
+
+	PolicyVersion int64  `gorm:"column:policy_version;type:bigint;not null"`
 	ChangedBy     string `gorm:"column:changed_by;type:varchar(64)"`
 	Reason        string `gorm:"column:reason;type:varchar(512)"`
 }
@@ -26,7 +25,7 @@ func (PolicyVersionPO) TableName() string {
 // BeforeCreate 在创建前设置信息
 func (p *PolicyVersionPO) BeforeCreate(tx *gorm.DB) error {
 	now := time.Now()
-	id := meta.FromUint64(idutil.GetIntID()) // 新生成的 ID 必定有效
+	id := meta.ID(1)
 	createdBy := base.UserIDOrZero(tx.Statement.Context)
 	updatedBy := createdBy
 	deletedBy := meta.FromUint64(0)

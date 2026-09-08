@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	identityuow "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/uow"
-	userdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/user"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	identityuow "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/uow"
+	userdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/user"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 

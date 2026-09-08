@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/FangcunMount/iam/v4/pkg/sdk/auth/internal/restclient"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/auth/internal/restclient"
 )
 
 type Client struct {

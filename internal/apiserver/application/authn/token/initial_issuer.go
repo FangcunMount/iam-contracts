@@ -3,9 +3,9 @@ package token
 import (
 	"context"
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 type RefreshTokenSaver interface {

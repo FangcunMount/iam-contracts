@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authzfixture "github.com/FangcunMount/iam/v4/internal/apiserver/testfixtures/authzschema"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/authzschema"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 )
 

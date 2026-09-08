@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
 	"sort"
 	"strings"
 	"time"
@@ -142,8 +143,8 @@ func analyzeHardeningState(ctx context.Context, s *hardeningState, providers *ob
 			continue
 		}
 		roles[r.ID] = r.TenantID
-		nodes = append(nodes, roleinheritance.RoleNode{ID: r.ID, TenantID: r.TenantID})
-		data.Roles = append(data.Roles, authzruntime.RoleRecord{ID: r.ID, TenantID: r.TenantID, Name: r.Name})
+		nodes = append(nodes, roleinheritance.RoleNode{ID: r.ID, TenantID: r.TenantID, ManagementProtection: roleDomain.ManagementProtection(r.ManagementProtection)})
+		data.Roles = append(data.Roles, authzruntime.RoleRecord{ID: r.ID, TenantID: r.TenantID, Name: r.Name, ManagementProtection: roleDomain.ManagementProtection(r.ManagementProtection)})
 	}
 	for _, r := range s.Resources {
 		if r.DeletedAt != nil {
@@ -225,7 +226,7 @@ func analyzeHardeningState(ctx context.Context, s *hardeningState, providers *ob
 		}
 	}
 	if len(report.Blockers) == 0 {
-		runtime, err := authzruntime.NewRuntime(ctx, hardeningSource{data}, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(providers))
+		runtime, err := authzruntime.NewRuntime(ctx, hardeningSource{platformWriterDataset(data)}, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(providers))
 		if err != nil {
 			issue("invalid_snapshot", "runtime", fmt.Sprintf("%+v", err))
 		} else {
@@ -376,4 +377,30 @@ func ApplyAuthzHardening(ctx context.Context, db *gorm.DB, uow authzuow.UnitOfWo
 		})
 	}, options)
 	return report, err
+}
+
+// platformWriterDataset 旧目录治理工具仅证明平台写入者；其他域的历史问题由治理报告列出。
+func platformWriterDataset(data authzruntime.Dataset) authzruntime.Dataset {
+	out := authzruntime.Dataset{Resources: data.Resources, Versions: data.Versions}
+	for _, r := range data.Roles {
+		if r.TenantID == "platform" {
+			out.Roles = append(out.Roles, r)
+		}
+	}
+	for _, a := range data.Assignments {
+		if a.TenantID == "platform" {
+			out.Assignments = append(out.Assignments, a)
+		}
+	}
+	for _, e := range data.Inheritances {
+		if e.TenantID == "platform" {
+			out.Inheritances = append(out.Inheritances, e)
+		}
+	}
+	for _, g := range data.Grants {
+		if g.TenantIDString() == "platform" {
+			out.Grants = append(out.Grants, g)
+		}
+	}
+	return out
 }

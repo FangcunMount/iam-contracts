@@ -4,7 +4,7 @@
 
 ## 当前交付状态
 
-本地代码删除 ServiceToken 服务认证方式，Go module 改为 `github.com/FangcunMount/iam/v4`。本记录不是发布成功证明：本批改动已分批提交，IAM PR #74 与 QS PR #71 正在验收；v4.0.0 标签、发布镜像和线上切换分别记录。
+本地代码删除 ServiceToken 服务认证方式，Go module 改为 `github.com/FangcunMount/iam/v5`。本记录不是发布成功证明：本批改动已分批提交，IAM PR #74 与 QS PR #71 正在验收；v4.0.0 标签、发布镜像和线上切换分别记录。
 
 服务调用责任链为 **mTLS → 服务身份 → ACL → 业务授权**。AccessToken、RefreshToken、Session、JWKS、撤销存储和用户委托证明继续按原合同工作。不安排数据库迁移，不清空共享 Redis 或密钥。
 

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	credDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/credential"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	credDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/credential"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // ====================== 身份核验证明（请求级输入） ========================

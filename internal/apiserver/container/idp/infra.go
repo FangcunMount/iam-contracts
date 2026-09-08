@@ -6,11 +6,11 @@ import (
 	redis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	infraRedis "github.com/FangcunMount/iam/v4/internal/apiserver/infra/cache/redis"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/crypto"
-	infraMysql "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/wechatapp"
-	wechatInfra "github.com/FangcunMount/iam/v4/internal/apiserver/infra/wechat"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/wechatapi"
+	infraRedis "github.com/FangcunMount/iam/v5/internal/apiserver/infra/cache/redis"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/crypto"
+	infraMysql "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/wechatapp"
+	wechatInfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/wechat"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/wechatapi"
 )
 
 func (m *IDPModule) initializeInfrastructure(

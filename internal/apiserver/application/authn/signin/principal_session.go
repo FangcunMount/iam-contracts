@@ -2,9 +2,9 @@ package signin
 
 import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // validatePrincipalSessionAlignment 验证 principal 和 session 是否对齐

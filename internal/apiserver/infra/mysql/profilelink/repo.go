@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/profilelink"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/profilelink"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 

@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/config"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
 
 // VerifyTokenClient 定义远程验证所需的最小客户端能力。
 type VerifyTokenClient interface {
-	VerifyToken(context.Context, *authnv2.VerifyTokenRequest) (*authnv2.VerifyTokenResponse, error)
+	VerifyToken(context.Context, *authnv3.VerifyTokenRequest) (*authnv3.VerifyTokenResponse, error)
 }
 
 // VerifyStrategy 定义 Token 验证策略接口。
@@ -33,8 +33,8 @@ type VerifyResult struct {
 
 // VerifyMetadata Token 验证元数据。
 type VerifyMetadata struct {
-	TokenType authnv2.TokenType
-	Status    authnv2.TokenStatus
+	TokenType authnv3.TokenType
+	Status    authnv3.TokenStatus
 	IssuedAt  time.Time
 	ExpiresAt time.Time
 }
@@ -52,7 +52,7 @@ type TokenClaims struct {
 	UserID          string
 	LoginIdentityID string
 	// TenantDomain IAM 授权域（JWT tenant_id claim，如 fangcun）。
-	TenantDomain string
+
 	// OrgID 业务组织 ID（JWT org_id claim 透传）。
 	OrgID      string
 	Attributes map[string]string
@@ -74,7 +74,7 @@ type VerifyOptions struct {
 	IncludeMetadata   bool
 	ExpectedAudience  []string
 	ExpectedIssuer    string
-	AllowedTokenTypes []authnv2.TokenType
+	AllowedTokenTypes []authnv3.TokenType
 }
 
 // VerifyResultCache 验证结果缓存接口。

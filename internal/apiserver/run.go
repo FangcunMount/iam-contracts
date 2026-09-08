@@ -1,8 +1,8 @@
 package apiserver
 
 import (
-	"github.com/FangcunMount/iam/v4/internal/apiserver/config"
-	serverprocess "github.com/FangcunMount/iam/v4/internal/apiserver/process"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/config"
+	serverprocess "github.com/FangcunMount/iam/v5/internal/apiserver/process"
 )
 
 var runProcess = serverprocess.Run

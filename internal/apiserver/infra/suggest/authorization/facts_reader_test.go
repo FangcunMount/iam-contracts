@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	authorizationapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
-	suggestauthz "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/authorization"
-	"github.com/FangcunMount/iam/v4/pkg/tenant"
+	authorizationapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	appquery "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/queryprofile"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/visibility"
+	suggestauthz "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/authorization"
+	"github.com/FangcunMount/iam/v5/pkg/tenant"
 )
 
 type stubRouteAuth struct {
@@ -42,7 +42,7 @@ func TestFactsReaderNilReturnsEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if facts.PlatformListAllowed || facts.TenantMobileSearchAllowed {
+	if facts.AllProfilesAllowed || facts.ScopedMobileSearchAllowed {
 		t.Fatalf("facts = %#v", facts)
 	}
 }
@@ -53,13 +53,12 @@ func TestFactsReaderPlatformProfilePermission(t *testing.T) {
 		allowPlatformMobile:   true,
 	})
 	facts, err := r.ReadAuthorizationFacts(context.Background(), visibility.Principal{
-		OperatorID:   100,
-		TenantDomain: "fangcun",
+		OperatorID: 100,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !facts.PlatformListAllowed || !facts.PlatformMobileSearchAllowed {
+	if !facts.AllProfilesAllowed || !facts.AllProfilesMobileSearchAllowed {
 		t.Fatalf("facts = %#v", facts)
 	}
 }
@@ -67,13 +66,12 @@ func TestFactsReaderPlatformProfilePermission(t *testing.T) {
 func TestFactsReaderTenantMobilePermission(t *testing.T) {
 	r := suggestauthz.NewFactsReader(stubRouteAuth{allowTenantMobile: true})
 	facts, err := r.ReadAuthorizationFacts(context.Background(), visibility.Principal{
-		OperatorID:   100,
-		TenantDomain: "fangcun",
+		OperatorID: 100,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if facts.PlatformListAllowed || !facts.TenantMobileSearchAllowed {
+	if facts.AllProfilesAllowed || !facts.ScopedMobileSearchAllowed {
 		t.Fatalf("facts = %#v", facts)
 	}
 }
@@ -81,13 +79,12 @@ func TestFactsReaderTenantMobilePermission(t *testing.T) {
 func TestFactsReaderPlainUserNoMobile(t *testing.T) {
 	r := suggestauthz.NewFactsReader(stubRouteAuth{})
 	facts, err := r.ReadAuthorizationFacts(context.Background(), visibility.Principal{
-		OperatorID:   100,
-		TenantDomain: "fangcun",
+		OperatorID: 100,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if facts.PlatformListAllowed || facts.TenantMobileSearchAllowed {
+	if facts.AllProfilesAllowed || facts.ScopedMobileSearchAllowed {
 		t.Fatalf("facts = %#v", facts)
 	}
 }
@@ -96,8 +93,7 @@ func TestFactsReaderCheckerErrorFails(t *testing.T) {
 	wantErr := errors.New("authz down")
 	r := suggestauthz.NewFactsReader(stubRouteAuth{err: wantErr})
 	_, err := r.ReadAuthorizationFacts(context.Background(), visibility.Principal{
-		OperatorID:   100,
-		TenantDomain: "fangcun",
+		OperatorID: 100,
 	})
 	if !errors.Is(err, wantErr) {
 		t.Fatalf("err = %v, want %v", err, wantErr)
@@ -111,13 +107,12 @@ func TestFactsReaderPlatformMobileExclusiveFromTenantMobile(t *testing.T) {
 		allowTenantMobile:     false,
 	})
 	facts, err := r.ReadAuthorizationFacts(context.Background(), visibility.Principal{
-		OperatorID:   100,
-		TenantDomain: "fangcun",
+		OperatorID: 100,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !facts.PlatformListAllowed || !facts.PlatformMobileSearchAllowed {
+	if !facts.AllProfilesAllowed || !facts.AllProfilesMobileSearchAllowed {
 		t.Fatalf("facts = %#v", facts)
 	}
 }

@@ -1,9 +1,10 @@
 package token
 
 import (
-	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"strings"
+
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // NormalizeExpectedAudience validates caller-supplied recipient constraints, never token data.

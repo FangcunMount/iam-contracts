@@ -11,8 +11,8 @@ func (ResolutionPolicy) Resolve(
 	facts AuthorizationFacts,
 	visibilityProfileIDs []int64,
 ) Scope {
-	if facts.PlatformListAllowed {
-		return NewScope(true, facts.PlatformMobileSearchAllowed, 0, nil, nil)
+	if facts.AllProfilesAllowed {
+		return NewScope(true, facts.AllProfilesMobileSearchAllowed, 0, nil, nil)
 	}
 
 	orgIDs := principalOrgIDs(principal)
@@ -20,7 +20,7 @@ func (ResolutionPolicy) Resolve(
 	if len(visibilityProfileIDs) > 0 {
 		profileIDs = mergeUniqueInt64(nil, visibilityProfileIDs)
 	}
-	return NewScope(false, facts.TenantMobileSearchAllowed, principal.OperatorID, orgIDs, profileIDs)
+	return NewScope(false, facts.ScopedMobileSearchAllowed, principal.OperatorID, orgIDs, profileIDs)
 }
 
 func principalOrgIDs(principal Principal) []int64 {

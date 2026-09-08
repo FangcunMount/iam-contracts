@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	base "github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	base "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 
@@ -15,7 +15,7 @@ type AssignmentPO struct {
 	SubjectType string `gorm:"column:subject_type;type:varchar(16);not null;index:idx_subject,priority:1;uniqueIndex:uk_authz_assignments_active,priority:1"`
 	SubjectID   string `gorm:"column:subject_id;type:varchar(64);not null;index:idx_subject,priority:2;uniqueIndex:uk_authz_assignments_active,priority:2"`
 	RoleID      uint64 `gorm:"column:role_id;type:bigint unsigned;not null;index;uniqueIndex:uk_authz_assignments_active,priority:3"`
-	TenantID    string `gorm:"column:tenant_id;type:varchar(64);not null;index;uniqueIndex:uk_authz_assignments_active,priority:4"`
+
 	// ActiveGuard is computed by the database. Active rows get 1; deleted rows
 	// get NULL so MySQL's unique-key NULL semantics permit a later re-grant.
 	ActiveGuard *uint8    `gorm:"column:active_guard;type:tinyint GENERATED ALWAYS AS (CASE WHEN deleted_at IS NULL THEN 1 ELSE NULL END) STORED;->;uniqueIndex:uk_authz_assignments_active,priority:5"`

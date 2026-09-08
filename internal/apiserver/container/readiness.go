@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	readinessapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/readiness"
-	readinessmetrics "github.com/FangcunMount/iam/v4/internal/apiserver/infra/observability/readiness"
+	readinessapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/readiness"
+	readinessmetrics "github.com/FangcunMount/iam/v5/internal/apiserver/infra/observability/readiness"
 )
 
 func (c *Container) ReadinessChecker() *readinessapp.Checker {

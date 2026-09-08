@@ -4,8 +4,8 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	loginidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	loginidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // Unlink 解绑登录身份；最后一个活跃登录身份不允许解绑。

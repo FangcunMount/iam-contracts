@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
+	appquery "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/queryprofile"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/visibility"
 )
 
 type stubFacts struct {
@@ -51,7 +51,7 @@ func TestScopeResolverNilFactsReturnsEmptyScope(t *testing.T) {
 func TestScopeResolverPlatformListSkipsVisibility(t *testing.T) {
 	vis := &stubVisibility{ids: []int64{99}}
 	r := appquery.NewScopeResolver(&stubFacts{
-		facts: visibility.AuthorizationFacts{PlatformListAllowed: true, PlatformMobileSearchAllowed: true},
+		facts: visibility.AuthorizationFacts{AllProfilesAllowed: true, AllProfilesMobileSearchAllowed: true},
 	}, vis)
 	scope, err := r.ResolveScope(context.Background(), visibility.Principal{OperatorID: 100})
 	if err != nil {
@@ -67,7 +67,7 @@ func TestScopeResolverPlatformListSkipsVisibility(t *testing.T) {
 
 func TestScopeResolverTenantMobileFromFacts(t *testing.T) {
 	r := appquery.NewScopeResolver(&stubFacts{
-		facts: visibility.AuthorizationFacts{TenantMobileSearchAllowed: true},
+		facts: visibility.AuthorizationFacts{ScopedMobileSearchAllowed: true},
 	}, nil)
 	scope, err := r.ResolveScope(context.Background(), visibility.Principal{
 		OperatorID: 100,

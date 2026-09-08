@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package iam.authn.v2;
+package iam.authn.v3;
 
-option go_package = "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2;authnv2";
+option go_package = "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3;authnv3";
 
 import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
@@ -42,7 +42,8 @@ message TokenClaims {
   string login_identity_id = 4;
   string issuer = 5;
   repeated string audience = 6;
-  string tenant_id = 7;
+  reserved 7;
+  reserved "tenant_id";
   string session_id = 8;
   TokenType token_type = 9;
   google.protobuf.Timestamp issued_at = 10;
@@ -52,7 +53,8 @@ message TokenClaims {
   map<string, string> attributes = 20;
   repeated string amr = 21;
   string org_id = 22;
-  string tenant_domain = 23;
+  reserved 23;
+  reserved "tenant_domain";
 }
 
 message TokenPair {

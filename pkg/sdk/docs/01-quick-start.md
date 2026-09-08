@@ -73,7 +73,7 @@ log.Printf("用户: %s", user.GetProfile().GetDisplayName())
 ## 📦 安装
 
 ```bash
-go get github.com/FangcunMount/iam/v4@v3.0.0
+go get github.com/FangcunMount/iam/v5@v3.0.0
 ```
 
 ## 示例约定
@@ -97,7 +97,7 @@ if err != nil {
 }
 defer client.Close()
 
-result, err := client.Auth().VerifyToken(ctx, &authnv2.VerifyTokenRequest{
+result, err := client.Auth().VerifyToken(ctx, &authnv3.VerifyTokenRequest{
     AccessToken: "your-token-here",
 })
 ```
@@ -184,17 +184,17 @@ cfg := &sdk.Config{
 
 ```go
 // 验证 Token
-resp, err := client.Auth().VerifyToken(ctx, &authnv2.VerifyTokenRequest{
+resp, err := client.Auth().VerifyToken(ctx, &authnv3.VerifyTokenRequest{
     AccessToken: token,
 })
 
 // 刷新 Token
-resp, err := client.Auth().RefreshToken(ctx, &authnv2.RefreshTokenRequest{
+resp, err := client.Auth().RefreshToken(ctx, &authnv3.RefreshTokenRequest{
     RefreshToken: refreshToken,
 })
 
 // 撤销 Token
-_, err := client.Auth().RevokeToken(ctx, &authnv2.RevokeTokenRequest{
+_, err := client.Auth().RevokeToken(ctx, &authnv3.RevokeTokenRequest{
     AccessToken: token,
 })
 ```
@@ -238,7 +238,7 @@ resp, err := client.Profile().CreateProfile(ctx, &identityv2.CreateProfileReques
 
 ```go
 // 单次权限判定
-resp, err := client.Authz().Check(ctx, &authzv3.CheckRequest{
+resp, err := client.Authz().Check(ctx, &authzv4.CheckRequest{
     Subject: "user:user-123",
     Domain:  "default",
     Object:  "resource:profile_profile",

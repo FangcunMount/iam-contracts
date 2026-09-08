@@ -2,21 +2,22 @@ package signin
 
 import (
 	"context"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
 	"testing"
 	"time"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/testhelpers"
+
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	credentialapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/credential"
-	authnexternal "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	idpresolver "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	idpidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	credentialapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/credential"
+	authnexternal "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	idpresolver "github.com/FangcunMount/iam/v5/internal/apiserver/application/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	idpidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 func TestSignInPreservesInitialTokenIssuerErrorCodes(t *testing.T) {

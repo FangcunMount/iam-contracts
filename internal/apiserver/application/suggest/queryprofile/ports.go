@@ -3,8 +3,8 @@ package queryprofile
 import (
 	"context"
 
-	domainsearch "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/search"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
+	domainsearch "github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/search"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/visibility"
 )
 
 // AuthorizationFactsReader 查询 Suggest 授权事实。

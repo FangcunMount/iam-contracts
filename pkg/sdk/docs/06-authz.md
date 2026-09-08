@@ -17,7 +17,7 @@
          │                    │                    │
          └────────────────────┴────────────────────┘
                               ↓
-      iam.authz.v3.AuthorizationService.Check(subject, domain, resource, action)
+      iam.authz.v4.AuthorizationService.Check(subject, domain, resource, action)
                               ↓
                  原生 Runtime 解析角色、Grant 与对象条件
                               ↓
@@ -63,7 +63,7 @@
 
 ### 一句话结论
 
-`client.Authz()` 是 IAM SDK 对 `iam.authz.v3.AuthorizationService` 的轻封装；`Allow` 只做无对象属性的判定，条件授权应使用 `CheckObject`。
+`client.Authz()` 是 IAM SDK 对 `iam.authz.v4.AuthorizationService` 的轻封装；`Allow` 只做无对象属性的判定，条件授权应使用 `CheckObject`。
 
 ### 当前能力边界
 
@@ -125,7 +125,7 @@ allowed, err := client.Authz().Allow(
 
 - 已存在 `ctx`
 - 已创建 `client`
-- 已按需导入 `sdk`、`authzv3`、`errors`
+- 已按需导入 `sdk`、`authzv4`、`errors`
 - 你已经在业务侧准备好了最终的 `subject / domain / resource / action`
 
 文档里保留的是**最小可理解片段**；如果你需要 `package main + import + 启动代码` 的完整版本，直接看上面的 `_examples/authz/main.go`。
@@ -141,7 +141,7 @@ if err != nil {
 }
 defer client.Close()
 
-resp, err := client.Authz().Check(ctx, &authzv3.CheckRequest{
+resp, err := client.Authz().Check(ctx, &authzv4.CheckRequest{
     Subject: "user:user-123",
     Domain:  "default",
     Resource: "iam:identity:instance:profile",
@@ -215,7 +215,7 @@ service:<service-id>
 ```
 
 SDK 不替你推断 `subject`，调用方要自己传入最终字符串。  
-这和服务端 gRPC 合同保持一致，见 [../../../api/grpc/iam/authz/v3/authz.proto](../../../api/grpc/iam/authz/v3/authz.proto)。
+这和服务端 gRPC 合同保持一致，见 [../../../api/grpc/iam/authz/v4/authz.proto](../../../api/grpc/iam/authz/v4/authz.proto)。
 
 #### `domain`
 
@@ -274,7 +274,7 @@ if !allowed {
 如果你不只需要布尔值，而是希望和未来的响应字段兼容，直接保留 `Check(...)`：
 
 ```go
-resp, err := client.Authz().Check(ctx, &authzv3.CheckRequest{
+resp, err := client.Authz().Check(ctx, &authzv4.CheckRequest{
     Subject: sub,
     Domain:  dom,
     Resource: resource,
@@ -295,7 +295,7 @@ if !resp.Allowed {
 
 ```go
 raw := client.Authz().Raw()
-resp, err := raw.Check(ctx, &authzv3.CheckRequest{
+resp, err := raw.Check(ctx, &authzv4.CheckRequest{
     Subject: sub,
     Domain:  dom,
     Resource: resource,

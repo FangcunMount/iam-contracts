@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	admissiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 

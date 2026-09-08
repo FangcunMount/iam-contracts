@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	testutil "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/testutil"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	testutil "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/testutil"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 

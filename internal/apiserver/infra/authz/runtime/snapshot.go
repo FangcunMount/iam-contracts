@@ -7,17 +7,16 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authorizationapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/objectattributeadmission"
-	authorizationdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/roleinheritance"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	authorizationapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/objectattributeadmission"
+	authorizationdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/roleinheritance"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 const maxRoleHierarchyLevel = roleinheritance.MaxHierarchyDepth
@@ -25,9 +24,10 @@ const maxRoleHierarchyLevel = roleinheritance.MaxHierarchyDepth
 type Snapshot struct {
 	verifiedAt   time.Time // proof belongs to this immutable publication
 	roles        authorizationdomain.RoleResolver
-	grantsByRole map[tenant.ID]map[role.Name][]*permissiongrant.Grant
+	roleNames    map[meta.ID]role.Name
+	grantsByRole map[role.Name][]*permissiongrant.Grant
 	resources    map[string]*resource.Resource
-	versions     map[string]int64
+	version      int64
 	loadedAt     time.Time
 }
 
@@ -40,21 +40,23 @@ func BuildSnapshot(dataset Dataset, loadedAt time.Time, providers ...objectattri
 		loadedAt = time.Now()
 	}
 	roleByID := make(map[meta.ID]RoleRecord, len(dataset.Roles))
-	roleNames := make(map[string]struct{}, len(dataset.Roles))
+	uniqueNames := make(map[string]struct{}, len(dataset.Roles))
 	for _, record := range dataset.Roles {
-		record.TenantID = strings.TrimSpace(record.TenantID)
 		record.Name = strings.TrimSpace(record.Name)
-		if record.ID.IsZero() || record.TenantID == "" || record.Name == "" {
+		if err := record.ManagementProtection.Validate(); err != nil {
+			return nil, err
+		}
+		if record.ID.IsZero() || record.Name == "" {
 			return nil, perrors.WithCode(code.ErrInvalidArgument, "invalid role record in authorization runtime dataset")
 		}
-		uniqueName := record.TenantID + "\x00" + record.Name
-		if _, exists := roleNames[uniqueName]; exists {
+		uniqueName := record.Name
+		if _, exists := uniqueNames[uniqueName]; exists {
 			return nil, perrors.WithCode(code.ErrInvalidArgument, "duplicate runtime role name: %s", record.Name)
 		}
 		if _, exists := roleByID[record.ID]; exists {
 			return nil, perrors.WithCode(code.ErrInvalidArgument, "duplicate runtime role id: %s", record.ID.String())
 		}
-		roleNames[uniqueName] = struct{}{}
+		uniqueNames[uniqueName] = struct{}{}
 		roleByID[record.ID] = record
 	}
 
@@ -76,54 +78,35 @@ func BuildSnapshot(dataset Dataset, loadedAt time.Time, providers ...objectattri
 
 	roleGraphBuilder := newRoleGraphBuilder()
 	for _, assignment := range dataset.Assignments {
-		roleRecord, ok := roleByID[assignment.RoleID]
-		if !ok || roleRecord.TenantID != assignment.TenantID {
+		_, ok := roleByID[assignment.RoleID]
+		if !ok {
 			return nil, perrors.WithCode(code.ErrInvalidArgument, "assignment references an unknown or cross-tenant role")
 		}
 		sub, err := subject.ParseRef(assignment.SubjectKey)
 		if err != nil {
 			return nil, err
 		}
-		roleName, err := role.NewName(roleRecord.Name)
-		if err != nil {
-			return nil, err
-		}
-		tenantID, err := tenant.NewID(assignment.TenantID)
-		if err != nil {
-			return nil, err
-		}
-		roleGraphBuilder.addAssignment(sub, roleName, tenantID)
+		roleGraphBuilder.addAssignment(sub, assignment.RoleID)
 	}
 	if err := validateInheritanceGraph(dataset.Inheritances, roleByID); err != nil {
 		return nil, err
 	}
 	for _, inheritance := range dataset.Inheritances {
-		roleRecord := roleByID[inheritance.RoleID]
-		inherited := roleByID[inheritance.InheritedRoleID]
-		childName, err := role.NewName(roleRecord.Name)
-		if err != nil {
-			return nil, err
-		}
-		parentName, err := role.NewName(inherited.Name)
-		if err != nil {
-			return nil, err
-		}
-		tenantID, err := tenant.NewID(inheritance.TenantID)
-		if err != nil {
-			return nil, err
-		}
-		roleGraphBuilder.addInheritance(childName, parentName, tenantID)
+		roleGraphBuilder.addInheritance(inheritance.RoleID, inheritance.InheritedRoleID)
 	}
 	roleResolver := roleGraphBuilder.build(maxRoleHierarchyLevel)
 
-	grantsByRole := make(map[tenant.ID]map[role.Name][]*permissiongrant.Grant)
+	grantsByRole := make(map[role.Name][]*permissiongrant.Grant)
 	for _, grant := range dataset.Grants {
 		if grant == nil || !grant.IsActive() {
 			continue
 		}
 		roleRecord, ok := roleByID[grant.RoleID]
-		if !ok || roleRecord.TenantID != grant.TenantIDString() {
+		if !ok {
 			return nil, perrors.WithCode(code.ErrInvalidArgument, "permission grant references an unknown or cross-tenant role")
+		}
+		if err := (role.Role{ManagementProtection: roleRecord.ManagementProtection}).ValidateGrant(grant.ResourcePattern, grant.Action); err != nil {
+			return nil, err
 		}
 		if grant.ResourceID.Uint64() != 0 {
 			catalogResource, ok := resourcesByID[grant.ResourceID.Uint64()]
@@ -139,31 +122,27 @@ func BuildSnapshot(dataset Dataset, loadedAt time.Time, providers ...objectattri
 		}
 		owned := grant.Clone()
 		grant = &owned
-		tenantID := grant.TenantID
 		roleName, err := role.NewName(roleRecord.Name)
 		if err != nil {
 			return nil, err
 		}
-		if grantsByRole[tenantID] == nil {
-			grantsByRole[tenantID] = make(map[role.Name][]*permissiongrant.Grant)
-		}
-		grantsByRole[tenantID][roleName] = append(grantsByRole[tenantID][roleName], grant)
+		grantsByRole[roleName] = append(grantsByRole[roleName], grant)
 	}
-	for _, grantsForTenant := range grantsByRole {
-		for roleName := range grantsForTenant {
-			sort.Slice(grantsForTenant[roleName], func(i, j int) bool {
-				return grantsForTenant[roleName][i].ID.Uint64() < grantsForTenant[roleName][j].ID.Uint64()
-			})
+	for name := range grantsByRole {
+		sort.Slice(grantsByRole[name], func(i, j int) bool { return grantsByRole[name][i].ID < grantsByRole[name][j].ID })
+	}
+	roleNames := make(map[meta.ID]role.Name, len(roleByID))
+	for id, r := range roleByID {
+		name, err := role.NewName(r.Name)
+		if err != nil {
+			return nil, err
 		}
+		roleNames[id] = name
 	}
 
-	versions := make(map[string]int64, len(dataset.Versions))
-	for tenantID, version := range dataset.Versions {
-		versions[strings.TrimSpace(tenantID)] = version
-	}
 	return &Snapshot{
-		roles: roleResolver, grantsByRole: grantsByRole, resources: resources,
-		versions: versions, loadedAt: loadedAt,
+		roles: roleResolver, roleNames: roleNames, grantsByRole: grantsByRole, resources: resources,
+		version: dataset.Version, loadedAt: loadedAt,
 	}, nil
 }
 
@@ -171,36 +150,31 @@ func (s *Snapshot) evaluationContext(request authorizationdomain.Request) (autho
 	if s == nil || s.roles == nil {
 		return authorizationdomain.EvaluationContext{}, perrors.WithCode(code.ErrInternalServerError, "authorization runtime snapshot is unavailable")
 	}
-	tenantID := request.TenantIDString()
-	roles, err := s.roles.EffectiveRoles(request.Subject, request.TenantID)
+	roles, err := s.roles.EffectiveRoles(request.Subject)
 	if err != nil {
 		return authorizationdomain.EvaluationContext{}, err
 	}
 
 	return authorizationdomain.EvaluationContext{
-		EffectiveRoles: roles,
-		GrantsByRole:   s.grantsByRole[request.TenantID],
+		EffectiveRoles: s.names(roles),
+		GrantsByRole:   s.grantsByRole,
 		Resource:       s.resources[request.ResourceKey.String()],
-		PolicyVersion:  s.versions[tenantID],
+		PolicyVersion:  s.version,
 	}, nil
 }
 
-func (s *Snapshot) SubjectSnapshot(sub subject.Ref, tenantID, appName string) (authorizationapp.SubjectSnapshot, error) {
-	tenantValue, err := tenant.NewID(tenantID)
+func (s *Snapshot) SubjectSnapshot(sub subject.Ref, appName string) (authorizationapp.SubjectSnapshot, error) {
+	effectiveRoles, err := s.roles.EffectiveRoles(sub)
 	if err != nil {
 		return authorizationapp.SubjectSnapshot{}, err
 	}
-	effectiveRoles, err := s.roles.EffectiveRoles(sub, tenantValue)
-	if err != nil {
-		return authorizationapp.SubjectSnapshot{}, err
-	}
-	directRoles, err := s.roles.DirectRoles(sub, tenantValue)
+	directRoles, err := s.roles.DirectRoles(sub)
 	if err != nil {
 		return authorizationapp.SubjectSnapshot{}, err
 	}
 	modeByPermission := make(map[string]authorizationapp.AuthorizationMode)
 	for _, roleName := range effectiveRoles {
-		for _, grant := range s.grantsByRole[tenantValue][roleName] {
+		for _, grant := range s.grantsByRole[s.roleNames[roleName]] {
 			resourceApp, ok := resource.AppNameFromKey(grant.ResourcePatternString())
 			if !ok || resourceApp != appName {
 				continue
@@ -227,25 +201,21 @@ func (s *Snapshot) SubjectSnapshot(sub subject.Ref, tenantID, appName string) (a
 		return permissions[i].Resource < permissions[j].Resource
 	})
 	return authorizationapp.SubjectSnapshot{
-		DirectRoles:    appScopedRoleNames(directRoles, appName),
-		EffectiveRoles: appScopedRoleNames(effectiveRoles, appName),
+		DirectRoles:    appScopedRoleNames(s.names(directRoles), appName),
+		EffectiveRoles: appScopedRoleNames(s.names(effectiveRoles), appName),
 		Permissions:    permissions,
-		PolicyVersion:  s.versions[tenantID],
+		PolicyVersion:  s.version,
 	}, nil
 }
 
-func (s *Snapshot) effectiveRoleNamesForSubject(sub subject.Ref, tenantID string) ([]string, error) {
-	tenantValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return nil, err
-	}
-	roles, err := s.roles.EffectiveRoles(sub, tenantValue)
+func (s *Snapshot) effectiveRoleNamesForSubject(sub subject.Ref) ([]string, error) {
+	roles, err := s.roles.EffectiveRoles(sub)
 	if err != nil {
 		return nil, err
 	}
 	roleNames := make([]string, 0, len(roles))
 	for _, roleName := range roles {
-		roleNames = append(roleNames, roleName.String())
+		roleNames = append(roleNames, s.roleNames[roleName].String())
 	}
 	return roleNames, nil
 }
@@ -276,22 +246,25 @@ func uniqueSortedStrings(values []string) []string {
 
 func (s *Snapshot) LoadedAt() time.Time { return s.loadedAt }
 
-func (s *Snapshot) Versions() map[string]int64 {
-	copyVersions := make(map[string]int64, len(s.versions))
-	for tenantID, version := range s.versions {
-		copyVersions[tenantID] = version
-	}
-	return copyVersions
-}
+func (s *Snapshot) Version() int64 { return s.version }
 
 func validateInheritanceGraph(records []InheritanceRecord, roles map[meta.ID]RoleRecord) error {
 	nodes := make([]roleinheritance.RoleNode, 0, len(roles))
 	for _, r := range roles {
-		nodes = append(nodes, roleinheritance.RoleNode{ID: r.ID, TenantID: r.TenantID})
+		nodes = append(nodes, roleinheritance.RoleNode{ID: r.ID, ManagementProtection: r.ManagementProtection})
 	}
 	edges := make([]*roleinheritance.Inheritance, 0, len(records))
 	for _, r := range records {
-		edges = append(edges, &roleinheritance.Inheritance{RoleID: r.RoleID, InheritedRoleID: r.InheritedRoleID, TenantID: tenant.ID(r.TenantID)})
+		edges = append(edges, &roleinheritance.Inheritance{RoleID: r.RoleID, InheritedRoleID: r.InheritedRoleID})
 	}
 	return roleinheritance.ValidateGraph(nodes, edges)
+}
+
+func (s *Snapshot) names(ids []meta.ID) []role.Name {
+	out := make([]role.Name, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, s.roleNames[id])
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
 }

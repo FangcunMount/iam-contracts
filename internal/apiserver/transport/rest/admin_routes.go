@@ -4,9 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	authzapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	authnMiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authn"
-	authzMiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authz"
+	authzapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	authnMiddleware "github.com/FangcunMount/iam/v5/internal/pkg/middleware/authn"
+	authzMiddleware "github.com/FangcunMount/iam/v5/internal/pkg/middleware/authz"
 )
 
 // registerAdminRoutes 注册管理员路由
@@ -29,9 +29,9 @@ func (r *Router) registerAdminRoutes(engine *gin.Engine, authMiddleware *authnMi
 	{
 		// 如果会话管理器不为空，则注册会话管理路由
 		if r.deps.Authn.SessionAdminHandler != nil {
-			admin.POST("/sessions/:sessionId/revoke", authorizationMiddleware.RequirePermissionOrGlobal(authzapp.ResourceSessions, authzapp.ActionRevoke), r.deps.Authn.SessionAdminHandler.RevokeSession)
-			admin.POST("/login-identities/:loginIdentityId/sessions/revoke", authorizationMiddleware.RequirePermissionOrGlobal(authzapp.ResourceSessions, authzapp.ActionRevokeByLoginIdentity), r.deps.Authn.SessionAdminHandler.RevokeLoginIdentitySessions)
-			admin.POST("/users/:userId/sessions/revoke", authorizationMiddleware.RequirePermissionOrGlobal(authzapp.ResourceSessions, authzapp.ActionRevokeByUser), r.deps.Authn.SessionAdminHandler.RevokeUserSessions)
+			admin.POST("/sessions/:sessionId/revoke", authorizationMiddleware.RequirePermission(authzapp.ResourceSessions, authzapp.ActionRevoke), r.deps.Authn.SessionAdminHandler.RevokeSession)
+			admin.POST("/login-identities/:loginIdentityId/sessions/revoke", authorizationMiddleware.RequirePermission(authzapp.ResourceSessions, authzapp.ActionRevokeByLoginIdentity), r.deps.Authn.SessionAdminHandler.RevokeLoginIdentitySessions)
+			admin.POST("/users/:userId/sessions/revoke", authorizationMiddleware.RequirePermission(authzapp.ResourceSessions, authzapp.ActionRevokeByUser), r.deps.Authn.SessionAdminHandler.RevokeUserSessions)
 		}
 	}
 }

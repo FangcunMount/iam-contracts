@@ -3,9 +3,9 @@ package suggest
 import (
 	"testing"
 
-	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
-	suggestmemory "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/index/memory"
-	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
+	appquery "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/queryprofile"
+	suggestmemory "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/index/memory"
+	apiserveroptions "github.com/FangcunMount/iam/v5/internal/apiserver/options"
 )
 
 func TestModuleConfigFromOptionsDefaults(t *testing.T) {

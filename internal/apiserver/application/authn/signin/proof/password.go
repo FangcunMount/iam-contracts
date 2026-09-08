@@ -4,9 +4,9 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // passwordBuilder 密码登录方式构造器

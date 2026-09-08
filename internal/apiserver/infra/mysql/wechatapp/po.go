@@ -3,8 +3,8 @@ package mysql
 import (
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/wechatapp"
-	"github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/wechatapp"
+	"github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 )
 
 // WechatAppPO 微信应用持久化对象

@@ -4,9 +4,7 @@ package role
 import (
 	"context"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // Repository 角色仓储接口（Driven Port）
@@ -19,11 +17,10 @@ type Repository interface {
 	Delete(ctx context.Context, id meta.ID) error
 	// FindByID 根据ID获取角色
 	FindByID(ctx context.Context, id meta.ID) (*Role, error)
-	FindByTenantAndID(ctx context.Context, tenantID tenant.ID, id meta.ID) (*Role, error)
 	// FindByIDForUpdate locks the role aggregate until the surrounding transaction completes.
 	FindByIDForUpdate(ctx context.Context, id meta.ID) (*Role, error)
 	// FindByName 根据名称和租户获取角色
-	FindByName(ctx context.Context, tenantID, name string) (*Role, error)
+	FindByName(ctx context.Context, name string) (*Role, error)
 	// List 列出角色
-	List(ctx context.Context, tenantID string, offset, limit int) ([]*Role, int64, error)
+	List(ctx context.Context, offset, limit int) ([]*Role, int64, error)
 }

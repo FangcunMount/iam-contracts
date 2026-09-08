@@ -3,7 +3,7 @@ package token
 import (
 	"context"
 
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
 )
 
 // InitialTokenIssuer 在既有 Session 上签发初始令牌，并保存 RefreshToken。

@@ -1,7 +1,7 @@
 package identity
 
 import (
-	iamgrpc "github.com/FangcunMount/iam/v4/internal/pkg/grpc"
+	iamgrpc "github.com/FangcunMount/iam/v5/internal/pkg/grpc"
 )
 
 func toGRPCError(err error) error {

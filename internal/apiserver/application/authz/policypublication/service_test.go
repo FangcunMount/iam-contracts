@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/eventing"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/eventing"
 	"github.com/stretchr/testify/require"
 )
 
@@ -78,7 +78,7 @@ type recorderStub struct {
 	eventAt  time.Time
 }
 
-func (s *recorderStub) RecordPolicyVersionEvent(tenantID string, version int64, eventAt time.Time) {
+func (s *recorderStub) RecordPolicyVersionEvent(version int64, eventAt time.Time) {
 	s.tenantID = tenantID
 	s.version = version
 	s.eventAt = eventAt

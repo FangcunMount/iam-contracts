@@ -6,11 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	signupApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signup"
-	req "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/request"
-	resp "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/response"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	signupApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signup"
+	req "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/request"
+	resp "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/response"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // OnboardingHandler exposes /authn/signups and internal mock-consumer ensure endpoints.
@@ -36,7 +36,7 @@ func NewOnboardingHandler(signupService signupApp.SignupService) *OnboardingHand
 // @Success 200 {object} resp.SignupResult "开通成功"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 409 {object} map[string]interface{} "登录身份已绑定到其他用户"
-// @Router /v2/authn/signups/wechat-miniprogram [post]
+// @Router /v3/authn/signups/wechat-miniprogram [post]
 func (h *OnboardingHandler) SignUpWithWeChatMiniProgram(c *gin.Context) {
 	var reqBody req.SignUpWithWeChatMiniProgramRequest
 	if err := h.BindJSON(c, &reqBody); err != nil {

@@ -3,12 +3,12 @@ package authn
 import (
 	"context"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func (s *authChallengeServiceServer) SendLoginPhoneOTP(ctx context.Context, req *authnv2.SendLoginPhoneOTPRequest) (*authnv2.MessageResponse, error) {
+func (s *authChallengeServiceServer) SendLoginPhoneOTP(ctx context.Context, req *authnv3.SendLoginPhoneOTPRequest) (*authnv3.MessageResponse, error) {
 	if s.loginPhoneOTPSender == nil {
 		return nil, status.Error(codes.Unimplemented, "challenge service not configured")
 	}
@@ -18,5 +18,5 @@ func (s *authChallengeServiceServer) SendLoginPhoneOTP(ctx context.Context, req 
 	if err := s.loginPhoneOTPSender.SendLoginPhoneOTP(ctx, req.GetPhone()); err != nil {
 		return nil, toGRPCError(err)
 	}
-	return &authnv2.MessageResponse{Message: "verification code sent"}, nil
+	return &authnv3.MessageResponse{Message: "verification code sent"}, nil
 }

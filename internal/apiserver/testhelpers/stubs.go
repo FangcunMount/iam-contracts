@@ -4,17 +4,15 @@ import (
 	"context"
 	"sync"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	assignment "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
-	role "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	profile "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/profile"
-	user "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/user"
-	wechatapp "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/wechatapp"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	assignment "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	role "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	profile "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/profile"
+	user "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/user"
+	wechatapp "github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/wechatapp"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // AssignmentRepoStub is a simple stub for assignment.Repository used in tests.
@@ -29,19 +27,19 @@ func (s *AssignmentRepoStub) Create(ctx context.Context, a *assignment.Assignmen
 func (s *AssignmentRepoStub) Delete(ctx context.Context, id assignment.AssignmentID) error {
 	return nil
 }
-func (s *AssignmentRepoStub) DeleteBySubjectAndRole(ctx context.Context, subjectType assignment.SubjectType, subjectID meta.ID, roleID meta.ID, tenantID string) error {
+func (s *AssignmentRepoStub) DeleteBySubjectAndRole(ctx context.Context, subjectType assignment.SubjectType, subjectID meta.ID, roleID meta.ID) error {
 	return nil
 }
 func (s *AssignmentRepoStub) FindByID(ctx context.Context, id assignment.AssignmentID) (*assignment.Assignment, error) {
 	return nil, nil
 }
-func (s *AssignmentRepoStub) ListBySubject(ctx context.Context, subjectType assignment.SubjectType, subjectID meta.ID, tenantID string) ([]*assignment.Assignment, error) {
+func (s *AssignmentRepoStub) ListBySubject(ctx context.Context, subjectType assignment.SubjectType, subjectID meta.ID) ([]*assignment.Assignment, error) {
 	return s.Assignments, s.Err
 }
-func (s *AssignmentRepoStub) ListBySubjectForUpdate(ctx context.Context, subjectType assignment.SubjectType, subjectID meta.ID, tenantID string) ([]*assignment.Assignment, error) {
+func (s *AssignmentRepoStub) ListBySubjectForUpdate(ctx context.Context, subjectType assignment.SubjectType, subjectID meta.ID) ([]*assignment.Assignment, error) {
 	return s.Assignments, s.Err
 }
-func (s *AssignmentRepoStub) ListByRole(ctx context.Context, roleID meta.ID, tenantID string) ([]*assignment.Assignment, error) {
+func (s *AssignmentRepoStub) ListByRole(ctx context.Context, roleID meta.ID) ([]*assignment.Assignment, error) {
 	return nil, s.Err
 }
 
@@ -60,10 +58,10 @@ func (s *RoleRepoStub) FindByID(ctx context.Context, id meta.ID) (*role.Role, er
 func (s *RoleRepoStub) FindByIDForUpdate(ctx context.Context, id meta.ID) (*role.Role, error) {
 	return s.R, s.Err
 }
-func (s *RoleRepoStub) FindByName(ctx context.Context, tenantID, name string) (*role.Role, error) {
+func (s *RoleRepoStub) FindByName(ctx context.Context, name string) (*role.Role, error) {
 	return nil, nil
 }
-func (s *RoleRepoStub) List(ctx context.Context, tenantID string, offset, limit int) ([]*role.Role, int64, error) {
+func (s *RoleRepoStub) List(ctx context.Context, offset, limit int) ([]*role.Role, int64, error) {
 	return nil, 0, nil
 }
 
@@ -298,15 +296,4 @@ func (s *VaultStub) Encrypt(ctx context.Context, plaintext []byte) ([]byte, erro
 func (s *VaultStub) Decrypt(ctx context.Context, cipher []byte) ([]byte, error) { return nil, nil }
 func (s *VaultStub) Sign(ctx context.Context, keyRef string, data []byte) ([]byte, error) {
 	return nil, nil
-}
-
-func (r *RoleRepoStub) FindByTenantAndID(ctx context.Context, tenantID tenant.ID, id meta.ID) (*role.Role, error) {
-	item, err := r.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if item == nil || !item.BelongsToTenant(tenantID.String()) {
-		return nil, perrors.WithCode(code.ErrRoleNotFound, "role not found")
-	}
-	return item, nil
 }

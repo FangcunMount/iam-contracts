@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policypublication"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
-	authzruntime "github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/runtime"
-	authzfixture "github.com/FangcunMount/iam/v4/internal/apiserver/testfixtures/assessment"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policypublication"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
+	authzruntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
+	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/assessment"
 	"github.com/nsqio/go-nsq"
 	"github.com/stretchr/testify/require"
 )
@@ -27,20 +27,17 @@ func (s *synchronizedSource) Load(context.Context) (authzruntime.Dataset, error)
 	defer s.mu.Unlock()
 	return s.data, nil
 }
-func (s *synchronizedSource) ReadVersions(context.Context) (map[string]int64, error) {
+func (s *synchronizedSource) ReadVersion(context.Context) (int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	out := map[string]int64{}
-	for k, v := range s.data.Versions {
-		out[k] = v
-	}
-	return out, nil
+	return s.data.Version, nil
 }
+
 func (s *synchronizedSource) revoke(version int64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.data.Grants = nil
-	s.data.Versions = map[string]int64{"fangcun": version}
+	s.data.Version = version
 }
 func TestRealNSQTwoRuntimesRevokeLossAndReconnect(t *testing.T) {
 	address := os.Getenv("IAM_AUTHZ_TEST_NSQD")
@@ -118,20 +115,20 @@ func TestRealNSQTwoRuntimesRevokeLossAndReconnect(t *testing.T) {
 	source.revoke(10)
 	require.NoError(t, producer.Publish(topic, []byte(`{"tenant_id":"fangcun","version":10}`)))
 	require.Eventually(t, func() bool {
-		return runtimes[0].PolicyVersionLoaded("fangcun", 10) && runtimes[1].PolicyVersionLoaded("fangcun", 10)
+		return runtimes[0].PolicyVersionLoaded(10) && runtimes[1].PolicyVersionLoaded(10)
 	}, 10*time.Second, 10*time.Millisecond)
 	disconnect(consumers) // interrupt both subscription connections
 	source.revoke(11)     // no event delivered; database polling must compensate
 	for _, r := range runtimes {
 		require.NoError(t, r.Reconcile(context.Background()))
-		require.True(t, r.PolicyVersionLoaded("fangcun", 11))
+		require.True(t, r.PolicyVersionLoaded(11))
 	}
 	consumers = connect()
 	defer disconnect(consumers)
 	source.revoke(12)
 	require.NoError(t, producer.Publish(topic, []byte(`{"tenant_id":"fangcun","version":12}`)))
 	require.Eventually(t, func() bool {
-		return runtimes[0].PolicyVersionLoaded("fangcun", 12) && runtimes[1].PolicyVersionLoaded("fangcun", 12)
+		return runtimes[0].PolicyVersionLoaded(12) && runtimes[1].PolicyVersionLoaded(12)
 	}, 10*time.Second, 10*time.Millisecond)
 	for _, r := range runtimes {
 		decision, err := r.Check(context.Background(), request)

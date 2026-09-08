@@ -1,9 +1,9 @@
 package session
 
 import (
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
 )
 
 type AuthMethod = method.AuthMethod

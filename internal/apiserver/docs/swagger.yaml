@@ -1103,7 +1103,7 @@ paths:
       summary: 获取 JWKS
       tags:
       - Authentication-JWKS
-  /v2/authn/admin/jwks/keys:
+  /v3/authn/admin/jwks/keys:
     get:
       description: 分页列出所有密钥
       parameters:
@@ -1188,7 +1188,7 @@ paths:
       summary: 创建密钥
       tags:
       - Authentication-JWKS
-  /v2/authn/admin/jwks/keys/{kid}:
+  /v3/authn/admin/jwks/keys/{kid}:
     get:
       description: 根据 kid 获取密钥详细信息
       parameters:
@@ -1229,7 +1229,7 @@ paths:
       summary: 获取密钥详情
       tags:
       - Authentication-JWKS
-  /v2/authn/admin/jwks/keys/{kid}/force-retire:
+  /v3/authn/admin/jwks/keys/{kid}/force-retire:
     post:
       description: 强制将任何状态的密钥转为 Retired（用于紧急情况）
       parameters:
@@ -1268,7 +1268,7 @@ paths:
       summary: 强制退役密钥
       tags:
       - Authentication-JWKS
-  /v2/authn/admin/jwks/keys/{kid}/retire:
+  /v3/authn/admin/jwks/keys/{kid}/retire:
     post:
       description: 将密钥状态从 Grace 转为 Retired
       parameters:
@@ -1307,7 +1307,7 @@ paths:
       summary: 退役密钥
       tags:
       - Authentication-JWKS
-  /v2/authn/admin/jwks/keys/cleanup:
+  /v3/authn/admin/jwks/keys/cleanup:
     post:
       description: 删除已过期的 Retired 密钥
       produces:
@@ -1334,7 +1334,7 @@ paths:
       summary: 清理过期密钥
       tags:
       - Authentication-JWKS
-  /v2/authn/admin/jwks/keys/publishable:
+  /v3/authn/admin/jwks/keys/publishable:
     get:
       description: 获取当前会被发布到 JWKS 的密钥列表（用于预览或调试）
       produces:
@@ -1361,7 +1361,7 @@ paths:
       summary: 获取可发布的密钥
       tags:
       - Authentication-JWKS
-  /v2/authn/challenges/phone-otp:
+  /v3/authn/challenges/phone-otp:
     post:
       consumes:
       - application/json
@@ -1382,7 +1382,7 @@ paths:
       summary: 发送登录短信验证码
       tags:
       - 认证
-  /v2/authn/login:
+  /v3/authn/login:
     post:
       consumes:
       - application/json
@@ -1414,7 +1414,7 @@ paths:
       summary: 显式登录
       tags:
       - Authentication-Auth
-  /v2/authn/login-identities:
+  /v3/authn/login-identities:
     get:
       produces:
       - application/json
@@ -1428,7 +1428,7 @@ paths:
       summary: 列出当前用户登录身份
       tags:
       - 认证
-  /v2/authn/login-identities/{id}:
+  /v3/authn/login-identities/{id}:
     delete:
       parameters:
       - description: 登录身份 ID
@@ -1448,7 +1448,7 @@ paths:
       summary: 解绑登录身份
       tags:
       - 认证
-  /v2/authn/login-identities/phone:
+  /v3/authn/login-identities/phone:
     post:
       consumes:
       - application/json
@@ -1471,7 +1471,7 @@ paths:
       summary: 绑定手机号登录身份
       tags:
       - 认证
-  /v2/authn/login-identities/phone/challenge:
+  /v3/authn/login-identities/phone/challenge:
     post:
       consumes:
       - application/json
@@ -1494,7 +1494,7 @@ paths:
       summary: 发送手机号绑定验证码
       tags:
       - 认证
-  /v2/authn/login-identities/wechat-miniprogram:
+  /v3/authn/login-identities/wechat-miniprogram:
     post:
       consumes:
       - application/json
@@ -1517,7 +1517,7 @@ paths:
       summary: 绑定微信小程序登录身份
       tags:
       - 认证
-  /v2/authn/login-identities/wechat-open:
+  /v3/authn/login-identities/wechat-open:
     post:
       consumes:
       - application/json
@@ -1540,7 +1540,7 @@ paths:
       summary: 完成微信开放平台扫码绑定
       tags:
       - 认证
-  /v2/authn/login-identities/wechat-open/authorize:
+  /v3/authn/login-identities/wechat-open/authorize:
     post:
       consumes:
       - application/json
@@ -1562,7 +1562,7 @@ paths:
       summary: 发起微信开放平台扫码绑定授权
       tags:
       - 认证
-  /v2/authn/login-identities/wecom:
+  /v3/authn/login-identities/wecom:
     post:
       consumes:
       - application/json
@@ -1585,7 +1585,7 @@ paths:
       summary: 绑定企业微信登录身份
       tags:
       - 认证
-  /v2/authn/logout:
+  /v3/authn/logout:
     post:
       consumes:
       - application/json
@@ -1612,7 +1612,7 @@ paths:
       summary: 用户登出
       tags:
       - 认证
-  /v2/authn/refresh_token:
+  /v3/authn/refresh_token:
     post:
       consumes:
       - application/json
@@ -1644,7 +1644,7 @@ paths:
       summary: 刷新访问令牌
       tags:
       - 认证
-  /v2/authn/signups/wechat-miniprogram:
+  /v3/authn/signups/wechat-miniprogram:
     post:
       consumes:
       - application/json
@@ -1676,7 +1676,7 @@ paths:
       summary: 微信小程序登录身份开通
       tags:
       - 认证
-  /v2/authn/verify:
+  /v3/authn/verify:
     post:
       consumes:
       - application/json
@@ -1708,7 +1708,7 @@ paths:
       summary: 验证访问令牌
       tags:
       - 认证
-  /v2/authn/wechat-open/authorize:
+  /v3/authn/wechat-open/authorize:
     post:
       consumes:
       - application/json
@@ -2317,7 +2317,7 @@ paths:
       summary: 档案联想搜索
       tags:
       - Suggest
-  /v3/authz/assignments/{id}:
+  /v4/authz/assignments/{id}:
     delete:
       parameters:
       - description: 分配ID
@@ -2337,7 +2337,7 @@ paths:
       summary: 根据分配ID撤销角色
       tags:
       - Authorization-Assignments
-  /v3/authz/assignments/grant:
+  /v4/authz/assignments/grant:
     post:
       consumes:
       - application/json
@@ -2367,7 +2367,7 @@ paths:
       summary: 授予角色
       tags:
       - Authorization-Assignments
-  /v3/authz/assignments/revoke:
+  /v4/authz/assignments/revoke:
     post:
       consumes:
       - application/json
@@ -2392,7 +2392,7 @@ paths:
       summary: 撤销角色
       tags:
       - Authorization-Assignments
-  /v3/authz/assignments/subject:
+  /v4/authz/assignments/subject:
     get:
       parameters:
       - description: 主体类型
@@ -2428,7 +2428,7 @@ paths:
       summary: 列出主体的角色分配
       tags:
       - Authorization-Assignments
-  /v3/authz/grants:
+  /v4/authz/grants:
     post:
       consumes:
       - application/json
@@ -2460,7 +2460,7 @@ paths:
       summary: 创建 PermissionGrant
       tags:
       - Authorization-Grants
-  /v3/authz/grants/{id}:
+  /v4/authz/grants/{id}:
     delete:
       consumes:
       - application/json
@@ -2491,7 +2491,7 @@ paths:
       summary: 撤销 PermissionGrant
       tags:
       - Authorization-Grants
-  /v3/authz/resources:
+  /v4/authz/resources:
     get:
       parameters:
       - description: 应用名称
@@ -2572,7 +2572,7 @@ paths:
       summary: 创建资源
       tags:
       - Authorization-Resources
-  /v3/authz/resources/{id}:
+  /v4/authz/resources/{id}:
     delete:
       description: Catalog writes require a matching platform Grant for the authenticated
         actor.
@@ -2664,7 +2664,7 @@ paths:
       summary: 更新资源
       tags:
       - Authorization-Resources
-  /v3/authz/resources/key/{key}:
+  /v4/authz/resources/key/{key}:
     get:
       parameters:
       - description: 资源键
@@ -2691,7 +2691,7 @@ paths:
       summary: 根据键获取资源
       tags:
       - Authorization-Resources
-  /v3/authz/resources/validate-action:
+  /v4/authz/resources/validate-action:
     post:
       consumes:
       - application/json
@@ -2721,7 +2721,7 @@ paths:
       summary: 验证资源动作
       tags:
       - Authorization-Resources
-  /v3/authz/role-inheritances:
+  /v4/authz/role-inheritances:
     get:
       description: 查询当前租户中的有效角色继承，可按获得能力的角色过滤
       operationId: listRoleInheritances
@@ -2782,7 +2782,7 @@ paths:
       summary: 创建角色继承
       tags:
       - Authorization-Role-Inheritances
-  /v3/authz/role-inheritances/{id}:
+  /v4/authz/role-inheritances/{id}:
     delete:
       consumes:
       - application/json
@@ -2813,7 +2813,7 @@ paths:
       summary: 撤销角色继承
       tags:
       - Authorization-Role-Inheritances
-  /v3/authz/roles:
+  /v4/authz/roles:
     get:
       parameters:
       - default: 0
@@ -2876,7 +2876,7 @@ paths:
       summary: 创建角色
       tags:
       - Authorization-Roles
-  /v3/authz/roles/{id}:
+  /v4/authz/roles/{id}:
     delete:
       parameters:
       - description: 角色ID
@@ -2962,7 +2962,7 @@ paths:
       summary: 更新角色
       tags:
       - Authorization-Roles
-  /v3/authz/roles/{id}/assignments:
+  /v4/authz/roles/{id}/assignments:
     get:
       parameters:
       - description: 角色ID
@@ -2991,7 +2991,7 @@ paths:
       summary: 列出角色的分配记录
       tags:
       - Authorization-Assignments
-  /v3/authz/roles/{id}/grants:
+  /v4/authz/roles/{id}/grants:
     get:
       description: 查询指定角色在当前租户下的有效 PermissionGrant
       operationId: listRolePermissionGrants

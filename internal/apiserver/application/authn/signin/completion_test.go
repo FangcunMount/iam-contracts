@@ -3,17 +3,18 @@ package signin
 import (
 	"context"
 	"errors"
-	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"testing"
 	"time"
 
-	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+
+	admissiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -79,7 +80,7 @@ func TestSignInCompletionCreatesResultAndPersistsInitialRefreshToken(t *testing.
 		SessionCreator: creator, SessionRevoker: &recordingSessionRevoker{}, TokenSetMinter: minter, RefreshTokenSaver: saver,
 	})
 
-	tokenContext := sessiondomain.TokenContext{TenantDomain: "fangcun", OrgID: meta.FromUint64(42)}
+	tokenContext := sessiondomain.TokenContext{OrgID: meta.FromUint64(42)}
 	result, err := establisher.completeLogin(context.Background(), principal, tokenContext)
 
 	require.NoError(t, err)

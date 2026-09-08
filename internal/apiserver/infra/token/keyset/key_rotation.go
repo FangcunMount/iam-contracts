@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	pkgauth "github.com/FangcunMount/iam/v4/pkg/auth"
+	pkgauth "github.com/FangcunMount/iam/v5/pkg/auth"
 )
 
 // KeyRotation coordinates signing-key lifecycle mutations over key material and persistence adapters.

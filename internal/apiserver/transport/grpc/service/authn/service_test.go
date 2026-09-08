@@ -6,14 +6,14 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	linkingApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
-	sessionApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/session"
-	signupApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signup"
-	tokenApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	tokenDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	linkingApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/linking"
+	sessionApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/session"
+	signupApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signup"
+	tokenApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	tokenDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -98,7 +98,7 @@ func (s *tokenOperationsStub) VerifyToken(ctx context.Context, req tokenApp.Veri
 	claims, err := tokenDomain.NewAccessTokenClaims(tokenDomain.AccessTokenClaims{
 		TokenID: "tid", Subject: meta.FromUint64(1).String(), SessionID: "sid-1",
 		UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), OrgID: meta.FromUint64(3),
-		TenantDomain: "fangcun", Issuer: "iam", Audience: []string{"test"},
+		Issuer: "iam", Audience: []string{"test"},
 		Attributes: map[string]string{"scope": "internal", "level": "2"}, AMR: []string{"pwd"},
 		IssuedAt: now, NotBefore: now, ExpiresAt: now.Add(time.Minute),
 	})
@@ -134,14 +134,14 @@ func TestAuthNGRPCRuntimeRegistersProductionServices(t *testing.T) {
 	).Register(server)
 
 	info := server.GetServiceInfo()
-	for _, method := range info["iam.authn.v2.AuthService"].Methods {
+	for _, method := range info["iam.authn.v3.AuthService"].Methods {
 		require.NotEqual(t, "IssueServiceToken", method.Name)
 	}
-	require.Contains(t, info, "iam.authn.v2.AuthService")
-	require.Contains(t, info, "iam.authn.v2.AuthSignupService")
-	require.Contains(t, info, "iam.authn.v2.AuthChallengeService")
-	require.Contains(t, info, "iam.authn.v2.LoginIdentityService")
-	require.NotContains(t, info, "iam.authn.v2.AccountOnboardingService")
+	require.Contains(t, info, "iam.authn.v3.AuthService")
+	require.Contains(t, info, "iam.authn.v3.AuthSignupService")
+	require.Contains(t, info, "iam.authn.v3.AuthChallengeService")
+	require.Contains(t, info, "iam.authn.v3.LoginIdentityService")
+	require.NotContains(t, info, "iam.authn.v3.AccountOnboardingService")
 }
 
 func TestAuthServiceServerLoginUsesExplicitV2Contract(t *testing.T) {
@@ -162,7 +162,7 @@ func TestAuthServiceServerLoginUsesExplicitV2Contract(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	resp, err := srv.Login(context.Background(), &authnv2.LoginRequest{
+	resp, err := srv.Login(context.Background(), &authnv3.LoginRequest{
 		AuthMethod:    "password",
 		MethodPayload: payload,
 	})
@@ -183,7 +183,7 @@ func TestAuthServiceServerLoginRejectsNonPublicMethod(t *testing.T) {
 	payload, err := structpb.NewStruct(map[string]any{"token": "jwt"})
 	require.NoError(t, err)
 
-	_, err = srv.Login(context.Background(), &authnv2.LoginRequest{
+	_, err = srv.Login(context.Background(), &authnv3.LoginRequest{
 		AuthMethod:    "jwt_token",
 		MethodPayload: payload,
 	})
@@ -196,7 +196,7 @@ func TestAuthServiceServerVerifyTokenPassesExpectationGuards(t *testing.T) {
 	stub := &tokenOperationsStub{}
 	srv := &authServiceServer{tokenVerifier: stub}
 
-	_, err := srv.VerifyToken(context.Background(), &authnv2.VerifyTokenRequest{
+	_, err := srv.VerifyToken(context.Background(), &authnv3.VerifyTokenRequest{
 		AccessToken:      "jwt-token",
 		ExpectedIssuer:   "https://iam.fangcunmount.cn",
 		ExpectedAudience: []string{"qs-api"},
@@ -219,7 +219,7 @@ func TestAuthServiceServerTokenLifecycleErrorMapping(t *testing.T) {
 		{
 			name: "verify token app unauthenticated",
 			call: func(s *authServiceServer) error {
-				_, err := s.VerifyToken(context.Background(), &authnv2.VerifyTokenRequest{ExpectedAudience: []string{"qs-api"}, AccessToken: "access-token"})
+				_, err := s.VerifyToken(context.Background(), &authnv3.VerifyTokenRequest{ExpectedAudience: []string{"qs-api"}, AccessToken: "access-token"})
 				return err
 			},
 			tokenOps: &tokenOperationsStub{verifyErr: perrors.WithCode(code.ErrTokenInvalid, "invalid access")},
@@ -228,7 +228,7 @@ func TestAuthServiceServerTokenLifecycleErrorMapping(t *testing.T) {
 		{
 			name: "refresh token app unauthenticated",
 			call: func(s *authServiceServer) error {
-				_, err := s.RefreshToken(context.Background(), &authnv2.RefreshTokenRequest{RefreshToken: "refresh-token"})
+				_, err := s.RefreshToken(context.Background(), &authnv3.RefreshTokenRequest{RefreshToken: "refresh-token"})
 				return err
 			},
 			sessionSvc: &loginServiceStub{refreshErr: perrors.WithCode(code.ErrTokenInvalid, "invalid refresh")},
@@ -237,7 +237,7 @@ func TestAuthServiceServerTokenLifecycleErrorMapping(t *testing.T) {
 		{
 			name: "revoke token app unauthenticated",
 			call: func(s *authServiceServer) error {
-				_, err := s.RevokeToken(context.Background(), &authnv2.RevokeTokenRequest{AccessToken: "access-token"})
+				_, err := s.RevokeToken(context.Background(), &authnv3.RevokeTokenRequest{AccessToken: "access-token"})
 				return err
 			},
 			tokenOps: &tokenOperationsStub{revokeErr: perrors.WithCode(code.ErrTokenInvalid, "invalid access")},

@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	authzv3 "github.com/FangcunMount/iam/v4/api/grpc/iam/authz/v3"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
-	authzfixture "github.com/FangcunMount/iam/v4/internal/apiserver/testfixtures/assessment"
-	servergrpc "github.com/FangcunMount/iam/v4/internal/pkg/grpc"
-	"github.com/FangcunMount/iam/v4/internal/testutil/tlsfixture"
+	authzv4 "github.com/FangcunMount/iam/v5/api/grpc/iam/authz/v4"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
+	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/assessment"
+	servergrpc "github.com/FangcunMount/iam/v5/internal/pkg/grpc"
+	"github.com/FangcunMount/iam/v5/internal/testutil/tlsfixture"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -36,7 +36,7 @@ func TestMTLSAuthorizationWithoutServiceToken(t *testing.T) {
 	srv, err := servergrpc.NewServer(cfg)
 	require.NoError(t, err)
 	t.Cleanup(srv.Server.Stop)
-	authzv3.RegisterAuthorizationServiceServer(srv.Server, &authorizationServer{checker: &checkerFake{decision: authorization.Decision{Allowed: true, Reason: authorization.ReasonAllowed}}, objectAttributeAdmission: authzfixture.Policy()})
+	authzv4.RegisterAuthorizationServiceServer(srv.Server, &authorizationServer{checker: &checkerFake{decision: authorization.Decision{Allowed: true, Reason: authorization.ReasonAllowed}}, objectAttributeAdmission: authzfixture.Policy()})
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = lis.Close() })
@@ -62,13 +62,13 @@ func TestMTLSAuthorizationWithoutServiceToken(t *testing.T) {
 			if tt.bearer {
 				ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer forged-admin-token")
 			}
-			resp, err := authzv3.NewAuthorizationServiceClient(conn).Check(ctx, assessmentCheckRequest("user:2", "adhoc"))
+			resp, err := authzv4.NewAuthorizationServiceClient(conn).Check(ctx, assessmentCheckRequest("user:2", "adhoc"))
 			require.Equal(t, tt.want, status.Code(err))
 			if tt.want == codes.OK {
 				require.True(t, resp.Allowed)
 			}
 			if tt.name == "certificate only" {
-				err = conn.Invoke(ctx, "/iam.authn.v2.AuthService/IssueServiceToken", &emptypb.Empty{}, &emptypb.Empty{})
+				err = conn.Invoke(ctx, "/iam.authn.v3.AuthService/IssueServiceToken", &emptypb.Empty{}, &emptypb.Empty{})
 				require.Equal(t, codes.Unimplemented, status.Code(err))
 			}
 		})

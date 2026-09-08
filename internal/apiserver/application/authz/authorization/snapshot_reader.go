@@ -5,13 +5,13 @@ import (
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // SnapshotRuntime supplies the active subject authorization projection.
 type SnapshotRuntime interface {
-	GetAuthorizationSnapshot(context.Context, subject.Ref, string, string) (SubjectSnapshot, error)
+	GetAuthorizationSnapshot(context.Context, subject.Ref, string) (SubjectSnapshot, error)
 }
 
 // SnapshotReader exposes the application query for one subject's current
@@ -24,12 +24,12 @@ func NewSnapshotReader(runtime SnapshotRuntime) *SnapshotReader {
 	return &SnapshotReader{runtime: runtime}
 }
 
-func (r *SnapshotReader) Read(ctx context.Context, sub subject.Ref, tenantID, appName string) (SubjectSnapshot, error) {
+func (r *SnapshotReader) Read(ctx context.Context, sub subject.Ref, appName string) (SubjectSnapshot, error) {
 	if r == nil || r.runtime == nil {
 		return SubjectSnapshot{}, perrors.WithCode(code.ErrInternalServerError, "authorization runtime is unavailable")
 	}
-	if sub.IsZero() || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(appName) == "" {
+	if sub.IsZero() || strings.TrimSpace(appName) == "" {
 		return SubjectSnapshot{}, perrors.WithCode(code.ErrInvalidArgument, "subject, tenant id, and app name are required")
 	}
-	return r.runtime.GetAuthorizationSnapshot(ctx, sub, tenantID, appName)
+	return r.runtime.GetAuthorizationSnapshot(ctx, sub, appName)
 }

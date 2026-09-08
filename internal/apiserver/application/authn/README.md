@@ -36,7 +36,7 @@
 
 `PrepareStep → ResolveUserStep → EnsureLoginIdentityStep → EnsureCredentialStep`（事务内后三步）。
 
-Transport：`OnboardingHandler` → `/api/v2/authn/signups/*`（Handler 名称历史遗留，实现为 signup 包）。
+Transport：`OnboardingHandler` → `/api/v3/authn/signups/*`（Handler 名称历史遗留，实现为 signup 包）。
 
 ### session.ApplicationService
 

@@ -1,9 +1,9 @@
 package suggest
 
 import (
-	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
-	suggestmetrics "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/metrics"
-	suggestratelimit "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/ratelimit"
+	appquery "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/queryprofile"
+	suggestmetrics "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/metrics"
+	suggestratelimit "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/ratelimit"
 )
 
 // ApplicationCapabilities contains suggest application collaborators used by transports.

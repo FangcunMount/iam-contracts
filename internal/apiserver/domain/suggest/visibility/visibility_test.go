@@ -3,7 +3,7 @@ package visibility_test
 import (
 	"testing"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/visibility"
 )
 
 func TestScopeOrgIDsAndProfileIDsSorted(t *testing.T) {
@@ -38,8 +38,8 @@ func TestScopeAllowsDimensions(t *testing.T) {
 func TestResolutionPolicyPlatformAllProfiles(t *testing.T) {
 	policy := visibility.ResolutionPolicy{}
 	scope := policy.Resolve(
-		visibility.Principal{OperatorID: 1, TenantDomain: "fangcun"},
-		visibility.AuthorizationFacts{PlatformListAllowed: true, PlatformMobileSearchAllowed: true},
+		visibility.Principal{OperatorID: 1},
+		visibility.AuthorizationFacts{AllProfilesAllowed: true, AllProfilesMobileSearchAllowed: true},
 		nil,
 	)
 	if !scope.IsAllProfiles() || !scope.AllowsMobileSearch() {
@@ -50,8 +50,8 @@ func TestResolutionPolicyPlatformAllProfiles(t *testing.T) {
 func TestResolutionPolicyTenantMobileOnlyFromFacts(t *testing.T) {
 	policy := visibility.ResolutionPolicy{}
 	scope := policy.Resolve(
-		visibility.Principal{OperatorID: 1, TenantDomain: "fangcun", OrgID: 5},
-		visibility.AuthorizationFacts{TenantMobileSearchAllowed: true},
+		visibility.Principal{OperatorID: 1, OrgID: 5},
+		visibility.AuthorizationFacts{ScopedMobileSearchAllowed: true},
 		[]int64{7},
 	)
 	if scope.IsAllProfiles() || !scope.AllowsMobileSearch() {

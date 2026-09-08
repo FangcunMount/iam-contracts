@@ -11,9 +11,9 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/wechatapp"
-	testhelpers "github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/wechatapp"
+	testhelpers "github.com/FangcunMount/iam/v5/internal/apiserver/testhelpers"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 	gormmysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"

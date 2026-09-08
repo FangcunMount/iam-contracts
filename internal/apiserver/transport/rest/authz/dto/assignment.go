@@ -1,7 +1,7 @@
 // Package dto 赋权相关的 DTO 定义
 package dto
 
-import "github.com/FangcunMount/iam/v4/internal/pkg/meta"
+import "github.com/FangcunMount/iam/v5/internal/pkg/meta"
 
 // GrantRequest 授权请求
 type GrantRequest struct {
@@ -25,8 +25,8 @@ type AssignmentResponse struct {
 	SubjectType string  `json:"subject_type"`
 	SubjectID   meta.ID `json:"subject_id" swaggertype:"string"`
 	RoleID      meta.ID `json:"role_id" swaggertype:"string"`
-	TenantID    string  `json:"tenant_id"`
-	GrantedBy   string  `json:"granted_by"`
+
+	GrantedBy string `json:"granted_by"`
 }
 
 // ListAssignmentQuery 列出赋权查询参数

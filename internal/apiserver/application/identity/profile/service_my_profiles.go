@@ -6,10 +6,10 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/uow"
-	profileLinkDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/profilelink"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/uow"
+	profileLinkDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/profilelink"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // MyProfiles 定义了针对当前用户的档案相关操作。

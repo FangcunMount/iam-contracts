@@ -4,21 +4,21 @@ import (
 	"context"
 	"time"
 
-	assignmentApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignment"
-	assignmentAdmissionApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignmentadmission"
-	authorizationApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	objectattributeadmission "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/objectattributeadmission"
-	permissionGrantApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/permissiongrant"
-	resourceApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/resource"
-	roleApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/role"
-	roleInheritanceApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/roleinheritance"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
+	assignmentApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
+	assignmentAdmissionApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
+	authorizationApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	objectattributeadmission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/objectattributeadmission"
+	permissionGrantApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/permissiongrant"
+	resourceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/resource"
+	roleApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/role"
+	roleInheritanceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/roleinheritance"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 )
 
 // EffectiveRoleReader resolves direct and inherited roles for a subject.
 // The method shape matches identity.EffectiveRoleReader without importing identity.
 type EffectiveRoleReader interface {
-	EffectiveRoleNamesForSubject(ctx context.Context, subject subject.Ref, tenantID string) ([]string, error)
+	EffectiveRoleNamesForSubject(ctx context.Context, subject subject.Ref) ([]string, error)
 }
 
 // RuntimeHealthReporter exposes authz runtime reload health.

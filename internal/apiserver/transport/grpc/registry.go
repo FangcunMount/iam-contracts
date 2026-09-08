@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"github.com/FangcunMount/component-base/pkg/log"
-	grpcpkg "github.com/FangcunMount/iam/v4/internal/pkg/grpc"
+	grpcpkg "github.com/FangcunMount/iam/v5/internal/pkg/grpc"
 	googlegrpc "google.golang.org/grpc"
 )
 

@@ -2,15 +2,12 @@ package role
 
 import (
 	"context"
-	"errors"
-
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -88,9 +85,9 @@ func (r *RoleRepository) findByID(ctx context.Context, id meta.ID, lock bool) (*
 }
 
 // FindByName 根据名称和租户获取角色
-func (r *RoleRepository) FindByName(ctx context.Context, tenantID, name string) (*domain.Role, error) {
+func (r *RoleRepository) FindByName(ctx context.Context, name string) (*domain.Role, error) {
 	var po RolePO
-	err := r.WithContext(ctx).Where("tenant_id = ? AND name = ?", tenantID, name).First(&po).Error
+	err := r.WithContext(ctx).Where("name = ?", name).First(&po).Error
 	if err != nil {
 		return nil, err
 	}
@@ -105,11 +102,11 @@ func (r *RoleRepository) FindByName(ctx context.Context, tenantID, name string) 
 }
 
 // List 列出角色
-func (r *RoleRepository) List(ctx context.Context, tenantID string, offset, limit int) ([]*domain.Role, int64, error) {
+func (r *RoleRepository) List(ctx context.Context, offset, limit int) ([]*domain.Role, int64, error) {
 	var pos []*RolePO
 	var total int64
 
-	query := r.WithContext(ctx).Model(&RolePO{}).Where("tenant_id = ?", tenantID)
+	query := r.WithContext(ctx).Model(&RolePO{})
 
 	// 获取总数
 	if err := query.Count(&total).Error; err != nil {
@@ -133,18 +130,4 @@ func (r *RoleRepository) List(ctx context.Context, tenantID string, offset, limi
 	}
 
 	return roles, total, nil
-}
-
-func (r *RoleRepository) FindByTenantAndID(ctx context.Context, tenantID tenant.ID, id meta.ID) (*domain.Role, error) {
-	var po RolePO
-	if tenantID.IsZero() {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "tenant is required")
-	}
-	if err := r.WithContext(ctx).Where("tenant_id = ? AND id = ?", tenantID.String(), id.Uint64()).First(&po).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, perrors.WithCode(code.ErrRoleNotFound, "role not found")
-		}
-		return nil, err
-	}
-	return r.mapper.ToRoleBO(&po)
 }

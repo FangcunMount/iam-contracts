@@ -3,8 +3,8 @@ package idp
 import (
 	"testing"
 
-	authzapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/idp/handler"
+	authzapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/idp/handler"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

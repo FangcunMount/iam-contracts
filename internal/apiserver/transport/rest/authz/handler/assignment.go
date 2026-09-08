@@ -5,11 +5,11 @@ import (
 	"context"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	assignmentApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignment"
-	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/dto"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	assignmentApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
+	assignmentDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authz/dto"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/gin-gonic/gin"
 )
 
@@ -51,18 +51,13 @@ func convertToSubjectType(s string) (assignmentDomain.SubjectType, error) {
 // @Param request body dto.GrantRequest true "授予角色请求"
 // @Success 200 {object} dto.Response{data=dto.AssignmentResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/assignments/grant [post]
+// @Router /v4/authz/assignments/grant [post]
 func (h *AssignmentHandler) GrantAssignment(c *gin.Context) {
 	var req dto.GrantRequest
 	if !bindJSON(c, &req) {
 		return
 	}
 
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
 	grantedBy, err := getUserID(c)
 	if err != nil {
 		handleError(c, err)
@@ -75,7 +70,7 @@ func (h *AssignmentHandler) GrantAssignment(c *gin.Context) {
 		return
 	}
 
-	cmd, err := assignmentApp.NewGrantCommand(subjectType, req.SubjectID, req.RoleID, tenantID, grantedBy.String())
+	cmd, err := assignmentApp.NewGrantCommand(subjectType, req.SubjectID, req.RoleID, grantedBy.String())
 	if err != nil {
 		handleError(c, err)
 		return
@@ -98,18 +93,13 @@ func (h *AssignmentHandler) GrantAssignment(c *gin.Context) {
 // @Param request body dto.RevokeRequest true "撤销角色请求"
 // @Success 200 {object} dto.Response
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/assignments/revoke [post]
+// @Router /v4/authz/assignments/revoke [post]
 func (h *AssignmentHandler) RevokeAssignment(c *gin.Context) {
 	var req dto.RevokeRequest
 	if !bindJSON(c, &req) {
 		return
 	}
 
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
 	changedBy, err := getUserID(c)
 	if err != nil {
 		handleError(c, err)
@@ -122,7 +112,7 @@ func (h *AssignmentHandler) RevokeAssignment(c *gin.Context) {
 		return
 	}
 
-	cmd, err := assignmentApp.NewRevokeCommand(subjectType, req.SubjectID, req.RoleID, tenantID, changedBy.String(), req.Reason)
+	cmd, err := assignmentApp.NewRevokeCommand(subjectType, req.SubjectID, req.RoleID, changedBy.String(), req.Reason)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -143,25 +133,20 @@ func (h *AssignmentHandler) RevokeAssignment(c *gin.Context) {
 // @Param id path string true "分配ID"
 // @Success 200 {object} dto.Response
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/assignments/{id} [delete]
+// @Router /v4/authz/assignments/{id} [delete]
 func (h *AssignmentHandler) RevokeAssignmentByID(c *gin.Context) {
 	assignmentID, ok := parseIDParam(c, "id", "分配ID格式错误")
 	if !ok {
 		return
 	}
 
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
 	changedBy, err := getUserID(c)
 	if err != nil {
 		handleError(c, err)
 		return
 	}
 
-	cmd, err := assignmentApp.NewRevokeByIDCommand(assignmentDomain.NewAssignmentID(assignmentID.Uint64()), tenantID, changedBy.String(), "")
+	cmd, err := assignmentApp.NewRevokeByIDCommand(assignmentDomain.NewAssignmentID(assignmentID.Uint64()), changedBy.String(), "")
 	if err != nil {
 		handleError(c, err)
 		return
@@ -184,19 +169,13 @@ func (h *AssignmentHandler) RevokeAssignmentByID(c *gin.Context) {
 // @Param subject_id query string true "主体ID"
 // @Success 200 {object} dto.Response{data=[]dto.AssignmentResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/assignments/subject [get]
+// @Router /v4/authz/assignments/subject [get]
 func (h *AssignmentHandler) ListAssignmentsBySubject(c *gin.Context) {
 	subjectTypeStr := c.Query("subject_type")
 	subjectID, err := meta.ParseID(c.Query("subject_id"))
 
 	if subjectTypeStr == "" || subjectID.IsZero() || err != nil {
 		handleError(c, errors.WithCode(code.ErrInvalidArgument, "subject_type 和 subject_id 不能为空"))
-		return
-	}
-
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
 		return
 	}
 
@@ -209,7 +188,6 @@ func (h *AssignmentHandler) ListAssignmentsBySubject(c *gin.Context) {
 	query := assignmentApp.ListBySubjectQuery{
 		SubjectType: subjectType,
 		SubjectID:   subjectID,
-		TenantID:    tenantID,
 	}
 
 	result, err := h.queryer.ListBySubject(c.Request.Context(), query)
@@ -233,22 +211,15 @@ func (h *AssignmentHandler) ListAssignmentsBySubject(c *gin.Context) {
 // @Param id path string true "角色ID"
 // @Success 200 {object} dto.Response{data=[]dto.AssignmentResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/roles/{id}/assignments [get]
+// @Router /v4/authz/roles/{id}/assignments [get]
 func (h *AssignmentHandler) ListAssignmentsByRole(c *gin.Context) {
 	roleID, ok := parseIDParam(c, "id", "角色ID格式错误")
 	if !ok {
 		return
 	}
 
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
-
 	query := assignmentApp.ListByRoleQuery{
-		RoleID:   roleID,
-		TenantID: tenantID,
+		RoleID: roleID,
 	}
 
 	result, err := h.queryer.ListByRole(c.Request.Context(), query)

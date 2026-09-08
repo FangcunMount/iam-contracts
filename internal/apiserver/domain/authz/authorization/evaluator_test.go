@@ -5,15 +5,15 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	authzfixture "github.com/FangcunMount/iam/v4/internal/apiserver/testfixtures/authzschema"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/authzschema"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -105,7 +105,7 @@ func evaluationFixture(
 	))
 	require.NoError(t, err)
 	grant, err := permissiongrant.New(
-		meta.FromUint64(12), "fangcun", catalogResource.ID,
+		meta.FromUint64(12), catalogResource.ID,
 		catalogResource.KeyString(), "retry", conditions, "bootstrap",
 	)
 	require.NoError(t, err)
@@ -123,7 +123,7 @@ func evaluationFixture(
 	}
 	object, err := authorization.NewObjectContext("assessment-1", attributes)
 	require.NoError(t, err)
-	request, err := authorization.NewRequest(sub, "fangcun", documentResource, "retry", object)
+	request, err := authorization.NewRequest(sub, documentResource, "retry", object)
 	require.NoError(t, err)
 
 	return request, &catalogResource, []role.Name{roleName}, map[role.Name][]*permissiongrant.Grant{

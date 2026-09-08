@@ -9,11 +9,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	appuser "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/user"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
-	"github.com/FangcunMount/iam/v4/pkg/tenant"
+	appuser "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/user"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/requestctx"
+	"github.com/FangcunMount/iam/v5/pkg/tenant"
 )
 
 func TestResolveRolesIncludesPlatformRoles(t *testing.T) {
@@ -21,7 +21,7 @@ func TestResolveRolesIncludesPlatformRoles(t *testing.T) {
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/v2/identity/me", nil)
-	requestctx.SetTenantID(c, "fangcun")
+	requestctx.SetTenantID(c)
 
 	h := &UserHandler{
 		effectiveRoles: userRoleLookupStub{

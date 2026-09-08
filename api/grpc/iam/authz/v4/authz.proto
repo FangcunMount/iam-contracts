@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package iam.authz.v3;
+package iam.authz.v4;
 
-option go_package = "github.com/FangcunMount/iam/v4/api/grpc/iam/authz/v3;authzv3";
+option go_package = "github.com/FangcunMount/iam/v5/api/grpc/iam/authz/v4;authzv4";
 
 service AuthorizationService {
   rpc Check(CheckRequest) returns (CheckResponse);
@@ -41,7 +41,8 @@ message ObjectContext {
 
 message CheckRequest {
   string subject = 1;
-  string domain = 2;
+  reserved 2;
+  reserved "domain";
   string resource = 3;
   string action = 4;
   ObjectContext object_context = 5;
@@ -65,7 +66,8 @@ message PermissionEntry {
 
 message GetAuthorizationSnapshotRequest {
   string subject = 1;
-  string domain = 2;
+  reserved 2;
+  reserved "domain";
   string app_name = 3;
 }
 
@@ -80,7 +82,8 @@ message GetAuthorizationSnapshotResponse {
 
 message GrantAssignmentRequest {
   string subject = 1;
-  string domain = 2;
+  reserved 2;
+  reserved "domain";
   string role_name = 3;
   string granted_by = 4;
 }
@@ -91,7 +94,8 @@ message GrantAssignmentResponse {
 
 message RevokeAssignmentRequest {
   string subject = 1;
-  string domain = 2;
+  reserved 2;
+  reserved "domain";
   string role_name = 3;
   string revoked_by = 4;
   string reason = 5;
@@ -103,7 +107,8 @@ message RevokeAssignmentResponse {
 
 message ReplaceManagedAssignmentsRequest {
   string subject = 1;
-  string domain = 2;
+  reserved 2;
+  reserved "domain";
   repeated string role_names = 3;
   string changed_by = 4;
   string reason = 5;

@@ -3,7 +3,7 @@ package queryprofile
 import (
 	"context"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/visibility"
 )
 
 // ScopeResolverService 编排授权事实、visibility 与领域 ResolutionPolicy。
@@ -30,7 +30,7 @@ func (r *ScopeResolverService) ResolveScope(ctx context.Context, principal visib
 	}
 
 	var visibilityIDs []int64
-	if r.visibility != nil && !authFacts.PlatformListAllowed {
+	if r.visibility != nil && !authFacts.AllProfilesAllowed {
 		ids, err := r.visibility.VisibleProfileIDs(ctx, principal)
 		if err != nil {
 			return visibility.Scope{}, err

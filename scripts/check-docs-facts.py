@@ -142,8 +142,8 @@ def check_generated_document_facts() -> None:
         for path, operations in authz_contract.get("paths", {}).items()
     }
     for method, route in (
-        ("get", "/api/v3/authz/roles"),
-        ("post", "/api/v3/authz/grants"),
+        ("get", "/api/v4/authz/roles"),
+        ("post", "/api/v4/authz/grants"),
     ):
         if method not in authz_paths.get(route, {}):
             fail(f"AuthZ REST contract is missing documented {method.upper()} {route}")
@@ -156,10 +156,10 @@ def check_generated_document_facts() -> None:
     if "/api/v2/authz" in all_api_markdown:
         fail("API README files still contain retired /api/v2/authz URLs")
 
-    authz_proto = (ROOT / "api/grpc/iam/authz/v3/authz.proto").read_text(
+    authz_proto = (ROOT / "api/grpc/iam/authz/v4/authz.proto").read_text(
         encoding="utf-8"
     )
-    authz_proto_path = ROOT / "api/grpc/iam/authz/v3/authz.proto"
+    authz_proto_path = ROOT / "api/grpc/iam/authz/v4/authz.proto"
     package_match = re.search(r"^package\s+([A-Za-z0-9_.]+);", authz_proto, re.MULTILINE)
     if package_match is None or "service AuthorizationService" not in authz_proto or not re.search(
         r"\brpc\s+Check\s*\(", authz_proto
@@ -175,7 +175,7 @@ def check_generated_document_facts() -> None:
 
     authz_rpcs = proto_service_rpcs(authz_proto_path, "AuthorizationService")
     grpc_authz_row = re.search(
-        r"^\|\s*\[[^\]]+\]\(iam/authz/v3/authz\.proto\)\s*\|\s*`AuthorizationService`\s*\|\s*(.*?)\s*\|$",
+        r"^\|\s*\[[^\]]+\]\(iam/authz/v4/authz\.proto\)\s*\|\s*`AuthorizationService`\s*\|\s*(.*?)\s*\|$",
         grpc_readme,
         re.MULTILINE,
     )
@@ -415,7 +415,7 @@ def check_generated_document_facts() -> None:
 
     runtime_readme_routes = {
         "/.well-known/jwks.json": {"get"},
-        "/api/v3/authz/health": {"get"},
+        "/api/v4/authz/health": {"get"},
         "/api/v2/idp/health": {"get"},
     }
     for route, methods in runtime_readme_routes.items():
@@ -1034,7 +1034,7 @@ def check_compatibility_retirement_evidence() -> None:
     )
     swagger = (ROOT / "internal/apiserver/docs/swagger.yaml").read_text(encoding="utf-8")
     for token, source, label in (
-        ("module github.com/FangcunMount/iam/v4", go_mod, "v3 Go module path"),
+        ("module github.com/FangcunMount/iam/v5", go_mod, "v3 Go module path"),
         ("v2.0.10", sdk_migration, "SDK deprecation release"),
         ("免除 Batch C 的最短 30 天等待期", sdk_migration, "SDK owner waiver"),
         ("v3.0.0", sdk_migration, "SDK v3 release"),

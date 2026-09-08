@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	authzapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	authhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/handler"
-	authnMiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authn"
+	authzapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	authhandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/handler"
+	authnMiddleware "github.com/FangcunMount/iam/v5/internal/pkg/middleware/authn"
 )
 
 // Dependencies describes the external collaborators needed to expose authn endpoints.
@@ -27,7 +27,7 @@ func Register(engine *gin.Engine, deps Dependencies) {
 		return
 	}
 
-	api := engine.Group("/api/v2/authn")
+	api := engine.Group("/api/v3/authn")
 
 	// 注册符合 v2 API 文档的认证端点
 	registerAuthEndpoints(api.Group(""), deps.AuthHandler)
@@ -56,7 +56,7 @@ func RegisterSeedMock(engine *gin.Engine, onboardingHandler *authhandler.Onboard
 		return
 	}
 
-	internal := engine.Group("/api/v2/internal/authn")
+	internal := engine.Group("/api/v3/internal/authn")
 	internal.Use(authnMiddleware.RequireSeedMockSecret(sharedSecret))
 	registerInternalMockConsumerEndpoints(internal, onboardingHandler)
 }

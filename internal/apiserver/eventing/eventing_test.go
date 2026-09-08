@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/policy"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/eventing"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/sms"
-	"github.com/FangcunMount/iam/v4/pkg/eventcodec"
-	"github.com/FangcunMount/iam/v4/pkg/eventmessaging"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/eventing"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/sms"
+	"github.com/FangcunMount/iam/v5/pkg/eventcodec"
+	"github.com/FangcunMount/iam/v5/pkg/eventmessaging"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAuthzVersionChangedKeepsLegacyPayloadShape(t *testing.T) {
-	evt := policy.NewVersionChangedEvent("tenant-a", 7)
+	evt := policy.NewVersionChangedEvent(7)
 
 	payload, err := eventcodec.EncodePayload(evt)
 	require.NoError(t, err)

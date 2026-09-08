@@ -3,8 +3,8 @@ package identity
 import (
 	"context"
 
-	identityv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/identity/v2"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/errors"
+	identityv2 "github.com/FangcunMount/iam/v5/api/grpc/iam/identity/v2"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/errors"
 )
 
 // CreateUser 创建用户。

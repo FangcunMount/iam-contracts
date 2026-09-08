@@ -16,14 +16,14 @@ REST 契约使用 OpenAPI 3.1。OpenAPI 文件是字段、路径、认证和错�
 
 | 能力 | 路由 |
 | ---- | ---- |
-| 登录 | `POST /api/v2/authn/login` |
-| 登录挑战 | `POST /api/v2/authn/challenges/phone-otp` |
-| Token | `POST /api/v2/authn/refresh_token`、`POST /api/v2/authn/logout`、`POST /api/v2/authn/verify` |
+| 登录 | `POST /api/v3/authn/login` |
+| 登录挑战 | `POST /api/v3/authn/challenges/phone-otp` |
+| Token | `POST /api/v3/authn/refresh_token`、`POST /api/v3/authn/logout`、`POST /api/v3/authn/verify` |
 | JWKS | `GET /.well-known/jwks.json`、`GET /api/v2/.well-known/jwks.json` |
-| AuthN JWKS 管理 | `/api/v2/authn/admin/jwks/keys` 及其 publishable、retire、force-retire、cleanup 子路由 |
-| LoginIdentity | `GET /api/v2/authn/login-identities`、`POST /api/v2/authn/login-identities/phone`、`DELETE /api/v2/authn/login-identities/{id}` |
-| Signup | `POST /api/v2/authn/signups/wechat-miniprogram` |
-| AuthZ 管理面 | `GET /api/v3/authz/health`、`/api/v3/authz/{roles,assignments,grants,role-inheritances,resources}` |
+| AuthN JWKS 管理 | `/api/v3/authn/admin/jwks/keys` 及其 publishable、retire、force-retire、cleanup 子路由 |
+| LoginIdentity | `GET /api/v3/authn/login-identities`、`POST /api/v3/authn/login-identities/phone`、`DELETE /api/v3/authn/login-identities/{id}` |
+| Signup | `POST /api/v3/authn/signups/wechat-miniprogram` |
+| AuthZ 管理面 | `GET /api/v4/authz/health`、`/api/v4/authz/{roles,assignments,grants,role-inheritances,resources}` |
 | Identity | `GET /api/v2/identity/me`、`GET /api/v2/identity/me/profiles`、`GET /api/v2/identity/profiles/{id}`、`GET /api/v2/identity/profile-links` |
 | IDP | `/api/v2/idp/health`、`/api/v2/idp/wechat-apps/*` |
 | Suggest | `GET /api/v2/suggest/profile` |
@@ -46,14 +46,14 @@ Identity 的当前关系术语是 `ProfileLink`。REST 路由使用 `/profile-li
 ## 示例
 
 ```bash
-curl -X POST https://iam.example.com/api/v2/authn/login \
+curl -X POST https://iam.example.com/api/v3/authn/login \
   -H "Content-Type: application/json" \
   -d '{"auth_method":"password","method_payload":{"username":"admin","password":"secret"}}'
 
 curl https://iam.example.com/api/v2/identity/me \
   -H "Authorization: Bearer ${IAM_ACCESS_TOKEN}"
 
-curl https://iam.example.com/api/v3/authz/roles \
+curl https://iam.example.com/api/v4/authz/roles \
   -H "Authorization: Bearer ${IAM_ACCESS_TOKEN}"
 ```
 
@@ -63,7 +63,7 @@ AuthZ REST v3 只承接管理命令和查询，不存在 REST `Check`。权限�
 grpcurl \
   -H "authorization: Bearer ${IAM_SERVICE_TOKEN}" \
   -d '{"subject":"user:1024","domain":"default","resource":"qs:answersheet:collection:answersheets","action":"admin_submit"}' \
-  iam.example.com:443 iam.authz.v3.AuthorizationService/Check
+  iam.example.com:443 iam.authz.v4.AuthorizationService/Check
 ```
 
 ## 验证

@@ -7,9 +7,9 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
-	idpresolver "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
-	idpidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	idpresolver "github.com/FangcunMount/iam/v5/internal/apiserver/application/idp/externalidentity"
+	idpidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // AuthenticationStageError preserves the former SignIn stage for provider exchange failures.

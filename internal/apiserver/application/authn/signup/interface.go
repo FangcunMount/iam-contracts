@@ -3,9 +3,9 @@ package signup
 import (
 	"context"
 
-	credDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/credential"
-	userDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/user"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	credDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/credential"
+	userDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/user"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // ==========================================================================

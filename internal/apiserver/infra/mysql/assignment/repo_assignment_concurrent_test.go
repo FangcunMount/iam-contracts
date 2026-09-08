@@ -9,10 +9,10 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
-	testhelpers "github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	testhelpers "github.com/FangcunMount/iam/v5/internal/apiserver/testhelpers"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,7 +43,7 @@ func TestRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 				domain.SubjectTypeUser,
 				meta.FromUint64(123),
 				meta.FromUint64(42),
-				"tenant-1",
+
 				domain.WithGrantedBy("admin"),
 			)
 			if err != nil {
@@ -104,7 +104,7 @@ func TestRepository_Create_AllowsRegrantAfterHistoricalDeletion(t *testing.T) {
 		domain.SubjectTypeUser,
 		meta.FromUint64(123),
 		meta.FromUint64(42),
-		"tenant-1",
+
 		domain.WithGrantedBy("admin"),
 	)
 	require.NoError(t, err)
@@ -117,7 +117,7 @@ func TestRepository_Create_AllowsRegrantAfterHistoricalDeletion(t *testing.T) {
 		domain.SubjectTypeUser,
 		meta.FromUint64(123),
 		meta.FromUint64(42),
-		"tenant-1",
+
 		domain.WithGrantedBy("admin"),
 	)
 	require.NoError(t, err)

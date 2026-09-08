@@ -6,8 +6,8 @@ import (
 	"time"
 
 	cbmessaging "github.com/FangcunMount/component-base/pkg/messaging"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policypublication"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/eventing"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policypublication"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/eventing"
 	"github.com/stretchr/testify/require"
 )
 
@@ -93,7 +93,7 @@ func (s *policySyncRuntimeHealthStub) RuntimeHealthDetails() map[string]any {
 	return nil
 }
 
-func (s *policySyncRuntimeHealthStub) RecordPolicyVersionEvent(tenantID string, version int64, eventAt time.Time) {
+func (s *policySyncRuntimeHealthStub) RecordPolicyVersionEvent(version int64, eventAt time.Time) {
 	s.tenantID = tenantID
 	s.version = version
 	s.eventAt = eventAt

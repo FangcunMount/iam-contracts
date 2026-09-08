@@ -12,11 +12,11 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
-	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	admissiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 func TestRefresherConcurrentUseReturnsOnlyOneTokenPair(t *testing.T) {
@@ -313,7 +313,7 @@ func testActiveSession() *sessiondomain.Session {
 		meta.FromUint64(1),
 		meta.FromUint64(2),
 		authentication.RestoreAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, time.Now().Add(-time.Hour).UTC()),
-		sessiondomain.TokenContext{TenantDomain: "fangcun"},
+		sessiondomain.TokenContext{},
 		time.Now().Add(time.Hour),
 	)
 }

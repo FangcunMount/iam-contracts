@@ -8,16 +8,16 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authorizationapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	authzruntime "github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/runtime"
-	authzfixture "github.com/FangcunMount/iam/v4/internal/apiserver/testfixtures/assessment"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	authorizationapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	authzruntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
+	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/assessment"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -55,7 +55,7 @@ func TestRuntimeMissingAttributeDeniesWithReason(t *testing.T) {
 	require.NoError(t, err)
 	object, err := authorization.NewObjectContext("assessment-1", nil)
 	require.NoError(t, err)
-	request, err := authorization.NewRequest(sub, "fangcun", assessmentResource, "retry", object)
+	request, err := authorization.NewRequest(sub, assessmentResource, "retry", object)
 	require.NoError(t, err)
 
 	decision, err := runtime.Check(context.Background(), request)
@@ -70,7 +70,7 @@ func TestRuntimeSnapshotPreservesConditionalMode(t *testing.T) {
 	sub, err := subject.NewUserRef(meta.FromUint64(2))
 	require.NoError(t, err)
 
-	snapshot, err := runtime.GetAuthorizationSnapshot(context.Background(), sub, "fangcun", "qs")
+	snapshot, err := runtime.GetAuthorizationSnapshot(context.Background(), sub, "qs")
 	require.NoError(t, err)
 	require.Equal(t, []string{"qs:evaluator"}, snapshot.DirectRoles)
 	require.Equal(t, []string{"qs:evaluator", "qs:staff"}, snapshot.EffectiveRoles)
@@ -82,10 +82,10 @@ func TestRuntimeSnapshotPreservesConditionalMode(t *testing.T) {
 	})
 
 	routeDecisions := authorizationapp.NewRouteDecisionService(authorizationapp.NewDecisionService(runtime))
-	allowed, err := routeDecisions.CheckRoutePermission(context.Background(), sub.String(), "fangcun", assessmentResource, "retry")
+	allowed, err := routeDecisions.CheckRoutePermission(context.Background(), sub.String(), assessmentResource, "retry")
 	require.NoError(t, err)
 	require.False(t, allowed, "generic route authorization must not accept conditional grants")
-	allowed, err = routeDecisions.CheckRoutePermission(context.Background(), sub.String(), "fangcun", assessmentResource, "batch_evaluate")
+	allowed, err = routeDecisions.CheckRoutePermission(context.Background(), sub.String(), assessmentResource, "batch_evaluate")
 	require.NoError(t, err)
 	require.True(t, allowed)
 }
@@ -95,7 +95,7 @@ func TestRuntimeSnapshotIncludesQSAdminWildcardAsUnconditionalCandidate(t *testi
 	sub, err := subject.NewUserRef(meta.FromUint64(1))
 	require.NoError(t, err)
 
-	snapshot, err := runtime.GetAuthorizationSnapshot(context.Background(), sub, "fangcun", "qs")
+	snapshot, err := runtime.GetAuthorizationSnapshot(context.Background(), sub, "qs")
 	require.NoError(t, err)
 	require.Contains(t, snapshot.DirectRoles, "qs:admin")
 	require.Contains(t, snapshot.EffectiveRoles, "qs:admin")
@@ -125,8 +125,8 @@ func TestRuntimeFailedReloadKeepsPreviousSnapshot(t *testing.T) {
 func TestBuildSnapshotRejectsInheritanceCycle(t *testing.T) {
 	dataset := assessmentDataset(t)
 	dataset.Inheritances = []authzruntime.InheritanceRecord{
-		{TenantID: "fangcun", RoleID: meta.FromUint64(12), InheritedRoleID: meta.FromUint64(13)},
-		{TenantID: "fangcun", RoleID: meta.FromUint64(13), InheritedRoleID: meta.FromUint64(12)},
+		{RoleID: meta.FromUint64(12), InheritedRoleID: meta.FromUint64(13)},
+		{RoleID: meta.FromUint64(13), InheritedRoleID: meta.FromUint64(12)},
 	}
 	_, err := authzruntime.BuildSnapshot(dataset, time.Time{})
 	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
@@ -169,13 +169,13 @@ func assessmentDataset(t testing.TB) authzruntime.Dataset {
 	require.NoError(t, err)
 	plan, err := constraint.New(constraint.Equal(authzfixture.AttributeKey, constraint.StringValue("plan")))
 	require.NoError(t, err)
-	admin, err := permissiongrant.NewSystem(meta.FromUint64(11), "fangcun", resource.ResourceID{}, "qs:*:*:*", "*", constraint.Empty(), "bootstrap")
+	admin, err := permissiongrant.NewSystem(meta.FromUint64(11), resource.ResourceID{}, "qs:*:*:*", "*", constraint.Empty(), "bootstrap")
 	require.NoError(t, err)
-	evaluatorRetry, err := permissiongrant.New(meta.FromUint64(12), "fangcun", assessment.ID, assessment.KeyString(), "retry", adhoc, "bootstrap")
+	evaluatorRetry, err := permissiongrant.New(meta.FromUint64(12), assessment.ID, assessment.KeyString(), "retry", adhoc, "bootstrap")
 	require.NoError(t, err)
-	evaluatorBatch, err := permissiongrant.New(meta.FromUint64(12), "fangcun", assessment.ID, assessment.KeyString(), "batch_evaluate", constraint.Empty(), "bootstrap")
+	evaluatorBatch, err := permissiongrant.New(meta.FromUint64(12), assessment.ID, assessment.KeyString(), "batch_evaluate", constraint.Empty(), "bootstrap")
 	require.NoError(t, err)
-	planRetry, err := permissiongrant.New(meta.FromUint64(13), "fangcun", assessment.ID, assessment.KeyString(), "retry", plan, "bootstrap")
+	planRetry, err := permissiongrant.New(meta.FromUint64(13), assessment.ID, assessment.KeyString(), "retry", plan, "bootstrap")
 	require.NoError(t, err)
 	admin.ID = meta.FromUint64(101)
 	evaluatorRetry.ID = meta.FromUint64(102)
@@ -184,24 +184,24 @@ func assessmentDataset(t testing.TB) authzruntime.Dataset {
 
 	return authzruntime.Dataset{
 		Roles: []authzruntime.RoleRecord{
-			{ID: meta.FromUint64(11), TenantID: "fangcun", Name: "qs:admin"},
-			{ID: meta.FromUint64(12), TenantID: "fangcun", Name: "qs:evaluator"},
-			{ID: meta.FromUint64(13), TenantID: "fangcun", Name: "qs:evaluation_plan_manager"},
-			{ID: meta.FromUint64(14), TenantID: "fangcun", Name: "qs:staff"},
+			{ManagementProtection: "standard", ID: meta.FromUint64(11), Name: "qs:admin"},
+			{ManagementProtection: "standard", ID: meta.FromUint64(12), Name: "qs:evaluator"},
+			{ManagementProtection: "standard", ID: meta.FromUint64(13), Name: "qs:evaluation_plan_manager"},
+			{ManagementProtection: "standard", ID: meta.FromUint64(14), Name: "qs:staff"},
 		},
 		Assignments: []authzruntime.AssignmentRecord{
-			{TenantID: "fangcun", SubjectKey: "user:1", RoleID: meta.FromUint64(11)},
-			{TenantID: "fangcun", SubjectKey: "user:2", RoleID: meta.FromUint64(12)},
-			{TenantID: "fangcun", SubjectKey: "user:3", RoleID: meta.FromUint64(13)},
-			{TenantID: "fangcun", SubjectKey: "user:4", RoleID: meta.FromUint64(14)},
+			{SubjectKey: "user:1", RoleID: meta.FromUint64(11)},
+			{SubjectKey: "user:2", RoleID: meta.FromUint64(12)},
+			{SubjectKey: "user:3", RoleID: meta.FromUint64(13)},
+			{SubjectKey: "user:4", RoleID: meta.FromUint64(14)},
 		},
 		Inheritances: []authzruntime.InheritanceRecord{
-			{TenantID: "fangcun", RoleID: meta.FromUint64(12), InheritedRoleID: meta.FromUint64(14)},
-			{TenantID: "fangcun", RoleID: meta.FromUint64(13), InheritedRoleID: meta.FromUint64(14)},
+			{RoleID: meta.FromUint64(12), InheritedRoleID: meta.FromUint64(14)},
+			{RoleID: meta.FromUint64(13), InheritedRoleID: meta.FromUint64(14)},
 		},
 		Grants:    []*permissiongrant.Grant{&admin, &evaluatorRetry, &evaluatorBatch, &planRetry},
 		Resources: []*resource.Resource{&assessment},
-		Versions:  map[string]int64{"fangcun": 9},
+		Version:   9,
 	}
 }
 
@@ -213,7 +213,7 @@ func checkRequest(t testing.TB, userID uint64, action, originType string) author
 		authzfixture.AttributeKey: constraint.StringValue(originType),
 	})
 	require.NoError(t, err)
-	request, err := authorization.NewRequest(sub, "fangcun", assessmentResource, action, object)
+	request, err := authorization.NewRequest(sub, assessmentResource, action, object)
 	require.NoError(t, err)
 	return request
 }

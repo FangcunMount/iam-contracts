@@ -1,8 +1,8 @@
 package authz
 
 import (
-	resttransport "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest"
-	authzhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/handler"
+	resttransport "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest"
+	authzhandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authz/handler"
 )
 
 // CollectREST wires authz REST handlers when the module is available.

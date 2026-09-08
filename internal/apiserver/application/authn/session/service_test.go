@@ -2,18 +2,18 @@ package session
 
 import (
 	"context"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/testhelpers"
 	"testing"
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/proof"
-	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/proof"
+	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 )
 

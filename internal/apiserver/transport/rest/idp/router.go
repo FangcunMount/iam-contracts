@@ -7,8 +7,8 @@ import (
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/gin-gonic/gin"
 
-	authzapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/idp/handler"
+	authzapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/idp/handler"
 )
 
 // Dependencies IDP 模块的依赖
@@ -25,7 +25,7 @@ type Dependencies struct {
 // - 微信应用管理（创建、查询、凭据轮换、令牌管理）
 // - 提供基础设施服务供其他模块使用（通过容器依赖注入）
 //
-// 认证功能由 AuthN 的 POST /api/v2/authn/login 统一提供。
+// 认证功能由 AuthN 的 POST /api/v3/authn/login 统一提供。
 func Register(engine *gin.Engine, deps Dependencies) {
 	if engine == nil {
 		return

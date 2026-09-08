@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v5.29.3
-// source: iam/authn/v2/authn.proto
+// source: iam/authn/v3/authn.proto
 
-package authnv2
+package authnv3
 
 import (
 	context "context"
@@ -19,11 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Login_FullMethodName              = "/iam.authn.v2.AuthService/Login"
-	AuthService_VerifyToken_FullMethodName        = "/iam.authn.v2.AuthService/VerifyToken"
-	AuthService_RefreshToken_FullMethodName       = "/iam.authn.v2.AuthService/RefreshToken"
-	AuthService_RevokeToken_FullMethodName        = "/iam.authn.v2.AuthService/RevokeToken"
-	AuthService_RevokeRefreshToken_FullMethodName = "/iam.authn.v2.AuthService/RevokeRefreshToken"
+	AuthService_Login_FullMethodName              = "/iam.authn.v3.AuthService/Login"
+	AuthService_VerifyToken_FullMethodName        = "/iam.authn.v3.AuthService/VerifyToken"
+	AuthService_RefreshToken_FullMethodName       = "/iam.authn.v3.AuthService/RefreshToken"
+	AuthService_RevokeToken_FullMethodName        = "/iam.authn.v3.AuthService/RevokeToken"
+	AuthService_RevokeRefreshToken_FullMethodName = "/iam.authn.v3.AuthService/RevokeRefreshToken"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -244,7 +244,7 @@ func _AuthService_RevokeRefreshToken_Handler(srv interface{}, ctx context.Contex
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AuthService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "iam.authn.v2.AuthService",
+	ServiceName: "iam.authn.v3.AuthService",
 	HandlerType: (*AuthServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -269,11 +269,11 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "iam/authn/v2/authn.proto",
+	Metadata: "iam/authn/v3/authn.proto",
 }
 
 const (
-	AuthSignupService_SignUpWithWechatMiniProgram_FullMethodName = "/iam.authn.v2.AuthSignupService/SignUpWithWechatMiniProgram"
+	AuthSignupService_SignUpWithWechatMiniProgram_FullMethodName = "/iam.authn.v3.AuthSignupService/SignUpWithWechatMiniProgram"
 )
 
 // AuthSignupServiceClient is the client API for AuthSignupService service.
@@ -362,7 +362,7 @@ func _AuthSignupService_SignUpWithWechatMiniProgram_Handler(srv interface{}, ctx
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AuthSignupService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "iam.authn.v2.AuthSignupService",
+	ServiceName: "iam.authn.v3.AuthSignupService",
 	HandlerType: (*AuthSignupServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -371,11 +371,11 @@ var AuthSignupService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "iam/authn/v2/authn.proto",
+	Metadata: "iam/authn/v3/authn.proto",
 }
 
 const (
-	AuthChallengeService_SendLoginPhoneOTP_FullMethodName = "/iam.authn.v2.AuthChallengeService/SendLoginPhoneOTP"
+	AuthChallengeService_SendLoginPhoneOTP_FullMethodName = "/iam.authn.v3.AuthChallengeService/SendLoginPhoneOTP"
 )
 
 // AuthChallengeServiceClient is the client API for AuthChallengeService service.
@@ -464,7 +464,7 @@ func _AuthChallengeService_SendLoginPhoneOTP_Handler(srv interface{}, ctx contex
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AuthChallengeService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "iam.authn.v2.AuthChallengeService",
+	ServiceName: "iam.authn.v3.AuthChallengeService",
 	HandlerType: (*AuthChallengeServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -473,16 +473,16 @@ var AuthChallengeService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "iam/authn/v2/authn.proto",
+	Metadata: "iam/authn/v3/authn.proto",
 }
 
 const (
-	LoginIdentityService_ListLoginIdentities_FullMethodName    = "/iam.authn.v2.LoginIdentityService/ListLoginIdentities"
-	LoginIdentityService_SendPhoneLinkChallenge_FullMethodName = "/iam.authn.v2.LoginIdentityService/SendPhoneLinkChallenge"
-	LoginIdentityService_LinkPhone_FullMethodName              = "/iam.authn.v2.LoginIdentityService/LinkPhone"
-	LoginIdentityService_LinkWechatMiniProgram_FullMethodName  = "/iam.authn.v2.LoginIdentityService/LinkWechatMiniProgram"
-	LoginIdentityService_LinkWecom_FullMethodName              = "/iam.authn.v2.LoginIdentityService/LinkWecom"
-	LoginIdentityService_UnlinkLoginIdentity_FullMethodName    = "/iam.authn.v2.LoginIdentityService/UnlinkLoginIdentity"
+	LoginIdentityService_ListLoginIdentities_FullMethodName    = "/iam.authn.v3.LoginIdentityService/ListLoginIdentities"
+	LoginIdentityService_SendPhoneLinkChallenge_FullMethodName = "/iam.authn.v3.LoginIdentityService/SendPhoneLinkChallenge"
+	LoginIdentityService_LinkPhone_FullMethodName              = "/iam.authn.v3.LoginIdentityService/LinkPhone"
+	LoginIdentityService_LinkWechatMiniProgram_FullMethodName  = "/iam.authn.v3.LoginIdentityService/LinkWechatMiniProgram"
+	LoginIdentityService_LinkWecom_FullMethodName              = "/iam.authn.v3.LoginIdentityService/LinkWecom"
+	LoginIdentityService_UnlinkLoginIdentity_FullMethodName    = "/iam.authn.v3.LoginIdentityService/UnlinkLoginIdentity"
 )
 
 // LoginIdentityServiceClient is the client API for LoginIdentityService service.
@@ -736,7 +736,7 @@ func _LoginIdentityService_UnlinkLoginIdentity_Handler(srv interface{}, ctx cont
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var LoginIdentityService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "iam.authn.v2.LoginIdentityService",
+	ServiceName: "iam.authn.v3.LoginIdentityService",
 	HandlerType: (*LoginIdentityServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -765,11 +765,11 @@ var LoginIdentityService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "iam/authn/v2/authn.proto",
+	Metadata: "iam/authn/v3/authn.proto",
 }
 
 const (
-	JWKSService_GetJWKS_FullMethodName = "/iam.authn.v2.JWKSService/GetJWKS"
+	JWKSService_GetJWKS_FullMethodName = "/iam.authn.v3.JWKSService/GetJWKS"
 )
 
 // JWKSServiceClient is the client API for JWKSService service.
@@ -858,7 +858,7 @@ func _JWKSService_GetJWKS_Handler(srv interface{}, ctx context.Context, dec func
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var JWKSService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "iam.authn.v2.JWKSService",
+	ServiceName: "iam.authn.v3.JWKSService",
 	HandlerType: (*JWKSServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -867,5 +867,5 @@ var JWKSService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "iam/authn/v2/authn.proto",
+	Metadata: "iam/authn/v3/authn.proto",
 }

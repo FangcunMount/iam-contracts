@@ -5,33 +5,29 @@ import (
 	"strings"
 	"time"
 
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/authnclaims"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/pkg/tenant"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/authnclaims"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // accessTokenClaimsFromSession 投影会话中已确定的身份、认证和签发上下文。
 func accessTokenClaimsFromSession(sess *sessiondomain.Session) AccessTokenClaims {
 	tokenContext := sess.TokenContext.Clone()
-	if tokenContext.TenantDomain == "" {
-		tokenContext.TenantDomain = tenant.DefaultID
-	}
 	authenticatedAt := sess.AuthContext.AuthenticatedAt
 	if authenticatedAt.IsZero() {
 		authenticatedAt = sess.CreatedAt
 	}
 	return AccessTokenClaims{
 		UserID: sess.UserID, LoginIdentityID: sess.LoginIdentityID, SessionID: sess.SessionID,
-		Subject: sess.UserID.String(), TenantDomain: tokenContext.TenantDomain, OrgID: tokenContext.OrgID,
+		Subject: sess.UserID.String(), OrgID: tokenContext.OrgID,
 		AMR: sess.AuthContext.AMRStrings(), AuthenticatedAt: authenticatedAt, Attributes: tokenContext.Attributes,
 	}
 }
 
 func tokenContextFromClaims(claims map[string]any) sessiondomain.TokenContext {
 	context := sessiondomain.TokenContext{
-		TenantDomain: resolveTenantDomain(claims),
-		Attributes:   authnclaims.EncodeJWTAttributes(claims),
+
+		Attributes: authnclaims.EncodeJWTAttributes(claims),
 	}
 	if raw := businessOrgIDFromClaims(claims); raw != "" {
 		if id, err := meta.ParseID(raw); err == nil {
@@ -39,13 +35,6 @@ func tokenContextFromClaims(claims map[string]any) sessiondomain.TokenContext {
 		}
 	}
 	return context
-}
-
-func resolveTenantDomain(claims map[string]any) string {
-	if domain := stringClaimValue(claims, "tenant_domain"); domain != "" {
-		return domain
-	}
-	return tenant.DefaultID
 }
 
 func businessOrgIDFromClaims(claims map[string]any) string {

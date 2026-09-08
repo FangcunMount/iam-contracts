@@ -5,16 +5,16 @@ import (
 
 	"gorm.io/gorm"
 
-	appuow "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/uow"
-	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
-	assignmentrepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/assignment"
-	permissiongrantrepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/permissiongrant"
-	policyrepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/policy"
-	resourcerepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/resource"
-	rolerepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/role"
-	roleinheritancerepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/roleinheritance"
-	dbmysql "github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v4/pkg/event"
+	appuow "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
+	assignmentDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	assignmentrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/assignment"
+	permissiongrantrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
+	policyrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
+	resourcerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
+	rolerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
+	roleinheritancerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/roleinheritance"
+	dbmysql "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 )
 
 var _ appuow.UnitOfWork = (*unitOfWork)(nil)

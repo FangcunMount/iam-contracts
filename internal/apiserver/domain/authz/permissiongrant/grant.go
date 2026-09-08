@@ -8,18 +8,17 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 const WildcardAction = "*"
 
 type Grant struct {
-	ID              meta.ID
-	TenantID        tenant.ID
+	ID meta.ID
+
 	RoleID          meta.ID
 	ResourceID      resource.ResourceID
 	ResourcePattern resource.Pattern
@@ -34,7 +33,7 @@ type Grant struct {
 
 func New(
 	roleID meta.ID,
-	tenantID string,
+
 	resourceID resource.ResourceID,
 	resourcePattern string,
 	action string,
@@ -48,7 +47,7 @@ func New(
 	if err != nil {
 		return Grant{}, err
 	}
-	return newGrant(roleID, tenantID, resourceID, resourcePattern, concreteAction.String(), constraints, grantedBy, false)
+	return newGrant(roleID, resourceID, resourcePattern, concreteAction.String(), constraints, grantedBy, false)
 }
 
 // NewSystem creates a trusted bootstrap/migration grant. It is the only path
@@ -56,19 +55,19 @@ func New(
 // action, and it never accepts conditional constraints.
 func NewSystem(
 	roleID meta.ID,
-	tenantID string,
+
 	resourceID resource.ResourceID,
 	resourcePattern string,
 	action string,
 	constraints constraint.Set,
 	grantedBy string,
 ) (Grant, error) {
-	return newGrant(roleID, tenantID, resourceID, resourcePattern, action, constraints, grantedBy, true)
+	return newGrant(roleID, resourceID, resourcePattern, action, constraints, grantedBy, true)
 }
 
 func newGrant(
 	roleID meta.ID,
-	tenantID string,
+
 	resourceID resource.ResourceID,
 	resourcePattern string,
 	action string,
@@ -78,10 +77,6 @@ func newGrant(
 ) (Grant, error) {
 	if roleID.IsZero() {
 		return Grant{}, perrors.WithCode(code.ErrInvalidArgument, "role id is required")
-	}
-	tenantIDValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return Grant{}, err
 	}
 	pattern, err := resource.NewPattern(resourcePattern)
 	if err != nil {
@@ -125,7 +120,7 @@ func newGrant(
 		return Grant{}, perrors.WithCode(code.ErrInvalidArgument, "granted by is required")
 	}
 	grant := Grant{
-		TenantID:        tenantIDValue,
+
 		RoleID:          roleID,
 		ResourceID:      resourceID,
 		ResourcePattern: pattern,
@@ -197,9 +192,9 @@ func (g *Grant) Revoke(at time.Time) error {
 	return nil
 }
 
-func (g Grant) TenantIDString() string        { return g.TenantID.String() }
 func (g Grant) ResourcePatternString() string { return g.ResourcePattern.String() }
-func (g Grant) ActionString() string          { return g.Action.String() }
+
+func (g Grant) ActionString() string { return g.Action.String() }
 
 func (g Grant) CanonicalConstraintJSON() ([]byte, error) {
 	return g.Constraints.CanonicalJSON()
@@ -210,8 +205,7 @@ func (g Grant) computeKey() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	payload := fmt.Sprintf("v1\x00%s\x00%d\x00%d\x00%s\x00%s\x00%s",
-		g.TenantIDString(),
+	payload := fmt.Sprintf("v2\x00%d\x00%d\x00%s\x00%s\x00%s",
 		g.RoleID.Uint64(),
 		g.ResourceID.Uint64(),
 		g.ResourcePatternString(),
@@ -232,7 +226,7 @@ type RestoreOptions struct {
 
 func Restore(
 	roleID meta.ID,
-	tenantID string,
+
 	resourceID resource.ResourceID,
 	resourcePattern string,
 	action string,
@@ -241,7 +235,7 @@ func Restore(
 	options RestoreOptions,
 ) (Grant, error) {
 	system := resourceID.Uint64() == 0 || action == WildcardAction
-	grant, err := newGrant(roleID, tenantID, resourceID, resourcePattern, action, constraints, grantedBy, system)
+	grant, err := newGrant(roleID, resourceID, resourcePattern, action, constraints, grantedBy, system)
 	if err != nil {
 		return Grant{}, err
 	}

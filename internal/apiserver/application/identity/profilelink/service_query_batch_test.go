@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/profilelink"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/uow"
-	profiledomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/profile"
-	linkdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/profilelink"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/profilelink"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/uow"
+	profiledomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/profile"
+	linkdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/profilelink"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 

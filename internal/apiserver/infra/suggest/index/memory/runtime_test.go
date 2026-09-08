@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
-	apprefresh "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/refreshindex"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
-	domainsearch "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/search"
+	appquery "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/queryprofile"
+	apprefresh "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/refreshindex"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/profile"
+	domainsearch "github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/search"
 )
 
 func TestRuntimeRecallUninitializedReturnsEmpty(t *testing.T) {

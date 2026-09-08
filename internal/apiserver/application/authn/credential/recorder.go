@@ -6,10 +6,10 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	credDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/credential"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	credDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/credential"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // Recorder 记录长期 Credential 的认证生命周期状态。

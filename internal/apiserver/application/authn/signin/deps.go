@@ -2,13 +2,14 @@ package signin
 
 import (
 	"context"
-	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 
-	credentialapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/credential"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	admissiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+
+	credentialapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/credential"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
 )
 
 // MethodRegistry 选择登录方式并解析 payload。

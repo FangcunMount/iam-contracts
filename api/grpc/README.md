@@ -6,8 +6,8 @@ IAM gRPC 面向可信服务间调用。AuthN、Identity、IDP 使用 v2，AuthZ 
 
 ```text
 api/grpc/iam/
-├── authn/v2/authn.proto
-├── authz/v3/authz.proto
+├── authn/v3/authn.proto
+├── authz/v4/authz.proto
 ├── identity/v2/identity.proto
 └── idp/v2/idp.proto
 ```
@@ -18,12 +18,12 @@ api/grpc/iam/
 
 | Proto | Service | 当前能力 |
 | ---- | ---- | ---- |
-| [iam/authn/v2/authn.proto](iam/authn/v2/authn.proto) | `AuthService` | Login、VerifyToken、RefreshToken、RevokeToken、RevokeRefreshToken |
-| [iam/authn/v2/authn.proto](iam/authn/v2/authn.proto) | `AuthSignupService` | SignUpWithWechatMiniProgram |
-| [iam/authn/v2/authn.proto](iam/authn/v2/authn.proto) | `AuthChallengeService` | SendLoginPhoneOTP |
-| [iam/authn/v2/authn.proto](iam/authn/v2/authn.proto) | `LoginIdentityService` | ListLoginIdentities、SendPhoneLinkChallenge、LinkPhone、LinkWechatMiniProgram、LinkWecom、UnlinkLoginIdentity |
-| [iam/authn/v2/authn.proto](iam/authn/v2/authn.proto) | `JWKSService` | GetJWKS |
-| [iam/authz/v3/authz.proto](iam/authz/v3/authz.proto) | `AuthorizationService` | Check、GetAuthorizationSnapshot、GrantAssignment、RevokeAssignment、ReplaceManagedAssignments |
+| [iam/authn/v3/authn.proto](iam/authn/v3/authn.proto) | `AuthService` | Login、VerifyToken、RefreshToken、RevokeToken、RevokeRefreshToken |
+| [iam/authn/v3/authn.proto](iam/authn/v3/authn.proto) | `AuthSignupService` | SignUpWithWechatMiniProgram |
+| [iam/authn/v3/authn.proto](iam/authn/v3/authn.proto) | `AuthChallengeService` | SendLoginPhoneOTP |
+| [iam/authn/v3/authn.proto](iam/authn/v3/authn.proto) | `LoginIdentityService` | ListLoginIdentities、SendPhoneLinkChallenge、LinkPhone、LinkWechatMiniProgram、LinkWecom、UnlinkLoginIdentity |
+| [iam/authn/v3/authn.proto](iam/authn/v3/authn.proto) | `JWKSService` | GetJWKS |
+| [iam/authz/v4/authz.proto](iam/authz/v4/authz.proto) | `AuthorizationService` | Check、GetAuthorizationSnapshot、GrantAssignment、RevokeAssignment、ReplaceManagedAssignments |
 | [iam/identity/v2/identity.proto](iam/identity/v2/identity.proto) | `IdentityRead` | GetUser、BatchGetUsers、SearchUsers、GetProfile、BatchGetProfiles |
 | [iam/identity/v2/identity.proto](iam/identity/v2/identity.proto) | `ProfileLinkQuery` | HasProfileLink、ListProfiles、ListProfileLinks |
 | [iam/identity/v2/identity.proto](iam/identity/v2/identity.proto) | `ProfileCommand` | CreateProfile |
@@ -48,8 +48,8 @@ ctx = metadata.AppendToOutgoingContext(ctx,
     "x-request-id", requestID,
 )
 
-authzClient := authzv3.NewAuthorizationServiceClient(conn)
-snapshot, err := authzClient.GetAuthorizationSnapshot(ctx, &authzv3.GetAuthorizationSnapshotRequest{
+authzClient := authzv4.NewAuthorizationServiceClient(conn)
+snapshot, err := authzClient.GetAuthorizationSnapshot(ctx, &authzv4.GetAuthorizationSnapshotRequest{
     Subject: "user:1024",
     Domain:   "default",
     AppName:  "qs",

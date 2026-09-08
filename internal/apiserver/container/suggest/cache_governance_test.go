@@ -3,8 +3,8 @@ package suggest
 import (
 	"testing"
 
-	cachemodel "github.com/FangcunMount/iam/v4/internal/apiserver/cache"
-	suggestratelimit "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/ratelimit"
+	cachemodel "github.com/FangcunMount/iam/v5/internal/apiserver/cache"
+	suggestratelimit "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/ratelimit"
 )
 
 func TestCacheFamilyInspectorsFollowConfiguredRateLimiterBackend(t *testing.T) {

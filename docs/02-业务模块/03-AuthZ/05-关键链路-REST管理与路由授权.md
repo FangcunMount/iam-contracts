@@ -9,17 +9,17 @@ REST v3 只承担 AuthZ 管理；外部服务的授权判定由 gRPC v3 `Check` 
 
 ## REST v3：管理接口
 
-REST 路由统一挂在 `/api/v3/authz`：
+REST 路由统一挂在 `/api/v4/authz`：
 
 | 资源 | 主要路径 | 用途 |
 | --- | --- | --- |
-| Role | `/api/v3/authz/roles` | 创建、查询、更新、删除角色 |
-| Assignment | `/api/v3/authz/assignments` | 增量授予、撤销与查询直接关系 |
-| PermissionGrant | `/api/v3/authz/grants` | 管理角色能力 |
-| RoleInheritance | `/api/v3/authz/role-inheritances` | 管理角色继承边 |
-| Resource | `/api/v3/authz/resources` | 管理资源和对象属性 schema |
+| Role | `/api/v4/authz/roles` | 创建、查询、更新、删除角色 |
+| Assignment | `/api/v4/authz/assignments` | 增量授予、撤销与查询直接关系 |
+| PermissionGrant | `/api/v4/authz/grants` | 管理角色能力 |
+| RoleInheritance | `/api/v4/authz/role-inheritances` | 管理角色继承边 |
+| Resource | `/api/v4/authz/resources` | 管理资源和对象属性 schema |
 
-完整 method/path 以 `api/rest/authz.v3.yaml` 为准。REST 不提供 `/api/v3/authz/check`；需要判定的可信服务调用 gRPC。
+完整 method/path 以 `api/rest/authz.v3.yaml` 为准。REST 不提供 `/api/v4/authz/check`；需要判定的可信服务调用 gRPC。
 
 REST 是控制面，不是请求期权限决策面。若业务服务为了判定而调用 Role/Grant 列表并在本地重新实现 matcher，就会绕过快照、ConstraintSet 和 Decision 语义。
 服务间正确路径见 [gRPC 服务间授权与 SDK](06-关键链路-gRPC服务间授权与SDK.md)。
@@ -28,31 +28,31 @@ REST 是控制面，不是请求期权限决策面。若业务服务为了判定
 
 | Method + Path | Resource | Action | 业务语义 |
 | --- | --- | --- | --- |
-| `POST /api/v3/authz/roles` | `iam:authz:collection:roles` | `create` | 创建 Role |
-| `GET /api/v3/authz/roles` | 同上 | `list` | 列出 Role |
-| `GET /api/v3/authz/roles/:id` | 同上 | `read` | 读取当前请求租户的 Role |
-| `PUT /api/v3/authz/roles/:id` | 同上 | `update` | 更新 Role |
-| `DELETE /api/v3/authz/roles/:id` | 同上 | `delete` | 删除未被引用 Role |
-| `GET /api/v3/authz/roles/:id/assignments` | `iam:authz:collection:assignments` | `list` | 按 Role 列直接 Assignment |
-| `POST /api/v3/authz/assignments/grant` | 同上 | `grant` | 增量授予 Assignment |
-| `POST /api/v3/authz/assignments/revoke` | 同上 | `revoke` | 按 Subject+Role 撤销 |
-| `DELETE /api/v3/authz/assignments/:id` | 同上 | `revoke` | 按 Assignment ID 撤销 |
-| `GET /api/v3/authz/assignments/subject` | 同上 | `list` | 按 Subject 列直接 Assignment |
-| `POST /api/v3/authz/grants` | `iam:authz:collection:permission_grants` | `create` | 创建 managed PermissionGrant |
-| `DELETE /api/v3/authz/grants/:id` | 同上 | `revoke` | 撤销 Grant |
-| `GET /api/v3/authz/roles/:id/grants` | 同上 | `list` | 列角色的 Grant |
-| `POST /api/v3/authz/role-inheritances` | `iam:authz:collection:role_inheritances` | `grant` | 增加 child→parent 边 |
-| `GET /api/v3/authz/role-inheritances` | 同上 | `list` | 列继承边 |
-| `DELETE /api/v3/authz/role-inheritances/:id` | 同上 | `revoke` | 撤销继承边 |
-| `POST /api/v3/authz/resources` | `iam:authz:collection:resources` | `create` | 注册 Resource catalog |
-| `GET /api/v3/authz/resources` | 同上 | `list` | 列 Resource |
-| `GET /api/v3/authz/resources/:id` | 同上 | `read` | 按 ID 读 Resource |
-| `GET /api/v3/authz/resources/key/:key` | 同上 | `read` | 按 key 读 Resource |
-| `PUT /api/v3/authz/resources/:id` | 同上 | `update` | 更新 action/schema |
-| `DELETE /api/v3/authz/resources/:id` | 同上 | `delete` | 删除未被引用 Resource |
-| `POST /api/v3/authz/resources/validate-action` | 同上 | `validate_action` | 验证 catalog 是否登记 Action |
+| `POST /api/v4/authz/roles` | `iam:authz:collection:roles` | `create` | 创建 Role |
+| `GET /api/v4/authz/roles` | 同上 | `list` | 列出 Role |
+| `GET /api/v4/authz/roles/:id` | 同上 | `read` | 读取当前请求租户的 Role |
+| `PUT /api/v4/authz/roles/:id` | 同上 | `update` | 更新 Role |
+| `DELETE /api/v4/authz/roles/:id` | 同上 | `delete` | 删除未被引用 Role |
+| `GET /api/v4/authz/roles/:id/assignments` | `iam:authz:collection:assignments` | `list` | 按 Role 列直接 Assignment |
+| `POST /api/v4/authz/assignments/grant` | 同上 | `grant` | 增量授予 Assignment |
+| `POST /api/v4/authz/assignments/revoke` | 同上 | `revoke` | 按 Subject+Role 撤销 |
+| `DELETE /api/v4/authz/assignments/:id` | 同上 | `revoke` | 按 Assignment ID 撤销 |
+| `GET /api/v4/authz/assignments/subject` | 同上 | `list` | 按 Subject 列直接 Assignment |
+| `POST /api/v4/authz/grants` | `iam:authz:collection:permission_grants` | `create` | 创建 managed PermissionGrant |
+| `DELETE /api/v4/authz/grants/:id` | 同上 | `revoke` | 撤销 Grant |
+| `GET /api/v4/authz/roles/:id/grants` | 同上 | `list` | 列角色的 Grant |
+| `POST /api/v4/authz/role-inheritances` | `iam:authz:collection:role_inheritances` | `grant` | 增加 child→parent 边 |
+| `GET /api/v4/authz/role-inheritances` | 同上 | `list` | 列继承边 |
+| `DELETE /api/v4/authz/role-inheritances/:id` | 同上 | `revoke` | 撤销继承边 |
+| `POST /api/v4/authz/resources` | `iam:authz:collection:resources` | `create` | 注册 Resource catalog |
+| `GET /api/v4/authz/resources` | 同上 | `list` | 列 Resource |
+| `GET /api/v4/authz/resources/:id` | 同上 | `read` | 按 ID 读 Resource |
+| `GET /api/v4/authz/resources/key/:key` | 同上 | `read` | 按 key 读 Resource |
+| `PUT /api/v4/authz/resources/:id` | 同上 | `update` | 更新 action/schema |
+| `DELETE /api/v4/authz/resources/:id` | 同上 | `delete` | 删除未被引用 Resource |
+| `POST /api/v4/authz/resources/validate-action` | 同上 | `validate_action` | 验证 catalog 是否登记 Action |
 
-`GET /api/v3/authz/health` 是例外：它在受保护路由组之前注册，只返回 `status=ok,module=authz`。它不证明 runtime snapshot、MySQL、
+`GET /api/v4/authz/health` 是例外：它在受保护路由组之前注册，只返回 `status=ok,module=authz`。它不证明 runtime snapshot、MySQL、
 policy subscriber 或全局 readiness 正常。
 
 ## 路由注册的 fail-closed 边界
@@ -133,7 +133,7 @@ REST handler 主要做四件事：绑定 DTO，从 URL/query/context 获取 ID �
 
 ## 跨模块路由如何复用 AuthZ
 
-AuthZ route authorizer 不只保护 `/api/v3/authz` 路由：
+AuthZ route authorizer 不只保护 `/api/v4/authz` 路由：
 
 | 模块/路由类型 | Resource | Action 特征 | 授权方式 |
 | --- | --- | --- | --- |

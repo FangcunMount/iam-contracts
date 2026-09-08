@@ -19,7 +19,7 @@ Linking 给已有 User 增加或移除登录入口。新增绑定必须同时满
 
 ## 2. 输入、结果与可信上下文
 
-应用命令为 `LinkRequest{UserID, AuthenticatedAt, Input}`；Input 是上述四种变体。`LinkResult` 返回 Identity 与 Reused，表示新建或复用。公开 DTO 由 transport 映射，字段契约见 `api/rest/authn.v2.yaml` 与 `api/grpc/iam/authn/v2/authn.proto`。
+应用命令为 `LinkRequest{UserID, AuthenticatedAt, Input}`；Input 是上述四种变体。`LinkResult` 返回 Identity 与 Reused，表示新建或复用。公开 DTO 由 transport 映射，字段契约见 `api/rest/authn.v2.yaml` 与 `api/grpc/iam/authn/v3/authn.proto`。
 
 - REST 从已验 access token claims 注入 UserID 和原始认证时间；gRPC 转发受信 actor 上下文，不把普通绑定 payload 的时间当作可信事实。
 - 最近认证默认窗口为 10 分钟，允许最多 1 分钟未来时钟偏差；缺失、零值、超窗或明显未来时间均拒绝。

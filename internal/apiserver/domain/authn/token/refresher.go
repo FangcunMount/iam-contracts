@@ -7,10 +7,10 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
-	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	admissiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 type refresher struct {
@@ -173,7 +173,7 @@ func (s *refresher) sessionForRefresh(sess *sessiondomain.Session, refreshToken 
 		realm = strings.TrimSpace(refreshToken.Realm)
 		amr = append([]string(nil), refreshToken.AMR...)
 		legacyClaims = s.legacyContextDecoder.Decode(refreshToken.SessionClaims)
-		if tokenContext.TenantDomain == "" && len(legacyClaims) > 0 {
+		if len(legacyClaims) > 0 {
 			tokenContext = tokenContextFromClaims(legacyClaims)
 		}
 	}

@@ -1,0 +1,94 @@
+func runAuthzV3Converge(args []string, output io.Writer) error {
+	if len(args) == 0 {
+		return errors.New("an authz-v3-converge operation is required")
+	}
+	operation := strings.TrimSpace(args[0])
+	if operation != "preflight" && operation != "apply" && operation != "verify" && operation != "evidence" {
+		return errors.New("unsupported authz-v3-converge operation")
+	}
+	flags := flag.NewFlagSet("authz-v3-converge "+operation, flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	confirm := flags.String("confirm", "", "required apply confirmation phrase")
+	expectedSourceHash := flags.String("expected-source-hash", "", "approved preflight state hash")
+	timeout := flags.Duration("timeout", 10*time.Minute, "operation timeout")
+	lockTimeout := flags.Duration("lock-timeout", 30*time.Second, "database named-lock timeout")
+	eventsCatalog := flags.String("events-catalog", envOrDefault("IAM_EVENTS_CATALOG_PATH", authzV3ConvergeCatalog), "event catalog path")
+	buildSHA := flags.String("build-sha", strings.TrimSpace(firstEnvironment("IAM_BUILD_SHA", "GITHUB_SHA")), "exact candidate build SHA")
+	if err := flags.Parse(args[1:]); err != nil {
+		return errors.New("invalid authz-v3-converge arguments")
+	}
+	if *timeout <= 0 || *lockTimeout <= 0 {
+		return errors.New("timeout and lock-timeout must be positive")
+	}
+	if operation == "evidence" && strings.TrimSpace(*buildSHA) == "" {
+		return errors.New("evidence requires an exact build sha")
+	}
+	if operation == "apply" {
+		if *confirm != maintenance.AuthzV3ConvergeConfirmation {
+			return errors.New("apply requires the authz v3 convergence confirmation phrase")
+		}
+		if strings.TrimSpace(*expectedSourceHash) == "" {
+			return errors.New("apply requires the approved source hash")
+		}
+	} else if strings.TrimSpace(*confirm) != "" || strings.TrimSpace(*expectedSourceHash) != "" {
+		return errors.New("confirm and expected-source-hash are accepted only for apply")
+	}
+
+	db, err := authzConvergeDatabaseFromEnvironment()
+	if err != nil {
+		return err
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		return errors.New("authorization database initialization failed")
+	}
+	defer func() { _ = sqlDB.Close() }()
+	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+	defer cancel()
+
+	if operation == "apply" {
+		release, lockErr := acquireAuthzV3ConvergeLock(ctx, sqlDB, *lockTimeout)
+		if lockErr != nil {
+			return lockErr
+		}
+		defer release()
+	}
+
+	var plan *maintenance.AuthzV3ConvergePlan
+	switch operation {
+	case "preflight":
+		plan, err = maintenance.AnalyzeAuthzV3Convergence(ctx, db)
+	case "apply":
+		catalogConfig, loadErr := eventcatalog.Load(strings.TrimSpace(*eventsCatalog))
+		if loadErr != nil {
+			return errors.New("authorization event catalog load failed")
+		}
+		catalog := eventcatalog.NewCatalog(catalogConfig)
+		stager := eventoutbox.NewStore(db, catalog)
+		uow := authzmysqluow.NewUnitOfWork(db, nil, stager)
+		plan, err = maintenance.ApplyAuthzV3Convergence(ctx, db, uow, *expectedSourceHash)
+	case "verify", "evidence":
+		plan, err = maintenance.VerifyAuthzV3Convergence(ctx, db)
+	}
+	if plan != nil {
+		writeErr := writeJSON(output, struct {
+			Operation string `json:"operation"`
+			BuildSHA  string `json:"build_sha,omitempty"`
+			maintenance.AuthzV3ConvergeSummary
+		}{Operation: operation, BuildSHA: strings.TrimSpace(*buildSHA), AuthzV3ConvergeSummary: plan.Summary})
+		if writeErr != nil {
+			return writeErr
+		}
+	}
+	if err != nil {
+		return errors.New("authorization v3 convergence " + operation + " failed")
+	}
+	if plan == nil {
+		return errors.New("authorization v3 convergence produced no result")
+	}
+	if len(plan.Summary.Blockers) > 0 {
+		return errors.New("authorization v3 convergence is blocked")
+	}
+	return nil
+}
+

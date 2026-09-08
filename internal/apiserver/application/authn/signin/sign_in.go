@@ -4,13 +4,12 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/authfailure"
-	authnexternal "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/pkg/tenant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/authfailure"
+	authnexternal "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // SignIn 编排完整登录流程：身份核验 → 登录准入 → 会话建立 → 令牌颁发。
@@ -63,7 +62,7 @@ func (s *SignIn) Execute(ctx context.Context, cmd method.LoginRequest) (*Result,
 	}
 
 	// 身份核验成功后继续登录准入、会话建立与令牌颁发；全部完成才算登录成功。
-	result, err := s.completeLogin(ctx, decision.Principal, sessiondomain.TokenContext{TenantDomain: tenant.DefaultID})
+	result, err := s.completeLogin(ctx, decision.Principal, sessiondomain.TokenContext{})
 	if err != nil {
 		return nil, wrapStageError(err, code.ErrAuthenticationFailed, "failed to issue authentication grant")
 	}

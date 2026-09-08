@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/pkg/tenant"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/pkg/tenant"
 	jwtv4 "github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/require"
 )
@@ -25,10 +25,10 @@ func TestCodecAccessTokenUsesRegisteredAudienceAndParseRoundTrips(t *testing.T) 
 		LoginIdentityID: meta.MustFromUint64(1001),
 		UserID:          meta.MustFromUint64(1002),
 		SessionID:       "sid-1002",
-		TenantDomain:    "fangcun",
-		OrgID:           meta.FromUint64(1),
-		AMR:             []string{"pwd"},
-		Attributes:      map[string]string{"display_name": "seed-user"},
+
+		OrgID:      meta.FromUint64(1),
+		AMR:        []string{"pwd"},
+		Attributes: map[string]string{"display_name": "seed-user"},
 	}
 
 	token, err := issueTestAccessToken(generator, context.Background(), subject, 15*time.Minute)
@@ -46,7 +46,6 @@ func TestCodecAccessTokenUsesRegisteredAudienceAndParseRoundTrips(t *testing.T) 
 	require.Equal(t, subject.UserID, claims.UserID)
 	require.Equal(t, subject.LoginIdentityID, claims.LoginIdentityID)
 	require.Equal(t, meta.MustFromUint64(1), claims.OrgID)
-	require.Equal(t, "fangcun", claims.TenantDomain)
 	require.Equal(t, []string{"qs-api", "collection-api"}, claims.Audience)
 	require.Equal(t, "https://iam.fangcunmount.cn", claims.Issuer)
 	require.Equal(t, []string{"pwd"}, claims.AMR)
@@ -60,8 +59,8 @@ func TestCodecTokenUsesJWSCompactHeaderPayloadSignatureContract(t *testing.T) {
 		LoginIdentityID: meta.MustFromUint64(1001),
 		UserID:          meta.MustFromUint64(1002),
 		SessionID:       "sid-1002",
-		TenantDomain:    "fangcun",
-		Attributes:      map[string]string{"display_name": "seed-user"},
+
+		Attributes: map[string]string{"display_name": "seed-user"},
 	}, time.Minute)
 	require.NoError(t, err)
 
@@ -98,7 +97,6 @@ func TestCodecLegacyNumericTenantIDDoesNotInferOrg(t *testing.T) {
 		UserID:          meta.MustFromUint64(1002),
 		LoginIdentityID: meta.MustFromUint64(1001),
 		SessionID:       "sid-1002",
-		TenantDomain:    "fangcun",
 	}, time.Minute)
 	require.NoError(t, err)
 
@@ -107,7 +105,6 @@ func TestCodecLegacyNumericTenantIDDoesNotInferOrg(t *testing.T) {
 
 	claims, err := generator.VerifySignatureAndClaims(context.Background(), legacy)
 	require.NoError(t, err)
-	require.Equal(t, tenant.DefaultID, claims.TenantDomain)
 	require.True(t, claims.OrgID.IsZero())
 }
 
@@ -206,7 +203,7 @@ func TestCodecOmitsSensitiveAttributesAndAuthMethodRealm(t *testing.T) {
 		UserID:          meta.MustFromUint64(1002),
 		LoginIdentityID: meta.MustFromUint64(1001),
 		SessionID:       "sid-1002",
-		TenantDomain:    "fangcun",
+
 		AuthenticatedAt: time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC),
 	}, time.Minute)
 	require.NoError(t, err)
@@ -346,7 +343,7 @@ func issueTestAccessToken(g *testCodec, ctx context.Context, subject *tokendomai
 	orgID := subject.OrgID
 	claims, err := tokendomain.NewAccessTokenClaims(tokendomain.AccessTokenClaims{
 		TokenID: "test-token", Subject: subject.UserID.String(), UserID: subject.UserID,
-		LoginIdentityID: subject.LoginIdentityID, SessionID: subject.SessionID, TenantDomain: subject.TenantDomain,
+		LoginIdentityID: subject.LoginIdentityID, SessionID: subject.SessionID,
 		OrgID: orgID, Attributes: subject.Attributes, AMR: subject.AMR, AuthenticatedAt: subject.AuthenticatedAt,
 		Issuer: g.issuer, Audience: g.audience, IssuedAt: now, NotBefore: now, ExpiresAt: now.Add(ttl),
 	})

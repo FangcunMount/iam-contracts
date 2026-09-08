@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // TokenType 表示 IAM 令牌的领域用途。
@@ -151,8 +151,8 @@ type AccessTokenClaims struct {
 	// —— 令牌主体 —— //
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-	TenantDomain    string  // 租户域
-	OrgID           meta.ID // 组织ID
+	// 租户域
+	OrgID meta.ID // 组织ID
 
 	// —— 令牌认证 —— //
 	Issuer          string    // 令牌颁发者
@@ -217,7 +217,6 @@ func (c *AccessTokenClaims) normalize() {
 	c.Subject = strings.TrimSpace(c.Subject)
 	c.SessionID = strings.TrimSpace(c.SessionID)
 	c.Issuer = strings.TrimSpace(c.Issuer)
-	c.TenantDomain = strings.TrimSpace(c.TenantDomain)
 	c.Audience = cloneStrings(c.Audience)
 	c.Attributes = cloneStringMap(c.Attributes)
 	c.AMR = cloneStrings(c.AMR)

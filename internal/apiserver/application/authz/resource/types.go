@@ -4,12 +4,12 @@ import (
 	"context"
 	"strings"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/attribute"
-	resourceDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/attribute"
+	resourceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 type Catalog interface {
@@ -26,8 +26,8 @@ type Directory interface {
 }
 
 type CreateResourceCommand struct {
-	Actor           subject.Ref
-	TenantID        string
+	Actor subject.Ref
+
 	ChangedBy       string
 	Key             string
 	DisplayName     string
@@ -66,8 +66,8 @@ func NewCreateResourceCommand(key, displayName, appName, domain, typ string, act
 }
 
 type UpdateResourceCommand struct {
-	Actor           subject.Ref
-	TenantID        string
+	Actor subject.Ref
+
 	ChangedBy       string
 	ID              resourceDomain.ResourceID
 	DisplayName     *string
@@ -77,9 +77,9 @@ type UpdateResourceCommand struct {
 }
 
 type DeleteResourceCommand struct {
-	Actor     subject.Ref
-	ID        resourceDomain.ResourceID
-	TenantID  string
+	Actor subject.Ref
+	ID    resourceDomain.ResourceID
+
 	ChangedBy string
 }
 

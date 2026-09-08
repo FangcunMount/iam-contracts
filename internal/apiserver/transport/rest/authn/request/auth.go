@@ -2,12 +2,12 @@ package request
 
 import (
 	"encoding/json"
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // LoginV2Request 是 v2 显式登录请求。

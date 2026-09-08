@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
-	iamerrors "github.com/FangcunMount/iam/v4/pkg/sdk/errors"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/config"
+	iamerrors "github.com/FangcunMount/iam/v5/pkg/sdk/errors"
 	"github.com/lestrrat-go/jwx/v2/jws"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
@@ -19,14 +19,14 @@ type verificationPolicy struct {
 	clockSkew         time.Duration
 	requiredClaims    []string
 	allowedAlgorithms map[string]struct{}
-	allowedTokenTypes map[authnv2.TokenType]struct{}
+	allowedTokenTypes map[authnv3.TokenType]struct{}
 	configurationErr  error
 }
 
 func newVerificationPolicy(cfg *config.TokenVerifyConfig, opts *VerifyOptions) verificationPolicy {
 	policy := verificationPolicy{
 		allowedAlgorithms: make(map[string]struct{}),
-		allowedTokenTypes: make(map[authnv2.TokenType]struct{}),
+		allowedTokenTypes: make(map[authnv3.TokenType]struct{}),
 	}
 	policy.configurationErr = validateConfiguredAlgorithms(cfg)
 	if cfg != nil {
@@ -50,7 +50,7 @@ func newVerificationPolicy(cfg *config.TokenVerifyConfig, opts *VerifyOptions) v
 		}
 	}
 	if len(policy.allowedTokenTypes) == 0 {
-		policy.allowedTokenTypes[authnv2.TokenType_TOKEN_TYPE_ACCESS] = struct{}{}
+		policy.allowedTokenTypes[authnv3.TokenType_TOKEN_TYPE_ACCESS] = struct{}{}
 	}
 	for _, algorithm := range configuredAlgorithms(cfg) {
 		policy.allowedAlgorithms[algorithm.String()] = struct{}{}

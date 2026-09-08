@@ -6,10 +6,10 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	admissionapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/admission"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	admissionapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/admission"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // application 组合令牌用例协作者，并分别实现对外窄能力。

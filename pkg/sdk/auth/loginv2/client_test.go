@@ -9,13 +9,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	sdkerrors "github.com/FangcunMount/iam/v4/pkg/sdk/errors"
+	sdkerrors "github.com/FangcunMount/iam/v5/pkg/sdk/errors"
 )
 
 func TestClientLoginPostsExplicitV2Contract(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPost, r.Method)
-		require.Equal(t, "/api/v2/authn/login", r.URL.Path)
+		require.Equal(t, "/api/v3/authn/login", r.URL.Path)
 		require.Equal(t, "application/json", r.Header.Get("Content-Type"))
 		require.Equal(t, "application/json", r.Header.Get("Accept"))
 
@@ -65,7 +65,7 @@ func TestClientLoginPostsExplicitV2Contract(t *testing.T) {
 
 func TestClientLoginDoesNotDoubleAppendAPIV2(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/api/v2/authn/login", r.URL.Path)
+		require.Equal(t, "/api/v3/authn/login", r.URL.Path)
 		_, _ = w.Write([]byte(`{"code":0,"message":"success","data":{"access_token":"token","token_type":"Bearer","expires_in":1}}`))
 	}))
 	defer server.Close()
@@ -82,7 +82,7 @@ func TestClientLoginDoesNotDoubleAppendAPIV2(t *testing.T) {
 
 func TestClientLoginPostsWechatScanPayload(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/api/v2/authn/login", r.URL.Path)
+		require.Equal(t, "/api/v3/authn/login", r.URL.Path)
 
 		var req struct {
 			AuthMethod    AuthMethod        `json:"auth_method"`

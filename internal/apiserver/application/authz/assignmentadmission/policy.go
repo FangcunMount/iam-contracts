@@ -6,9 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 )
 
 type Operation string
@@ -20,25 +19,24 @@ const (
 )
 
 type Request struct {
-	CallerService  string
-	Operation      Operation
-	Subject        subject.Ref
-	Domain         tenant.ID
+	CallerService string
+	Operation     Operation
+	Subject       subject.Ref
+
 	RoleName       role.Name
 	DelegatedActor string
 }
 
 type ReplacementRequest struct {
-	CallerService  string
-	Subject        subject.Ref
-	Domain         tenant.ID
+	CallerService string
+	Subject       subject.Ref
+
 	RoleNames      []role.Name
 	DelegatedActor string
 }
 
 type ServiceConstraint struct {
 	AllowAll                     bool     `yaml:"allow_all"`
-	Domains                      []string `yaml:"domains"`
 	SubjectTypes                 []string `yaml:"subject_types"`
 	Roles                        []string `yaml:"roles"`
 	RequireDelegatedActorOnGrant bool     `yaml:"require_delegated_actor_on_grant"`
@@ -92,8 +90,7 @@ func Validate(config Config) error {
 			}
 			continue
 		}
-		if len(normalizeSet(constraint.Domains)) == 0 ||
-			len(normalizeSet(constraint.SubjectTypes)) == 0 ||
+		if len(normalizeSet(constraint.SubjectTypes)) == 0 ||
 			len(normalizeSet(constraint.Roles)) == 0 {
 			return fmt.Errorf("assignment constraint for %s requires domains, subject_types, and roles", serviceName)
 		}
@@ -109,9 +106,6 @@ func (a *rulePolicy) AuthorizeAssignment(request Request) error {
 	}
 	if constraint.AllowAll {
 		return nil
-	}
-	if !contains(constraint.Domains, request.Domain.String()) {
-		return &DeniedError{Reason: "domain_not_allowed"}
 	}
 	if !contains(constraint.SubjectTypes, string(request.Subject.Type)) {
 		return &DeniedError{Reason: "subject_not_allowed"}
@@ -136,9 +130,6 @@ func (a *rulePolicy) AuthorizeReplacement(request ReplacementRequest) ([]string,
 	}
 	if constraint.AllowAll {
 		return nil, &DeniedError{Reason: "replacement_requires_explicit_managed_roles"}
-	}
-	if !contains(constraint.Domains, request.Domain.String()) {
-		return nil, &DeniedError{Reason: "domain_not_allowed"}
 	}
 	if !contains(constraint.SubjectTypes, string(request.Subject.Type)) {
 		return nil, &DeniedError{Reason: "subject_not_allowed"}

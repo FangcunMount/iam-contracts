@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 
-	domainsearch "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/search"
+	domainsearch "github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/search"
 )
 
 func TestDecisionKindLabel(t *testing.T) {

@@ -1,8 +1,8 @@
 package roleinheritance
 
 import (
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/roleinheritance"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/roleinheritance"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 type Mapper struct{}
@@ -12,7 +12,7 @@ func (Mapper) ToPO(inheritance *domain.Inheritance) *InheritancePO {
 		return nil
 	}
 	po := &InheritancePO{
-		TenantID:        inheritance.TenantIDString(),
+
 		RoleID:          inheritance.RoleID.Uint64(),
 		InheritedRoleID: inheritance.InheritedRoleID.Uint64(),
 		GrantedBy:       inheritance.GrantedBy,
@@ -31,7 +31,7 @@ func (Mapper) ToBO(po *InheritancePO) (*domain.Inheritance, error) {
 	inheritance, err := domain.Restore(
 		meta.FromUint64(po.RoleID),
 		meta.FromUint64(po.InheritedRoleID),
-		po.TenantID,
+
 		po.GrantedBy,
 		domain.RestoreOptions{
 			ID:        po.ID,

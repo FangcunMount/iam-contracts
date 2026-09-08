@@ -3,8 +3,8 @@ package token
 import (
 	"time"
 
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // IssuedTokenDTO 是向 application 调用方返回的令牌 DTO；领域模型位于 domain/authn/token。

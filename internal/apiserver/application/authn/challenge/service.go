@@ -8,9 +8,9 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
-	challengeDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/challenge"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	challengeDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/challenge"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 const (

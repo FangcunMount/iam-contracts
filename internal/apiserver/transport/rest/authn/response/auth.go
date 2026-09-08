@@ -18,9 +18,9 @@ type TokenVerifyResponse struct {
 
 // TokenClaims JWT 声明
 type TokenClaims struct {
-	UserID          string            `json:"user_id"`                    // 用户 ID
-	LoginIdentityID string            `json:"login_identity_id"`          // 登录身份 ID
-	TenantDomain    string            `json:"tenant_domain,omitempty"`    // IAM 授权域
+	UserID          string `json:"user_id"`           // 用户 ID
+	LoginIdentityID string `json:"login_identity_id"` // 登录身份 ID
+	// IAM 授权域
 	OrgID           string            `json:"org_id,omitempty"`           // 业务组织 ID
 	Subject         string            `json:"subject,omitempty"`          // 主体
 	SessionID       string            `json:"session_id,omitempty"`       // 会话 ID

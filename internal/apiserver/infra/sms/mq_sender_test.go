@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/FangcunMount/iam/v4/pkg/event"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -1,7 +1,7 @@
 package identity
 
 import (
-	identityv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/identity/v2"
+	identityv2 "github.com/FangcunMount/iam/v5/api/grpc/iam/identity/v2"
 	"google.golang.org/grpc"
 )
 

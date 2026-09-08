@@ -1,7 +1,7 @@
 package queryprofile
 
 import (
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/visibility"
 )
 
 // Command 档案联想查询入参。

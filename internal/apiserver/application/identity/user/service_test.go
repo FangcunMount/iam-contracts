@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/testutil"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/user"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/user"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/testutil"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/user"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/user"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // ==================== Creator 测试 ====================

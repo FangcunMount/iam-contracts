@@ -1,7 +1,7 @@
 package token
 
 import (
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
 )
 
 type SessionLoader = tokendomain.SessionLoader

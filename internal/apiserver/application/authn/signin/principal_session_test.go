@@ -1,11 +1,12 @@
 package signin
 
 import (
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidatePrincipalSessionAlignmentRejectsMismatchedUser(t *testing.T) {

@@ -3,15 +3,15 @@ package authn
 import (
 	"testing"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	signupApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signup"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	signupApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signup"
 	"github.com/stretchr/testify/require"
 )
 
 func TestWechatMiniProgramSignupRequestFromGRPCUsesOnlyCodeProof(t *testing.T) {
 	t.Parallel()
 
-	mapped, err := wechatMiniProgramSignupRequestFromGRPC(&authnv2.SignUpWithWechatMiniProgramRequest{
+	mapped, err := wechatMiniProgramSignupRequestFromGRPC(&authnv3.SignUpWithWechatMiniProgramRequest{
 		Name:   "alice",
 		AppId:  " wx-app ",
 		JsCode: " js-code ",

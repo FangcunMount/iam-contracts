@@ -6,41 +6,41 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	roleInheritanceApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/roleinheritance"
-	authztestutil "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/testutil"
-	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/pkg/event"
+	roleInheritanceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/roleinheritance"
+	authztestutil "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/testutil"
+	roleDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRoleInheritanceCreateRejectsCyclesAndRevokeAdvancesPolicy(t *testing.T) {
 	fixture, service, stager := setupRoleInheritanceService(t, nil)
 	roles := fixture.Roles
-	child := seedRole(t, roles, "qs:operator", "tenant-a")
-	parent := seedRole(t, roles, "qs:evaluator", "tenant-a")
+	child := seedRole(t, roles, "qs:operator")
+	parent := seedRole(t, roles, "qs:evaluator")
 
 	created, err := service.Create(context.Background(), roleInheritanceApp.CreateCommand{
-		TenantID: "tenant-a", RoleID: child.ID, InheritedRoleID: parent.ID, GrantedBy: "operator-1",
+		RoleID: child.ID, InheritedRoleID: parent.ID, GrantedBy: "operator-1",
 	})
 	require.NoError(t, err)
 	require.False(t, created.ID.IsZero())
 	require.Len(t, stager.events, 1)
 
 	_, err = service.Create(context.Background(), roleInheritanceApp.CreateCommand{
-		TenantID: "tenant-a", RoleID: parent.ID, InheritedRoleID: child.ID, GrantedBy: "operator-1",
+		RoleID: parent.ID, InheritedRoleID: child.ID, GrantedBy: "operator-1",
 	})
 	require.Error(t, err)
 	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 
-	items, err := service.List(context.Background(), "tenant-a", child.ID)
+	items, err := service.List(context.Background(), child.ID)
 	require.NoError(t, err)
 	require.Len(t, items, 1)
 	require.NoError(t, service.Revoke(context.Background(), roleInheritanceApp.RevokeCommand{
-		TenantID: "tenant-a", ID: created.ID, RevokedBy: "operator-1",
+		ID: created.ID, RevokedBy: "operator-1",
 	}))
-	items, err = service.List(context.Background(), "tenant-a", meta.ID(0))
+	items, err = service.List(context.Background(), meta.ID(0))
 	require.NoError(t, err)
 	require.Empty(t, items)
 	require.Len(t, stager.events, 2)
@@ -51,19 +51,19 @@ func TestRoleInheritanceCreateRejectsCyclesAndRevokeAdvancesPolicy(t *testing.T)
 func TestRoleInheritanceRevokeAlreadyRevokedReturnsError(t *testing.T) {
 	fixture, service, stager := setupRoleInheritanceService(t, nil)
 	roles := fixture.Roles
-	child := seedRole(t, roles, "qs:operator", "tenant-a")
-	parent := seedRole(t, roles, "qs:evaluator", "tenant-a")
+	child := seedRole(t, roles, "qs:operator")
+	parent := seedRole(t, roles, "qs:evaluator")
 	created, err := service.Create(context.Background(), roleInheritanceApp.CreateCommand{
-		TenantID: "tenant-a", RoleID: child.ID, InheritedRoleID: parent.ID, GrantedBy: "operator-1",
+		RoleID: child.ID, InheritedRoleID: parent.ID, GrantedBy: "operator-1",
 	})
 	require.NoError(t, err)
 	require.NoError(t, service.Revoke(context.Background(), roleInheritanceApp.RevokeCommand{
-		TenantID: "tenant-a", ID: created.ID, RevokedBy: "operator-1",
+		ID: created.ID, RevokedBy: "operator-1",
 	}))
 	require.Len(t, stager.events, 2)
 
 	err = service.Revoke(context.Background(), roleInheritanceApp.RevokeCommand{
-		TenantID: "tenant-a", ID: created.ID, RevokedBy: "operator-1",
+		ID: created.ID, RevokedBy: "operator-1",
 	})
 	require.Error(t, err)
 	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
@@ -74,11 +74,11 @@ func TestRoleInheritanceRevokeAlreadyRevokedReturnsError(t *testing.T) {
 func TestRoleInheritanceCreateRejectsUnknownOrCrossTenantRole(t *testing.T) {
 	fixture, service, _ := setupRoleInheritanceService(t, nil)
 	roles := fixture.Roles
-	child := seedRole(t, roles, "qs:operator", "tenant-a")
-	otherTenantParent := seedRole(t, roles, "qs:evaluator", "tenant-b")
+	child := seedRole(t, roles, "qs:operator")
+	otherTenantParent := seedRole(t, roles, "qs:evaluator")
 
 	_, err := service.Create(context.Background(), roleInheritanceApp.CreateCommand{
-		TenantID: "tenant-a", RoleID: child.ID, InheritedRoleID: otherTenantParent.ID, GrantedBy: "operator-1",
+		RoleID: child.ID, InheritedRoleID: otherTenantParent.ID, GrantedBy: "operator-1",
 	})
 	require.Error(t, err)
 	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
@@ -87,11 +87,11 @@ func TestRoleInheritanceCreateRejectsUnknownOrCrossTenantRole(t *testing.T) {
 func TestRoleInheritanceCreateRollsBackWhenPolicyEventCannotBeStaged(t *testing.T) {
 	fixture, service, _ := setupRoleInheritanceService(t, failingStager{})
 	roles := fixture.Roles
-	child := seedRole(t, roles, "qs:operator", "tenant-a")
-	parent := seedRole(t, roles, "qs:evaluator", "tenant-a")
+	child := seedRole(t, roles, "qs:operator")
+	parent := seedRole(t, roles, "qs:evaluator")
 
 	_, err := service.Create(context.Background(), roleInheritanceApp.CreateCommand{
-		TenantID: "tenant-a", RoleID: child.ID, InheritedRoleID: parent.ID, GrantedBy: "operator-1",
+		RoleID: child.ID, InheritedRoleID: parent.ID, GrantedBy: "operator-1",
 	})
 	require.Error(t, err)
 
@@ -111,9 +111,9 @@ func setupRoleInheritanceService(t *testing.T, override event.Stager) (*authztes
 	return fixture, service, recording
 }
 
-func seedRole(t *testing.T, repository roleDomain.Repository, name, tenantID string) roleDomain.Role {
+func seedRole(t *testing.T, repository roleDomain.Repository, name string) roleDomain.Role {
 	t.Helper()
-	role, err := roleDomain.NewRole(name, name, tenantID)
+	role, err := roleDomain.NewRole(name, name)
 	require.NoError(t, err)
 	require.NoError(t, repository.Create(context.Background(), &role))
 	return role

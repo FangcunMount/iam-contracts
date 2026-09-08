@@ -3,16 +3,17 @@ package redis
 import (
 	"context"
 	"encoding/json"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	"sync"
 	"testing"
 	"time"
 
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/alicebob/miniredis/v2"
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,7 @@ func TestSessionStoreWritesTypedV2ContextWithoutLegacyClaims(t *testing.T) {
 	sess := session.NewWithContexts(
 		"sid-v2", meta.FromUint64(1), meta.FromUint64(2),
 		authentication.RestoreAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, authenticatedAt),
-		sessiondomain.TokenContext{TenantDomain: "fangcun", OrgID: meta.FromUint64(9), Attributes: map[string]string{"auth_time": authenticatedAt.Format(time.RFC3339)}},
+		sessiondomain.TokenContext{OrgID: meta.FromUint64(9), Attributes: map[string]string{"auth_time": authenticatedAt.Format(time.RFC3339)}},
 		time.Now().Add(time.Hour),
 	)
 	require.NoError(t, store.Save(context.Background(), sess))
@@ -44,7 +45,6 @@ func TestSessionStoreWritesTypedV2ContextWithoutLegacyClaims(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, authentication.MethodPassword, loaded.AuthContext.Method)
 	require.Equal(t, authenticatedAt, loaded.AuthContext.AuthenticatedAt)
-	require.Equal(t, "fangcun", loaded.TokenContext.TenantDomain)
 	require.Equal(t, meta.FromUint64(9), loaded.TokenContext.OrgID)
 }
 
@@ -70,7 +70,6 @@ func TestSessionStoreReadsHistoricalDomainJSONIntoTypedContexts(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, authentication.MethodPassword, loaded.AuthContext.Method)
 	require.Equal(t, authenticatedAt, loaded.AuthContext.AuthenticatedAt)
-	require.Equal(t, "fangcun", loaded.TokenContext.TenantDomain)
 	require.Equal(t, meta.FromUint64(9), loaded.TokenContext.OrgID)
 	require.NotContains(t, loaded.TokenContext.Attributes, "phone_number")
 }
@@ -174,7 +173,7 @@ func newRedisTestSession(id string) *session.Session {
 		meta.FromUint64(1001),
 		meta.FromUint64(2001),
 		authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, time.Now().UTC()),
-		sessiondomain.TokenContext{TenantDomain: "fangcun"},
+		sessiondomain.TokenContext{},
 		time.Now().Add(time.Hour),
 	)
 }

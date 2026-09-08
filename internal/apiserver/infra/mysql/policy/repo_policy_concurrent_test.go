@@ -9,10 +9,10 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	testutil "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/testutil"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/policy"
-	testhelpers "github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	testutil "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/testutil"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
+	testhelpers "github.com/FangcunMount/iam/v5/internal/apiserver/testhelpers"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,7 +43,7 @@ func TestPolicyVersionRepository_Create_ConcurrentDuplicateDetection(t *testing.
 		go func(d int) {
 			defer wg.Done()
 			time.Sleep(time.Millisecond * time.Duration(d))
-			pv := domain.NewPolicyVersion(tenant, version)
+			pv := domain.NewPolicyVersion(version)
 			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Create(ctx, &pv) }); err != nil {
 				errs <- err
 				return
@@ -92,7 +92,7 @@ func TestPolicyVersionRepository_Increment_ConcurrentCallsCreateSequentialVersio
 	require.True(t, ok)
 	ctx := context.Background()
 
-	seed := domain.NewPolicyVersion("tenant-increment", 1)
+	seed := domain.NewPolicyVersion(1)
 	require.NoError(t, repo.Create(ctx, &seed))
 
 	const concurrency = 8
@@ -103,7 +103,7 @@ func TestPolicyVersionRepository_Increment_ConcurrentCallsCreateSequentialVersio
 	for i := 0; i < concurrency; i++ {
 		go func() {
 			defer wg.Done()
-			_, err := repo.Increment(ctx, "tenant-increment", "operator", "concurrent increment")
+			_, err := repo.Increment(ctx, "operator", "concurrent increment")
 			errs <- err
 		}()
 	}
@@ -115,7 +115,7 @@ func TestPolicyVersionRepository_Increment_ConcurrentCallsCreateSequentialVersio
 		require.NoError(t, err)
 	}
 
-	current, err := repo.GetCurrent(ctx, "tenant-increment")
+	current, err := repo.GetCurrent(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, current)
 	require.Equal(t, int64(1+concurrency), current.Version)

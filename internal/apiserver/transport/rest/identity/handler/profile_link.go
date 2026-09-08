@@ -7,13 +7,13 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/gin-gonic/gin"
 
-	appprofilelink "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/profilelink"
-	requestdto "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/identity/request"
-	responsedto "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/identity/response"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
-	"github.com/FangcunMount/iam/v4/pkg/core"
+	appprofilelink "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/profilelink"
+	requestdto "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/identity/request"
+	responsedto "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/identity/response"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/requestctx"
+	"github.com/FangcunMount/iam/v5/pkg/core"
 )
 
 var _ = core.ErrResponse{}

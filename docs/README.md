@@ -177,7 +177,7 @@ docs/
 | Go SDK | `pkg/sdk` + `public_api_compile_test.go` |
 | 数据结构 | `internal/pkg/migration/migrations` |
 | 事件语义 | `configs/events.yaml` |
-| AuthZ 判定契约与运行时 | `api/grpc/iam/authz/v3/authz.proto` + `internal/apiserver/infra/authz/runtime` |
+| AuthZ 判定契约与运行时 | `api/grpc/iam/authz/v4/authz.proto` + `internal/apiserver/infra/authz/runtime` |
 | 运行模式 | `internal/pkg/server/runtime_profile.go` + dev/prod config |
 | 分层边界 | `internal/pkg/architecture` |
 | 人工/生产证据 | [IAM 重构与生产验收记录](01-运行时/08-IAM重构最终验收记录.md) |

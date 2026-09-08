@@ -11,19 +11,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	sessionapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/session"
-	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	cachegovernance "github.com/FangcunMount/iam/v4/internal/apiserver/application/cachegovernance"
-	readinessapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/readiness"
-	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
-	authhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/handler"
-	authzhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/handler"
-	uchandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/identity/handler"
+	sessionapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/session"
+	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	cachegovernance "github.com/FangcunMount/iam/v5/internal/apiserver/application/cachegovernance"
+	readinessapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/readiness"
+	appquery "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/queryprofile"
+	authhandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/handler"
+	authzhandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authz/handler"
+	uchandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/identity/handler"
 
-	authnMiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authn"
-	authzMiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authz"
-	genericapiserver "github.com/FangcunMount/iam/v4/internal/pkg/server"
-	"github.com/FangcunMount/iam/v4/pkg/version"
+	authnMiddleware "github.com/FangcunMount/iam/v5/internal/pkg/middleware/authn"
+	authzMiddleware "github.com/FangcunMount/iam/v5/internal/pkg/middleware/authz"
+	genericapiserver "github.com/FangcunMount/iam/v5/internal/pkg/server"
+	"github.com/FangcunMount/iam/v5/pkg/version"
 	"github.com/stretchr/testify/require"
 )
 
@@ -124,7 +124,7 @@ func TestRouterRegistersSeedMockRouteWhenEnabled(t *testing.T) {
 		SeedMockAuth: SeedMockAuthOptions{Enabled: true, SharedSecret: "test-secret"},
 	}).RegisterRoutes(engine)
 
-	assertRouteRegistered(t, engine, http.MethodPost, "/api/v2/internal/authn/mock-consumers/ensure")
+	assertRouteRegistered(t, engine, http.MethodPost, "/api/v3/internal/authn/mock-consumers/ensure")
 }
 
 func TestSeedMockRouteAuthenticatesBeforeValidatingPayload(t *testing.T) {
@@ -154,7 +154,7 @@ func TestSeedMockRouteAuthenticatesBeforeValidatingPayload(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(
 				http.MethodPost,
-				"/api/v2/internal/authn/mock-consumers/ensure",
+				"/api/v3/internal/authn/mock-consumers/ensure",
 				strings.NewReader("{}"),
 			)
 			req.Header.Set("Content-Type", "application/json")
@@ -185,7 +185,7 @@ func TestRouterSkipsSeedMockRouteWhenDisabled(t *testing.T) {
 		SeedMockAuth: SeedMockAuthOptions{Enabled: false, SharedSecret: "test-secret"},
 	}).RegisterRoutes(engine)
 
-	assertRouteNotRegistered(t, engine, http.MethodPost, "/api/v2/internal/authn/mock-consumers/ensure")
+	assertRouteNotRegistered(t, engine, http.MethodPost, "/api/v3/internal/authn/mock-consumers/ensure")
 }
 
 func TestRouterRegistersAuthnV2LoginRoute(t *testing.T) {
@@ -200,8 +200,8 @@ func TestRouterRegistersAuthnV2LoginRoute(t *testing.T) {
 
 	newRouterForTest(deps, RouterOptions{}).RegisterRoutes(engine)
 
-	assertRouteRegistered(t, engine, http.MethodPost, "/api/v2/authn/login")
-	assertRouteRegistered(t, engine, http.MethodPost, "/api/v2/authn/login")
+	assertRouteRegistered(t, engine, http.MethodPost, "/api/v3/authn/login")
+	assertRouteRegistered(t, engine, http.MethodPost, "/api/v3/authn/login")
 }
 
 func TestRouterRegistersModuleRoutesFromModuleStateWithoutLegacyBooleans(t *testing.T) {
@@ -216,7 +216,7 @@ func TestRouterRegistersModuleRoutesFromModuleStateWithoutLegacyBooleans(t *test
 
 	NewRouter(deps).RegisterRoutes(engine)
 
-	assertRouteRegistered(t, engine, http.MethodPost, "/api/v2/authn/login")
+	assertRouteRegistered(t, engine, http.MethodPost, "/api/v3/authn/login")
 }
 
 func TestRouterRegistersAuthnSignupRouteAndRetiresOldWechatRegister(t *testing.T) {
@@ -231,7 +231,7 @@ func TestRouterRegistersAuthnSignupRouteAndRetiresOldWechatRegister(t *testing.T
 
 	newRouterForTest(deps, RouterOptions{}).RegisterRoutes(engine)
 
-	assertRouteRegistered(t, engine, http.MethodPost, "/api/v2/authn/signups/wechat-miniprogram")
+	assertRouteRegistered(t, engine, http.MethodPost, "/api/v3/authn/signups/wechat-miniprogram")
 }
 
 func TestRouterRegistersBaseRoutesBeforeModuleRoutes(t *testing.T) {
@@ -317,7 +317,7 @@ func TestRouterSkipsSeedMockRouteWithoutSecret(t *testing.T) {
 		SeedMockAuth: SeedMockAuthOptions{Enabled: true, SharedSecret: ""},
 	}).RegisterRoutes(engine)
 
-	assertRouteNotRegistered(t, engine, http.MethodPost, "/api/v2/internal/authn/mock-consumers/ensure")
+	assertRouteNotRegistered(t, engine, http.MethodPost, "/api/v3/internal/authn/mock-consumers/ensure")
 }
 
 func TestRegisterAdminRoutesRegistersSessionControlRoutes(t *testing.T) {
@@ -417,8 +417,8 @@ func TestRouterSkipsProtectedRoutesWithoutJWTMiddleware(t *testing.T) {
 	assertRouteNotRegistered(t, engine, http.MethodGet, "/api/v2/identity/profile-links")
 	assertRouteNotRegistered(t, engine, http.MethodPost, "/api/v2/identity/profiles")
 	assertRouteNotRegistered(t, engine, http.MethodGet, "/api/v2/suggest/profile")
-	assertRouteNotRegistered(t, engine, http.MethodGet, "/api/v3/authz/roles")
-	assertRouteNotRegistered(t, engine, http.MethodGet, "/api/v3/authz/health")
+	assertRouteNotRegistered(t, engine, http.MethodGet, "/api/v4/authz/roles")
+	assertRouteNotRegistered(t, engine, http.MethodGet, "/api/v4/authz/health")
 }
 
 func newRouterForTest(deps Deps, options RouterOptions) *Router {

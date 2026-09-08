@@ -6,8 +6,8 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
-	redisinfra "github.com/FangcunMount/iam/v4/internal/apiserver/infra/cache/redis"
-	authmiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authn"
+	redisinfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/cache/redis"
+	authmiddleware "github.com/FangcunMount/iam/v5/internal/pkg/middleware/authn"
 	"github.com/alicebob/miniredis/v2"
 	redisclient "github.com/redis/go-redis/v9"
 	"google.golang.org/grpc/codes"
@@ -17,17 +17,17 @@ import (
 	"testing"
 	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	tokenjwt "github.com/FangcunMount/iam/v4/internal/apiserver/infra/token/jwt"
-	authhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/handler"
-	resp "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/response"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/pkg/core"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	admissiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	tokenjwt "github.com/FangcunMount/iam/v5/internal/apiserver/infra/token/jwt"
+	authhandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/handler"
+	resp "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/response"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/pkg/core"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -183,7 +183,7 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	}
 
 	// 与登录成功后的签发路径一致：IssueToken → access_token JWT
-	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{TenantDomain: "fangcun", OrgID: meta.FromUint64(9001)})
+	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{OrgID: meta.FromUint64(9001)})
 	require.NoError(t, err)
 	require.NotNil(t, pair)
 	require.NotNil(t, pair.AccessToken)
@@ -192,7 +192,6 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	// 本地解析（与 apiserver 验签链相同的 SignedJWTCodec）
 	parsed, err := gen.VerifySignatureAndClaims(ctx, access)
 	require.NoError(t, err)
-	require.Equal(t, "fangcun", parsed.TenantDomain)
 	require.Equal(t, meta.FromUint64(9001), parsed.OrgID)
 	require.Equal(t, "1001", parsed.UserID.String())
 	require.Equal(t, "2002", parsed.LoginIdentityID.String())
@@ -203,7 +202,7 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 
 	// gRPC VerifyToken
 	grpcSrv := &authServiceServer{tokenVerifier: tokens.Verifier}
-	gresp, err := grpcSrv.VerifyToken(ctx, &authnv2.VerifyTokenRequest{ExpectedAudience: []string{"qs-api"}, AccessToken: access})
+	gresp, err := grpcSrv.VerifyToken(ctx, &authnv3.VerifyTokenRequest{ExpectedAudience: []string{"qs-api"}, AccessToken: access})
 	require.NoError(t, err)
 	require.True(t, gresp.Valid)
 	require.NotNil(t, gresp.Claims)
@@ -215,7 +214,7 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	require.NotContains(t, gresp.Claims.Attributes, "phone_number")
 	require.Contains(t, gresp.Claims.Attributes, "auth_time")
 
-	gresp, err = grpcSrv.VerifyToken(ctx, &authnv2.VerifyTokenRequest{
+	gresp, err = grpcSrv.VerifyToken(ctx, &authnv3.VerifyTokenRequest{
 		AccessToken:      access,
 		ExpectedIssuer:   "https://iam.integration.test",
 		ExpectedAudience: []string{"qs-api"},
@@ -228,7 +227,7 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	w := httptest.NewRecorder()
 	body := bytes.NewBufferString(`{"expected_audience":["qs-api"],"access_token":"` + access + `"}`)
 	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest(http.MethodPost, "/api/v2/authn/verify", body)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v3/authn/verify", body)
 	c.Request.Header.Set("Content-Type", "application/json")
 	h.VerifyToken(c)
 	require.Equal(t, http.StatusOK, w.Code)
@@ -245,17 +244,15 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	require.NotNil(t, tv.Claims)
 	require.Equal(t, "1001", tv.Claims.UserID)
 	require.Equal(t, "2002", tv.Claims.LoginIdentityID)
-	require.Equal(t, "fangcun", tv.Claims.TenantDomain)
 	require.Equal(t, "9001", tv.Claims.OrgID)
 
 	// 与 gRPC 声明对齐（时间字段由同一套 claims 产生）
 	require.Equal(t, gresp.Claims.UserId, tv.Claims.UserID)
 	require.Equal(t, gresp.Claims.LoginIdentityId, tv.Claims.LoginIdentityID)
-	require.Equal(t, gresp.Claims.TenantDomain, tv.Claims.TenantDomain)
 	require.Equal(t, gresp.Claims.OrgId, tv.Claims.OrgID)
 	require.Equal(t, gresp.Claims.Amr, tv.Claims.Amr)
 	require.Equal(t, "access", tv.Claims.TokenType)
-	require.Equal(t, authnv2.TokenType_TOKEN_TYPE_ACCESS, gresp.Claims.TokenType)
+	require.Equal(t, authnv3.TokenType_TOKEN_TYPE_ACCESS, gresp.Claims.TokenType)
 	require.NotZero(t, tv.Claims.NotBefore)
 	require.NotZero(t, tv.Claims.AuthenticatedAt)
 	require.NotContains(t, tv.Claims.Attributes, "phone_number")
@@ -275,14 +272,14 @@ func TestIntegration_VerifyToken_RejectsIssuerOrAudienceMismatch(t *testing.T) {
 
 	grpcSrv := &authServiceServer{tokenVerifier: tokens.Verifier}
 
-	respIssuer, err := grpcSrv.VerifyToken(ctx, &authnv2.VerifyTokenRequest{ExpectedAudience: []string{"qs-api"},
+	respIssuer, err := grpcSrv.VerifyToken(ctx, &authnv3.VerifyTokenRequest{ExpectedAudience: []string{"qs-api"},
 		AccessToken:    pair.AccessToken.Value,
 		ExpectedIssuer: "https://issuer.invalid",
 	})
 	require.NoError(t, err)
 	require.False(t, respIssuer.Valid)
 
-	respAudience, err := grpcSrv.VerifyToken(ctx, &authnv2.VerifyTokenRequest{
+	respAudience, err := grpcSrv.VerifyToken(ctx, &authnv3.VerifyTokenRequest{
 		AccessToken:      pair.AccessToken.Value,
 		ExpectedAudience: []string{"wrong-audience"},
 	})
@@ -303,7 +300,7 @@ func TestIntegration_VerifyToken_GRPC_IncludeMetadata(t *testing.T) {
 	require.NoError(t, err)
 
 	grpcSrv := &authServiceServer{tokenVerifier: tokens.Verifier}
-	gresp, err := grpcSrv.VerifyToken(ctx, &authnv2.VerifyTokenRequest{ExpectedAudience: []string{"qs-api"},
+	gresp, err := grpcSrv.VerifyToken(ctx, &authnv3.VerifyTokenRequest{ExpectedAudience: []string{"qs-api"},
 		AccessToken:     pair.AccessToken.Value,
 		IncludeMetadata: true,
 	})
@@ -341,7 +338,7 @@ func TestIntegrationIssuanceFactsMatchSignedJWTAndDTO(t *testing.T) {
 		require.True(t, result.Valid)
 	}
 	server := &authServiceServer{tokenVerifier: tokens.Verifier}
-	_, err = server.VerifyToken(context.Background(), &authnv2.VerifyTokenRequest{AccessToken: pair.AccessToken.Value})
+	_, err = server.VerifyToken(context.Background(), &authnv3.VerifyTokenRequest{AccessToken: pair.AccessToken.Value})
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 

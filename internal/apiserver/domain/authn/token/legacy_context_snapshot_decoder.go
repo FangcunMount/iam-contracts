@@ -1,6 +1,6 @@
 package token
 
-import "github.com/FangcunMount/iam/v4/internal/pkg/authnclaims"
+import "github.com/FangcunMount/iam/v5/internal/pkg/authnclaims"
 
 type legacyAuthenticationContextSnapshotDecoder struct{}
 

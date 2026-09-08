@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	resourceApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/resource"
-	resourceDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
+	resourceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/resource"
+	resourceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/requestctx"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +35,7 @@ func TestUpdateResourceDisplayNameJSONStates(t *testing.T) {
 			handler := NewResourceHandler(catalog, nil)
 			router := gin.New()
 			router.Use(func(c *gin.Context) {
-				requestctx.SetTenantID(c, "tenant-a")
+				requestctx.SetTenantID(c)
 				requestctx.SetUserID(c, meta.FromUint64(100))
 				c.Next()
 			})
@@ -55,7 +55,6 @@ func TestUpdateResourceDisplayNameJSONStates(t *testing.T) {
 			require.Len(t, catalog.updates, 1)
 			cmd := catalog.updates[0]
 			require.Equal(t, tt.wantDisplayName, cmd.DisplayName)
-			require.Equal(t, "tenant-a", cmd.TenantID)
 			require.Equal(t, "100", cmd.ChangedBy)
 		})
 	}

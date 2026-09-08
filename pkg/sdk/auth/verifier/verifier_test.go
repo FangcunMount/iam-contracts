@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
-	iamerrors "github.com/FangcunMount/iam/v4/pkg/sdk/errors"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	authjwks "github.com/FangcunMount/iam/v5/pkg/sdk/auth/jwks"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/config"
+	iamerrors "github.com/FangcunMount/iam/v5/pkg/sdk/errors"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jws"
@@ -44,8 +44,8 @@ func (s *verifyStrategyStub) Name() string {
 }
 
 type verifyTokenClientStub struct {
-	verifyReq  *authnv2.VerifyTokenRequest
-	verifyResp *authnv2.VerifyTokenResponse
+	verifyReq  *authnv3.VerifyTokenRequest
+	verifyResp *authnv3.VerifyTokenResponse
 	verifyErr  error
 	callCount  int
 }
@@ -96,7 +96,7 @@ func signRS256Token(t *testing.T, privateKey *rsa.PrivateKey, claims map[string]
 	return string(signed)
 }
 
-func (s *verifyTokenClientStub) VerifyToken(_ context.Context, in *authnv2.VerifyTokenRequest) (*authnv2.VerifyTokenResponse, error) {
+func (s *verifyTokenClientStub) VerifyToken(_ context.Context, in *authnv3.VerifyTokenRequest) (*authnv3.VerifyTokenResponse, error) {
 	s.callCount++
 	s.verifyReq = in
 	return s.verifyResp, s.verifyErr
@@ -111,9 +111,9 @@ func TestRemoteVerifyStrategyPassesConfiguredIssuerAndAudience(t *testing.T) {
 		jwt.ExpirationKey: time.Now().Add(time.Minute),
 	})
 	stub := &verifyTokenClientStub{
-		verifyResp: &authnv2.VerifyTokenResponse{
+		verifyResp: &authnv3.VerifyTokenResponse{
 			Valid: true,
-			Claims: &authnv2.TokenClaims{
+			Claims: &authnv3.TokenClaims{
 				TokenId:         "jti-1",
 				Subject:         "user:1",
 				SessionId:       "sid-1",
@@ -139,7 +139,7 @@ func TestRemoteVerifyStrategyPassesConfiguredIssuerAndAudience(t *testing.T) {
 	require.NotNil(t, stub.verifyReq)
 	require.Equal(t, "https://iam.fangcunmount.cn", stub.verifyReq.ExpectedIssuer)
 	require.Equal(t, []string{"qs-api"}, stub.verifyReq.ExpectedAudience)
-	require.Equal(t, []authnv2.TokenType{authnv2.TokenType_TOKEN_TYPE_ACCESS}, stub.verifyReq.AcceptedTokenTypes)
+	require.Equal(t, []authnv3.TokenType{authnv3.TokenType_TOKEN_TYPE_ACCESS}, stub.verifyReq.AcceptedTokenTypes)
 }
 
 func TestRemoteVerifyStrategyOptionsOverrideConfig(t *testing.T) {
@@ -151,9 +151,9 @@ func TestRemoteVerifyStrategyOptionsOverrideConfig(t *testing.T) {
 		jwt.ExpirationKey: time.Now().Add(time.Minute),
 	})
 	stub := &verifyTokenClientStub{
-		verifyResp: &authnv2.VerifyTokenResponse{
+		verifyResp: &authnv3.VerifyTokenResponse{
 			Valid: true,
-			Claims: &authnv2.TokenClaims{
+			Claims: &authnv3.TokenClaims{
 				TokenId:         "jti-2",
 				Subject:         "user:1",
 				SessionId:       "sid-override",
@@ -201,7 +201,7 @@ func TestLocalVerifyStrategyRejectsServiceTokenByDefault(t *testing.T) {
 	require.Nil(t, result)
 
 	result, err = strategy.Verify(context.Background(), token, &VerifyOptions{
-		AllowedTokenTypes: []authnv2.TokenType{authnv2.TokenType(3)},
+		AllowedTokenTypes: []authnv3.TokenType{authnv3.TokenType(3)},
 	})
 	require.ErrorIs(t, err, iamerrors.ErrTokenInvalid)
 	require.Nil(t, result)
@@ -214,18 +214,18 @@ func TestRemoteVerifyStrategyReturnsSessionID(t *testing.T) {
 		jwt.ExpirationKey: time.Now().Add(time.Minute),
 	})
 	stub := &verifyTokenClientStub{
-		verifyResp: &authnv2.VerifyTokenResponse{
+		verifyResp: &authnv3.VerifyTokenResponse{
 			Valid: true,
-			Claims: &authnv2.TokenClaims{
+			Claims: &authnv3.TokenClaims{
 				TokenId:         "jti-remote",
 				Subject:         "user:1",
 				SessionId:       "sid-remote",
 				UserId:          "1",
 				LoginIdentityId: "2",
 				TenantId:        "fangcun",
-				TenantDomain:    "fangcun",
+
 				OrgId:           "42",
-				TokenType:       authnv2.TokenType_TOKEN_TYPE_ACCESS,
+				TokenType:       authnv3.TokenType_TOKEN_TYPE_ACCESS,
 				Issuer:          "https://iam.fangcunmount.cn",
 				Audience:        []string{"qs-api"},
 				Amr:             []string{"pwd", "otp"},
@@ -235,9 +235,9 @@ func TestRemoteVerifyStrategyReturnsSessionID(t *testing.T) {
 				ExpiresAt:       timestamppb.New(time.Now().Add(time.Minute)),
 				Attributes:      map[string]string{"auth_time": time.Now().Add(-time.Minute).UTC().Format(time.RFC3339)},
 			},
-			Metadata: &authnv2.TokenMetadata{
-				TokenType: authnv2.TokenType_TOKEN_TYPE_ACCESS,
-				Status:    authnv2.TokenStatus_TOKEN_STATUS_VALID,
+			Metadata: &authnv3.TokenMetadata{
+				TokenType: authnv3.TokenType_TOKEN_TYPE_ACCESS,
+				Status:    authnv3.TokenStatus_TOKEN_STATUS_VALID,
 				IssuedAt:  timestamppb.New(time.Now()),
 				ExpiresAt: timestamppb.New(time.Now().Add(time.Minute)),
 			},
@@ -252,7 +252,6 @@ func TestRemoteVerifyStrategyReturnsSessionID(t *testing.T) {
 	require.NotNil(t, result.Claims)
 	require.Equal(t, "jti-remote", result.Claims.TokenID)
 	require.Equal(t, "sid-remote", result.Claims.SessionID)
-	require.Equal(t, "fangcun", result.Claims.TenantDomain)
 	require.Equal(t, "42", result.Claims.OrgID)
 	require.Equal(t, []string{"pwd", "otp"}, result.Claims.AMR)
 	require.Equal(t, "access", result.Claims.TokenType)
@@ -261,8 +260,8 @@ func TestRemoteVerifyStrategyReturnsSessionID(t *testing.T) {
 	require.Equal(t, result.Claims.AuthenticatedAt, result.Claims.AuthTime)
 	require.Contains(t, result.Claims.Attributes, "auth_time")
 	require.NotNil(t, result.Metadata)
-	require.Equal(t, authnv2.TokenType_TOKEN_TYPE_ACCESS, result.Metadata.TokenType)
-	require.Equal(t, authnv2.TokenStatus_TOKEN_STATUS_VALID, result.Metadata.Status)
+	require.Equal(t, authnv3.TokenType_TOKEN_TYPE_ACCESS, result.Metadata.TokenType)
+	require.Equal(t, authnv3.TokenStatus_TOKEN_STATUS_VALID, result.Metadata.Status)
 }
 
 func TestExtractClaimsIncludesSessionID(t *testing.T) {
@@ -281,7 +280,6 @@ func TestExtractClaimsIncludesSessionID(t *testing.T) {
 	require.Equal(t, "sid-local", claims.SessionID)
 	require.Equal(t, "1", claims.UserID)
 	require.Equal(t, "2", claims.LoginIdentityID)
-	require.Equal(t, "fangcun", claims.TenantDomain)
 	require.Equal(t, "3", claims.OrgID)
 }
 
@@ -292,8 +290,8 @@ func TestBuildVerifyMetadataFromClaimsDefaultsAccessToken(t *testing.T) {
 		ExpiresAt: time.Now().Add(time.Minute),
 	})
 	require.NotNil(t, metadata)
-	require.Equal(t, authnv2.TokenType_TOKEN_TYPE_ACCESS, metadata.TokenType)
-	require.Equal(t, authnv2.TokenStatus_TOKEN_STATUS_VALID, metadata.Status)
+	require.Equal(t, authnv3.TokenType_TOKEN_TYPE_ACCESS, metadata.TokenType)
+	require.Equal(t, authnv3.TokenStatus_TOKEN_STATUS_VALID, metadata.Status)
 }
 
 func TestTokenVerifierForceRemoteUsesRemoteStrategy(t *testing.T) {
@@ -531,10 +529,10 @@ func TestRemoteVerifyStrategyEnforcesAlgorithmAllowlist(t *testing.T) {
 	require.Zero(t, stub.callCount)
 }
 
-func validRemoteVerifyResponse() *authnv2.VerifyTokenResponse {
-	return &authnv2.VerifyTokenResponse{
+func validRemoteVerifyResponse() *authnv3.VerifyTokenResponse {
+	return &authnv3.VerifyTokenResponse{
 		Valid: true,
-		Claims: &authnv2.TokenClaims{
+		Claims: &authnv3.TokenClaims{
 			Subject:   "user:1",
 			UserId:    "1",
 			TenantId:  "fangcun",

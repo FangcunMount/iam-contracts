@@ -4,14 +4,14 @@ import (
 	redis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	authorizationapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
-	mysqlsuggest "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/suggest"
-	suggestmemory "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/index/memory"
-	suggestratelimit "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/ratelimit"
-	suggestvisibility "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/visibility"
-	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
-	genericapiserver "github.com/FangcunMount/iam/v4/internal/pkg/server"
+	authorizationapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	appquery "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/queryprofile"
+	mysqlsuggest "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/suggest"
+	suggestmemory "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/index/memory"
+	suggestratelimit "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/ratelimit"
+	suggestvisibility "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/visibility"
+	apiserveroptions "github.com/FangcunMount/iam/v5/internal/apiserver/options"
+	genericapiserver "github.com/FangcunMount/iam/v5/internal/pkg/server"
 )
 
 // ModuleConfig 是 composition root 的 suggest 模块配置。

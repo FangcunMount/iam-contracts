@@ -10,10 +10,10 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	cachegovernance "github.com/FangcunMount/iam/v4/internal/apiserver/application/cachegovernance"
-	cachemodel "github.com/FangcunMount/iam/v4/internal/apiserver/cache"
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	cachegovernance "github.com/FangcunMount/iam/v5/internal/apiserver/application/cachegovernance"
+	cachemodel "github.com/FangcunMount/iam/v5/internal/apiserver/cache"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // RedisStore Redis 令牌存储实现

@@ -1,6 +1,6 @@
 package token
 
-import tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
+import tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
 
 type Store = tokendomain.Store
 type AccessTokenEncoder = tokendomain.AccessTokenEncoder

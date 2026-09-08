@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	openapiFS "github.com/FangcunMount/iam/v4/api"
-	"github.com/FangcunMount/iam/v4/pkg/version"
-	swaggerui "github.com/FangcunMount/iam/v4/web/swagger-ui"
+	openapiFS "github.com/FangcunMount/iam/v5/api"
+	"github.com/FangcunMount/iam/v5/pkg/version"
+	swaggerui "github.com/FangcunMount/iam/v5/web/swagger-ui"
 )
 
 const restAPIVersion = "2.0.0"

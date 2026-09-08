@@ -3,8 +3,8 @@ package session
 import (
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // New keeps legacy test fixtures concise without reintroducing the old production constructor.

@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	sdkerrors "github.com/FangcunMount/iam/v4/pkg/sdk/errors"
+	sdkerrors "github.com/FangcunMount/iam/v5/pkg/sdk/errors"
 	"google.golang.org/grpc/codes"
 )
 
@@ -47,7 +47,7 @@ func WithHeader(key, value string) Option {
 // NewClient creates a REST AuthN v2 login client.
 //
 // baseURL may be the IAM origin or an IAM /api/v2 URL. The client normalizes it
-// to call POST /api/v2/authn/login.
+// to call POST /api/v3/authn/login.
 func NewClient(baseURL string, opts ...Option) (*Client, error) {
 	baseURL = strings.TrimSpace(baseURL)
 	if baseURL == "" {

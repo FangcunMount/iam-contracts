@@ -6,8 +6,8 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	cbmessaging "github.com/FangcunMount/component-base/pkg/messaging"
-	outboxport "github.com/FangcunMount/iam/v4/pkg/outbox"
-	"github.com/FangcunMount/iam/v4/pkg/outboxcore"
+	outboxport "github.com/FangcunMount/iam/v5/pkg/outbox"
+	"github.com/FangcunMount/iam/v5/pkg/outboxcore"
 )
 
 const defaultOutboxRelayBatchSize = 50

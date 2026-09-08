@@ -9,9 +9,9 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	testhelpers "github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	testhelpers "github.com/FangcunMount/iam/v5/internal/apiserver/testhelpers"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,7 +37,7 @@ func TestRoleRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 			defer wg.Done()
 			// add tiny random delay to reduce SQLITE table-lock contention
 			time.Sleep(time.Millisecond * time.Duration(d))
-			r, err := domain.NewRole("role-dup", "Role Dup", "tenant-1")
+			r, err := domain.NewRole("role-dup", "Role Dup")
 			require.NoError(t, err)
 			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Create(ctx, &r) }); err != nil {
 				errs <- err

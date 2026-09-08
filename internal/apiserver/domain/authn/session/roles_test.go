@@ -6,9 +6,9 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -151,7 +151,7 @@ func TestCreatorPreservesIndependentTokenContextSnapshot(t *testing.T) {
 	store := &lifecycleStoreStub{}
 	creator := NewCreator(store, NewLifetimePolicy(time.Hour, 24*time.Hour))
 	principal := &authentication.Principal{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2)}
-	tokenContext := TokenContext{TenantDomain: "domain", OrgID: meta.FromUint64(3), Attributes: map[string]string{"key": "value"}}
+	tokenContext := TokenContext{OrgID: meta.FromUint64(3), Attributes: map[string]string{"key": "value"}}
 	sess, err := creator.Create(context.Background(), principal, tokenContext)
 	require.NoError(t, err)
 	require.Equal(t, tokenContext, sess.TokenContext)

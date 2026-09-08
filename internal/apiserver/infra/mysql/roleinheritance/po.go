@@ -4,14 +4,14 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	base "github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	base "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 
 type InheritancePO struct {
 	base.AuditFields
-	TenantID        string     `gorm:"column:tenant_id;type:varchar(64);not null;uniqueIndex:uk_authz_role_inheritances_active,priority:1"`
+
 	RoleID          uint64     `gorm:"column:role_id;type:bigint unsigned;not null;uniqueIndex:uk_authz_role_inheritances_active,priority:2"`
 	InheritedRoleID uint64     `gorm:"column:inherited_role_id;type:bigint unsigned;not null;uniqueIndex:uk_authz_role_inheritances_active,priority:3"`
 	GrantedBy       string     `gorm:"column:granted_by;type:varchar(64);not null"`

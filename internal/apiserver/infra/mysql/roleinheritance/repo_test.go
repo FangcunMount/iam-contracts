@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
-	rolepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/role"
+	rolepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/roleinheritance"
-	repo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/roleinheritance"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/roleinheritance"
+	repo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/roleinheritance"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -34,7 +34,7 @@ func TestRepositoryRejectsCycleAndAllowsRegrantAfterRevoke(t *testing.T) {
 	err = repository.CreateChecked(ctx, &edgeCA)
 	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 
-	outcome, err := repository.AtomicRevoke(ctx, edgeAB.ID, "tenant-a")
+	outcome, err := repository.AtomicRevoke(ctx, edgeAB.ID)
 	require.NoError(t, err)
 	require.Equal(t, domain.RevokeOutcomeRevoked, outcome)
 	regrant := mustInheritance(t, 1, 2)
@@ -43,7 +43,7 @@ func TestRepositoryRejectsCycleAndAllowsRegrantAfterRevoke(t *testing.T) {
 
 func mustInheritance(t *testing.T, roleID, inheritedRoleID uint64) domain.Inheritance {
 	t.Helper()
-	inheritance, err := domain.New(meta.FromUint64(roleID), meta.FromUint64(inheritedRoleID), "tenant-a", "operator-1")
+	inheritance, err := domain.New(meta.FromUint64(roleID), meta.FromUint64(inheritedRoleID), "operator-1")
 	require.NoError(t, err)
 	return inheritance
 }

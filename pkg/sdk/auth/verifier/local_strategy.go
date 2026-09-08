@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/FangcunMount/component-base/pkg/logger"
-	authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
+	authjwks "github.com/FangcunMount/iam/v5/pkg/sdk/auth/jwks"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/config"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
 

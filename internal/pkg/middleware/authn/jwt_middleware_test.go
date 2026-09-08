@@ -8,10 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
-	"github.com/FangcunMount/iam/v4/pkg/tenant"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/requestctx"
+	"github.com/FangcunMount/iam/v5/pkg/tenant"
 )
 
 func TestApplyVerifiedClaimsSetsTenantIDForRoleResolution(t *testing.T) {
@@ -23,7 +23,7 @@ func TestApplyVerifiedClaimsSetsTenantIDForRoleResolution(t *testing.T) {
 	claims, err := tokendomain.NewAccessTokenClaims(tokendomain.AccessTokenClaims{
 		TokenID: "token-1", Subject: meta.ID(110001).String(), SessionID: "sid-1",
 		UserID: meta.ID(110001), LoginIdentityID: meta.ID(613486856213901870), OrgID: meta.ID(1),
-		TenantDomain: tenant.DefaultID, Issuer: "https://iam.fangcunmount.cn",
+		Issuer:   "https://iam.fangcunmount.cn",
 		Audience: []string{"qs-api"}, AMR: []string{"pwd"},
 		IssuedAt: now, NotBefore: now, ExpiresAt: now.Add(time.Hour),
 	})

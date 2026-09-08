@@ -4,13 +4,13 @@ import (
 	"context"
 	"sync"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
 // JWKSClient 定义 gRPC JWKS 降级客户端的最小能力。
 type JWKSClient interface {
-	GetJWKS(context.Context, *authnv2.GetJWKSRequest) (*authnv2.GetJWKSResponse, error)
+	GetJWKS(context.Context, *authnv3.GetJWKSRequest) (*authnv3.GetJWKSResponse, error)
 }
 
 // KeyFetcher 定义获取 JWKS 的职责链节点。

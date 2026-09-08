@@ -2,11 +2,12 @@ package verifier
 
 import (
 	"context"
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	"github.com/lestrrat-go/jwx/v2/jwt"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStandaloneStrategiesRequireEffectiveAudience(t *testing.T) {
@@ -33,7 +34,7 @@ func TestLocalAndRemoteAudienceConstraintsUseAnyMatch(t *testing.T) {
 		result, err := NewLocalVerifyStrategy(manager, WithLocalConfig(testRecipientConfig())).Verify(context.Background(), raw, opts)
 		require.NoError(t, err)
 		require.True(t, result.Valid)
-		stub := &verifyTokenClientStub{verifyResp: &authnv2.VerifyTokenResponse{Valid: true, Claims: &authnv2.TokenClaims{TokenType: authnv2.TokenType_TOKEN_TYPE_ACCESS, Audience: []string{"qs-api"}}}}
+		stub := &verifyTokenClientStub{verifyResp: &authnv3.VerifyTokenResponse{Valid: true, Claims: &authnv3.TokenClaims{TokenType: authnv3.TokenType_TOKEN_TYPE_ACCESS, Audience: []string{"qs-api"}}}}
 		result, err = NewRemoteVerifyStrategy(stub, testRecipientConfig()).Verify(context.Background(), raw, opts)
 		require.NoError(t, err)
 		require.True(t, result.Valid)
