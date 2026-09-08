@@ -10,15 +10,15 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
-// LoginV2Request 是 v2 显式登录请求。
-type LoginV2Request struct {
+// LoginV3Request 是 v3 显式登录请求。
+type LoginV3Request struct {
 	AuthMethod    string          `json:"auth_method" binding:"required" enums:"password,phone_otp,wechat,wechat_scan,wecom"` // 认证方式：password | phone_otp | wechat | wechat_scan | wecom
 	DeviceID      string          `json:"device_id,omitempty"`                                                                // 设备 ID
 	MethodPayload json.RawMessage `json:"method_payload" binding:"required" swaggertype:"object"`                             // 凭证（wechat_scan 需要 app_id/code/state；其他方式按 auth_method 解析）
 }
 
-// Validate 验证 v2 登录请求。
-func (r *LoginV2Request) Validate() error {
+// Validate 验证 v3 登录请求。
+func (r *LoginV3Request) Validate() error {
 	if !session.IsPublicAuthMethod(r.AuthMethod) {
 		return perrors.WithCode(code.ErrUnsupportedAuthMethod, "invalid authentication method: %s", r.AuthMethod)
 	}

@@ -387,7 +387,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LoginV2Request'
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LoginV3Request'
             examples:
               password:
                 value:
@@ -856,7 +856,7 @@ components:
       - code
       - corp_id
       type: object
-    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LoginV2Request:
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LoginV3Request:
       properties:
         auth_method:
           description: 认证方式：password | phone_otp | wechat | wechat_scan | wecom

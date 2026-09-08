@@ -84,7 +84,7 @@ func (s *tokenOperationsCaptureStub) VerifyToken(context.Context, token.VerifyTo
 	return &token.TokenVerifyResult{Valid: false}, nil
 }
 
-func TestAuthHandlerLoginV2AdaptersUseExplicitSelection(t *testing.T) {
+func TestAuthHandlerLoginV3AdaptersUseExplicitSelection(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
@@ -189,7 +189,7 @@ func TestAuthHandlerLoginV2AdaptersUseExplicitSelection(t *testing.T) {
 			stub := &loginServiceCaptureStub{}
 			h := NewAuthHandler(stub, token.Capabilities{}, nil)
 
-			w := performAuthRequest(h.LoginV2, tc.body)
+			w := performAuthRequest(h.LoginV3, tc.body)
 
 			require.Equal(t, http.StatusOK, w.Code)
 			require.True(t, stub.called)
@@ -199,7 +199,7 @@ func TestAuthHandlerLoginV2AdaptersUseExplicitSelection(t *testing.T) {
 	}
 }
 
-func TestAuthHandlerLoginV2RejectsInvalidContract(t *testing.T) {
+func TestAuthHandlerLoginV3RejectsInvalidContract(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
@@ -222,7 +222,7 @@ func TestAuthHandlerLoginV2RejectsInvalidContract(t *testing.T) {
 			stub := &loginServiceCaptureStub{}
 			h := NewAuthHandler(stub, token.Capabilities{}, nil)
 
-			w := performAuthRequest(h.LoginV2, tc.body)
+			w := performAuthRequest(h.LoginV3, tc.body)
 
 			require.Equal(t, http.StatusBadRequest, w.Code)
 			require.False(t, stub.called)

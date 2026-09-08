@@ -1433,7 +1433,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LoginV2Request"
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LoginV3Request"
                         }
                     }
                 ],
@@ -3304,7 +3304,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LoginV2Request": {
+        "github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LoginV3Request": {
             "type": "object",
             "required": [
                 "auth_method",

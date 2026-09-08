@@ -10,19 +10,19 @@ import (
 
 var _ *resp.TokenPair
 
-// LoginV2 显式登录端点。
+// LoginV3 显式登录端点。
 // @Summary 显式登录
 // @Description 使用 auth_method 明确选择认证方式，method_payload 按认证方式解析。v2 只开放 password、phone_otp、wechat、wechat_scan、wecom。
 // @Tags Authentication-Auth
 // @Accept json
 // @Produce json
-// @Param request body req.LoginV2Request true "显式登录请求"
+// @Param request body req.LoginV3Request true "显式登录请求"
 // @Success 200 {object} resp.TokenPair "登录成功，返回访问令牌和刷新令牌"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 401 {object} map[string]interface{} "认证失败"
 // @Router /v3/authn/login [post]
-func (h *AuthHandler) LoginV2(c *gin.Context) {
-	var reqBody req.LoginV2Request
+func (h *AuthHandler) LoginV3(c *gin.Context) {
+	var reqBody req.LoginV3Request
 	if err := h.BindJSON(c, &reqBody); err != nil {
 		h.Error(c, err)
 		return

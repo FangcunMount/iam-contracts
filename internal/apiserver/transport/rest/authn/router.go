@@ -68,7 +68,7 @@ func registerAuthEndpoints(group *gin.RouterGroup, handler *authhandler.AuthHand
 	}
 
 	// 认证端点(符合 API 文档)
-	group.POST("/login", handler.LoginV2)
+	group.POST("/login", handler.LoginV3)
 	group.POST("/challenges/phone-otp", handler.SendLoginPhoneOTP)
 	group.POST("/refresh_token", handler.RefreshToken)
 	group.POST("/logout", handler.Logout)

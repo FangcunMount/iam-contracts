@@ -43,23 +43,23 @@ type openAPISchema struct {
 	Properties  map[string]openAPISchema `yaml:"properties"`
 }
 
-func TestLoginV2OpenAPIContractMatchesRequestValidation(t *testing.T) {
+func TestLoginV3OpenAPIContractMatchesRequestValidation(t *testing.T) {
 	spec := loadOpenAPISpec(t, "api/rest/authn.v3.yaml")
 
-	loginSchema := spec.schema(t, "LoginV2Request")
+	loginSchema := spec.schema(t, "LoginV3Request")
 	require.ElementsMatch(t, []string{"password", "phone_otp", "wechat", "wechat_scan", "wecom"}, loginSchema.Properties["auth_method"].Enum)
 	require.Contains(t, loginSchema.Properties["method_payload"].Description, "wechat_scan")
 	require.Equal(t, "object", loginSchema.Properties["method_payload"].Type)
 
 	for _, method := range loginSchema.Properties["auth_method"].Enum {
-		req := LoginV2Request{
+		req := LoginV3Request{
 			AuthMethod:    method,
 			MethodPayload: json.RawMessage(`{}`),
 		}
 		require.NoError(t, req.Validate(), "OpenAPI auth_method %q must be accepted by request validation", method)
 	}
 
-	req := LoginV2Request{
+	req := LoginV3Request{
 		AuthMethod:    "jwt_token",
 		MethodPayload: json.RawMessage(`{"access_token":"token"}`),
 	}
