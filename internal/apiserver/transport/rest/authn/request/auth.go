@@ -2,6 +2,7 @@ package request
 
 import (
 	"encoding/json"
+	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
@@ -97,7 +98,7 @@ func (r *LogoutRequest) Validate() error {
 type VerifyTokenRequest struct {
 	AccessToken      string   `json:"access_token" binding:"required"`
 	ExpectedIssuer   string   `json:"expected_issuer,omitempty"`
-	ExpectedAudience []string `json:"expected_audience,omitempty"`
+	ExpectedAudience []string `json:"expected_audience" binding:"required,min=1"`
 }
 
 // Validate 验证令牌验证请求
@@ -105,6 +106,11 @@ func (r *VerifyTokenRequest) Validate() error {
 	if r.AccessToken == "" {
 		return perrors.WithCode(code.ErrInvalidArgument, "access_token is required")
 	}
+	audience, err := tokendomain.NormalizeExpectedAudience(r.ExpectedAudience)
+	if err != nil {
+		return err
+	}
+	r.ExpectedAudience = audience
 	return nil
 }
 

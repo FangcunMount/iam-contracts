@@ -23,20 +23,18 @@ func TestRecorderRecordsFailureSuccessAndRotation(t *testing.T) {
 	rec := NewRecorder(Dependencies{Credentials: repo, Now: func() time.Time { return now }})
 
 	err := rec.Record(context.Background(), authentication.AuthDecision{
-		OK:               false,
-		CredentialEffect: authentication.CredentialEffectRecordFailure,
-		CredentialID:     cred.ID,
+		OK: false,
+
+		CredentialUpdate: &authentication.CredentialUpdate{CredentialID: cred.ID, Effect: authentication.CredentialEffectRecordFailure},
 	})
 	require.NoError(t, err)
 	require.Equal(t, 1, cred.FailedAttempts)
 	require.NotNil(t, cred.LastFailureAt)
 
 	err = rec.Record(context.Background(), authentication.AuthDecision{
-		OK:               true,
-		CredentialEffect: authentication.CredentialEffectRecordSuccess,
-		CredentialID:     cred.ID,
-		ShouldRotate:     true,
-		NewMaterial:      []byte("new"),
+		OK: true,
+
+		CredentialUpdate: &authentication.CredentialUpdate{CredentialID: cred.ID, Effect: authentication.CredentialEffectRecordSuccess, Rotation: &credDomain.MaterialRotation{Material: []byte("new")}},
 	})
 	require.NoError(t, err)
 	require.Equal(t, 0, cred.FailedAttempts)

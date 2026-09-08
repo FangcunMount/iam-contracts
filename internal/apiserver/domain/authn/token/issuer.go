@@ -2,6 +2,8 @@ package token
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
@@ -10,21 +12,38 @@ import (
 	"github.com/google/uuid"
 )
 
-// tokenSetMinter 是用户令牌颁发器的实现。
-type tokenSetMinter struct {
-	tokenCodec     BearerTokenCodec
-	refreshExpirer SessionRefreshExpirer
-	accessTTL      time.Duration
+// IssuanceConfig is the authoritative access-token issuance policy.
+type IssuanceConfig struct {
+	Issuer    string
+	Audience  []string
+	AccessTTL time.Duration
 }
 
-// 确保 tokenSetMinter 实现 TokenSetMinter 接口。
-var _ TokenSetMinter = &tokenSetMinter{}
-
-// newTokenSetMinter 创建用户令牌颁发器。
-func newTokenSetMinter(tokenCodec BearerTokenCodec, refreshExpirer SessionRefreshExpirer, accessTTL time.Duration) TokenSetMinter {
-	return &tokenSetMinter{
-		tokenCodec: tokenCodec, refreshExpirer: refreshExpirer, accessTTL: accessTTL,
+func (c IssuanceConfig) Validate() error {
+	if strings.TrimSpace(c.Issuer) == "" || c.AccessTTL < time.Second {
+		return fmt.Errorf("issuer and access TTL of at least one second are required")
 	}
+	_, err := normalizeAudience(c.Audience)
+	return err
+}
+
+type tokenSetMinter struct {
+	encoder        AccessTokenEncoder
+	refreshExpirer SessionRefreshExpirer
+	config         IssuanceConfig
+	now            func() time.Time
+}
+
+func newTokenSetMinter(encoder AccessTokenEncoder, refreshExpirer SessionRefreshExpirer, config IssuanceConfig, now func() time.Time) TokenSetMinter {
+	if now == nil {
+		now = time.Now
+	}
+	if normalized, err := normalizeAudience(config.Audience); err == nil {
+		config.Audience = normalized
+	} else {
+		config.Audience = cloneStrings(config.Audience)
+	}
+	return &tokenSetMinter{encoder: encoder, refreshExpirer: refreshExpirer, config: config, now: now}
 }
 
 // MintTokenSet 颁发用户令牌。
@@ -34,18 +53,28 @@ func (s *tokenSetMinter) MintTokenSet(ctx context.Context, sess *sessiondomain.S
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "session is required")
 	}
 	// 构建访问令牌主体
+	if err := s.config.Validate(); err != nil {
+		audienceFailures.WithLabelValues("configuration_error").Inc()
+		return nil, perrors.WrapC(err, code.ErrInternalServerError, "invalid issuance config")
+	}
 	subject := accessTokenSubjectFromSession(sess)
-	now := time.Now().UTC()
-	// 颁发访问令牌
-	accessToken, err := s.tokenCodec.IssueAccessToken(ctx, &AccessTokenIssueContext{
-		UserID: subject.UserID, LoginIdentityID: subject.LoginIdentityID, SessionID: subject.SessionID,
-		TenantID: subject.TenantID, TenantDomain: subject.TenantDomain, OrgID: subject.OrgID,
-		AMR: append([]string(nil), subject.AMR...), AuthenticatedAt: subject.AuthenticatedAt,
-		Attributes: cloneStringMap(subject.Attributes),
-	}, s.accessTTL)
+	now := s.now().UTC()
+	issuedAt := now.Truncate(time.Second)
+	claims, err := NewAccessTokenClaims(AccessTokenClaims{
+		TokenID: uuid.NewString(), Subject: subject.UserID.String(), SessionID: subject.SessionID,
+		UserID: subject.UserID, LoginIdentityID: subject.LoginIdentityID, OrgID: sess.TokenContext.OrgID,
+		TenantDomain: subject.TenantDomain, AMR: subject.AMR, Attributes: subject.Attributes,
+		AuthenticatedAt: subject.AuthenticatedAt, Issuer: s.config.Issuer, Audience: s.config.Audience,
+		IssuedAt: issuedAt, NotBefore: issuedAt, ExpiresAt: now.Add(s.config.AccessTTL).Truncate(time.Second),
+	})
+	if err != nil {
+		return nil, perrors.WrapC(err, code.ErrInternalServerError, "invalid access claims")
+	}
+	value, err := s.encoder.EncodeAccessToken(ctx, claims)
 	if err != nil {
 		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to generate access token")
 	}
+	accessToken := NewAccessToken(claims.TokenID, value, sess.SessionID, sess.UserID, sess.LoginIdentityID, sess.TenantID, claims.IssuedAt, claims.ExpiresAt)
 
 	// 颁发刷新令牌
 	refreshToken, err := s.issueRefreshToken(subject, sess, now)
@@ -65,12 +94,10 @@ func (s *tokenSetMinter) issueRefreshToken(subject *AccessTokenIssueContext, ses
 		return nil, err
 	}
 	// 颁发刷新令牌
-	token := NewRefreshTokenWithExpiry(
+	token := NewRefreshToken(
 		uuid.NewString(), uuid.NewString(), sess.SessionID, subject.UserID, subject.LoginIdentityID,
-		subject.TenantID, nil, nil, refreshExpiresAt,
+		subject.TenantID, now, refreshExpiresAt,
 	)
-	// 设置颁发时间
-	token.IssuedAt = now
 	// 返回刷新令牌
 	return token, nil
 }

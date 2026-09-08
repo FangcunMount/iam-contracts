@@ -24,10 +24,10 @@ func TestMethodProofPreparersMapPayloads(t *testing.T) {
 		Password: "secret",
 	}, method.CommonPayload{TenantID: meta.FromUint64(42)})
 	require.NoError(t, err)
-	password, ok := passwordProof.(*authentication.PasswordCredential)
+	password, ok := passwordProof.(*authentication.PasswordProof)
 	require.True(t, ok)
 	require.Equal(t, authentication.CredentialKindPassword, password.CredentialKind())
-	require.Equal(t, uint64(42), password.TenantID.Uint64())
+	require.Equal(t, uint64(42), password.RealmTenantID.Uint64())
 	require.Equal(t, "alice", password.Username)
 
 	phoneProof, err := NewPhoneOTPBuilder().Build(context.Background(), method.PhoneOTPPayload{
@@ -35,7 +35,7 @@ func TestMethodProofPreparersMapPayloads(t *testing.T) {
 		OTP:       "123456",
 	}, method.CommonPayload{TenantID: meta.FromUint64(7)})
 	require.NoError(t, err)
-	phone, ok := phoneProof.(*authentication.PhoneOTPCredential)
+	phone, ok := phoneProof.(*authentication.PhoneOTPProof)
 	require.True(t, ok)
 	require.Equal(t, authentication.CredentialKindPhoneOTP, phone.CredentialKind())
 	require.Equal(t, "+8613800138000", phone.PhoneE164)
@@ -112,7 +112,7 @@ func TestWecomMethodUsesResolvedIdentityAndAuthenticates(t *testing.T) {
 	require.True(t, decision.OK)
 	require.Equal(t, loginIdentityID, decision.Principal.LoginIdentityID)
 	require.Equal(t, userID, decision.Principal.UserID)
-	require.True(t, decision.CredentialID.IsZero())
+	require.Nil(t, decision.CredentialUpdate)
 	require.Equal(t, 1, resolver.calls)
 	require.Equal(t, idpidentity.ProviderWecom, resolver.request.Provider)
 	require.Equal(t, "corp-id", resolver.request.Realm)

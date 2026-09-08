@@ -190,10 +190,10 @@ func TestRemoteVerifyStrategyOptionsOverrideConfig(t *testing.T) {
 
 func TestLocalVerifyStrategyRejectsServiceTokenByDefault(t *testing.T) {
 	privateKey, manager := newRS256Fixture(t)
-	token := signRS256Token(t, privateKey, map[string]interface{}{
+	token := signRS256Token(t, privateKey, map[string]interface{}{jwt.IssuerKey: "https://iam.fangcunmount.cn", jwt.AudienceKey: []string{"qs-api"},
 		jwt.SubjectKey: "service:worker", jwt.ExpirationKey: time.Now().Add(time.Minute), "token_type": "service",
 	})
-	strategy := NewLocalVerifyStrategy(manager)
+	strategy := NewLocalVerifyStrategy(manager, WithLocalConfig(testRecipientConfig()))
 
 	result, err := strategy.Verify(context.Background(), token, nil)
 	require.Error(t, err)
@@ -209,7 +209,7 @@ func TestLocalVerifyStrategyRejectsServiceTokenByDefault(t *testing.T) {
 
 func TestRemoteVerifyStrategyReturnsSessionID(t *testing.T) {
 	privateKey, _ := newRS256Fixture(t)
-	token := signRS256Token(t, privateKey, map[string]interface{}{
+	token := signRS256Token(t, privateKey, map[string]interface{}{jwt.IssuerKey: "https://iam.fangcunmount.cn", jwt.AudienceKey: []string{"qs-api"},
 		jwt.SubjectKey:    "user:1",
 		jwt.ExpirationKey: time.Now().Add(time.Minute),
 	})
@@ -244,7 +244,7 @@ func TestRemoteVerifyStrategyReturnsSessionID(t *testing.T) {
 		},
 	}
 
-	strategy := NewRemoteVerifyStrategy(stub, &config.TokenVerifyConfig{})
+	strategy := NewRemoteVerifyStrategy(stub, testRecipientConfig())
 
 	result, err := strategy.Verify(context.Background(), token, nil)
 	require.NoError(t, err)
@@ -366,8 +366,8 @@ func TestLocalVerifyStrategyAcceptsSingleAllowedAlgorithm(t *testing.T) {
 
 func TestLocalVerifyStrategyEmptyAlgorithmsDefaultsToRS256(t *testing.T) {
 	privateKey, manager := newRS256Fixture(t)
-	strategy := NewLocalVerifyStrategy(manager, WithLocalConfig(&config.TokenVerifyConfig{}))
-	token := signRS256Token(t, privateKey, map[string]interface{}{
+	strategy := NewLocalVerifyStrategy(manager, WithLocalConfig(testRecipientConfig()))
+	token := signRS256Token(t, privateKey, map[string]interface{}{jwt.IssuerKey: "https://iam.fangcunmount.cn", jwt.AudienceKey: []string{"qs-api"},
 		jwt.SubjectKey:    "user:1",
 		jwt.ExpirationKey: time.Now().Add(time.Minute),
 	})
@@ -541,4 +541,8 @@ func validRemoteVerifyResponse() *authnv2.VerifyTokenResponse {
 			ExpiresAt: timestamppb.New(time.Now().Add(time.Minute)),
 		},
 	}
+}
+
+func testRecipientConfig() *config.TokenVerifyConfig {
+	return &config.TokenVerifyConfig{AllowedIssuer: "https://iam.fangcunmount.cn", AllowedAudience: []string{"qs-api"}}
 }

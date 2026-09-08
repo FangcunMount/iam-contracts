@@ -18,7 +18,7 @@ type MethodRegistry interface {
 
 // ProofFactory 将登录方式选择结果构造成领域认证凭据。
 type ProofFactory interface {
-	Build(context.Context, method.LoginMethodSelection) (authentication.AuthCredential, error)
+	Build(context.Context, method.LoginMethodSelection) (authentication.IdentityProof, error)
 }
 
 // Dependencies 是 SignIn 用例依赖。

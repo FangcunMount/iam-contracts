@@ -28,7 +28,7 @@ func TestApplicationMapsVerifyAdmissionDenialToExistingFailureContract(t *testin
 
 	app := &application{verifier: verifierStub{err: blockedAdmissionError()}}
 
-	result, err := app.VerifyToken(context.Background(), VerifyTokenRequest{AccessToken: "access-token"})
+	result, err := app.VerifyToken(context.Background(), VerifyTokenRequest{ExpectedAudience: []string{"qs-api"}, AccessToken: "access-token"})
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -39,13 +39,13 @@ func TestApplicationMapsVerifyAdmissionDenialToExistingFailureContract(t *testin
 func TestApplicationRejectsDisallowedTokenType(t *testing.T) {
 	t.Parallel()
 
-	app := &application{verifier: verifierStub{claims: &tokendomain.VerifiedTokenClaims{
+	app := &application{verifier: verifierStub{claims: &tokendomain.AccessTokenClaims{
 		TokenType: TokenType("service"),
 		Issuer:    "https://iam.fangcunmount.cn",
 		Audience:  []string{"qs-api"},
 	}}}
 
-	result, err := app.VerifyToken(context.Background(), VerifyTokenRequest{
+	result, err := app.VerifyToken(context.Background(), VerifyTokenRequest{ExpectedAudience: []string{"qs-api"},
 		AccessToken:        "service-token",
 		AcceptedTokenTypes: []TokenType{TokenTypeAccess},
 	})
@@ -59,10 +59,10 @@ func TestApplicationRejectsDisallowedTokenType(t *testing.T) {
 func TestApplicationDefaultsToAccessTokenType(t *testing.T) {
 	t.Parallel()
 
-	app := &application{verifier: verifierStub{claims: &tokendomain.VerifiedTokenClaims{
+	app := &application{verifier: verifierStub{claims: &tokendomain.AccessTokenClaims{
 		TokenType: TokenType("service"),
 	}}}
-	result, err := app.VerifyToken(context.Background(), VerifyTokenRequest{AccessToken: "service-token"})
+	result, err := app.VerifyToken(context.Background(), VerifyTokenRequest{ExpectedAudience: []string{"qs-api"}, AccessToken: "service-token"})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.False(t, result.Valid)
@@ -82,10 +82,10 @@ func (s refresherStub) RevokeRefreshToken(context.Context, string) error {
 
 type verifierStub struct {
 	err    error
-	claims *tokendomain.VerifiedTokenClaims
+	claims *tokendomain.AccessTokenClaims
 }
 
-func (s verifierStub) VerifyToken(context.Context, string) (*tokendomain.VerifiedTokenClaims, error) {
+func (s verifierStub) VerifyToken(context.Context, string, []string) (*tokendomain.AccessTokenClaims, error) {
 	if s.err != nil {
 		return nil, s.err
 	}
@@ -98,5 +98,14 @@ func blockedAdmissionError() error {
 	}
 	return &admissiondomain.DeniedError{
 		Decision: admissiondomain.Deny(subject, admissiondomain.ReasonUserBlocked),
+	}
+}
+
+func TestVerifyRequiresAudienceBeforeDomainCall(t *testing.T) {
+	app := &application{}
+	for _, aud := range [][]string{nil, {}, {""}, {"qs-api", " "}} {
+		result, err := app.VerifyToken(context.Background(), VerifyTokenRequest{AccessToken: "token", ExpectedAudience: aud})
+		require.Nil(t, result)
+		require.Error(t, err)
 	}
 }

@@ -54,6 +54,7 @@ type Deps struct {
 
 // AuthnDeps 认证依赖
 type AuthnDeps struct {
+	ResourceAudience       string
 	AuthHandler            *authhandler.AuthHandler
 	OnboardingHandler      *authhandler.OnboardingHandler
 	LoginIdentityHandler   *authhandler.LoginIdentityHandler

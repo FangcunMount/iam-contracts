@@ -203,19 +203,16 @@ func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*t
 	userID := meta.FromUint64(data.UserID)
 	loginIdentityID := meta.FromUint64(data.LoginIdentityID)
 	tenantID := meta.FromUint64(data.TenantID)
-	token := tokendomain.NewRefreshTokenWithExpiry(
+	token := tokendomain.RestoreRefreshToken(
 		data.TokenID,
 		tokenValue,
 		data.SessionID,
 		userID,
 		loginIdentityID,
 		tenantID,
-		data.Amr,
-		data.SessionClaims,
 		data.ExpiresAt,
+		tokendomain.LegacyRefreshContext{AuthMethod: data.AuthMethod, Realm: data.Realm, AMR: data.Amr, SessionClaims: data.SessionClaims},
 	)
-	token.AuthMethod = data.AuthMethod
-	token.Realm = data.Realm
 
 	// Redis Hook 已经记录了 GET 命令成功，这里不需要再记录 cache hit
 	return token, nil

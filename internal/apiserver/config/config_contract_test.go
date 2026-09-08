@@ -109,7 +109,7 @@ func TestAPIServerYAMLConfigMapsToRuntimeOptions(t *testing.T) {
 				assertEqual(t, "migration database", opts.MigrationOptions.Database, "iam")
 				assertEqual(t, "server mode", opts.GenericServerRunOptions.Mode, "release")
 				assertEqual(t, "auth issuer", opts.Auth.JWTIssuer, "https://iam.fangcunmount.cn")
-				assertEqual(t, "auth audience count", len(opts.Auth.AccessTokenAudience), 2)
+				assertEqual(t, "auth audience count", len(opts.Auth.AccessTokenAudience), 3)
 				assertEqual(t, "auth session max ttl", opts.Auth.SessionMaxTTL, 24*time.Hour)
 				assertEqual(t, "password lockout enabled", opts.Auth.PasswordLockout.Enabled, true)
 				assertEqual(t, "password lockout threshold", opts.Auth.PasswordLockout.Threshold, 5)

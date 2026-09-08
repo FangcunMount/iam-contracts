@@ -11,45 +11,43 @@ import (
 func TestProofConstructorsValidateRequiredFieldsAndMapCredentialKind(t *testing.T) {
 	t.Parallel()
 
-	password, err := NewPasswordCredential(PasswordProofSpec{TenantID: meta.FromUint64(1), Username: "alice", Password: "secret"})
+	password, err := NewPasswordProof(PasswordProofSpec{RealmTenantID: meta.FromUint64(1), Username: "alice", Password: "secret"})
 	require.NoError(t, err)
 	require.Equal(t, CredentialKindPassword, password.CredentialKind())
-	_, err = NewPasswordCredential(PasswordProofSpec{})
+	_, err = NewPasswordProof(PasswordProofSpec{})
 	require.Error(t, err)
 
-	phone, err := NewPhoneOTPCredential(PhoneOTPProofSpec{TenantID: meta.FromUint64(1), PhoneE164: "+8613800138000", OTP: "123456"})
+	phone, err := NewPhoneOTPProof(PhoneOTPProofSpec{PhoneE164: "+8613800138000", OTP: "123456"})
 	require.NoError(t, err)
 	require.Equal(t, CredentialKindPhoneOTP, phone.CredentialKind())
-	_, err = NewPhoneOTPCredential(PhoneOTPProofSpec{})
+	_, err = NewPhoneOTPProof(PhoneOTPProofSpec{})
 	require.Error(t, err)
 
-	wechat, err := NewWechatMiniCredential(WechatMiniProofSpec{
-		TenantID: meta.FromUint64(1),
-		AppID:    "wx-app",
-		OpenID:   "open-id",
+	wechat, err := NewWechatMiniProof(WechatMiniProofSpec{
+		AppID:  "wx-app",
+		OpenID: "open-id",
 	})
 	require.NoError(t, err)
 	require.Equal(t, CredentialKindWechatMinip, wechat.CredentialKind())
-	_, err = NewWechatMiniCredential(WechatMiniProofSpec{})
+	_, err = NewWechatMiniProof(WechatMiniProofSpec{})
 	require.Error(t, err)
 
-	wechatOpen, err := NewWechatOpenCredential(WechatOpenProofSpec{
+	wechatOpen, err := NewWechatOpenProof(WechatOpenProofSpec{
 		AppID:  "wx-app",
 		OpenID: "open-id",
 	})
 	require.NoError(t, err)
 	require.Equal(t, CredentialKindWechatOpen, wechatOpen.CredentialKind())
-	_, err = NewWechatOpenCredential(WechatOpenProofSpec{})
+	_, err = NewWechatOpenProof(WechatOpenProofSpec{})
 	require.Error(t, err)
 
-	wecom, err := NewWecomCredential(WecomProofSpec{
-		TenantID: meta.FromUint64(1),
-		CorpID:   "corp",
-		UserID:   "user-id",
+	wecom, err := NewWecomProof(WecomProofSpec{
+		CorpID:         "corp",
+		ProviderUserID: "user-id",
 	})
 	require.NoError(t, err)
 	require.Equal(t, CredentialKindWecom, wecom.CredentialKind())
-	_, err = NewWecomCredential(WecomProofSpec{})
+	_, err = NewWecomProof(WecomProofSpec{})
 	require.Error(t, err)
 }
 
@@ -65,7 +63,7 @@ func (s *authenticatorStrategyStub) Kind() CredentialKind {
 	return s.kind
 }
 
-func (s *authenticatorStrategyStub) Authenticate(context.Context, AuthCredential) (AuthDecision, error) {
+func (s *authenticatorStrategyStub) Authenticate(context.Context, IdentityProof) (AuthDecision, error) {
 	s.called = true
 	if s.err != nil {
 		return AuthDecision{}, s.err
@@ -78,7 +76,6 @@ func (s *authenticatorStrategyStub) Authenticate(context.Context, AuthCredential
 		Principal: &Principal{
 			UserID:          meta.FromUint64(1001),
 			LoginIdentityID: meta.FromUint64(2002),
-			TenantID:        meta.FromUint64(1),
 		},
 	}, nil
 }
@@ -88,10 +85,10 @@ func TestAuthenticatorUsesInjectedStrategyMapping(t *testing.T) {
 
 	strategy := &authenticatorStrategyStub{kind: CredentialKindPassword}
 	a := NewAuthenticator(strategy)
-	proof, err := NewPasswordCredential(PasswordProofSpec{
-		TenantID: meta.FromUint64(1),
-		Username: "alice",
-		Password: "secret",
+	proof, err := NewPasswordProof(PasswordProofSpec{
+		RealmTenantID: meta.FromUint64(1),
+		Username:      "alice",
+		Password:      "secret",
 	})
 	require.NoError(t, err)
 

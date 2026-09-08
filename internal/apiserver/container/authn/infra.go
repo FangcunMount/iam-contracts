@@ -49,9 +49,9 @@ type authnInfrastructureComponents struct {
 	keyGenerator      keyset.KeyGenerator
 	privKeyResolver   keyset.PrivateKeyResolver
 	keyManager        *keyset.KeyManager
-	keySetBuilder     *keyset.KeySetBuilder
+	keySetBuilder     *keyset.JWKSPublisher
 	keyRotation       *keyset.KeyRotation
-	signedJWTCodec    *jwtinfra.JWSCompactTokenCodec
+	signedJWTCodec    *jwtinfra.SignedJWTCodec
 
 	tokenStore   *redisInfra.RedisStore
 	sessionStore *redisInfra.SessionStore
@@ -135,7 +135,7 @@ func configureKeyServices(
 		MaxPublishableKeys: jwksOptions.Rotation.MaxPublishableKey,
 	}
 	infra.keyManager = keyset.NewKeyManagerWithPolicy(infra.keyRepo, infra.keyGenerator, infra.privateKeyStorage, policy)
-	infra.keySetBuilder = keyset.NewKeySetBuilder(infra.keyRepo)
+	infra.keySetBuilder = keyset.NewJWKSPublisher(infra.keyRepo)
 	infra.keyRotation = keyset.NewKeyRotation(
 		infra.keyManager,
 		policy,
@@ -144,9 +144,8 @@ func configureKeyServices(
 	if err := ensureJWKSReady(infra, environment, jwksOptions, log.New(log.NewOptions())); err != nil {
 		return err
 	}
-	infra.signedJWTCodec = jwtinfra.NewJWSCompactTokenCodec(
+	infra.signedJWTCodec = jwtinfra.NewSignedJWTCodec(
 		authOptions.JWTIssuer,
-		authOptions.AccessTokenAudience,
 		keyset.NewJWSKeySourceAdapter(infra.keyManager, infra.privKeyResolver),
 	)
 	return nil

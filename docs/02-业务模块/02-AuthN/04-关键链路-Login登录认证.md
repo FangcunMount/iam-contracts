@@ -1,10 +1,10 @@
 # 关键链路：Login 登录认证
 
-> 状态：已实现 · 本文负责 SignIn 的阶段顺序、认证策略、凭据记录与错误契约；完整颁发和续期由 Token 链路文档负责。
+> 状态：已实现 · 本文负责 SignIn 的阶段顺序、身份核验策略、凭据记录与错误契约；完整颁发和续期由 Token 链路文档负责。
 
 ## 1. 结论：先证明身份，再准入和颁发
 
-一次公开登录由 SignIn 编排：Authenticator 验证证明并形成 AuthDecision/Principal，CredentialRecorder 保存认证副作用，再评估准入、创建 Session 并调用 InitialTokenIssuer。记录失败时立即终止。
+一次公开登录由 SignIn 编排：依次执行身份核验、登录准入、会话建立和令牌颁发。Authenticator 输出 AuthDecision/Principal，CredentialRecorder 保存核验产生的凭据副作用，再由 AdmissionPolicy、SessionCreator、InitialTokenIssuer 完成后续环节。记录失败时立即终止。
 
 因此 Principal 可以先于 User 准入结果产生；它表示证明成功，不能单独代表已经获得有效在线登录态。SignIn 失败不返回 token pair。首次开通走 SignUp，已有用户追加入口走 Linking，资源访问授权继续由 AuthZ 负责。
 
@@ -12,7 +12,7 @@
 
 ## 2. 公开请求的责任链
 
-REST/gRPC 经 `application/authn/session` 门面进入 `SignIn.Execute`。Transport 负责协议映射；方法选择、证明构造、认证决策、凭据记录分别由以下能力负责。
+REST/gRPC 经 `application/authn/session` 门面进入 `SignIn.Execute`。Transport 负责协议映射；方法选择、证明构造、身份核验决策、凭据记录分别由以下能力负责。
 
 ```mermaid
 sequenceDiagram

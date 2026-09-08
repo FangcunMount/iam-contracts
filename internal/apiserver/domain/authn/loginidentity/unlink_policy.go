@@ -20,7 +20,7 @@ const (
 	UnlinkReauthInvalidTimestamp
 )
 
-// UnlinkReauthRequest 是解绑近期认证策略的确定性输入。
+// UnlinkReauthRequest 是解绑近期身份核验策略的确定性输入。
 type UnlinkReauthRequest struct {
 	Identity               *LoginIdentity
 	CurrentLoginIdentityID meta.ID

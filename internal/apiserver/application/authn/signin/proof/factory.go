@@ -14,12 +14,12 @@ import (
 // Builder 证明构造器
 type Builder interface {
 	CredentialKind() method.CredentialKind
-	Build(ctx context.Context, payload method.Payload, common method.CommonPayload) (authentication.AuthCredential, error)
+	Build(ctx context.Context, payload method.Payload, common method.CommonPayload) (authentication.IdentityProof, error)
 }
 
 // CredentialFactory 将登录方式选择结果构造成领域认证凭据。
 type CredentialFactory interface {
-	Build(ctx context.Context, selection method.LoginMethodSelection) (authentication.AuthCredential, error)
+	Build(ctx context.Context, selection method.LoginMethodSelection) (authentication.IdentityProof, error)
 }
 
 // Factory 证明工厂
@@ -75,7 +75,7 @@ func DefaultFactory(
 }
 
 // Build 构建证明
-func (f *Factory) Build(ctx context.Context, selection method.LoginMethodSelection) (authentication.AuthCredential, error) {
+func (f *Factory) Build(ctx context.Context, selection method.LoginMethodSelection) (authentication.IdentityProof, error) {
 	if selection.Payload == nil {
 		return nil, perrors.WithCode(code.ErrProofBuildFailed, "method payload is required")
 	}

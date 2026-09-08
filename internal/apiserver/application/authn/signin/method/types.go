@@ -17,7 +17,7 @@ const (
 //
 // 它是 application/method 层的选择结果字段。这里保留独立类型，是为了让
 // AuthMethod（对外登录方式）与领域认证证明类型在应用层语义上分开；
-// 真正构造领域 AuthCredential 时由 proof 层按该值选择 Builder。
+// 真正构造领域 IdentityProof 时由 proof 层按该值选择 Builder。
 type CredentialKind string
 
 const (

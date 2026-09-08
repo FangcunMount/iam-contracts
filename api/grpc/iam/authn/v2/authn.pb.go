@@ -614,13 +614,14 @@ func (x *LoginResponse) GetTokenPair() *TokenPair {
 }
 
 type VerifyTokenRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	AccessToken        string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	ForceRemote        bool                   `protobuf:"varint,2,opt,name=force_remote,json=forceRemote,proto3" json:"force_remote,omitempty"`
-	IncludeMetadata    bool                   `protobuf:"varint,3,opt,name=include_metadata,json=includeMetadata,proto3" json:"include_metadata,omitempty"`
-	ExpectedIssuer     string                 `protobuf:"bytes,4,opt,name=expected_issuer,json=expectedIssuer,proto3" json:"expected_issuer,omitempty"`
-	ExpectedAudience   []string               `protobuf:"bytes,5,rep,name=expected_audience,json=expectedAudience,proto3" json:"expected_audience,omitempty"`
-	AcceptedTokenTypes []TokenType            `protobuf:"varint,6,rep,packed,name=accepted_token_types,json=acceptedTokenTypes,proto3,enum=iam.authn.v2.TokenType" json:"accepted_token_types,omitempty"`
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken     string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	ForceRemote     bool                   `protobuf:"varint,2,opt,name=force_remote,json=forceRemote,proto3" json:"force_remote,omitempty"`
+	IncludeMetadata bool                   `protobuf:"varint,3,opt,name=include_metadata,json=includeMetadata,proto3" json:"include_metadata,omitempty"`
+	ExpectedIssuer  string                 `protobuf:"bytes,4,opt,name=expected_issuer,json=expectedIssuer,proto3" json:"expected_issuer,omitempty"`
+	// Required recipient constraint. Non-empty entries; any matching audience is accepted.
+	ExpectedAudience   []string    `protobuf:"bytes,5,rep,name=expected_audience,json=expectedAudience,proto3" json:"expected_audience,omitempty"`
+	AcceptedTokenTypes []TokenType `protobuf:"varint,6,rep,packed,name=accepted_token_types,json=acceptedTokenTypes,proto3,enum=iam.authn.v2.TokenType" json:"accepted_token_types,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }

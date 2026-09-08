@@ -15,7 +15,7 @@ const (
 	TransitionRecordSuccess
 )
 
-// AuthenticationTransition 描述一次凭据认证状态迁移意图。
+// AuthenticationTransition 描述一次身份核验状态迁移意图。
 type AuthenticationTransition struct {
 	CredentialID  meta.ID
 	Kind          AuthenticationTransitionKind

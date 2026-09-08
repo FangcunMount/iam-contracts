@@ -2,7 +2,7 @@ package authentication
 
 import "time"
 
-// Method 表示 IAM 实际执行的认证策略。
+// Method 表示 IAM 实际执行的身份核验策略。
 type Method string
 
 const (
@@ -24,7 +24,7 @@ const (
 	AMRWecom    AMR = "wecom"       // 企业微信认证（企业微信扫码登录）
 )
 
-// AuthenticationContext 是一次认证成功后的领域上下文集中表达。
+// AuthenticationContext 是一次身份核验成功后的领域上下文集中表达。
 // Method 表示 IAM 实际策略；Realm 表示 provider 身份命名空间；
 // AMR 是可对外表达的认证手段；AuthenticatedAt 是原始认证时间。
 type AuthenticationContext struct {

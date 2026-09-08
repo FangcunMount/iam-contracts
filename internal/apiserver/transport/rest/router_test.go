@@ -330,7 +330,7 @@ func TestRegisterAdminRoutesRegistersSessionControlRoutes(t *testing.T) {
 
 	router.registerAdminRoutes(
 		engine,
-		authnMiddleware.NewJWTAuthMiddleware(nil),
+		authnMiddleware.NewJWTAuthMiddleware(nil, "iam-api"),
 		authzMiddleware.NewMiddleware(routeAuthorizationStub{}),
 	)
 

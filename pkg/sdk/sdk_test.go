@@ -78,7 +78,8 @@ func TestClientAuthUsesTypedAuthClient(t *testing.T) {
 	}
 
 	resp, err := client.Auth().VerifyToken(context.Background(), &authnv2.VerifyTokenRequest{
-		AccessToken: "jwt-token",
+		AccessToken:      "jwt-token",
+		ExpectedAudience: []string{"qs-api"},
 	})
 	require.NoError(t, err)
 	require.True(t, resp.GetValid())

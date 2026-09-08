@@ -48,5 +48,4 @@ type LoginIdentityLookup struct {
 	Identifier       string
 	GlobalIdentifier string
 	Status           loginidentity.Status
-	ScopedTenantID   meta.ID
 }

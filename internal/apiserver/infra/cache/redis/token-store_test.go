@@ -27,17 +27,7 @@ func TestRedisStoreRefreshTokenLifecycle(t *testing.T) {
 
 	store := NewRedisStore(client)
 	ctx := context.Background()
-	refreshToken := tokendomain.NewRefreshToken(
-		"rt-1",
-		"refresh-value",
-		"session-1",
-		meta.FromUint64(1001),
-		meta.FromUint64(2002),
-		meta.FromUint64(3003),
-		[]string{"pwd"},
-		map[string]string{"device": "ios"},
-		time.Hour,
-	)
+	refreshToken := tokendomain.RestoreRefreshToken("rt-1", "refresh-value", "session-1", meta.FromUint64(1001), meta.FromUint64(2002), meta.FromUint64(3003), time.Now().Add(time.Hour), tokendomain.LegacyRefreshContext{AMR: []string{"pwd"}, SessionClaims: map[string]string{"device": "ios"}})
 
 	if err := store.SaveRefreshToken(ctx, refreshToken); err != nil {
 		t.Fatalf("SaveRefreshToken() error = %v", err)
@@ -98,17 +88,7 @@ func TestRedisStoreRefreshTokenLogsDoNotContainCredentialOrKey(t *testing.T) {
 	})
 
 	const sentinel = "refresh-token-secret-sentinel-5-4"
-	token := tokendomain.NewRefreshToken(
-		"rt-security",
-		sentinel,
-		"session-security",
-		meta.FromUint64(1001),
-		meta.FromUint64(2002),
-		meta.FromUint64(3003),
-		nil,
-		nil,
-		time.Hour,
-	)
+	token := tokendomain.NewRefreshToken("rt-security", sentinel, "session-security", meta.FromUint64(1001), meta.FromUint64(2002), meta.FromUint64(3003), time.Now(), time.Now().Add(time.Hour))
 	store := NewRedisStore(client)
 	if err := store.SaveRefreshToken(context.Background(), token); err != nil {
 		t.Fatal(err)
@@ -187,17 +167,7 @@ func TestRedisStoreRejectsExpiredRefreshToken(t *testing.T) {
 
 	store := NewRedisStore(client)
 	ctx := context.Background()
-	expiredToken := tokendomain.NewRefreshToken(
-		"rt-expired",
-		"expired-value",
-		"session-expired",
-		meta.FromUint64(1),
-		meta.FromUint64(2),
-		meta.FromUint64(3),
-		nil,
-		nil,
-		-time.Second,
-	)
+	expiredToken := tokendomain.NewRefreshToken("rt-expired", "expired-value", "session-expired", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), time.Now(), time.Now().Add(-time.Second))
 
 	if err := store.SaveRefreshToken(ctx, expiredToken); err == nil {
 		t.Fatalf("SaveRefreshToken() should reject expired token")
@@ -214,11 +184,7 @@ func TestRedisStoreRotateRefreshTokenIsSingleUse(t *testing.T) {
 
 	store := NewRedisStore(client)
 	ctx := context.Background()
-	oldToken := tokendomain.NewRefreshToken(
-		"old-id", "old-value", "session-id",
-		meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3),
-		nil, nil, time.Hour,
-	)
+	oldToken := tokendomain.NewRefreshToken("old-id", "old-value", "session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), time.Now(), time.Now().Add(time.Hour))
 	if err := store.SaveRefreshToken(ctx, oldToken); err != nil {
 		t.Fatalf("SaveRefreshToken() error = %v", err)
 	}
@@ -233,13 +199,7 @@ func TestRedisStoreRotateRefreshTokenIsSingleUse(t *testing.T) {
 	for i := range 2 {
 		go func(index int) {
 			<-start
-			candidate := tokendomain.NewRefreshToken(
-				fmt.Sprintf("new-id-%d", index),
-				fmt.Sprintf("new-value-%d", index),
-				fmt.Sprintf("new-session-%d", index),
-				meta.FromUint64(uint64(100+index)), meta.FromUint64(2), meta.FromUint64(3),
-				nil, nil, time.Hour,
-			)
+			candidate := tokendomain.NewRefreshToken(fmt.Sprintf("new-id-%d", index), fmt.Sprintf("new-value-%d", index), fmt.Sprintf("new-session-%d", index), meta.FromUint64(uint64(100+index)), meta.FromUint64(2), meta.FromUint64(3), time.Now(), time.Now().Add(time.Hour))
 			ok, err := store.RotateRefreshToken(ctx, oldToken.Value, oldToken.ID, candidate)
 			results <- result{index: index, rotated: ok, err: err}
 		}(i)
@@ -300,16 +260,8 @@ func TestRedisStoreRotateRefreshTokenRejectsMismatchedOldIDWithoutMutation(t *te
 
 	store := NewRedisStore(client)
 	ctx := context.Background()
-	oldToken := tokendomain.NewRefreshToken(
-		"old-id", "old-value", "session-id",
-		meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3),
-		nil, nil, time.Hour,
-	)
-	candidate := tokendomain.NewRefreshToken(
-		"new-id", "new-value", "session-id",
-		meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3),
-		nil, nil, time.Hour,
-	)
+	oldToken := tokendomain.NewRefreshToken("old-id", "old-value", "session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), time.Now(), time.Now().Add(time.Hour))
+	candidate := tokendomain.NewRefreshToken("new-id", "new-value", "session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), time.Now(), time.Now().Add(time.Hour))
 	if err := store.SaveRefreshToken(ctx, oldToken); err != nil {
 		t.Fatalf("SaveRefreshToken() error = %v", err)
 	}

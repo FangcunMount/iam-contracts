@@ -32,7 +32,7 @@ func TestSignInCompletionRequiresAdmissionBeforeCreatingAuthenticationState(t *t
 		AdmissionPolicy: policy, SessionCreator: creator, SessionRevoker: &recordingSessionRevoker{}, TokenSetMinter: minter, RefreshTokenSaver: saver,
 	})
 
-	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.TokenContext{})
+	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.CreationContext{})
 
 	require.Nil(t, result)
 	require.Equal(t, code.ErrUserBlocked, perrors.ParseCoder(err).Code())
@@ -51,7 +51,7 @@ func TestSignInCompletionDoesNotCreateAuthenticationStateWhenAdmissionCannotBeEv
 		SessionCreator:  creator,
 	})
 
-	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.TokenContext{})
+	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.CreationContext{})
 
 	require.Nil(t, result)
 	var evaluation *admissiondomain.EvaluationError
@@ -64,17 +64,9 @@ func TestSignInCompletionCreatesResultAndPersistsInitialRefreshToken(t *testing.
 
 	principal := testPrincipal()
 	sess := testSession(principal)
-	refresh := tokendomain.NewRefreshToken(
-		"refresh-id", "refresh-value", sess.SessionID,
-		principal.UserID, principal.LoginIdentityID, principal.TenantID,
-		nil, nil, time.Hour,
-	)
+	refresh := tokendomain.NewRefreshToken("refresh-id", "refresh-value", sess.SessionID, principal.UserID, principal.LoginIdentityID, meta.FromUint64(3), time.Now(), time.Now().Add(time.Hour))
 	set := tokendomain.NewUserTokenSet(
-		tokendomain.NewAccessToken(
-			"access-id", "access-value", sess.SessionID,
-			principal.UserID, principal.LoginIdentityID, principal.TenantID,
-			time.Minute,
-		),
+		tokendomain.NewAccessToken("access-id", "access-value", sess.SessionID, principal.UserID, principal.LoginIdentityID, meta.FromUint64(3), time.Now(), time.Now().Add(time.Minute)),
 		refresh,
 	)
 	creator := &recordingSessionCreator{session: sess}
@@ -88,7 +80,7 @@ func TestSignInCompletionCreatesResultAndPersistsInitialRefreshToken(t *testing.
 	})
 
 	tokenContext := sessiondomain.TokenContext{TenantDomain: "fangcun", OrgID: meta.FromUint64(42)}
-	result, err := establisher.completeAuthentication(context.Background(), principal, tokenContext)
+	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.CreationContext{TokenContext: tokenContext})
 
 	require.NoError(t, err)
 	require.Equal(t, tokenContext, creator.tokenContext)
@@ -113,9 +105,9 @@ type recordingSessionCreator struct {
 	called       bool
 }
 
-func (s *recordingSessionCreator) Create(_ context.Context, _ *authentication.Principal, tokenContext sessiondomain.TokenContext) (*sessiondomain.Session, error) {
+func (s *recordingSessionCreator) Create(_ context.Context, _ *authentication.Principal, creationContext sessiondomain.CreationContext) (*sessiondomain.Session, error) {
 	s.called = true
-	s.tokenContext = tokenContext.Clone()
+	s.tokenContext = creationContext.TokenContext.Clone()
 	return s.session, nil
 }
 
@@ -148,13 +140,12 @@ func testPrincipal() *authentication.Principal {
 	return &authentication.Principal{
 		UserID:          meta.FromUint64(1),
 		LoginIdentityID: meta.FromUint64(2),
-		TenantID:        meta.FromUint64(3),
 	}
 }
 
 func testSession(principal *authentication.Principal) *sessiondomain.Session {
 	return sessiondomain.NewWithContexts(
-		"session-id", principal.UserID, principal.LoginIdentityID, principal.TenantID,
+		"session-id", principal.UserID, principal.LoginIdentityID, meta.FromUint64(3),
 		principal.AuthContext, sessiondomain.TokenContext{}, time.Now().Add(time.Hour),
 	)
 }
@@ -203,7 +194,7 @@ func TestSignInCompletionCompensatesFailedEstablishmentEvenAfterRequestCancellat
 				})
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
-				result, err := establisher.completeAuthentication(ctx, principal, sessiondomain.TokenContext{})
+				result, err := establisher.completeAuthentication(ctx, principal, sessiondomain.CreationContext{})
 				require.Nil(t, result)
 				require.Error(t, err)
 				if stage != "incomplete" {
@@ -227,7 +218,7 @@ func TestSignInCompletionRequiresCompensationBeforeCreatingSession(t *testing.T)
 		AdmissionPolicy: admissionPolicyStub{decision: admissiondomain.Admit(admissiondomain.Subject{})},
 		SessionCreator:  creator, TokenSetMinter: &recordingTokenSetMinter{}, RefreshTokenSaver: &recordingRefreshTokenSaver{},
 	})
-	_, err := establisher.completeAuthentication(context.Background(), testPrincipal(), sessiondomain.TokenContext{})
+	_, err := establisher.completeAuthentication(context.Background(), testPrincipal(), sessiondomain.CreationContext{})
 	require.Error(t, err)
 	require.False(t, creator.called)
 }
@@ -244,7 +235,7 @@ func TestSignInCompletionRejectsMismatchedSessionBeforeMintingAndCompensates(t *
 		SessionCreator:  &recordingSessionCreator{session: sess}, SessionRevoker: revoker,
 		TokenSetMinter: minter, RefreshTokenSaver: saver,
 	})
-	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.TokenContext{})
+	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.CreationContext{})
 	require.Error(t, err)
 	require.Nil(t, result)
 	require.False(t, minter.called)

@@ -18,9 +18,6 @@ func validatePrincipalSessionAlignment(principal *authentication.Principal, sess
 	if principal.LoginIdentityID != sess.LoginIdentityID {
 		return perrors.WithCode(code.ErrInvalidArgument, "principal login identity does not match session")
 	}
-	if !principal.TenantID.IsZero() && !sess.TenantID.IsZero() && principal.TenantID != sess.TenantID {
-		return perrors.WithCode(code.ErrInvalidArgument, "principal tenant does not match session")
-	}
 	if principal.AuthContext.Method != "" && sess.AuthContext.Method != "" && principal.AuthContext.Method != sess.AuthContext.Method {
 		return perrors.WithCode(code.ErrInvalidArgument, "principal auth method does not match session")
 	}

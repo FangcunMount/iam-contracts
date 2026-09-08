@@ -33,4 +33,5 @@ func CollectREST(available bool, mod *AuthnModule, deps *resttransport.Deps) {
 	deps.Authn.JWKSHandler = authnhandler.NewJWKSHandler(caps.KeyManagementApp, caps.KeyLifecycleApp, caps.KeyPublishApp)
 	deps.Authn.SessionAdminHandler = authnhandler.NewSessionAdminHandler(caps.SessionRevoker)
 	deps.Authn.TokenVerifier = caps.Tokens.Verifier
+	deps.Authn.ResourceAudience = mod.resourceAudience
 }

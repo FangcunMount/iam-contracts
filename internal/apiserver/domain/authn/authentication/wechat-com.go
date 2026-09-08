@@ -13,64 +13,52 @@ import (
 
 // ====================== 认证凭据（认证所需的数据） ========================
 
-// WecomProofSpec 企业微信认证凭据规范，用于构造 WecomCredential 实例
+// WecomProofSpec 企业微信认证凭据规范，用于构造 WecomProof 实例
 type WecomProofSpec struct {
-	TenantID   meta.ID
-	RemoteIP   string
-	UserAgent  string
-	CorpID     string
-	UserID     string
-	OpenUserID string
-	State      string
+	CorpID         string
+	ProviderUserID string
+	OpenUserID     string
 }
 
-// WecomCredential 企业微信认证凭据
-type WecomCredential struct {
-	TenantID   meta.ID
-	RemoteIP   string
-	UserAgent  string
-	CorpID     string
-	UserID     string
-	OpenUserID string
-	State      string
+// WecomProof 企业微信认证凭据
+type WecomProof struct {
+	CorpID         string
+	ProviderUserID string
+	OpenUserID     string
 }
 
-// 确保 WecomCredential 实现了 AuthCredential 接口
-var _ AuthCredential = (*WecomCredential)(nil)
+// 确保 WecomProof 实现了 IdentityProof 接口
+var _ IdentityProof = (*WecomProof)(nil)
 
 // CredentialKind 返回认证凭据类型
-func (c *WecomCredential) CredentialKind() CredentialKind {
+func (c *WecomProof) CredentialKind() CredentialKind {
 	return CredentialKindWecom
 }
 
-// NewWecomCredential 创建 WecomCredential 实例
-func NewWecomCredential(spec WecomProofSpec) (AuthCredential, error) {
+// NewWecomProof 创建 WecomProof 实例
+func NewWecomProof(spec WecomProofSpec) (IdentityProof, error) {
 	if spec.CorpID == "" {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "wecom corpid is required for wecom authentication")
 	}
-	if spec.UserID == "" && spec.OpenUserID == "" {
+	if spec.ProviderUserID == "" && spec.OpenUserID == "" {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "wecom userid or open_userid is required for wecom authentication")
 	}
-	return &WecomCredential{
-		TenantID:   spec.TenantID,
-		RemoteIP:   spec.RemoteIP,
-		UserAgent:  spec.UserAgent,
-		CorpID:     spec.CorpID,
-		UserID:     spec.UserID,
-		OpenUserID: spec.OpenUserID,
-		State:      spec.State,
+	return &WecomProof{
+		CorpID:         spec.CorpID,
+		ProviderUserID: spec.ProviderUserID,
+		OpenUserID:     spec.OpenUserID,
 	}, nil
 }
 
-// ================= 认证策略（执行认证的认证器） ========================
+// ================= 身份核验策略 ========================
 
-// OAuthWeChatComAuthStrategy 企业微信认证策略
+// OAuthWeChatComAuthStrategy 企业微信身份核验策略
 type OAuthWeChatComAuthStrategy struct {
 	credentialKind CredentialKind
 	identityRepo   LoginIdentityRepository
 }
 
-// 实现认证策略接口
+// 实现身份核验策略接口
 var _ AuthStrategy = (*OAuthWeChatComAuthStrategy)(nil)
 
 func NewOAuthWeChatComAuthStrategyWithLoginIdentity(
@@ -82,30 +70,30 @@ func NewOAuthWeChatComAuthStrategyWithLoginIdentity(
 	}
 }
 
-// Kind 返回认证策略类型
+// Kind 返回身份核验策略类型
 func (o *OAuthWeChatComAuthStrategy) Kind() CredentialKind {
 	return o.credentialKind
 }
 
 // Authenticate 执行企业微信认证
-// 认证流程：
+// 身份核验流程：
 // 1. 根据已验证的 UserID/OpenUserID 查找凭据绑定
 // 2. 检查 LoginIdentity 状态
-// 3. 返回认证判决
-func (o *OAuthWeChatComAuthStrategy) Authenticate(ctx context.Context, credential AuthCredential) (AuthDecision, error) {
+// 3. 返回身份核验决策
+func (o *OAuthWeChatComAuthStrategy) Authenticate(ctx context.Context, credential IdentityProof) (AuthDecision, error) {
 	// 断言认证凭据类型
-	wecomCred, ok := credential.(*WecomCredential)
+	wecomCred, ok := credential.(*WecomProof)
 	if !ok {
-		return AuthDecision{}, fmt.Errorf("wecom strategy expects *WecomCredential, got %T", credential)
+		return AuthDecision{}, fmt.Errorf("wecom strategy expects *WecomProof, got %T", credential)
 	}
 
 	// 根据已验证的 UserID/OpenUserID 查找登录身份
-	identity := wecomIdentity{openUserID: wecomCred.OpenUserID, userID: wecomCred.UserID}
+	identity := wecomIdentity{openUserID: wecomCred.OpenUserID, userID: wecomCred.ProviderUserID}
 	lookup, err := o.findWecomIdentity(ctx, wecomCred, identity)
 	if err != nil {
 		return AuthDecision{}, err
 	}
-	// 如果登录身份不存在，则返回认证失败
+	// 如果登录身份不存在，则返回身份核验失败
 	if lookup == nil || lookup.LoginIdentityID.IsZero() {
 		return AuthDecision{
 			OK:   false,
@@ -118,12 +106,12 @@ func (o *OAuthWeChatComAuthStrategy) Authenticate(ctx context.Context, credentia
 	if err != nil {
 		return AuthDecision{}, err
 	}
-	// 如果登录身份状态为失败，则返回认证失败
+	// 如果登录身份状态为失败，则返回身份核验失败
 	if statusFailure != nil {
 		return *statusFailure, nil
 	}
 
-	// 构造认证成功决策
+	// 构造身份核验成功决策
 	return o.buildWecomSuccessDecision(ctx, wecomCred, identity, lookup.LoginIdentityID, lookup.UserID, meta.ZeroID), nil
 }
 
@@ -136,7 +124,7 @@ type wecomIdentity struct {
 // findWecomIdentity 根据 UserID/OpenUserID 查找登录身份
 func (o *OAuthWeChatComAuthStrategy) findWecomIdentity(
 	ctx context.Context,
-	credential *WecomCredential,
+	credential *WecomProof,
 	identity wecomIdentity,
 ) (*LoginIdentityLookup, error) {
 	// 根据 UserID/OpenUserID 查找登录身份
@@ -151,10 +139,10 @@ func (o *OAuthWeChatComAuthStrategy) findWecomIdentity(
 	return o.identityRepo.FindLoginIdentityByProviderKey(ctx, loginidentity.ProviderWecom, credential.CorpID, identity.openUserID)
 }
 
-// buildWecomSuccessDecision 认证成功，构造Principal
+// buildWecomSuccessDecision 身份核验成功，构造Principal
 func (o *OAuthWeChatComAuthStrategy) buildWecomSuccessDecision(
 	ctx context.Context,
-	credential *WecomCredential,
+	credential *WecomProof,
 	identity wecomIdentity,
 	loginIdentityID meta.ID,
 	userID meta.ID,
@@ -163,14 +151,11 @@ func (o *OAuthWeChatComAuthStrategy) buildWecomSuccessDecision(
 	principal := &Principal{
 		LoginIdentityID: loginIdentityID,
 		UserID:          userID,
-		TenantID:        credential.TenantID,
 	}
 	principal.ApplyAuthContext(NewAuthenticationContext(MethodWecom, credential.CorpID, []AMR{AMRWecom}, time.Now().UTC()))
 
 	return AuthDecision{
-		OK:              true,
-		Principal:       principal,
-		LoginIdentityID: loginIdentityID,
-		CredentialID:    credentialID,
+		OK:        true,
+		Principal: principal,
 	}
 }

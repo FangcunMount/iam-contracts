@@ -6,6 +6,12 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	redisinfra "github.com/FangcunMount/iam/v4/internal/apiserver/infra/cache/redis"
+	authmiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authn"
+	"github.com/alicebob/miniredis/v2"
+	redisclient "github.com/redis/go-redis/v9"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -128,23 +134,30 @@ type testTokenStack struct {
 	creator sessiondomain.Creator
 }
 
-func newTestTokenStack(t *testing.T) (
+func newTestTokenStack(t *testing.T, clock ...func() time.Time) (
 	testTokenStack,
-	*tokenjwt.JWSCompactTokenCodec,
+	*tokenjwt.SignedJWTCodec,
 ) {
 	t.Helper()
 
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.NoError(t, err)
 
+	now := time.Now
+	if len(clock) > 0 {
+		now = clock[0]
+	}
 	kid := "integration-test-kid"
-	gen := tokenjwt.NewJWSCompactTokenCodec("https://iam.integration.test", []string{"qs-api", "collection-api"}, fixedJWSKeySource{kid: kid, key: priv})
-	store := noopTokenStore{}
+	gen := tokenjwt.NewSignedJWTCodec("https://iam.integration.test", fixedJWSKeySource{kid: kid, key: priv})
+	redisServer := miniredis.RunT(t)
+	client := redisclient.NewClient(&redisclient.Options{Addr: redisServer.Addr()})
+	t.Cleanup(func() { _ = client.Close() })
+	store := redisinfra.NewRedisStore(client)
 	sessionStore := &memorySessionStore{}
 	lifetime := sessiondomain.NewLifetimePolicy(24*time.Hour, 24*time.Hour)
 	creator := sessiondomain.NewCreator(sessionStore, lifetime)
 	tokens := tokenapp.NewCapabilities(tokenapp.Dependencies{
-		BearerTokenCodec:      gen,
+		Encoder: gen, SignatureVerifier: gen, Now: now,
 		TokenStore:            store,
 		SessionLoader:         sessiondomain.NewLoader(sessionStore, lifetime),
 		SessionRevoker:        sessiondomain.NewRevoker(sessionStore),
@@ -152,7 +165,7 @@ func newTestTokenStack(t *testing.T) (
 		SessionRefreshExpirer: sessiondomain.NewRefreshExpirer(lifetime),
 		AdmissionPolicy:       allowAllAdmissionPolicy{},
 		LegacyContextDecoder:  tokenapp.NewLegacyAuthenticationContextSnapshotDecoder(),
-		AccessTTL:             time.Hour,
+		Issuance:              tokenapp.IssuanceConfig{Issuer: "https://iam.integration.test", Audience: []string{"qs-api", "collection-api", "iam-api"}, AccessTTL: time.Hour},
 	})
 	return testTokenStack{Capabilities: tokens, creator: creator}, gen
 }
@@ -176,8 +189,8 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	require.NotNil(t, pair.AccessToken)
 	access := pair.AccessToken.Value
 
-	// 本地解析（与 apiserver 验签链相同的 JWSCompactTokenCodec）
-	parsed, err := gen.VerifyBearerToken(ctx, access)
+	// 本地解析（与 apiserver 验签链相同的 SignedJWTCodec）
+	parsed, err := gen.VerifySignatureAndClaims(ctx, access)
 	require.NoError(t, err)
 	require.Equal(t, "fangcun", parsed.TenantDomain)
 	require.Equal(t, meta.FromUint64(9001), parsed.OrgID)
@@ -190,7 +203,7 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 
 	// gRPC VerifyToken
 	grpcSrv := &authServiceServer{tokenVerifier: tokens.Verifier}
-	gresp, err := grpcSrv.VerifyToken(ctx, &authnv2.VerifyTokenRequest{AccessToken: access})
+	gresp, err := grpcSrv.VerifyToken(ctx, &authnv2.VerifyTokenRequest{ExpectedAudience: []string{"qs-api"}, AccessToken: access})
 	require.NoError(t, err)
 	require.True(t, gresp.Valid)
 	require.NotNil(t, gresp.Claims)
@@ -213,7 +226,7 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	// REST POST verify（与 gRPC 使用同一 Verifier 能力）
 	h := authhandler.NewAuthHandler(nil, tokens.Capabilities, nil)
 	w := httptest.NewRecorder()
-	body := bytes.NewBufferString(`{"access_token":"` + access + `"}`)
+	body := bytes.NewBufferString(`{"expected_audience":["qs-api"],"access_token":"` + access + `"}`)
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/v2/authn/verify", body)
 	c.Request.Header.Set("Content-Type", "application/json")
@@ -257,14 +270,13 @@ func TestIntegration_VerifyToken_RejectsIssuerOrAudienceMismatch(t *testing.T) {
 	principal := &authentication.Principal{
 		UserID:          meta.FromUint64(7),
 		LoginIdentityID: meta.FromUint64(8),
-		TenantID:        meta.FromUint64(9),
-	}
+		}
 	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{})
 	require.NoError(t, err)
 
 	grpcSrv := &authServiceServer{tokenVerifier: tokens.Verifier}
 
-	respIssuer, err := grpcSrv.VerifyToken(ctx, &authnv2.VerifyTokenRequest{
+	respIssuer, err := grpcSrv.VerifyToken(ctx, &authnv2.VerifyTokenRequest{ExpectedAudience: []string{"qs-api"},
 		AccessToken:    pair.AccessToken.Value,
 		ExpectedIssuer: "https://issuer.invalid",
 	})
@@ -287,13 +299,12 @@ func TestIntegration_VerifyToken_GRPC_IncludeMetadata(t *testing.T) {
 	principal := &authentication.Principal{
 		UserID:          meta.FromUint64(42),
 		LoginIdentityID: meta.FromUint64(43),
-		TenantID:        meta.FromUint64(44),
-	}
+		}
 	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{})
 	require.NoError(t, err)
 
 	grpcSrv := &authServiceServer{tokenVerifier: tokens.Verifier}
-	gresp, err := grpcSrv.VerifyToken(ctx, &authnv2.VerifyTokenRequest{
+	gresp, err := grpcSrv.VerifyToken(ctx, &authnv2.VerifyTokenRequest{ExpectedAudience: []string{"qs-api"},
 		AccessToken:     pair.AccessToken.Value,
 		IncludeMetadata: true,
 	})
@@ -309,4 +320,65 @@ func issueForTest(t *testing.T, ctx context.Context, tokens testTokenStack, p *a
 		return nil, err
 	}
 	return tokens.InitialTokenIssuer.IssueInitialTokens(ctx, sess)
+}
+
+func TestIntegrationIssuanceFactsMatchSignedJWTAndDTO(t *testing.T) {
+	now := time.Now().UTC().Add(-time.Second)
+	calls := 0
+	tokens, codec := newTestTokenStack(t, func() time.Time { calls++; return now })
+	principal := &authentication.Principal{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2)}
+	pair, err := issueForTest(t, context.Background(), tokens, principal, sessiondomain.TokenContext{})
+	require.NoError(t, err)
+	require.Equal(t, 1, calls)
+	claims, err := codec.VerifySignatureAndClaims(context.Background(), pair.AccessToken.Value)
+	require.NoError(t, err)
+	require.Equal(t, claims.TokenID, pair.AccessToken.ID)
+	require.Equal(t, claims.IssuedAt, pair.AccessToken.IssuedAt)
+	require.Equal(t, claims.ExpiresAt, pair.AccessToken.ExpiresAt)
+	require.Equal(t, now.Truncate(time.Second), claims.IssuedAt)
+	for _, aud := range []string{"iam-api", "qs-api", "collection-api"} {
+		result, err := tokens.Verifier.VerifyToken(context.Background(), tokenapp.VerifyTokenRequest{AccessToken: pair.AccessToken.Value, ExpectedAudience: []string{aud}})
+		require.NoError(t, err)
+		require.True(t, result.Valid)
+	}
+	server := &authServiceServer{tokenVerifier: tokens.Verifier}
+	_, err = server.VerifyToken(context.Background(), &authnv2.VerifyTokenRequest{AccessToken: pair.AccessToken.Value})
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestIntegrationOldAudienceRefreshAndRevoke(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx := context.Background()
+	tokens, codec := newTestTokenStack(t)
+	principal := &authentication.Principal{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), AuthContext: authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, time.Now())}
+	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{})
+	require.NoError(t, err)
+	legacyClaims, err := codec.VerifySignatureAndClaims(ctx, pair.AccessToken.Value)
+	require.NoError(t, err)
+	legacyClaims.Audience = []string{"qs-api", "collection-api"}
+	oldAccess, err := codec.EncodeAccessToken(ctx, legacyClaims)
+	require.NoError(t, err)
+	router := gin.New()
+	router.GET("/protected", authmiddleware.NewJWTAuthMiddleware(tokens.Verifier, "iam-api").AuthRequired(), func(c *gin.Context) { c.Status(http.StatusNoContent) })
+	request := func(access string) int {
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/protected", nil)
+		r.Header.Set("Authorization", "Bearer "+access)
+		router.ServeHTTP(w, r)
+		return w.Code
+	}
+	require.Equal(t, http.StatusUnauthorized, request(oldAccess))
+	for _, aud := range []string{"qs-api", "collection-api"} {
+		result, err := tokens.Verifier.VerifyToken(ctx, tokenapp.VerifyTokenRequest{AccessToken: oldAccess, ExpectedAudience: []string{aud}})
+		require.NoError(t, err)
+		require.True(t, result.Valid)
+	}
+	renewed, err := tokens.Refresher.RefreshToken(ctx, pair.RefreshToken.Value)
+	require.NoError(t, err)
+	require.NotEqual(t, pair.RefreshToken.Value, renewed.TokenPair.RefreshToken.Value)
+	require.Equal(t, http.StatusNoContent, request(renewed.TokenPair.AccessToken.Value))
+	require.NoError(t, tokens.Revoker.RevokeAccessToken(ctx, renewed.TokenPair.AccessToken.Value))
+	require.Equal(t, http.StatusUnauthorized, request(renewed.TokenPair.AccessToken.Value))
+	// Revocation never requires the session to pass online verification first.
+	require.NoError(t, tokens.Revoker.RevokeAccessToken(ctx, renewed.TokenPair.AccessToken.Value))
 }

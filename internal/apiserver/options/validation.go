@@ -2,6 +2,7 @@ package options
 
 import (
 	"errors"
+	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,22 @@ import (
 // Validate 验证命令行参数
 func (o *Options) Validate() []error {
 	var errs []error
+	if o.Auth != nil {
+		cfg := tokendomain.IssuanceConfig{Issuer: o.Auth.JWTIssuer, Audience: o.Auth.AccessTokenAudience, AccessTTL: o.Auth.AccessTokenTTL}
+		if err := cfg.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+		found := false
+		for _, audience := range o.Auth.AccessTokenAudience {
+			if audience == o.Auth.ResourceAudience {
+				found = true
+			}
+		}
+		if strings.TrimSpace(o.Auth.ResourceAudience) == "" || !found {
+			errs = append(errs, errors.New("auth.resource_audience must be non-empty and included in auth.access_token_audience"))
+		}
+	}
+
 	if o.Authz != nil {
 		if err := o.Authz.PolicySync.Validate(); err != nil {
 			errs = append(errs, err)

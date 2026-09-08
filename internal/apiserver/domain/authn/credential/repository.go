@@ -14,7 +14,7 @@ type AuthenticationState struct {
 	NewlyLocked    bool
 }
 
-// MaterialRotation 描述认证成功时可选的凭据材料轮换。
+// MaterialRotation 描述身份核验成功时可选的凭据材料轮换。
 type MaterialRotation struct {
 	Material []byte
 	Algo     *string

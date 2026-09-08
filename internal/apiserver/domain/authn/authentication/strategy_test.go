@@ -37,17 +37,16 @@ func TestPasswordAuthStrategy_AllCases(t *testing.T) {
 			Realm:           tenantID.String(),
 			Identifier:      "u",
 			Status:          status,
-			ScopedTenantID:  tenantID,
 		}
 	}
 	makeAuth := func(identityRepo *loginIdentityRepoTestDouble, credRepo *loginIdentityCredentialRepoTestDouble, hasher *hasherStub) *authentication.Authenticator {
 		return authentication.NewAuthenticator(authentication.NewPasswordAuthStrategyWithLoginIdentity(credRepo, identityRepo, hasher))
 	}
-	makeProof := func(username, password string, tenantID meta.ID) authentication.AuthCredential {
-		proof, err := authentication.NewPasswordCredential(authentication.PasswordProofSpec{
-			TenantID: tenantID,
-			Username: username,
-			Password: password,
+	makeProof := func(username, password string, tenantID meta.ID) authentication.IdentityProof {
+		proof, err := authentication.NewPasswordProof(authentication.PasswordProofSpec{
+			RealmTenantID: tenantID,
+			Username:      username,
+			Password:      password,
 		})
 		require.NoError(t, err)
 		return proof
@@ -89,7 +88,7 @@ func TestPasswordAuthStrategy_AllCases(t *testing.T) {
 	require.False(t, d5.OK)
 	require.Equal(t, code.ErrInvalidCredentials, d5.Code)
 	require.Equal(t, meta.FromUint64(100), d5.CredentialID)
-	require.Equal(t, authentication.CredentialEffectRecordFailure, d5.CredentialEffect)
+	require.Equal(t, authentication.CredentialEffectRecordFailure, d5.CredentialUpdate.Effect)
 
 	// 5. disabled password credential
 	disabledCreds := &loginIdentityCredentialRepoTestDouble{
@@ -126,16 +125,16 @@ func TestPasswordAuthStrategy_AllCases(t *testing.T) {
 	d6, err := a6.Authenticate(ctx, makeProof("u", pass, tenantID))
 	require.NoError(t, err)
 	require.True(t, d6.OK)
-	require.True(t, d6.ShouldRotate)
-	require.Equal(t, []byte("new-hash"), d6.NewMaterial)
-	require.Equal(t, authentication.CredentialEffectRecordSuccess, d6.CredentialEffect)
+	require.NotNil(t, d6.CredentialUpdate.Rotation)
+	require.Equal(t, []byte("new-hash"), d6.CredentialUpdate.Rotation.Material)
+	require.Equal(t, authentication.CredentialEffectRecordSuccess, d6.CredentialUpdate.Effect)
 
 	// 8. success, no rehash
 	a7 := makeAuth(newLoginIdentityRepoTestDouble(makeLookup(loginidentity.StatusActive)), credRepo(meta.FromUint64(200), stored), &hasherStub{pepper: pepper, need: false})
 	d7, err := a7.Authenticate(ctx, makeProof("u", pass, tenantID))
 	require.NoError(t, err)
 	require.True(t, d7.OK)
-	require.False(t, d7.ShouldRotate)
+	require.Nil(t, d7.CredentialUpdate.Rotation)
 
 	// 9. mock-consumer maps to username/default and does not require tenant scope.
 	mockIdentityID := meta.FromUint64(13)

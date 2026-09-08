@@ -9,14 +9,14 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
-// Policy 是 AuthN 的认证准入策略。
+// Policy 是 AuthN 的登录准入策略。
 // 它判断 User 与 LoginIdentity 是否允许建立或继续维持认证状态，
 // 不负责资源访问授权。
 type Policy interface {
 	Evaluate(ctx context.Context, subject Subject) (Decision, error)
 }
 
-// LoginIdentityReader 暴露认证准入所需的最小 LoginIdentity 事实读取能力。
+// LoginIdentityReader 暴露登录准入所需的最小 LoginIdentity 事实读取能力。
 type LoginIdentityReader interface {
 	GetByID(ctx context.Context, id meta.ID) (*loginidentitydomain.LoginIdentity, error)
 }
@@ -27,7 +27,7 @@ type policy struct {
 	loginIdentityReader LoginIdentityReader
 }
 
-// NewPolicy 创建认证准入策略。
+// NewPolicy 创建登录准入策略。
 func NewPolicy(userStatusReader useraccess.UserStatusReader, loginIdentityReader LoginIdentityReader) Policy {
 	return &policy{
 		userStatusReader:    userStatusReader,

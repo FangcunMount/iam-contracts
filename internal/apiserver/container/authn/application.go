@@ -31,6 +31,7 @@ func (m *AuthnModule) initializeApplication(
 	wechatOpenOptions apiserveroptions.WechatOpenOptions,
 	smsOptions apiserveroptions.SMSOptions,
 ) error {
+	m.resourceAudience = authOptions.ResourceAudience
 	m.signupService = signupApp.NewSignupService(
 		infra.unitOfWork,
 		hasher,
@@ -63,7 +64,8 @@ func (m *AuthnModule) initializeApplication(
 	})
 
 	tokenCapabilities := token.NewCapabilities(token.Dependencies{
-		BearerTokenCodec:      infra.signedJWTCodec,
+		Encoder:               infra.signedJWTCodec,
+		SignatureVerifier:     infra.signedJWTCodec,
 		TokenStore:            infra.tokenStore,
 		SessionLoader:         domain.sessionLoader,
 		SessionRevoker:        domain.sessionRevoker,
@@ -71,7 +73,7 @@ func (m *AuthnModule) initializeApplication(
 		SessionRefreshExpirer: domain.sessionRefreshExpirer,
 		AdmissionPolicy:       infra.admissionPolicy,
 		LegacyContextDecoder:  token.NewLegacyAuthenticationContextSnapshotDecoder(),
-		AccessTTL:             domain.accessTTL,
+		Issuance:              token.IssuanceConfig{Issuer: authOptions.JWTIssuer, Audience: authOptions.AccessTokenAudience, AccessTTL: domain.accessTTL},
 	})
 
 	authenticator := authentication.NewAuthenticator(

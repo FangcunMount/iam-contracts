@@ -27,13 +27,15 @@ type Store interface {
 	IsBearerTokenRevoked(ctx context.Context, tokenID string) (bool, error)
 }
 
-// BearerTokenCodec 对 access bearer token 进行编码和密码学验证。
-// 领域只依赖该能力，不感知 JWT/JWS 等 wire format。
-type BearerTokenCodec interface {
-	// IssueAccessToken 颁发访问令牌
-	IssueAccessToken(ctx context.Context, subject *AccessTokenIssueContext, expiresIn time.Duration) (*AccessToken, error)
-	// VerifyBearerToken 验证 access bearer token
-	VerifyBearerToken(ctx context.Context, tokenValue string) (*VerifiedTokenClaims, error)
+// AccessTokenEncoder encodes an already assembled claims set; it does not create issuance facts.
+type AccessTokenEncoder interface {
+	EncodeAccessToken(context.Context, *AccessTokenClaims) (string, error)
+}
+
+// AccessTokenSignatureVerifier verifies signature, canonical issuer, time and claim invariants.
+// Recipient audience and online authentication state are checked by Verifier.
+type AccessTokenSignatureVerifier interface {
+	VerifySignatureAndClaims(context.Context, string) (*AccessTokenClaims, error)
 }
 
 // AccessTokenIssueContext 是访问令牌编码的签发输入，不是 JWT sub 或完整 Claims Set。
@@ -69,7 +71,7 @@ type SessionExtender = sessiondomain.Extender
 // SessionRefreshExpirer 是会话刷新过期时间计算器
 type SessionRefreshExpirer = sessiondomain.RefreshExpirer
 
-// AdmissionPolicy 是认证准入策略
+// AdmissionPolicy 是登录准入策略
 type AdmissionPolicy = admissiondomain.Policy
 
 // TokenSetMinter 在既有 Session 上签发尚未持久化的用户令牌集合
@@ -89,7 +91,7 @@ type Refresher interface {
 // Verifier 在线验证 access token 及用户认证状态。
 type Verifier interface {
 	// VerifyToken 验证令牌。
-	VerifyToken(ctx context.Context, tokenValue string) (*VerifiedTokenClaims, error)
+	VerifyToken(ctx context.Context, tokenValue string, expectedAudience []string) (*AccessTokenClaims, error)
 }
 
 // Revoker 撤销 bearer token 及其关联 Session。

@@ -10,10 +10,11 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
 	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/FangcunMount/iam/v4/pkg/tenant"
 )
 
-// SignIn 登录
+// SignIn 编排完整登录流程：身份核验 → 登录准入 → 会话建立 → 令牌颁发。
 type SignIn struct {
 	deps Dependencies // 依赖
 }
@@ -33,24 +34,28 @@ func (s *SignIn) Execute(ctx context.Context, cmd method.LoginRequest) (*Result,
 		return nil, err
 	}
 
-	// 构建认证主体凭据
+	// 构建身份核验所需的凭据
 	credential, err := s.buildCredential(ctx, cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	// 验证认证凭据，形成领域认证决策。
+	// 身份核验：验证凭据并确认主体，形成领域身份核验决策。
 	decision, err := s.authenticate(ctx, credential)
 	if err != nil {
 		return nil, err
 	}
 
-	// 认证失败也必须先记录，避免绕过失败计数与锁定策略。
+	if err := decision.Validate(); err != nil {
+		return nil, perrors.WrapC(err, code.ErrInternalServerError, "invalid authentication decision")
+	}
+
+	// 身份核验失败也必须先记录，避免绕过失败计数与锁定策略。
 	if err := s.recordCredential(ctx, decision); err != nil {
 		return nil, err
 	}
 
-	// 将领域认证决策映射为稳定的应用错误契约。
+	// 将领域身份核验决策映射为稳定的应用错误契约。
 	if !decision.OK {
 		return nil, authfailure.Error(decision.Code)
 	}
@@ -58,8 +63,8 @@ func (s *SignIn) Execute(ctx context.Context, cmd method.LoginRequest) (*Result,
 		return nil, perrors.WithCode(code.ErrAuthenticationFailed, "authentication principal is missing")
 	}
 
-	// 登录用例编排准入、会话创建和初始令牌颁发，并负责失败补偿。
-	return s.issueTokenPair(ctx, decision.Principal)
+	// 身份核验成功后继续登录准入、会话建立与令牌颁发；全部完成才算登录成功。
+	return s.completeLogin(ctx, decision.Principal, cmd.TenantID)
 }
 
 // ensureReady 确保依赖已准备好
@@ -81,7 +86,7 @@ func (s *SignIn) ensureReady() error {
 // 参数：ctx 上下文, cmd 登录命令
 // 返回：领域认证凭据, 错误
 // 职责：构建领域认证凭据，返回领域认证凭据
-func (s *SignIn) buildCredential(ctx context.Context, cmd method.LoginRequest) (authentication.AuthCredential, error) {
+func (s *SignIn) buildCredential(ctx context.Context, cmd method.LoginRequest) (authentication.IdentityProof, error) {
 	// 选择登录方式
 	selection, err := s.deps.MethodRegistry.Select(ctx, cmd)
 	if err != nil {
@@ -99,18 +104,18 @@ func (s *SignIn) buildCredential(ctx context.Context, cmd method.LoginRequest) (
 	return credential, nil
 }
 
-// authenticate 认证主体凭据认证
+// authenticate 根据凭据核验登录身份并确认主体。
 // 参数：ctx 上下文, credential 领域认证凭据
-// 返回：认证决策, 错误
-// 职责：认证主体凭据认证，返回认证决策
-func (s *SignIn) authenticate(ctx context.Context, credential authentication.AuthCredential) (authentication.AuthDecision, error) {
-	// 认证主体凭据认证
+// 返回：身份核验决策, 错误
+// 职责：完成身份核验并返回决策，尚未建立登录态
+func (s *SignIn) authenticate(ctx context.Context, credential authentication.IdentityProof) (authentication.AuthDecision, error) {
+	// 执行身份核验
 	decision, err := s.deps.Authenticator.Authenticate(ctx, credential)
 	if err != nil {
 		return authentication.AuthDecision{}, perrors.WrapC(err, code.ErrInternalServerError, "failed to authenticate")
 	}
 
-	// 返回认证决策
+	// 返回身份核验决策
 	return decision, nil
 }
 
@@ -118,9 +123,9 @@ func (s *SignIn) authenticate(ctx context.Context, credential authentication.Aut
 // 参数：ctx 上下文, p 认证主体
 // 返回：登录结果, 错误
 // 职责：签发 TokenPair，返回登录结果
-func (s *SignIn) issueTokenPair(ctx context.Context, p *authentication.Principal) (*Result, error) {
+func (s *SignIn) completeLogin(ctx context.Context, p *authentication.Principal, requestedTenantID meta.ID) (*Result, error) {
 	// 签发 TokenPair
-	result, err := s.completeAuthentication(ctx, p, sessiondomain.TokenContext{TenantDomain: tenant.DefaultID})
+	result, err := s.completeAuthentication(ctx, p, sessiondomain.CreationContext{RequestedTenantID: requestedTenantID, TokenContext: sessiondomain.TokenContext{TenantDomain: tenant.DefaultID}})
 	if err != nil {
 		return nil, wrapStageError(err, code.ErrAuthenticationFailed, "failed to issue authentication grant")
 	}
@@ -130,7 +135,7 @@ func (s *SignIn) issueTokenPair(ctx context.Context, p *authentication.Principal
 }
 
 // recordCredential 记录认证结果
-// 参数：ctx 上下文, decision 认证决策
+// 参数：ctx 上下文, decision 身份核验决策
 // 返回：错误
 // 职责：记录认证结果，返回错误
 func (s *SignIn) recordCredential(ctx context.Context, decision authentication.AuthDecision) error {

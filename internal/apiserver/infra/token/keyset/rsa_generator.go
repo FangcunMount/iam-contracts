@@ -71,7 +71,7 @@ func (g *RSAKeyGenerator) GenerateKeyPair(ctx context.Context, algorithm, kid st
 	}
 
 	// 验证生成的 JWK
-	if err := publicJWK.Validate(); err != nil {
+	if err := publicJWK.ValidateSigningProfile(); err != nil {
 		return nil, errors.WithCode(
 			code.ErrInvalidJWK,
 			"generated JWK validation failed: %v",

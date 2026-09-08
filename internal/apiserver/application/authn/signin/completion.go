@@ -14,14 +14,14 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
-// completeAuthentication 编排准入、会话创建和初始令牌颁发，并负责失败补偿。
-func (s *SignIn) completeAuthentication(ctx context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*Result, error) {
+// completeAuthentication 编排登录准入、会话建立和令牌颁发，并负责失败补偿。
+func (s *SignIn) completeAuthentication(ctx context.Context, principal *authentication.Principal, creationContext sessiondomain.CreationContext) (*Result, error) {
 	// 参数校验
 	if principal == nil {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "principal is required")
 	}
 
-	// 业务拒绝由 Decision 表达；error 表示策略无法完成评估。
+	// 登录准入：业务拒绝由 Decision 表达；error 表示策略无法完成评估。
 	if s.deps.AdmissionPolicy == nil {
 		return nil, admissionapp.MapError(&admissiondomain.EvaluationError{Err: errors.New("admission policy is not configured")})
 	}
@@ -44,8 +44,8 @@ func (s *SignIn) completeAuthentication(ctx context.Context, principal *authenti
 		return nil, perrors.WithCode(code.ErrInternalServerError, "authentication grant dependencies are not configured")
 	}
 
-	// 创建会话
-	sess, err := s.deps.SessionCreator.Create(ctx, principal, tokenContext)
+	// 会话建立
+	sess, err := s.deps.SessionCreator.Create(ctx, principal, creationContext)
 	if err != nil {
 		if perrors.IsCode(err, code.ErrInvalidArgument) {
 			return nil, err
@@ -60,6 +60,7 @@ func (s *SignIn) completeAuthentication(ctx context.Context, principal *authenti
 		return nil, s.revokeFailedEstablishment(ctx, sess.SessionID, principal.UserID.String(), err)
 	}
 
+	// 令牌颁发：初始刷新令牌保存成功后才交付登录结果。
 	tokenPair, err := s.deps.TokenIssuer.IssueInitialTokens(ctx, sess)
 	if err != nil {
 		return nil, s.revokeFailedEstablishment(ctx, sess.SessionID, principal.UserID.String(), err)
@@ -68,7 +69,8 @@ func (s *SignIn) completeAuthentication(ctx context.Context, principal *authenti
 		cause := perrors.WithCode(code.ErrInternalServerError, "token set minter returned incomplete token set")
 		return nil, s.revokeFailedEstablishment(ctx, sess.SessionID, principal.UserID.String(), cause)
 	}
-	return ResultFromPrincipal(principal, tokenPair), nil
+	logger.L(ctx).Debugw("登录成功", "action", logger.ActionLogin, "user_id", principal.UserID.String(), "session_id", sess.SessionID, "result", "success")
+	return ResultFromSession(principal, sess, tokenPair), nil
 }
 
 // 客户端取消请求不能取消补偿；补偿有独立的短超时，并保留两阶段错误供排障。

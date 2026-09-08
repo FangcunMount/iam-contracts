@@ -653,3 +653,9 @@ A: 本地验证通常在 1ms 以内。若需要缓存验证结果，需要自行
 - [服务间认证](./05-service-auth.md)
 - [授权判定（PDP）](./06-authz.md)
 - [示例索引](../_examples/README.md)
+
+## 必填受众与一次切换
+
+本地和远程验证必须具备预期 issuer 与非空 audience。多个预期受众采用任一匹配语义；空元素或显式空列表不是关闭校验的方式。直接调用 Auth().VerifyToken 时也必须提交 ExpectedAudience；缺失返回 InvalidArgument。资源服务从自己的配置取得期望值，不能使用未验证 Token 的 aud 作为期望值。
+
+IAM 自身使用 iam-api，QS API 使用 qs-api，Collection API 使用 collection-api。新令牌包含这三个受众；旧令牌缺少 iam-api 时需刷新或重新登录。本地 JWKS 验证仍不具备在线撤销与准入的即时语义。

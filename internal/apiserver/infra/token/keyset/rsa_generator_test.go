@@ -108,7 +108,7 @@ func TestRSAKeyGenerator_GenerateKeyPair(t *testing.T) {
 			assert.NotEmpty(t, *jwk.E)
 
 			// 验证 JWK 有效性
-			err = jwk.Validate()
+			err = jwk.ValidateSigningProfile()
 			assert.NoError(t, err)
 		})
 	}

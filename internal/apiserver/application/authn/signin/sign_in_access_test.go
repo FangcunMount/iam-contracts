@@ -35,7 +35,6 @@ func TestSignInPreservesInitialTokenIssuerErrorCodes(t *testing.T) {
 			principal := &authentication.Principal{
 				UserID:          meta.FromUint64(1),
 				LoginIdentityID: meta.FromUint64(2),
-				TenantID:        meta.FromUint64(3),
 			}
 			initialTokenIssuer := &initialTokenIssuerStub{errCode: tt.issueCode}
 			strategy := signInStrategyStub{decision: authentication.AuthDecision{OK: true, Principal: principal}}
@@ -71,8 +70,7 @@ func TestSignInRecordsCredentialBeforeIssuingInitialTokens(t *testing.T) {
 	t.Parallel()
 
 	principal := &authentication.Principal{
-		UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), TenantID: meta.FromUint64(3),
-	}
+		UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2)}
 	order := make([]string, 0, 2)
 	initialTokenIssuer := &initialTokenIssuerStub{order: &order}
 	usecase := New(Dependencies{
@@ -81,7 +79,9 @@ func TestSignInRecordsCredentialBeforeIssuingInitialTokens(t *testing.T) {
 		MethodRegistry: signInMethodRegistryStub{},
 		ProofFactory:   signInProofFactoryStub{},
 		Authenticator: authentication.NewAuthenticator(signInStrategyStub{decision: authentication.AuthDecision{
-			OK: true, Principal: principal, CredentialID: meta.FromUint64(4),
+			OK: true, Principal: principal,
+
+			CredentialUpdate: &authentication.CredentialUpdate{CredentialID: meta.FromUint64(4)},
 		}}),
 		CredentialRecorder: credentialRecorderStub{order: &order},
 	})
@@ -135,7 +135,7 @@ func (signInMethodRegistryStub) Select(context.Context, method.LoginRequest) (me
 
 type signInProofFactoryStub struct{}
 
-func (signInProofFactoryStub) Build(context.Context, method.LoginMethodSelection) (authentication.AuthCredential, error) {
+func (signInProofFactoryStub) Build(context.Context, method.LoginMethodSelection) (authentication.IdentityProof, error) {
 	return signInCredentialStub{}, nil
 }
 
@@ -143,7 +143,7 @@ type signInProofFactoryErrorStub struct {
 	err error
 }
 
-func (s signInProofFactoryErrorStub) Build(context.Context, method.LoginMethodSelection) (authentication.AuthCredential, error) {
+func (s signInProofFactoryErrorStub) Build(context.Context, method.LoginMethodSelection) (authentication.IdentityProof, error) {
 	return nil, s.err
 }
 
@@ -155,7 +155,7 @@ func (signInStrategyStub) Kind() authentication.CredentialKind {
 	return authentication.CredentialKindPassword
 }
 
-func (s signInStrategyStub) Authenticate(context.Context, authentication.AuthCredential) (authentication.AuthDecision, error) {
+func (s signInStrategyStub) Authenticate(context.Context, authentication.IdentityProof) (authentication.AuthDecision, error) {
 	return s.decision, nil
 }
 
@@ -185,7 +185,7 @@ func (s *initialTokenIssuerStub) IssueInitialTokens(_ context.Context, principal
 		return nil, perrors.WithCode(s.errCode, "authentication grant denied")
 	}
 	return tokenapp.NewTokenPair(
-		tokenapp.NewAccessToken("a", "access", "session-id", principal.UserID, principal.LoginIdentityID, principal.TenantID, time.Minute),
-		tokenapp.NewRefreshToken("r", "refresh", "session-id", principal.UserID, principal.LoginIdentityID, principal.TenantID, nil, nil, time.Hour),
+		tokenapp.NewAccessToken("a", "access", "session-id", principal.UserID, principal.LoginIdentityID, meta.FromUint64(3), time.Now(), time.Now().Add(time.Minute)),
+		tokenapp.NewRefreshToken("r", "refresh", "session-id", principal.UserID, principal.LoginIdentityID, meta.FromUint64(3), time.Now(), time.Now().Add(time.Hour)),
 	), nil
 }

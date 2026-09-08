@@ -12,16 +12,16 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
-// KeySetBuilder JWKS 构建服务
+// JWKSPublisher JWKS 构建服务
 // 实现 Publisher 接口
-type KeySetBuilder struct {
+type JWKSPublisher struct {
 	keyRepo  Repository
 	snapshot *keySetSnapshotCache
 }
 
-// NewKeySetBuilder 创建 JWKS 构建器
-func NewKeySetBuilder(keyRepo Repository) *KeySetBuilder {
-	return &KeySetBuilder{
+// NewJWKSPublisher 创建 JWKS 构建器
+func NewJWKSPublisher(keyRepo Repository) *JWKSPublisher {
+	return &JWKSPublisher{
 		keyRepo: keyRepo,
 		snapshot: newKeySetSnapshotCache(
 			time.Minute,
@@ -30,52 +30,21 @@ func NewKeySetBuilder(keyRepo Repository) *KeySetBuilder {
 	}
 }
 
-// Ensure KeySetBuilder implements KeySetPublishService
-var _ Publisher = (*KeySetBuilder)(nil)
+// Ensure JWKSPublisher implements KeySetPublishService
+var _ Publisher = (*JWKSPublisher)(nil)
 
 // BuildJWKS 构建 JWKS JSON
 // 查询所有可发布的密钥（Active + Grace 状态且未过期）
-func (s *KeySetBuilder) BuildJWKS(ctx context.Context) ([]byte, CacheTag, error) {
+func (s *JWKSPublisher) BuildJWKS(ctx context.Context) ([]byte, CacheTag, error) {
 	// 获取可发布的密钥
 	keys, err := s.keyRepo.FindPublishable(ctx)
 	if err != nil {
 		return nil, CacheTag{}, errors.WithCode(code.ErrDatabase, "failed to find publishable keys: %v", err)
 	}
 
-	if len(keys) == 0 {
-		// 没有可发布的密钥，返回空 JWKS
-		emptyJWKS := JWKS{Keys: []PublicJWK{}}
-		jwksJSON, err := json.Marshal(emptyJWKS)
-		if err != nil {
-			return nil, CacheTag{}, errors.WithCode(code.ErrEncodingJSON, "failed to marshal empty JWKS: %v", err)
-		}
-
-		// 生成缓存标签
-		tag := s.generateCacheTag(jwksJSON)
-		return jwksJSON, tag, nil
-	}
-
-	// 提取公钥并构建 JWKS
-	publicKeys := make([]PublicJWK, 0, len(keys))
-	now := s.snapshot.nowUTC()
-	for _, key := range keys {
-		if key.ShouldPublishAt(now) {
-			publicKeys = append(publicKeys, key.JWK)
-		}
-	}
-
-	// 按 kid 排序，确保输出稳定
-	sort.Slice(publicKeys, func(i, j int) bool {
-		return publicKeys[i].Kid < publicKeys[j].Kid
-	})
-
-	// 构建 JWKS 对象
-	jwksObj := JWKS{Keys: publicKeys}
-
-	// 序列化为 JSON
-	jwksJSON, err := json.Marshal(jwksObj)
+	jwksObj, jwksJSON, err := buildPublicJWKS(keys, s.snapshot.nowUTC())
 	if err != nil {
-		return nil, CacheTag{}, errors.WithCode(code.ErrEncodingJSON, "failed to marshal JWKS: %v", err)
+		return nil, CacheTag{}, err
 	}
 
 	// 生成缓存标签
@@ -87,7 +56,7 @@ func (s *KeySetBuilder) BuildJWKS(ctx context.Context) ([]byte, CacheTag, error)
 }
 
 // GetPublishableKeys 获取可发布的密钥列表
-func (s *KeySetBuilder) GetPublishableKeys(ctx context.Context) ([]*Key, error) {
+func (s *JWKSPublisher) GetPublishableKeys(ctx context.Context) ([]*Key, error) {
 	keys, err := s.keyRepo.FindPublishable(ctx)
 	if err != nil {
 		return nil, errors.WithCode(code.ErrDatabase, "failed to find publishable keys: %v", err)
@@ -107,7 +76,7 @@ func (s *KeySetBuilder) GetPublishableKeys(ctx context.Context) ([]*Key, error) 
 
 // ValidateCacheTag 验证缓存标签
 // 返回 true 表示缓存有效（未变更），可以返回 304 Not Modified
-func (s *KeySetBuilder) ValidateCacheTag(ctx context.Context, clientTag CacheTag) (bool, error) {
+func (s *JWKSPublisher) ValidateCacheTag(ctx context.Context, clientTag CacheTag) (bool, error) {
 	// 获取当前缓存标签
 	currentTag, err := s.GetCurrentCacheTag(ctx)
 	if err != nil {
@@ -132,7 +101,7 @@ func (s *KeySetBuilder) ValidateCacheTag(ctx context.Context, clientTag CacheTag
 }
 
 // GetCurrentCacheTag 获取当前缓存标签
-func (s *KeySetBuilder) GetCurrentCacheTag(ctx context.Context) (CacheTag, error) {
+func (s *JWKSPublisher) GetCurrentCacheTag(ctx context.Context) (CacheTag, error) {
 	if tag, ok := s.snapshot.currentTag(); ok {
 		return tag, nil
 	}
@@ -147,14 +116,14 @@ func (s *KeySetBuilder) GetCurrentCacheTag(ctx context.Context) (CacheTag, error
 }
 
 // RefreshCache 刷新缓存
-func (s *KeySetBuilder) RefreshCache(ctx context.Context) error {
+func (s *JWKSPublisher) RefreshCache(ctx context.Context) error {
 	// 重新构建 JWKS
 	_, _, err := s.BuildJWKS(ctx)
 	return err
 }
 
 // SnapshotStatus 返回当前进程内 JWKS 快照的只读状态。
-func (s *KeySetBuilder) SnapshotStatus() SnapshotStatus {
+func (s *JWKSPublisher) SnapshotStatus() SnapshotStatus {
 	if s == nil {
 		return SnapshotStatus{}
 	}
@@ -163,7 +132,7 @@ func (s *KeySetBuilder) SnapshotStatus() SnapshotStatus {
 }
 
 // generateCacheTag 生成缓存标签
-func (s *KeySetBuilder) generateCacheTag(content []byte) CacheTag {
+func (s *JWKSPublisher) generateCacheTag(content []byte) CacheTag {
 	// 生成 ETag（使用 SHA-256 哈希的前 16 字节）
 	hash := sha256.Sum256(content)
 	etag := `"` + hex.EncodeToString(hash[:16]) + `"`
@@ -175,4 +144,21 @@ func (s *KeySetBuilder) generateCacheTag(content []byte) CacheTag {
 		ETag:         etag,
 		LastModified: lastModified,
 	}
+}
+
+// buildPublicJWKS is a pure projection; empty and populated sets share the publication path.
+func buildPublicJWKS(keys []*Key, now time.Time) (JWKS, []byte, error) {
+	publicKeys := make([]PublicJWK, 0, len(keys))
+	for _, key := range keys {
+		if key != nil && key.ShouldPublishAt(now) {
+			publicKeys = append(publicKeys, key.JWK)
+		}
+	}
+	sort.Slice(publicKeys, func(i, j int) bool { return publicKeys[i].Kid < publicKeys[j].Kid })
+	obj := JWKS{Keys: publicKeys}
+	data, err := json.Marshal(obj)
+	if err != nil {
+		return JWKS{}, nil, errors.WithCode(code.ErrEncodingJSON, "failed to marshal JWKS: %v", err)
+	}
+	return obj, data, nil
 }

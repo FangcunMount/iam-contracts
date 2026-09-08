@@ -24,7 +24,7 @@ type Revoker interface {
 	RevokeRefreshToken(ctx context.Context, refreshToken string) error
 }
 
-// Verifier 在线验证访问令牌及其可选 issuer / audience 约束。
+// Verifier 在线验证访问令牌、必填 audience 和可选额外 issuer 约束。
 type Verifier interface {
 	VerifyToken(ctx context.Context, req VerifyTokenRequest) (*TokenVerifyResult, error)
 }
@@ -40,11 +40,6 @@ type Capabilities struct {
 
 // ================== DTOs ==================
 
-// TokenIssueResult 令牌签发结果 DTO。
-type TokenIssueResult struct {
-	TokenPair *TokenPair // 令牌对
-}
-
 // TokenRefreshResult 令牌刷新结果 DTO。
 type TokenRefreshResult struct {
 	TokenPair *TokenPair // 令牌对
@@ -54,7 +49,7 @@ type TokenRefreshResult struct {
 type VerifyTokenRequest struct {
 	AccessToken        string      // 访问令牌
 	ExpectedIssuer     string      // 预期签发者
-	ExpectedAudience   []string    // 预期受众
+	ExpectedAudience   []string    // 必填预期受众，任一匹配
 	AcceptedTokenTypes []TokenType // 场景允许的令牌类型；为空时安全默认只接受 access
 }
 

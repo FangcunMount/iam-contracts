@@ -1445,7 +1445,7 @@ func TestRetiredInternalJWKSHelpersDoNotRegress(t *testing.T) {
 		"GetCacheControl",
 		"ValidateJWKS",
 	} {
-		assertFileLacks(t, root, "internal/apiserver/infra/token/keyset/keyset_builder.go", token)
+		assertFileLacks(t, root, "internal/apiserver/infra/token/keyset/jwks_publisher.go", token)
 	}
 }
 

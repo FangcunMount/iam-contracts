@@ -21,6 +21,7 @@ import (
 
 // AuthnModule 认证模块
 type AuthnModule struct {
+	resourceAudience string
 	// 应用服务
 	signupService                signupApp.SignupService
 	loginIdentityLinking         linkingApp.Linker

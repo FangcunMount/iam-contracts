@@ -281,13 +281,13 @@ func TestAuthHandlerTokenEndpointsPropagateApplicationErrors(t *testing.T) {
 		{
 			name:     "verify token invalid",
 			call:     func(h *AuthHandler) gin.HandlerFunc { return h.VerifyToken },
-			body:     `{"access_token":"access-token"}`,
+			body:     `{"access_token":"access-token","expected_audience":["qs-api"]}`,
 			tokenOps: &tokenOperationsCaptureStub{verifyErr: perrors.WithCode(code.ErrTokenInvalid, "invalid access")},
 		},
 		{
 			name:     "revoke token invalid",
 			call:     func(h *AuthHandler) gin.HandlerFunc { return h.RevokeToken },
-			body:     `{"access_token":"access-token"}`,
+			body:     `{"access_token":"access-token","expected_audience":["qs-api"]}`,
 			tokenOps: &tokenOperationsCaptureStub{revokeErr: perrors.WithCode(code.ErrTokenInvalid, "invalid access")},
 		},
 	}

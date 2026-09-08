@@ -46,7 +46,7 @@ func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, o
 		ForceRemote:        opts.ForceRemote,
 		IncludeMetadata:    opts.IncludeMetadata,
 		ExpectedIssuer:     s.expectedIssuer(opts),
-		ExpectedAudience:   s.expectedAudience(opts),
+		ExpectedAudience:   append([]string(nil), policy.audience...),
 		AcceptedTokenTypes: acceptedProtoTokenTypes(opts),
 	})
 	if err != nil {
@@ -149,16 +149,6 @@ func protoTokenTypeString(tokenType authnv2.TokenType) string {
 	default:
 		return "invalid"
 	}
-}
-
-func (s *RemoteVerifyStrategy) expectedAudience(opts *VerifyOptions) []string {
-	if opts != nil && len(opts.ExpectedAudience) > 0 {
-		return append([]string(nil), opts.ExpectedAudience...)
-	}
-	if s.config != nil && len(s.config.AllowedAudience) > 0 {
-		return append([]string(nil), s.config.AllowedAudience...)
-	}
-	return nil
 }
 
 func (s *RemoteVerifyStrategy) expectedIssuer(opts *VerifyOptions) string {

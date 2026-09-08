@@ -95,7 +95,7 @@ func (s *tokenOperationsStub) VerifyToken(ctx context.Context, req tokenApp.Veri
 		return nil, s.verifyErr
 	}
 	now := time.Now()
-	claims, err := tokenDomain.NewVerifiedUserTokenClaims(tokenDomain.VerifiedTokenClaims{
+	claims, err := tokenDomain.NewAccessTokenClaims(tokenDomain.AccessTokenClaims{
 		TokenID: "tid", Subject: meta.FromUint64(1).String(), SessionID: "sid-1",
 		UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), OrgID: meta.FromUint64(3),
 		TenantDomain: "fangcun", Issuer: "iam", Audience: []string{"test"},
@@ -145,8 +145,8 @@ func TestAuthNGRPCRuntimeRegistersProductionServices(t *testing.T) {
 }
 
 func TestAuthServiceServerLoginUsesExplicitV2Contract(t *testing.T) {
-	access := tokenApp.NewAccessToken("access-id", "access-token", "session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(7), time.Hour)
-	refresh := tokenApp.NewRefreshToken("refresh-id", "refresh-token", "session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(7), []string{"pwd"}, nil, 24*time.Hour)
+	access := tokenApp.NewAccessToken("access-id", "access-token", "session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(7), time.Now(), time.Now().Add(time.Hour))
+	refresh := tokenApp.NewRefreshToken("refresh-id", "refresh-token", "session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(7), time.Now(), time.Now().Add(24*time.Hour))
 	stub := &loginServiceStub{
 		res: &sessionApp.LoginResult{
 			TokenPair:       tokenApp.NewTokenPair(access, refresh),
@@ -221,7 +221,7 @@ func TestAuthServiceServerTokenLifecycleErrorMapping(t *testing.T) {
 		{
 			name: "verify token app unauthenticated",
 			call: func(s *authServiceServer) error {
-				_, err := s.VerifyToken(context.Background(), &authnv2.VerifyTokenRequest{AccessToken: "access-token"})
+				_, err := s.VerifyToken(context.Background(), &authnv2.VerifyTokenRequest{ExpectedAudience: []string{"qs-api"}, AccessToken: "access-token"})
 				return err
 			},
 			tokenOps: &tokenOperationsStub{verifyErr: perrors.WithCode(code.ErrTokenInvalid, "invalid access")},

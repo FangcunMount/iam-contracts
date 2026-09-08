@@ -100,8 +100,10 @@ grpc:
 # 2.3 Token 配置
 # ============================================================================
 auth:
+  resource_audience: "iam-api"
   jwt_issuer: "https://iam.fangcunmount.cn"
   access_token_audience:
+    - "iam-api"
     - "qs-api"
     - "collection-api"
   access_token_ttl: 15m

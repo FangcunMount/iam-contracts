@@ -34,17 +34,17 @@ func TestPasswordAuthStrategyWithLoginIdentityUsesPasswordCredentialV2(t *testin
 	authenticator := authentication.NewAuthenticator(
 		authentication.NewPasswordAuthStrategyWithLoginIdentity(credRepo, identityRepo, &hasherStub{pepper: "pep"}),
 	)
-	proof, err := authentication.NewPasswordCredential(authentication.PasswordProofSpec{
-		TenantID: tenantID,
-		Username: "zhangsan",
-		Password: "plain",
+	proof, err := authentication.NewPasswordProof(authentication.PasswordProofSpec{
+		RealmTenantID: tenantID,
+		Username:      "zhangsan",
+		Password:      "plain",
 	})
 	require.NoError(t, err)
 
 	decision, err := authenticator.Authenticate(ctx, proof)
 	require.NoError(t, err)
 	require.True(t, decision.OK)
-	require.Equal(t, loginIdentityID, decision.LoginIdentityID)
+	require.Equal(t, loginIdentityID, decision.LoginIdentityID())
 	require.Equal(t, loginIdentityID, decision.Principal.LoginIdentityID)
 	require.Equal(t, userID, decision.Principal.UserID)
 	require.Equal(t, "password", string(decision.Principal.AuthContext.Method))
@@ -68,7 +68,7 @@ func TestPhoneOTPAuthStrategyWithLoginIdentityDoesNotRequireLongTermCredential(t
 	authenticator := authentication.NewAuthenticator(
 		authentication.NewPhoneOTPAuthStrategyWithLoginIdentity(identityRepo, otpVerifierTestDouble{ok: true}),
 	)
-	proof, err := authentication.NewPhoneOTPCredential(authentication.PhoneOTPProofSpec{
+	proof, err := authentication.NewPhoneOTPProof(authentication.PhoneOTPProofSpec{
 		PhoneE164: phone,
 		OTP:       "123456",
 	})
@@ -77,8 +77,8 @@ func TestPhoneOTPAuthStrategyWithLoginIdentityDoesNotRequireLongTermCredential(t
 	decision, err := authenticator.Authenticate(ctx, proof)
 	require.NoError(t, err)
 	require.True(t, decision.OK)
-	require.Equal(t, loginIdentityID, decision.LoginIdentityID)
-	require.True(t, decision.CredentialID.IsZero())
+	require.Equal(t, loginIdentityID, decision.LoginIdentityID())
+	require.Nil(t, decision.CredentialUpdate)
 	require.Equal(t, "phone_otp", string(decision.Principal.AuthContext.Method))
 	require.Equal(t, loginidentity.RealmGlobal, decision.Principal.AuthContext.Realm)
 }
@@ -100,7 +100,7 @@ func TestWechatOpenAuthStrategyWithLoginIdentityFallsBackToUnionID(t *testing.T)
 	authenticator := authentication.NewAuthenticator(
 		authentication.NewOAuthWechatOpenAuthStrategyWithLoginIdentity(identityRepo),
 	)
-	proof, err := authentication.NewWechatOpenCredential(authentication.WechatOpenProofSpec{
+	proof, err := authentication.NewWechatOpenProof(authentication.WechatOpenProofSpec{
 		AppID:   "wx-app",
 		OpenID:  "openid-1",
 		UnionID: "union-1",
@@ -110,8 +110,8 @@ func TestWechatOpenAuthStrategyWithLoginIdentityFallsBackToUnionID(t *testing.T)
 	decision, err := authenticator.Authenticate(ctx, proof)
 	require.NoError(t, err)
 	require.True(t, decision.OK)
-	require.Equal(t, loginIdentityID, decision.LoginIdentityID)
-	require.True(t, decision.CredentialID.IsZero())
+	require.Equal(t, loginIdentityID, decision.LoginIdentityID())
+	require.Nil(t, decision.CredentialUpdate)
 	require.Equal(t, "oauth_wx_open", string(decision.Principal.AuthContext.Method))
 	require.Equal(t, "wx-app", decision.Principal.AuthContext.Realm)
 }
@@ -144,7 +144,7 @@ func TestWechatOpenAuthStrategyWithLoginIdentityPrefersOpenIDOverUnionIDFallback
 	authenticator := authentication.NewAuthenticator(
 		authentication.NewOAuthWechatOpenAuthStrategyWithLoginIdentity(identityRepo),
 	)
-	proof, err := authentication.NewWechatOpenCredential(authentication.WechatOpenProofSpec{
+	proof, err := authentication.NewWechatOpenProof(authentication.WechatOpenProofSpec{
 		AppID:   "wx-app",
 		OpenID:  "openid-1",
 		UnionID: "union-1",
@@ -154,7 +154,7 @@ func TestWechatOpenAuthStrategyWithLoginIdentityPrefersOpenIDOverUnionIDFallback
 	decision, err := authenticator.Authenticate(ctx, proof)
 	require.NoError(t, err)
 	require.True(t, decision.OK)
-	require.Equal(t, openIDLoginIdentityID, decision.LoginIdentityID)
+	require.Equal(t, openIDLoginIdentityID, decision.LoginIdentityID())
 	require.Equal(t, openIDLoginIdentityID, decision.Principal.LoginIdentityID)
 	require.Equal(t, userID, decision.Principal.UserID)
 }
@@ -176,7 +176,7 @@ func TestWechatMinipAuthStrategyWithLoginIdentityFallsBackToUnionID(t *testing.T
 	authenticator := authentication.NewAuthenticator(
 		authentication.NewOAuthWechatMinipAuthStrategyWithLoginIdentity(identityRepo),
 	)
-	proof, err := authentication.NewWechatMiniCredential(authentication.WechatMiniProofSpec{
+	proof, err := authentication.NewWechatMiniProof(authentication.WechatMiniProofSpec{
 		AppID:   "wx-app",
 		OpenID:  "openid-1",
 		UnionID: "union-1",
@@ -186,8 +186,8 @@ func TestWechatMinipAuthStrategyWithLoginIdentityFallsBackToUnionID(t *testing.T
 	decision, err := authenticator.Authenticate(ctx, proof)
 	require.NoError(t, err)
 	require.True(t, decision.OK)
-	require.Equal(t, loginIdentityID, decision.LoginIdentityID)
-	require.True(t, decision.CredentialID.IsZero())
+	require.Equal(t, loginIdentityID, decision.LoginIdentityID())
+	require.Nil(t, decision.CredentialUpdate)
 	require.Equal(t, "wechat_minip", string(decision.Principal.AuthContext.Method))
 	require.Equal(t, "wx-app", decision.Principal.AuthContext.Realm)
 }
@@ -214,7 +214,7 @@ func TestWechatMinipAuthStrategyFallsBackToMarkedLegacyUnionIdentifier(t *testin
 			identityRepo,
 		),
 	)
-	proof, err := authentication.NewWechatMiniCredential(authentication.WechatMiniProofSpec{
+	proof, err := authentication.NewWechatMiniProof(authentication.WechatMiniProofSpec{
 		AppID:   "wx-app",
 		OpenID:  "openid-1",
 		UnionID: "union-1",
@@ -224,7 +224,7 @@ func TestWechatMinipAuthStrategyFallsBackToMarkedLegacyUnionIdentifier(t *testin
 	decision, err := authenticator.Authenticate(ctx, proof)
 	require.NoError(t, err)
 	require.True(t, decision.OK)
-	require.Equal(t, loginIdentityID, decision.LoginIdentityID)
+	require.Equal(t, loginIdentityID, decision.LoginIdentityID())
 }
 
 func TestWechatMinipAuthStrategyPrefersCanonicalGlobalUnionOverLegacyFallback(t *testing.T) {
@@ -259,7 +259,7 @@ func TestWechatMinipAuthStrategyPrefersCanonicalGlobalUnionOverLegacyFallback(t 
 			identityRepo,
 		),
 	)
-	proof, err := authentication.NewWechatMiniCredential(authentication.WechatMiniProofSpec{
+	proof, err := authentication.NewWechatMiniProof(authentication.WechatMiniProofSpec{
 		AppID:   "wx-app",
 		OpenID:  "openid-1",
 		UnionID: "union-1",
@@ -269,7 +269,7 @@ func TestWechatMinipAuthStrategyPrefersCanonicalGlobalUnionOverLegacyFallback(t 
 	decision, err := authenticator.Authenticate(ctx, proof)
 	require.NoError(t, err)
 	require.True(t, decision.OK)
-	require.Equal(t, canonicalID, decision.LoginIdentityID)
+	require.Equal(t, canonicalID, decision.LoginIdentityID())
 	require.Equal(t, meta.FromUint64(1001), decision.Principal.UserID)
 }
 
@@ -288,18 +288,18 @@ func TestWecomAuthStrategyWithLoginIdentityDoesNotRequireLongTermCredential(t *t
 	authenticator := authentication.NewAuthenticator(
 		authentication.NewOAuthWeChatComAuthStrategyWithLoginIdentity(identityRepo),
 	)
-	proof, err := authentication.NewWecomCredential(authentication.WecomProofSpec{
-		CorpID:     "corp-1",
-		UserID:     "user-1",
-		OpenUserID: "open-user-1",
+	proof, err := authentication.NewWecomProof(authentication.WecomProofSpec{
+		CorpID:         "corp-1",
+		ProviderUserID: "user-1",
+		OpenUserID:     "open-user-1",
 	})
 	require.NoError(t, err)
 
 	decision, err := authenticator.Authenticate(ctx, proof)
 	require.NoError(t, err)
 	require.True(t, decision.OK)
-	require.Equal(t, loginIdentityID, decision.LoginIdentityID)
-	require.True(t, decision.CredentialID.IsZero())
+	require.Equal(t, loginIdentityID, decision.LoginIdentityID())
+	require.Nil(t, decision.CredentialUpdate)
 	require.Equal(t, "wecom", string(decision.Principal.AuthContext.Method))
 	require.Equal(t, "corp-1", decision.Principal.AuthContext.Realm)
 }
@@ -319,10 +319,10 @@ func TestWecomAuthStrategyFallsBackToOpenUserID(t *testing.T) {
 	authenticator := authentication.NewAuthenticator(
 		authentication.NewOAuthWeChatComAuthStrategyWithLoginIdentity(identityRepo),
 	)
-	proof, err := authentication.NewWecomCredential(authentication.WecomProofSpec{
-		CorpID:     "corp-1",
-		UserID:     "unbound-user",
-		OpenUserID: "open-user-1",
+	proof, err := authentication.NewWecomProof(authentication.WecomProofSpec{
+		CorpID:         "corp-1",
+		ProviderUserID: "unbound-user",
+		OpenUserID:     "open-user-1",
 	})
 	require.NoError(t, err)
 
@@ -330,7 +330,7 @@ func TestWecomAuthStrategyFallsBackToOpenUserID(t *testing.T) {
 
 	require.NoError(t, err)
 	require.True(t, decision.OK)
-	require.Equal(t, loginIdentityID, decision.LoginIdentityID)
+	require.Equal(t, loginIdentityID, decision.LoginIdentityID())
 	require.Equal(t, userID, decision.Principal.UserID)
 }
 
@@ -359,10 +359,10 @@ func TestWecomAuthStrategyPrefersUserIDOverOpenUserID(t *testing.T) {
 	authenticator := authentication.NewAuthenticator(
 		authentication.NewOAuthWeChatComAuthStrategyWithLoginIdentity(identityRepo),
 	)
-	proof, err := authentication.NewWecomCredential(authentication.WecomProofSpec{
-		CorpID:     "corp-1",
-		UserID:     "user-1",
-		OpenUserID: "open-user-1",
+	proof, err := authentication.NewWecomProof(authentication.WecomProofSpec{
+		CorpID:         "corp-1",
+		ProviderUserID: "user-1",
+		OpenUserID:     "open-user-1",
 	})
 	require.NoError(t, err)
 
@@ -370,7 +370,7 @@ func TestWecomAuthStrategyPrefersUserIDOverOpenUserID(t *testing.T) {
 
 	require.NoError(t, err)
 	require.True(t, decision.OK)
-	require.Equal(t, userIDLoginIdentityID, decision.LoginIdentityID)
+	require.Equal(t, userIDLoginIdentityID, decision.LoginIdentityID())
 }
 
 type credentialMaterial struct {

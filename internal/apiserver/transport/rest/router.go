@@ -93,7 +93,7 @@ func (r *Router) resolveRouteDependencies() routeDependencies {
 
 	// 创建认证中间件
 	if r.deps.ModuleStatus.authnAvailable() && deps.authn.TokenVerifier != nil {
-		deps.authMiddleware = authnMiddleware.NewJWTAuthMiddleware(deps.authn.TokenVerifier)
+		deps.authMiddleware = authnMiddleware.NewJWTAuthMiddleware(deps.authn.TokenVerifier, deps.authn.ResourceAudience)
 	}
 	if deps.authz.RoutePermissionChecker != nil {
 		deps.authzMiddleware = authzMiddleware.NewMiddleware(deps.authz.RoutePermissionChecker)

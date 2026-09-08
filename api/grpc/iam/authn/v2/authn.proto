@@ -86,6 +86,7 @@ message VerifyTokenRequest {
   bool force_remote = 2;
   bool include_metadata = 3;
   string expected_issuer = 4;
+  // Required recipient constraint. Non-empty entries; any matching audience is accepted.
   repeated string expected_audience = 5;
   repeated TokenType accepted_token_types = 6;
 }

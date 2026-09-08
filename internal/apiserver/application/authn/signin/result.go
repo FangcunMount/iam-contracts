@@ -3,6 +3,7 @@ package signin
 import (
 	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
@@ -15,11 +16,11 @@ type Result struct {
 	TenantID        meta.ID
 }
 
-// ResultFromPrincipal 由 Principal 与 TokenPair 构造登录结果。
+// ResultFromSession 由 Principal 与 TokenPair 构造登录结果。
 // 参数：principal 认证主体, tokenPair 令牌对
 // 返回：登录结果
 // 职责：由认证主体与令牌对构造登录结果
-func ResultFromPrincipal(principal *authentication.Principal, tokenPair *tokenapp.TokenPair) *Result {
+func ResultFromSession(principal *authentication.Principal, sess *sessiondomain.Session, tokenPair *tokenapp.TokenPair) *Result {
 	// 如果认证主体为空，返回仅包含令牌对的登录结果
 	if principal == nil {
 		return &Result{TokenPair: tokenPair}
@@ -29,6 +30,6 @@ func ResultFromPrincipal(principal *authentication.Principal, tokenPair *tokenap
 		TokenPair:       tokenPair,
 		UserID:          principal.UserID,
 		LoginIdentityID: principal.LoginIdentityID,
-		TenantID:        principal.TenantID,
+		TenantID:        sess.TenantID,
 	}
 }

@@ -17,12 +17,13 @@ import (
 // JWTAuthMiddleware JWT 认证中间件
 // 使用新的认证模块来验证令牌
 type JWTAuthMiddleware struct {
-	verifier token.Verifier
+	verifier         token.Verifier
+	resourceAudience string
 }
 
 // NewJWTAuthMiddleware 创建 JWT 认证中间件。
-func NewJWTAuthMiddleware(verifier token.Verifier) *JWTAuthMiddleware {
-	return &JWTAuthMiddleware{verifier: verifier}
+func NewJWTAuthMiddleware(verifier token.Verifier, resourceAudience string) *JWTAuthMiddleware {
+	return &JWTAuthMiddleware{verifier: verifier, resourceAudience: resourceAudience}
 }
 
 // AuthRequired 认证必需中间件
@@ -47,6 +48,7 @@ func (m *JWTAuthMiddleware) AuthRequired() gin.HandlerFunc {
 		// 验证令牌：资源访问中间件只接受用户 access token。
 		resp, err := m.verifier.VerifyToken(c.Request.Context(), token.VerifyTokenRequest{
 			AccessToken:        tokenValue,
+			ExpectedAudience:   []string{m.resourceAudience},
 			AcceptedTokenTypes: []token.TokenType{token.TokenTypeAccess},
 		})
 		if err != nil {

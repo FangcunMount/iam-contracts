@@ -63,7 +63,7 @@ sequenceDiagram
 
 图中 Session 创建错误会立即结束；后续 mint/save/补偿分支只针对成功返回的 Session。空 Principal、缺少依赖或 Admission 拒绝均不能创建 Session；mint 后也要求 AccessToken/RefreshToken 都存在。
 
-Session/Token TTL、issuer、audience 和签名密钥来自组合时配置，客户端不能在每次 SignIn 中任意指定。TokenSetMinter 使用当前 active key 经 BearerTokenCodec 生成访问令牌，再生成与 Session 对齐的 refresh 凭证。私钥不越过 signer/codec 边界，也不进入响应。
+Session/Token TTL、issuer、audience 和签名密钥来自组合时配置，客户端不能在每次 SignIn 中任意指定。TokenSetMinter 统一生成 ID、时间与声明，经 AccessTokenEncoder 生成访问令牌；适配器负责选取当前 active key，再生成与 Session 对齐的 refresh 凭证。私钥不越过 signer/codec 边界，也不进入响应。
 
 ### 补偿保证及剩余窗口
 
@@ -78,14 +78,16 @@ sequenceDiagram
     participant C as Caller
     participant A as Token Application
     participant V as Domain Verifier
-    participant Codec as BearerTokenCodec / KeySet
+    participant Codec as AccessTokenSignatureVerifier / KeySet
     participant TS as Token Store
     participant SS as Session Store
     participant AP as AdmissionPolicy
     C->>A: VerifyToken(value, application policy)
-    A->>V: VerifyToken(value)
-    V->>Codec: VerifyBearerToken(value)
-    Codec-->>V: VerifiedTokenClaims or error
+    A->>A: validate required ExpectedAudience
+    A->>V: VerifyToken(value, ExpectedAudience)
+    V->>Codec: VerifySignatureAndClaims(value)
+    Codec-->>V: AccessTokenClaims or error
+    V->>V: match required audience before state access
     V->>TS: IsBearerTokenRevoked(jti)
     TS-->>V: not revoked or error
     V->>SS: GetActive(sessionID)
@@ -93,11 +95,11 @@ sequenceDiagram
     V->>AP: Require(UserID, LoginIdentityID)
     AP-->>V: admitted or error
     V-->>A: verified claims
-    A->>A: enforce accepted type and expected audience
+    A->>A: enforce accepted type and optional extra issuer
     A-->>C: claims or failure
 ```
 
-任何一步错误立即拒绝，图中后续步骤只在前一步成功时执行。Codec 校验签名、RS256 算法与 key 绑定、canonical issuer、exp/nbf/iat，并解析已登记类型。应用 verification policy 再约束 accepted token type 和 audience；仅接受 access，退役和未知类型均拒绝。
+任何一步错误立即拒绝，图中后续步骤只在前一步成功时执行。Codec 校验签名、RS256 算法与 key 绑定、canonical issuer、exp/nbf/iat，并解析已登记类型。应用层要求 expected audience 非空并约束 accepted token type；领域在线验证在访问状态存储前检查 audience；仅接受 access，退役和未知类型均拒绝。
 
 用户令牌的 Session/Admission 不是可选检查。服务间调用使用 mTLS + ACL，不颁发用户 Session 或 RefreshToken。
 

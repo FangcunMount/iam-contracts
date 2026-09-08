@@ -948,6 +948,7 @@ components:
         access_token:
           type: string
         expected_audience:
+          minItems: 1
           items:
             type: string
           type: array
@@ -955,6 +956,7 @@ components:
           type: string
       required:
       - access_token
+      - expected_audience
       type: object
     github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.WechatOpenLoginAuthorizeRequest:
       properties:

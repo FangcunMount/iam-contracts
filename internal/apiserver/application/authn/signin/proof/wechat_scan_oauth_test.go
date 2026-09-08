@@ -56,7 +56,7 @@ func (b oauthScanProofBuilder) CredentialKind() method.CredentialKind {
 	return method.CredentialKindWechatScan
 }
 
-func (b oauthScanProofBuilder) Build(ctx context.Context, payload method.Payload, common method.CommonPayload) (authentication.AuthCredential, error) {
+func (b oauthScanProofBuilder) Build(ctx context.Context, payload method.Payload, common method.CommonPayload) (authentication.IdentityProof, error) {
 	scanPayload, ok := payload.(method.WechatScanPayload)
 	if !ok {
 		return nil, perrors.WithCode(code.ErrProofBuildFailed, "invalid wechat scan payload")
@@ -64,10 +64,9 @@ func (b oauthScanProofBuilder) Build(ctx context.Context, payload method.Payload
 	if _, err := b.oauthStates.VerifyAndConsumeWechatOpenLogin(ctx, scanPayload.State); err != nil {
 		return nil, err
 	}
-	return authentication.NewWechatOpenCredential(authentication.WechatOpenProofSpec{
-		TenantID: common.TenantID,
-		AppID:    scanPayload.AppID,
-		OpenID:   "open-id",
+	return authentication.NewWechatOpenProof(authentication.WechatOpenProofSpec{
+		AppID:  scanPayload.AppID,
+		OpenID: "open-id",
 	})
 }
 

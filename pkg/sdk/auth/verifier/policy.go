@@ -3,6 +3,7 @@ package verifier
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
@@ -41,7 +42,7 @@ func newVerificationPolicy(cfg *config.TokenVerifyConfig, opts *VerifyOptions) v
 		if opts.ExpectedIssuer != "" {
 			policy.issuer = opts.ExpectedIssuer
 		}
-		if len(opts.ExpectedAudience) > 0 {
+		if opts.ExpectedAudience != nil {
 			policy.audience = append([]string(nil), opts.ExpectedAudience...)
 		}
 		for _, tokenType := range opts.AllowedTokenTypes {
@@ -53,6 +54,28 @@ func newVerificationPolicy(cfg *config.TokenVerifyConfig, opts *VerifyOptions) v
 	}
 	for _, algorithm := range configuredAlgorithms(cfg) {
 		policy.allowedAlgorithms[algorithm.String()] = struct{}{}
+	}
+	if policy.configurationErr == nil {
+		if strings.TrimSpace(policy.issuer) == "" {
+			policy.configurationErr = fmt.Errorf("expected issuer is required")
+		}
+		if len(policy.audience) == 0 {
+			policy.configurationErr = fmt.Errorf("expected audience is required")
+		}
+		normalized := make([]string, 0, len(policy.audience))
+		seen := map[string]bool{}
+		for _, aud := range policy.audience {
+			aud = strings.TrimSpace(aud)
+			if aud == "" {
+				policy.configurationErr = fmt.Errorf("expected audience entries must be non-empty")
+				break
+			}
+			if !seen[aud] {
+				normalized = append(normalized, aud)
+				seen[aud] = true
+			}
+		}
+		policy.audience = normalized
 	}
 	return policy
 }
@@ -69,9 +92,7 @@ func (p verificationPolicy) validateTokenType(actual string) error {
 }
 
 func (p verificationPolicy) appendParseOptions(options []jwt.ParseOption) []jwt.ParseOption {
-	for _, audience := range p.audience {
-		options = append(options, jwt.WithAudience(audience))
-	}
+
 	if p.issuer != "" {
 		options = append(options, jwt.WithIssuer(p.issuer))
 	}
@@ -95,13 +116,14 @@ func (p verificationPolicy) validateTokenEnvelope(tokenString string) error {
 		return invalidTokenError("parse token claims: %v", err)
 	}
 
+	if err := p.validateAudience(token.Audience()); err != nil {
+		return err
+	}
 	if err := p.validateParsedTokenType(token); err != nil {
 		return err
 	}
 	var options []jwt.ValidateOption
-	for _, audience := range p.audience {
-		options = append(options, jwt.WithAudience(audience))
-	}
+
 	if p.issuer != "" {
 		options = append(options, jwt.WithIssuer(p.issuer))
 	}
@@ -167,4 +189,18 @@ func (p verificationPolicy) validateParsedTokenType(token jwt.Token) error {
 		return invalidTokenError("invalid token type")
 	}
 	return p.validateTokenType(value)
+}
+
+func (p verificationPolicy) validateAudience(actual []string) error {
+	if p.configurationErr != nil {
+		return p.configurationErr
+	}
+	for _, expected := range p.audience {
+		for _, aud := range actual {
+			if aud == expected {
+				return nil
+			}
+		}
+	}
+	return invalidTokenError("token audience does not match recipient")
 }

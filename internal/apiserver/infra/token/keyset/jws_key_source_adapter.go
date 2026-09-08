@@ -45,6 +45,9 @@ func (s *JWSKeySourceAdapter) ActiveSigningKey(ctx context.Context) (*jwtinfra.S
 	if activeKey == nil {
 		return nil, fmt.Errorf("active key is nil")
 	}
+	if err := activeKey.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid active signing key: %w", err)
+	}
 	// 如果活动密钥不可用于签名，则返回错误
 	if !activeKey.CanSignAt(time.Now()) {
 		return nil, fmt.Errorf("key %s is not eligible for signing", activeKey.Kid)
@@ -79,6 +82,9 @@ func (s *JWSKeySourceAdapter) VerificationKey(ctx context.Context, kid string) (
 	}
 	if key == nil {
 		return nil, fmt.Errorf("key not found for kid %s", kid)
+	}
+	if err := key.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid verification key: %w", err)
 	}
 	if !key.CanVerifyAt(time.Now()) {
 		return nil, fmt.Errorf("key %s is not eligible for verification", kid)

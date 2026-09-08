@@ -3403,7 +3403,8 @@
         "github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.VerifyTokenRequest": {
             "type": "object",
             "required": [
-                "access_token"
+                "access_token",
+                "expected_audience"
             ],
             "properties": {
                 "access_token": {
@@ -3411,6 +3412,7 @@
                 },
                 "expected_audience": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }
@@ -3790,7 +3792,7 @@
                     "type": "integer"
                 },
                 "token_type": {
-                    "description": "access/service",
+                    "description": "access",
                     "type": "string"
                 },
                 "user_id": {

@@ -27,20 +27,14 @@ type IssuedTokenDTO struct {
 	ExpiresAt time.Time // 过期时间
 }
 
-// NewAccessToken 创建访问令牌
-func NewAccessToken(id, value, sessionID string, userID meta.ID, loginIdentityID meta.ID, tenantID meta.ID, expiresIn time.Duration) *IssuedTokenDTO {
-	return tokenFromAccess(tokendomain.NewAccessToken(id, value, sessionID, userID, loginIdentityID, tenantID, expiresIn))
+// NewAccessToken constructs a DTO from explicit access-token facts.
+func NewAccessToken(id, value, sessionID string, userID meta.ID, loginIdentityID meta.ID, tenantID meta.ID, issuedAt, expiresAt time.Time) *IssuedTokenDTO {
+	return tokenFromAccess(tokendomain.NewAccessToken(id, value, sessionID, userID, loginIdentityID, tenantID, issuedAt, expiresAt))
 }
 
-// NewRefreshToken 创建相对当前时间过期的刷新令牌。
-// 该构造器用于需要表达 TTL 的测试和调用方；生产签发路径使用显式过期时间构造器。
-func NewRefreshToken(id, value, sessionID string, userID meta.ID, loginIdentityID meta.ID, tenantID meta.ID, amr []string, sessionClaims map[string]string, expiresIn time.Duration) *IssuedTokenDTO {
-	return tokenFromRefresh(tokendomain.NewRefreshToken(id, value, sessionID, userID, loginIdentityID, tenantID, amr, sessionClaims, expiresIn))
-}
-
-// NewRefreshTokenWithExpiry 创建指定过期时间的刷新令牌。
-func NewRefreshTokenWithExpiry(id, value, sessionID string, userID meta.ID, loginIdentityID meta.ID, tenantID meta.ID, amr []string, sessionClaims map[string]string, expiresAt time.Time) *IssuedTokenDTO {
-	return tokenFromRefresh(tokendomain.NewRefreshTokenWithExpiry(id, value, sessionID, userID, loginIdentityID, tenantID, amr, sessionClaims, expiresAt))
+// NewRefreshToken constructs a DTO from explicit refresh-token facts.
+func NewRefreshToken(id, value, sessionID string, userID, loginIdentityID, tenantID meta.ID, issuedAt, expiresAt time.Time) *IssuedTokenDTO {
+	return tokenFromRefresh(tokendomain.NewRefreshToken(id, value, sessionID, userID, loginIdentityID, tenantID, issuedAt, expiresAt))
 }
 
 // IsExpired 检查令牌是否已过期

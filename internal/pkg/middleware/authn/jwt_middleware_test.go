@@ -20,7 +20,7 @@ func TestApplyVerifiedClaimsSetsTenantIDForRoleResolution(t *testing.T) {
 	c.Request = httptest.NewRequest("GET", "/identity/me", nil)
 
 	now := time.Now()
-	claims, err := tokendomain.NewVerifiedUserTokenClaims(tokendomain.VerifiedTokenClaims{
+	claims, err := tokendomain.NewAccessTokenClaims(tokendomain.AccessTokenClaims{
 		TokenID: "token-1", Subject: meta.ID(110001).String(), SessionID: "sid-1",
 		UserID: meta.ID(110001), LoginIdentityID: meta.ID(613486856213901870), OrgID: meta.ID(1),
 		TenantDomain: tenant.DefaultID, Issuer: "https://iam.fangcunmount.cn",

@@ -16,6 +16,7 @@ type RemovedAppOptions struct {
 
 // AuthOptions configures JWT token issuing and verification.
 type AuthOptions struct {
+	ResourceAudience    string                 `json:"resource_audience" mapstructure:"resource_audience"`
 	JWTIssuer           string                 `json:"jwt_issuer" mapstructure:"jwt_issuer"`
 	AccessTokenAudience []string               `json:"access_token_audience" mapstructure:"access_token_audience"`
 	AccessTokenTTL      time.Duration          `json:"access_token_ttl" mapstructure:"access_token_ttl"`
@@ -33,9 +34,12 @@ type PasswordLockoutOptions struct {
 
 func NewAuthOptions() *AuthOptions {
 	return &AuthOptions{
-		AccessTokenTTL:  15 * time.Minute,
-		RefreshTokenTTL: 7 * 24 * time.Hour,
-		SessionMaxTTL:   24 * time.Hour,
+		JWTIssuer:           "https://iam.fangcunmount.cn",
+		AccessTokenAudience: []string{"iam-api", "qs-api", "collection-api"},
+		ResourceAudience:    "iam-api",
+		AccessTokenTTL:      15 * time.Minute,
+		RefreshTokenTTL:     7 * 24 * time.Hour,
+		SessionMaxTTL:       24 * time.Hour,
 		PasswordLockout: PasswordLockoutOptions{
 			Enabled:      false,
 			Threshold:    5,

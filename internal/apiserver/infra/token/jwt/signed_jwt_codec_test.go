@@ -17,10 +17,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGeneratorAccessTokenUsesRegisteredAudienceAndParseRoundTrips(t *testing.T) {
+func TestCodecAccessTokenUsesRegisteredAudienceAndParseRoundTrips(t *testing.T) {
 	t.Parallel()
 
-	generator, signingKey := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api", "collection-api"})
+	generator, signingKey := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api", "collection-api"})
 	subject := &tokendomain.AccessTokenIssueContext{
 		LoginIdentityID: meta.MustFromUint64(1001),
 		UserID:          meta.MustFromUint64(1002),
@@ -31,7 +31,7 @@ func TestGeneratorAccessTokenUsesRegisteredAudienceAndParseRoundTrips(t *testing
 		Attributes:      map[string]string{"display_name": "seed-user"},
 	}
 
-	token, err := generator.IssueAccessToken(context.Background(), subject, 15*time.Minute)
+	token, err := issueTestAccessToken(generator, context.Background(), subject, 15*time.Minute)
 	require.NoError(t, err)
 
 	parsedJWT, rawClaims := parseRawClaims(t, token.Value, signingKey)
@@ -40,7 +40,7 @@ func TestGeneratorAccessTokenUsesRegisteredAudienceAndParseRoundTrips(t *testing
 	_, hasLegacyAudience := rawClaims["audience"]
 	require.False(t, hasLegacyAudience)
 
-	claims, err := generator.VerifyBearerToken(context.Background(), token.Value)
+	claims, err := generator.VerifySignatureAndClaims(context.Background(), token.Value)
 	require.NoError(t, err)
 	require.Equal(t, tokendomain.TokenTypeAccess, claims.TokenType)
 	require.Equal(t, subject.UserID, claims.UserID)
@@ -52,11 +52,11 @@ func TestGeneratorAccessTokenUsesRegisteredAudienceAndParseRoundTrips(t *testing
 	require.Equal(t, []string{"pwd"}, claims.AMR)
 }
 
-func TestGeneratorTokenUsesJWSCompactHeaderPayloadSignatureContract(t *testing.T) {
+func TestCodecTokenUsesJWSCompactHeaderPayloadSignatureContract(t *testing.T) {
 	t.Parallel()
 
-	generator, _ := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
-	token, err := generator.IssueAccessToken(context.Background(), &tokendomain.AccessTokenIssueContext{
+	generator, _ := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
+	token, err := issueTestAccessToken(generator, context.Background(), &tokendomain.AccessTokenIssueContext{
 		LoginIdentityID: meta.MustFromUint64(1001),
 		UserID:          meta.MustFromUint64(1002),
 		SessionID:       "sid-1002",
@@ -90,11 +90,11 @@ func TestGeneratorTokenUsesJWSCompactHeaderPayloadSignatureContract(t *testing.T
 	require.Contains(t, payload, "nbf")
 }
 
-func TestGeneratorLegacyNumericTenantIDDoesNotInferOrg(t *testing.T) {
+func TestCodecLegacyNumericTenantIDDoesNotInferOrg(t *testing.T) {
 	t.Parallel()
 
-	generator, _ := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
-	token, err := generator.IssueAccessToken(context.Background(), &tokendomain.AccessTokenIssueContext{
+	generator, _ := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
+	token, err := issueTestAccessToken(generator, context.Background(), &tokendomain.AccessTokenIssueContext{
 		UserID:          meta.MustFromUint64(1002),
 		LoginIdentityID: meta.MustFromUint64(1001),
 		SessionID:       "sid-1002",
@@ -105,16 +105,16 @@ func TestGeneratorLegacyNumericTenantIDDoesNotInferOrg(t *testing.T) {
 	// 模拟历史 token：tenant_id 为数值、无 org_id。
 	legacy := strings.Replace(token.Value, `"tenant_id":"fangcun"`, `"tenant_id":"1"`, 1)
 
-	claims, err := generator.VerifyBearerToken(context.Background(), legacy)
+	claims, err := generator.VerifySignatureAndClaims(context.Background(), legacy)
 	require.NoError(t, err)
 	require.Equal(t, tenant.DefaultID, claims.TenantDomain)
 	require.True(t, claims.OrgID.IsZero())
 }
 
-func TestGeneratorRejectsNoneAlgorithm(t *testing.T) {
+func TestCodecRejectsNoneAlgorithm(t *testing.T) {
 	t.Parallel()
 
-	generator, _ := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
+	generator, _ := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
 	claims := jwtPayloadClaims{
 		TokenType: string(tokendomain.TokenTypeAccess),
 		UserID:    "1002",
@@ -131,14 +131,14 @@ func TestGeneratorRejectsNoneAlgorithm(t *testing.T) {
 	raw, err := jwtv4.NewWithClaims(jwtv4.SigningMethodNone, claims).SignedString(jwtv4.UnsafeAllowNoneSignatureType)
 	require.NoError(t, err)
 
-	_, err = generator.VerifyBearerToken(context.Background(), raw)
+	_, err = generator.VerifySignatureAndClaims(context.Background(), raw)
 	require.Error(t, err)
 }
 
-func TestGeneratorRejectsAlgorithmsAndKeyMetadataOutsideProfile(t *testing.T) {
+func TestCodecRejectsAlgorithmsAndKeyMetadataOutsideProfile(t *testing.T) {
 	t.Parallel()
 
-	generator, privateKey := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
+	generator, privateKey := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
 	claims := jwtPayloadClaims{RegisteredClaims: jwtv4.RegisteredClaims{
 		Subject:   "1002",
 		ExpiresAt: jwtv4.NewNumericDate(time.Now().Add(time.Minute)),
@@ -165,16 +165,16 @@ func TestGeneratorRejectsAlgorithmsAndKeyMetadataOutsideProfile(t *testing.T) {
 			raw, err := token.SignedString(tt.key)
 			require.NoError(t, err)
 
-			_, err = generator.VerifyBearerToken(context.Background(), raw)
+			_, err = generator.VerifySignatureAndClaims(context.Background(), raw)
 			require.Error(t, err)
 		})
 	}
 }
 
-func TestGeneratorRejectsJWKAlgorithmMismatch(t *testing.T) {
+func TestCodecRejectsJWKAlgorithmMismatch(t *testing.T) {
 	t.Parallel()
 
-	generator, privateKey := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
+	generator, privateKey := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
 	generator.keySource.(*signingKeySourceStub).keyAlgs = map[string]string{"test-key": "RS384"}
 	token := jwtv4.NewWithClaims(jwtv4.SigningMethodRS256, jwtPayloadClaims{
 		RegisteredClaims: jwtv4.RegisteredClaims{ExpiresAt: jwtv4.NewNumericDate(time.Now().Add(time.Minute))},
@@ -183,26 +183,26 @@ func TestGeneratorRejectsJWKAlgorithmMismatch(t *testing.T) {
 	raw, err := token.SignedString(privateKey)
 	require.NoError(t, err)
 
-	_, err = generator.VerifyBearerToken(context.Background(), raw)
+	_, err = generator.VerifySignatureAndClaims(context.Background(), raw)
 	require.Error(t, err)
 }
 
-func TestGeneratorFailsClosedWhenActiveKeyAlgorithmIsNotRS256(t *testing.T) {
+func TestCodecFailsClosedWhenActiveKeyAlgorithmIsNotRS256(t *testing.T) {
 	t.Parallel()
 
-	generator, _ := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
+	generator, _ := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
 	generator.keySource.(*signingKeySourceStub).algorithm = "RS384"
 
-	token, err := generator.IssueAccessToken(context.Background(), &tokendomain.AccessTokenIssueContext{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), SessionID: "sid"}, time.Minute)
+	token, err := issueTestAccessToken(generator, context.Background(), &tokendomain.AccessTokenIssueContext{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), SessionID: "sid"}, time.Minute)
 	require.Error(t, err)
 	require.Nil(t, token)
 }
 
-func TestGeneratorOmitsSensitiveAttributesAndAuthMethodRealm(t *testing.T) {
+func TestCodecOmitsSensitiveAttributesAndAuthMethodRealm(t *testing.T) {
 	t.Parallel()
 
-	generator, signingKey := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
-	token, err := generator.IssueAccessToken(context.Background(), &tokendomain.AccessTokenIssueContext{
+	generator, signingKey := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
+	token, err := issueTestAccessToken(generator, context.Background(), &tokendomain.AccessTokenIssueContext{
 		UserID:          meta.MustFromUint64(1002),
 		LoginIdentityID: meta.MustFromUint64(1001),
 		SessionID:       "sid-1002",
@@ -221,10 +221,10 @@ func TestGeneratorOmitsSensitiveAttributesAndAuthMethodRealm(t *testing.T) {
 	require.Equal(t, "2026-01-02T03:04:05Z", attrs["auth_time"])
 }
 
-func TestGeneratorRejectsIssuerMismatch(t *testing.T) {
+func TestCodecRejectsIssuerMismatch(t *testing.T) {
 	t.Parallel()
 
-	generator, signingKey := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
+	generator, signingKey := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
 	claims := jwtPayloadClaims{
 		TokenType: string(tokendomain.TokenTypeAccess),
 		UserID:    "1002",
@@ -244,12 +244,12 @@ func TestGeneratorRejectsIssuerMismatch(t *testing.T) {
 	raw, err := token.SignedString(signingKey)
 	require.NoError(t, err)
 
-	_, err = generator.VerifyBearerToken(context.Background(), raw)
+	_, err = generator.VerifySignatureAndClaims(context.Background(), raw)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unexpected token issuer")
 }
 
-func newTestGenerator(t *testing.T, issuer string, accessAudience []string) (*JWSCompactTokenCodec, *rsa.PrivateKey) {
+func newTestCodec(t *testing.T, issuer string, accessAudience []string) (*testCodec, *rsa.PrivateKey) {
 	t.Helper()
 
 	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -264,7 +264,7 @@ func newTestGenerator(t *testing.T, issuer string, accessAudience []string) (*JW
 		},
 	}
 
-	return NewJWSCompactTokenCodec(issuer, accessAudience, keySource), privKey
+	return &testCodec{SignedJWTCodec: NewSignedJWTCodec(issuer, keySource), audience: accessAudience}, privKey
 }
 
 func parseRawClaims(t *testing.T, tokenValue string, key *rsa.PrivateKey) (*jwtPayloadClaims, jwtv4.MapClaims) {
@@ -323,14 +323,39 @@ func (s *signingKeySourceStub) VerificationKey(_ context.Context, kid string) (*
 }
 
 func TestCodecRejectsRetiredAndUnknownSignedTypes(t *testing.T) {
-	codec, key := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
+	codec, key := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
 	for _, kind := range []string{"service", "unknown"} {
 		claims := jwtPayloadClaims{TokenType: kind, RegisteredClaims: jwtv4.RegisteredClaims{ID: "retired", Subject: "qs-apiserver.svc", Issuer: "https://iam.fangcunmount.cn", Audience: []string{"qs-api"}, IssuedAt: jwtv4.NewNumericDate(time.Now()), NotBefore: jwtv4.NewNumericDate(time.Now()), ExpiresAt: jwtv4.NewNumericDate(time.Now().Add(time.Hour))}}
 		token := jwtv4.NewWithClaims(jwtv4.SigningMethodRS256, claims)
 		token.Header["kid"] = "test-key"
 		raw, err := token.SignedString(key)
 		require.NoError(t, err)
-		_, err = codec.VerifyBearerToken(context.Background(), raw)
+		_, err = codec.VerifySignatureAndClaims(context.Background(), raw)
 		require.ErrorContains(t, err, "unsupported token_type")
 	}
+}
+
+// testCodec assembles issuance facts only for codec contract fixtures.
+type testCodec struct {
+	*SignedJWTCodec
+	audience []string
+}
+
+func issueTestAccessToken(g *testCodec, ctx context.Context, subject *tokendomain.AccessTokenIssueContext, ttl time.Duration) (*tokendomain.AccessToken, error) {
+	now := time.Now().UTC().Truncate(time.Second)
+	orgID := parseStringID(subject.OrgID)
+	claims, err := tokendomain.NewAccessTokenClaims(tokendomain.AccessTokenClaims{
+		TokenID: "test-token", Subject: subject.UserID.String(), UserID: subject.UserID,
+		LoginIdentityID: subject.LoginIdentityID, SessionID: subject.SessionID, TenantDomain: subject.TenantDomain,
+		OrgID: orgID, Attributes: subject.Attributes, AMR: subject.AMR, AuthenticatedAt: subject.AuthenticatedAt,
+		Issuer: g.issuer, Audience: g.audience, IssuedAt: now, NotBefore: now, ExpiresAt: now.Add(ttl),
+	})
+	if err != nil {
+		return nil, err
+	}
+	value, err := g.EncodeAccessToken(ctx, claims)
+	if err != nil {
+		return nil, err
+	}
+	return tokendomain.NewAccessToken(claims.TokenID, value, subject.SessionID, subject.UserID, subject.LoginIdentityID, subject.TenantID, claims.IssuedAt, claims.ExpiresAt), nil
 }

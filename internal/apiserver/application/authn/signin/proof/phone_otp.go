@@ -23,7 +23,7 @@ func (phoneOTPBuilder) CredentialKind() method.CredentialKind {
 }
 
 // Build 构建手机号验证码登录方式
-func (phoneOTPBuilder) Build(_ context.Context, payload method.Payload, common method.CommonPayload) (authentication.AuthCredential, error) {
+func (phoneOTPBuilder) Build(_ context.Context, payload method.Payload, common method.CommonPayload) (authentication.IdentityProof, error) {
 	// 验证手机号验证码登录方式凭证是否有效
 	phonePayload, ok := payload.(method.PhoneOTPPayload)
 	if !ok {
@@ -31,10 +31,7 @@ func (phoneOTPBuilder) Build(_ context.Context, payload method.Payload, common m
 	}
 
 	// 构建手机号验证码登录方式凭证
-	return authentication.NewPhoneOTPCredential(authentication.PhoneOTPProofSpec{
-		TenantID:  common.TenantID,
-		RemoteIP:  common.RemoteIP,
-		UserAgent: common.UserAgent,
+	return authentication.NewPhoneOTPProof(authentication.PhoneOTPProofSpec{
 		PhoneE164: phonePayload.PhoneE164,
 		OTP:       phonePayload.OTP,
 	})

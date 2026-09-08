@@ -13,62 +13,53 @@ import (
 
 // WechatOpenProofSpec 微信开放平台认证凭据规范
 type WechatOpenProofSpec struct {
-	TenantID  meta.ID
-	RemoteIP  string
-	UserAgent string
-	AppID     string
-	OpenID    string
-	UnionID   string
+	AppID   string
+	OpenID  string
+	UnionID string
 }
 
-// WechatOpenCredential 微信开放平台认证凭据
-type WechatOpenCredential struct {
-	TenantID  meta.ID
-	RemoteIP  string
-	UserAgent string
-	AppID     string
-	OpenID    string
-	UnionID   string
+// WechatOpenProof 微信开放平台认证凭据
+type WechatOpenProof struct {
+	AppID   string
+	OpenID  string
+	UnionID string
 }
 
-// 确保 WechatOpenCredential 实现了 AuthCredential 接口
-var _ AuthCredential = (*WechatOpenCredential)(nil)
+// 确保 WechatOpenProof 实现了 IdentityProof 接口
+var _ IdentityProof = (*WechatOpenProof)(nil)
 
 // CredentialKind 返回认证凭据类型
-func (c *WechatOpenCredential) CredentialKind() CredentialKind {
+func (c *WechatOpenProof) CredentialKind() CredentialKind {
 	return CredentialKindWechatOpen
 }
 
-// NewWechatOpenCredential 构造微信开放平台认证凭据
-func NewWechatOpenCredential(spec WechatOpenProofSpec) (AuthCredential, error) {
+// NewWechatOpenProof 构造微信开放平台认证凭据
+func NewWechatOpenProof(spec WechatOpenProofSpec) (IdentityProof, error) {
 	if spec.AppID == "" {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "wechat appid is required for wechat authentication")
 	}
 	if spec.OpenID == "" {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "wechat openid is required for wechat authentication")
 	}
-	return &WechatOpenCredential{
-		TenantID:  spec.TenantID,
-		RemoteIP:  spec.RemoteIP,
-		UserAgent: spec.UserAgent,
-		AppID:     spec.AppID,
-		OpenID:    spec.OpenID,
-		UnionID:   spec.UnionID,
+	return &WechatOpenProof{
+		AppID:   spec.AppID,
+		OpenID:  spec.OpenID,
+		UnionID: spec.UnionID,
 	}, nil
 }
 
-// ================= 认证策略（执行认证的认证器） ========================
+// ================= 身份核验策略 ========================
 
-// OAuthWechatOpenAuthStrategy 微信开放平台认证策略
+// OAuthWechatOpenAuthStrategy 微信开放平台身份核验策略
 type OAuthWechatOpenAuthStrategy struct {
 	credentialKind CredentialKind
 	identityRepo   LoginIdentityRepository
 }
 
-// 实现认证策略接口
+// 实现身份核验策略接口
 var _ AuthStrategy = (*OAuthWechatOpenAuthStrategy)(nil)
 
-// NewOAuthWechatOpenAuthStrategyWithLoginIdentity 创建微信开放平台认证策略
+// NewOAuthWechatOpenAuthStrategyWithLoginIdentity 创建微信开放平台身份核验策略
 func NewOAuthWechatOpenAuthStrategyWithLoginIdentity(
 	identityRepo LoginIdentityRepository,
 ) *OAuthWechatOpenAuthStrategy {
@@ -78,21 +69,21 @@ func NewOAuthWechatOpenAuthStrategyWithLoginIdentity(
 	}
 }
 
-// Kind 返回认证策略类型
+// Kind 返回身份核验策略类型
 func (o *OAuthWechatOpenAuthStrategy) Kind() CredentialKind {
 	return o.credentialKind
 }
 
 // Authenticate 执行微信开放平台认证
-// 认证流程：
+// 身份核验流程：
 // 1. 按已验证的 openID 查找 LoginIdentity，必要时用 unionID 回退
 // 2. 检查 LoginIdentity 状态
-// 3. 返回认证判决
-func (o *OAuthWechatOpenAuthStrategy) Authenticate(ctx context.Context, credential AuthCredential) (AuthDecision, error) {
+// 3. 返回身份核验决策
+func (o *OAuthWechatOpenAuthStrategy) Authenticate(ctx context.Context, credential IdentityProof) (AuthDecision, error) {
 	// 断言认证凭据类型
-	wechatCred, ok := credential.(*WechatOpenCredential)
+	wechatCred, ok := credential.(*WechatOpenProof)
 	if !ok {
-		return AuthDecision{}, fmt.Errorf("wechat open strategy expects *WechatOpenCredential, got %T", credential)
+		return AuthDecision{}, fmt.Errorf("wechat open strategy expects *WechatOpenProof, got %T", credential)
 	}
 
 	identity := wechatOpenIdentity{openID: wechatCred.OpenID, unionID: wechatCred.UnionID}
@@ -102,7 +93,7 @@ func (o *OAuthWechatOpenAuthStrategy) Authenticate(ctx context.Context, credenti
 	if err != nil {
 		return AuthDecision{}, err
 	}
-	// 如果登录身份不存在，则返回认证失败
+	// 如果登录身份不存在，则返回身份核验失败
 	if lookup == nil || lookup.LoginIdentityID.IsZero() {
 		return AuthDecision{
 			OK:   false,
@@ -119,7 +110,7 @@ func (o *OAuthWechatOpenAuthStrategy) Authenticate(ctx context.Context, credenti
 		return *statusFailure, nil
 	}
 
-	// 构造认证成功决策
+	// 构造身份核验成功决策
 	return o.buildWechatOpenSuccessDecision(ctx, wechatCred, identity, lookup.LoginIdentityID, lookup.UserID, meta.ZeroID), nil
 }
 
@@ -130,7 +121,7 @@ type wechatOpenIdentity struct {
 }
 
 // findWechatOpenIdentity 根据 openID 查找 LoginIdentity，必要时用 unionID 回退。
-func (o *OAuthWechatOpenAuthStrategy) findWechatOpenIdentity(ctx context.Context, credential *WechatOpenCredential, identity wechatOpenIdentity) (*LoginIdentityLookup, error) {
+func (o *OAuthWechatOpenAuthStrategy) findWechatOpenIdentity(ctx context.Context, credential *WechatOpenProof, identity wechatOpenIdentity) (*LoginIdentityLookup, error) {
 	return findWechatIdentityByOpenIDThenUnionID(
 		ctx,
 		o.identityRepo,
@@ -141,21 +132,18 @@ func (o *OAuthWechatOpenAuthStrategy) findWechatOpenIdentity(ctx context.Context
 	)
 }
 
-// buildWechatOpenSuccessDecision 认证成功，构造Principal
-func (o *OAuthWechatOpenAuthStrategy) buildWechatOpenSuccessDecision(ctx context.Context, credential *WechatOpenCredential, identity wechatOpenIdentity, loginIdentityID meta.ID, userID meta.ID, credentialID meta.ID) AuthDecision {
+// buildWechatOpenSuccessDecision 身份核验成功，构造Principal
+func (o *OAuthWechatOpenAuthStrategy) buildWechatOpenSuccessDecision(ctx context.Context, credential *WechatOpenProof, identity wechatOpenIdentity, loginIdentityID meta.ID, userID meta.ID, credentialID meta.ID) AuthDecision {
 	// 构造Principal
 	principal := &Principal{
 		LoginIdentityID: loginIdentityID,
 		UserID:          userID,
-		TenantID:        credential.TenantID,
 	}
 	principal.ApplyAuthContext(NewAuthenticationContext(MethodWechatOpen, credential.AppID, []AMR{AMRWxOpen}, time.Now().UTC()))
 
-	// 返回认证决策
+	// 返回身份核验决策
 	return AuthDecision{
-		OK:              true,
-		Principal:       principal,
-		LoginIdentityID: loginIdentityID,
-		CredentialID:    credentialID,
+		OK:        true,
+		Principal: principal,
 	}
 }

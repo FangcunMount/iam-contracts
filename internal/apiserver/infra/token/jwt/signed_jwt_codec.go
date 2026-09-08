@@ -9,12 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FangcunMount/component-base/pkg/logger"
 	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	pkgauth "github.com/FangcunMount/iam/v4/pkg/auth"
 	jwtv4 "github.com/golang-jwt/jwt/v4"
-	"github.com/google/uuid"
 )
 
 // SigningKey 签名密钥
@@ -39,37 +37,20 @@ type JWSKeySource interface {
 	VerificationKey(ctx context.Context, kid string) (*VerificationKey, error)
 }
 
-// JWSCompactTokenCodec 将 IAM access claims 编码为 JWS Compact Signed JWT，
+// SignedJWTCodec 将 IAM access claims 编码为 JWS Compact Signed JWT，
 // 并把验签通过的 JWT Claims Set 投影为领域事实。
-type JWSCompactTokenCodec struct {
-	issuer              string       // 签发者域名
-	accessTokenAudience []string     // 访问令牌受众
-	keySource           JWSKeySource // JWS 签名与验签密钥源，由 JWSKeySource 接口实现
+type SignedJWTCodec struct {
+	issuer    string       // 签发者域名
+	keySource JWSKeySource // JWS 签名与验签密钥源，由 JWSKeySource 接口实现
 }
 
-// 实现 BearerTokenCodec 接口
-var _ tokendomain.BearerTokenCodec = (*JWSCompactTokenCodec)(nil)
+// 同一个 wire adapter 实现两个独立的密码学能力端口。
+var _ tokendomain.AccessTokenEncoder = (*SignedJWTCodec)(nil)
+var _ tokendomain.AccessTokenSignatureVerifier = (*SignedJWTCodec)(nil)
 
-// NewJWSCompactTokenCodec 创建 Signed JWT 编解码器。
-func NewJWSCompactTokenCodec(
-	issuer string,
-	accessTokenAudience []string,
-	keySource JWSKeySource,
-) *JWSCompactTokenCodec {
-	// 如果签发者域名为空，则使用默认值
-	if issuer == "" {
-		issuer = "https://iam.fangcunmount.cn"
-	}
-	// 如果访问令牌受众为空，则使用默认值
-	if len(accessTokenAudience) == 0 {
-		accessTokenAudience = []string{"qs-api", "collection-api"}
-	}
-	// 创建 JWSCompactTokenCodec
-	return &JWSCompactTokenCodec{
-		issuer:              issuer,
-		accessTokenAudience: cloneStrings(accessTokenAudience), // 克隆访问令牌受众
-		keySource:           keySource,                         // 设置 JWS 签名与验签密钥源
-	}
+// NewSignedJWTCodec 创建 Signed JWT 编解码器。
+func NewSignedJWTCodec(issuer string, keySource JWSKeySource) *SignedJWTCodec {
+	return &SignedJWTCodec{issuer: issuer, keySource: keySource}
 }
 
 // jwtPayloadClaims 是 JWT Payload 的 wire model，不向领域层泄漏。
@@ -79,88 +60,52 @@ type jwtPayloadClaims struct {
 	UserID          string            `json:"user_id,omitempty"`
 	LoginIdentityID string            `json:"login_identity_id,omitempty"`
 	OrgID           string            `json:"org_id,omitempty"`
-	TenantID        string            `json:"tenant_id,omitempty"`
+	TenantDomain    string            `json:"tenant_id,omitempty"`
 	AuthTime        int64             `json:"auth_time,omitempty"`
 	Attributes      map[string]string `json:"attributes,omitempty"`
 	AMR             []string          `json:"amr,omitempty"`
 	jwtv4.RegisteredClaims
 }
 
-// IssueAccessToken 颁发访问令牌
-func (g *JWSCompactTokenCodec) IssueAccessToken(ctx context.Context,
-	subject *tokendomain.AccessTokenIssueContext, expiresIn time.Duration) (*tokendomain.AccessToken, error) {
-	// 记录非敏感标识；subject 中可能包含第三方身份和业务属性。
-	l := logger.L(ctx)
-	l.Debugw("IssueAccessToken", "user_id", subject.UserID.String(), "session_id", subject.SessionID, "expires_in", expiresIn)
-
-	// 准备令牌数据，生成令牌ID
-	now := time.Now()
-	tokenID := uuid.NewString()
-	// 获取登录身份 ID
-	loginIdentityID := subject.LoginIdentityID
-	// 获取组织 ID
-	orgID := strings.TrimSpace(subject.OrgID)
-	// 获取租户域名
-	tenantDomain := strings.TrimSpace(subject.TenantDomain)
-	// 克隆属性
-	attributes := cloneStringMap(subject.Attributes)
-	// 获取认证时间
-	authTimeUnix := int64(0) // 认证时间，单位为秒
-	if !subject.AuthenticatedAt.IsZero() {
-		authTimeUnix = subject.AuthenticatedAt.UTC().Unix()
+// EncodeAccessToken maps domain claims to the JWT wire format and signs them.
+func (g *SignedJWTCodec) EncodeAccessToken(ctx context.Context, claims *tokendomain.AccessTokenClaims) (string, error) {
+	if err := claims.Validate(); err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(g.issuer) == "" || claims.Issuer != g.issuer {
+		return "", fmt.Errorf("unexpected token issuer: %q", claims.Issuer)
+	}
+	attributes := cloneStringMap(claims.Attributes)
+	authTime := int64(0)
+	if !claims.AuthenticatedAt.IsZero() {
+		authTime = claims.AuthenticatedAt.UTC().Unix()
 		if attributes == nil {
 			attributes = map[string]string{}
 		}
-		// 迁移窗口：同时写入 attributes.auth_time，供旧消费者双读。认证时间，单位为秒
-		attributes["auth_time"] = subject.AuthenticatedAt.UTC().Format(time.RFC3339)
+		// Legacy consumers still read the string form during the compatibility window.
+		attributes["auth_time"] = claims.AuthenticatedAt.UTC().Format(time.RFC3339)
 	}
-
-	// 创建 JWT 声明
-	claims := jwtPayloadClaims{
-		TokenType:       string(tokendomain.TokenTypeAccess), // 令牌类型
-		SessionID:       subject.SessionID,                   // 会话 ID
-		UserID:          subject.UserID.String(),             // 用户 ID
-		LoginIdentityID: loginIdentityID.String(),            // 登录身份 ID
-		OrgID:           orgID,                               // 组织 ID
-		TenantID:        tenantDomain,                        // 租户域名
-		AuthTime:        authTimeUnix,                        // 认证时间，单位为秒
-		Attributes:      attributes,                          // 属性
-		AMR:             cloneStrings(subject.AMR),           // 认证方法
+	orgID := ""
+	if !claims.OrgID.IsZero() {
+		orgID = claims.OrgID.String()
+	}
+	return g.signClaims(ctx, jwtPayloadClaims{
+		TokenType: string(claims.TokenType), SessionID: claims.SessionID,
+		UserID: claims.UserID.String(), LoginIdentityID: claims.LoginIdentityID.String(),
+		OrgID: orgID, TenantDomain: claims.TenantDomain, AuthTime: authTime,
+		Attributes: attributes, AMR: cloneStrings(claims.AMR),
 		RegisteredClaims: jwtv4.RegisteredClaims{
-			ID:        tokenID,                                                 // 令牌ID
-			Subject:   subject.UserID.String(),                                 // 主体
-			Issuer:    g.issuer,                                                // 签发者域名
-			Audience:  jwtv4.ClaimStrings(cloneStrings(g.accessTokenAudience)), // 受众
-			IssuedAt:  jwtv4.NewNumericDate(now),                               // 颁发时间
-			ExpiresAt: jwtv4.NewNumericDate(now.Add(expiresIn)),                // 过期时间
-			NotBefore: jwtv4.NewNumericDate(now),                               // 生效时间
+			ID: claims.TokenID, Subject: claims.Subject, Issuer: claims.Issuer,
+			Audience:  jwtv4.ClaimStrings(cloneStrings(claims.Audience)),
+			IssuedAt:  jwtv4.NewNumericDate(claims.IssuedAt),
+			NotBefore: jwtv4.NewNumericDate(claims.NotBefore), ExpiresAt: jwtv4.NewNumericDate(claims.ExpiresAt),
 		},
-	}
-
-	// 签名 JWT
-	tokenString, err := g.signClaims(ctx, claims)
-	if err != nil {
-		return nil, err
-	}
-
-	// 创建访问令牌
-	token := tokendomain.NewAccessToken(
-		tokenID,
-		tokenString,
-		subject.SessionID,
-		subject.UserID,
-		loginIdentityID,
-		subject.TenantID,
-		expiresIn,
-	)
-	// 设置登录身份 ID
-	token.LoginIdentityID = loginIdentityID
-	return token, nil
+	})
 }
 
-// VerifyBearerToken 验证 access bearer token。
+// VerifySignatureAndClaims 验证 access bearer token。
 
-func (g *JWSCompactTokenCodec) VerifyBearerToken(ctx context.Context, tokenValue string) (*tokendomain.VerifiedTokenClaims, error) {
+func (g *SignedJWTCodec) VerifySignatureAndClaims(ctx context.Context, tokenValue string) (*tokendomain.AccessTokenClaims, error) {
 	// 解析 JWT
 	parsed, err := jwtv4.ParseWithClaims(tokenValue, &jwtPayloadClaims{},
 		func(token *jwtv4.Token) (interface{}, error) {
@@ -233,7 +178,7 @@ func (g *JWSCompactTokenCodec) VerifyBearerToken(ctx context.Context, tokenValue
 	// 解析组织 ID
 	orgID := parseStringID(claims.OrgID)
 	// 解析租户 ID
-	tenantDomain, _ := parseTenantIDClaim(claims.TenantID)
+	tenantDomain, _ := parseTenantIDClaim(claims.TenantDomain)
 	attributes := cloneStringMap(claims.Attributes)
 	authTime := time.Time{}
 	if claims.AuthTime > 0 {
@@ -252,7 +197,7 @@ func (g *JWSCompactTokenCodec) VerifyBearerToken(ctx context.Context, tokenValue
 	}
 
 	// 构造并校验令牌事实
-	verified := tokendomain.VerifiedTokenClaims{
+	verified := tokendomain.AccessTokenClaims{
 		TokenID: claims.ID, TokenType: tokenType, Subject: claims.Subject, SessionID: claims.SessionID,
 		UserID: parseStringID(claims.UserID), LoginIdentityID: loginIdentityID,
 		OrgID: orgID, TenantDomain: tenantDomain, Issuer: claims.Issuer,
@@ -260,12 +205,12 @@ func (g *JWSCompactTokenCodec) VerifyBearerToken(ctx context.Context, tokenValue
 		AuthenticatedAt: authTime, IssuedAt: numericDateTime(claims.IssuedAt),
 		NotBefore: numericDateTime(claims.NotBefore), ExpiresAt: numericDateTime(claims.ExpiresAt),
 	}
-	return tokendomain.NewVerifiedUserTokenClaims(verified)
+	return tokendomain.NewAccessTokenClaims(verified)
 }
 
 // signClaims 签名 JWT 声明
 
-func (g *JWSCompactTokenCodec) signClaims(ctx context.Context, claims jwtPayloadClaims) (string, error) {
+func (g *SignedJWTCodec) signClaims(ctx context.Context, claims jwtPayloadClaims) (string, error) {
 	// 获取活动签名密钥
 	key, err := g.keySource.ActiveSigningKey(ctx)
 	if err != nil {

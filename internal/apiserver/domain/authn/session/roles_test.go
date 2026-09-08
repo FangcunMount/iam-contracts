@@ -58,9 +58,8 @@ func TestCreatorCreateCapsInitialExpiryBySessionMaxTTL(t *testing.T) {
 	session, err := creator.Create(context.Background(), &authentication.Principal{
 		UserID:          meta.FromUint64(1),
 		LoginIdentityID: meta.FromUint64(2),
-		TenantID:        meta.FromUint64(3),
 		AuthContext:     authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, now),
-	}, TokenContext{})
+	}, CreationContext{RequestedTenantID: meta.FromUint64(3)})
 
 	require.NoError(t, err)
 	require.NotNil(t, session)
@@ -153,7 +152,7 @@ func TestCreatorPreservesIndependentTokenContextSnapshot(t *testing.T) {
 	creator := NewCreator(store, NewLifetimePolicy(time.Hour, 24*time.Hour))
 	principal := &authentication.Principal{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2)}
 	tokenContext := TokenContext{TenantDomain: "domain", OrgID: meta.FromUint64(3), Attributes: map[string]string{"key": "value"}}
-	sess, err := creator.Create(context.Background(), principal, tokenContext)
+	sess, err := creator.Create(context.Background(), principal, CreationContext{TokenContext: tokenContext})
 	require.NoError(t, err)
 	require.Equal(t, tokenContext, sess.TokenContext)
 	tokenContext.Attributes["key"] = "changed"

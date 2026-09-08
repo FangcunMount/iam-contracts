@@ -39,12 +39,15 @@ func NewRecorder(deps Dependencies) Recorder {
 
 // Record 记录长期 Credential 的认证生命周期状态。
 func (r *recorder) Record(ctx context.Context, decision authentication.AuthDecision) error {
-	if r == nil || r.deps.Credentials == nil || decision.CredentialID.IsZero() {
+	if err := decision.CredentialUpdate.Validate(decision.OK); err != nil {
+		return perrors.WrapC(err, code.ErrInternalServerError, "invalid credential update")
+	}
+	if r == nil || r.deps.Credentials == nil || decision.CredentialUpdate == nil {
 		return nil
 	}
-	switch decision.CredentialEffect {
+	switch decision.CredentialUpdate.Effect {
 	case authentication.CredentialEffectRecordFailure:
-		return r.recordFailure(ctx, decision.CredentialID, r.now())
+		return r.recordFailure(ctx, decision.CredentialUpdate.CredentialID, r.now())
 	case authentication.CredentialEffectRecordSuccess:
 		return r.recordSuccess(ctx, decision)
 	default:
@@ -52,16 +55,12 @@ func (r *recorder) Record(ctx context.Context, decision authentication.AuthDecis
 	}
 }
 
-// recordSuccess 记录认证成功状态。
+// recordSuccess 记录身份核验成功状态。
 func (r *recorder) recordSuccess(ctx context.Context, decision authentication.AuthDecision) error {
-	// 凭据材料是否需要轮换
-	var rotation *credDomain.MaterialRotation
-	if decision.ShouldRotate && len(decision.NewMaterial) > 0 {
-		rotation = &credDomain.MaterialRotation{Material: decision.NewMaterial, Algo: decision.NewAlgo}
-	}
+	rotation := decision.CredentialUpdate.Rotation
 
 	// 创建成功迁移
-	transition := credDomain.NewSuccessTransition(decision.CredentialID, r.now(), rotation)
+	transition := credDomain.NewSuccessTransition(decision.CredentialUpdate.CredentialID, r.now(), rotation)
 
 	// 应用成功迁移
 	_, err := r.deps.Credentials.ApplyAuthenticationTransition(ctx, transition)
@@ -76,7 +75,7 @@ func (r *recorder) recordSuccess(ctx context.Context, decision authentication.Au
 	return nil
 }
 
-// recordFailure 记录认证失败状态。
+// recordFailure 记录身份核验失败状态。
 func (r *recorder) recordFailure(ctx context.Context, credentialID meta.ID, now time.Time) error {
 	transition := credDomain.NewFailureTransition(credentialID, now, r.deps.LockoutPolicy)
 	state, err := r.deps.Credentials.ApplyAuthenticationTransition(ctx, transition)
