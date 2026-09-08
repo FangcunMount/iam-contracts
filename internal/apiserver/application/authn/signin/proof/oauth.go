@@ -4,12 +4,12 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authnexternal "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/externalidentity"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/signin/method"
-	idpresolver "github.com/FangcunMount/iam/v3/internal/apiserver/application/idp/externalidentity"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
-	idpidentity "github.com/FangcunMount/iam/v3/internal/apiserver/domain/idp/externalidentity"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	authnexternal "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/externalidentity"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
+	idpresolver "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	idpidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/externalidentity"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 // wechatBuilder 微信小程序登录方式构造器

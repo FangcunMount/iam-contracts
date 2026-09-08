@@ -11,13 +11,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"
 
-	tokenapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/token"
-	appquery "github.com/FangcunMount/iam/v3/internal/apiserver/application/suggest/queryprofile"
-	authhandler "github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/authn/handler"
-	authzhandler "github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/authz/handler"
-	uchandler "github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/identity/handler"
-	idphandler "github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/idp/handler"
-	genericapiserver "github.com/FangcunMount/iam/v3/internal/pkg/server"
+	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
+	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
+	authhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/handler"
+	authzhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/handler"
+	uchandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/identity/handler"
+	idphandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/idp/handler"
+	genericapiserver "github.com/FangcunMount/iam/v4/internal/pkg/server"
 )
 
 func TestRouterRouteMatrixIncludesKeyPaths(t *testing.T) {

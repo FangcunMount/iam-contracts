@@ -1,8 +1,8 @@
 package keyset
 
 import (
-	appjwks "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/jwks"
-	appsigningkey "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/signingkey"
+	appjwks "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/jwks"
+	appsigningkey "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signingkey"
 )
 
 func keyStatusFromString(status string) KeyStatus {

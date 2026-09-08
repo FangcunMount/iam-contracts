@@ -31,7 +31,7 @@ type TokenClaims struct {
 	NotBefore       time.Time         `json:"not_before"`                 // 生效时间
 	ExpiresAt       time.Time         `json:"expires_at"`                 // 过期时间
 	AuthenticatedAt time.Time         `json:"authenticated_at,omitempty"` // 原始认证时间
-	TokenType       string            `json:"token_type"`                 // access/service
+	TokenType       string            `json:"token_type"`                 // access
 	JTI             string            `json:"jti,omitempty"`              // JWT ID（可选）
 	Amr             []string          `json:"amr,omitempty"`
 	Attributes      map[string]string `json:"attributes,omitempty"`

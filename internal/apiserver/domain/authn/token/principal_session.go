@@ -6,12 +6,12 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v3/internal/pkg/authnclaims"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v3/pkg/tenant"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v4/internal/pkg/authnclaims"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/pkg/tenant"
 )
 
 // validatePrincipalSessionAlignment 验证 principal 和 session 是否对齐
@@ -54,40 +54,54 @@ func resolveMintTenantID(principal *authentication.Principal, sess *sessiondomai
 // accessTokenSubjectFromAuth 从认证结果中生成访问令牌主体。
 // 授权域只来自显式 TokenContext，不再用 Realm 兜底。
 func accessTokenSubjectFromAuth(principal *authentication.Principal, sess *sessiondomain.Session) *AccessTokenSubject {
+	// 克隆认证上下文
 	tokenContext := principal.TokenContext.Clone()
+	// 如果会话存在，则使用会话的认证上下文
 	if sess != nil {
 		if tokenContext.TenantDomain == "" {
 			tokenContext.TenantDomain = sess.TokenContext.TenantDomain
 		}
+		// 如果授权域ID为空，则使用会话的授权域ID
 		if tokenContext.OrgID.IsZero() {
 			tokenContext.OrgID = sess.TokenContext.OrgID
 		}
+		// 如果属性为空，则使用会话的属性
 		if len(tokenContext.Attributes) == 0 {
 			tokenContext.Attributes = sess.TokenContext.Clone().Attributes
 		}
 	}
+	// 如果授权域域名为空，则使用默认域名
 	if tokenContext.TenantDomain == "" {
 		tokenContext.TenantDomain = tenant.DefaultID
 	}
+	// 获取认证时间
 	authenticatedAt := principal.AuthContext.AuthenticatedAt
+	// 获取会话ID
 	sessionID := ""
 	if sess != nil {
 		sessionID = sess.SessionID
+		// 如果认证时间为空，则使用会话的认证时间
 		if authenticatedAt.IsZero() {
 			authenticatedAt = sess.AuthContext.AuthenticatedAt
 		}
+		// 如果认证时间为空，则使用会话的创建时间
 		if authenticatedAt.IsZero() {
 			authenticatedAt = sess.CreatedAt
 		}
 	}
+	// 获取认证方法
 	amr := principal.AuthContext.AMRStrings()
+	// 如果认证方法为空，则使用会话的认证方法
 	if len(amr) == 0 && sess != nil {
 		amr = sess.AuthContext.AMRStrings()
 	}
+	// 获取授权域ID
 	orgID := ""
 	if !tokenContext.OrgID.IsZero() {
 		orgID = tokenContext.OrgID.String()
 	}
+
+	// 返回访问令牌主体
 	return &AccessTokenSubject{
 		UserID:          principal.UserID,
 		LoginIdentityID: principal.LoginIdentityID,

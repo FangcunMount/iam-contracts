@@ -18,7 +18,7 @@ api/grpc/iam/
 
 | Proto | Service | 当前能力 |
 | ---- | ---- | ---- |
-| [iam/authn/v2/authn.proto](iam/authn/v2/authn.proto) | `AuthService` | Login、VerifyToken、RefreshToken、RevokeToken、RevokeRefreshToken、IssueServiceToken |
+| [iam/authn/v2/authn.proto](iam/authn/v2/authn.proto) | `AuthService` | Login、VerifyToken、RefreshToken、RevokeToken、RevokeRefreshToken |
 | [iam/authn/v2/authn.proto](iam/authn/v2/authn.proto) | `AuthSignupService` | SignUpWithWechatMiniProgram |
 | [iam/authn/v2/authn.proto](iam/authn/v2/authn.proto) | `AuthChallengeService` | SendLoginPhoneOTP |
 | [iam/authn/v2/authn.proto](iam/authn/v2/authn.proto) | `LoginIdentityService` | ListLoginIdentities、SendPhoneLinkChallenge、LinkPhone、LinkWechatMiniProgram、LinkWecom、UnlinkLoginIdentity |
@@ -33,8 +33,8 @@ api/grpc/iam/
 
 ## 安全与 metadata
 
-- gRPC 配置在 `process` 层装配，支持 mTLS、service token、ACL 和 audit。
-- 调用方传 `authorization: Bearer <service-token>`；服务端也可结合 mTLS 身份与 ACL 判断调用边界。
+- gRPC 配置在 `process` 层装配，使用 mTLS、ACL 和 audit。
+- 服务身份来自经过验证的 mTLS 证书；ACL 校验方法权限，随后进行业务授权。服务调用无需服务 Bearer。
 - 建议所有调用传 `x-request-id`，便于日志和 trace 对齐。
 
 ## Identity 关系术语
@@ -45,7 +45,6 @@ api/grpc/iam/
 
 ```go
 ctx = metadata.AppendToOutgoingContext(ctx,
-    "authorization", "Bearer "+serviceToken,
     "x-request-id", requestID,
 )
 

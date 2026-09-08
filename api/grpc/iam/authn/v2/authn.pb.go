@@ -82,7 +82,6 @@ const (
 	TokenType_TOKEN_TYPE_UNSPECIFIED TokenType = 0
 	TokenType_TOKEN_TYPE_ACCESS      TokenType = 1
 	TokenType_TOKEN_TYPE_REFRESH     TokenType = 2
-	TokenType_TOKEN_TYPE_SERVICE     TokenType = 3
 )
 
 // Enum value maps for TokenType.
@@ -91,13 +90,11 @@ var (
 		0: "TOKEN_TYPE_UNSPECIFIED",
 		1: "TOKEN_TYPE_ACCESS",
 		2: "TOKEN_TYPE_REFRESH",
-		3: "TOKEN_TYPE_SERVICE",
 	}
 	TokenType_value = map[string]int32{
 		"TOKEN_TYPE_UNSPECIFIED": 0,
 		"TOKEN_TYPE_ACCESS":      1,
 		"TOKEN_TYPE_REFRESH":     2,
-		"TOKEN_TYPE_SERVICE":     3,
 	}
 )
 
@@ -1048,126 +1045,6 @@ func (*RevokeRefreshTokenResponse) Descriptor() ([]byte, []int) {
 	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{13}
 }
 
-type IssueServiceTokenRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Subject       string                 `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
-	Audience      []string               `protobuf:"bytes,2,rep,name=audience,proto3" json:"audience,omitempty"`
-	Ttl           *durationpb.Duration   `protobuf:"bytes,3,opt,name=ttl,proto3" json:"ttl,omitempty"`
-	Operator      *OperatorContext       `protobuf:"bytes,10,opt,name=operator,proto3" json:"operator,omitempty"`
-	Attributes    *structpb.Struct       `protobuf:"bytes,20,opt,name=attributes,proto3" json:"attributes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *IssueServiceTokenRequest) Reset() {
-	*x = IssueServiceTokenRequest{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *IssueServiceTokenRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IssueServiceTokenRequest) ProtoMessage() {}
-
-func (x *IssueServiceTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[14]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IssueServiceTokenRequest.ProtoReflect.Descriptor instead.
-func (*IssueServiceTokenRequest) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{14}
-}
-
-func (x *IssueServiceTokenRequest) GetSubject() string {
-	if x != nil {
-		return x.Subject
-	}
-	return ""
-}
-
-func (x *IssueServiceTokenRequest) GetAudience() []string {
-	if x != nil {
-		return x.Audience
-	}
-	return nil
-}
-
-func (x *IssueServiceTokenRequest) GetTtl() *durationpb.Duration {
-	if x != nil {
-		return x.Ttl
-	}
-	return nil
-}
-
-func (x *IssueServiceTokenRequest) GetOperator() *OperatorContext {
-	if x != nil {
-		return x.Operator
-	}
-	return nil
-}
-
-func (x *IssueServiceTokenRequest) GetAttributes() *structpb.Struct {
-	if x != nil {
-		return x.Attributes
-	}
-	return nil
-}
-
-type IssueServiceTokenResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TokenPair     *TokenPair             `protobuf:"bytes,1,opt,name=token_pair,json=tokenPair,proto3" json:"token_pair,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *IssueServiceTokenResponse) Reset() {
-	*x = IssueServiceTokenResponse{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *IssueServiceTokenResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IssueServiceTokenResponse) ProtoMessage() {}
-
-func (x *IssueServiceTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IssueServiceTokenResponse.ProtoReflect.Descriptor instead.
-func (*IssueServiceTokenResponse) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *IssueServiceTokenResponse) GetTokenPair() *TokenPair {
-	if x != nil {
-		return x.TokenPair
-	}
-	return nil
-}
-
 type SignupCredential struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1178,7 +1055,7 @@ type SignupCredential struct {
 
 func (x *SignupCredential) Reset() {
 	*x = SignupCredential{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[16]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1190,7 +1067,7 @@ func (x *SignupCredential) String() string {
 func (*SignupCredential) ProtoMessage() {}
 
 func (x *SignupCredential) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[16]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1203,7 +1080,7 @@ func (x *SignupCredential) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SignupCredential.ProtoReflect.Descriptor instead.
 func (*SignupCredential) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{16}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SignupCredential) GetId() string {
@@ -1236,7 +1113,7 @@ type SignUpWithWechatMiniProgramRequest struct {
 
 func (x *SignUpWithWechatMiniProgramRequest) Reset() {
 	*x = SignUpWithWechatMiniProgramRequest{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[17]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1248,7 +1125,7 @@ func (x *SignUpWithWechatMiniProgramRequest) String() string {
 func (*SignUpWithWechatMiniProgramRequest) ProtoMessage() {}
 
 func (x *SignUpWithWechatMiniProgramRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[17]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1261,7 +1138,7 @@ func (x *SignUpWithWechatMiniProgramRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use SignUpWithWechatMiniProgramRequest.ProtoReflect.Descriptor instead.
 func (*SignUpWithWechatMiniProgramRequest) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{17}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SignUpWithWechatMiniProgramRequest) GetName() string {
@@ -1336,7 +1213,7 @@ type SignupResult struct {
 
 func (x *SignupResult) Reset() {
 	*x = SignupResult{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[18]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1348,7 +1225,7 @@ func (x *SignupResult) String() string {
 func (*SignupResult) ProtoMessage() {}
 
 func (x *SignupResult) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[18]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1361,7 +1238,7 @@ func (x *SignupResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SignupResult.ProtoReflect.Descriptor instead.
 func (*SignupResult) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{18}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SignupResult) GetUserId() string {
@@ -1429,7 +1306,7 @@ type SendLoginPhoneOTPRequest struct {
 
 func (x *SendLoginPhoneOTPRequest) Reset() {
 	*x = SendLoginPhoneOTPRequest{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[19]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1441,7 +1318,7 @@ func (x *SendLoginPhoneOTPRequest) String() string {
 func (*SendLoginPhoneOTPRequest) ProtoMessage() {}
 
 func (x *SendLoginPhoneOTPRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[19]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1454,7 +1331,7 @@ func (x *SendLoginPhoneOTPRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendLoginPhoneOTPRequest.ProtoReflect.Descriptor instead.
 func (*SendLoginPhoneOTPRequest) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{19}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SendLoginPhoneOTPRequest) GetPhone() string {
@@ -1473,7 +1350,7 @@ type MessageResponse struct {
 
 func (x *MessageResponse) Reset() {
 	*x = MessageResponse{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[20]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1485,7 +1362,7 @@ func (x *MessageResponse) String() string {
 func (*MessageResponse) ProtoMessage() {}
 
 func (x *MessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[20]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1498,7 +1375,7 @@ func (x *MessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageResponse.ProtoReflect.Descriptor instead.
 func (*MessageResponse) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{20}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *MessageResponse) GetMessage() string {
@@ -1519,7 +1396,7 @@ type AuthenticatedUserContext struct {
 
 func (x *AuthenticatedUserContext) Reset() {
 	*x = AuthenticatedUserContext{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[21]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1531,7 +1408,7 @@ func (x *AuthenticatedUserContext) String() string {
 func (*AuthenticatedUserContext) ProtoMessage() {}
 
 func (x *AuthenticatedUserContext) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[21]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1544,7 +1421,7 @@ func (x *AuthenticatedUserContext) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthenticatedUserContext.ProtoReflect.Descriptor instead.
 func (*AuthenticatedUserContext) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{21}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *AuthenticatedUserContext) GetUserId() string {
@@ -1585,7 +1462,7 @@ type LoginIdentity struct {
 
 func (x *LoginIdentity) Reset() {
 	*x = LoginIdentity{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[22]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1597,7 +1474,7 @@ func (x *LoginIdentity) String() string {
 func (*LoginIdentity) ProtoMessage() {}
 
 func (x *LoginIdentity) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[22]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1610,7 +1487,7 @@ func (x *LoginIdentity) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginIdentity.ProtoReflect.Descriptor instead.
 func (*LoginIdentity) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{22}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *LoginIdentity) GetId() string {
@@ -1685,7 +1562,7 @@ type ListLoginIdentitiesRequest struct {
 
 func (x *ListLoginIdentitiesRequest) Reset() {
 	*x = ListLoginIdentitiesRequest{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[23]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1697,7 +1574,7 @@ func (x *ListLoginIdentitiesRequest) String() string {
 func (*ListLoginIdentitiesRequest) ProtoMessage() {}
 
 func (x *ListLoginIdentitiesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[23]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1710,7 +1587,7 @@ func (x *ListLoginIdentitiesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLoginIdentitiesRequest.ProtoReflect.Descriptor instead.
 func (*ListLoginIdentitiesRequest) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{23}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListLoginIdentitiesRequest) GetActor() *AuthenticatedUserContext {
@@ -1729,7 +1606,7 @@ type ListLoginIdentitiesResponse struct {
 
 func (x *ListLoginIdentitiesResponse) Reset() {
 	*x = ListLoginIdentitiesResponse{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[24]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1741,7 +1618,7 @@ func (x *ListLoginIdentitiesResponse) String() string {
 func (*ListLoginIdentitiesResponse) ProtoMessage() {}
 
 func (x *ListLoginIdentitiesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[24]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1754,7 +1631,7 @@ func (x *ListLoginIdentitiesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLoginIdentitiesResponse.ProtoReflect.Descriptor instead.
 func (*ListLoginIdentitiesResponse) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{24}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ListLoginIdentitiesResponse) GetItems() []*LoginIdentity {
@@ -1774,7 +1651,7 @@ type SendPhoneLinkChallengeRequest struct {
 
 func (x *SendPhoneLinkChallengeRequest) Reset() {
 	*x = SendPhoneLinkChallengeRequest{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[25]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1786,7 +1663,7 @@ func (x *SendPhoneLinkChallengeRequest) String() string {
 func (*SendPhoneLinkChallengeRequest) ProtoMessage() {}
 
 func (x *SendPhoneLinkChallengeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[25]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1799,7 +1676,7 @@ func (x *SendPhoneLinkChallengeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendPhoneLinkChallengeRequest.ProtoReflect.Descriptor instead.
 func (*SendPhoneLinkChallengeRequest) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{25}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *SendPhoneLinkChallengeRequest) GetActor() *AuthenticatedUserContext {
@@ -1827,7 +1704,7 @@ type LinkPhoneRequest struct {
 
 func (x *LinkPhoneRequest) Reset() {
 	*x = LinkPhoneRequest{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[26]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1839,7 +1716,7 @@ func (x *LinkPhoneRequest) String() string {
 func (*LinkPhoneRequest) ProtoMessage() {}
 
 func (x *LinkPhoneRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[26]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1852,7 +1729,7 @@ func (x *LinkPhoneRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkPhoneRequest.ProtoReflect.Descriptor instead.
 func (*LinkPhoneRequest) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{26}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *LinkPhoneRequest) GetActor() *AuthenticatedUserContext {
@@ -1887,7 +1764,7 @@ type LinkWechatMiniProgramRequest struct {
 
 func (x *LinkWechatMiniProgramRequest) Reset() {
 	*x = LinkWechatMiniProgramRequest{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[27]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1899,7 +1776,7 @@ func (x *LinkWechatMiniProgramRequest) String() string {
 func (*LinkWechatMiniProgramRequest) ProtoMessage() {}
 
 func (x *LinkWechatMiniProgramRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[27]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1912,7 +1789,7 @@ func (x *LinkWechatMiniProgramRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkWechatMiniProgramRequest.ProtoReflect.Descriptor instead.
 func (*LinkWechatMiniProgramRequest) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{27}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *LinkWechatMiniProgramRequest) GetActor() *AuthenticatedUserContext {
@@ -1947,7 +1824,7 @@ type LinkWecomRequest struct {
 
 func (x *LinkWecomRequest) Reset() {
 	*x = LinkWecomRequest{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[28]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1959,7 +1836,7 @@ func (x *LinkWecomRequest) String() string {
 func (*LinkWecomRequest) ProtoMessage() {}
 
 func (x *LinkWecomRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[28]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1972,7 +1849,7 @@ func (x *LinkWecomRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkWecomRequest.ProtoReflect.Descriptor instead.
 func (*LinkWecomRequest) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{28}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *LinkWecomRequest) GetActor() *AuthenticatedUserContext {
@@ -2006,7 +1883,7 @@ type UnlinkLoginIdentityRequest struct {
 
 func (x *UnlinkLoginIdentityRequest) Reset() {
 	*x = UnlinkLoginIdentityRequest{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[29]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2018,7 +1895,7 @@ func (x *UnlinkLoginIdentityRequest) String() string {
 func (*UnlinkLoginIdentityRequest) ProtoMessage() {}
 
 func (x *UnlinkLoginIdentityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[29]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2031,7 +1908,7 @@ func (x *UnlinkLoginIdentityRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnlinkLoginIdentityRequest.ProtoReflect.Descriptor instead.
 func (*UnlinkLoginIdentityRequest) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{29}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *UnlinkLoginIdentityRequest) GetActor() *AuthenticatedUserContext {
@@ -2058,7 +1935,7 @@ type LinkLoginIdentityResponse struct {
 
 func (x *LinkLoginIdentityResponse) Reset() {
 	*x = LinkLoginIdentityResponse{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[30]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2070,7 +1947,7 @@ func (x *LinkLoginIdentityResponse) String() string {
 func (*LinkLoginIdentityResponse) ProtoMessage() {}
 
 func (x *LinkLoginIdentityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[30]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2083,7 +1960,7 @@ func (x *LinkLoginIdentityResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkLoginIdentityResponse.ProtoReflect.Descriptor instead.
 func (*LinkLoginIdentityResponse) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{30}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *LinkLoginIdentityResponse) GetLoginIdentity() *LoginIdentity {
@@ -2108,7 +1985,7 @@ type GetJWKSRequest struct {
 
 func (x *GetJWKSRequest) Reset() {
 	*x = GetJWKSRequest{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[31]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2120,7 +1997,7 @@ func (x *GetJWKSRequest) String() string {
 func (*GetJWKSRequest) ProtoMessage() {}
 
 func (x *GetJWKSRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[31]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2133,7 +2010,7 @@ func (x *GetJWKSRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetJWKSRequest.ProtoReflect.Descriptor instead.
 func (*GetJWKSRequest) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{31}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{29}
 }
 
 type GetJWKSResponse struct {
@@ -2147,7 +2024,7 @@ type GetJWKSResponse struct {
 
 func (x *GetJWKSResponse) Reset() {
 	*x = GetJWKSResponse{}
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[32]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2159,7 +2036,7 @@ func (x *GetJWKSResponse) String() string {
 func (*GetJWKSResponse) ProtoMessage() {}
 
 func (x *GetJWKSResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_iam_authn_v2_authn_proto_msgTypes[32]
+	mi := &file_iam_authn_v2_authn_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2172,7 +2049,7 @@ func (x *GetJWKSResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetJWKSResponse.ProtoReflect.Descriptor instead.
 func (*GetJWKSResponse) Descriptor() ([]byte, []int) {
-	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{32}
+	return file_iam_authn_v2_authn_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetJWKSResponse) GetJwks() []byte {
@@ -2294,19 +2171,7 @@ const file_iam_authn_v2_authn_proto_rawDesc = "" +
 	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\x129\n" +
 	"\boperator\x18\n" +
 	" \x01(\v2\x1d.iam.authn.v2.OperatorContextR\boperator\"\x1c\n" +
-	"\x1aRevokeRefreshTokenResponse\"\xf1\x01\n" +
-	"\x18IssueServiceTokenRequest\x12\x18\n" +
-	"\asubject\x18\x01 \x01(\tR\asubject\x12\x1a\n" +
-	"\baudience\x18\x02 \x03(\tR\baudience\x12+\n" +
-	"\x03ttl\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\x03ttl\x129\n" +
-	"\boperator\x18\n" +
-	" \x01(\v2\x1d.iam.authn.v2.OperatorContextR\boperator\x127\n" +
-	"\n" +
-	"attributes\x18\x14 \x01(\v2\x17.google.protobuf.StructR\n" +
-	"attributes\"S\n" +
-	"\x19IssueServiceTokenResponse\x126\n" +
-	"\n" +
-	"token_pair\x18\x01 \x01(\v2\x17.iam.authn.v2.TokenPairR\ttokenPair\"6\n" +
+	"\x1aRevokeRefreshTokenResponse\"6\n" +
 	"\x10SignupCredential\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\"\xd1\x02\n" +
@@ -2388,19 +2253,17 @@ const file_iam_authn_v2_authn_proto_rawDesc = "" +
 	"\x18TOKEN_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12TOKEN_STATUS_VALID\x10\x01\x12\x18\n" +
 	"\x14TOKEN_STATUS_REVOKED\x10\x02\x12\x18\n" +
-	"\x14TOKEN_STATUS_EXPIRED\x10\x03*n\n" +
+	"\x14TOKEN_STATUS_EXPIRED\x10\x03*p\n" +
 	"\tTokenType\x12\x1a\n" +
 	"\x16TOKEN_TYPE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11TOKEN_TYPE_ACCESS\x10\x01\x12\x16\n" +
-	"\x12TOKEN_TYPE_REFRESH\x10\x02\x12\x16\n" +
-	"\x12TOKEN_TYPE_SERVICE\x10\x032\x9d\x04\n" +
+	"\x12TOKEN_TYPE_REFRESH\x10\x02\"\x04\b\x03\x10\x03*\x12TOKEN_TYPE_SERVICE2\xb7\x03\n" +
 	"\vAuthService\x12@\n" +
 	"\x05Login\x12\x1a.iam.authn.v2.LoginRequest\x1a\x1b.iam.authn.v2.LoginResponse\x12R\n" +
 	"\vVerifyToken\x12 .iam.authn.v2.VerifyTokenRequest\x1a!.iam.authn.v2.VerifyTokenResponse\x12U\n" +
 	"\fRefreshToken\x12!.iam.authn.v2.RefreshTokenRequest\x1a\".iam.authn.v2.RefreshTokenResponse\x12R\n" +
 	"\vRevokeToken\x12 .iam.authn.v2.RevokeTokenRequest\x1a!.iam.authn.v2.RevokeTokenResponse\x12g\n" +
-	"\x12RevokeRefreshToken\x12'.iam.authn.v2.RevokeRefreshTokenRequest\x1a(.iam.authn.v2.RevokeRefreshTokenResponse\x12d\n" +
-	"\x11IssueServiceToken\x12&.iam.authn.v2.IssueServiceTokenRequest\x1a'.iam.authn.v2.IssueServiceTokenResponse2\x80\x01\n" +
+	"\x12RevokeRefreshToken\x12'.iam.authn.v2.RevokeRefreshTokenRequest\x1a(.iam.authn.v2.RevokeRefreshTokenResponse2\x80\x01\n" +
 	"\x11AuthSignupService\x12k\n" +
 	"\x1bSignUpWithWechatMiniProgram\x120.iam.authn.v2.SignUpWithWechatMiniProgramRequest\x1a\x1a.iam.authn.v2.SignupResult2r\n" +
 	"\x14AuthChallengeService\x12Z\n" +
@@ -2413,7 +2276,7 @@ const file_iam_authn_v2_authn_proto_rawDesc = "" +
 	"\tLinkWecom\x12\x1e.iam.authn.v2.LinkWecomRequest\x1a'.iam.authn.v2.LinkLoginIdentityResponse\x12^\n" +
 	"\x13UnlinkLoginIdentity\x12(.iam.authn.v2.UnlinkLoginIdentityRequest\x1a\x1d.iam.authn.v2.MessageResponse2U\n" +
 	"\vJWKSService\x12F\n" +
-	"\aGetJWKS\x12\x1c.iam.authn.v2.GetJWKSRequest\x1a\x1d.iam.authn.v2.GetJWKSResponseB>Z<github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2;authnv2b\x06proto3"
+	"\aGetJWKS\x12\x1c.iam.authn.v2.GetJWKSRequest\x1a\x1d.iam.authn.v2.GetJWKSResponseB>Z<github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2;authnv2b\x06proto3"
 
 var (
 	file_iam_authn_v2_authn_proto_rawDescOnce sync.Once
@@ -2428,7 +2291,7 @@ func file_iam_authn_v2_authn_proto_rawDescGZIP() []byte {
 }
 
 var file_iam_authn_v2_authn_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_iam_authn_v2_authn_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
+var file_iam_authn_v2_authn_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_iam_authn_v2_authn_proto_goTypes = []any{
 	(TokenStatus)(0),                           // 0: iam.authn.v2.TokenStatus
 	(TokenType)(0),                             // 1: iam.authn.v2.TokenType
@@ -2446,109 +2309,101 @@ var file_iam_authn_v2_authn_proto_goTypes = []any{
 	(*RevokeTokenResponse)(nil),                // 13: iam.authn.v2.RevokeTokenResponse
 	(*RevokeRefreshTokenRequest)(nil),          // 14: iam.authn.v2.RevokeRefreshTokenRequest
 	(*RevokeRefreshTokenResponse)(nil),         // 15: iam.authn.v2.RevokeRefreshTokenResponse
-	(*IssueServiceTokenRequest)(nil),           // 16: iam.authn.v2.IssueServiceTokenRequest
-	(*IssueServiceTokenResponse)(nil),          // 17: iam.authn.v2.IssueServiceTokenResponse
-	(*SignupCredential)(nil),                   // 18: iam.authn.v2.SignupCredential
-	(*SignUpWithWechatMiniProgramRequest)(nil), // 19: iam.authn.v2.SignUpWithWechatMiniProgramRequest
-	(*SignupResult)(nil),                       // 20: iam.authn.v2.SignupResult
-	(*SendLoginPhoneOTPRequest)(nil),           // 21: iam.authn.v2.SendLoginPhoneOTPRequest
-	(*MessageResponse)(nil),                    // 22: iam.authn.v2.MessageResponse
-	(*AuthenticatedUserContext)(nil),           // 23: iam.authn.v2.AuthenticatedUserContext
-	(*LoginIdentity)(nil),                      // 24: iam.authn.v2.LoginIdentity
-	(*ListLoginIdentitiesRequest)(nil),         // 25: iam.authn.v2.ListLoginIdentitiesRequest
-	(*ListLoginIdentitiesResponse)(nil),        // 26: iam.authn.v2.ListLoginIdentitiesResponse
-	(*SendPhoneLinkChallengeRequest)(nil),      // 27: iam.authn.v2.SendPhoneLinkChallengeRequest
-	(*LinkPhoneRequest)(nil),                   // 28: iam.authn.v2.LinkPhoneRequest
-	(*LinkWechatMiniProgramRequest)(nil),       // 29: iam.authn.v2.LinkWechatMiniProgramRequest
-	(*LinkWecomRequest)(nil),                   // 30: iam.authn.v2.LinkWecomRequest
-	(*UnlinkLoginIdentityRequest)(nil),         // 31: iam.authn.v2.UnlinkLoginIdentityRequest
-	(*LinkLoginIdentityResponse)(nil),          // 32: iam.authn.v2.LinkLoginIdentityResponse
-	(*GetJWKSRequest)(nil),                     // 33: iam.authn.v2.GetJWKSRequest
-	(*GetJWKSResponse)(nil),                    // 34: iam.authn.v2.GetJWKSResponse
-	nil,                                        // 35: iam.authn.v2.OperatorContext.ExtraEntry
-	nil,                                        // 36: iam.authn.v2.TokenClaims.AttributesEntry
-	nil,                                        // 37: iam.authn.v2.RefreshTokenRequest.ContextEntry
-	nil,                                        // 38: iam.authn.v2.SignUpWithWechatMiniProgramRequest.MetaEntry
-	(*timestamppb.Timestamp)(nil),              // 39: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),                // 40: google.protobuf.Duration
-	(*structpb.Struct)(nil),                    // 41: google.protobuf.Struct
+	(*SignupCredential)(nil),                   // 16: iam.authn.v2.SignupCredential
+	(*SignUpWithWechatMiniProgramRequest)(nil), // 17: iam.authn.v2.SignUpWithWechatMiniProgramRequest
+	(*SignupResult)(nil),                       // 18: iam.authn.v2.SignupResult
+	(*SendLoginPhoneOTPRequest)(nil),           // 19: iam.authn.v2.SendLoginPhoneOTPRequest
+	(*MessageResponse)(nil),                    // 20: iam.authn.v2.MessageResponse
+	(*AuthenticatedUserContext)(nil),           // 21: iam.authn.v2.AuthenticatedUserContext
+	(*LoginIdentity)(nil),                      // 22: iam.authn.v2.LoginIdentity
+	(*ListLoginIdentitiesRequest)(nil),         // 23: iam.authn.v2.ListLoginIdentitiesRequest
+	(*ListLoginIdentitiesResponse)(nil),        // 24: iam.authn.v2.ListLoginIdentitiesResponse
+	(*SendPhoneLinkChallengeRequest)(nil),      // 25: iam.authn.v2.SendPhoneLinkChallengeRequest
+	(*LinkPhoneRequest)(nil),                   // 26: iam.authn.v2.LinkPhoneRequest
+	(*LinkWechatMiniProgramRequest)(nil),       // 27: iam.authn.v2.LinkWechatMiniProgramRequest
+	(*LinkWecomRequest)(nil),                   // 28: iam.authn.v2.LinkWecomRequest
+	(*UnlinkLoginIdentityRequest)(nil),         // 29: iam.authn.v2.UnlinkLoginIdentityRequest
+	(*LinkLoginIdentityResponse)(nil),          // 30: iam.authn.v2.LinkLoginIdentityResponse
+	(*GetJWKSRequest)(nil),                     // 31: iam.authn.v2.GetJWKSRequest
+	(*GetJWKSResponse)(nil),                    // 32: iam.authn.v2.GetJWKSResponse
+	nil,                                        // 33: iam.authn.v2.OperatorContext.ExtraEntry
+	nil,                                        // 34: iam.authn.v2.TokenClaims.AttributesEntry
+	nil,                                        // 35: iam.authn.v2.RefreshTokenRequest.ContextEntry
+	nil,                                        // 36: iam.authn.v2.SignUpWithWechatMiniProgramRequest.MetaEntry
+	(*timestamppb.Timestamp)(nil),              // 37: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),                // 38: google.protobuf.Duration
+	(*structpb.Struct)(nil),                    // 39: google.protobuf.Struct
 }
 var file_iam_authn_v2_authn_proto_depIdxs = []int32{
-	35, // 0: iam.authn.v2.OperatorContext.extra:type_name -> iam.authn.v2.OperatorContext.ExtraEntry
+	33, // 0: iam.authn.v2.OperatorContext.extra:type_name -> iam.authn.v2.OperatorContext.ExtraEntry
 	1,  // 1: iam.authn.v2.TokenClaims.token_type:type_name -> iam.authn.v2.TokenType
-	39, // 2: iam.authn.v2.TokenClaims.issued_at:type_name -> google.protobuf.Timestamp
-	39, // 3: iam.authn.v2.TokenClaims.expires_at:type_name -> google.protobuf.Timestamp
-	39, // 4: iam.authn.v2.TokenClaims.authenticated_at:type_name -> google.protobuf.Timestamp
-	39, // 5: iam.authn.v2.TokenClaims.not_before:type_name -> google.protobuf.Timestamp
-	36, // 6: iam.authn.v2.TokenClaims.attributes:type_name -> iam.authn.v2.TokenClaims.AttributesEntry
-	40, // 7: iam.authn.v2.TokenPair.expires_in:type_name -> google.protobuf.Duration
+	37, // 2: iam.authn.v2.TokenClaims.issued_at:type_name -> google.protobuf.Timestamp
+	37, // 3: iam.authn.v2.TokenClaims.expires_at:type_name -> google.protobuf.Timestamp
+	37, // 4: iam.authn.v2.TokenClaims.authenticated_at:type_name -> google.protobuf.Timestamp
+	37, // 5: iam.authn.v2.TokenClaims.not_before:type_name -> google.protobuf.Timestamp
+	34, // 6: iam.authn.v2.TokenClaims.attributes:type_name -> iam.authn.v2.TokenClaims.AttributesEntry
+	38, // 7: iam.authn.v2.TokenPair.expires_in:type_name -> google.protobuf.Duration
 	1,  // 8: iam.authn.v2.TokenMetadata.token_type:type_name -> iam.authn.v2.TokenType
 	0,  // 9: iam.authn.v2.TokenMetadata.status:type_name -> iam.authn.v2.TokenStatus
-	39, // 10: iam.authn.v2.TokenMetadata.issued_at:type_name -> google.protobuf.Timestamp
-	39, // 11: iam.authn.v2.TokenMetadata.expires_at:type_name -> google.protobuf.Timestamp
-	41, // 12: iam.authn.v2.LoginRequest.method_payload:type_name -> google.protobuf.Struct
+	37, // 10: iam.authn.v2.TokenMetadata.issued_at:type_name -> google.protobuf.Timestamp
+	37, // 11: iam.authn.v2.TokenMetadata.expires_at:type_name -> google.protobuf.Timestamp
+	39, // 12: iam.authn.v2.LoginRequest.method_payload:type_name -> google.protobuf.Struct
 	4,  // 13: iam.authn.v2.LoginResponse.token_pair:type_name -> iam.authn.v2.TokenPair
 	1,  // 14: iam.authn.v2.VerifyTokenRequest.accepted_token_types:type_name -> iam.authn.v2.TokenType
 	0,  // 15: iam.authn.v2.VerifyTokenResponse.status:type_name -> iam.authn.v2.TokenStatus
 	3,  // 16: iam.authn.v2.VerifyTokenResponse.claims:type_name -> iam.authn.v2.TokenClaims
 	5,  // 17: iam.authn.v2.VerifyTokenResponse.metadata:type_name -> iam.authn.v2.TokenMetadata
-	37, // 18: iam.authn.v2.RefreshTokenRequest.context:type_name -> iam.authn.v2.RefreshTokenRequest.ContextEntry
+	35, // 18: iam.authn.v2.RefreshTokenRequest.context:type_name -> iam.authn.v2.RefreshTokenRequest.ContextEntry
 	4,  // 19: iam.authn.v2.RefreshTokenResponse.token_pair:type_name -> iam.authn.v2.TokenPair
 	2,  // 20: iam.authn.v2.RevokeTokenRequest.operator:type_name -> iam.authn.v2.OperatorContext
 	2,  // 21: iam.authn.v2.RevokeRefreshTokenRequest.operator:type_name -> iam.authn.v2.OperatorContext
-	40, // 22: iam.authn.v2.IssueServiceTokenRequest.ttl:type_name -> google.protobuf.Duration
-	2,  // 23: iam.authn.v2.IssueServiceTokenRequest.operator:type_name -> iam.authn.v2.OperatorContext
-	41, // 24: iam.authn.v2.IssueServiceTokenRequest.attributes:type_name -> google.protobuf.Struct
-	4,  // 25: iam.authn.v2.IssueServiceTokenResponse.token_pair:type_name -> iam.authn.v2.TokenPair
-	38, // 26: iam.authn.v2.SignUpWithWechatMiniProgramRequest.meta:type_name -> iam.authn.v2.SignUpWithWechatMiniProgramRequest.MetaEntry
-	18, // 27: iam.authn.v2.SignupResult.credential:type_name -> iam.authn.v2.SignupCredential
-	39, // 28: iam.authn.v2.AuthenticatedUserContext.authenticated_at:type_name -> google.protobuf.Timestamp
-	39, // 29: iam.authn.v2.LoginIdentity.verified_at:type_name -> google.protobuf.Timestamp
-	39, // 30: iam.authn.v2.LoginIdentity.linked_at:type_name -> google.protobuf.Timestamp
-	23, // 31: iam.authn.v2.ListLoginIdentitiesRequest.actor:type_name -> iam.authn.v2.AuthenticatedUserContext
-	24, // 32: iam.authn.v2.ListLoginIdentitiesResponse.items:type_name -> iam.authn.v2.LoginIdentity
-	23, // 33: iam.authn.v2.SendPhoneLinkChallengeRequest.actor:type_name -> iam.authn.v2.AuthenticatedUserContext
-	23, // 34: iam.authn.v2.LinkPhoneRequest.actor:type_name -> iam.authn.v2.AuthenticatedUserContext
-	23, // 35: iam.authn.v2.LinkWechatMiniProgramRequest.actor:type_name -> iam.authn.v2.AuthenticatedUserContext
-	23, // 36: iam.authn.v2.LinkWecomRequest.actor:type_name -> iam.authn.v2.AuthenticatedUserContext
-	23, // 37: iam.authn.v2.UnlinkLoginIdentityRequest.actor:type_name -> iam.authn.v2.AuthenticatedUserContext
-	24, // 38: iam.authn.v2.LinkLoginIdentityResponse.login_identity:type_name -> iam.authn.v2.LoginIdentity
-	39, // 39: iam.authn.v2.GetJWKSResponse.last_modified:type_name -> google.protobuf.Timestamp
-	6,  // 40: iam.authn.v2.AuthService.Login:input_type -> iam.authn.v2.LoginRequest
-	8,  // 41: iam.authn.v2.AuthService.VerifyToken:input_type -> iam.authn.v2.VerifyTokenRequest
-	10, // 42: iam.authn.v2.AuthService.RefreshToken:input_type -> iam.authn.v2.RefreshTokenRequest
-	12, // 43: iam.authn.v2.AuthService.RevokeToken:input_type -> iam.authn.v2.RevokeTokenRequest
-	14, // 44: iam.authn.v2.AuthService.RevokeRefreshToken:input_type -> iam.authn.v2.RevokeRefreshTokenRequest
-	16, // 45: iam.authn.v2.AuthService.IssueServiceToken:input_type -> iam.authn.v2.IssueServiceTokenRequest
-	19, // 46: iam.authn.v2.AuthSignupService.SignUpWithWechatMiniProgram:input_type -> iam.authn.v2.SignUpWithWechatMiniProgramRequest
-	21, // 47: iam.authn.v2.AuthChallengeService.SendLoginPhoneOTP:input_type -> iam.authn.v2.SendLoginPhoneOTPRequest
-	25, // 48: iam.authn.v2.LoginIdentityService.ListLoginIdentities:input_type -> iam.authn.v2.ListLoginIdentitiesRequest
-	27, // 49: iam.authn.v2.LoginIdentityService.SendPhoneLinkChallenge:input_type -> iam.authn.v2.SendPhoneLinkChallengeRequest
-	28, // 50: iam.authn.v2.LoginIdentityService.LinkPhone:input_type -> iam.authn.v2.LinkPhoneRequest
-	29, // 51: iam.authn.v2.LoginIdentityService.LinkWechatMiniProgram:input_type -> iam.authn.v2.LinkWechatMiniProgramRequest
-	30, // 52: iam.authn.v2.LoginIdentityService.LinkWecom:input_type -> iam.authn.v2.LinkWecomRequest
-	31, // 53: iam.authn.v2.LoginIdentityService.UnlinkLoginIdentity:input_type -> iam.authn.v2.UnlinkLoginIdentityRequest
-	33, // 54: iam.authn.v2.JWKSService.GetJWKS:input_type -> iam.authn.v2.GetJWKSRequest
-	7,  // 55: iam.authn.v2.AuthService.Login:output_type -> iam.authn.v2.LoginResponse
-	9,  // 56: iam.authn.v2.AuthService.VerifyToken:output_type -> iam.authn.v2.VerifyTokenResponse
-	11, // 57: iam.authn.v2.AuthService.RefreshToken:output_type -> iam.authn.v2.RefreshTokenResponse
-	13, // 58: iam.authn.v2.AuthService.RevokeToken:output_type -> iam.authn.v2.RevokeTokenResponse
-	15, // 59: iam.authn.v2.AuthService.RevokeRefreshToken:output_type -> iam.authn.v2.RevokeRefreshTokenResponse
-	17, // 60: iam.authn.v2.AuthService.IssueServiceToken:output_type -> iam.authn.v2.IssueServiceTokenResponse
-	20, // 61: iam.authn.v2.AuthSignupService.SignUpWithWechatMiniProgram:output_type -> iam.authn.v2.SignupResult
-	22, // 62: iam.authn.v2.AuthChallengeService.SendLoginPhoneOTP:output_type -> iam.authn.v2.MessageResponse
-	26, // 63: iam.authn.v2.LoginIdentityService.ListLoginIdentities:output_type -> iam.authn.v2.ListLoginIdentitiesResponse
-	22, // 64: iam.authn.v2.LoginIdentityService.SendPhoneLinkChallenge:output_type -> iam.authn.v2.MessageResponse
-	32, // 65: iam.authn.v2.LoginIdentityService.LinkPhone:output_type -> iam.authn.v2.LinkLoginIdentityResponse
-	32, // 66: iam.authn.v2.LoginIdentityService.LinkWechatMiniProgram:output_type -> iam.authn.v2.LinkLoginIdentityResponse
-	32, // 67: iam.authn.v2.LoginIdentityService.LinkWecom:output_type -> iam.authn.v2.LinkLoginIdentityResponse
-	22, // 68: iam.authn.v2.LoginIdentityService.UnlinkLoginIdentity:output_type -> iam.authn.v2.MessageResponse
-	34, // 69: iam.authn.v2.JWKSService.GetJWKS:output_type -> iam.authn.v2.GetJWKSResponse
-	55, // [55:70] is the sub-list for method output_type
-	40, // [40:55] is the sub-list for method input_type
-	40, // [40:40] is the sub-list for extension type_name
-	40, // [40:40] is the sub-list for extension extendee
-	0,  // [0:40] is the sub-list for field type_name
+	36, // 22: iam.authn.v2.SignUpWithWechatMiniProgramRequest.meta:type_name -> iam.authn.v2.SignUpWithWechatMiniProgramRequest.MetaEntry
+	16, // 23: iam.authn.v2.SignupResult.credential:type_name -> iam.authn.v2.SignupCredential
+	37, // 24: iam.authn.v2.AuthenticatedUserContext.authenticated_at:type_name -> google.protobuf.Timestamp
+	37, // 25: iam.authn.v2.LoginIdentity.verified_at:type_name -> google.protobuf.Timestamp
+	37, // 26: iam.authn.v2.LoginIdentity.linked_at:type_name -> google.protobuf.Timestamp
+	21, // 27: iam.authn.v2.ListLoginIdentitiesRequest.actor:type_name -> iam.authn.v2.AuthenticatedUserContext
+	22, // 28: iam.authn.v2.ListLoginIdentitiesResponse.items:type_name -> iam.authn.v2.LoginIdentity
+	21, // 29: iam.authn.v2.SendPhoneLinkChallengeRequest.actor:type_name -> iam.authn.v2.AuthenticatedUserContext
+	21, // 30: iam.authn.v2.LinkPhoneRequest.actor:type_name -> iam.authn.v2.AuthenticatedUserContext
+	21, // 31: iam.authn.v2.LinkWechatMiniProgramRequest.actor:type_name -> iam.authn.v2.AuthenticatedUserContext
+	21, // 32: iam.authn.v2.LinkWecomRequest.actor:type_name -> iam.authn.v2.AuthenticatedUserContext
+	21, // 33: iam.authn.v2.UnlinkLoginIdentityRequest.actor:type_name -> iam.authn.v2.AuthenticatedUserContext
+	22, // 34: iam.authn.v2.LinkLoginIdentityResponse.login_identity:type_name -> iam.authn.v2.LoginIdentity
+	37, // 35: iam.authn.v2.GetJWKSResponse.last_modified:type_name -> google.protobuf.Timestamp
+	6,  // 36: iam.authn.v2.AuthService.Login:input_type -> iam.authn.v2.LoginRequest
+	8,  // 37: iam.authn.v2.AuthService.VerifyToken:input_type -> iam.authn.v2.VerifyTokenRequest
+	10, // 38: iam.authn.v2.AuthService.RefreshToken:input_type -> iam.authn.v2.RefreshTokenRequest
+	12, // 39: iam.authn.v2.AuthService.RevokeToken:input_type -> iam.authn.v2.RevokeTokenRequest
+	14, // 40: iam.authn.v2.AuthService.RevokeRefreshToken:input_type -> iam.authn.v2.RevokeRefreshTokenRequest
+	17, // 41: iam.authn.v2.AuthSignupService.SignUpWithWechatMiniProgram:input_type -> iam.authn.v2.SignUpWithWechatMiniProgramRequest
+	19, // 42: iam.authn.v2.AuthChallengeService.SendLoginPhoneOTP:input_type -> iam.authn.v2.SendLoginPhoneOTPRequest
+	23, // 43: iam.authn.v2.LoginIdentityService.ListLoginIdentities:input_type -> iam.authn.v2.ListLoginIdentitiesRequest
+	25, // 44: iam.authn.v2.LoginIdentityService.SendPhoneLinkChallenge:input_type -> iam.authn.v2.SendPhoneLinkChallengeRequest
+	26, // 45: iam.authn.v2.LoginIdentityService.LinkPhone:input_type -> iam.authn.v2.LinkPhoneRequest
+	27, // 46: iam.authn.v2.LoginIdentityService.LinkWechatMiniProgram:input_type -> iam.authn.v2.LinkWechatMiniProgramRequest
+	28, // 47: iam.authn.v2.LoginIdentityService.LinkWecom:input_type -> iam.authn.v2.LinkWecomRequest
+	29, // 48: iam.authn.v2.LoginIdentityService.UnlinkLoginIdentity:input_type -> iam.authn.v2.UnlinkLoginIdentityRequest
+	31, // 49: iam.authn.v2.JWKSService.GetJWKS:input_type -> iam.authn.v2.GetJWKSRequest
+	7,  // 50: iam.authn.v2.AuthService.Login:output_type -> iam.authn.v2.LoginResponse
+	9,  // 51: iam.authn.v2.AuthService.VerifyToken:output_type -> iam.authn.v2.VerifyTokenResponse
+	11, // 52: iam.authn.v2.AuthService.RefreshToken:output_type -> iam.authn.v2.RefreshTokenResponse
+	13, // 53: iam.authn.v2.AuthService.RevokeToken:output_type -> iam.authn.v2.RevokeTokenResponse
+	15, // 54: iam.authn.v2.AuthService.RevokeRefreshToken:output_type -> iam.authn.v2.RevokeRefreshTokenResponse
+	18, // 55: iam.authn.v2.AuthSignupService.SignUpWithWechatMiniProgram:output_type -> iam.authn.v2.SignupResult
+	20, // 56: iam.authn.v2.AuthChallengeService.SendLoginPhoneOTP:output_type -> iam.authn.v2.MessageResponse
+	24, // 57: iam.authn.v2.LoginIdentityService.ListLoginIdentities:output_type -> iam.authn.v2.ListLoginIdentitiesResponse
+	20, // 58: iam.authn.v2.LoginIdentityService.SendPhoneLinkChallenge:output_type -> iam.authn.v2.MessageResponse
+	30, // 59: iam.authn.v2.LoginIdentityService.LinkPhone:output_type -> iam.authn.v2.LinkLoginIdentityResponse
+	30, // 60: iam.authn.v2.LoginIdentityService.LinkWechatMiniProgram:output_type -> iam.authn.v2.LinkLoginIdentityResponse
+	30, // 61: iam.authn.v2.LoginIdentityService.LinkWecom:output_type -> iam.authn.v2.LinkLoginIdentityResponse
+	20, // 62: iam.authn.v2.LoginIdentityService.UnlinkLoginIdentity:output_type -> iam.authn.v2.MessageResponse
+	32, // 63: iam.authn.v2.JWKSService.GetJWKS:output_type -> iam.authn.v2.GetJWKSResponse
+	50, // [50:64] is the sub-list for method output_type
+	36, // [36:50] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_iam_authn_v2_authn_proto_init() }
@@ -2562,7 +2417,7 @@ func file_iam_authn_v2_authn_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_iam_authn_v2_authn_proto_rawDesc), len(file_iam_authn_v2_authn_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   37,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   5,
 		},

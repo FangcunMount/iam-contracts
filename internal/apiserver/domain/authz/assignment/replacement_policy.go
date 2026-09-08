@@ -4,9 +4,9 @@ import (
 	"sort"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	roleDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // ReplacementPlan describes the managed assignment changes to apply atomically.

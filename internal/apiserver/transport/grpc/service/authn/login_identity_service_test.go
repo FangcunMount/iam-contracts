@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
-	linkingapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/linking"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	linkingapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

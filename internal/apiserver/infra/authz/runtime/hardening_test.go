@@ -9,11 +9,11 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/constraint"
-	authzruntime "github.com/FangcunMount/iam/v3/internal/apiserver/infra/authz/runtime"
-	authzfixture "github.com/FangcunMount/iam/v3/internal/apiserver/testfixtures/assessment"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
+	authzruntime "github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/runtime"
+	authzfixture "github.com/FangcunMount/iam/v4/internal/apiserver/testfixtures/assessment"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 )
 

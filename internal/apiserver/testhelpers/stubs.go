@@ -2,18 +2,19 @@ package testhelpers
 
 import (
 	"context"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/tenant"
 	"sync"
+
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	assignment "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/assignment"
-	role "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/role"
-	profile "github.com/FangcunMount/iam/v3/internal/apiserver/domain/identity/profile"
-	user "github.com/FangcunMount/iam/v3/internal/apiserver/domain/identity/user"
-	wechatapp "github.com/FangcunMount/iam/v3/internal/apiserver/domain/idp/wechatapp"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	assignment "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
+	role "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
+	profile "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/profile"
+	user "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/user"
+	wechatapp "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/wechatapp"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // AssignmentRepoStub is a simple stub for assignment.Repository used in tests.

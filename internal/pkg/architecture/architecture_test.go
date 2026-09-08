@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/FangcunMount/iam/v3/pkg/eventcatalog"
+	"github.com/FangcunMount/iam/v4/pkg/eventcatalog"
 )
 
-const modulePath = "github.com/FangcunMount/iam/v3/"
+const modulePath = "github.com/FangcunMount/iam/v4/"
 
 var activeLegacyApplicationInfrastructureImports = map[string]string{}
 
@@ -1381,14 +1381,14 @@ func TestGRPCContractsHaveRuntimeAndSDKCompileGuards(t *testing.T) {
 	}
 	for _, contract := range contracts {
 		assertFileContains(t, root, contract.proto, "package iam."+contract.module+"."+contract.version+";")
-		assertFileContains(t, root, contract.proto, "github.com/FangcunMount/iam/v3/"+contract.generatedPackage+";"+contract.alias)
+		assertFileContains(t, root, contract.proto, "github.com/FangcunMount/iam/v4/"+contract.generatedPackage+";"+contract.alias)
 		assertFileContains(t, root, filepath.ToSlash(filepath.Join(contract.generatedPackage, contract.module+".pb.go")), "package "+contract.alias)
 		assertFileContains(t, root, filepath.ToSlash(filepath.Join(contract.generatedPackage, contract.module+"_grpc.pb.go")), "package "+contract.alias)
 		assertFileContains(t, root, contract.serviceFile, "api/grpc/iam/"+contract.module+"/"+contract.version)
 		assertFileContains(t, root, contract.serviceFile, contract.registerToken)
 		assertFileContains(t, root, contract.sdkFile, "api/grpc/iam/"+contract.module+"/"+contract.version)
 	}
-	assertFileContains(t, root, "pkg/sdk/public_api_compile_test.go", `github.com/FangcunMount/iam/v3/pkg/sdk`)
+	assertFileContains(t, root, "pkg/sdk/public_api_compile_test.go", `github.com/FangcunMount/iam/v4/pkg/sdk`)
 
 	grpcRoot := filepath.Join(root, "api", "grpc", "iam")
 	err := filepath.WalkDir(grpcRoot, func(path string, entry os.DirEntry, err error) error {
@@ -1416,7 +1416,7 @@ func TestGoModuleV3BoundaryAndRetiredSDKSymbolsDoNotRegress(t *testing.T) {
 	t.Parallel()
 
 	root := repoRoot(t)
-	assertFileContains(t, root, "go.mod", "module github.com/FangcunMount/iam/v3")
+	assertFileContains(t, root, "go.mod", "module github.com/FangcunMount/iam/v4")
 	assertFileLacks(t, root, "pkg/sdk/auth/verifier/types.go", "TenantID string")
 	assertFileLacks(t, root, "pkg/sdk/auth/jwks/types.go", "type JWKSStats struct")
 	assertFileLacks(t, root, "pkg/sdk/public_api_compile_test.go", "authjwks.JWKSStats")
@@ -1429,7 +1429,7 @@ func TestGoModuleV3BoundaryAndRetiredSDKSymbolsDoNotRegress(t *testing.T) {
 		rel := filepath.ToSlash(mustRel(t, root, path))
 		for _, imp := range imports {
 			if strings.HasPrefix(imp, retiredModulePath) {
-				t.Fatalf("%s imports retired Go module path %s; v3 code must import github.com/FangcunMount/iam/v3", rel, imp)
+				t.Fatalf("%s imports retired Go module path %s; v3 code must import github.com/FangcunMount/iam/v4", rel, imp)
 			}
 		}
 	})

@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/policypublication"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/authorization"
-	authzruntime "github.com/FangcunMount/iam/v3/internal/apiserver/infra/authz/runtime"
-	authzfixture "github.com/FangcunMount/iam/v3/internal/apiserver/testfixtures/assessment"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policypublication"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
+	authzruntime "github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/runtime"
+	authzfixture "github.com/FangcunMount/iam/v4/internal/apiserver/testfixtures/assessment"
 	"github.com/nsqio/go-nsq"
 	"github.com/stretchr/testify/require"
 )

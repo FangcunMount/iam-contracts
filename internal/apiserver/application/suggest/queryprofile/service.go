@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	domainprofile "github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/profile"
-	domainsearch "github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/search"
+	domainprofile "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
+	domainsearch "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/search"
 )
 
 // ErrUnauthenticated 操作员未认证。

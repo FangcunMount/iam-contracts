@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	admissiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // Store 持久化 RefreshToken、消费事实与 Bearer Token 撤销事实。
@@ -22,20 +22,18 @@ type Store interface {
 	RotateRefreshToken(ctx context.Context, oldValue, expectedOldID string, newToken *RefreshToken) (bool, error)
 	// DeleteRefreshToken 删除刷新令牌
 	DeleteRefreshToken(ctx context.Context, tokenValue string) error
-	// MarkBearerTokenRevoked 标记 access/service bearer token 已撤销
+	// MarkBearerTokenRevoked 标记 access bearer token 已撤销
 	MarkBearerTokenRevoked(ctx context.Context, tokenID string, expiry time.Duration) error
-	// IsBearerTokenRevoked 检查 access/service bearer token 是否已撤销
+	// IsBearerTokenRevoked 检查 access bearer token 是否已撤销
 	IsBearerTokenRevoked(ctx context.Context, tokenID string) (bool, error)
 }
 
-// BearerTokenCodec 对 access/service bearer token 进行编码和密码学验证。
+// BearerTokenCodec 对 access bearer token 进行编码和密码学验证。
 // 领域只依赖该能力，不感知 JWT/JWS 等 wire format。
 type BearerTokenCodec interface {
 	// IssueAccessToken 颁发访问令牌
 	IssueAccessToken(ctx context.Context, subject *AccessTokenSubject, expiresIn time.Duration) (*AccessToken, error)
-	// IssueServiceToken 颁发服务令牌
-	IssueServiceToken(ctx context.Context, subject string, audience []string, attributes map[string]string, expiresIn time.Duration) (*ServiceToken, error)
-	// VerifyBearerToken 验证 access/service bearer token
+	// VerifyBearerToken 验证 access bearer token
 	VerifyBearerToken(ctx context.Context, tokenValue string) (*VerifiedTokenClaims, error)
 }
 
@@ -81,12 +79,6 @@ type TokenSetMinter interface {
 	MintTokenSet(ctx context.Context, principal *authentication.Principal, sess *sessiondomain.Session) (*UserTokenSet, error)
 }
 
-// ServiceTokenIssuer 签发不绑定用户 Session 的服务令牌。
-type ServiceTokenIssuer interface {
-	// IssueServiceToken 颁发服务令牌。
-	IssueServiceToken(ctx context.Context, subject string, audience []string, attributes map[string]string, ttl time.Duration) (*ServiceToken, error)
-}
-
 // Refresher 轮换 RefreshToken 并延续认证状态。
 type Refresher interface {
 	// RefreshToken 轮换刷新令牌。
@@ -95,7 +87,7 @@ type Refresher interface {
 	RevokeRefreshToken(ctx context.Context, refreshTokenValue string) error
 }
 
-// Verifier 在线验证 access/service token 及用户认证状态。
+// Verifier 在线验证 access token 及用户认证状态。
 type Verifier interface {
 	// VerifyToken 验证令牌。
 	VerifyToken(ctx context.Context, tokenValue string) (*VerifiedTokenClaims, error)

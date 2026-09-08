@@ -8,7 +8,7 @@ IAM 至少保护：
 
 - 用户账户和 Profile 关系；
 - password/OTP/OAuth proof；
-- Session、access/refresh/service token；
+- Session、access/refresh token；
 - JWT 私钥和 IDP AppSecret；
 - Role/Assignment/RoleInheritance/PermissionGrant/ConstraintSet；
 - 审计/运行日志中的身份元数据；
@@ -48,7 +48,7 @@ flowchart LR
     Client["Browser / App"] --> Edge["REST edge"]
     Service["Business service"] --> RPC["gRPC edge"]
     Edge --> AuthN["AuthN"]
-    RPC --> SvcID["mTLS + service auth + ACL"]
+    RPC --> SvcID["mTLS + ACL"]
     Provider["Wechat / WeCom"] --> IDP["IDP adapters"]
     AuthN --> DB[(MySQL)]
     AuthN --> Redis[(Redis)]
@@ -81,7 +81,15 @@ flowchart LR
 
 ## 5. 密钥威胁
 
-JWT 私钥和 IDP secret 均以 AES-GCM 密文落库，但 master key 在部署配置/进程中。数据库只读泄漏不直接得到明文；若同时获得 master key，保护失效。
+JWT 签名私钥与 IDP secret 使用不同保护方式：
+
+| 材料 | 当前存储保护 | 泄漏边界 |
+| --- | --- | --- |
+| JWT 签名私钥 | 未加密的 PKCS#8/PKCS#1 PEM；目录 0700、文件 0600；MySQL 只保存 public JWK 和元数据 | 读取 PEM 目录或其备份可得到私钥，文件权限不等于内容加密 |
+| IDP AppSecret/消息密钥 | AES-GCM 密文落库，master key 来自部署 Secret/进程 | 只读数据库不足以解密；同时获得 master key 则失去保护 |
+| 用户密码 | Argon2id 哈希与独立 pepper | 防护目标是提高离线猜解成本，不能恢复原文 |
+
+具体算法、存储与备份对象以 [密码学边界](../03-基础设施/04-密码学密钥与令牌.md) 为唯一详细说明。不能从 IDP Vault 的加密能力推导 JWT 私钥也经过同一 Vault。
 
 生产需要权限分离、Secret 注入、文件权限、轮换、备份加密和日志禁止。KMS/HSM 能改善 key custody 和审计，但当前 IDP Vault 不是 KMS 等价实现。
 
@@ -116,7 +124,7 @@ Envelope encryption/KMS 的价值是把“能读数据库”和“能解密 secr
 - service credential compromise：可信服务 token 被用于越权管理 RPC。
 
 控制包括可信上下文构造、default deny、PermissionGrant/Resource Schema 校验、per-instance broadcast/reload health、
-mTLS + service auth + ACL 和敏感操作对象级 Check。
+mTLS + ACL 和敏感操作对象级 Check。
 
 ### 6.1 Confused deputy 的完整路径
 
@@ -259,7 +267,7 @@ Suggest 内存含手机号，日志过去可能包含 token/SQL，备份含完�
 
 ### 密码哈希和 secret 加密为什么不同？
 
-密码验证不需要恢复原文，应使用慢、带盐的 Argon2id；AppSecret/JWT 私钥必须用于调用/签名，需要可逆 AEAD 加密并严格管理解密 key。
+密码验证不需要恢复原文，当前使用慢、带盐的 Argon2id。IDP AppSecret 调用 provider 前需要解密，当前使用 AES-GCM；JWT 签名需要私钥能力，当前从受文件权限保护的 PEM 加载，尚未采用应用层 AEAD 包装或 KMS/HSM。三类材料的保护机制不能混写。
 
 ### 安全日志为什么不能只靠关键词脱敏？
 

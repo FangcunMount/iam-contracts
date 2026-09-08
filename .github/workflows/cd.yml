@@ -105,6 +105,7 @@ jobs:
       url: https://iam.fangcunmount.cn
     if: |
       always() &&
+      vars.PRODUCTION_DEPLOY_PAUSED != 'true' &&
       needs.docker.result == 'success'
     env:
       WWW_UID: ${{ secrets.WWW_UID }}
@@ -235,6 +236,10 @@ jobs:
     steps:
       - name: Log deployment status
         run: |
+          if [ "${{ vars.PRODUCTION_DEPLOY_PAUSED }}" = "true" ]; then
+            echo "Production deployment is paused for a coordinated release; inspect image build results separately."
+            exit 0
+          fi
           echo "=========================================="
           echo "Deployment Summary"
           echo "=========================================="

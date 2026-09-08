@@ -2,8 +2,8 @@
 package assessment
 
 import (
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/objectattributeadmission"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/attribute"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/objectattributeadmission"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/attribute"
 )
 
 const AttributeKey = "object.origin_type"

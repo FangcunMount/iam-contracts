@@ -5,13 +5,13 @@ import (
 	"strings"
 	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
-	linkingApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/linking"
-	signupApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/signup"
-	tokenApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/token"
-	credDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/credential"
-	iamgrpc "github.com/FangcunMount/iam/v3/internal/pkg/grpc"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	linkingApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
+	signupApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signup"
+	tokenApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
+	credDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/credential"
+	iamgrpc "github.com/FangcunMount/iam/v4/internal/pkg/grpc"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -74,8 +74,6 @@ func toProtoTokenClaims(claims *tokenApp.TokenClaims) *authnv2.TokenClaims {
 
 func tokenTypeToProto(tokenType tokenApp.TokenType) authnv2.TokenType {
 	switch tokenType {
-	case tokenApp.TokenTypeService:
-		return authnv2.TokenType_TOKEN_TYPE_SERVICE
 	case tokenApp.TokenTypeRefresh:
 		return authnv2.TokenType_TOKEN_TYPE_REFRESH
 	case tokenApp.TokenTypeAccess:
@@ -234,17 +232,6 @@ func cloneAttributes(in map[string]string) map[string]string {
 	out := make(map[string]string, len(in))
 	for k, v := range in {
 		out[k] = v
-	}
-	return out
-}
-
-func structToStringMap(s map[string]any) map[string]string {
-	if len(s) == 0 {
-		return nil
-	}
-	out := make(map[string]string, len(s))
-	for k, v := range s {
-		out[k] = fmt.Sprint(v)
 	}
 	return out
 }

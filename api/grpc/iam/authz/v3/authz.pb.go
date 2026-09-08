@@ -1094,7 +1094,7 @@ const file_iam_authz_v3_authz_proto_rawDesc = "" +
 	"\x18GetAuthorizationSnapshot\x12-.iam.authz.v3.GetAuthorizationSnapshotRequest\x1a..iam.authz.v3.GetAuthorizationSnapshotResponse\x12^\n" +
 	"\x0fGrantAssignment\x12$.iam.authz.v3.GrantAssignmentRequest\x1a%.iam.authz.v3.GrantAssignmentResponse\x12a\n" +
 	"\x10RevokeAssignment\x12%.iam.authz.v3.RevokeAssignmentRequest\x1a&.iam.authz.v3.RevokeAssignmentResponse\x12|\n" +
-	"\x19ReplaceManagedAssignments\x12..iam.authz.v3.ReplaceManagedAssignmentsRequest\x1a/.iam.authz.v3.ReplaceManagedAssignmentsResponseB>Z<github.com/FangcunMount/iam/v3/api/grpc/iam/authz/v3;authzv3b\x06proto3"
+	"\x19ReplaceManagedAssignments\x12..iam.authz.v3.ReplaceManagedAssignmentsRequest\x1a/.iam.authz.v3.ReplaceManagedAssignmentsResponseB>Z<github.com/FangcunMount/iam/v4/api/grpc/iam/authz/v3;authzv3b\x06proto3"
 
 var (
 	file_iam_authz_v3_authz_proto_rawDescOnce sync.Once

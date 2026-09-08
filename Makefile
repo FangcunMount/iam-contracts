@@ -42,7 +42,7 @@ IMAGE_TAG ?= $(DEPLOY_SHA)
 GO := env -u GOROOT go
 GO_BUILD := $(GO) build
 GO_TEST := $(GO) test
-VERSION_PACKAGE := github.com/FangcunMount/iam/v3/pkg/version
+VERSION_PACKAGE := github.com/FangcunMount/iam/v4/pkg/version
 GO_LDFLAGS := -ldflags "-X $(VERSION_PACKAGE).GitVersion=$(VERSION) -X $(VERSION_PACKAGE).BuildDate=$(BUILD_TIME) -X $(VERSION_PACKAGE).GitCommit=$(GIT_COMMIT)"
 
 # 目录结构

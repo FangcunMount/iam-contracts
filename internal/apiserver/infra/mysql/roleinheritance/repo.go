@@ -7,10 +7,10 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/roleinheritance"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/roleinheritance"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	appquery "github.com/FangcunMount/iam/v3/internal/apiserver/application/suggest/queryprofile"
-	apprefresh "github.com/FangcunMount/iam/v3/internal/apiserver/application/suggest/refreshindex"
-	domainprofile "github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/profile"
-	domainsearch "github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/search"
+	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
+	apprefresh "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/refreshindex"
+	domainprofile "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
+	domainsearch "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/search"
 )
 
 // Runtime 持有进程内 suggest Store 快照指针。

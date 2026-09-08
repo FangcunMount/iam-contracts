@@ -5,16 +5,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// TokenProfileAlgorithm is the only JOSE algorithm supported by IAM tokens and JWKS keys.
+// TokenProfileAlgorithm 是 IAM 令牌和 JWKS 密钥支持的唯一 JOSE 算法。
 const TokenProfileAlgorithm = "RS256"
 
-// Encrypt encrypts the plain text with bcrypt.
+// Encrypt 加密明文。
 func Encrypt(source string) (string, error) {
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(source), bcrypt.DefaultCost)
 	return string(hashedBytes), err
 }
 
-// Compare compares the encrypted text with the plain text if it's the same.
+// Compare 比较加密文本与明文是否相同。
 func Compare(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }

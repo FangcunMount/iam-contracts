@@ -3,7 +3,7 @@ package assignment
 import (
 	"context"
 
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // Validator 赋权验证器接口。

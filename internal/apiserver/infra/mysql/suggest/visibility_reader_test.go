@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/visibility"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
 )
 
 func TestVisibilityReaderReturnsActiveProfilesByCreator(t *testing.T) {

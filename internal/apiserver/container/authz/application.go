@@ -1,12 +1,12 @@
 package authz
 
 import (
-	assignmentApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/assignment"
-	authorizationApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/authorization"
-	permissionGrantApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/permissiongrant"
-	resourceApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/resource"
-	roleApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/role"
-	roleInheritanceApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/roleinheritance"
+	assignmentApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignment"
+	authorizationApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
+	permissionGrantApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/permissiongrant"
+	resourceApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/resource"
+	roleApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/role"
+	roleInheritanceApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/roleinheritance"
 )
 
 func (m *AuthzModule) initializeApplication(

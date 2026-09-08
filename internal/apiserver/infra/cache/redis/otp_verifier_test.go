@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	challengeApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/challenge"
+	challengeApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/challenge"
 	"github.com/alicebob/miniredis/v2"
 	goredis "github.com/redis/go-redis/v9"
 )

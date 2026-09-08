@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 // ResourceChangePolicy validates catalog changes against active permission grants.

@@ -1,6 +1,6 @@
 package authentication
 
-import "github.com/FangcunMount/iam/v3/internal/pkg/meta"
+import "github.com/FangcunMount/iam/v4/internal/pkg/meta"
 
 // Principal 是认证成功后的运行时主体表达，是 Login 的领域终点。
 type Principal struct {

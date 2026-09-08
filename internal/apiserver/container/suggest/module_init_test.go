@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	appquery "github.com/FangcunMount/iam/v3/internal/apiserver/application/suggest/queryprofile"
-	genericapiserver "github.com/FangcunMount/iam/v3/internal/pkg/server"
+	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
+	genericapiserver "github.com/FangcunMount/iam/v4/internal/pkg/server"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )

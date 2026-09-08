@@ -9,8 +9,8 @@ import (
 	"math/big"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	pkgauth "github.com/FangcunMount/iam/v3/pkg/auth"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	pkgauth "github.com/FangcunMount/iam/v4/pkg/auth"
 )
 
 // RSAKeyGenerator RSA 密钥生成器

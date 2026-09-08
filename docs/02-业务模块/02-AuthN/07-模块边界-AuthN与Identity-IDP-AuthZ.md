@@ -7,8 +7,9 @@
 ```text
 IDP 证明外部账号
   -> AuthN 绑定/认证 LoginIdentity
-  -> Identity 提供长期 User 状态
-  -> AuthN 产生 Principal，并颁发 AuthenticationGrant(Session + UserTokenSet)
+  -> AuthN 产生 Principal（证明成功）
+  -> Admission 读取 Identity User 与 AuthN LoginIdentity 当前状态
+  -> GrantIssuer 颁发 AuthenticationGrant(Session + UserTokenSet)
   -> AuthZ 对 Subject 做资源判定
 ```
 

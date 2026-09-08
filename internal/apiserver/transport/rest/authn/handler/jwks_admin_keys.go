@@ -6,11 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	signingkeyApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/signingkey"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/authn/request"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/authn/response"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/pkg/core"
+	signingkeyApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signingkey"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/request"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/response"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/pkg/core"
 )
 
 var _ = core.ErrResponse{}

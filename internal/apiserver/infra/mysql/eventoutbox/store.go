@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	dbmysql "github.com/FangcunMount/iam/v3/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v3/pkg/event"
-	"github.com/FangcunMount/iam/v3/pkg/eventcatalog"
-	outboxport "github.com/FangcunMount/iam/v3/pkg/outbox"
-	"github.com/FangcunMount/iam/v3/pkg/outboxcore"
+	dbmysql "github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v4/pkg/event"
+	"github.com/FangcunMount/iam/v4/pkg/eventcatalog"
+	outboxport "github.com/FangcunMount/iam/v4/pkg/outbox"
+	"github.com/FangcunMount/iam/v4/pkg/outboxcore"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

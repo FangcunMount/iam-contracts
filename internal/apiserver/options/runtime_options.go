@@ -3,7 +3,7 @@ package options
 import (
 	"time"
 
-	challengeDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/challenge"
+	challengeDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/challenge"
 )
 
 // RemovedAppOptions captures removed app.* keys solely so startup can reject

@@ -7,9 +7,9 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	userdomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/identity/user"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	userdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/user"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 type Status string

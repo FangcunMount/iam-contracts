@@ -1,6 +1,6 @@
 package verifier
 
-import authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
+import authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
 
 func buildVerifyMetadataFromProto(metadata *authnv2.TokenMetadata) *VerifyMetadata {
 	if metadata == nil {
@@ -35,8 +35,6 @@ func tokenTypeToProto(tokenType string) authnv2.TokenType {
 	switch tokenType {
 	case "refresh":
 		return authnv2.TokenType_TOKEN_TYPE_REFRESH
-	case "service":
-		return authnv2.TokenType_TOKEN_TYPE_SERVICE
 	case "", "access":
 		return authnv2.TokenType_TOKEN_TYPE_ACCESS
 	default:

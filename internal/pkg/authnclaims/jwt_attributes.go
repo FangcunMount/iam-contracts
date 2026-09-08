@@ -19,12 +19,6 @@ var jwtAttributeDenyList = map[string]struct{}{
 	"tenant_domain": {}, "org_id": {}, "provider_raw": {},
 }
 
-// serviceAttributeAllowlist 是 ServiceToken attributes 的显式合同。
-var serviceAttributeAllowlist = map[string]struct{}{
-	"scope": {},
-	"level": {},
-}
-
 // EncodeJWTAttributes 将已准入字段编码为 JWT attributes（allowlist）。
 func EncodeJWTAttributes(in map[string]any) map[string]string {
 	if len(in) == 0 {
@@ -42,27 +36,6 @@ func EncodeJWTAttributes(in map[string]any) map[string]string {
 			continue
 		}
 		out[k] = stringifyClaim(v)
-	}
-	if len(out) == 0 {
-		return nil
-	}
-	return out
-}
-
-// EncodeServiceAttributes 将服务令牌 attributes 收敛到显式 allowlist。
-func EncodeServiceAttributes(in map[string]string) map[string]string {
-	if len(in) == 0 {
-		return nil
-	}
-	out := make(map[string]string, len(in))
-	for k, v := range in {
-		if _, allowed := serviceAttributeAllowlist[k]; !allowed {
-			continue
-		}
-		if k == "" || v == "" {
-			continue
-		}
-		out[k] = v
 	}
 	if len(out) == 0 {
 		return nil

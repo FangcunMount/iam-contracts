@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	authzRuntime "github.com/FangcunMount/iam/v3/internal/apiserver/infra/authz/runtime"
+	authzRuntime "github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/runtime"
 )
 
 func (m *AuthzModule) initializeRuntime(infra *authzInfrastructureComponents, domain *authzDomainComponents, config authzRuntime.Config) error {

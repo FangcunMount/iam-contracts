@@ -21,12 +21,3 @@ func TestEncodeJWTAttributesUsesAllowlist(t *testing.T) {
 	})
 	require.Equal(t, map[string]string{"auth_time": "2026-01-02T03:04:05Z"}, got)
 }
-
-func TestEncodeServiceAttributesUsesAllowlist(t *testing.T) {
-	got := EncodeServiceAttributes(map[string]string{
-		"scope": "internal",
-		"level": "2",
-		"secret": "nope",
-	})
-	require.Equal(t, map[string]string{"scope": "internal", "level": "2"}, got)
-}

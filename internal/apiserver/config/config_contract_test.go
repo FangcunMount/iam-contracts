@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	apiserveroptions "github.com/FangcunMount/iam/v3/internal/apiserver/options"
+	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -30,7 +30,7 @@ func TestAPIServerYAMLConfigMapsToRuntimeOptions(t *testing.T) {
 				assertEqual(t, "grpc mtls enabled", opts.GRPCOptions.MTLS.Enabled, true)
 				assertEqual(t, "grpc mtls reload interval", opts.GRPCOptions.MTLS.ReloadInterval, 5*time.Minute)
 				assertEqual(t, "grpc auth enabled", opts.GRPCOptions.Auth.Enabled, false)
-				assertEqual(t, "grpc acl enabled", opts.GRPCOptions.ACL.Enabled, false)
+				assertEqual(t, "grpc acl enabled", opts.GRPCOptions.ACL.Enabled, true)
 				assertEqual(t, "mysql database", opts.MySQLOptions.Database, "iam")
 				assertEqual(t, "redis cache host", opts.RedisOptions.Cache.Host, "127.0.0.1")
 				assertEqual(t, "redis cache port", opts.RedisOptions.Cache.Port, 6379)

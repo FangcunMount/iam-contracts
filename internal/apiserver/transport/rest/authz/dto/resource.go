@@ -2,8 +2,8 @@
 package dto
 
 import (
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/attribute"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/attribute"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // CreateResourceRequest 创建资源请求

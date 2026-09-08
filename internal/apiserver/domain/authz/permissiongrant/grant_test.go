@@ -4,12 +4,12 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/constraint"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/resource"
-	authzfixture "github.com/FangcunMount/iam/v3/internal/apiserver/testfixtures/authzschema"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
+	authzfixture "github.com/FangcunMount/iam/v4/internal/apiserver/testfixtures/authzschema"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 

@@ -10,5 +10,5 @@
 | 基础用法 | [basic/main.go](./basic/main.go) | 创建客户端、读取用户、判定档案关系 |
 | mTLS | [mtls/main.go](./mtls/main.go) | 生产环境 TLS / 重试 / Keepalive 配置 |
 | JWT 验证 | [verifier/main.go](./verifier/main.go) | 本地验证、JWKS、远程降级 |
-| 服务间认证 | [service_auth/main.go](./service_auth/main.go) | `ServiceAuthHelper` 基础用法 |
+| 服务间认证 | [mtls/main.go](./mtls/main.go) | mTLS 证书连接 |
 | 授权判定 | [authz/main.go](./authz/main.go) | `Authz().Check()` / `Authz().Allow()` |

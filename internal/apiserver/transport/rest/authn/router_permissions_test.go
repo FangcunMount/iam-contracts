@@ -3,8 +3,8 @@ package authn
 import (
 	"testing"
 
-	authzapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/authorization"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/authn/handler"
+	authzapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/handler"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

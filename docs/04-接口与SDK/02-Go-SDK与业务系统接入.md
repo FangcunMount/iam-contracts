@@ -10,7 +10,6 @@
 | 用户登录/OTP/绑定 | `auth/loginv2`、`challenge`、`loginidentity` | REST，按 endpoint 公开/用户 token |
 | 低延迟 JWT 验签 | `auth/jwks` + local verifier | 签名/claims，本地撤销窗口 |
 | 强即时撤销验证 | `client.Auth().VerifyToken` / remote verifier | IAM 在线状态检查 |
-| 服务自动获取 token | `auth/serviceauth` | 后台刷新 service token |
 
 不要为了“统一”把终端用户密码交给服务间 SDK，也不要把本地 verify 结果描述成在线 Session 检查。
 
@@ -38,14 +37,9 @@ Dial 构建 interceptor 链，再在 DialTimeout context 中建立 gRPC connecti
 SDK 内部有 per-method retry defaults 和 error classification，但调用方仍应按具体 API 合同确认。不要把 `Unavailable` 一律无限重试；
 应有 bounded attempts、backoff、deadline 和 circuit breaker。
 
-## 4. ServiceAuthHelper 生命周期
+## 4. mTLS 连接生命周期
 
-`NewServiceAuthHelper` 构造时先同步获取 service token，失败则不返回半可用 helper；成功后启动 refresh loop，在 `RefreshBefore` 窗口提前续期。
-调用方用 `NewAuthenticatedContext` 注入 Authorization metadata，并在退出时 `Stop()`。
-
-它解决 token 刷新，不解决服务授权：签发 token 的 subject/audience 仍需服务端 ACL/AuthZ，mTLS identity match 也应按生产配置启用。
-
-helper 使用后台 goroutine；若应用忘记 Stop，会发生资源泄漏。应把它与业务进程 lifecycle 一起管理，而不是每个请求创建一个 helper。
+SDK 复用 mTLS 连接，服务端按证书身份校验 ACL，业务接口继续执行资源授权。无需服务令牌刷新任务；退出时关闭 Client 和 JWKS manager。
 
 ## 5. Local、Remote 与 Fallback verifier
 
@@ -98,7 +92,7 @@ OTP 或完整请求体。
 5. 只对可确认幂等的方法启用 bounded retry；
 6. 传递 request-id/trace context；
 7. 明确 local/remote verify 与故障 fallback；
-8. 进程退出时 Close Client、Stop ServiceAuth/JWKS manager；
+8. 进程退出时 Close Client、Stop JWKS manager；
 9. 以 SDK compile test 和真实 staging call 验证升级；
 10. 业务服务仍在敏感操作上执行服务端 AuthZ。
 

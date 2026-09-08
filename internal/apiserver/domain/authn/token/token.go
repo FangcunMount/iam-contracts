@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // TokenType 表示 IAM 令牌的领域用途。
@@ -14,17 +14,16 @@ type TokenType string
 const (
 	TokenTypeAccess  TokenType = "access"
 	TokenTypeRefresh TokenType = "refresh"
-	TokenTypeService TokenType = "service"
 )
 
 // Token 是 AuthN 令牌概念族的共同契约。
-// 具体不变量由 AccessToken、RefreshToken 和 ServiceToken 分别表达。
+// 具体不变量由 AccessToken 和 RefreshToken 分别表达。
 type Token interface {
 	Kind() TokenType
 	Metadata() TokenMetadata
 }
 
-// TokenMetadata 是三类令牌共享的身份与生命周期信息。
+// TokenMetadata 是两类令牌共享的身份与生命周期信息。
 type TokenMetadata struct {
 	// —— 身份信息 —— //
 	ID    string // 令牌ID
@@ -134,28 +133,6 @@ func newRefreshToken(id, value, sessionID string, userID, loginIdentityID, tenan
 	}
 }
 
-// ServiceToken 表示不绑定用户 Session 的服务间访问凭证。
-type ServiceToken struct {
-	TokenMetadata
-
-	Subject    string
-	Audience   []string
-	Attributes map[string]string
-}
-
-func (*ServiceToken) Kind() TokenType { return TokenTypeService }
-
-// NewServiceToken 创建服务令牌。
-func NewServiceToken(id, value, subject string, audience []string, attributes map[string]string, expiresIn time.Duration) *ServiceToken {
-	now := time.Now()
-	return &ServiceToken{
-		TokenMetadata: TokenMetadata{ID: id, Value: value, IssuedAt: now, ExpiresAt: now.Add(expiresIn)},
-		Subject:       subject,
-		Audience:      cloneStrings(audience),
-		Attributes:    cloneStringMap(attributes),
-	}
-}
-
 // UserTokenSet 表示一次用户认证状态建立或续期产生的访问/刷新令牌集合。
 type UserTokenSet struct {
 	AccessToken  *AccessToken
@@ -177,45 +154,35 @@ type ConsumedRefreshToken struct {
 // 它不是 JWT wire model，也不包含 JWT Header/Signature。
 type VerifiedTokenClaims struct {
 	// —— 令牌元数据 —— //
-	TokenID   string
-	TokenType TokenType
-	SessionID string
-	Subject   string
+	TokenID   string    // 令牌ID
+	TokenType TokenType // 令牌类型
+	SessionID string    // 会话ID
+	Subject   string    // 令牌主题
 
 	// —— 令牌主体 —— //
-	UserID          meta.ID
-	LoginIdentityID meta.ID
-	TenantDomain    string
-	OrgID           meta.ID
+	UserID          meta.ID // 用户ID
+	LoginIdentityID meta.ID // 登录身份ID
+	TenantDomain    string  // 租户域
+	OrgID           meta.ID // 组织ID
 
 	// —— 令牌认证 —— //
-	Issuer          string
-	AuthenticatedAt time.Time
+	Issuer          string    // 令牌颁发者
+	AuthenticatedAt time.Time // 令牌认证时间
 
 	// —— 令牌属性 —— //
-	Audience   []string
-	Attributes map[string]string
-	AMR        []string
+	Audience   []string          // 受众，令牌预期给谁使用
+	Attributes map[string]string // 属性，令牌携带的额外信息
+	AMR        []string          // 认证方法引用
 
 	// —— 令牌时间 —— //
-	IssuedAt  time.Time
-	NotBefore time.Time
-	ExpiresAt time.Time
+	IssuedAt  time.Time // 令牌颁发时间
+	NotBefore time.Time // 令牌生效时间
+	ExpiresAt time.Time // 令牌过期时间
 }
 
 // NewVerifiedUserTokenClaims 构造并校验用户访问令牌事实。
 func NewVerifiedUserTokenClaims(claims VerifiedTokenClaims) (*VerifiedTokenClaims, error) {
 	claims.TokenType = TokenTypeAccess
-	claims.normalize()
-	if err := claims.Validate(); err != nil {
-		return nil, err
-	}
-	return &claims, nil
-}
-
-// NewVerifiedServiceClaims 构造并校验服务令牌事实。
-func NewVerifiedServiceClaims(claims VerifiedTokenClaims) (*VerifiedTokenClaims, error) {
-	claims.TokenType = TokenTypeService
 	claims.normalize()
 	if err := claims.Validate(); err != nil {
 		return nil, err
@@ -247,10 +214,6 @@ func (c *VerifiedTokenClaims) Validate() error {
 		}
 		if c.Subject != c.UserID.String() {
 			return fmt.Errorf("access token sub must equal user_id")
-		}
-	case TokenTypeService:
-		if c.SessionID != "" || !c.UserID.IsZero() || !c.LoginIdentityID.IsZero() {
-			return fmt.Errorf("service token must not contain user session identity")
 		}
 	default:
 		return fmt.Errorf("unsupported token type %q", c.TokenType)

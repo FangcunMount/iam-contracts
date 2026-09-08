@@ -1,13 +1,13 @@
 package authn
 
 import (
-	authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
-	challengeApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/challenge"
-	jwksApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/jwks"
-	linkingApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/linking"
-	sessionApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/session"
-	signupApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/signup"
-	tokenApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/token"
+	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	challengeApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/challenge"
+	jwksApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/jwks"
+	linkingApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
+	sessionApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/session"
+	signupApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signup"
+	tokenApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
 	"google.golang.org/grpc"
 )
 
@@ -32,10 +32,9 @@ func NewService(
 ) *Service {
 	return &Service{
 		auth: authServiceServer{
-			sessionSvc:         sessionSvc,
-			tokenVerifier:      tokens.Verifier,
-			tokenRevoker:       tokens.Revoker,
-			serviceTokenIssuer: tokens.ServiceTokenIssuer,
+			sessionSvc:    sessionSvc,
+			tokenVerifier: tokens.Verifier,
+			tokenRevoker:  tokens.Revoker,
 		},
 		signup: authSignupServiceServer{
 			signupService: signupSvc,
@@ -58,7 +57,7 @@ func (s *Service) Register(server *grpc.Server) {
 	if s == nil || server == nil {
 		return
 	}
-	if s.auth.sessionSvc != nil || s.auth.tokenVerifier != nil || s.auth.tokenRevoker != nil || s.auth.serviceTokenIssuer != nil {
+	if s.auth.sessionSvc != nil || s.auth.tokenVerifier != nil || s.auth.tokenRevoker != nil {
 		authnv2.RegisterAuthServiceServer(server, &s.auth)
 	}
 	if s.signup.signupService != nil {
@@ -77,10 +76,9 @@ func (s *Service) Register(server *grpc.Server) {
 
 type authServiceServer struct {
 	authnv2.UnimplementedAuthServiceServer
-	sessionSvc         sessionApp.ApplicationService
-	tokenVerifier      tokenApp.Verifier
-	tokenRevoker       tokenApp.Revoker
-	serviceTokenIssuer tokenApp.ServiceTokenIssuer
+	sessionSvc    sessionApp.ApplicationService
+	tokenVerifier tokenApp.Verifier
+	tokenRevoker  tokenApp.Revoker
 }
 
 type jwksServiceServer struct {

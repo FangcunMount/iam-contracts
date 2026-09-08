@@ -7,9 +7,9 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
-	admissiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 // Dependencies 是认证结果颁发所需的领域协作者。
@@ -30,6 +30,9 @@ type issuer struct {
 	refreshTokenSaver RefreshTokenSaver
 }
 
+// 确保 issuer 实现 Issuer 接口。
+var _ Issuer = &issuer{}
+
 // NewIssuer 创建认证结果颁发器。
 func NewIssuer(deps Dependencies) Issuer {
 	return &issuer{
@@ -43,16 +46,20 @@ func NewIssuer(deps Dependencies) Issuer {
 
 // Issue 在准入通过后建立 Session、颁发 TokenSet，并保存初始 RefreshToken。
 func (s *issuer) Issue(ctx context.Context, principal *authentication.Principal) (*AuthenticationGrant, error) {
+	// 参数校验
 	if principal == nil {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "principal is required")
 	}
 
+	// 准入校验
 	if err := admissiondomain.Require(ctx, s.admissionPolicy, admissiondomain.Subject{
 		UserID:          principal.UserID,
 		LoginIdentityID: principal.LoginIdentityID,
 	}); err != nil {
 		return nil, err
 	}
+
+	// 依赖校验
 	if s.sessionCreator == nil {
 		return nil, perrors.WithCode(code.ErrInternalServerError, "session creator is not configured")
 	}
@@ -60,6 +67,7 @@ func (s *issuer) Issue(ctx context.Context, principal *authentication.Principal)
 		return nil, perrors.WithCode(code.ErrInternalServerError, "authentication grant dependencies are not configured")
 	}
 
+	// 创建会话
 	sess, err := s.sessionCreator.Create(ctx, principal)
 	if err != nil {
 		if perrors.IsCode(err, code.ErrInvalidArgument) {
@@ -71,6 +79,7 @@ func (s *issuer) Issue(ctx context.Context, principal *authentication.Principal)
 		return nil, perrors.WithCode(code.ErrInternalServerError, "session creator returned no session")
 	}
 
+	// 颁发令牌集
 	set, err := s.tokenSetMinter.MintTokenSet(ctx, principal, sess)
 	if err != nil {
 		return nil, s.revokeFailedGrant(ctx, sess.SessionID, principal.UserID.String(), err)
@@ -79,11 +88,14 @@ func (s *issuer) Issue(ctx context.Context, principal *authentication.Principal)
 		err := perrors.WithCode(code.ErrInternalServerError, "token set minter returned incomplete token set")
 		return nil, s.revokeFailedGrant(ctx, sess.SessionID, principal.UserID.String(), err)
 	}
+
+	// 保存刷新令牌
 	if err := s.refreshTokenSaver.SaveRefreshToken(ctx, set.RefreshToken); err != nil {
 		cause := perrors.WrapC(err, code.ErrInternalServerError, "failed to save refresh token")
 		return nil, s.revokeFailedGrant(ctx, sess.SessionID, principal.UserID.String(), cause)
 	}
 
+	// 返回认证结果
 	return NewAuthenticationGrant(sess, set), nil
 }
 

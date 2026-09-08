@@ -1,8 +1,8 @@
 package authz
 
 import (
-	assignmentDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/assignment"
-	authorizationDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/authorization"
+	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
+	authorizationDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
 )
 
 type authzDomainComponents struct {

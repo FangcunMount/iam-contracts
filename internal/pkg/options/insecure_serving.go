@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/FangcunMount/iam/v3/internal/pkg/server"
+	"github.com/FangcunMount/iam/v4/internal/pkg/server"
 	"github.com/spf13/pflag"
 )
 

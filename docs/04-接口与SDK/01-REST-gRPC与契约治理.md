@@ -64,7 +64,7 @@ REST 调用方应依赖 HTTP status + 稳定业务 code；gRPC 调用方应依�
 
 ## 5. 认证与授权契约
 
-REST protected route 使用 Bearer user token；gRPC 面向服务间调用，可叠加 mTLS、service token/HMAC/API key、ACL 和业务 AuthZ。接口文档必须标明：
+REST protected route 使用 Bearer user token；gRPC 面向服务间调用，使用 mTLS、ACL 和业务 AuthZ。接口文档必须标明：
 
 - 哪些 endpoint 是 public；
 - 需要 user token 还是 service identity；

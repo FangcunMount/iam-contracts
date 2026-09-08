@@ -3,9 +3,9 @@ package grant
 import (
 	"context"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/session"
-	tokendomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
+	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
 )
 
 // Issuer 将已认证主体颁发为完整在线认证结果（Session + TokenSet）。

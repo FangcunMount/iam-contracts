@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	policychange "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/policychange"
-	authzuow "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/uow"
-	policyDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/policy"
-	roleDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	policychange "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policychange"
+	authzuow "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/uow"
+	policyDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/policy"
+	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 // RoleCatalog mutates tenant role definitions in the same transaction as the

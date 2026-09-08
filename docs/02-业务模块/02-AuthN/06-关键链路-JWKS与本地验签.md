@@ -59,7 +59,7 @@ sequenceDiagram
     M->>F: temp file 0600, fsync, rename
     M->>DB: transaction + row locks
     DB->>DB: recheck active and due condition
-    DB->>DB: active -> grace; insert candidate active
+    DB->>DB: active -> grace, insert candidate active
     DB-->>M: commit / noop / error
     alt commit
         M->>M: cleanup expired non-active keys
@@ -88,7 +88,7 @@ sequenceDiagram
 - 创建管理接口的语义是“创建并原子激活新密钥”，旧 active 同事务进入 grace。
 - 不允许直接把唯一 active 手工移入 grace 或强制 retired。
 - 普通 retire 只接受已经过期的 grace。
-- force-retire 只用于提前撤销非 active 密钥；这会让对应未过期 Token 立即失效。
+- force-retire 只用于提前撤销非 active 密钥；在线 key source 随后拒绝该 key，公共 JWKS 不再发布它。持有旧公钥的下游本地缓存不一定立即失效，紧急处置必须协调消费者刷新或在线验证。
 - `max_publishable_keys` 是安全告警阈值，不会为了满足上限提前移除未过期 grace。
 - 清理删除过期数据库记录后同步删除 PEM；PEM 删除失败不恢复已经停止发布的公钥。
 
@@ -101,7 +101,7 @@ GET /.well-known/jwks.json
 GET /api/v2/.well-known/jwks.json
 ```
 
-响应只包含公钥，并保留现有 JSON、ETag 和 Cache-Control 语义。公共 JWKS 每次构建以数据库为真相层；当前进程快照只用于 ETag、观测和减少重复构建，不参与决定数据库中的 active 状态。
+响应只包含公钥，并保留现有 JSON、ETag 和 Cache-Control 语义。公共 JWKS 每次构建都查询数据库；REST 先构建响应，再判断客户端 ETag/Last-Modified 是否匹配。`GetCurrentCacheTag` 可复用短期标签快照，不能据此认为公共请求跳过数据库查询。进程快照用于标签读取与观测，不决定数据库中的 active 状态。
 资源服务应固定可信 issuer/JWKS URL，校验算法 allowlist、签名以及 `iss/aud/exp/nbf`；`kid` 未命中时可刷新，但不得跳过验签或接受任意 `jku/jwk`。
 
 管理入口统一位于 `/api/v2/authn/admin/jwks/keys`。它们需要用户 JWT，并通过 `RequirePermissionOrGlobal` 检查 `iam:authn:collection:jwks` 上的明确

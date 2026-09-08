@@ -15,7 +15,7 @@ import (
 	credential "github.com/aliyun/credentials-go/credentials"
 	"github.com/nyaruka/phonenumbers"
 
-	challengeApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/challenge"
+	challengeApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/challenge"
 )
 
 const (

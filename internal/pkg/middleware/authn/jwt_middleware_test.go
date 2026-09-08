@@ -8,10 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	tokendomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v3/internal/pkg/requestctx"
-	"github.com/FangcunMount/iam/v3/pkg/tenant"
+	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
+	"github.com/FangcunMount/iam/v4/pkg/tenant"
 )
 
 func TestApplyVerifiedClaimsSetsTenantIDForRoleResolution(t *testing.T) {

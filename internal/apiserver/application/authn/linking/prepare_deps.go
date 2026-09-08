@@ -3,7 +3,7 @@ package linking
 import (
 	"time"
 
-	idpresolver "github.com/FangcunMount/iam/v3/internal/apiserver/application/idp/externalidentity"
+	idpresolver "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
 )
 
 // linkPrepareDeps 是 prepare 阶段可用的依赖快照，避免各 Input 依赖 *linker。

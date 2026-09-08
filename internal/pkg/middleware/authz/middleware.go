@@ -6,10 +6,10 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/requestctx"
-	"github.com/FangcunMount/iam/v3/pkg/core"
-	"github.com/FangcunMount/iam/v3/pkg/tenant"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
+	"github.com/FangcunMount/iam/v4/pkg/core"
+	"github.com/FangcunMount/iam/v4/pkg/tenant"
 	"github.com/gin-gonic/gin"
 )
 

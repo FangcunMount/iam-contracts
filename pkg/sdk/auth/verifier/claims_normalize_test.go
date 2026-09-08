@@ -3,7 +3,7 @@ package verifier
 import (
 	"testing"
 
-	"github.com/FangcunMount/iam/v3/pkg/tenant"
+	"github.com/FangcunMount/iam/v4/pkg/tenant"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/stretchr/testify/require"
 )

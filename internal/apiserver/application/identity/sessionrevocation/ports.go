@@ -3,7 +3,7 @@ package sessionrevocation
 import (
 	"context"
 
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 const (

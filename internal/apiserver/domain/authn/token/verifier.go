@@ -4,9 +4,9 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	admissiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 type verifier struct {
@@ -32,17 +32,13 @@ func (s *verifier) VerifyToken(ctx context.Context, tokenValue string) (*Verifie
 	if err != nil {
 		return nil, perrors.WrapC(err, code.ErrTokenInvalid, "failed to parse bearer token")
 	}
-	if claims.TokenType != TokenTypeAccess && claims.TokenType != TokenTypeService {
+	if claims.TokenType != TokenTypeAccess {
 		return nil, perrors.WithCode(code.ErrTokenInvalid, "unsupported token type for online verification: %s", claims.TokenType)
 	}
 
-	// access/service 都是在线可撤销的 bearer token；类型分流必须发生在撤销检查之后。
+	// 用户访问令牌依次检查撤销标记、Session 和准入状态。
 	if err := s.checkTokenValid(ctx, claims); err != nil {
 		return nil, err
-	}
-	// 服务令牌只做密码学验证，不进入用户 Session/Admission 路径
-	if claims.TokenType == TokenTypeService {
-		return claims, nil
 	}
 	// 检查会话是否活跃
 	if err := s.checkSessionActive(ctx, claims.SessionID); err != nil {

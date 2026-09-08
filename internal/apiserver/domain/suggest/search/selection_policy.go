@@ -4,8 +4,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/profile"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/visibility"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
 )
 
 // SelectionOutcome 携带最终候选项与 scope 过滤统计。

@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	apprefresh "github.com/FangcunMount/iam/v3/internal/apiserver/application/suggest/refreshindex"
-	domainprofile "github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/profile"
+	apprefresh "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/refreshindex"
+	domainprofile "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
 	"gorm.io/gorm"
 )
 

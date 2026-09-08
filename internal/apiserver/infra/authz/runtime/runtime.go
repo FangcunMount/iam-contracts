@@ -8,11 +8,11 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authorizationapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/authorization"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/objectattributeadmission"
-	authorizationdomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	authorizationapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/objectattributeadmission"
+	authorizationdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 type Runtime struct {

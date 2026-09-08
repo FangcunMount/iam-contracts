@@ -48,7 +48,7 @@ Transport：`OnboardingHandler` → `/api/v2/authn/signups/*`（Handler 名称�
 
 ### token.Capabilities
 
-组合根输出 `AuthenticationGrantIssuer`、`Refresher`、`Revoker`、`Verifier`、`ServiceTokenIssuer` 五个窄能力。它们不是统一门面；调用方只保存真正使用的接口。JWT 为 infra 实现细节。
+组合根输出 `AuthenticationGrantIssuer`、`Refresher`、`Revoker`、`Verifier` 四个窄能力。它们不是统一门面；调用方只保存真正使用的接口。JWT 为 infra 实现细节。
 
 ### linking + 敏感解绑
 

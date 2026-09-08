@@ -4,14 +4,14 @@ import (
 	"context"
 	"testing"
 
-	permissionGrantApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/permissiongrant"
-	authztestutil "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/testutil"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/constraint"
-	permissiongrantDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/permissiongrant"
-	resourceDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/resource"
-	roleDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/role"
-	authzfixture "github.com/FangcunMount/iam/v3/internal/apiserver/testfixtures/assessment"
-	"github.com/FangcunMount/iam/v3/pkg/event"
+	permissionGrantApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/permissiongrant"
+	authztestutil "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/testutil"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
+	permissiongrantDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
+	resourceDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
+	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
+	authzfixture "github.com/FangcunMount/iam/v4/internal/apiserver/testfixtures/assessment"
+	"github.com/FangcunMount/iam/v4/pkg/event"
 	"github.com/stretchr/testify/require"
 )
 

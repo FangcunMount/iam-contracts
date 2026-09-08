@@ -89,7 +89,7 @@ grpc:
   
   # 服务级 ACL 配置
   acl:
-    enabled: false  # 开发环境默认禁用
+    enabled: true   # 服务身份必须通过 ACL
     config-file: "./configs/grpc_acl.yaml"
   
   # 审计日志配置

@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/FangcunMount/component-base/pkg/logger"
-	authjwks "github.com/FangcunMount/iam/v3/pkg/sdk/auth/jwks"
-	"github.com/FangcunMount/iam/v3/pkg/sdk/config"
+	authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
+	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
 
@@ -72,6 +72,9 @@ func (s *LocalVerifyStrategy) Verify(ctx context.Context, tokenString string, op
 		return nil, mapTokenValidationError(err)
 	}
 
+	if err := policy.validateParsedTokenType(token); err != nil {
+		return nil, err
+	}
 	claims := extractClaims(token)
 	if err := policy.validateTokenType(claims.TokenType); err != nil {
 		return nil, err

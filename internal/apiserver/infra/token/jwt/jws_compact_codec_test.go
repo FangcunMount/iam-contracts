@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	tokendomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v3/pkg/tenant"
+	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/pkg/tenant"
 	jwtv4 "github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/require"
 )
@@ -193,7 +193,7 @@ func TestGeneratorFailsClosedWhenActiveKeyAlgorithmIsNotRS256(t *testing.T) {
 	generator, _ := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
 	generator.keySource.(*signingKeySourceStub).algorithm = "RS384"
 
-	token, err := generator.IssueServiceToken(context.Background(), "service", []string{"api"}, nil, time.Minute)
+	token, err := generator.IssueAccessToken(context.Background(), &tokendomain.AccessTokenSubject{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), SessionID: "sid"}, time.Minute)
 	require.Error(t, err)
 	require.Nil(t, token)
 }
@@ -248,27 +248,6 @@ func TestGeneratorRejectsIssuerMismatch(t *testing.T) {
 	_, err = generator.VerifyBearerToken(context.Background(), raw)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unexpected token issuer")
-}
-
-func TestGeneratorServiceTokenUsesRegisteredAudience(t *testing.T) {
-	t.Parallel()
-
-	generator, signingKey := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"ignored-default"})
-
-	token, err := generator.IssueServiceToken(
-		context.Background(),
-		"svc:report-worker",
-		[]string{"collection-api"},
-		map[string]string{"scope": "internal"},
-		10*time.Minute,
-	)
-	require.NoError(t, err)
-
-	parsedJWT, rawClaims := parseRawClaims(t, token.Value, signingKey)
-	require.Equal(t, "https://iam.fangcunmount.cn", parsedJWT.Issuer)
-	require.Equal(t, []string{"collection-api"}, []string(parsedJWT.Audience))
-	_, hasLegacyAudience := rawClaims["audience"]
-	require.False(t, hasLegacyAudience)
 }
 
 func newTestGenerator(t *testing.T, issuer string, accessAudience []string) (*JWSCompactTokenCodec, *rsa.PrivateKey) {
@@ -342,4 +321,17 @@ func (s *signingKeySourceStub) VerificationKey(_ context.Context, kid string) (*
 		algorithm = s.keyAlgs[kid]
 	}
 	return &VerificationKey{Kid: kid, Algorithm: algorithm, PublicKey: publicKey}, nil
+}
+
+func TestCodecRejectsRetiredAndUnknownSignedTypes(t *testing.T) {
+	codec, key := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
+	for _, kind := range []string{"service", "unknown"} {
+		claims := jwtPayloadClaims{TokenType: kind, RegisteredClaims: jwtv4.RegisteredClaims{ID: "retired", Subject: "qs-apiserver.svc", Issuer: "https://iam.fangcunmount.cn", Audience: []string{"qs-api"}, IssuedAt: jwtv4.NewNumericDate(time.Now()), NotBefore: jwtv4.NewNumericDate(time.Now()), ExpiresAt: jwtv4.NewNumericDate(time.Now().Add(time.Hour))}}
+		token := jwtv4.NewWithClaims(jwtv4.SigningMethodRS256, claims)
+		token.Header["kid"] = "test-key"
+		raw, err := token.SignedString(key)
+		require.NoError(t, err)
+		_, err = codec.VerifyBearerToken(context.Background(), raw)
+		require.ErrorContains(t, err, "unsupported token_type")
+	}
 }

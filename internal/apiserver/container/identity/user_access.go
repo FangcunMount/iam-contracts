@@ -3,8 +3,8 @@ package identity
 import (
 	"gorm.io/gorm"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/identity/useraccess"
-	mysqluser "github.com/FangcunMount/iam/v3/internal/apiserver/infra/mysql/user"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/useraccess"
+	mysqluser "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/user"
 )
 
 // UserAccessCapabilities are Identity-owned facts published to sibling modules.

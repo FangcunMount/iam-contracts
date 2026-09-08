@@ -5,15 +5,15 @@ import (
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authorizationapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/authorization"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/objectattributeadmission"
-	policychange "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/policychange"
-	authzuow "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/uow"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/constraint"
-	domain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	authorizationapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/objectattributeadmission"
+	policychange "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policychange"
+	authzuow "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/uow"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
+	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 type CreateCommand struct {

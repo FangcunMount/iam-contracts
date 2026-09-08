@@ -5,9 +5,9 @@ import (
 
 	"gorm.io/gorm"
 
-	sessiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/subject"
-	sessionrevocation "github.com/FangcunMount/iam/v3/internal/apiserver/infra/mysql/sessionrevocation"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
+	sessionrevocation "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/sessionrevocation"
 )
 
 // EffectiveRoleReader resolves direct and inherited roles for a subject.

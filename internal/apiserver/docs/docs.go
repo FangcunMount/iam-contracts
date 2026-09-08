@@ -3793,7 +3793,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "token_type": {
-                    "description": "access/service",
+                    "description": "access",
                     "type": "string"
                 },
                 "user_id": {

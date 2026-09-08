@@ -3,7 +3,7 @@ package profile_test
 import (
 	"testing"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/profile"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
 )
 
 func TestSuggestibleProfileNewValidates(t *testing.T) {

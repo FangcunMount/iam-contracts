@@ -2,20 +2,14 @@ package token
 
 import (
 	"context"
-	"time"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
 )
 
 // AuthenticationGrantIssuer 在认证成功后颁发完整在线认证结果。
 // 调用方无需感知 Session、access token 与 refresh token 的内部装配过程。
 type AuthenticationGrantIssuer interface {
 	IssueAuthentication(ctx context.Context, principal *authentication.Principal) (*TokenPair, error)
-}
-
-// ServiceTokenIssuer 签发不绑定用户 Session 的服务间访问令牌。
-type ServiceTokenIssuer interface {
-	IssueServiceToken(ctx context.Context, req IssueServiceTokenRequest) (*TokenIssueResult, error)
 }
 
 // Refresher 通过 refresh token 轮换在线会话令牌。
@@ -25,7 +19,7 @@ type Refresher interface {
 
 // Revoker 撤销 bearer token 或 refresh token，并按令牌类型收敛关联会话状态。
 type Revoker interface {
-	// RevokeAccessToken 是已发布兼容名，可接收 access/service bearer token。
+	// RevokeAccessToken 是已发布兼容名，可接收 access bearer token。
 	RevokeAccessToken(ctx context.Context, accessToken string) error
 	RevokeRefreshToken(ctx context.Context, refreshToken string) error
 }
@@ -39,21 +33,12 @@ type Verifier interface {
 // 它只承载窄接口，不是供业务代码依赖的统一门面。
 type Capabilities struct {
 	AuthenticationGrantIssuer AuthenticationGrantIssuer
-	ServiceTokenIssuer        ServiceTokenIssuer
 	Refresher                 Refresher
 	Revoker                   Revoker
 	Verifier                  Verifier
 }
 
 // ================== DTOs ==================
-
-// IssueServiceTokenRequest 服务令牌签发请求。
-type IssueServiceTokenRequest struct {
-	Subject    string            // 令牌主体
-	Audience   []string          // 受众
-	TTL        time.Duration     // 令牌有效期
-	Attributes map[string]string // 属性
-}
 
 // TokenIssueResult 令牌签发结果 DTO。
 type TokenIssueResult struct {

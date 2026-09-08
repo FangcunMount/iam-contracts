@@ -3,11 +3,11 @@ package handler
 import (
 	"context"
 
-	permissionGrantApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/permissiongrant"
-	permissionGrantDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/authz/dto"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	permissionGrantApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/permissiongrant"
+	permissionGrantDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/dto"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/gin-gonic/gin"
 )
 

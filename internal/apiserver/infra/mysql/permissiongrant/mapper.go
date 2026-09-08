@@ -1,10 +1,10 @@
 package permissiongrant
 
 import (
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/constraint"
-	domain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
+	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 type Mapper struct{}

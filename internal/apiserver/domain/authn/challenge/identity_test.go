@@ -3,7 +3,7 @@ package challenge_test
 import (
 	"testing"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/challenge"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/challenge"
 	"github.com/stretchr/testify/require"
 )
 

@@ -4,26 +4,9 @@
 
 ### 生命周期总图
 
-```text
-                        用户登录 / 服务认证请求
-                                 │
-             ┌───────────────────┴───────────────────┐
-             ↓                                       ↓
-      用户态 TokenPair                         服务态 Token
-   (Access + Refresh)                         (Service Token)
-             │                                       │
-             │                                       ├─ SDK 入口
-             │                                       │   Auth().IssueServiceToken(...)
-             │                                       └─ 默认服务端已实现
-             │
-             ├─ VerifyToken      校验 Access Token
-             ├─ RefreshToken     用 Refresh 换新 TokenPair
-             ├─ RevokeToken      撤销 Access Token
-             ├─ RevokeRefreshToken 撤销 Refresh Token
-             └─ GetJWKS          获取公钥，支持本地验签
-```
+用户登录 → AccessToken + RefreshToken → 验证 / 刷新 / 撤销。JWKS 用于本地验签；在线校验额外检查撤销、Session 和准入。
 
-### SDK 视角图
+## SDK 视角图
 
 ```text
                     ┌──────────────────────────┐
@@ -37,7 +20,6 @@
     校验            刷新          撤销         撤销刷新        取公钥
                                 │
                                 ↓
-                      IssueServiceToken
                       SDK 与默认服务端都已支持
 ```
 
@@ -59,7 +41,6 @@
 ### 一句话结论
 
 这篇文档讲的是 **SDK 如何消费 token 生命周期能力**。  
-当前 SDK 已稳定封装 `VerifyToken`、`RefreshToken`、`RevokeToken`、`RevokeRefreshToken`、`GetJWKS`、`IssueServiceToken`；**用户登录发牌不在 SDK `Auth()` 内，但服务态 Token 签发已经可以通过 `Auth()` 消费**。
 
 ### 当前能力矩阵
 
@@ -71,7 +52,6 @@
 | Access Token 撤销 | ✅ 已支持 | ✅ 已实现，未装配时返回 `Unimplemented` | `RevokeToken` |
 | Refresh Token 撤销 | ✅ 已支持 | ✅ 已实现，未装配时返回 `Unimplemented` | `RevokeRefreshToken` |
 | 获取 JWKS | ✅ 已支持 | ✅ 已实现，未装配时返回 `Unimplemented` | `GetJWKS` |
-| 服务 Token 签发 | ✅ 已支持 | ✅ 已实现，未装配时返回 `Unimplemented` | `IssueServiceToken` |
 
 ### 3 行代码开始
 
@@ -119,7 +99,7 @@ resp, err := client.Auth().RefreshToken(ctx, &authnv2.RefreshTokenRequest{
 
 - [../_examples/basic/main.go](../_examples/basic/main.go)
 - [../_examples/verifier/main.go](../_examples/verifier/main.go)
-- [../_examples/service_auth/main.go](../_examples/service_auth/main.go)
+- [服务间 mTLS 与 ACL 接入](05-service-auth.md)
 
 ## 3. 两条“发牌”边界
 
@@ -143,27 +123,9 @@ SDK 从这里开始消费 Verify / Refresh / Revoke / GetJWKS
 - SDK 更像“拿到 TokenPair 之后的消费面”
 - 如果你要理解登录发牌本身，应回到主仓库 authn 文档
 
-### 3.2 服务态 Token：SDK 与默认服务端都已支持
+### 3.2 服务间调用
 
-```go
-resp, err := client.Auth().IssueServiceToken(ctx, &authnv2.IssueServiceTokenRequest{
-    Subject:  "service:qs-server",
-    Audience: []string{"iam-service"},
-    Ttl:      durationpb.New(time.Hour),
-})
-```
-
-当前要注意两点：
-
-- SDK `Auth().IssueServiceToken(...)` 已存在
-- 默认服务端 [`transport/grpc/service/authn/auth_token_service.go`](../../../internal/apiserver/transport/grpc/service/authn/auth_token_service.go) 已实现该 RPC；只有 `tokenSvc` 未装配时才会返回 `codes.Unimplemented`
-
-所以这条能力今天可以讲成：
-
-- `SDK 已提供稳定消费面`
-- `默认服务端已落地服务 Token 签发`
-
-但仍不能把它讲成“完整服务身份治理方案”：`subject / audience / ttl / attributes` 的组织方式，仍要由业务方自己约束。
+服务间调用通过 mTLS + ACL 建立可信边界，不参与用户 Token 生命周期。
 
 ## 4. 已落地的生命周期能力
 
@@ -316,7 +278,6 @@ _ = resp
 - `Auth()` 已覆盖 token 生命周期消费面，但不是完整登录 SDK
 - `Auth().VerifyToken(...)` 是**在线权威校验**；它看到的不只是签名和过期，还包括 `revoked_access_token`、`session(sid)`、`user/account` 当前状态
 - 本地 JWKS 验签只能保证签名与时间相关声明；它**不能保证** session revoke、用户封禁、账号禁用的即时生效
-- `IssueServiceToken` 虽已在默认服务端落地，但仍要确认部署版本和模块装配完整
 - `GetJWKS` 是取钥接口，不等于完整本地验签方案；本地验签应看 [JWT 本地验证](./04-jwt-verification.md)
 
 ## 7. 继续往下读

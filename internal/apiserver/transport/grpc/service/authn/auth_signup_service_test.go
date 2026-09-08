@@ -3,8 +3,8 @@ package authn
 import (
 	"testing"
 
-	authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
-	signupApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/signup"
+	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	signupApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signup"
 	"github.com/stretchr/testify/require"
 )
 

@@ -14,9 +14,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	jwksApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/jwks"
-	signingkeyApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/signingkey"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	jwksApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/jwks"
+	signingkeyApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signingkey"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 type jwksPublisherStub struct {

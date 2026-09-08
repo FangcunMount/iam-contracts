@@ -6,8 +6,8 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
-	externalidentity "github.com/FangcunMount/iam/v3/internal/apiserver/application/idp/externalidentity"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	externalidentity "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 // IDPModuleDeps contains the runtime dependencies required to assemble the IDP module.

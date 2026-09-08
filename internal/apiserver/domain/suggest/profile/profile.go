@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/visibility"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
 )
 
 // SuggestibleProfile 是受约束的 Suggest 读模型。

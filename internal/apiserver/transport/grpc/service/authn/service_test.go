@@ -6,26 +6,22 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
-	linkingApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/linking"
-	sessionApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/session"
-	signupApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/signup"
-	tokenApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/token"
-	tokenDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	linkingApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
+	sessionApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/session"
+	signupApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signup"
+	tokenApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
+	tokenDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type tokenOperationsStub struct {
-	issueReq  tokenApp.IssueServiceTokenRequest
-	issueRes  *tokenApp.TokenIssueResult
-	issueErr  error
 	verifyReq tokenApp.VerifyTokenRequest
 	verifyErr error
 	revokeErr error
@@ -85,11 +81,6 @@ func (s linkerStub) Unlink(context.Context, linkingApp.UnlinkCommand) error {
 	return nil
 }
 
-func (s *tokenOperationsStub) IssueServiceToken(ctx context.Context, req tokenApp.IssueServiceTokenRequest) (*tokenApp.TokenIssueResult, error) {
-	s.issueReq = req
-	return s.issueRes, s.issueErr
-}
-
 func (s *tokenOperationsStub) RevokeAccessToken(ctx context.Context, accessToken string) error {
 	return s.revokeErr
 }
@@ -125,9 +116,8 @@ func grpcTokenCapabilities(stub *tokenOperationsStub) tokenApp.Capabilities {
 		return tokenApp.Capabilities{}
 	}
 	return tokenApp.Capabilities{
-		ServiceTokenIssuer: stub,
-		Revoker:            stub,
-		Verifier:           stub,
+		Revoker:  stub,
+		Verifier: stub,
 	}
 }
 
@@ -144,6 +134,9 @@ func TestAuthNGRPCRuntimeRegistersProductionServices(t *testing.T) {
 	).Register(server)
 
 	info := server.GetServiceInfo()
+	for _, method := range info["iam.authn.v2.AuthService"].Methods {
+		require.NotEqual(t, "IssueServiceToken", method.Name)
+	}
 	require.Contains(t, info, "iam.authn.v2.AuthService")
 	require.Contains(t, info, "iam.authn.v2.AuthSignupService")
 	require.Contains(t, info, "iam.authn.v2.AuthChallengeService")
@@ -197,48 +190,6 @@ func TestAuthServiceServerLoginRejectsNonPublicMethod(t *testing.T) {
 		MethodPayload: payload,
 	})
 
-	require.Error(t, err)
-	require.Equal(t, codes.InvalidArgument, status.Code(err))
-}
-
-func TestAuthServiceServerIssueServiceToken(t *testing.T) {
-	serviceToken := tokenApp.NewServiceToken("sid", "jwt-service-token", "service:qs-server", []string{"iam-service"}, map[string]string{"scope": "internal"}, time.Hour)
-	stub := &tokenOperationsStub{
-		issueRes: &tokenApp.TokenIssueResult{
-			TokenPair: tokenApp.NewTokenPair(serviceToken, nil),
-		},
-	}
-	srv := &authServiceServer{serviceTokenIssuer: stub}
-
-	attrs, err := structpb.NewStruct(map[string]any{"scope": "internal", "level": 2})
-	require.NoError(t, err)
-
-	resp, err := srv.IssueServiceToken(context.Background(), &authnv2.IssueServiceTokenRequest{
-		Subject:    "service:qs-server",
-		Audience:   []string{"iam-service"},
-		Ttl:        durationpb.New(time.Hour),
-		Attributes: attrs,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.NotNil(t, resp.TokenPair)
-	require.Equal(t, "jwt-service-token", resp.TokenPair.AccessToken)
-	require.Equal(t, "Bearer", resp.TokenPair.TokenType)
-	require.Equal(t, "service:qs-server", stub.issueReq.Subject)
-	require.Equal(t, []string{"iam-service"}, stub.issueReq.Audience)
-	require.Equal(t, time.Hour, stub.issueReq.TTL)
-	require.Equal(t, "internal", stub.issueReq.Attributes["scope"])
-	require.Equal(t, "2", stub.issueReq.Attributes["level"])
-}
-
-func TestAuthServiceServerIssueServiceTokenValidation(t *testing.T) {
-	srv := &authServiceServer{serviceTokenIssuer: &tokenOperationsStub{}}
-
-	_, err := srv.IssueServiceToken(context.Background(), &authnv2.IssueServiceTokenRequest{})
-	require.Error(t, err)
-	require.Equal(t, codes.InvalidArgument, status.Code(err))
-
-	_, err = srv.IssueServiceToken(context.Background(), &authnv2.IssueServiceTokenRequest{Subject: "service:worker"})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }

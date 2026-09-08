@@ -2,11 +2,12 @@ package authorization
 
 import (
 	"context"
+
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/pkg/tenant"
+	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/pkg/tenant"
 )
 
 // RequireCatalogWrite checks the authenticated actor in the platform domain.

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
-	"github.com/FangcunMount/iam/v3/pkg/sdk/config"
-	iamerrors "github.com/FangcunMount/iam/v3/pkg/sdk/errors"
+	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
+	iamerrors "github.com/FangcunMount/iam/v4/pkg/sdk/errors"
 	"github.com/lestrrat-go/jwx/v2/jws"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
@@ -58,6 +58,9 @@ func newVerificationPolicy(cfg *config.TokenVerifyConfig, opts *VerifyOptions) v
 }
 
 func (p verificationPolicy) validateTokenType(actual string) error {
+	if actual != "" && actual != "access" {
+		return invalidTokenError("unsupported token type %q", actual)
+	}
 	tokenType := tokenTypeToProto(actual)
 	if _, ok := p.allowedTokenTypes[tokenType]; !ok {
 		return invalidTokenError("token type %q is not allowed", actual)
@@ -92,6 +95,9 @@ func (p verificationPolicy) validateTokenEnvelope(tokenString string) error {
 		return invalidTokenError("parse token claims: %v", err)
 	}
 
+	if err := p.validateParsedTokenType(token); err != nil {
+		return err
+	}
 	var options []jwt.ValidateOption
 	for _, audience := range p.audience {
 		options = append(options, jwt.WithAudience(audience))
@@ -148,4 +154,17 @@ func containsString(values []string, target string) bool {
 		}
 	}
 	return false
+}
+
+// validateParsedTokenType distinguishes absent legacy claims from malformed wire values.
+func (p verificationPolicy) validateParsedTokenType(token jwt.Token) error {
+	raw, exists := token.Get("token_type")
+	if !exists {
+		return p.validateTokenType("")
+	}
+	value, ok := raw.(string)
+	if !ok {
+		return invalidTokenError("invalid token type")
+	}
+	return p.validateTokenType(value)
 }

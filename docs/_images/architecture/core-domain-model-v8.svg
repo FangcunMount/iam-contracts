@@ -342,10 +342,10 @@
   <text x="2415" y="2034" text-anchor="middle" class="vo-body">绑定用户 Session · 短期有效</text>
   <text x="2415" y="2066" text-anchor="middle" class="vo-body">编码后的认证声明凭证</text>
   <rect x="2650" y="1932" width="440" height="170" rx="15" class="issued-credential"/>
-  <text x="2870" y="1968" text-anchor="middle" class="vo-title">ServiceToken｜服务令牌</text>
-  <text x="2870" y="2002" text-anchor="middle" class="vo-body">&lt;&lt;issued credential&gt;&gt;</text>
-  <text x="2870" y="2034" text-anchor="middle" class="vo-body">无 User · 无 Session · 无 RefreshToken</text>
-  <text x="2870" y="2066" text-anchor="middle" class="vo-body">Subject + Audience · 支持在线撤销</text>
+  <text x="2870" y="1968" text-anchor="middle" class="vo-title">mTLS + ACL｜服务调用</text>
+  <text x="2870" y="2002" text-anchor="middle" class="vo-body">&lt;&lt;transport boundary&gt;&gt;</text>
+  <text x="2870" y="2034" text-anchor="middle" class="vo-body">证书认证服务身份 · ACL 校验方法</text>
+  <text x="2870" y="2066" text-anchor="middle" class="vo-body">业务授权独立校验</text>
 
   <rect x="1300" y="2200" width="1820" height="510" rx="20" class="knowledge"/>
   <text x="1330" y="2240" class="knowledge-title">领域不变量｜认证关系、一次性证明与在线状态</text>

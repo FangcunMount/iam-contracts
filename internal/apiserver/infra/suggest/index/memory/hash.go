@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	domainprofile "github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/profile"
+	domainprofile "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
 )
 
 // exactMatchIndex 支持手机号/档案 ID 的字符串精确匹配。

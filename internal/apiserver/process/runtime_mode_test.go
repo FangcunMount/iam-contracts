@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/config"
-	apiserveroptions "github.com/FangcunMount/iam/v3/internal/apiserver/options"
-	genericapiserver "github.com/FangcunMount/iam/v3/internal/pkg/server"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/config"
+	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
+	genericapiserver "github.com/FangcunMount/iam/v4/internal/pkg/server"
 )
 
 func TestResolveRuntimeProfileFromConfig(t *testing.T) {

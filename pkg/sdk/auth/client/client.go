@@ -4,8 +4,8 @@ package client
 import (
 	"context"
 
-	authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
-	"github.com/FangcunMount/iam/v3/pkg/sdk/errors"
+	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	"github.com/FangcunMount/iam/v4/pkg/sdk/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -14,7 +14,6 @@ import (
 //
 // 提供认证相关功能，包括：
 //   - Token 验证和管理（VerifyToken、RefreshToken、RevokeToken、RevokeRefreshToken）
-//   - 服务间认证（IssueServiceToken）
 //   - 生产 AuthN 契约（Signup、Challenge、LoginIdentity）
 //   - JWKS 管理（GetJWKS）
 type Client struct {
@@ -87,15 +86,6 @@ func (c *Client) RevokeToken(ctx context.Context, req *authnv2.RevokeTokenReques
 // RevokeRefreshToken 撤销 Refresh Token。
 func (c *Client) RevokeRefreshToken(ctx context.Context, req *authnv2.RevokeRefreshTokenRequest) (*authnv2.RevokeRefreshTokenResponse, error) {
 	resp, err := c.authService.RevokeRefreshToken(ctx, req)
-	if err != nil {
-		return nil, errors.Wrap(err)
-	}
-	return resp, nil
-}
-
-// IssueServiceToken 签发服务间认证 Token。
-func (c *Client) IssueServiceToken(ctx context.Context, req *authnv2.IssueServiceTokenRequest) (*authnv2.IssueServiceTokenResponse, error) {
-	resp, err := c.authService.IssueServiceToken(ctx, req)
 	if err != nil {
 		return nil, errors.Wrap(err)
 	}

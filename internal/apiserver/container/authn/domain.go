@@ -3,8 +3,8 @@ package authn
 import (
 	"time"
 
-	sessionDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/session"
-	apiserveroptions "github.com/FangcunMount/iam/v3/internal/apiserver/options"
+	sessionDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
+	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
 )
 
 type authnDomainComponents struct {

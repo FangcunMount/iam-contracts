@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	policychange "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/policychange"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/policy"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/eventing"
+	policychange "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/policy"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/eventing"
 )
 
 const (

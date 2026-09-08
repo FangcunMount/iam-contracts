@@ -3,7 +3,7 @@ package queryprofile
 import (
 	"context"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/visibility"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
 )
 
 // ScopeResolverService 编排授权事实、visibility 与领域 ResolutionPolicy。

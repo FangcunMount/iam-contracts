@@ -2,14 +2,15 @@ package handler
 
 import (
 	"context"
-	roleapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/role"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/testutil"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v3/internal/pkg/requestctx"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
 	"net/http/httptest"
 	"testing"
+
+	roleapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/role"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/testutil"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRoleDetailsAreTenantScoped(t *testing.T) {

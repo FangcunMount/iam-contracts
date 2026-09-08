@@ -3,8 +3,8 @@ package token
 import (
 	"time"
 
-	tokendomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // Token 是向 application 调用方返回的令牌 DTO；领域模型位于 domain/authn/token。
@@ -32,11 +32,6 @@ type Token struct {
 // NewAccessToken 创建访问令牌
 func NewAccessToken(id, value, sessionID string, userID meta.ID, loginIdentityID meta.ID, tenantID meta.ID, expiresIn time.Duration) *Token {
 	return tokenFromAccess(tokendomain.NewAccessToken(id, value, sessionID, userID, loginIdentityID, tenantID, expiresIn))
-}
-
-// NewServiceToken 创建服务令牌
-func NewServiceToken(id, value, subject string, audience []string, attributes map[string]string, expiresIn time.Duration) *Token {
-	return tokenFromService(tokendomain.NewServiceToken(id, value, subject, audience, attributes, expiresIn))
 }
 
 // NewRefreshToken 创建相对当前时间过期的刷新令牌。
@@ -103,17 +98,6 @@ func tokenFromRefresh(token *tokendomain.RefreshToken) *Token {
 	return &Token{
 		ID: token.ID, Type: TokenTypeRefresh, Value: token.Value, SessionID: token.SessionID,
 		UserID: token.UserID, LoginIdentityID: token.LoginIdentityID, TenantID: token.TenantID,
-		IssuedAt: token.IssuedAt, ExpiresAt: token.ExpiresAt,
-	}
-}
-
-func tokenFromService(token *tokendomain.ServiceToken) *Token {
-	if token == nil {
-		return nil
-	}
-	return &Token{
-		ID: token.ID, Type: TokenTypeService, Value: token.Value, Subject: token.Subject,
-		Audience: cloneStrings(token.Audience), Attributes: cloneStringMap(token.Attributes),
 		IssuedAt: token.IssuedAt, ExpiresAt: token.ExpiresAt,
 	}
 }

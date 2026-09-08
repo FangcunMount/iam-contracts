@@ -6,51 +6,17 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"github.com/stretchr/testify/require"
+
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
-
-func TestServiceTokenOnlineRevocationIsEnforced(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	now := time.Now()
-	claims, err := NewVerifiedServiceClaims(VerifiedTokenClaims{
-		TokenID: "service-jti", TokenType: TokenTypeService, Subject: "service:worker",
-		Issuer: "https://iam.test", Audience: []string{"qs-api"},
-		IssuedAt: now.Add(-time.Minute), NotBefore: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour),
-	})
-	require.NoError(t, err)
-	codec := &bearerTokenCodecStub{claims: claims}
-	store := &bearerTokenStoreStub{revoked: make(map[string]bool)}
-	sessions := &trackingSessionRevokerStub{}
-	verifier := newVerifier(codec, store, nil, nil)
-	revoker := newRevoker(codec, store, sessions)
-
-	verified, err := verifier.VerifyToken(ctx, "signed-service-token")
-	require.NoError(t, err)
-	require.Equal(t, TokenTypeService, verified.TokenType)
-
-	require.NoError(t, revoker.RevokeBearerToken(ctx, "signed-service-token"))
-	require.True(t, store.revoked["service-jti"])
-	require.Zero(t, sessions.revokeCalls, "service token revocation must not revoke a user session")
-
-	verified, err = verifier.VerifyToken(ctx, "signed-service-token")
-	require.Nil(t, verified)
-	require.Error(t, err)
-	require.Equal(t, code.ErrTokenInvalid, perrors.ParseCoder(err).Code())
-}
 
 type bearerTokenCodecStub struct {
 	claims *VerifiedTokenClaims
 }
 
 func (*bearerTokenCodecStub) IssueAccessToken(context.Context, *AccessTokenSubject, time.Duration) (*AccessToken, error) {
-	return nil, nil
-}
-
-func (*bearerTokenCodecStub) IssueServiceToken(context.Context, string, []string, map[string]string, time.Duration) (*ServiceToken, error) {
 	return nil, nil
 }
 
@@ -102,4 +68,22 @@ func (*trackingSessionRevokerStub) RevokeByUser(context.Context, meta.ID, string
 
 func (*trackingSessionRevokerStub) RevokeByLoginIdentity(context.Context, meta.ID, string, string) error {
 	return nil
+}
+
+func TestAccessTokenRevocationPreservesSessionRevocation(t *testing.T) {
+	claims := &VerifiedTokenClaims{TokenID: "access-id", TokenType: TokenTypeAccess, SessionID: "sid", Subject: "1", ExpiresAt: time.Now().Add(time.Hour)}
+	codec := &bearerTokenCodecStub{claims: claims}
+	store := &bearerTokenStoreStub{revoked: map[string]bool{}}
+	sessions := &trackingSessionRevokerStub{}
+	require.NoError(t, newRevoker(codec, store, sessions).RevokeBearerToken(context.Background(), "access"))
+	require.True(t, store.revoked[claims.TokenID])
+	require.Equal(t, 1, sessions.revokeCalls)
+	_, err := newVerifier(codec, store, nil, nil).VerifyToken(context.Background(), "access")
+	require.Equal(t, code.ErrTokenInvalid, perrors.ParseCoder(err).Code())
+}
+
+func TestRetiredTypeRejectedBeforeSessionAndStoreAccess(t *testing.T) {
+	codec := &bearerTokenCodecStub{claims: &VerifiedTokenClaims{TokenType: TokenType("service")}}
+	_, err := newVerifier(codec, nil, nil, nil).VerifyToken(context.Background(), "retired")
+	require.Equal(t, code.ErrTokenInvalid, perrors.ParseCoder(err).Code())
 }
