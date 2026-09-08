@@ -37,7 +37,7 @@ func (s *tokenSetMinter) MintTokenSet(ctx context.Context, sess *sessiondomain.S
 	subject := accessTokenSubjectFromSession(sess)
 	now := time.Now().UTC()
 	// 颁发访问令牌
-	accessToken, err := s.tokenCodec.IssueAccessToken(ctx, &AccessTokenSubject{
+	accessToken, err := s.tokenCodec.IssueAccessToken(ctx, &AccessTokenIssueContext{
 		UserID: subject.UserID, LoginIdentityID: subject.LoginIdentityID, SessionID: subject.SessionID,
 		TenantID: subject.TenantID, TenantDomain: subject.TenantDomain, OrgID: subject.OrgID,
 		AMR: append([]string(nil), subject.AMR...), AuthenticatedAt: subject.AuthenticatedAt,
@@ -58,7 +58,7 @@ func (s *tokenSetMinter) MintTokenSet(ctx context.Context, sess *sessiondomain.S
 }
 
 // issueRefreshToken 颁发刷新令牌。
-func (s *tokenSetMinter) issueRefreshToken(subject *AccessTokenSubject, sess *sessiondomain.Session, now time.Time) (*RefreshToken, error) {
+func (s *tokenSetMinter) issueRefreshToken(subject *AccessTokenIssueContext, sess *sessiondomain.Session, now time.Time) (*RefreshToken, error) {
 	// 计算刷新令牌过期时间
 	refreshExpiresAt, err := s.refreshExpirer.NextRefreshExpiresAt(now, sess)
 	if err != nil {

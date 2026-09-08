@@ -2,6 +2,7 @@ package signin
 
 import (
 	"context"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
 	"testing"
 	"time"
 
@@ -18,7 +19,7 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
-func TestSignInPreservesAuthenticationGrantIssuerErrorCodes(t *testing.T) {
+func TestSignInPreservesInitialTokenIssuerErrorCodes(t *testing.T) {
 	tests := []struct {
 		name      string
 		issueCode int
@@ -36,13 +37,14 @@ func TestSignInPreservesAuthenticationGrantIssuerErrorCodes(t *testing.T) {
 				LoginIdentityID: meta.FromUint64(2),
 				TenantID:        meta.FromUint64(3),
 			}
-			grantIssuer := &authenticationGrantIssuerStub{errCode: tt.issueCode}
+			initialTokenIssuer := &initialTokenIssuerStub{errCode: tt.issueCode}
 			strategy := signInStrategyStub{decision: authentication.AuthDecision{OK: true, Principal: principal}}
 			usecase := New(Dependencies{
-				AuthenticationGrantIssuer: grantIssuer,
-				MethodRegistry:            signInMethodRegistryStub{},
-				ProofFactory:              signInProofFactoryStub{},
-				Authenticator:             authentication.NewAuthenticator(strategy),
+				TokenIssuer:     initialTokenIssuer,
+				AdmissionPolicy: testhelpers.AuthnFlow{}, SessionCreator: testhelpers.AuthnFlow{}, SessionRevoker: testhelpers.AuthnFlow{},
+				MethodRegistry: signInMethodRegistryStub{},
+				ProofFactory:   signInProofFactoryStub{},
+				Authenticator:  authentication.NewAuthenticator(strategy),
 			})
 
 			result, err := usecase.Execute(context.Background(), method.LoginRequest{})
@@ -58,25 +60,26 @@ func TestSignInPreservesAuthenticationGrantIssuerErrorCodes(t *testing.T) {
 					t.Fatalf("Execute() result = %#v, want nil", result)
 				}
 			}
-			if !grantIssuer.called {
-				t.Fatal("IssueAuthentication() was not called")
+			if !initialTokenIssuer.called {
+				t.Fatal("IssueInitialTokens() was not called")
 			}
 		})
 	}
 }
 
-func TestSignInRecordsCredentialBeforeIssuingAuthenticationGrant(t *testing.T) {
+func TestSignInRecordsCredentialBeforeIssuingInitialTokens(t *testing.T) {
 	t.Parallel()
 
 	principal := &authentication.Principal{
 		UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), TenantID: meta.FromUint64(3),
 	}
 	order := make([]string, 0, 2)
-	grantIssuer := &authenticationGrantIssuerStub{order: &order}
+	initialTokenIssuer := &initialTokenIssuerStub{order: &order}
 	usecase := New(Dependencies{
-		AuthenticationGrantIssuer: grantIssuer,
-		MethodRegistry:            signInMethodRegistryStub{},
-		ProofFactory:              signInProofFactoryStub{},
+		TokenIssuer:     initialTokenIssuer,
+		AdmissionPolicy: testhelpers.AuthnFlow{}, SessionCreator: testhelpers.AuthnFlow{}, SessionRevoker: testhelpers.AuthnFlow{},
+		MethodRegistry: signInMethodRegistryStub{},
+		ProofFactory:   signInProofFactoryStub{},
 		Authenticator: authentication.NewAuthenticator(signInStrategyStub{decision: authentication.AuthDecision{
 			OK: true, Principal: principal, CredentialID: meta.FromUint64(4),
 		}}),
@@ -167,13 +170,13 @@ func (s credentialRecorderStub) Record(context.Context, authentication.AuthDecis
 	return nil
 }
 
-type authenticationGrantIssuerStub struct {
+type initialTokenIssuerStub struct {
 	called  bool
 	errCode int
 	order   *[]string
 }
 
-func (s *authenticationGrantIssuerStub) IssueAuthentication(_ context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*tokenapp.TokenPair, error) {
+func (s *initialTokenIssuerStub) IssueInitialTokens(_ context.Context, principal *sessiondomain.Session) (*tokenapp.TokenPair, error) {
 	s.called = true
 	if s.order != nil {
 		*s.order = append(*s.order, "issue")

@@ -12,7 +12,7 @@ AuthN 证明“当前请求者是谁”，维持认证会话，并把认证结�
 
 - 建立认证关系：用 `LoginIdentity`、`Credential` 表达“系统凭什么认识你”；
 - 确认身份与准入：用 `Challenge`、`Authenticator`、`AuthDecision`、`Principal`、`AdmissionPolicy` 表达“如何确认现在是你”；
-- 延续认证状态：用 `AuthenticationGrant`、`Session`、Token 与 `GrantIssuer`、`Verifier`、`Refresher`、`Revoker` 表达“如何让系统持续相信是你”。
+- 延续认证状态：用 `登录结果`、`Session`、Token 与 `SignIn`、`Verifier`、`Refresher`、`Revoker` 表达“如何让系统持续相信是你”。
 
 JWT、JWKS 和 Redis 是第三段的适配实现，不是与三个子域并列的领域阶段。
 
@@ -25,7 +25,7 @@ JWT、JWKS 和 Redis 是第三段的适配实现，不是与三个子域并列�
 | 修改绑定、解绑或最近认证 | [Linking 主链路](03-关键链路-Linking登录身份绑定.md) |
 | 修改签发、刷新、撤销 | [Token 主链路](05-关键链路-Token签发刷新吊销.md) |
 | 理解原始认证时间、Session 寿命和旧格式 | [Session/Token 模型](03-Session-Token与JWKS.md) |
-| 排查 key rotation、JWKS 和备份 | [JWKS 生命周期](06-关键链路-JWKS与本地验签.md) |
+| 排查 key rotation、JWKS 和备份 | [签名密钥生命周期与 JWKS 发布](06-关键链路-JWKS与本地验签.md) |
 
 ## 主题归属与维护规则
 
@@ -47,7 +47,7 @@ JWT、JWKS 和 Redis 是第三段的适配实现，不是与三个子域并列�
 ## 完整阅读路径
 
 1. [模块总览](00-模块总览.md)：先建立“认证关系 → 身份与准入 → 认证状态”的统一模型。
-2. [领域模型与认证策略](01-领域模型与认证策略.md)：区分 LoginIdentity、Credential、Challenge、Principal、Session、AuthenticationGrant 和 Token 概念族。
+2. [领域模型与认证策略](01-领域模型与认证策略.md)：区分 LoginIdentity、Credential、Challenge、Principal、Session、登录结果 和 Token 概念族。
 3. [注册、登录与身份绑定](02-注册登录与身份绑定.md)：理解三条写链路的事务、幂等和并发边界。
 4. [Session、Token 与 JWKS](03-Session-Token与JWKS.md)：理解在线状态、刷新轮换、撤销与两种验签语义。
 5. [登录身份绑定](03-关键链路-Linking登录身份绑定.md)：深入理解绑定、解绑和最后一个 active identity 的并发保护。
@@ -71,15 +71,15 @@ JWT、JWKS 和 Redis 是第三段的适配实现，不是与三个子域并列�
 IDP 解析外部 provider 身份
   -> AuthN 映射 LoginIdentity，验证证明并形成 Principal
   -> Admission 读取 Identity User / AuthN LoginIdentity 当前状态
-  -> GrantIssuer 颁发 AuthenticationGrant
+  -> SignIn 颁发 登录结果
   -> AuthZ 对 Principal 对应主体做资源授权
 ```
 
 ## 当前实现要特别记住的七点
 
 - SignUp 的外部身份解析在事务外，本地 User/LoginIdentity/Credential 在一个 MySQL UoW 中提交。
-- `AuthenticationGrant = Session + UserTokenSet`；SignIn 只依赖应用 `AuthenticationGrantIssuer`，
-  领域 `GrantIssuer` 内部先 Admission，再建立 Session 与令牌集合。
+- SignIn 在应用层分别调用 AdmissionPolicy、SessionCreator 和 InitialTokenIssuer，并负责新会话的失败补偿；续期和登出仍分别由 Refresher、Revoker 处理。
+  准入返回 Decision；只有明确通过才创建 Session，随后颁发并保存初始令牌。
 - 用户 access token 是 RS256 JWT，但 IAM 在线验证仍检查撤销标记、Session 和主体状态。
 - Refresh token 使用 Redis Lua 原子轮换；当前先延长 Session，再轮换 token，失败时存在 TTL 已变化的窗口。
 - SDK 本地 JWKS 验签不具备 IAM 在线验证的即时撤销语义。

@@ -40,7 +40,7 @@ JWT 负责可验证声明，Redis 负责在线撤销和续期状态，MySQL 负�
 2. 用 Principal 和独立 TokenContext 创建 Session，并校验主体与会话的一致性；
 3. 由 `TokenSetMinter` 在 Session 上 mint `UserTokenSet`；
 4. 把 RefreshToken 保存到 Redis；
-5. 返回 `AuthenticationGrant = Session + UserTokenSet`。
+5. 返回 `登录结果 = Principal + TokenPair`。
 
 Access token 由当前 active RS256 key 签名，payload 是类型化投影（含 `user_id`/`login_identity_id`/`sid`/`tenant_id`/`amr`/`auth_time` 等）。
 JWT 可读但不保证机密；敏感字段默认不进入 access JWT。Refresh token 是不透明随机值，服务端只保存轮换/重放检测与 Session 关联；
@@ -52,7 +52,7 @@ JWT Header 中的 `kid/alg/typ` 不进入领域 Claims，Signature 也不是 Cla
 
 ### 当前失败窗口
 
-Session 创建成功后，若 mint 返回错误或不完整的 TokenSet，或 `SaveRefreshToken` 失败，GrantIssuer 会以
+Session 创建成功后，若 mint 返回错误或不完整的 TokenSet，或 `SaveRefreshToken` 失败，SignIn 会以
 `authentication_grant_failed` 为原因撤销该 Session，并返回原始签发错误。撤销使用独立的 5 秒超时，客户端取消请求不会取消补偿。
 即使 RefreshToken 保存结果不确定，Session 撤销成功后它也不能继续在线认证或刷新。
 
@@ -226,7 +226,7 @@ SDK `LocalVerifyStrategy` 只覆盖 codec + 本地 policy（RS256、必填 issue
 
 ## 10. 事实来源与验证
 
-- 认证结果与初始颁发：`internal/apiserver/domain/authn/grant`
+- 认证结果与初始颁发：`internal/apiserver/application/authn/signin`
 - Token 模型、mint、刷新、验证与撤销：`internal/apiserver/domain/authn/token`
 - Token 应用 DTO 与门面：`internal/apiserver/application/authn/token`
 - Session 领域：`internal/apiserver/domain/authn/session`
@@ -240,7 +240,7 @@ SDK `LocalVerifyStrategy` 只覆盖 codec + 本地 policy（RS256、必填 issue
 
 ```bash
 go test \
-  ./internal/apiserver/domain/authn/grant \
+  ./internal/apiserver/application/authn/signin \
   ./internal/apiserver/domain/authn/token \
   ./internal/apiserver/application/authn/token \
   ./internal/apiserver/domain/authn/session \

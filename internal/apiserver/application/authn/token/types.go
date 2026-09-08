@@ -1,11 +1,9 @@
 package token
 
 import (
-	grantdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/grant"
 	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
 )
 
-type SessionCreator = grantdomain.SessionCreator
 type SessionLoader = tokendomain.SessionLoader
 type SessionRevoker = tokendomain.SessionRevoker
 type SessionExtender = tokendomain.SessionExtender

@@ -13,12 +13,18 @@ import (
 
 // Assignment 表达主体在租户内持有某个角色的赋权事实（聚合根）。
 type Assignment struct {
-	ID          AssignmentID
+	ID AssignmentID
+
+	//---- 赋权主体 ----
 	SubjectType SubjectType // user/group/service
 	SubjectID   meta.ID     // 用户或组ID
-	RoleID      meta.ID     // 角色ID
-	TenantID    tenant.ID   // 租户ID（域）
-	GrantedBy   string      // 授权人
+
+	//---- 赋权事实 ----
+	RoleID   meta.ID   // 角色ID
+	TenantID tenant.ID // 租户ID（域）
+
+	//---- 赋权来源 ----
+	GrantedBy string // 授权人
 }
 
 // NewAssignment 创建新赋权。

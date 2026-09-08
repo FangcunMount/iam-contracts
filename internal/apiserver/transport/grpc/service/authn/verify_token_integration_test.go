@@ -123,8 +123,13 @@ func (s fixedJWSKeySource) VerificationKey(context.Context, string) (*tokenjwt.V
 	return &tokenjwt.VerificationKey{Kid: s.kid, Algorithm: "RS256", PublicKey: &s.key.PublicKey}, nil
 }
 
+type testTokenStack struct {
+	tokenapp.Capabilities
+	creator sessiondomain.Creator
+}
+
 func newTestTokenStack(t *testing.T) (
-	tokenapp.Capabilities,
+	testTokenStack,
 	*tokenjwt.JWSCompactTokenCodec,
 ) {
 	t.Helper()
@@ -137,10 +142,10 @@ func newTestTokenStack(t *testing.T) (
 	store := noopTokenStore{}
 	sessionStore := &memorySessionStore{}
 	lifetime := sessiondomain.NewLifetimePolicy(24*time.Hour, 24*time.Hour)
+	creator := sessiondomain.NewCreator(sessionStore, lifetime)
 	tokens := tokenapp.NewCapabilities(tokenapp.Dependencies{
 		BearerTokenCodec:      gen,
 		TokenStore:            store,
-		SessionCreator:        sessiondomain.NewCreator(sessionStore, lifetime),
 		SessionLoader:         sessiondomain.NewLoader(sessionStore, lifetime),
 		SessionRevoker:        sessiondomain.NewRevoker(sessionStore),
 		SessionExtender:       sessiondomain.NewExtender(sessionStore, lifetime),
@@ -149,7 +154,7 @@ func newTestTokenStack(t *testing.T) (
 		LegacyContextDecoder:  tokenapp.NewLegacyAuthenticationContextSnapshotDecoder(),
 		AccessTTL:             time.Hour,
 	})
-	return tokens, gen
+	return testTokenStack{Capabilities: tokens, creator: creator}, gen
 }
 
 func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *testing.T) {
@@ -165,7 +170,7 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	}
 
 	// 与登录成功后的签发路径一致：IssueToken → access_token JWT
-	pair, err := tokens.AuthenticationGrantIssuer.IssueAuthentication(ctx, principal, sessiondomain.TokenContext{TenantDomain: "fangcun", OrgID: meta.FromUint64(9001)})
+	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{TenantDomain: "fangcun", OrgID: meta.FromUint64(9001)})
 	require.NoError(t, err)
 	require.NotNil(t, pair)
 	require.NotNil(t, pair.AccessToken)
@@ -206,7 +211,7 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	require.True(t, gresp.Valid)
 
 	// REST POST verify（与 gRPC 使用同一 Verifier 能力）
-	h := authhandler.NewAuthHandler(nil, tokens, nil)
+	h := authhandler.NewAuthHandler(nil, tokens.Capabilities, nil)
 	w := httptest.NewRecorder()
 	body := bytes.NewBufferString(`{"access_token":"` + access + `"}`)
 	c, _ := gin.CreateTestContext(w)
@@ -254,7 +259,7 @@ func TestIntegration_VerifyToken_RejectsIssuerOrAudienceMismatch(t *testing.T) {
 		LoginIdentityID: meta.FromUint64(8),
 		TenantID:        meta.FromUint64(9),
 	}
-	pair, err := tokens.AuthenticationGrantIssuer.IssueAuthentication(ctx, principal, sessiondomain.TokenContext{})
+	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{})
 	require.NoError(t, err)
 
 	grpcSrv := &authServiceServer{tokenVerifier: tokens.Verifier}
@@ -284,7 +289,7 @@ func TestIntegration_VerifyToken_GRPC_IncludeMetadata(t *testing.T) {
 		LoginIdentityID: meta.FromUint64(43),
 		TenantID:        meta.FromUint64(44),
 	}
-	pair, err := tokens.AuthenticationGrantIssuer.IssueAuthentication(ctx, principal, sessiondomain.TokenContext{})
+	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{})
 	require.NoError(t, err)
 
 	grpcSrv := &authServiceServer{tokenVerifier: tokens.Verifier}
@@ -295,4 +300,13 @@ func TestIntegration_VerifyToken_GRPC_IncludeMetadata(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, gresp.Valid)
 	require.NotNil(t, gresp.Metadata)
+}
+
+func issueForTest(t *testing.T, ctx context.Context, tokens testTokenStack, p *authentication.Principal, c sessiondomain.TokenContext) (*tokenapp.TokenPair, error) {
+	t.Helper()
+	sess, err := tokens.creator.Create(ctx, p, c)
+	if err != nil {
+		return nil, err
+	}
+	return tokens.InitialTokenIssuer.IssueInitialTokens(ctx, sess)
 }

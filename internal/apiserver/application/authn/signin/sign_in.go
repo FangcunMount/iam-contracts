@@ -58,7 +58,7 @@ func (s *SignIn) Execute(ctx context.Context, cmd method.LoginRequest) (*Result,
 		return nil, perrors.WithCode(code.ErrAuthenticationFailed, "authentication principal is missing")
 	}
 
-	// 颁发完整在线认证结果。领域颁发器在创建 Session 前执行 Admission。
+	// 登录用例编排准入、会话创建和初始令牌颁发，并负责失败补偿。
 	return s.issueTokenPair(ctx, decision.Principal)
 }
 
@@ -67,8 +67,11 @@ func (s *SignIn) Execute(ctx context.Context, cmd method.LoginRequest) (*Result,
 // 返回：错误
 // 职责：确保依赖已准备好，返回错误
 func (s *SignIn) ensureReady() error {
+	if s == nil {
+		return perrors.WithCode(code.ErrInvalidArgument, "login service is not initialized")
+	}
 	d := s.deps
-	if s == nil || d.AuthenticationGrantIssuer == nil || d.MethodRegistry == nil || d.ProofFactory == nil || d.Authenticator == nil {
+	if d.TokenIssuer == nil || d.AdmissionPolicy == nil || d.SessionCreator == nil || d.SessionRevoker == nil || d.MethodRegistry == nil || d.ProofFactory == nil || d.Authenticator == nil {
 		return perrors.WithCode(code.ErrInvalidArgument, "login service is not initialized")
 	}
 	return nil
@@ -117,13 +120,13 @@ func (s *SignIn) authenticate(ctx context.Context, credential authentication.Aut
 // 职责：签发 TokenPair，返回登录结果
 func (s *SignIn) issueTokenPair(ctx context.Context, p *authentication.Principal) (*Result, error) {
 	// 签发 TokenPair
-	tokenPair, err := s.deps.AuthenticationGrantIssuer.IssueAuthentication(ctx, p, sessiondomain.TokenContext{TenantDomain: tenant.DefaultID})
+	result, err := s.completeAuthentication(ctx, p, sessiondomain.TokenContext{TenantDomain: tenant.DefaultID})
 	if err != nil {
 		return nil, wrapStageError(err, code.ErrAuthenticationFailed, "failed to issue authentication grant")
 	}
 
 	// 由认证主体构造登录结果
-	return ResultFromPrincipal(p, tokenPair), nil
+	return result, nil
 }
 
 // recordCredential 记录认证结果

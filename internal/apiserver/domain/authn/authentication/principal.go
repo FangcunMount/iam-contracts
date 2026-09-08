@@ -13,7 +13,7 @@ type Principal struct {
 	AuthContext AuthenticationContext
 }
 
-// ApplyAuthContext 将认证上下文写入 Principal，并同步兼容字段。
+// ApplyAuthContext 将认证上下文的副本写入 Principal。
 func (p *Principal) ApplyAuthContext(ctx AuthenticationContext) {
 	if p == nil {
 		return

@@ -2,6 +2,8 @@ package signin
 
 import (
 	"context"
+	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 
 	credentialapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/credential"
 	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
@@ -21,9 +23,17 @@ type ProofFactory interface {
 
 // Dependencies 是 SignIn 用例依赖。
 type Dependencies struct {
-	AuthenticationGrantIssuer tokenapp.AuthenticationGrantIssuer
-	MethodRegistry            MethodRegistry
-	ProofFactory              ProofFactory
-	Authenticator             *authentication.Authenticator
-	CredentialRecorder        credentialapp.Recorder
+	TokenIssuer        tokenapp.InitialTokenIssuer
+	AdmissionPolicy    admissiondomain.Policy
+	SessionCreator     sessiondomain.Creator
+	SessionRevoker     SessionRevoker
+	MethodRegistry     MethodRegistry
+	ProofFactory       ProofFactory
+	Authenticator      *authentication.Authenticator
+	CredentialRecorder credentialapp.Recorder
+}
+
+// SessionRevoker is the compensation capability used only for newly created sessions.
+type SessionRevoker interface {
+	Revoke(context.Context, string, string, string) error
 }

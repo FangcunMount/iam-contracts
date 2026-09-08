@@ -16,26 +16,15 @@ const (
 	TokenTypeRefresh TokenType = "refresh"
 )
 
-// Token 是 AuthN 令牌概念族的共同契约。
-// 具体不变量由 AccessToken 和 RefreshToken 分别表达。
-type Token interface {
-	Kind() TokenType
-	Metadata() TokenMetadata
-}
-
 // TokenMetadata 是两类令牌共享的身份与生命周期信息。
 type TokenMetadata struct {
 	// —— 身份信息 —— //
-	ID    string // 令牌ID
-	Value string // 令牌值
+	ID string // 令牌ID
 
 	// —— 生命周期信息 —— //
 	IssuedAt  time.Time // 令牌颁发时间
 	ExpiresAt time.Time // 令牌过期时间
 }
-
-// Metadata 返回令牌元数据的值副本。
-func (m TokenMetadata) Metadata() TokenMetadata { return m }
 
 // IsExpiredAt 返回令牌在指定时刻是否已过期。
 func (m TokenMetadata) IsExpiredAt(now time.Time) bool {
@@ -63,6 +52,7 @@ func (m TokenMetadata) RemainingDuration() time.Duration {
 // AccessToken 表示绑定用户认证上下文与 Session 的短期访问凭证。
 type AccessToken struct {
 	TokenMetadata
+	Value string // 已颁发的凭证值，不属于元数据。
 
 	// —— 主体信息 —— //
 	Subject string // 令牌主题
@@ -81,7 +71,8 @@ func (*AccessToken) Kind() TokenType { return TokenTypeAccess }
 func NewAccessToken(id, value, sessionID string, userID, loginIdentityID, tenantID meta.ID, expiresIn time.Duration) *AccessToken {
 	now := time.Now()
 	return &AccessToken{
-		TokenMetadata:   TokenMetadata{ID: id, Value: value, IssuedAt: now, ExpiresAt: now.Add(expiresIn)},
+		TokenMetadata:   TokenMetadata{ID: id, IssuedAt: now, ExpiresAt: now.Add(expiresIn)},
+		Value:           value,
 		Subject:         userID.String(),
 		SessionID:       sessionID,
 		UserID:          userID,
@@ -93,6 +84,7 @@ func NewAccessToken(id, value, sessionID string, userID, loginIdentityID, tenant
 // RefreshToken 表示与认证 Session 绑定、可单次轮换的续期凭证。
 type RefreshToken struct {
 	TokenMetadata
+	Value string // 已颁发的凭证值，不属于元数据。
 
 	// —— 会话信息 —— //
 	SessionID       string  // 会话ID
@@ -123,7 +115,8 @@ func NewRefreshTokenWithExpiry(id, value, sessionID string, userID, loginIdentit
 
 func newRefreshToken(id, value, sessionID string, userID, loginIdentityID, tenantID meta.ID, amr []string, sessionClaims map[string]string, issuedAt, expiresAt time.Time) *RefreshToken {
 	return &RefreshToken{
-		TokenMetadata:   TokenMetadata{ID: id, Value: value, IssuedAt: issuedAt, ExpiresAt: expiresAt},
+		TokenMetadata:   TokenMetadata{ID: id, IssuedAt: issuedAt, ExpiresAt: expiresAt},
+		Value:           value,
 		SessionID:       sessionID,
 		UserID:          userID,
 		LoginIdentityID: loginIdentityID,

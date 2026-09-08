@@ -29,7 +29,7 @@ const (
 // AMR 是可对外表达的认证手段；AuthenticatedAt 是原始认证时间。
 type AuthenticationContext struct {
 	Method          Method    // 认证方法
-	Realm           string    // 认证域
+	Realm           string    // 登录身份命名空间
 	AMR             []AMR     // 认证方法引用
 	AuthenticatedAt time.Time // 认证时间
 }

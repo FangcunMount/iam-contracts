@@ -63,7 +63,7 @@ func TestSessionForRefreshDoesNotInventMissingHistoricalAuthTime(t *testing.T) {
 	require.True(t, restored.AuthContext.AuthenticatedAt.IsZero())
 }
 
-func TestAccessTokenSubjectKeepsAuthContextAuthenticatedAt(t *testing.T) {
+func TestAccessTokenIssueContextKeepsAuthContextAuthenticatedAt(t *testing.T) {
 	authenticatedAt := time.Unix(1700000200, 0).UTC()
 	sess := &sessiondomain.Session{
 		SessionID: "sid-1", UserID: meta.FromUint64(10), LoginIdentityID: meta.FromUint64(20),

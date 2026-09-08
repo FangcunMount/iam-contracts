@@ -1,8 +1,11 @@
-package grant
+package signin
 
 import (
 	"context"
 	"errors"
+	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"testing"
 	"time"
 
@@ -14,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestIssuerRequiresAdmissionBeforeCreatingAuthenticationState(t *testing.T) {
+func TestSignInCompletionRequiresAdmissionBeforeCreatingAuthenticationState(t *testing.T) {
 	t.Parallel()
 
 	principal := testPrincipal()
@@ -25,32 +28,30 @@ func TestIssuerRequiresAdmissionBeforeCreatingAuthenticationState(t *testing.T) 
 		admissiondomain.Subject{UserID: principal.UserID, LoginIdentityID: principal.LoginIdentityID},
 		admissiondomain.ReasonUserBlocked,
 	)}
-	issuer := NewIssuer(Dependencies{
+	establisher := newCompletionForTest(completionTestDependencies{
 		AdmissionPolicy: policy, SessionCreator: creator, SessionRevoker: &recordingSessionRevoker{}, TokenSetMinter: minter, RefreshTokenSaver: saver,
 	})
 
-	result, err := issuer.Issue(context.Background(), principal, sessiondomain.TokenContext{})
+	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.TokenContext{})
 
 	require.Nil(t, result)
-	var denied *admissiondomain.DeniedError
-	require.ErrorAs(t, err, &denied)
-	require.Equal(t, admissiondomain.ReasonUserBlocked, denied.Decision.Reason)
+	require.Equal(t, code.ErrUserBlocked, perrors.ParseCoder(err).Code())
 	require.False(t, creator.called)
 	require.False(t, minter.called)
 	require.False(t, saver.called)
 }
 
-func TestIssuerDoesNotCreateAuthenticationStateWhenAdmissionCannotBeEvaluated(t *testing.T) {
+func TestSignInCompletionDoesNotCreateAuthenticationStateWhenAdmissionCannotBeEvaluated(t *testing.T) {
 	t.Parallel()
 
 	principal := testPrincipal()
 	creator := &recordingSessionCreator{session: testSession(principal)}
-	issuer := NewIssuer(Dependencies{
+	establisher := newCompletionForTest(completionTestDependencies{
 		AdmissionPolicy: admissionPolicyStub{err: errors.New("status unavailable")},
 		SessionCreator:  creator,
 	})
 
-	result, err := issuer.Issue(context.Background(), principal, sessiondomain.TokenContext{})
+	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.TokenContext{})
 
 	require.Nil(t, result)
 	var evaluation *admissiondomain.EvaluationError
@@ -58,7 +59,7 @@ func TestIssuerDoesNotCreateAuthenticationStateWhenAdmissionCannotBeEvaluated(t 
 	require.False(t, creator.called)
 }
 
-func TestIssuerCreatesGrantAndPersistsInitialRefreshToken(t *testing.T) {
+func TestSignInCompletionCreatesResultAndPersistsInitialRefreshToken(t *testing.T) {
 	t.Parallel()
 
 	principal := testPrincipal()
@@ -79,7 +80,7 @@ func TestIssuerCreatesGrantAndPersistsInitialRefreshToken(t *testing.T) {
 	creator := &recordingSessionCreator{session: sess}
 	minter := &recordingTokenSetMinter{set: set}
 	saver := &recordingRefreshTokenSaver{}
-	issuer := NewIssuer(Dependencies{
+	establisher := newCompletionForTest(completionTestDependencies{
 		AdmissionPolicy: admissionPolicyStub{decision: admissiondomain.Admit(
 			admissiondomain.Subject{UserID: principal.UserID, LoginIdentityID: principal.LoginIdentityID},
 		)},
@@ -87,12 +88,12 @@ func TestIssuerCreatesGrantAndPersistsInitialRefreshToken(t *testing.T) {
 	})
 
 	tokenContext := sessiondomain.TokenContext{TenantDomain: "fangcun", OrgID: meta.FromUint64(42)}
-	result, err := issuer.Issue(context.Background(), principal, tokenContext)
+	result, err := establisher.completeAuthentication(context.Background(), principal, tokenContext)
 
 	require.NoError(t, err)
 	require.Equal(t, tokenContext, creator.tokenContext)
-	require.Same(t, sess, result.Session)
-	require.Same(t, set, result.TokenSet)
+	require.Equal(t, principal.UserID, result.UserID)
+	require.Equal(t, set.AccessToken.Value, result.TokenPair.AccessToken.Value)
 	require.Same(t, sess, minter.session)
 	require.Same(t, refresh, saver.token)
 }
@@ -172,7 +173,7 @@ func (r *recordingSessionRevoker) Revoke(ctx context.Context, sid, reason, _ str
 	return r.err
 }
 
-func TestIssuerCompensatesFailedGrantEvenAfterRequestCancellation(t *testing.T) {
+func TestSignInCompletionCompensatesFailedEstablishmentEvenAfterRequestCancellation(t *testing.T) {
 	for _, stage := range []string{"mint", "save", "incomplete"} {
 		t.Run(stage, func(t *testing.T) {
 			principal := testPrincipal()
@@ -195,14 +196,14 @@ func TestIssuerCompensatesFailedGrantEvenAfterRequestCancellation(t *testing.T) 
 				if cleanupFails {
 					revoker.err = errors.New("injected cleanup failure")
 				}
-				issuer := NewIssuer(Dependencies{
+				establisher := newCompletionForTest(completionTestDependencies{
 					AdmissionPolicy: admissionPolicyStub{decision: admissiondomain.Admit(admissiondomain.Subject{})},
 					SessionCreator:  &recordingSessionCreator{session: sess}, SessionRevoker: revoker,
 					TokenSetMinter: minter, RefreshTokenSaver: saver,
 				})
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
-				result, err := issuer.Issue(ctx, principal, sessiondomain.TokenContext{})
+				result, err := establisher.completeAuthentication(ctx, principal, sessiondomain.TokenContext{})
 				require.Nil(t, result)
 				require.Error(t, err)
 				if stage != "incomplete" {
@@ -220,33 +221,49 @@ func TestIssuerCompensatesFailedGrantEvenAfterRequestCancellation(t *testing.T) 
 	}
 }
 
-func TestIssuerRequiresCompensationBeforeCreatingSession(t *testing.T) {
+func TestSignInCompletionRequiresCompensationBeforeCreatingSession(t *testing.T) {
 	creator := &recordingSessionCreator{}
-	issuer := NewIssuer(Dependencies{
+	establisher := newCompletionForTest(completionTestDependencies{
 		AdmissionPolicy: admissionPolicyStub{decision: admissiondomain.Admit(admissiondomain.Subject{})},
 		SessionCreator:  creator, TokenSetMinter: &recordingTokenSetMinter{}, RefreshTokenSaver: &recordingRefreshTokenSaver{},
 	})
-	_, err := issuer.Issue(context.Background(), testPrincipal(), sessiondomain.TokenContext{})
+	_, err := establisher.completeAuthentication(context.Background(), testPrincipal(), sessiondomain.TokenContext{})
 	require.Error(t, err)
 	require.False(t, creator.called)
 }
 
-func TestIssuerRejectsMismatchedSessionBeforeMintingAndCompensates(t *testing.T) {
+func TestSignInCompletionRejectsMismatchedSessionBeforeMintingAndCompensates(t *testing.T) {
 	principal := testPrincipal()
 	sess := testSession(principal)
 	sess.LoginIdentityID = meta.FromUint64(99)
 	minter := &recordingTokenSetMinter{}
 	saver := &recordingRefreshTokenSaver{}
 	revoker := &recordingSessionRevoker{}
-	issuer := NewIssuer(Dependencies{
+	establisher := newCompletionForTest(completionTestDependencies{
 		AdmissionPolicy: admissionPolicyStub{decision: admissiondomain.Admit(admissiondomain.Subject{})},
 		SessionCreator:  &recordingSessionCreator{session: sess}, SessionRevoker: revoker,
 		TokenSetMinter: minter, RefreshTokenSaver: saver,
 	})
-	result, err := issuer.Issue(context.Background(), principal, sessiondomain.TokenContext{})
+	result, err := establisher.completeAuthentication(context.Background(), principal, sessiondomain.TokenContext{})
 	require.Error(t, err)
 	require.Nil(t, result)
 	require.False(t, minter.called)
 	require.False(t, saver.called)
 	require.Equal(t, sess.SessionID, revoker.sessionID)
+}
+
+type completionTestDependencies struct {
+	AdmissionPolicy   admissiondomain.Policy
+	SessionCreator    sessiondomain.Creator
+	SessionRevoker    SessionRevoker
+	TokenSetMinter    tokendomain.TokenSetMinter
+	RefreshTokenSaver tokenapp.RefreshTokenSaver
+}
+
+func newCompletionForTest(d completionTestDependencies) *SignIn {
+	var issuer tokenapp.InitialTokenIssuer
+	if d.TokenSetMinter != nil && d.RefreshTokenSaver != nil {
+		issuer = tokenapp.NewInitialTokenIssuer(d.TokenSetMinter, d.RefreshTokenSaver)
+	}
+	return New(Dependencies{AdmissionPolicy: d.AdmissionPolicy, SessionCreator: d.SessionCreator, SessionRevoker: d.SessionRevoker, TokenIssuer: issuer})
 }

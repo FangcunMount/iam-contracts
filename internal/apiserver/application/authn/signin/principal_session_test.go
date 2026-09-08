@@ -1,4 +1,4 @@
-package grant
+package signin
 
 import (
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"

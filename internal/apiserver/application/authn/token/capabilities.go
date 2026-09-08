@@ -7,8 +7,6 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	admissionapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	grantdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/grant"
 	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
@@ -16,17 +14,16 @@ import (
 
 // application 组合令牌用例协作者，并分别实现对外窄能力。
 type application struct {
-	grantIssuer grantdomain.Issuer
-	refresher   tokendomain.Refresher
-	verifier    tokendomain.Verifier
-	revoker     tokendomain.Revoker
+	initialIssuer InitialTokenIssuer
+	refresher     tokendomain.Refresher
+	verifier      tokendomain.Verifier
+	revoker       tokendomain.Revoker
 }
 
 // Dependencies 是令牌用例能力的装配依赖。
 type Dependencies struct {
 	BearerTokenCodec      BearerTokenCodec                           // 令牌编码器
 	TokenStore            Store                                      // 令牌存储
-	SessionCreator        SessionCreator                             // 会话创建器
 	SessionLoader         SessionLoader                              // 会话加载器
 	SessionRevoker        SessionRevoker                             // 会话撤销器
 	SessionExtender       SessionExtender                            // 会话延期器
@@ -37,10 +34,10 @@ type Dependencies struct {
 }
 
 var (
-	_ AuthenticationGrantIssuer = (*application)(nil)
-	_ Refresher                 = (*application)(nil)
-	_ Revoker                   = (*application)(nil)
-	_ Verifier                  = (*application)(nil)
+	_ InitialTokenIssuer = (*application)(nil)
+	_ Refresher          = (*application)(nil)
+	_ Revoker            = (*application)(nil)
+	_ Verifier           = (*application)(nil)
 )
 
 // NewCapabilities 装配并返回相互独立的令牌用例能力。
@@ -52,32 +49,23 @@ func NewCapabilities(deps Dependencies) Capabilities {
 		SessionRefreshExpirer: deps.SessionRefreshExpirer, AdmissionPolicy: deps.AdmissionPolicy,
 		LegacyContextDecoder: deps.LegacyContextDecoder, AccessTTL: deps.AccessTTL,
 	})
-	grantIssuer := grantdomain.NewIssuer(grantdomain.Dependencies{
-		AdmissionPolicy: deps.AdmissionPolicy, SessionCreator: deps.SessionCreator,
-		SessionRevoker: deps.SessionRevoker,
-		TokenSetMinter: domainCapabilities.TokenSetMinter, RefreshTokenSaver: deps.TokenStore,
-	})
 	app := &application{
-		grantIssuer: grantIssuer,
-		refresher:   domainCapabilities.Refresher,
-		verifier:    domainCapabilities.Verifier,
-		revoker:     domainCapabilities.Revoker,
+		initialIssuer: NewInitialTokenIssuer(domainCapabilities.TokenSetMinter, deps.TokenStore),
+		refresher:     domainCapabilities.Refresher,
+		verifier:      domainCapabilities.Verifier,
+		revoker:       domainCapabilities.Revoker,
 	}
 	return Capabilities{
-		AuthenticationGrantIssuer: app,
-		Refresher:                 app,
-		Revoker:                   app,
-		Verifier:                  app,
+		InitialTokenIssuer: app,
+		Refresher:          app,
+		Revoker:            app,
+		Verifier:           app,
 	}
 }
 
-// IssueAuthentication 在认证完成后颁发 Session + TokenSet，并返回应用层 token pair。
-func (s *application) IssueAuthentication(ctx context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*TokenPair, error) {
-	grant, err := s.grantIssuer.Issue(ctx, principal, tokenContext)
-	if err != nil {
-		return nil, admissionapp.MapError(err)
-	}
-	return tokenPairFromDomain(grant.TokenSet), nil
+// IssueInitialTokens 只在既有 Session 上签发并保存初始令牌。
+func (s *application) IssueInitialTokens(ctx context.Context, sess *sessiondomain.Session) (*TokenPair, error) {
+	return s.initialIssuer.IssueInitialTokens(ctx, sess)
 }
 
 // RefreshToken 使用 refresh token 轮换出新的 access/refresh token pair。

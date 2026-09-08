@@ -477,8 +477,8 @@ func TestAuthnConsumersDependOnNarrowCapabilities(t *testing.T) {
 	}{
 		{
 			path:      "internal/apiserver/application/authn/signin/deps.go",
-			required:  []string{"tokenapp.AuthenticationGrantIssuer"},
-			forbidden: []string{"TokenApplicationService", "tokenapp.Capabilities", "AdmissionPolicy", "SessionCreator", "TokenSetMinter"},
+			required:  []string{"tokenapp.InitialTokenIssuer", "admissiondomain.Policy", "sessiondomain.Creator"},
+			forbidden: []string{"TokenApplicationService", "tokenapp.Capabilities", "TokenSetMinter"},
 		},
 		{
 			path:      "internal/apiserver/application/authn/session/service.go",
@@ -515,17 +515,17 @@ func TestAuthnGrantOwnsAdmissionAndSessionTokenCoordination(t *testing.T) {
 	t.Parallel()
 
 	root := repoRoot(t)
-	assertFileContains(t, root, "internal/apiserver/domain/authn/grant/grant.go", "type AuthenticationGrant struct")
-	assertFileContains(t, root, "internal/apiserver/domain/authn/grant/issuer.go", "admissiondomain.Require(")
-	assertFileContains(t, root, "internal/apiserver/domain/authn/grant/issuer.go", "s.sessionCreator.Create(")
-	assertFileContains(t, root, "internal/apiserver/domain/authn/grant/issuer.go", "s.tokenSetMinter.MintTokenSet(")
+	assertFileContains(t, root, "internal/apiserver/application/authn/token/initial_issuer.go", "s.saver.SaveRefreshToken(")
+	assertFileContains(t, root, "internal/apiserver/application/authn/signin/completion.go", "s.deps.AdmissionPolicy.Evaluate(")
+	assertFileContains(t, root, "internal/apiserver/application/authn/signin/completion.go", "s.deps.SessionCreator.Create(")
+	assertFileContains(t, root, "internal/apiserver/application/authn/token/initial_issuer.go", "s.minter.MintTokenSet(")
 
 	tokenSource, err := os.ReadFile(filepath.Join(root, "internal", "apiserver", "domain", "authn", "token", "token.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(tokenSource), "type AuthenticationGrant struct") {
-		t.Fatal("domain/authn/token must not own AuthenticationGrant; Session + TokenSet coordination belongs to domain/authn/grant")
+	if strings.Contains(string(tokenSource), "type SessionEstablishmentResult struct") {
+		t.Fatal("domain/authn/token must not own SessionEstablishmentResult; Session + TokenSet coordination belongs to domain/authn/establishment")
 	}
 }
 
@@ -551,7 +551,7 @@ func TestAuthnAdmissionPolicyDoesNotRegressToSubjectAccessSessionModel(t *testin
 	assertFileContains(t, root, "internal/apiserver/domain/authn/admission/policy.go", "type Policy interface")
 	assertFileContains(t, root, "internal/apiserver/domain/authn/admission/require.go", "func Require(")
 	assertFileContains(t, root, "internal/apiserver/application/authn/admission/guard.go", "func MapError(")
-	assertFileContains(t, root, "internal/apiserver/domain/authn/grant/issuer.go", "admissiondomain.Require(")
+	assertFileContains(t, root, "internal/apiserver/application/authn/signin/completion.go", "s.deps.AdmissionPolicy.Evaluate(")
 }
 
 func TestRESTRegistrarsDoNotUsePackageGlobalDependencies(t *testing.T) {

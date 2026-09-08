@@ -21,7 +21,7 @@ func TestGeneratorAccessTokenUsesRegisteredAudienceAndParseRoundTrips(t *testing
 	t.Parallel()
 
 	generator, signingKey := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api", "collection-api"})
-	subject := &tokendomain.AccessTokenSubject{
+	subject := &tokendomain.AccessTokenIssueContext{
 		LoginIdentityID: meta.MustFromUint64(1001),
 		UserID:          meta.MustFromUint64(1002),
 		SessionID:       "sid-1002",
@@ -56,7 +56,7 @@ func TestGeneratorTokenUsesJWSCompactHeaderPayloadSignatureContract(t *testing.T
 	t.Parallel()
 
 	generator, _ := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
-	token, err := generator.IssueAccessToken(context.Background(), &tokendomain.AccessTokenSubject{
+	token, err := generator.IssueAccessToken(context.Background(), &tokendomain.AccessTokenIssueContext{
 		LoginIdentityID: meta.MustFromUint64(1001),
 		UserID:          meta.MustFromUint64(1002),
 		SessionID:       "sid-1002",
@@ -94,7 +94,7 @@ func TestGeneratorLegacyNumericTenantIDDoesNotInferOrg(t *testing.T) {
 	t.Parallel()
 
 	generator, _ := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
-	token, err := generator.IssueAccessToken(context.Background(), &tokendomain.AccessTokenSubject{
+	token, err := generator.IssueAccessToken(context.Background(), &tokendomain.AccessTokenIssueContext{
 		UserID:          meta.MustFromUint64(1002),
 		LoginIdentityID: meta.MustFromUint64(1001),
 		SessionID:       "sid-1002",
@@ -193,7 +193,7 @@ func TestGeneratorFailsClosedWhenActiveKeyAlgorithmIsNotRS256(t *testing.T) {
 	generator, _ := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
 	generator.keySource.(*signingKeySourceStub).algorithm = "RS384"
 
-	token, err := generator.IssueAccessToken(context.Background(), &tokendomain.AccessTokenSubject{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), SessionID: "sid"}, time.Minute)
+	token, err := generator.IssueAccessToken(context.Background(), &tokendomain.AccessTokenIssueContext{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), SessionID: "sid"}, time.Minute)
 	require.Error(t, err)
 	require.Nil(t, token)
 }
@@ -202,7 +202,7 @@ func TestGeneratorOmitsSensitiveAttributesAndAuthMethodRealm(t *testing.T) {
 	t.Parallel()
 
 	generator, signingKey := newTestGenerator(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
-	token, err := generator.IssueAccessToken(context.Background(), &tokendomain.AccessTokenSubject{
+	token, err := generator.IssueAccessToken(context.Background(), &tokendomain.AccessTokenIssueContext{
 		UserID:          meta.MustFromUint64(1002),
 		LoginIdentityID: meta.MustFromUint64(1001),
 		SessionID:       "sid-1002",

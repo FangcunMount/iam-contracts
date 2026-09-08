@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestAccessTokenSubjectUsesSessionContext(t *testing.T) {
+func TestAccessTokenIssueContextUsesSessionContext(t *testing.T) {
 	sess := &sessiondomain.Session{
 		SessionID: "sid-1", UserID: meta.FromUint64(10), LoginIdentityID: meta.FromUint64(20), TenantID: meta.FromUint64(2),
 		AuthContext:  authentication.RestoreAuthenticationContext(authentication.MethodPassword, "wx-app", []authentication.AMR{authentication.AMRPassword}, time.Time{}),
@@ -26,7 +26,7 @@ func TestAccessTokenSubjectUsesSessionContext(t *testing.T) {
 	got.Attributes["key"] = "changed"
 	require.Equal(t, "value", sess.TokenContext.Attributes["key"])
 }
-func TestAccessTokenSubjectDoesNotUseRealmAsTenantDomain(t *testing.T) {
+func TestAccessTokenIssueContextDoesNotUseRealmAsTenantDomain(t *testing.T) {
 	sess := &sessiondomain.Session{
 		AuthContext: authentication.RestoreAuthenticationContext(authentication.MethodWechatMinip, "wx-app-id", nil, time.Time{}),
 	}

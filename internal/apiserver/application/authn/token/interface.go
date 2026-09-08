@@ -3,14 +3,13 @@ package token
 import (
 	"context"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
 	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 )
 
-// AuthenticationGrantIssuer 在认证成功后颁发完整在线认证结果。
-// 调用方无需感知 Session、access token 与 refresh token 的内部装配过程。
-type AuthenticationGrantIssuer interface {
-	IssueAuthentication(ctx context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*TokenPair, error)
+// InitialTokenIssuer 在既有 Session 上签发初始令牌，并保存 RefreshToken。
+// 不执行准入、创建会话或撤销会话；失败补偿属于调用用例。
+type InitialTokenIssuer interface {
+	IssueInitialTokens(ctx context.Context, sess *sessiondomain.Session) (*TokenPair, error)
 }
 
 // Refresher 通过 refresh token 轮换在线会话令牌。
@@ -33,10 +32,10 @@ type Verifier interface {
 // Capabilities 是组合根输出的令牌用例能力集合。
 // 它只承载窄接口，不是供业务代码依赖的统一门面。
 type Capabilities struct {
-	AuthenticationGrantIssuer AuthenticationGrantIssuer
-	Refresher                 Refresher
-	Revoker                   Revoker
-	Verifier                  Verifier
+	InitialTokenIssuer InitialTokenIssuer
+	Refresher          Refresher
+	Revoker            Revoker
+	Verifier           Verifier
 }
 
 // ================== DTOs ==================

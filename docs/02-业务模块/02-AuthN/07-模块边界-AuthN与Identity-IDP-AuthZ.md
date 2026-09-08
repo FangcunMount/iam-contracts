@@ -9,7 +9,7 @@ IDP 证明外部账号
   -> AuthN 绑定/认证 LoginIdentity
   -> AuthN 产生 Principal（证明成功）
   -> Admission 读取 Identity User 与 AuthN LoginIdentity 当前状态
-  -> GrantIssuer 颁发 AuthenticationGrant(Session + UserTokenSet)
+  -> SignIn 颁发 登录结果(Principal + TokenPair)
   -> AuthZ 对 Subject 做资源判定
 ```
 
@@ -63,7 +63,7 @@ AuthN 只提交 provider/realm/code、消费标准结果，再决定这个外部
 
 ## 4. AuthN 与 AuthZ
 
-AuthN 的身份证明阶段产生 Principal，在线 SignIn 用例还会将其颁发为 `AuthenticationGrant`。AuthZ 不消费 Grant 或 Session 写模型，
+AuthN 的身份证明阶段产生 Principal，在线 SignIn 用例还会将其颁发为 `登录结果`。AuthZ 不消费 Grant 或 Session 写模型，
 而从可信 Principal/token claims 构造 Subject。典型转换只取：
 
 ```text

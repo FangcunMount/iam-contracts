@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
 	"testing"
 	"time"
 
@@ -50,12 +51,13 @@ func TestPhoneOTPLoginConsumesChallengeThroughExplicitAdapter(t *testing.T) {
 	authenticator := authentication.NewAuthenticator(
 		newPhoneOTPAuthStrategy(identityRepo, challengeService),
 	)
-	grantIssuer := &authnAuthenticationGrantIssuerStub{}
+	initialTokenIssuer := &authnInitialTokenIssuerStub{}
 	signIn := signin.New(signin.Dependencies{
-		AuthenticationGrantIssuer: grantIssuer,
-		Authenticator:             authenticator,
-		MethodRegistry:            method.DefaultSelector(),
-		ProofFactory:              proof.DefaultFactory(nil, nil),
+		TokenIssuer:     initialTokenIssuer,
+		AdmissionPolicy: testhelpers.AuthnFlow{}, SessionCreator: testhelpers.AuthnFlow{}, SessionRevoker: testhelpers.AuthnFlow{},
+		Authenticator:  authenticator,
+		MethodRegistry: method.DefaultSelector(),
+		ProofFactory:   proof.DefaultFactory(nil, nil),
 	})
 
 	result, err := signIn.Execute(ctx, method.LoginRequest{
@@ -291,9 +293,9 @@ func authnLinkingProviderKey(provider loginidentity.Provider, realm, identifier 
 	return string(provider) + "|" + realm + "|" + identifier
 }
 
-type authnAuthenticationGrantIssuerStub struct{}
+type authnInitialTokenIssuerStub struct{}
 
-func (s *authnAuthenticationGrantIssuerStub) IssueAuthentication(_ context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*tokenApp.TokenPair, error) {
+func (s *authnInitialTokenIssuerStub) IssueInitialTokens(_ context.Context, principal *sessiondomain.Session) (*tokenApp.TokenPair, error) {
 	access := tokenApp.NewAccessToken(
 		"access-id",
 		"access-token",
@@ -326,9 +328,10 @@ func TestPhoneOTPInfrastructureErrorsSurviveLoginAndLinkAdapters(t *testing.T) {
 	repo.consumeErr = failure
 	require.NoError(t, challenges.SendLoginPhoneOTP(ctx, "13800138000"))
 	signIn := signin.New(signin.Dependencies{
-		AuthenticationGrantIssuer: &authnAuthenticationGrantIssuerStub{},
-		Authenticator:             authentication.NewAuthenticator(newPhoneOTPAuthStrategy(nil, challenges)),
-		MethodRegistry:            method.DefaultSelector(), ProofFactory: proof.DefaultFactory(nil, nil),
+		TokenIssuer:     &authnInitialTokenIssuerStub{},
+		AdmissionPolicy: testhelpers.AuthnFlow{}, SessionCreator: testhelpers.AuthnFlow{}, SessionRevoker: testhelpers.AuthnFlow{},
+		Authenticator:  authentication.NewAuthenticator(newPhoneOTPAuthStrategy(nil, challenges)),
+		MethodRegistry: method.DefaultSelector(), ProofFactory: proof.DefaultFactory(nil, nil),
 	})
 	result, err := signIn.Execute(ctx, method.LoginRequest{AuthMethod: method.AuthMethodPhoneOTP, Payload: method.PhoneOTPPayload{PhoneE164: "13800138000", OTP: sms.code}})
 	require.Nil(t, result)

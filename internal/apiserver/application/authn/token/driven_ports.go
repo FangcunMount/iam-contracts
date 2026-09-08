@@ -4,5 +4,5 @@ import tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/aut
 
 type Store = tokendomain.Store
 type BearerTokenCodec = tokendomain.BearerTokenCodec
-type AccessTokenSubject = tokendomain.AccessTokenSubject
+type AccessTokenIssueContext = tokendomain.AccessTokenIssueContext
 type LegacyAuthenticationContextSnapshotDecoder = tokendomain.LegacyAuthenticationContextSnapshotDecoder

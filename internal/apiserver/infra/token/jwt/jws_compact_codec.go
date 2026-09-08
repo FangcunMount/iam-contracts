@@ -88,7 +88,7 @@ type jwtPayloadClaims struct {
 
 // IssueAccessToken 颁发访问令牌
 func (g *JWSCompactTokenCodec) IssueAccessToken(ctx context.Context,
-	subject *tokendomain.AccessTokenSubject, expiresIn time.Duration) (*tokendomain.AccessToken, error) {
+	subject *tokendomain.AccessTokenIssueContext, expiresIn time.Duration) (*tokendomain.AccessToken, error) {
 	// 记录非敏感标识；subject 中可能包含第三方身份和业务属性。
 	l := logger.L(ctx)
 	l.Debugw("IssueAccessToken", "user_id", subject.UserID.String(), "session_id", subject.SessionID, "expires_in", expiresIn)

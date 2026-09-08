@@ -60,7 +60,7 @@ func TestAuthnModuleInitializeWithRedisAdapters(t *testing.T) {
 	if caps.LoginIdentityLinking == nil {
 		t.Fatalf("expected LoginIdentityLinking to be initialized")
 	}
-	if caps.Tokens.AuthenticationGrantIssuer == nil || caps.Tokens.Refresher == nil || caps.Tokens.Revoker == nil || caps.Tokens.Verifier == nil {
+	if caps.Tokens.InitialTokenIssuer == nil || caps.Tokens.Refresher == nil || caps.Tokens.Revoker == nil || caps.Tokens.Verifier == nil {
 		t.Fatalf("expected token capabilities to be initialized")
 	}
 	assertInspectorFamilies(t, module.CacheFamilyInspectors(), []cachemodel.Family{

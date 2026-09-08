@@ -4,7 +4,7 @@
 
 ## 1. 结论：先证明身份，再准入和颁发
 
-一次公开登录分为两个领域动作：Authenticator 验证证明并形成 `AuthDecision/Principal`；GrantIssuer 再检查 User/LoginIdentity 准入，建立 `AuthenticationGrant = Session + UserTokenSet`。中间由应用层持久化密码认证结果，记录失败也不能跳过。
+一次公开登录由 SignIn 编排：Authenticator 验证证明并形成 AuthDecision/Principal，CredentialRecorder 保存认证副作用，再评估准入、创建 Session 并调用 InitialTokenIssuer。记录失败时立即终止。
 
 因此 Principal 可以先于 User 准入结果产生；它表示证明成功，不能单独代表已经获得有效在线登录态。SignIn 失败不返回 token pair。首次开通走 SignUp，已有用户追加入口走 Linking，资源访问授权继续由 AuthZ 负责。
 
@@ -22,7 +22,9 @@ sequenceDiagram
     participant F as Proof Factory
     participant A as Domain Authenticator
     participant R as CredentialRecorder
-    participant G as GrantIssuer via application adapter
+    participant AP as AdmissionPolicy
+    participant SC as SessionCreator
+    participant TI as InitialTokenIssuer
     T->>S: LoginRequest
     S->>M: Select(request)
     M-->>S: method and typed payload
@@ -46,9 +48,19 @@ sequenceDiagram
             S-->>T: mapped authentication error
         else proof accepted
             S->>S: 准备独立 TokenContext
-            S->>G: IssueAuthentication(Principal, TokenContext)
-            G->>G: Admission before Session creation
-            G-->>S: TokenPair or grant error
+            S->>AP: Evaluate(Subject)
+            AP-->>S: Decision or evaluation error
+            break denied or evaluation failed
+                S-->>T: mapped admission error
+            end
+            S->>SC: Create(Principal, TokenContext)
+            SC-->>S: Session or error
+            break creation failed
+                S-->>T: creation error
+            end
+            S->>TI: IssueInitialTokens(Session)
+            TI-->>S: TokenPair or error
+            Note over S,SC: issue failure triggers session compensation
             S-->>T: login result or error
         end
     end
@@ -62,9 +74,9 @@ sequenceDiagram
 | Proof Factory | 构造 AuthCredential；外部登录时解析 code/state | 手机号 builder 不消费 OTP |
 | Authenticator / Strategy | 检查证明和 LoginIdentity，生成决策 | 不读取完整 User 写模型，不承担资源授权 |
 | CredentialRecorder | 将 CredentialEffect 映射为仓储状态迁移 | 存储失败不能继续颁发 |
-| GrantIssuer | Admission、Session、mint、保存初始 RefreshToken | 跨步骤补偿不等于全局事务 |
+| SignIn | Admission、Session、mint、保存初始 RefreshToken | 跨步骤补偿不等于全局事务 |
 
-颁发的成功/补偿时序见 [Token 签发、刷新与吊销](05-关键链路-Token签发刷新吊销.md)。SignIn 仅依赖窄口径 AuthenticationGrantIssuer，不自行访问 Session 或 Token store。
+SignIn 在应用层分别调用 AdmissionPolicy、SessionCreator 和 InitialTokenIssuer，并负责新会话的失败补偿；续期和登出仍分别由 Refresher、Revoker 处理。
 
 ## 3. 三类证明在哪里验证
 
@@ -150,7 +162,7 @@ Principal 是运行时结果，持有 UserID、LoginIdentityID、TenantID 和 `A
 
 `auth_time` 表示原始认证发生时刻，不是请求到达时间或 token 刷新时间。Session 保存后续续期的权威上下文，访问令牌使用类型化投影，不任意透传 Principal.Claims。新 JWT 不写 auth_method/realm；JOSE 字段、公开 claims 和历史兼容见 [Session、Token 与 JWKS](03-Session-Token与JWKS.md)。
 
-AdmissionPolicy 在 GrantIssuer 创建 Session 前读取：
+AdmissionPolicy 在 SignIn 创建 Session 前读取：
 
 1. LoginIdentity 存在、归属于声明 User 且 active；
 2. Identity 的 UserStatusReader 返回 User active。
@@ -167,9 +179,9 @@ missing、blocked、inactive、disabled、归属不符以及状态查询错误�
 | OTP 无效 | `ErrOTPInvalid` |
 | 证明正确但没有绑定 | 拒绝，不自动 Onboarding |
 | Authenticator/OTP 依赖故障 | 包装为内部错误，不伪装成证明成功 |
-| CredentialRecorder 保存失败 | 内部错误，不调用 GrantIssuer |
+| CredentialRecorder 保存失败 | 内部错误，不进入准入与会话创建 |
 | User/LoginIdentity Admission 拒绝 | 保留对应认证错误，不创建 Session |
-| 颁发中途失败 | 不交付 token pair；按 GrantIssuer 补偿规则处理 |
+| 颁发中途失败 | 不交付 token pair；按 SignIn 补偿规则处理 |
 
 应用通过 `authfailure.Error(decision.Code)` 和阶段包装保留已登记错误码，当前不是“所有失败统一一个错误”。防枚举需要同时考虑响应、耗时和限流；不能仅凭使用统一登录入口就声称完全实现防枚举。
 
@@ -199,14 +211,14 @@ missing、blocked、inactive、disabled、归属不符以及状态查询错误�
 | CredentialEffect 和状态迁移 | [decision.go](../../../internal/apiserver/domain/authn/authentication/decision.go)；[transition.go](../../../internal/apiserver/domain/authn/credential/transition.go) | credential tests |
 | 失败更新临界区 | [repo.go](../../../internal/apiserver/infra/mysql/credential/repo.go) | credential repository tests |
 | state 与外部 proof | `application/authn/signin/proof` | `oauth_test.go`、`wechat_scan_state_test.go` |
-| 准入与颁发 | [policy.go](../../../internal/apiserver/domain/authn/admission/policy.go)；[issuer.go](../../../internal/apiserver/domain/authn/grant/issuer.go) | `grant/issuer_test.go` |
+| 准入与颁发 | [policy.go](../../../internal/apiserver/domain/authn/admission/policy.go)；[issuer.go](../../../internal/apiserver/application/authn/signin/completion.go) | `grant/issuer_test.go` |
 
 ```bash
 make docs-hygiene docs-facts
 go test ./internal/apiserver/application/authn/signin/... \
   ./internal/apiserver/domain/authn/authentication \
   ./internal/apiserver/domain/authn/credential \
-  ./internal/apiserver/domain/authn/grant \
+  ./internal/apiserver/application/authn/signin \
   ./internal/apiserver/infra/mysql/credential
 ```
 

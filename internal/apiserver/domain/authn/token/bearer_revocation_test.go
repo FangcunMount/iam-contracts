@@ -16,7 +16,7 @@ type bearerTokenCodecStub struct {
 	claims *VerifiedTokenClaims
 }
 
-func (*bearerTokenCodecStub) IssueAccessToken(context.Context, *AccessTokenSubject, time.Duration) (*AccessToken, error) {
+func (*bearerTokenCodecStub) IssueAccessToken(context.Context, *AccessTokenIssueContext, time.Duration) (*AccessToken, error) {
 	return nil, nil
 }
 

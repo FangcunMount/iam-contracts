@@ -31,14 +31,14 @@ type Store interface {
 // 领域只依赖该能力，不感知 JWT/JWS 等 wire format。
 type BearerTokenCodec interface {
 	// IssueAccessToken 颁发访问令牌
-	IssueAccessToken(ctx context.Context, subject *AccessTokenSubject, expiresIn time.Duration) (*AccessToken, error)
+	IssueAccessToken(ctx context.Context, subject *AccessTokenIssueContext, expiresIn time.Duration) (*AccessToken, error)
 	// VerifyBearerToken 验证 access bearer token
 	VerifyBearerToken(ctx context.Context, tokenValue string) (*VerifiedTokenClaims, error)
 }
 
-// AccessTokenSubject 访问令牌编码所需的已绑定 Session 的认证主体快照。
+// AccessTokenIssueContext 是访问令牌编码的签发输入，不是 JWT sub 或完整 Claims Set。
 // 领域层完成投影后，JWT adapter 只负责序列化，不再从任意 Claims 推断授权域。
-type AccessTokenSubject struct {
+type AccessTokenIssueContext struct {
 	UserID          meta.ID
 	LoginIdentityID meta.ID
 	TenantID        meta.ID

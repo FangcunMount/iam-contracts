@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
 	"testing"
 	"time"
 
@@ -18,10 +19,10 @@ import (
 )
 
 type sessionTokenCapabilitiesStub struct {
-	captured *authentication.Principal
+	captured *sessiondomain.Session
 }
 
-func (s *sessionTokenCapabilitiesStub) IssueAuthentication(ctx context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*tokenapp.TokenPair, error) {
+func (s *sessionTokenCapabilitiesStub) IssueInitialTokens(ctx context.Context, principal *sessiondomain.Session) (*tokenapp.TokenPair, error) {
 	s.captured = principal
 	access := tokenapp.NewAccessToken(
 		"access-id",
@@ -59,7 +60,7 @@ func (s *sessionTokenCapabilitiesStub) RevokeRefreshToken(ctx context.Context, t
 }
 
 type sessionTokenCapabilities interface {
-	tokenapp.AuthenticationGrantIssuer
+	tokenapp.InitialTokenIssuer
 	tokenapp.Refresher
 	tokenapp.Revoker
 }
@@ -68,11 +69,12 @@ func newSessionServiceForTest(t *testing.T, tokens sessionTokenCapabilities, aut
 	t.Helper()
 
 	signIn := signin.New(signin.Dependencies{
-		AuthenticationGrantIssuer: tokens,
-		Authenticator:             auth,
-		MethodRegistry:            method.DefaultSelector(),
-		ProofFactory:              proof.DefaultFactory(nil, nil),
-		CredentialRecorder:        nil,
+		TokenIssuer:     tokens,
+		AdmissionPolicy: testhelpers.AuthnFlow{}, SessionCreator: testhelpers.AuthnFlow{}, SessionRevoker: testhelpers.AuthnFlow{},
+		Authenticator:      auth,
+		MethodRegistry:     method.DefaultSelector(),
+		ProofFactory:       proof.DefaultFactory(nil, nil),
+		CredentialRecorder: nil,
 	})
 	svc, err := NewApplicationService(Dependencies{
 		Refresher: tokens,

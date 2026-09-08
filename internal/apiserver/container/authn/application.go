@@ -65,7 +65,6 @@ func (m *AuthnModule) initializeApplication(
 	tokenCapabilities := token.NewCapabilities(token.Dependencies{
 		BearerTokenCodec:      infra.signedJWTCodec,
 		TokenStore:            infra.tokenStore,
-		SessionCreator:        domain.sessionCreator,
 		SessionLoader:         domain.sessionLoader,
 		SessionRevoker:        domain.sessionRevoker,
 		SessionExtender:       domain.sessionExtender,
@@ -93,9 +92,12 @@ func (m *AuthnModule) initializeApplication(
 	}
 
 	signIn := signin.New(signin.Dependencies{
-		AuthenticationGrantIssuer: tokenCapabilities.AuthenticationGrantIssuer,
-		Authenticator:             authenticator,
-		MethodRegistry:            method.DefaultSelector(),
+		TokenIssuer:     tokenCapabilities.InitialTokenIssuer,
+		AdmissionPolicy: infra.admissionPolicy,
+		SessionCreator:  domain.sessionCreator,
+		SessionRevoker:  domain.sessionRevoker,
+		Authenticator:   authenticator,
+		MethodRegistry:  method.DefaultSelector(),
 		CredentialRecorder: credentialApp.NewRecorder(credentialApp.Dependencies{
 			Credentials: infra.credentialRepo,
 			LockoutPolicy: credentialDomain.LockoutPolicy{

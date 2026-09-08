@@ -6,25 +6,11 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	grantdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/grant"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
-
-func TestApplicationMapsGrantAdmissionDenial(t *testing.T) {
-	t.Parallel()
-
-	app := &application{grantIssuer: grantIssuerStub{err: blockedAdmissionError()}}
-
-	pair, err := app.IssueAuthentication(context.Background(), &authentication.Principal{}, sessiondomain.TokenContext{})
-
-	require.Nil(t, pair)
-	require.Equal(t, code.ErrUserBlocked, perrors.ParseCoder(err).Code())
-}
 
 func TestApplicationMapsRefreshAdmissionDenial(t *testing.T) {
 	t.Parallel()
@@ -80,14 +66,6 @@ func TestApplicationDefaultsToAccessTokenType(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.False(t, result.Valid)
-}
-
-type grantIssuerStub struct {
-	err error
-}
-
-func (s grantIssuerStub) Issue(context.Context, *authentication.Principal, sessiondomain.TokenContext) (*grantdomain.AuthenticationGrant, error) {
-	return nil, s.err
 }
 
 type refresherStub struct {

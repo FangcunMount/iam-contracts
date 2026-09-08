@@ -12,7 +12,7 @@ import (
 )
 
 // accessTokenSubjectFromSession 投影会话中已确定的身份、认证和签发上下文。
-func accessTokenSubjectFromSession(sess *sessiondomain.Session) *AccessTokenSubject {
+func accessTokenSubjectFromSession(sess *sessiondomain.Session) *AccessTokenIssueContext {
 	tokenContext := sess.TokenContext.Clone()
 	if tokenContext.TenantDomain == "" {
 		tokenContext.TenantDomain = tenant.DefaultID
@@ -25,7 +25,7 @@ func accessTokenSubjectFromSession(sess *sessiondomain.Session) *AccessTokenSubj
 	if !tokenContext.OrgID.IsZero() {
 		orgID = tokenContext.OrgID.String()
 	}
-	return &AccessTokenSubject{
+	return &AccessTokenIssueContext{
 		UserID: sess.UserID, LoginIdentityID: sess.LoginIdentityID, SessionID: sess.SessionID,
 		TenantID: sess.TenantID, TenantDomain: tokenContext.TenantDomain, OrgID: orgID,
 		AMR: sess.AuthContext.AMRStrings(), AuthenticatedAt: authenticatedAt, Attributes: tokenContext.Attributes,
