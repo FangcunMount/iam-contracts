@@ -1,10 +1,10 @@
 # IAM v4 服务认证退役与统一发布
 
-> 状态：已实现 · 本地代码与契约测试已完成；版本发布和线上统一切换尚未开始。
+> 状态：已实现 · 本地代码与契约测试已完成；分批提交与 CI 已开始；线上统一切换尚未开始。
 
 ## 当前交付状态
 
-本地代码删除 ServiceToken 服务认证方式，Go module 改为 `github.com/FangcunMount/iam/v4`。本记录不是发布成功证明：尚未提交或推送本批改动、创建 v4.0.0 标签、构建发布镜像或切换线上流量。
+本地代码删除 ServiceToken 服务认证方式，Go module 改为 `github.com/FangcunMount/iam/v4`。本记录不是发布成功证明：本批改动已分批提交，IAM PR #74 与 QS PR #71 正在验收；v4.0.0 标签、发布镜像和线上切换分别记录。
 
 服务调用责任链为 **mTLS → 服务身份 → ACL → 业务授权**。AccessToken、RefreshToken、Session、JWKS、撤销存储和用户委托证明继续按原合同工作。不安排数据库迁移，不清空共享 Redis 或密钥。
 
@@ -56,7 +56,11 @@ QS 文档中受影响的六条旧提交验收锚点标记为 needs_review，并�
 - 每个环境实际生效的 mTLS、强制客户端证书、默认拒绝 ACL、允许身份和业务 RPC；不能仅检查仓库 YAML。
 - 预发布环境的冷缓存快照、对象权限、角色写入及回读、用户登录/刷新/撤销和委托证明正负向测试。
 
-当前上述线上版本清单和预发布证据尚未填写，发布状态为未开始。
+2026-09-08 发布前只读核对：serverB 的 IAM 运行 `eeb048d2414b4a52d51a09aff26551af090dcd13`；serverA 的 QS API、两个 collection 副本及 serverD 的三个 worker 副本运行 `1cc5dc40f17c2b84280702ae46e2c51beaf622e2`。IAM 生效配置启用 mTLS、强制客户端证书和默认拒绝 ACL。旧 QS 配置仍有 service-auth，部署时必须以新配置替换。
+
+IAM 当前容器可用的最近七天日志中，记录的服务身份只有 qs-apiserver.svc 和 qs-collection-server.svc；仍有旧签发 RPC 请求。该观察受容器日志保留范围限制，不证明所有外部或低频消费者均已覆盖。预发布业务验收仍待环境信息。
+
+两仓库 `Production Deploy` 支持仓库变量 `PRODUCTION_DEPLOY_PAUSED=true`：保持镜像构建发布，跳过服务部署。协调发布时先设置该变量，确保主分支 CI 不会单独切换组件；整套验收及入口暂停后才解除并执行部署。此变量只控制部署流程，不恢复 ServiceToken。
 
 ## 统一切换与回滚
 
