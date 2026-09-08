@@ -9,6 +9,7 @@ import (
 	"github.com/FangcunMount/component-base/pkg/logger"
 	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
@@ -45,7 +46,7 @@ func NewIssuer(deps Dependencies) Issuer {
 }
 
 // Issue 在准入通过后建立 Session、颁发 TokenSet，并保存初始 RefreshToken。
-func (s *issuer) Issue(ctx context.Context, principal *authentication.Principal) (*AuthenticationGrant, error) {
+func (s *issuer) Issue(ctx context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*AuthenticationGrant, error) {
 	// 参数校验
 	if principal == nil {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "principal is required")
@@ -68,7 +69,7 @@ func (s *issuer) Issue(ctx context.Context, principal *authentication.Principal)
 	}
 
 	// 创建会话
-	sess, err := s.sessionCreator.Create(ctx, principal)
+	sess, err := s.sessionCreator.Create(ctx, principal, tokenContext)
 	if err != nil {
 		if perrors.IsCode(err, code.ErrInvalidArgument) {
 			return nil, err
@@ -79,8 +80,12 @@ func (s *issuer) Issue(ctx context.Context, principal *authentication.Principal)
 		return nil, perrors.WithCode(code.ErrInternalServerError, "session creator returned no session")
 	}
 
+	if err := validatePrincipalSessionAlignment(principal, sess); err != nil {
+		return nil, s.revokeFailedGrant(ctx, sess.SessionID, principal.UserID.String(), err)
+	}
+
 	// 颁发令牌集
-	set, err := s.tokenSetMinter.MintTokenSet(ctx, principal, sess)
+	set, err := s.tokenSetMinter.MintTokenSet(ctx, sess)
 	if err != nil {
 		return nil, s.revokeFailedGrant(ctx, sess.SessionID, principal.UserID.String(), err)
 	}

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
 	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
@@ -76,7 +75,7 @@ type AdmissionPolicy = admissiondomain.Policy
 // TokenSetMinter 在既有 Session 上签发尚未持久化的用户令牌集合
 type TokenSetMinter interface {
 	// MintTokenSet 颁发用户令牌。
-	MintTokenSet(ctx context.Context, principal *authentication.Principal, sess *sessiondomain.Session) (*UserTokenSet, error)
+	MintTokenSet(ctx context.Context, sess *sessiondomain.Session) (*UserTokenSet, error)
 }
 
 // Refresher 轮换 RefreshToken 并延续认证状态。

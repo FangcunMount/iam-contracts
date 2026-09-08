@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"encoding/json"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	"sync"
 	"testing"
 	"time"
@@ -26,7 +27,7 @@ func TestSessionStoreWritesTypedV2ContextWithoutLegacyClaims(t *testing.T) {
 	sess := session.NewWithContexts(
 		"sid-v2", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3),
 		authentication.RestoreAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, authenticatedAt),
-		authentication.TokenContext{TenantDomain: "fangcun", OrgID: meta.FromUint64(9), Attributes: map[string]string{"auth_time": authenticatedAt.Format(time.RFC3339)}},
+		sessiondomain.TokenContext{TenantDomain: "fangcun", OrgID: meta.FromUint64(9), Attributes: map[string]string{"auth_time": authenticatedAt.Format(time.RFC3339)}},
 		time.Now().Add(time.Hour),
 	)
 	require.NoError(t, store.Save(context.Background(), sess))
@@ -173,7 +174,7 @@ func newRedisTestSession(id string) *session.Session {
 		meta.FromUint64(2001),
 		meta.FromUint64(3001),
 		authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, time.Now().UTC()),
-		authentication.TokenContext{TenantDomain: "fangcun"},
+		sessiondomain.TokenContext{TenantDomain: "fangcun"},
 		time.Now().Add(time.Hour),
 	)
 }

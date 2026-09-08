@@ -30,7 +30,7 @@ type Session struct {
 
 	// —— 认证信息 —— //
 	AuthContext  authentication.AuthenticationContext
-	TokenContext authentication.TokenContext
+	TokenContext TokenContext
 
 	// —— 状态信息 —— //
 	Status       Status     // 状态
@@ -42,7 +42,7 @@ type Session struct {
 }
 
 // NewWithContexts 创建以强类型认证上下文和令牌上下文为权威来源的会话。
-func NewWithContexts(sessionID string, userID, loginIdentityID, tenantID meta.ID, authContext authentication.AuthenticationContext, tokenContext authentication.TokenContext, expiresAt time.Time) *Session {
+func NewWithContexts(sessionID string, userID, loginIdentityID, tenantID meta.ID, authContext authentication.AuthenticationContext, tokenContext TokenContext, expiresAt time.Time) *Session {
 	now := time.Now()
 	return &Session{
 		SessionID: sessionID, UserID: userID, LoginIdentityID: loginIdentityID, TenantID: tenantID,

@@ -6,10 +6,11 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/authfailure"
 	authnexternal "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/principal"
 	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/pkg/tenant"
 )
 
 // SignIn 登录
@@ -115,11 +116,8 @@ func (s *SignIn) authenticate(ctx context.Context, credential authentication.Aut
 // 返回：登录结果, 错误
 // 职责：签发 TokenPair，返回登录结果
 func (s *SignIn) issueTokenPair(ctx context.Context, p *authentication.Principal) (*Result, error) {
-	// 确保 token 上下文已设置
-	principal.EnsureTokenContext(p)
-
 	// 签发 TokenPair
-	tokenPair, err := s.deps.AuthenticationGrantIssuer.IssueAuthentication(ctx, p)
+	tokenPair, err := s.deps.AuthenticationGrantIssuer.IssueAuthentication(ctx, p, sessiondomain.TokenContext{TenantDomain: tenant.DefaultID})
 	if err != nil {
 		return nil, wrapStageError(err, code.ErrAuthenticationFailed, "failed to issue authentication grant")
 	}

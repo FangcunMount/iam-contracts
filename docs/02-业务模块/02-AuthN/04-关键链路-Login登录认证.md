@@ -45,8 +45,8 @@ sequenceDiagram
         alt decision rejected or Principal missing
             S-->>T: mapped authentication error
         else proof accepted
-            S->>S: EnsureTokenContext(Principal)
-            S->>G: IssueAuthentication(Principal)
+            S->>S: 准备独立 TokenContext
+            S->>G: IssueAuthentication(Principal, TokenContext)
             G->>G: Admission before Session creation
             G-->>S: TokenPair or grant error
             S-->>T: login result or error
@@ -146,7 +146,7 @@ sequenceDiagram
 
 ## 4. Principal、认证时间与 Admission
 
-Principal 是运行时结果，持有 UserID、LoginIdentityID、TenantID 和 `AuthenticationContext{Method, Realm, AMR, AuthenticatedAt}`，以及允许后续投影的上下文。它不携带 User/Profile 写模型、密码材料、provider token 或完整权限事实。
+Principal 是运行时结果，持有 UserID、LoginIdentityID、TenantID 和 `AuthenticationContext{Method, Realm, AMR, AuthenticatedAt}`。不包含 SessionID 或 TokenContext。独立签发上下文由登录应用准备并交给 Session 保存。它不携带 User/Profile 写模型、密码材料、provider token 或完整权限事实。
 
 `auth_time` 表示原始认证发生时刻，不是请求到达时间或 token 刷新时间。Session 保存后续续期的权威上下文，访问令牌使用类型化投影，不任意透传 Principal.Claims。新 JWT 不写 auth_method/realm；JOSE 字段、公开 claims 和历史兼容见 [Session、Token 与 JWKS](03-Session-Token与JWKS.md)。
 

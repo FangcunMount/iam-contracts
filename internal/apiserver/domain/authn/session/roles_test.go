@@ -60,7 +60,7 @@ func TestCreatorCreateCapsInitialExpiryBySessionMaxTTL(t *testing.T) {
 		LoginIdentityID: meta.FromUint64(2),
 		TenantID:        meta.FromUint64(3),
 		AuthContext:     authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, now),
-	})
+	}, TokenContext{})
 
 	require.NoError(t, err)
 	require.NotNil(t, session)
@@ -146,4 +146,17 @@ func TestExtenderExtendToRefreshExpiryCapsBySessionBoundary(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "session-id", store.extendedSessionID)
 	require.WithinDuration(t, session.CreatedAt.Add(24*time.Hour), store.extendedExpiresAt, time.Second)
+}
+
+func TestCreatorPreservesIndependentTokenContextSnapshot(t *testing.T) {
+	store := &lifecycleStoreStub{}
+	creator := NewCreator(store, NewLifetimePolicy(time.Hour, 24*time.Hour))
+	principal := &authentication.Principal{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2)}
+	tokenContext := TokenContext{TenantDomain: "domain", OrgID: meta.FromUint64(3), Attributes: map[string]string{"key": "value"}}
+	sess, err := creator.Create(context.Background(), principal, tokenContext)
+	require.NoError(t, err)
+	require.Equal(t, tokenContext, sess.TokenContext)
+	tokenContext.Attributes["key"] = "changed"
+	require.Equal(t, "value", sess.TokenContext.Attributes["key"])
+	require.Equal(t, principal.UserID, sess.UserID)
 }

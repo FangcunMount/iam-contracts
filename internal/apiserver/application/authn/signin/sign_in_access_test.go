@@ -12,6 +12,7 @@ import (
 	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
 	idpresolver "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	idpidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/externalidentity"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
@@ -172,7 +173,7 @@ type authenticationGrantIssuerStub struct {
 	order   *[]string
 }
 
-func (s *authenticationGrantIssuerStub) IssueAuthentication(_ context.Context, principal *authentication.Principal) (*tokenapp.TokenPair, error) {
+func (s *authenticationGrantIssuerStub) IssueAuthentication(_ context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*tokenapp.TokenPair, error) {
 	s.called = true
 	if s.order != nil {
 		*s.order = append(*s.order, "issue")
@@ -181,7 +182,7 @@ func (s *authenticationGrantIssuerStub) IssueAuthentication(_ context.Context, p
 		return nil, perrors.WithCode(s.errCode, "authentication grant denied")
 	}
 	return tokenapp.NewTokenPair(
-		tokenapp.NewAccessToken("a", "access", principal.SessionID, principal.UserID, principal.LoginIdentityID, principal.TenantID, time.Minute),
-		tokenapp.NewRefreshToken("r", "refresh", principal.SessionID, principal.UserID, principal.LoginIdentityID, principal.TenantID, nil, nil, time.Hour),
+		tokenapp.NewAccessToken("a", "access", "session-id", principal.UserID, principal.LoginIdentityID, principal.TenantID, time.Minute),
+		tokenapp.NewRefreshToken("r", "refresh", "session-id", principal.UserID, principal.LoginIdentityID, principal.TenantID, nil, nil, time.Hour),
 	), nil
 }

@@ -288,9 +288,9 @@ func decodeSessionPayload(payload []byte) (*sessiondomain.Session, error) {
 			amrValues(data.AuthContext.AMR), data.AuthContext.AuthenticatedAt,
 		)
 	}
-	tokenContext := authentication.TokenContext{}
+	tokenContext := sessiondomain.TokenContext{}
 	if data.TokenContext != nil {
-		tokenContext = authentication.TokenContext{
+		tokenContext = sessiondomain.TokenContext{
 			TenantDomain: data.TokenContext.TenantDomain,
 			OrgID:        meta.FromUint64(data.TokenContext.OrgID),
 			Attributes:   cloneStringValues(data.TokenContext.Attributes),

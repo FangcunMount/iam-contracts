@@ -16,6 +16,6 @@ func New(sessionID string, userID, loginIdentityID, tenantID meta.ID, amr []stri
 	return NewWithContexts(
 		sessionID, userID, loginIdentityID, tenantID,
 		authentication.RestoreAuthenticationContext("", "", methods, time.Time{}),
-		authentication.TokenContext{}, expiresAt,
+		TokenContext{}, expiresAt,
 	)
 }

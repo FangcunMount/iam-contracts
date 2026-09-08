@@ -4,12 +4,13 @@ import (
 	"context"
 
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 )
 
 // AuthenticationGrantIssuer 在认证成功后颁发完整在线认证结果。
 // 调用方无需感知 Session、access token 与 refresh token 的内部装配过程。
 type AuthenticationGrantIssuer interface {
-	IssueAuthentication(ctx context.Context, principal *authentication.Principal) (*TokenPair, error)
+	IssueAuthentication(ctx context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*TokenPair, error)
 }
 
 // Refresher 通过 refresh token 轮换在线会话令牌。

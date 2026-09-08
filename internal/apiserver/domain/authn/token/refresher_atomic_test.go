@@ -159,7 +159,7 @@ type atomicTokenPairMinterStub struct {
 	next int
 }
 
-func (s *atomicTokenPairMinterStub) MintTokenSet(_ context.Context, principal *authentication.Principal, session *sessiondomain.Session) (*UserTokenSet, error) {
+func (s *atomicTokenPairMinterStub) MintTokenSet(_ context.Context, session *sessiondomain.Session) (*UserTokenSet, error) {
 	s.mu.Lock()
 	s.next++
 	n := s.next
@@ -168,9 +168,9 @@ func (s *atomicTokenPairMinterStub) MintTokenSet(_ context.Context, principal *a
 		meta.FromUint64(uint64(100+n)).String(),
 		meta.FromUint64(uint64(200+n)).String(),
 		session.SessionID,
-		principal.UserID,
-		principal.LoginIdentityID,
-		principal.TenantID,
+		session.UserID,
+		session.LoginIdentityID,
+		session.TenantID,
 		time.Minute,
 	)
 	refresh := testRefreshToken(
@@ -326,7 +326,7 @@ func testActiveSession() *sessiondomain.Session {
 		meta.FromUint64(2),
 		meta.FromUint64(3),
 		authentication.RestoreAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, time.Now().Add(-time.Hour).UTC()),
-		authentication.TokenContext{TenantDomain: "fangcun"},
+		sessiondomain.TokenContext{TenantDomain: "fangcun"},
 		time.Now().Add(time.Hour),
 	)
 }

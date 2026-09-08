@@ -9,6 +9,7 @@ import (
 	admissionapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/admission"
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
 	grantdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/grant"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
@@ -71,8 +72,8 @@ func NewCapabilities(deps Dependencies) Capabilities {
 }
 
 // IssueAuthentication 在认证完成后颁发 Session + TokenSet，并返回应用层 token pair。
-func (s *application) IssueAuthentication(ctx context.Context, principal *authentication.Principal) (*TokenPair, error) {
-	grant, err := s.grantIssuer.Issue(ctx, principal)
+func (s *application) IssueAuthentication(ctx context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*TokenPair, error) {
+	grant, err := s.grantIssuer.Issue(ctx, principal, tokenContext)
 	if err != nil {
 		return nil, admissionapp.MapError(err)
 	}

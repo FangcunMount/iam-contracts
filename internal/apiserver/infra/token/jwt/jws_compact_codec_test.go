@@ -208,7 +208,6 @@ func TestGeneratorOmitsSensitiveAttributesAndAuthMethodRealm(t *testing.T) {
 		SessionID:       "sid-1002",
 		TenantDomain:    "fangcun",
 		AuthenticatedAt: time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC),
-		Attributes:      map[string]string{"auth_time": "2026-01-02T03:04:05Z"},
 	}, time.Minute)
 	require.NoError(t, err)
 

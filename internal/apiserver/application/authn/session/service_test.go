@@ -11,6 +11,7 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/proof"
 	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,7 @@ type sessionTokenCapabilitiesStub struct {
 	captured *authentication.Principal
 }
 
-func (s *sessionTokenCapabilitiesStub) IssueAuthentication(ctx context.Context, principal *authentication.Principal) (*tokenapp.TokenPair, error) {
+func (s *sessionTokenCapabilitiesStub) IssueAuthentication(ctx context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*tokenapp.TokenPair, error) {
 	s.captured = principal
 	access := tokenapp.NewAccessToken(
 		"access-id",

@@ -17,6 +17,7 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
 	challengeDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/challenge"
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
@@ -292,11 +293,11 @@ func authnLinkingProviderKey(provider loginidentity.Provider, realm, identifier 
 
 type authnAuthenticationGrantIssuerStub struct{}
 
-func (s *authnAuthenticationGrantIssuerStub) IssueAuthentication(_ context.Context, principal *authentication.Principal) (*tokenApp.TokenPair, error) {
+func (s *authnAuthenticationGrantIssuerStub) IssueAuthentication(_ context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*tokenApp.TokenPair, error) {
 	access := tokenApp.NewAccessToken(
 		"access-id",
 		"access-token",
-		principal.SessionID,
+		"session-id",
 		principal.UserID,
 		principal.LoginIdentityID,
 		principal.TenantID,
@@ -305,7 +306,7 @@ func (s *authnAuthenticationGrantIssuerStub) IssueAuthentication(_ context.Conte
 	refresh := tokenApp.NewRefreshToken(
 		"refresh-id",
 		"refresh-token",
-		principal.SessionID,
+		"session-id",
 		principal.UserID,
 		principal.LoginIdentityID,
 		principal.TenantID,

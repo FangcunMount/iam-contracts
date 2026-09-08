@@ -29,18 +29,18 @@ sequenceDiagram
     participant TM as TokenSetMinter
     participant RS as RefreshToken Store
     participant SR as SessionRevoker
-    Login->>A: IssueAuthentication(Principal)
-    A->>G: Issue(Principal)
+    Login->>A: IssueAuthentication(Principal, TokenContext)
+    A->>G: Issue(Principal, TokenContext)
     G->>AP: Require(UserID, LoginIdentityID)
     alt admission denied or lookup error
         G-->>Login: error, no Session
     else admitted and dependencies ready
-        G->>SC: Create(Principal)
+        G->>SC: Create(Principal, TokenContext)
         SC-->>G: Session or creation error
         break creation failed or no Session returned
             G-->>Login: creation error, no global rollback claim
         end
-        G->>TM: MintTokenSet(Principal, Session)
+        G->>TM: MintTokenSet(Session)
         TM-->>G: complete set / error / incomplete set
         opt complete set
             G->>RS: SaveRefreshToken(RefreshToken)
@@ -106,7 +106,7 @@ SDK 本地 JWKS 验签不读取在线撤销、Session 或 User/LoginIdentity 状
 
 ## 4. Refresh：Session 是上下文权威来源
 
-请求只提交不透明 RefreshToken value。Refresher 先从服务端记录取得 SessionID，加载 active Session，再执行 Admission 和 refresh 过期检查；Principal 从 Session 重建，历史 RefreshToken 上的重复上下文字段仅作为兼容 fallback。
+请求只提交不透明 RefreshToken value。Refresher 先从服务端记录取得 SessionID，加载 active Session，再执行 Admission 和 refresh 过期检查；签发以 Session 为依据，缺失的历史上下文在 Session 副本上恢复，历史 RefreshToken 上的重复上下文字段仅作为兼容 fallback。
 
 ```mermaid
 sequenceDiagram
@@ -127,8 +127,8 @@ sequenceDiagram
     else token exists
         R->>SS: GetActive(SessionID)
         R->>AP: Require(Session.UserID, Session.LoginIdentityID)
-        R->>R: check refresh expiry, rebuild Principal from Session
-        R->>TM: MintTokenSet(Principal, Session)
+        R->>R: check refresh expiry, restore legacy context in Session copy
+        R->>TM: MintTokenSet(Session)
         TM-->>R: candidate UserTokenSet
         R->>SS: ExtendToRefreshExpiry(Session, candidate expiry)
         alt extension failed
@@ -261,7 +261,7 @@ Session 主对象与 User/LoginIdentity 两个 Redis 索引在同一事务中保
 | --- | --- | --- |
 | Admission 先于 Session；失败补偿 | [issuer.go](../../../internal/apiserver/domain/authn/grant/issuer.go) | `grant/issuer_test.go` |
 | 撤销检查先于 service/access 分流 | [verifier.go](../../../internal/apiserver/domain/authn/token/verifier.go) | `token/bearer_revocation_test.go` |
-| 上下文权威与历史 fallback | [refresher.go](../../../internal/apiserver/domain/authn/token/refresher.go) | `token/principal_session_test.go`、`refresher_session_test.go` |
+| 上下文权威与历史 fallback | [refresher.go](../../../internal/apiserver/domain/authn/token/refresher.go) | `token/session_subject_test.go`、`refresher_session_test.go` |
 | 延期、CAS、replay 撤销 | [refresher.go](../../../internal/apiserver/domain/authn/token/refresher.go) | `token/refresher_atomic_test.go` |
 | 滑动与绝对寿命 | [lifetime_policy.go](../../../internal/apiserver/domain/authn/session/lifetime_policy.go) | `session/lifetime_policy_test.go` |
 | bearer marker 与 Session 撤销 | [revoker.go](../../../internal/apiserver/domain/authn/token/revoker.go) | `token/bearer_revocation_test.go` |

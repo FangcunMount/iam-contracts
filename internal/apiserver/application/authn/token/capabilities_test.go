@@ -8,6 +8,7 @@ import (
 	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
 	grantdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/grant"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
@@ -19,7 +20,7 @@ func TestApplicationMapsGrantAdmissionDenial(t *testing.T) {
 
 	app := &application{grantIssuer: grantIssuerStub{err: blockedAdmissionError()}}
 
-	pair, err := app.IssueAuthentication(context.Background(), &authentication.Principal{})
+	pair, err := app.IssueAuthentication(context.Background(), &authentication.Principal{}, sessiondomain.TokenContext{})
 
 	require.Nil(t, pair)
 	require.Equal(t, code.ErrUserBlocked, perrors.ParseCoder(err).Code())
@@ -85,7 +86,7 @@ type grantIssuerStub struct {
 	err error
 }
 
-func (s grantIssuerStub) Issue(context.Context, *authentication.Principal) (*grantdomain.AuthenticationGrant, error) {
+func (s grantIssuerStub) Issue(context.Context, *authentication.Principal, sessiondomain.TokenContext) (*grantdomain.AuthenticationGrant, error) {
 	return nil, s.err
 }
 

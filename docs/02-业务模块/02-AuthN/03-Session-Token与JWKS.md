@@ -37,7 +37,7 @@ JWT 负责可验证声明，Redis 负责在线撤销和续期状态，MySQL 负�
 `grant.Issuer.Issue` 的实际步骤是：
 
 1. 通过 `AdmissionPolicy` 确认 User 与 LoginIdentity 允许建立认证状态；
-2. 用 Principal 创建 Session；
+2. 用 Principal 和独立 TokenContext 创建 Session，并校验主体与会话的一致性；
 3. 由 `TokenSetMinter` 在 Session 上 mint `UserTokenSet`；
 4. 把 RefreshToken 保存到 Redis；
 5. 返回 `AuthenticationGrant = Session + UserTokenSet`。
@@ -92,7 +92,7 @@ sequenceDiagram
     T->>S: load active session
     T->>T: check User/LoginIdentity status
     T->>T: check refresh expiry
-    T->>T: rebuild Principal from Session and mint new pair
+    T->>T: restore legacy context in Session copy and mint new pair
     T->>S: extend to new refresh expiry
     T->>R: CAS rotate old -> new
     R-->>T: rotated / conflict
@@ -235,7 +235,7 @@ SDK `LocalVerifyStrategy` 只覆盖 codec + 本地 policy（RS256、必填 issue
 - 签名密钥管理应用：`internal/apiserver/application/authn/signingkey`
 - JWKS 公钥发布应用：`internal/apiserver/application/authn/jwks`
 - SDK：`pkg/sdk/auth/jwks`、`pkg/sdk/auth/verifier`
-- 重点测试：`token/refresher_atomic_test.go`、`token/principal_session_test.go`、`session/lifetime_policy_test.go`、
+- 重点测试：`token/refresher_atomic_test.go`、`token/session_subject_test.go`、`session/lifetime_policy_test.go`、
   `pkg/sdk/auth/jwks/jwks_test.go`
 
 ```bash

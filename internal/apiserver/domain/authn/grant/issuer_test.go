@@ -29,7 +29,7 @@ func TestIssuerRequiresAdmissionBeforeCreatingAuthenticationState(t *testing.T) 
 		AdmissionPolicy: policy, SessionCreator: creator, SessionRevoker: &recordingSessionRevoker{}, TokenSetMinter: minter, RefreshTokenSaver: saver,
 	})
 
-	result, err := issuer.Issue(context.Background(), principal)
+	result, err := issuer.Issue(context.Background(), principal, sessiondomain.TokenContext{})
 
 	require.Nil(t, result)
 	var denied *admissiondomain.DeniedError
@@ -50,7 +50,7 @@ func TestIssuerDoesNotCreateAuthenticationStateWhenAdmissionCannotBeEvaluated(t 
 		SessionCreator:  creator,
 	})
 
-	result, err := issuer.Issue(context.Background(), principal)
+	result, err := issuer.Issue(context.Background(), principal, sessiondomain.TokenContext{})
 
 	require.Nil(t, result)
 	var evaluation *admissiondomain.EvaluationError
@@ -86,12 +86,13 @@ func TestIssuerCreatesGrantAndPersistsInitialRefreshToken(t *testing.T) {
 		SessionCreator: creator, SessionRevoker: &recordingSessionRevoker{}, TokenSetMinter: minter, RefreshTokenSaver: saver,
 	})
 
-	result, err := issuer.Issue(context.Background(), principal)
+	tokenContext := sessiondomain.TokenContext{TenantDomain: "fangcun", OrgID: meta.FromUint64(42)}
+	result, err := issuer.Issue(context.Background(), principal, tokenContext)
 
 	require.NoError(t, err)
+	require.Equal(t, tokenContext, creator.tokenContext)
 	require.Same(t, sess, result.Session)
 	require.Same(t, set, result.TokenSet)
-	require.Same(t, principal, minter.principal)
 	require.Same(t, sess, minter.session)
 	require.Same(t, refresh, saver.token)
 }
@@ -106,26 +107,26 @@ func (s admissionPolicyStub) Evaluate(context.Context, admissiondomain.Subject) 
 }
 
 type recordingSessionCreator struct {
-	session *sessiondomain.Session
-	called  bool
+	tokenContext sessiondomain.TokenContext
+	session      *sessiondomain.Session
+	called       bool
 }
 
-func (s *recordingSessionCreator) Create(context.Context, *authentication.Principal) (*sessiondomain.Session, error) {
+func (s *recordingSessionCreator) Create(_ context.Context, _ *authentication.Principal, tokenContext sessiondomain.TokenContext) (*sessiondomain.Session, error) {
 	s.called = true
+	s.tokenContext = tokenContext.Clone()
 	return s.session, nil
 }
 
 type recordingTokenSetMinter struct {
-	err       error
-	set       *tokendomain.UserTokenSet
-	principal *authentication.Principal
-	session   *sessiondomain.Session
-	called    bool
+	err     error
+	set     *tokendomain.UserTokenSet
+	session *sessiondomain.Session
+	called  bool
 }
 
-func (m *recordingTokenSetMinter) MintTokenSet(_ context.Context, principal *authentication.Principal, session *sessiondomain.Session) (*tokendomain.UserTokenSet, error) {
+func (m *recordingTokenSetMinter) MintTokenSet(_ context.Context, session *sessiondomain.Session) (*tokendomain.UserTokenSet, error) {
 	m.called = true
-	m.principal = principal
 	m.session = session
 	return m.set, m.err
 }
@@ -153,7 +154,7 @@ func testPrincipal() *authentication.Principal {
 func testSession(principal *authentication.Principal) *sessiondomain.Session {
 	return sessiondomain.NewWithContexts(
 		"session-id", principal.UserID, principal.LoginIdentityID, principal.TenantID,
-		principal.AuthContext, principal.TokenContext, time.Now().Add(time.Hour),
+		principal.AuthContext, sessiondomain.TokenContext{}, time.Now().Add(time.Hour),
 	)
 }
 
@@ -201,7 +202,7 @@ func TestIssuerCompensatesFailedGrantEvenAfterRequestCancellation(t *testing.T) 
 				})
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
-				result, err := issuer.Issue(ctx, principal)
+				result, err := issuer.Issue(ctx, principal, sessiondomain.TokenContext{})
 				require.Nil(t, result)
 				require.Error(t, err)
 				if stage != "incomplete" {
@@ -225,7 +226,27 @@ func TestIssuerRequiresCompensationBeforeCreatingSession(t *testing.T) {
 		AdmissionPolicy: admissionPolicyStub{decision: admissiondomain.Admit(admissiondomain.Subject{})},
 		SessionCreator:  creator, TokenSetMinter: &recordingTokenSetMinter{}, RefreshTokenSaver: &recordingRefreshTokenSaver{},
 	})
-	_, err := issuer.Issue(context.Background(), testPrincipal())
+	_, err := issuer.Issue(context.Background(), testPrincipal(), sessiondomain.TokenContext{})
 	require.Error(t, err)
 	require.False(t, creator.called)
+}
+
+func TestIssuerRejectsMismatchedSessionBeforeMintingAndCompensates(t *testing.T) {
+	principal := testPrincipal()
+	sess := testSession(principal)
+	sess.LoginIdentityID = meta.FromUint64(99)
+	minter := &recordingTokenSetMinter{}
+	saver := &recordingRefreshTokenSaver{}
+	revoker := &recordingSessionRevoker{}
+	issuer := NewIssuer(Dependencies{
+		AdmissionPolicy: admissionPolicyStub{decision: admissiondomain.Admit(admissiondomain.Subject{})},
+		SessionCreator:  &recordingSessionCreator{session: sess}, SessionRevoker: revoker,
+		TokenSetMinter: minter, RefreshTokenSaver: saver,
+	})
+	result, err := issuer.Issue(context.Background(), principal, sessiondomain.TokenContext{})
+	require.Error(t, err)
+	require.Nil(t, result)
+	require.False(t, minter.called)
+	require.False(t, saver.called)
+	require.Equal(t, sess.SessionID, revoker.sessionID)
 }

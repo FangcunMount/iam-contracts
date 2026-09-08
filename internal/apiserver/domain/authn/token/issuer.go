@@ -5,7 +5,6 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
 	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"github.com/google/uuid"
@@ -29,32 +28,14 @@ func newTokenSetMinter(tokenCodec BearerTokenCodec, refreshExpirer SessionRefres
 }
 
 // MintTokenSet 颁发用户令牌。
-func (s *tokenSetMinter) MintTokenSet(ctx context.Context, principal *authentication.Principal, sess *sessiondomain.Session) (*UserTokenSet, error) {
-	// 参数校验
-	if principal == nil {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "principal is required")
-	}
+func (s *tokenSetMinter) MintTokenSet(ctx context.Context, sess *sessiondomain.Session) (*UserTokenSet, error) {
 	// 会话校验
 	if sess == nil {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "session is required")
 	}
-	// 主体与会话校验
-	if err := validatePrincipalSessionAlignment(principal, sess); err != nil {
-		return nil, err
-	}
-
 	// 构建访问令牌主体
-	subject := accessTokenSubjectFromAuth(principal, sess)
+	subject := accessTokenSubjectFromSession(sess)
 	now := time.Now().UTC()
-	subject.Attributes = cloneStringMap(subject.Attributes)
-	if subject.Attributes == nil {
-		subject.Attributes = map[string]string{}
-	}
-	if !subject.AuthenticatedAt.IsZero() {
-		authTime := subject.AuthenticatedAt.UTC().Format(time.RFC3339)
-		subject.Attributes["auth_time"] = authTime
-	}
-
 	// 颁发访问令牌
 	accessToken, err := s.tokenCodec.IssueAccessToken(ctx, &AccessTokenSubject{
 		UserID: subject.UserID, LoginIdentityID: subject.LoginIdentityID, SessionID: subject.SessionID,
