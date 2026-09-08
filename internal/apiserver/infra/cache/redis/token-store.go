@@ -71,7 +71,6 @@ type refreshTokenData struct {
 	SessionID       string            `json:"session_id"`
 	UserID          uint64            `json:"user_id"`
 	LoginIdentityID uint64            `json:"login_identity_id"`
-	TenantID        uint64            `json:"tenant_id"`
 	AuthMethod      string            `json:"auth_method,omitempty"`
 	Realm           string            `json:"realm,omitempty"`
 	Amr             []string          `json:"amr,omitempty"`
@@ -123,8 +122,8 @@ func refreshTokenDataFromToken(token *tokendomain.RefreshToken) refreshTokenData
 		SessionID:       token.SessionID,
 		UserID:          token.UserID.Uint64(),
 		LoginIdentityID: token.LoginIdentityID.Uint64(),
-		TenantID:        token.TenantID.Uint64(),
-		ExpiresAt:       token.ExpiresAt,
+
+		ExpiresAt: token.ExpiresAt,
 	}
 }
 
@@ -202,14 +201,12 @@ func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*t
 	// 构造 Token 对象
 	userID := meta.FromUint64(data.UserID)
 	loginIdentityID := meta.FromUint64(data.LoginIdentityID)
-	tenantID := meta.FromUint64(data.TenantID)
 	token := tokendomain.RestoreRefreshToken(
 		data.TokenID,
 		tokenValue,
 		data.SessionID,
 		userID,
 		loginIdentityID,
-		tenantID,
 		data.ExpiresAt,
 		tokendomain.LegacyRefreshContext{AuthMethod: data.AuthMethod, Realm: data.Realm, AMR: data.Amr, SessionClaims: data.SessionClaims},
 	)

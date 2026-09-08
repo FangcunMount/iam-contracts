@@ -33,7 +33,6 @@ type PasswordCredentials struct {
 	// Username 登录名：须与登录身份 identifier 一致（例如配置的登录名或邮箱）
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
-	TenantID uint64 `json:"tenant_id,omitempty"`
 }
 
 // PhoneOTPCredentials 手机号验证码凭证

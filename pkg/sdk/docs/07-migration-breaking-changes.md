@@ -267,3 +267,8 @@ default:
 - [配置详解](./02-configuration.md)
 - [JWT 本地验证](./04-jwt-verification.md)
 - [服务间认证](./05-service-auth.md)
+
+
+## AuthN 数字租户退役
+
+密码登录的 PasswordPayload 不再提供数字 TenantID；用户名使用固定 default 命名空间。调用方删除该参数即可，旧 JSON 中该字段不会再影响账号查找。此变更不删除 JWT 的字符串 tenant_id 授权域，也不改变 OrgID。服务器上线前需完成用户名 Realm 冲突预检及 000030 迁移。

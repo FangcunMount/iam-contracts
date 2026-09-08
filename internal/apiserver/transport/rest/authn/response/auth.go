@@ -20,7 +20,6 @@ type TokenVerifyResponse struct {
 type TokenClaims struct {
 	UserID          string            `json:"user_id"`                    // 用户 ID
 	LoginIdentityID string            `json:"login_identity_id"`          // 登录身份 ID
-	TenantID        *int64            `json:"tenant_id,omitempty"`        // 历史租户数值 ID（兼容字段）
 	TenantDomain    string            `json:"tenant_domain,omitempty"`    // IAM 授权域
 	OrgID           string            `json:"org_id,omitempty"`           // 业务组织 ID
 	Subject         string            `json:"subject,omitempty"`          // 主体

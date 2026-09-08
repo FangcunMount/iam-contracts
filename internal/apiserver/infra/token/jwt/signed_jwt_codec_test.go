@@ -357,5 +357,5 @@ func issueTestAccessToken(g *testCodec, ctx context.Context, subject *tokendomai
 	if err != nil {
 		return nil, err
 	}
-	return tokendomain.NewAccessToken(claims.TokenID, value, subject.SessionID, subject.UserID, subject.LoginIdentityID, meta.ZeroID, claims.IssuedAt, claims.ExpiresAt), nil
+	return tokendomain.NewAccessToken(claims.TokenID, value, subject.SessionID, subject.UserID, subject.LoginIdentityID, claims.IssuedAt, claims.ExpiresAt), nil
 }

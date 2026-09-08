@@ -11,7 +11,7 @@ import (
 
 func TestAccessTokenClaimsProjectionUsesSessionContext(t *testing.T) {
 	sess := &sessiondomain.Session{
-		SessionID: "sid-1", UserID: meta.FromUint64(10), LoginIdentityID: meta.FromUint64(20), TenantID: meta.FromUint64(2),
+		SessionID: "sid-1", UserID: meta.FromUint64(10), LoginIdentityID: meta.FromUint64(20),
 		AuthContext:  authentication.RestoreAuthenticationContext(authentication.MethodPassword, "wx-app", []authentication.AMR{authentication.AMRPassword}, time.Time{}),
 		TokenContext: sessiondomain.TokenContext{TenantDomain: "fangcun", OrgID: meta.FromUint64(42), Attributes: map[string]string{"key": "value"}},
 	}

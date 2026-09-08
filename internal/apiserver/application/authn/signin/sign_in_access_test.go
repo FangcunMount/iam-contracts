@@ -185,30 +185,12 @@ func (s *initialTokenIssuerStub) IssueInitialTokens(_ context.Context, principal
 		return nil, perrors.WithCode(s.errCode, "authentication grant denied")
 	}
 	return tokenapp.NewTokenPair(
-		tokenapp.NewAccessToken("a", "access", "session-id", principal.UserID, principal.LoginIdentityID, principal.TenantID, time.Now(), time.Now().Add(time.Minute)),
-		tokenapp.NewRefreshToken("r", "refresh", "session-id", principal.UserID, principal.LoginIdentityID, principal.TenantID, time.Now(), time.Now().Add(time.Hour)),
+		tokenapp.NewAccessToken("a", "access", "session-id", principal.UserID, principal.LoginIdentityID, time.Now(), time.Now().Add(time.Minute)),
+		tokenapp.NewRefreshToken("r", "refresh", "session-id", principal.UserID, principal.LoginIdentityID, time.Now(), time.Now().Add(time.Hour)),
 	), nil
 }
 
 // 租户仅从登录请求进入会话；身份核验结果不承载或确认租户归属。
-func TestSignInCarriesRequestedTenantOutsidePrincipal(t *testing.T) {
-	principal := &authentication.Principal{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2)}
-	for _, tenantID := range []meta.ID{meta.ZeroID, meta.FromUint64(42)} {
-		usecase := New(Dependencies{
-			TokenIssuer:     &initialTokenIssuerStub{},
-			AdmissionPolicy: testhelpers.AuthnFlow{}, SessionCreator: testhelpers.AuthnFlow{}, SessionRevoker: testhelpers.AuthnFlow{},
-			MethodRegistry: signInMethodRegistryStub{}, ProofFactory: signInProofFactoryStub{},
-			Authenticator: authentication.NewAuthenticator(signInStrategyStub{decision: authentication.AuthDecision{OK: true, Principal: principal}}),
-		})
-		result, err := usecase.Execute(context.Background(), method.LoginRequest{TenantID: tenantID})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if result.TenantID != tenantID || result.TokenPair.AccessToken.TenantID != tenantID || result.TokenPair.RefreshToken.TenantID != tenantID {
-			t.Fatal("requested tenant was not preserved through session issuance")
-		}
-	}
-}
 
 func TestSignInRejectsContradictoryDecisionBeforeRecording(t *testing.T) {
 	order := []string{}

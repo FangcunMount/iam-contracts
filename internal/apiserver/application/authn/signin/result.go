@@ -13,7 +13,6 @@ type Result struct {
 	TokenPair       *tokenapp.TokenPair
 	UserID          meta.ID
 	LoginIdentityID meta.ID
-	TenantID        meta.ID
 }
 
 // resultFromSession 在身份与会话已对齐且令牌颁发完成后构造登录结果。
@@ -27,6 +26,5 @@ func resultFromSession(principal *authentication.Principal, sess *sessiondomain.
 		TokenPair:       tokenPair,
 		UserID:          sess.UserID,
 		LoginIdentityID: sess.LoginIdentityID,
-		TenantID:        sess.TenantID,
 	}
 }

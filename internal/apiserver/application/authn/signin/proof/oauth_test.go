@@ -22,18 +22,17 @@ func TestMethodProofPreparersMapPayloads(t *testing.T) {
 	passwordProof, err := NewPasswordBuilder().Build(context.Background(), method.PasswordPayload{
 		Username: "alice",
 		Password: "secret",
-	}, method.CommonPayload{TenantID: meta.FromUint64(42)})
+	}, method.CommonPayload{})
 	require.NoError(t, err)
 	password, ok := passwordProof.(*authentication.PasswordProof)
 	require.True(t, ok)
 	require.Equal(t, authentication.CredentialKindPassword, password.CredentialKind())
-	require.Equal(t, uint64(42), password.RealmTenantID.Uint64())
 	require.Equal(t, "alice", password.Username)
 
 	phoneProof, err := NewPhoneOTPBuilder().Build(context.Background(), method.PhoneOTPPayload{
 		PhoneE164: "+8613800138000",
 		OTP:       "123456",
-	}, method.CommonPayload{TenantID: meta.FromUint64(7)})
+	}, method.CommonPayload{})
 	require.NoError(t, err)
 	phone, ok := phoneProof.(*authentication.PhoneOTPProof)
 	require.True(t, ok)
@@ -125,7 +124,7 @@ func TestWecomMethodUsesResolvedIdentityAndAuthenticates(t *testing.T) {
 func wecomSelection() method.LoginMethodSelection {
 	return method.LoginMethodSelection{
 		CredentialKind: method.CredentialKindWecom,
-		Common:         method.CommonPayload{TenantID: meta.FromUint64(1)},
+		Common:         method.CommonPayload{},
 		Payload: method.WecomPayload{
 			CorpID: "corp-id",
 			Code:   "auth-code",
@@ -169,7 +168,7 @@ type wecomLoginIdentityRepoStub struct {
 	identifier string
 }
 
-func (s *wecomLoginIdentityRepoStub) FindUsernameIdentity(context.Context, meta.ID, string) (*authentication.LoginIdentityLookup, error) {
+func (s *wecomLoginIdentityRepoStub) FindUsernameIdentity(context.Context, string) (*authentication.LoginIdentityLookup, error) {
 	return nil, nil
 }
 

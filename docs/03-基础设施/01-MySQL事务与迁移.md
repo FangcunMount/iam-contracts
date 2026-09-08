@@ -1,6 +1,6 @@
 # MySQL、Unit of Work 与数据库迁移
 
-> 状态：已实现 · 已与 `internal/pkg/database/mysql`、三个模块 UoW、仓库迁移 000001–000029 和相关测试核对；2026-09-04 生产已受控收尾至 `version=29, dirty=0`。
+> 状态：已实现 · 已与 `internal/pkg/database/mysql`、三个模块 UoW、仓库迁移 000001–000030（000030 尚未在生产执行） 和相关测试核对；2026-09-04 生产已受控收尾至 `version=29, dirty=0`。
 
 ## 1. 本文回答
 
@@ -223,8 +223,8 @@ up/down 都只修改该资源的 JSON Action 集，不改变表结构。v3.2.0 �
 `version=29, dirty=1`，目标 JSON 尚未改变。平台先生成[完整逻辑备份](https://github.com/FangcunMount/iam/actions/runs/33862117713)，再在停止 IAM migration runner、迁移锁空闲、
 目标资源精确为一行且 JSON 有效的前提下，以单事务使用 canonical `key` 列删除 action，并只在后置条件成立时把精确的 `29/dirty` 标记 clean；IAM 随后恢复 healthy。
 
-v3.2.1 对已发布的 000029 作一次有记录的补丁例外：只把错误列名修为 canonical `key`，使从 000028 或空库升级的环境可重放；不新增 000030，因为生产业务事实已经达到
-000029 目标状态，额外版本会制造无业务变化的迁移。静态契约测试禁止 `resource_key` 回流，MySQL full-chain 同时断言最终版本 29、目标资源唯一、JSON 有效且 `enter_grace` 缺席。
+v3.2.1 对已发布的 000029 作一次有记录的补丁例外：只把错误列名修为 canonical `key`，使从 000028 或空库升级的环境可重放；当时不另增迁移，因为生产业务事实已经达到
+000029 目标状态，额外版本会制造无业务变化的迁移。静态契约测试禁止 `resource_key` 回流，该发布时的 MySQL full-chain 断言最终版本 29、目标资源唯一、JSON 有效且 `enter_grace` 缺席。
 
 `internal/pkg/migration/migrations/*.sql` 是 schema 的唯一事实源。`configs/mysql/bootstrap.sql` 只在 schema 已到达当前版本后重放幂等系统基线数据，
 不含 DDL，也不能替代迁移；静态 `schema.sql` 快照已经移除。
@@ -297,3 +297,22 @@ Repository 抽象某类聚合的持久化；Unit of Work 抽象一次业务用�
 ### Outbox 为什么也要放进 AuthZ UoW？
 
 只有事件意图与授权事实同事务提交，才不会出现“数据库成功但事件永久丢失”或“事件已发但数据库回滚”。
+
+
+## 000030：AuthN 用户名默认命名空间
+
+本次移除 AuthN 数字租户，所有 username 身份统一到 default。上线前暂停旧版本的注册与绑定写入，备份身份表并检查：
+
+```sql
+SELECT realm, COUNT(*) FROM auth_login_identities
+WHERE provider = 'username' GROUP BY realm;
+SELECT identifier, COUNT(*) AS identity_count
+FROM auth_login_identities WHERE provider = 'username'
+GROUP BY identifier HAVING COUNT(*) > 1;
+```
+
+同名冲突包括禁用、已删除以及同一用户的多条身份；出现任何冲突时迁移在修改持久数据前停止，必须先人工确认账号处理方案。无冲突时仅修改 username Realm，身份 ID、UserID、凭据归属和外部身份 Realm 保持不变。迁移追加 CHECK 约束，阻止旧写入方重新创建数字命名空间。
+
+新代码必须与迁移配套切换；否则原先非默认 Realm 的用户名无法被默认查找命中。迁移后版本应为 30、dirty=0，数据库操作脚本的验收基线同步为 30。生产数据分布和迁移执行尚未验证，不以本地测试替代上线验收。
+
+Down 仅移除新 CHECK 约束，不重建历史 Realm。若要恢复历史用户名命名空间，须从升级前备份恢复，不能从当前 default 值反推。

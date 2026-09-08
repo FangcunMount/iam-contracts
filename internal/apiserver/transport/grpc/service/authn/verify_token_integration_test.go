@@ -245,7 +245,6 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	require.NotNil(t, tv.Claims)
 	require.Equal(t, "1001", tv.Claims.UserID)
 	require.Equal(t, "2002", tv.Claims.LoginIdentityID)
-	require.Nil(t, tv.Claims.TenantID)
 	require.Equal(t, "fangcun", tv.Claims.TenantDomain)
 	require.Equal(t, "9001", tv.Claims.OrgID)
 
@@ -315,7 +314,7 @@ func TestIntegration_VerifyToken_GRPC_IncludeMetadata(t *testing.T) {
 
 func issueForTest(t *testing.T, ctx context.Context, tokens testTokenStack, p *authentication.Principal, c sessiondomain.TokenContext) (*tokenapp.TokenPair, error) {
 	t.Helper()
-	sess, err := tokens.creator.Create(ctx, p, sessiondomain.CreationContext{TokenContext: c})
+	sess, err := tokens.creator.Create(ctx, p, c)
 	if err != nil {
 		return nil, err
 	}

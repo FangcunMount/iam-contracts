@@ -145,14 +145,13 @@ func TestAuthNGRPCRuntimeRegistersProductionServices(t *testing.T) {
 }
 
 func TestAuthServiceServerLoginUsesExplicitV2Contract(t *testing.T) {
-	access := tokenApp.NewAccessToken("access-id", "access-token", "session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(7), time.Now(), time.Now().Add(time.Hour))
-	refresh := tokenApp.NewRefreshToken("refresh-id", "refresh-token", "session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(7), time.Now(), time.Now().Add(24*time.Hour))
+	access := tokenApp.NewAccessToken("access-id", "access-token", "session-id", meta.FromUint64(1), meta.FromUint64(2), time.Now(), time.Now().Add(time.Hour))
+	refresh := tokenApp.NewRefreshToken("refresh-id", "refresh-token", "session-id", meta.FromUint64(1), meta.FromUint64(2), time.Now(), time.Now().Add(24*time.Hour))
 	stub := &loginServiceStub{
 		res: &sessionApp.LoginResult{
 			TokenPair:       tokenApp.NewTokenPair(access, refresh),
 			UserID:          meta.FromUint64(1),
 			LoginIdentityID: meta.FromUint64(2),
-			TenantID:        meta.FromUint64(7),
 		},
 	}
 	srv := &authServiceServer{sessionSvc: stub}
@@ -173,7 +172,6 @@ func TestAuthServiceServerLoginUsesExplicitV2Contract(t *testing.T) {
 	require.Equal(t, "access-token", resp.GetTokenPair().GetAccessToken())
 	require.Equal(t, "refresh-token", resp.GetTokenPair().GetRefreshToken())
 	require.Equal(t, sessionApp.AuthMethodPassword, stub.req.AuthMethod)
-	require.Equal(t, meta.FromUint64(7), stub.req.TenantID)
 	loginPayload, ok := stub.req.Payload.(sessionApp.PasswordPayload)
 	require.True(t, ok)
 	require.Equal(t, "alice", loginPayload.Username)

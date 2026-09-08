@@ -44,7 +44,6 @@ func (r LoginRequest) Validate() error {
 type PasswordPayload struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
-	TenantID uint64 `json:"tenant_id,omitempty"`
 }
 
 // PhoneOTPPayload is the phone OTP login payload.

@@ -20,7 +20,6 @@ type IssuedTokenDTO struct {
 	SessionID       string  // 会话ID
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-	TenantID        meta.ID // 租户ID
 
 	// --- 令牌期限 ---
 	IssuedAt  time.Time // 颁发时间
@@ -28,13 +27,13 @@ type IssuedTokenDTO struct {
 }
 
 // NewAccessToken constructs a DTO from explicit access-token facts.
-func NewAccessToken(id, value, sessionID string, userID meta.ID, loginIdentityID meta.ID, tenantID meta.ID, issuedAt, expiresAt time.Time) *IssuedTokenDTO {
-	return tokenFromAccess(tokendomain.NewAccessToken(id, value, sessionID, userID, loginIdentityID, tenantID, issuedAt, expiresAt))
+func NewAccessToken(id, value, sessionID string, userID meta.ID, loginIdentityID meta.ID, issuedAt, expiresAt time.Time) *IssuedTokenDTO {
+	return tokenFromAccess(tokendomain.NewAccessToken(id, value, sessionID, userID, loginIdentityID, issuedAt, expiresAt))
 }
 
 // NewRefreshToken constructs a DTO from explicit refresh-token facts.
-func NewRefreshToken(id, value, sessionID string, userID, loginIdentityID, tenantID meta.ID, issuedAt, expiresAt time.Time) *IssuedTokenDTO {
-	return tokenFromRefresh(tokendomain.NewRefreshToken(id, value, sessionID, userID, loginIdentityID, tenantID, issuedAt, expiresAt))
+func NewRefreshToken(id, value, sessionID string, userID, loginIdentityID meta.ID, issuedAt, expiresAt time.Time) *IssuedTokenDTO {
+	return tokenFromRefresh(tokendomain.NewRefreshToken(id, value, sessionID, userID, loginIdentityID, issuedAt, expiresAt))
 }
 
 // IsExpired 检查令牌是否已过期
@@ -78,7 +77,7 @@ func tokenFromAccess(token *tokendomain.AccessToken) *IssuedTokenDTO {
 	return &IssuedTokenDTO{
 		ID: token.ID, Type: TokenTypeAccess, Value: token.Value, Subject: token.Subject(),
 		SessionID: token.SessionID, UserID: token.UserID, LoginIdentityID: token.LoginIdentityID,
-		TenantID: token.TenantID,
+
 		IssuedAt: token.IssuedAt, ExpiresAt: token.ExpiresAt,
 	}
 }
@@ -89,7 +88,7 @@ func tokenFromRefresh(token *tokendomain.RefreshToken) *IssuedTokenDTO {
 	}
 	return &IssuedTokenDTO{
 		ID: token.ID, Type: TokenTypeRefresh, Value: token.Value, SessionID: token.SessionID,
-		UserID: token.UserID, LoginIdentityID: token.LoginIdentityID, TenantID: token.TenantID,
+		UserID: token.UserID, LoginIdentityID: token.LoginIdentityID,
 		IssuedAt: token.IssuedAt, ExpiresAt: token.ExpiresAt,
 	}
 }

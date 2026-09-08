@@ -25,7 +25,7 @@ func TestSessionStoreWritesTypedV2ContextWithoutLegacyClaims(t *testing.T) {
 	store := NewSessionStore(client)
 	authenticatedAt := time.Unix(1700000000, 0).UTC()
 	sess := session.NewWithContexts(
-		"sid-v2", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3),
+		"sid-v2", meta.FromUint64(1), meta.FromUint64(2),
 		authentication.RestoreAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, authenticatedAt),
 		sessiondomain.TokenContext{TenantDomain: "fangcun", OrgID: meta.FromUint64(9), Attributes: map[string]string{"auth_time": authenticatedAt.Format(time.RFC3339)}},
 		time.Now().Add(time.Hour),
@@ -35,6 +35,7 @@ func TestSessionStoreWritesTypedV2ContextWithoutLegacyClaims(t *testing.T) {
 	payload, err := client.Get(context.Background(), sessionRedisKey(sess.SessionID)).Bytes()
 	require.NoError(t, err)
 	require.Contains(t, string(payload), `"schema_version":2`)
+	require.NotContains(t, string(payload), `"TenantID"`)
 	require.NotContains(t, string(payload), "AuthMethod")
 	require.NotContains(t, string(payload), "SessionClaims")
 	require.NotContains(t, string(payload), "phone_number")
@@ -172,7 +173,6 @@ func newRedisTestSession(id string) *session.Session {
 		id,
 		meta.FromUint64(1001),
 		meta.FromUint64(2001),
-		meta.FromUint64(3001),
 		authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, time.Now().UTC()),
 		sessiondomain.TokenContext{TenantDomain: "fangcun"},
 		time.Now().Add(time.Hour),

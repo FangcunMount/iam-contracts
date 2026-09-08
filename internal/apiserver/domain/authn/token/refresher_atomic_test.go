@@ -164,7 +164,7 @@ func (s *atomicTokenPairMinterStub) MintTokenSet(_ context.Context, session *ses
 	s.next++
 	n := s.next
 	s.mu.Unlock()
-	access := NewAccessToken(meta.FromUint64(uint64(100+n)).String(), meta.FromUint64(uint64(200+n)).String(), session.SessionID, session.UserID, session.LoginIdentityID, session.TenantID, time.Now(), time.Now().Add(time.Minute))
+	access := NewAccessToken(meta.FromUint64(uint64(100+n)).String(), meta.FromUint64(uint64(200+n)).String(), session.SessionID, session.UserID, session.LoginIdentityID, time.Now(), time.Now().Add(time.Minute))
 	refresh := testRefreshToken(
 		meta.FromUint64(uint64(300+n)).String(),
 		meta.FromUint64(uint64(400+n)).String(),
@@ -302,7 +302,7 @@ func (admissionPolicyStub) Evaluate(_ context.Context, subject admissiondomain.S
 }
 
 func testRefreshToken(id, value string) *RefreshToken {
-	token := NewRefreshToken(id, value, "session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), time.Now(), time.Now().Add(time.Hour))
+	token := NewRefreshToken(id, value, "session-id", meta.FromUint64(1), meta.FromUint64(2), time.Now(), time.Now().Add(time.Hour))
 	token.AuthMethod = "password"
 	return token
 }
@@ -312,7 +312,6 @@ func testActiveSession() *sessiondomain.Session {
 		"session-id",
 		meta.FromUint64(1),
 		meta.FromUint64(2),
-		meta.FromUint64(3),
 		authentication.RestoreAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, time.Now().Add(-time.Hour).UTC()),
 		sessiondomain.TokenContext{TenantDomain: "fangcun"},
 		time.Now().Add(time.Hour),

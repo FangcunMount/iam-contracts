@@ -32,8 +32,8 @@ func (passwordBuilder) Build(_ context.Context, payload method.Payload, common m
 
 	// 构建密码登录方式凭证
 	return authentication.NewPasswordProof(authentication.PasswordProofSpec{
-		RealmTenantID: common.TenantID,
-		Username:      passwordPayload.Username,
-		Password:      passwordPayload.Password,
+
+		Username: passwordPayload.Username,
+		Password: passwordPayload.Password,
 	})
 }

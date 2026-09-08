@@ -9,14 +9,13 @@ import (
 
 func TestLoginIdentityBuilderBuildsProviderKeys(t *testing.T) {
 	userID := meta.FromUint64(1001)
-	tenantID := meta.FromUint64(9001)
 
-	usernameKey, err := NewUsernameProviderKey(tenantID, "zhangsan")
+	usernameKey, err := NewUsernameProviderKey("zhangsan")
 	require.NoError(t, err)
 	username, err := NewBuilder(userID).FromProviderKey(usernameKey).Build()
 	require.NoError(t, err)
 	require.Equal(t, ProviderUsername, username.Provider)
-	require.Equal(t, tenantID.String(), username.Realm)
+	require.Equal(t, RealmDefault, username.Realm)
 	require.Equal(t, "zhangsan", username.Identifier)
 	require.True(t, username.IsActive())
 
@@ -59,7 +58,7 @@ func TestLoginIdentityBuilderBuildsProviderKeys(t *testing.T) {
 }
 
 func TestLoginIdentityBuilderRejectsZeroUserID(t *testing.T) {
-	key, err := NewUsernameProviderKey(meta.FromUint64(9001), "zhangsan")
+	key, err := NewUsernameProviderKey("zhangsan")
 	require.NoError(t, err)
 
 	_, err = NewBuilder(meta.ZeroID).FromProviderKey(key).Build()

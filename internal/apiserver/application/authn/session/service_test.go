@@ -14,7 +14,6 @@ import (
 	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
 	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,8 +23,8 @@ type sessionTokenCapabilitiesStub struct {
 
 func (s *sessionTokenCapabilitiesStub) IssueInitialTokens(ctx context.Context, principal *sessiondomain.Session) (*tokenapp.TokenPair, error) {
 	s.captured = principal
-	access := tokenapp.NewAccessToken("access-id", "access-value", "session-id", principal.UserID, principal.LoginIdentityID, meta.ZeroID, time.Now(), time.Now().Add(time.Minute))
-	refresh := tokenapp.NewRefreshToken("refresh-id", "refresh-value", "session-id", principal.UserID, principal.LoginIdentityID, meta.ZeroID, time.Now(), time.Now().Add(time.Hour))
+	access := tokenapp.NewAccessToken("access-id", "access-value", "session-id", principal.UserID, principal.LoginIdentityID, time.Now(), time.Now().Add(time.Minute))
+	refresh := tokenapp.NewRefreshToken("refresh-id", "refresh-value", "session-id", principal.UserID, principal.LoginIdentityID, time.Now(), time.Now().Add(time.Hour))
 	return tokenapp.NewTokenPair(access, refresh), nil
 }
 

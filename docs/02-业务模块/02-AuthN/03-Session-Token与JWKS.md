@@ -161,7 +161,7 @@ Identity 的 deactivate/block 会在同一 MySQL 事务中写 session-revocation
 | `POST /api/v2/admin/login-identities/{loginIdentityId}/sessions/revoke` | `revoke_by_login_identity` |
 | `POST /api/v2/admin/users/{userId}/sessions/revoke` | `revoke_by_user` |
 
-三条路由都先检查当前 Tenant，再检查平台域；不按管理员角色名称旁路。它们是管理操作，不改变退出、refresh 撤销与 Identity 状态事件的既有链路。
+三条路由都先检查当前授权域，再检查平台域；不按管理员角色名称旁路。它们是管理操作，不改变退出、refresh 撤销与 Identity 状态事件的既有链路。
 
 ## 6. 三层验证语义
 
@@ -259,7 +259,7 @@ REST/gRPC VerifyToken 及直接应用调用均要求 ExpectedAudience：缺失�
 
 IAM 中间件使用 `auth.resource_audience`（默认 iam-api），启动时要求该值存在于签发列表。默认新令牌包含 iam-api、qs-api、collection-api。按一次切换发布：旧令牌缺少 iam-api 时不能访问 IAM 受保护资源，可用有效 RefreshToken 换取新令牌，否则重新登录；不添加跳过受众校验的开关。
 
-JWT Go 字段 TenantDomain 仍使用历史 JSON 名 tenant_id，数值 TenantID 不与其合并。NewRefreshToken 只接收明确期限与令牌自身信息；RestoreRefreshToken 独立恢复旧 Redis 快照。旧存储没有 issued_at，恢复保留原先读取时赋值的兼容行为，不将其视为历史签发时间证据。
+JWT Go 字段 TenantDomain 仍使用历史 JSON 名 tenant_id，AuthN 不再保存数值 TenantID。NewRefreshToken 只接收明确期限与令牌自身信息；RestoreRefreshToken 独立恢复旧 Redis 快照。旧存储没有 issued_at，恢复保留原先读取时赋值的兼容行为，不将其视为历史签发时间证据。
 
 PublicJWK.ValidateStructure 与 JWKS.ValidateStructure 检查公开结构，允许空 JWKS；ValidateSigningProfile 要求 IAM 的 RSA/RS256、sig 与 kid。密钥生命周期继续决定可签名、验签和发布状态。JWKSPublisher 负责公开投影与发布缓存，空集合与非空集合统一更新 ETag 和快照，结构有效不代表当前可提供验签密钥。
 

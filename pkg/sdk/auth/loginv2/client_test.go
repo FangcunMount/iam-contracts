@@ -29,7 +29,6 @@ func TestClientLoginPostsExplicitV2Contract(t *testing.T) {
 		require.Equal(t, "device-1", req.DeviceID)
 		require.Equal(t, "alice", req.MethodPayload.Username)
 		require.Equal(t, "secret", req.MethodPayload.Password)
-		require.Equal(t, uint64(7), req.MethodPayload.TenantID)
 
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{
@@ -53,7 +52,6 @@ func TestClientLoginPostsExplicitV2Contract(t *testing.T) {
 		MethodPayload: PasswordPayload{
 			Username: "alice",
 			Password: "secret",
-			TenantID: 7,
 		},
 		DeviceID: "device-1",
 	})

@@ -3790,10 +3790,6 @@ const docTemplate = `{
                     "description": "IAM 授权域",
                     "type": "string"
                 },
-                "tenant_id": {
-                    "description": "历史租户数值 ID（兼容字段）",
-                    "type": "integer"
-                },
                 "token_type": {
                     "description": "access",
                     "type": "string"

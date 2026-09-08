@@ -7,7 +7,6 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,7 +34,6 @@ func TestBuildExplicitLoginRequestMapsPublicV2Payloads(t *testing.T) {
 			payload: `{"username":"alice","password":"secret","tenant_id":42}`,
 			assert: func(t *testing.T, req LoginRequest) {
 				require.Equal(t, AuthMethodPassword, req.AuthMethod)
-				require.Equal(t, meta.FromUint64(42), req.TenantID)
 				payload, ok := req.Payload.(PasswordPayload)
 				require.True(t, ok)
 				require.Equal(t, "alice", payload.Username)

@@ -30,7 +30,7 @@ func TestCredentialEnsurerReturnsNotRequiredWithoutPlaceholderCredential(t *test
 func TestLoginIdentityEnsurerRejectsProviderKeyOwnedByAnotherUser(t *testing.T) {
 	t.Parallel()
 
-	key := mustUsernameProviderKey(t, meta.FromUint64(9001), "zhangsan")
+	key := mustUsernameProviderKey(t, "zhangsan")
 	repo := &loginIdentityRepoStub{
 		byKey: map[string]*loginidentity.LoginIdentity{
 			providerKey(key.Provider(), key.Realm(), key.Identifier()): {
@@ -62,7 +62,7 @@ func TestLoginIdentityEnsurerRejectsProviderKeyOwnedByAnotherUser(t *testing.T) 
 func TestLoginIdentityEnsurerReusesActiveProviderKeyOwnedBySameUser(t *testing.T) {
 	t.Parallel()
 
-	key := mustUsernameProviderKey(t, meta.FromUint64(9001), "lisi")
+	key := mustUsernameProviderKey(t, "lisi")
 	existing := &loginidentity.LoginIdentity{
 		ID:         meta.FromUint64(13),
 		UserID:     meta.FromUint64(100),
@@ -132,7 +132,7 @@ func TestLoginIdentityEnsurerPersistsMockConsumerProfileAndMetaOnCreate(t *testi
 func TestLoginIdentityEnsurerRejectsInactiveExistingProviderKey(t *testing.T) {
 	t.Parallel()
 
-	key := mustUsernameProviderKey(t, meta.FromUint64(9001), "wangwu")
+	key := mustUsernameProviderKey(t, "wangwu")
 	repo := &loginIdentityRepoStub{
 		byKey: map[string]*loginidentity.LoginIdentity{
 			providerKey(key.Provider(), key.Realm(), key.Identifier()): {
@@ -193,9 +193,9 @@ func providerKey(provider loginidentity.Provider, realm, identifier string) stri
 	return string(provider) + "|" + realm + "|" + identifier
 }
 
-func mustUsernameProviderKey(t *testing.T, tenantID meta.ID, username string) loginidentity.ProviderKey {
+func mustUsernameProviderKey(t *testing.T, username string) loginidentity.ProviderKey {
 	t.Helper()
-	key, err := loginidentity.NewUsernameProviderKey(tenantID, username)
+	key, err := loginidentity.NewUsernameProviderKey(username)
 	require.NoError(t, err)
 	return key
 }

@@ -59,12 +59,11 @@ func TestCreatorCreateCapsInitialExpiryBySessionMaxTTL(t *testing.T) {
 		UserID:          meta.FromUint64(1),
 		LoginIdentityID: meta.FromUint64(2),
 		AuthContext:     authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, now),
-	}, CreationContext{RequestedTenantID: meta.FromUint64(3)})
+	}, TokenContext{})
 
 	require.NoError(t, err)
 	require.NotNil(t, session)
 	require.Same(t, session, store.session)
-	require.Equal(t, meta.FromUint64(3), session.TenantID)
 	require.WithinDuration(t, now.Add(24*time.Hour), session.ExpiresAt, time.Second)
 }
 
@@ -82,12 +81,12 @@ func TestLoaderGetActiveRejectsInactiveOrOverMaxLifetimeSession(t *testing.T) {
 		},
 		{
 			name:    "naturally expired",
-			session: New("session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), []string{"pwd"}, nil, now.Add(-time.Minute)),
+			session: New("session-id", meta.FromUint64(1), meta.FromUint64(2), []string{"pwd"}, nil, now.Add(-time.Minute)),
 		},
 		{
 			name: "revoked",
 			session: func() *Session {
-				session := New("session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), []string{"pwd"}, nil, now.Add(time.Hour))
+				session := New("session-id", meta.FromUint64(1), meta.FromUint64(2), []string{"pwd"}, nil, now.Add(time.Hour))
 				session.Revoke("test", "test")
 				return session
 			}(),
@@ -95,7 +94,7 @@ func TestLoaderGetActiveRejectsInactiveOrOverMaxLifetimeSession(t *testing.T) {
 		{
 			name: "past maximum lifetime",
 			session: func() *Session {
-				session := New("session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), []string{"pwd"}, nil, now.Add(7*24*time.Hour))
+				session := New("session-id", meta.FromUint64(1), meta.FromUint64(2), []string{"pwd"}, nil, now.Add(7*24*time.Hour))
 				session.CreatedAt = now.Add(-25 * time.Hour)
 				return session
 			}(),
@@ -122,7 +121,7 @@ func TestRefreshExpirerNextRefreshExpiresAtCapsBySessionBoundary(t *testing.T) {
 	t.Parallel()
 
 	now := time.Date(2026, 5, 21, 10, 0, 0, 0, time.UTC)
-	session := New("session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), []string{"pwd"}, nil, now.Add(7*24*time.Hour))
+	session := New("session-id", meta.FromUint64(1), meta.FromUint64(2), []string{"pwd"}, nil, now.Add(7*24*time.Hour))
 	session.CreatedAt = now.Add(-23 * time.Hour)
 	refreshExpirer := NewRefreshExpirer(NewLifetimePolicy(7*24*time.Hour, 24*time.Hour))
 
@@ -136,7 +135,7 @@ func TestExtenderExtendToRefreshExpiryCapsBySessionBoundary(t *testing.T) {
 	t.Parallel()
 
 	now := time.Now().UTC()
-	session := New("session-id", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), []string{"pwd"}, nil, now.Add(7*24*time.Hour))
+	session := New("session-id", meta.FromUint64(1), meta.FromUint64(2), []string{"pwd"}, nil, now.Add(7*24*time.Hour))
 	session.CreatedAt = now.Add(-23 * time.Hour)
 	store := &lifecycleStoreStub{session: session}
 	extender := NewExtender(store, NewLifetimePolicy(7*24*time.Hour, 24*time.Hour))
@@ -153,7 +152,7 @@ func TestCreatorPreservesIndependentTokenContextSnapshot(t *testing.T) {
 	creator := NewCreator(store, NewLifetimePolicy(time.Hour, 24*time.Hour))
 	principal := &authentication.Principal{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2)}
 	tokenContext := TokenContext{TenantDomain: "domain", OrgID: meta.FromUint64(3), Attributes: map[string]string{"key": "value"}}
-	sess, err := creator.Create(context.Background(), principal, CreationContext{TokenContext: tokenContext})
+	sess, err := creator.Create(context.Background(), principal, tokenContext)
 	require.NoError(t, err)
 	require.Equal(t, tokenContext, sess.TokenContext)
 	tokenContext.Attributes["key"] = "changed"

@@ -15,16 +15,14 @@ import (
 
 // PasswordProofSpec 密码身份核验证明规格，用于构造 PasswordProof 实例
 type PasswordProofSpec struct {
-	RealmTenantID meta.ID // username 身份命名空间，不代表租户成员关系
-	Username      string
-	Password      string
+	Username string
+	Password string
 }
 
 // PasswordProof 用户名+密码身份核验证明
 type PasswordProof struct {
-	RealmTenantID meta.ID // username 身份命名空间，不代表租户成员关系
-	Username      string
-	Password      string
+	Username string
+	Password string
 }
 
 // 确保 PasswordProof 实现了 IdentityProof 接口
@@ -45,9 +43,9 @@ func NewPasswordProof(spec PasswordProofSpec) (IdentityProof, error) {
 	}
 
 	return &PasswordProof{
-		RealmTenantID: spec.RealmTenantID,
-		Username:      spec.Username,
-		Password:      spec.Password,
+
+		Username: spec.Username,
+		Password: spec.Password,
 	}, nil
 }
 
@@ -98,7 +96,7 @@ func (p *PasswordAuthStrategy) Authenticate(ctx context.Context, credential Iden
 	}
 
 	// 根据用户名查找登录身份
-	lookup, err := p.identityRepo.FindUsernameIdentity(ctx, passwordCredential.RealmTenantID, passwordCredential.Username)
+	lookup, err := p.identityRepo.FindUsernameIdentity(ctx, passwordCredential.Username)
 	if err != nil {
 		return AuthDecision{}, fmt.Errorf("failed to find login identity: %w", err)
 	}

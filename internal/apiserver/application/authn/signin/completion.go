@@ -15,7 +15,7 @@ import (
 )
 
 // completeLogin 编排登录准入、会话建立和令牌颁发，并负责失败补偿。
-func (s *SignIn) completeLogin(ctx context.Context, principal *authentication.Principal, creationContext sessiondomain.CreationContext) (*Result, error) {
+func (s *SignIn) completeLogin(ctx context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*Result, error) {
 	// 参数校验
 	if principal == nil {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "principal is required")
@@ -45,7 +45,7 @@ func (s *SignIn) completeLogin(ctx context.Context, principal *authentication.Pr
 	}
 
 	// 会话建立
-	sess, err := s.deps.SessionCreator.Create(ctx, principal, creationContext)
+	sess, err := s.deps.SessionCreator.Create(ctx, principal, tokenContext)
 	if err != nil {
 		if perrors.IsCode(err, code.ErrInvalidArgument) {
 			return nil, err
@@ -54,12 +54,6 @@ func (s *SignIn) completeLogin(ctx context.Context, principal *authentication.Pr
 	}
 	if sess == nil {
 		return nil, perrors.WithCode(code.ErrInternalServerError, "session creator returned no session")
-	}
-
-	// 请求租户与核验主体分开校验，保持历史非零租户一致性约束。
-	if !creationContext.RequestedTenantID.IsZero() && !sess.TenantID.IsZero() && creationContext.RequestedTenantID != sess.TenantID {
-		cause := perrors.WithCode(code.ErrInvalidArgument, "requested tenant does not match session")
-		return nil, s.revokeFailedEstablishment(ctx, sess.SessionID, principal.UserID.String(), cause)
 	}
 
 	if err := validatePrincipalSessionAlignment(principal, sess); err != nil {

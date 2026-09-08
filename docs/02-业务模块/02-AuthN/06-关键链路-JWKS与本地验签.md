@@ -117,7 +117,7 @@ Action：
 | `POST /api/v2/authn/admin/jwks/keys/cleanup` | `cleanup` |
 | `GET /api/v2/authn/admin/jwks/keys/publishable` | `list_publishable` |
 
-授权先检查当前 Tenant，再检查平台域中相同 Resource/Action。实现不读取 `super_admin` 等角色名来跳过 PermissionGrant。
+授权先检查当前授权域，再检查平台域中相同 Resource/Action。实现不读取 `super_admin` 等角色名来跳过 PermissionGrant。
 `POST /api/v2/authn/admin/jwks/keys` 返回 `201 KeyResponse`。
 
 ## 7. 运行、备份和紧急退役

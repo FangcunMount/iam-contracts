@@ -17,12 +17,11 @@ func TestPasswordAuthStrategyWithLoginIdentityUsesPasswordCredentialV2(t *testin
 	ctx := context.Background()
 	loginIdentityID := meta.FromUint64(2001)
 	userID := meta.FromUint64(1001)
-	tenantID := meta.FromUint64(3001)
 	identityRepo := newLoginIdentityRepoTestDouble(&authentication.LoginIdentityLookup{
 		LoginIdentityID: loginIdentityID,
 		UserID:          userID,
 		Provider:        loginidentity.ProviderUsername,
-		Realm:           tenantID.String(),
+		Realm:           loginidentity.RealmDefault,
 		Identifier:      "zhangsan",
 		Status:          loginidentity.StatusActive,
 	})
@@ -35,9 +34,9 @@ func TestPasswordAuthStrategyWithLoginIdentityUsesPasswordCredentialV2(t *testin
 		authentication.NewPasswordAuthStrategyWithLoginIdentity(credRepo, identityRepo, &hasherStub{pepper: "pep"}),
 	)
 	proof, err := authentication.NewPasswordProof(authentication.PasswordProofSpec{
-		RealmTenantID: tenantID,
-		Username:      "zhangsan",
-		Password:      "plain",
+
+		Username: "zhangsan",
+		Password: "plain",
 	})
 	require.NoError(t, err)
 
@@ -48,7 +47,7 @@ func TestPasswordAuthStrategyWithLoginIdentityUsesPasswordCredentialV2(t *testin
 	require.Equal(t, loginIdentityID, decision.Principal.LoginIdentityID)
 	require.Equal(t, userID, decision.Principal.UserID)
 	require.Equal(t, "password", string(decision.Principal.AuthContext.Method))
-	require.Equal(t, tenantID.String(), decision.Principal.AuthContext.Realm)
+	require.Equal(t, loginidentity.RealmDefault, decision.Principal.AuthContext.Realm)
 	require.Equal(t, 1, credRepo.findByLoginIdentityCalls)
 }
 
@@ -430,8 +429,8 @@ func newLoginIdentityRepoTestDouble(lookups ...*authentication.LoginIdentityLook
 	return repo
 }
 
-func (s *loginIdentityRepoTestDouble) FindUsernameIdentity(ctx context.Context, tenantID meta.ID, username string) (*authentication.LoginIdentityLookup, error) {
-	return s.FindLoginIdentityByProviderKey(ctx, loginidentity.ProviderUsername, loginidentity.UsernameRealm(tenantID), username)
+func (s *loginIdentityRepoTestDouble) FindUsernameIdentity(ctx context.Context, username string) (*authentication.LoginIdentityLookup, error) {
+	return s.FindLoginIdentityByProviderKey(ctx, loginidentity.ProviderUsername, loginidentity.RealmDefault, username)
 }
 func (s *loginIdentityRepoTestDouble) FindLoginIdentityByProviderKey(_ context.Context, provider loginidentity.Provider, realm, identifier string) (*authentication.LoginIdentityLookup, error) {
 	return s.providerLookups[providerLookupKey(provider, realm, identifier)], nil

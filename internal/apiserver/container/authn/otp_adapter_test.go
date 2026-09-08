@@ -217,7 +217,7 @@ type authnLoginIdentityRepoStub struct {
 	lookup *authentication.LoginIdentityLookup
 }
 
-func (s *authnLoginIdentityRepoStub) FindUsernameIdentity(context.Context, meta.ID, string) (*authentication.LoginIdentityLookup, error) {
+func (s *authnLoginIdentityRepoStub) FindUsernameIdentity(context.Context, string) (*authentication.LoginIdentityLookup, error) {
 	return nil, nil
 }
 
@@ -296,8 +296,8 @@ func authnLinkingProviderKey(provider loginidentity.Provider, realm, identifier 
 type authnInitialTokenIssuerStub struct{}
 
 func (s *authnInitialTokenIssuerStub) IssueInitialTokens(_ context.Context, principal *sessiondomain.Session) (*tokenApp.TokenPair, error) {
-	access := tokenApp.NewAccessToken("access-id", "access-token", "session-id", principal.UserID, principal.LoginIdentityID, principal.TenantID, time.Now(), time.Now().Add(time.Minute))
-	refresh := tokenApp.NewRefreshToken("refresh-id", "refresh-token", "session-id", principal.UserID, principal.LoginIdentityID, principal.TenantID, time.Now(), time.Now().Add(time.Hour))
+	access := tokenApp.NewAccessToken("access-id", "access-token", "session-id", principal.UserID, principal.LoginIdentityID, time.Now(), time.Now().Add(time.Minute))
+	refresh := tokenApp.NewRefreshToken("refresh-id", "refresh-token", "session-id", principal.UserID, principal.LoginIdentityID, time.Now(), time.Now().Add(time.Hour))
 	return tokenApp.NewTokenPair(access, refresh), nil
 }
 

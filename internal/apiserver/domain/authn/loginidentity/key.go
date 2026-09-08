@@ -10,7 +10,7 @@ import (
 
 // ProviderKey 唯一键，用于解析登录身份
 // 用于唯一标识一个登录身份，包括提供者、域、标识和全局标识。
-// 例如：username:tenant_id:username、phone:global:+1234567890、wechat_minip:appid:openid:unionid、wecom:corp_id:userid。
+// 例如：username:default:username、phone:global:+1234567890、wechat_minip:appid:openid:unionid、wecom:corp_id:userid。
 type ProviderKey struct {
 	provider         Provider // 提供者
 	realm            string   // 域
@@ -41,9 +41,9 @@ func newProviderKey(provider Provider, realm, identifier, globalIdentifier strin
 	}, nil
 }
 
-// NewUsernameProviderKey 创建租户用户名登录身份键。
-func NewUsernameProviderKey(tenantID meta.ID, username string) (ProviderKey, error) {
-	return newProviderKey(ProviderUsername, UsernameRealm(tenantID), username, "")
+// NewUsernameProviderKey 创建默认命名空间的用户名登录身份键。
+func NewUsernameProviderKey(username string) (ProviderKey, error) {
+	return newProviderKey(ProviderUsername, RealmDefault, username, "")
 }
 
 // NewMockConsumerProviderKey 创建默认域模拟消费者登录身份键。
@@ -82,14 +82,6 @@ func (k ProviderKey) Identifier() string { return k.identifier }
 
 // GlobalIdentifier 返回可选的跨 Realm 标识。
 func (k ProviderKey) GlobalIdentifier() string { return k.globalIdentifier }
-
-// UsernameRealm 用户名域
-func UsernameRealm(tenantID meta.ID) string {
-	if tenantID.IsZero() {
-		return RealmDefault
-	}
-	return tenantID.String()
-}
 
 // IsValid 是否有效
 func (k ProviderKey) IsValid() bool {

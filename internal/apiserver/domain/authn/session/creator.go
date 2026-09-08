@@ -26,7 +26,7 @@ func NewCreator(store Store, lifetime LifetimePolicy) Creator {
 	return newCreator(store, lifetime)
 }
 
-func (c *creator) Create(ctx context.Context, principal *authentication.Principal, creationContext CreationContext) (*Session, error) {
+func (c *creator) Create(ctx context.Context, principal *authentication.Principal, tokenContext TokenContext) (*Session, error) {
 	if principal == nil {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "principal is required")
 	}
@@ -36,8 +36,8 @@ func (c *creator) Create(ctx context.Context, principal *authentication.Principa
 	}
 
 	session := NewWithContexts(
-		uuid.NewString(), principal.UserID, principal.LoginIdentityID, creationContext.RequestedTenantID,
-		principal.AuthContext, creationContext.TokenContext, expiresAt,
+		uuid.NewString(), principal.UserID, principal.LoginIdentityID,
+		principal.AuthContext, tokenContext, expiresAt,
 	)
 
 	if err := c.store.Save(ctx, session); err != nil {

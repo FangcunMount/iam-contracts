@@ -30,8 +30,8 @@ func TestFullMigrationChainAndBootstrapMySQL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("run full migration chain: %v", err)
 	}
-	if !migrated || version != 29 {
-		t.Fatalf("full migration result = version %d migrated=%v, want version 29 migrated=true", version, migrated)
+	if !migrated || version != 30 {
+		t.Fatalf("full migration result = version %d migrated=%v, want version 30 migrated=true", version, migrated)
 	}
 	db := openMigrationMySQL(t)
 	assertJWKSGraceActionRetired(t, db)
@@ -60,6 +60,10 @@ func TestFullMigrationChainAndBootstrapMySQL(t *testing.T) {
 		}
 	}
 	assertCurrentSchemaTables(t, db, database)
+	var nonDefaultUsernames int
+	if err := db.QueryRow("SELECT COUNT(*) FROM auth_login_identities WHERE provider='username' AND realm <> 'default'").Scan(&nonDefaultUsernames); err != nil || nonDefaultUsernames != 0 {
+		t.Fatalf("bootstrap must use default username realm: count=%d err=%v", nonDefaultUsernames, err)
+	}
 	assertNativeAuthzBootstrap(t, db)
 	assertJWKSGraceActionRetired(t, db)
 	for _, retired := range []string{"tenants", "data_dictionary"} {

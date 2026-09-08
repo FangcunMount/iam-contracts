@@ -289,15 +289,12 @@ func (r *Repository) UnlinkOwnedUnlessLastActive(
 	return outcome, err
 }
 
-func (r *Repository) FindUsernameIdentity(ctx context.Context, tenantID meta.ID, username string) (*authn.LoginIdentityLookup, error) {
+func (r *Repository) FindUsernameIdentity(ctx context.Context, username string) (*authn.LoginIdentityLookup, error) {
 	username = strings.TrimSpace(username)
 	if username == "" {
 		return nil, nil
 	}
 	realm := domain.RealmDefault
-	if !tenantID.IsZero() {
-		realm = tenantID.String()
-	}
 	return r.FindLoginIdentityByProviderKey(ctx, domain.ProviderUsername, realm, username)
 }
 

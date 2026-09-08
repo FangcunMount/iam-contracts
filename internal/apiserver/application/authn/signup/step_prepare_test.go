@@ -19,7 +19,6 @@ func TestPrepareStepBuildsLoginIdentityData(t *testing.T) {
 	openID := "openid-1"
 	unionID := "union-1"
 	appID := "wx-app"
-	tenantID := meta.FromUint64(9001)
 
 	tests := []struct {
 		name                   string
@@ -35,13 +34,12 @@ func TestPrepareStepBuildsLoginIdentityData(t *testing.T) {
 			name: "opera password",
 			req: SignupRequest{
 				LoginIdentity: UsernameLoginIdentityInput{
-					Username:      "zhangsan",
-					RealmTenantID: tenantID,
+					Username: "zhangsan",
 				},
 			},
 			needPasswordCredential: true,
 			provider:               loginidentity.ProviderUsername,
-			realm:                  tenantID.String(),
+			realm:                  loginidentity.RealmDefault,
 			identifier:             "zhangsan",
 		},
 		{

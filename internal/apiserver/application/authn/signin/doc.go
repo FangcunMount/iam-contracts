@@ -10,7 +10,7 @@
 // 四个环节全部完成才表示登录成功；会话建立后的失败由 SignIn 补偿。
 //
 // 请求上下文规范：
-// TenantID、RemoteIP、UserAgent 必须由 transport / compatibility 层写入
+// RemoteIP、UserAgent 必须由 transport / compatibility 层写入
 // LoginRequest 顶层字段。method.Payload 只保存具体登录方式自己的字段，
 // 不承载公共请求上下文。
 //

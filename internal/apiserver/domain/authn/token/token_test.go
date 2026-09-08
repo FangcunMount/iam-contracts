@@ -11,8 +11,8 @@ import (
 func TestTokenKindsAreExpressedByDistinctDomainTypes(t *testing.T) {
 	t.Parallel()
 
-	access := NewAccessToken("a", "access", "sid", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), time.Now(), time.Now().Add(time.Minute))
-	refresh := NewRefreshToken("r", "refresh", "sid", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), time.Now(), time.Now().Add(time.Hour))
+	access := NewAccessToken("a", "access", "sid", meta.FromUint64(1), meta.FromUint64(2), time.Now(), time.Now().Add(time.Minute))
+	refresh := NewRefreshToken("r", "refresh", "sid", meta.FromUint64(1), meta.FromUint64(2), time.Now(), time.Now().Add(time.Hour))
 
 	require.Equal(t, TokenTypeAccess, access.Kind())
 	require.Equal(t, TokenTypeRefresh, refresh.Kind())

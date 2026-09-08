@@ -63,7 +63,7 @@ func (s *SignIn) Execute(ctx context.Context, cmd method.LoginRequest) (*Result,
 	}
 
 	// 身份核验成功后继续登录准入、会话建立与令牌颁发；全部完成才算登录成功。
-	result, err := s.completeLogin(ctx, decision.Principal, sessiondomain.CreationContext{RequestedTenantID: cmd.TenantID, TokenContext: sessiondomain.TokenContext{TenantDomain: tenant.DefaultID}})
+	result, err := s.completeLogin(ctx, decision.Principal, sessiondomain.TokenContext{TenantDomain: tenant.DefaultID})
 	if err != nil {
 		return nil, wrapStageError(err, code.ErrAuthenticationFailed, "failed to issue authentication grant")
 	}

@@ -11,7 +11,7 @@ import (
 func TestProofConstructorsValidateRequiredFieldsAndMapCredentialKind(t *testing.T) {
 	t.Parallel()
 
-	password, err := NewPasswordProof(PasswordProofSpec{RealmTenantID: meta.FromUint64(1), Username: "alice", Password: "secret"})
+	password, err := NewPasswordProof(PasswordProofSpec{Username: "alice", Password: "secret"})
 	require.NoError(t, err)
 	require.Equal(t, CredentialKindPassword, password.CredentialKind())
 	_, err = NewPasswordProof(PasswordProofSpec{})
@@ -86,9 +86,9 @@ func TestAuthenticatorUsesInjectedStrategyMapping(t *testing.T) {
 	strategy := &authenticatorStrategyStub{kind: CredentialKindPassword}
 	a := NewAuthenticator(strategy)
 	proof, err := NewPasswordProof(PasswordProofSpec{
-		RealmTenantID: meta.FromUint64(1),
-		Username:      "alice",
-		Password:      "secret",
+
+		Username: "alice",
+		Password: "secret",
 	})
 	require.NoError(t, err)
 

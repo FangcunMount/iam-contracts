@@ -35,7 +35,7 @@ type preparedLoginIdentity struct {
 // prepareSignupLoginIdentity 准备登录身份。
 func (i UsernameLoginIdentityInput) prepareSignupLoginIdentity(_ context.Context, _ loginIdentityPrepareDeps, user SignupUserInput) (preparedLoginIdentity, error) {
 	identifier := usernameIdentifier(user, i.Username)
-	key, err := loginidentity.NewUsernameProviderKey(i.RealmTenantID, identifier)
+	key, err := loginidentity.NewUsernameProviderKey(identifier)
 	if err != nil {
 		return preparedLoginIdentity{}, incompleteProviderKeyError()
 	}

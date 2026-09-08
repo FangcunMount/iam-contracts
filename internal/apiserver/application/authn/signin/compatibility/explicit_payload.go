@@ -6,14 +6,12 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
 	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // PasswordWirePayload 密码登录负载
 type PasswordWirePayload struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
-	TenantID uint64 `json:"tenant_id,omitempty"`
 }
 
 // PhoneOTPWirePayload 手机号OTP登录负载
@@ -75,13 +73,9 @@ func buildPasswordRequest(payload json.RawMessage) (method.LoginRequest, error) 
 	if err := json.Unmarshal(payload, &creds); err != nil {
 		return method.LoginRequest{}, perrors.WithCode(code.ErrBind, "invalid password method_payload: %v", err)
 	}
-	var tenantID meta.ID
-	if creds.TenantID != 0 {
-		tenantID = meta.FromUint64(creds.TenantID)
-	}
 	return method.LoginRequest{
 		AuthMethod: method.AuthMethodPassword,
-		TenantID:   tenantID,
+
 		Payload: method.PasswordPayload{
 			Username: creds.Username,
 			Password: creds.Password,

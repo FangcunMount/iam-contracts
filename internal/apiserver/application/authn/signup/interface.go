@@ -43,10 +43,9 @@ type SignupUserInput struct {
 // UsernameLoginIdentityInput 租户内用户名+密码开通输入。
 type UsernameLoginIdentityInput struct {
 	Username string
-	// RealmTenantID 是 username provider 的 realm；为空时使用 default realm。
-	RealmTenantID meta.ID
-	Profile       map[string]string
-	Meta          map[string]string
+	// 用户名统一使用 default 身份命名空间。
+	Profile map[string]string
+	Meta    map[string]string
 }
 
 // WechatMiniLoginIdentityInput 微信小程序 /signups/wechat-miniprogram 输入。

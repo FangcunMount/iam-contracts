@@ -16,7 +16,7 @@ import (
 // 职责：提供登录身份查询能力
 type LoginIdentityRepository interface {
 	// -- 查询登录身份 ——
-	FindUsernameIdentity(ctx context.Context, tenantID meta.ID, username string) (*LoginIdentityLookup, error)
+	FindUsernameIdentity(ctx context.Context, username string) (*LoginIdentityLookup, error)
 	FindLoginIdentityByProviderKey(ctx context.Context, provider loginidentity.Provider, realm, identifier string) (*LoginIdentityLookup, error)
 	FindLoginIdentityByGlobalIdentifier(ctx context.Context, provider loginidentity.Provider, globalIdentifier string) (*LoginIdentityLookup, error)
 

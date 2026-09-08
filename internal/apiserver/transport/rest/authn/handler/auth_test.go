@@ -109,7 +109,6 @@ func TestAuthHandlerLoginV2AdaptersUseExplicitSelection(t *testing.T) {
 				require.True(t, ok)
 				require.Equal(t, "alice", payload.Username)
 				require.Equal(t, "secret", payload.Password)
-				require.Equal(t, uint64(77), req.TenantID.Uint64())
 			},
 		},
 		{

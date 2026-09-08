@@ -58,7 +58,6 @@ type AccessToken struct {
 	SessionID       string  // 会话ID
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-	TenantID        meta.ID // 租户ID
 
 }
 
@@ -68,11 +67,11 @@ func (t *AccessToken) Subject() string { return t.UserID.String() }
 func (*AccessToken) Kind() TokenType { return TokenTypeAccess }
 
 // NewAccessToken 创建访问令牌。
-func NewAccessToken(id, value, sessionID string, userID, loginIdentityID, tenantID meta.ID, issuedAt, expiresAt time.Time) *AccessToken {
+func NewAccessToken(id, value, sessionID string, userID, loginIdentityID meta.ID, issuedAt, expiresAt time.Time) *AccessToken {
 	return &AccessToken{
 		TokenMetadata: TokenMetadata{ID: id, IssuedAt: issuedAt, ExpiresAt: expiresAt},
 		Value:         value, SessionID: sessionID,
-		UserID: userID, LoginIdentityID: loginIdentityID, TenantID: tenantID,
+		UserID: userID, LoginIdentityID: loginIdentityID,
 	}
 }
 
@@ -85,7 +84,6 @@ type RefreshToken struct {
 	SessionID       string  // 会话ID
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-	TenantID        meta.ID // 租户ID
 
 	// —— 认证信息 —— //
 	// Deprecated: 以下字段只用于读取迁移前 Redis refresh JSON；新签发不再写入。
@@ -98,10 +96,10 @@ type RefreshToken struct {
 func (*RefreshToken) Kind() TokenType { return TokenTypeRefresh }
 
 // NewRefreshToken creates a new refresh credential with explicit lifetime facts.
-func NewRefreshToken(id, value, sessionID string, userID, loginIdentityID, tenantID meta.ID, issuedAt, expiresAt time.Time) *RefreshToken {
+func NewRefreshToken(id, value, sessionID string, userID, loginIdentityID meta.ID, issuedAt, expiresAt time.Time) *RefreshToken {
 	return &RefreshToken{
 		TokenMetadata: TokenMetadata{ID: id, IssuedAt: issuedAt, ExpiresAt: expiresAt}, Value: value,
-		SessionID: sessionID, UserID: userID, LoginIdentityID: loginIdentityID, TenantID: tenantID,
+		SessionID: sessionID, UserID: userID, LoginIdentityID: loginIdentityID,
 	}
 }
 
@@ -115,8 +113,8 @@ type LegacyRefreshContext struct {
 
 // RestoreRefreshToken reads old storage without inventing a persisted issued_at.
 // Redis did not store IssuedAt; the previous read-time timestamp is retained for compatibility.
-func RestoreRefreshToken(id, value, sessionID string, userID, loginIdentityID, tenantID meta.ID, expiresAt time.Time, legacy LegacyRefreshContext) *RefreshToken {
-	token := NewRefreshToken(id, value, sessionID, userID, loginIdentityID, tenantID, time.Now(), expiresAt)
+func RestoreRefreshToken(id, value, sessionID string, userID, loginIdentityID meta.ID, expiresAt time.Time, legacy LegacyRefreshContext) *RefreshToken {
+	token := NewRefreshToken(id, value, sessionID, userID, loginIdentityID, time.Now(), expiresAt)
 	token.AuthMethod = legacy.AuthMethod
 	token.Realm = legacy.Realm
 	token.AMR = cloneStrings(legacy.AMR)

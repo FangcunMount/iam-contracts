@@ -26,7 +26,6 @@ type Session struct {
 	// —— 身份信息 —— //
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-	TenantID        meta.ID // 历史请求租户值，不表示已核验租户归属
 
 	// —— 认证信息 —— //
 	AuthContext  authentication.AuthenticationContext
@@ -42,10 +41,10 @@ type Session struct {
 }
 
 // NewWithContexts 创建以强类型认证上下文和令牌上下文为权威来源的会话。
-func NewWithContexts(sessionID string, userID, loginIdentityID, tenantID meta.ID, authContext authentication.AuthenticationContext, tokenContext TokenContext, expiresAt time.Time) *Session {
+func NewWithContexts(sessionID string, userID, loginIdentityID meta.ID, authContext authentication.AuthenticationContext, tokenContext TokenContext, expiresAt time.Time) *Session {
 	now := time.Now()
 	return &Session{
-		SessionID: sessionID, UserID: userID, LoginIdentityID: loginIdentityID, TenantID: tenantID,
+		SessionID: sessionID, UserID: userID, LoginIdentityID: loginIdentityID,
 		AuthContext: authContext.Clone(), TokenContext: tokenContext.Clone(),
 		Status: StatusActive, CreatedAt: now, ExpiresAt: expiresAt,
 	}

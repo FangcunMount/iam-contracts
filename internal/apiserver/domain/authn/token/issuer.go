@@ -73,7 +73,7 @@ func (s *tokenSetMinter) MintTokenSet(ctx context.Context, sess *sessiondomain.S
 	if err != nil {
 		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to generate access token")
 	}
-	accessToken := NewAccessToken(claims.TokenID, value, sess.SessionID, sess.UserID, sess.LoginIdentityID, sess.TenantID, claims.IssuedAt, claims.ExpiresAt)
+	accessToken := NewAccessToken(claims.TokenID, value, sess.SessionID, sess.UserID, sess.LoginIdentityID, claims.IssuedAt, claims.ExpiresAt)
 
 	// 颁发刷新令牌
 	refreshToken, err := s.issueRefreshToken(sess, now)
@@ -94,8 +94,7 @@ func (s *tokenSetMinter) issueRefreshToken(sess *sessiondomain.Session, now time
 	}
 	// 颁发刷新令牌
 	token := NewRefreshToken(
-		uuid.NewString(), uuid.NewString(), sess.SessionID, sess.UserID, sess.LoginIdentityID,
-		sess.TenantID, now, refreshExpiresAt,
+		uuid.NewString(), uuid.NewString(), sess.SessionID, sess.UserID, sess.LoginIdentityID, now, refreshExpiresAt,
 	)
 	// 返回刷新令牌
 	return token, nil

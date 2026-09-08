@@ -61,7 +61,6 @@ type sessionData struct {
 	SessionID       string                            `json:"SessionID"`
 	UserID          uint64                            `json:"UserID"`
 	LoginIdentityID uint64                            `json:"LoginIdentityID"`
-	TenantID        uint64                            `json:"TenantID"`
 	AuthContext     *sessionAuthenticationContextData `json:"auth_context,omitempty"`
 	TokenContext    *sessionTokenContextData          `json:"token_context,omitempty"`
 	Status          sessiondomain.Status              `json:"Status"`
@@ -260,7 +259,7 @@ func encodeSessionPayload(sess *sessiondomain.Session) ([]byte, error) {
 	tokenContext := sess.TokenContext.Clone()
 	data := sessionData{
 		SchemaVersion: currentSessionSchemaVersion,
-		SessionID:     sess.SessionID, UserID: sess.UserID.Uint64(), LoginIdentityID: sess.LoginIdentityID.Uint64(), TenantID: sess.TenantID.Uint64(),
+		SessionID:     sess.SessionID, UserID: sess.UserID.Uint64(), LoginIdentityID: sess.LoginIdentityID.Uint64(),
 		AuthContext: &sessionAuthenticationContextData{
 			Method: string(authContext.Method), Realm: authContext.Realm,
 			AMR: authContext.AMRStrings(), AuthenticatedAt: authContext.AuthenticatedAt,
@@ -308,7 +307,7 @@ func decodeSessionPayload(payload []byte) (*sessiondomain.Session, error) {
 		tokenContext.Attributes = authnclaims.EncodeJWTAttributes(legacy)
 	}
 	sess := &sessiondomain.Session{
-		SessionID: data.SessionID, UserID: meta.FromUint64(data.UserID), LoginIdentityID: meta.FromUint64(data.LoginIdentityID), TenantID: meta.FromUint64(data.TenantID),
+		SessionID: data.SessionID, UserID: meta.FromUint64(data.UserID), LoginIdentityID: meta.FromUint64(data.LoginIdentityID),
 		AuthContext: authContext, TokenContext: tokenContext,
 		Status: data.Status, CreatedAt: data.CreatedAt, ExpiresAt: data.ExpiresAt,
 		RevokedAt: data.RevokedAt, RevokeReason: data.RevokeReason, RevokedBy: data.RevokedBy,

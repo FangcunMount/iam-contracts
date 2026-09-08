@@ -392,7 +392,6 @@ paths:
                   method_payload:
                     username: admin@example.com
                     password: Admin@123
-                    tenant_id: 1
               phone_otp:
                 value:
                   auth_method: phone_otp
@@ -1184,9 +1183,6 @@ components:
         tenant_domain:
           description: IAM 授权域
           type: string
-        tenant_id:
-          description: 历史租户数值 ID（兼容字段）
-          type: integer
         token_type:
           description: access/service
           type: string
