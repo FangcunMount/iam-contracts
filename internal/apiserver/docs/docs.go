@@ -3056,7 +3056,7 @@ const docTemplate = `{
         },
         "/v4/authz/roles/{id}/grants": {
             "get": {
-                "description": "查询指定角色在当前租户下的有效 PermissionGrant",
+                "description": "查询指定可见角色的有效 PermissionGrant",
                 "produces": [
                     "application/json"
                 ],

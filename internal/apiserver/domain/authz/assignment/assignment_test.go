@@ -25,13 +25,12 @@ func TestAssignmentCreateRejectsInvalidState(t *testing.T) {
 		subjectType assignment.SubjectType
 		subjectID   meta.ID
 		roleID      meta.ID
-		tenantID    string
 		grantedBy   string
 	}{
-		{name: "unsupported subject type", subjectType: "robot", subjectID: meta.FromUint64(1), roleID: meta.FromUint64(2), tenantID: "tenant", grantedBy: "admin"},
-		{name: "missing subject id", subjectType: assignment.SubjectTypeUser, roleID: meta.FromUint64(2), tenantID: "tenant", grantedBy: "admin"},
-		{name: "missing role id", subjectType: assignment.SubjectTypeUser, subjectID: meta.FromUint64(1), tenantID: "tenant", grantedBy: "admin"},
-		{name: "missing granted by", subjectType: assignment.SubjectTypeUser, subjectID: meta.FromUint64(1), roleID: meta.FromUint64(2), tenantID: "tenant"},
+		{name: "unsupported subject type", subjectType: "robot", subjectID: meta.FromUint64(1), roleID: meta.FromUint64(2), grantedBy: "admin"},
+		{name: "missing subject id", subjectType: assignment.SubjectTypeUser, roleID: meta.FromUint64(2), grantedBy: "admin"},
+		{name: "missing role id", subjectType: assignment.SubjectTypeUser, subjectID: meta.FromUint64(1), grantedBy: "admin"},
+		{name: "missing granted by", subjectType: assignment.SubjectTypeUser, subjectID: meta.FromUint64(1), roleID: meta.FromUint64(2)},
 	}
 
 	for _, tt := range tests {

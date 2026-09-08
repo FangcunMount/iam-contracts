@@ -10,7 +10,7 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-// Assignment 表达主体在租户内持有某个角色的赋权事实（聚合根）。
+// Assignment 表达主体持有某个角色的赋权事实（聚合根）。
 type Assignment struct {
 	ID AssignmentID
 
@@ -20,7 +20,6 @@ type Assignment struct {
 
 	//---- 赋权事实 ----
 	RoleID meta.ID // 角色ID
-	// 租户ID（域）
 
 	//---- 赋权来源 ----
 	GrantedBy string // 授权人

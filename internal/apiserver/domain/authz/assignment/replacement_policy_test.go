@@ -89,7 +89,7 @@ func TestReplacementPolicyRejectsDuplicateAndUnmanagedTargets(t *testing.T) {
 
 	_, err = assignmentDomain.ReplacementPolicy{}.Plan(
 		assignmentDomain.ReplacementRequest{
-			TargetRoleNames:  []string{"tenant_admin"},
+			TargetRoleNames:  []string{"iam_admin"},
 			ManagedRoleNames: []string{"example:staff"},
 		},
 		managed,

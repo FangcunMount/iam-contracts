@@ -53,9 +53,9 @@ func TestRepositoryHistoricalRevokedGrantMySQLConcurrencyRegression(t *testing.T
 	// accepting a nullable AutoMigrate schema that masks system-context revokes.
 	require.NoError(t, db.Exec(`ALTER TABLE authz_permission_grants
 		MODIFY updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0`).Error)
-	require.NoError(t, db.Unscoped().Where("tenant_id = ?", "tenant-a").Delete(&repo.GrantPO{}).Error)
+	require.NoError(t, db.Unscoped().Where("role_id = ?", 10).Delete(&repo.GrantPO{}).Error)
 	t.Cleanup(func() {
-		require.NoError(t, db.Unscoped().Where("tenant_id = ?", "tenant-a").Delete(&repo.GrantPO{}).Error)
+		require.NoError(t, db.Unscoped().Where("role_id = ?", 10).Delete(&repo.GrantPO{}).Error)
 	})
 	testRepositoryCreatesRevokesAndAllowsRegrant(t, db)
 
@@ -96,12 +96,11 @@ func TestRepositoryAtomicRevokeClassifiesConcurrentSnapshotAsAlreadyRevokedMySQL
 	require.NoError(t, err)
 	require.NoError(t, db.AutoMigrate(&repo.GrantPO{}))
 
-	tenantID := fmt.Sprintf("revoke-snapshot-%d", time.Now().UnixNano())
 	t.Cleanup(func() {
-		require.NoError(t, db.Unscoped().Where("tenant_id = ?", tenantID).Delete(&repo.GrantPO{}).Error)
+		require.NoError(t, db.Unscoped().Where("role_id = ?", 10).Delete(&repo.GrantPO{}).Error)
 	})
 	repository := repo.NewRepository(db)
-	grant := mustGrantForTenant(t)
+	grant := newTestGrant(t)
 	require.NoError(t, repository.Create(context.Background(), &grant))
 
 	tx1 := db.Begin()
@@ -154,10 +153,10 @@ func testRepositoryCreatesRevokesAndAllowsRegrant(t *testing.T, db *gorm.DB) {
 }
 
 func mustGrant(t *testing.T) domain.Grant {
-	return mustGrantForTenant(t)
+	return newTestGrant(t)
 }
 
-func mustGrantForTenant(t *testing.T) domain.Grant {
+func newTestGrant(t *testing.T) domain.Grant {
 	t.Helper()
 	grant, err := domain.New(
 		meta.FromUint64(10), resource.NewResourceID(20),

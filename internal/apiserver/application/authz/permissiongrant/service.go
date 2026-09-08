@@ -58,7 +58,7 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Grant,
 	cmd.GrantedBy = strings.TrimSpace(cmd.GrantedBy)
 	cmd.Action = strings.TrimSpace(cmd.Action)
 	if cmd.RoleID.IsZero() || cmd.ResourceID.Uint64() == 0 || cmd.GrantedBy == "" {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "tenant, role, resource, and granted by are required")
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "role, resource, and granted by are required")
 	}
 	var created domain.Grant
 	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
@@ -118,7 +118,7 @@ func (s *Service) Revoke(ctx context.Context, cmd RevokeCommand) error {
 	}
 	cmd.RevokedBy = strings.TrimSpace(cmd.RevokedBy)
 	if cmd.GrantID.IsZero() || cmd.RevokedBy == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "tenant, grant id, and revoked by are required")
+		return perrors.WithCode(code.ErrInvalidArgument, "grant id and revoked by are required")
 	}
 	revoked := false
 	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
@@ -172,7 +172,7 @@ func (s *Service) ListByRole(ctx context.Context, roleID meta.ID) ([]*domain.Gra
 		return nil, perrors.WithCode(code.ErrInternalServerError, "permission grant repository is unavailable")
 	}
 	if roleID.IsZero() {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "role id and tenant are required")
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "role id is required")
 	}
 	if s.uow == nil {
 		return nil, perrors.WithCode(code.ErrInternalServerError, "角色查询不可用")

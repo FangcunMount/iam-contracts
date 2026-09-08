@@ -33,9 +33,9 @@ func TestReplaceManagedAssignmentsIsAtomicAndPreservesUnmanagedRoles(t *testing.
 	ctx := management.WithAuthenticatedService(context.Background(), "admin")
 	roles := roleRepo.NewRoleRepository(db)
 	assignments := assignmentRepo.NewRepository(db)
-	roleByName := seedRoles(t, ctx, roles, "tenant_admin", "qs:staff", "qs:evaluator", "qs:content_manager")
+	roleByName := seedRoles(t, ctx, roles, "iam_admin", "qs:staff", "qs:evaluator", "qs:content_manager")
 	userID := meta.FromUint64(100)
-	seedAssignment(t, ctx, assignments, userID, roleByName["tenant_admin"].ID)
+	seedAssignment(t, ctx, assignments, userID, roleByName["iam_admin"].ID)
 	seedAssignment(t, ctx, assignments, userID, roleByName["qs:evaluator"].ID)
 
 	stager := &eventStager{}
@@ -58,7 +58,7 @@ func TestReplaceManagedAssignmentsIsAtomicAndPreservesUnmanagedRoles(t *testing.
 	require.True(t, result.Changed)
 	require.EqualValues(t, 2, result.PolicyVersion)
 	require.Equal(t, []string{"qs:content_manager", "qs:staff"}, result.DirectRoles)
-	require.Equal(t, []string{"qs:content_manager", "qs:staff", "tenant_admin"}, assignedRoleNames(t, ctx, assignments, roles, userID))
+	require.Equal(t, []string{"qs:content_manager", "qs:staff", "iam_admin"}, assignedRoleNames(t, ctx, assignments, roles, userID))
 	require.Equal(t, 1, stager.Count())
 	require.True(t, uow.usedLockingRead, "replacement must read current assignments with a transaction lock")
 
@@ -76,7 +76,7 @@ func TestReplaceManagedAssignmentsIsAtomicAndPreservesUnmanagedRoles(t *testing.
 	require.NoError(t, err)
 	_, err = service.ReplaceManagedAssignments(ctx, rollbackCmd)
 	require.ErrorContains(t, err, "outbox unavailable")
-	require.Equal(t, []string{"qs:content_manager", "qs:staff", "tenant_admin"}, assignedRoleNames(t, ctx, assignments, roles, userID))
+	require.Equal(t, []string{"qs:content_manager", "qs:staff", "iam_admin"}, assignedRoleNames(t, ctx, assignments, roles, userID))
 	current, err := policyRepo.NewPolicyVersionRepository(db).GetCurrent(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, current)

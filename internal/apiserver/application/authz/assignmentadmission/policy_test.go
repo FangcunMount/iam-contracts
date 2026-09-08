@@ -129,7 +129,7 @@ func TestAuthorizeReplacementReturnsEntireManagedSetAndRejectsEscalation(t *test
 	}
 	_, err = authorizer.AuthorizeReplacement(ReplacementRequest{
 		CallerService: "qs-apiserver.svc", Subject: mustSubject(t, "user:10"),
-		RoleNames: []role.Name{mustRoleName(t, "tenant_admin")}, DelegatedActor: "user:20",
+		RoleNames: []role.Name{mustRoleName(t, "iam_admin")}, DelegatedActor: "user:20",
 	})
 	denied = nil
 	if !errors.As(err, &denied) || denied.Reason != "role_not_allowed" {

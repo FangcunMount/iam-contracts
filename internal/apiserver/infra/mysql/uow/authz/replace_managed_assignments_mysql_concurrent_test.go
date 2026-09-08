@@ -43,21 +43,19 @@ func TestReplaceManagedAssignmentsMySQLConcurrentLinearization(t *testing.T) {
 		&policyRepo.PolicyVersionPO{},
 	))
 
-	tenantID := fmt.Sprintf("replace-concurrent-%d", time.Now().UnixNano())
 	userID := meta.FromUint64(uint64(time.Now().UnixNano()%900_000_000 + 100_000_000))
-	t.Cleanup(func() {
-		ctx := management.WithAuthenticatedService(context.Background(), "admin")
-		require.NoError(t, db.WithContext(ctx).Unscoped().Where("tenant_id = ?", tenantID).Delete(&assignmentRepo.AssignmentPO{}).Error)
-		require.NoError(t, db.WithContext(ctx).Unscoped().Where("tenant_id = ?", tenantID).Delete(&roleRepo.RolePO{}).Error)
-		require.NoError(t, db.WithContext(ctx).Unscoped().Where("tenant_id = ?", tenantID).Delete(&policyRepo.PolicyVersionPO{}).Error)
-	})
 
 	ctx := management.WithAuthenticatedService(context.Background(), "admin")
 	roles := roleRepo.NewRoleRepository(db)
 	assignments := assignmentRepo.NewRepository(db)
-	roleByName := seedTenantRoles(t, ctx, roles, "qs:staff", "qs:evaluator")
-	seedTenantAssignment(t, ctx, assignments, userID, roleByName["qs:staff"].ID)
-	seedTenantAssignment(t, ctx, assignments, userID, roleByName["qs:evaluator"].ID)
+	roleByName := seedRoles(t, ctx, roles, "qs:staff", "qs:evaluator")
+	t.Cleanup(func() {
+		ids := []meta.ID{roleByName["qs:staff"].ID, roleByName["qs:evaluator"].ID}
+		require.NoError(t, db.Unscoped().Where("subject_id = ? AND role_id IN ?", userID, ids).Delete(&assignmentRepo.AssignmentPO{}).Error)
+		require.NoError(t, db.Unscoped().Where("id IN ?", ids).Delete(&roleRepo.RolePO{}).Error)
+	})
+	seedAssignment(t, ctx, assignments, userID, roleByName["qs:staff"].ID)
+	seedAssignment(t, ctx, assignments, userID, roleByName["qs:evaluator"].ID)
 
 	sub, err := subject.NewUserRef(userID)
 	require.NoError(t, err)
@@ -120,7 +118,7 @@ func TestReplaceManagedAssignmentsMySQLConcurrentLinearization(t *testing.T) {
 		require.True(t, result.result.Changed)
 	}
 
-	final := assignedTenantRoleNames(t, ctx, assignments, roles, userID)
+	final := assignedRoleNames(t, ctx, assignments, roles, userID)
 	validTargets := [][]string{{"qs:staff"}, {"qs:evaluator"}}
 	require.Contains(t, validTargets, final, "concurrent replace must end in one complete managed target set")
 
@@ -197,7 +195,7 @@ func mysqlDSN(host string) string {
 	return user + ":" + password + "@tcp(" + host + ":" + port + ")/" + database + "?charset=utf8mb4&parseTime=True&loc=Local"
 }
 
-func seedTenantRoles(t *testing.T, ctx context.Context, repo roleDomain.Repository, names ...string) map[string]*roleDomain.Role {
+func seedRoles(t *testing.T, ctx context.Context, repo roleDomain.Repository, names ...string) map[string]*roleDomain.Role {
 	t.Helper()
 	result := make(map[string]*roleDomain.Role, len(names))
 	for _, name := range names {
@@ -210,7 +208,7 @@ func seedTenantRoles(t *testing.T, ctx context.Context, repo roleDomain.Reposito
 	return result
 }
 
-func seedTenantAssignment(t *testing.T, ctx context.Context, repo assignmentDomain.Repository, subjectID, roleID meta.ID) {
+func seedAssignment(t *testing.T, ctx context.Context, repo assignmentDomain.Repository, subjectID, roleID meta.ID) {
 	t.Helper()
 	assignment, err := assignmentDomain.NewAssignment(
 		assignmentDomain.SubjectTypeUser, subjectID, roleID, assignmentDomain.WithGrantedBy("seed"),
@@ -219,7 +217,7 @@ func seedTenantAssignment(t *testing.T, ctx context.Context, repo assignmentDoma
 	require.NoError(t, repo.Create(ctx, &assignment))
 }
 
-func assignedTenantRoleNames(
+func assignedRoleNames(
 	t *testing.T,
 	ctx context.Context,
 	assignments assignmentDomain.Repository,

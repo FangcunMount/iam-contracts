@@ -88,21 +88,16 @@ func TestCodecTokenUsesJWSCompactHeaderPayloadSignatureContract(t *testing.T) {
 	require.Contains(t, payload, "nbf")
 }
 
-func TestCodecLegacyNumericTenantIDDoesNotInferOrg(t *testing.T) {
+func TestCodecIgnoresRemovedClaimsWithoutInferringOrg(t *testing.T) {
 	t.Parallel()
-
-	generator, _ := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
-	token, err := issueTestAccessToken(generator, context.Background(), &tokendomain.AccessTokenClaims{
-		UserID:          meta.MustFromUint64(1002),
-		LoginIdentityID: meta.MustFromUint64(1001),
-		SessionID:       "sid-1002",
-	}, time.Minute)
+	generator, key := newTestCodec(t, "https://iam.fangcunmount.cn", []string{"qs-api"})
+	now := time.Now().UTC()
+	payload := jwtv4.MapClaims{"iss": "https://iam.fangcunmount.cn", "sub": "1002", "user_id": "1002", "login_identity_id": "1001", "sid": "sid-1002", "jti": "extension-test", "aud": []string{"qs-api"}, "iat": now.Unix(), "nbf": now.Unix(), "exp": now.Add(time.Minute).Unix(), "tenant_id": 42, "tenant_domain": "platform"}
+	signed := jwtv4.NewWithClaims(jwtv4.SigningMethodRS256, payload)
+	signed.Header["kid"] = "test-key"
+	raw, err := signed.SignedString(key)
 	require.NoError(t, err)
-
-	// 模拟历史 token：tenant_id 为数值、无 org_id。
-	legacy := strings.Replace(token.Value, `"tenant_id":"fangcun"`, `"tenant_id":"1"`, 1)
-
-	claims, err := generator.VerifySignatureAndClaims(context.Background(), legacy)
+	claims, err := generator.VerifySignatureAndClaims(context.Background(), raw)
 	require.NoError(t, err)
 	require.True(t, claims.OrgID.IsZero())
 }

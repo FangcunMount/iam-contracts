@@ -93,7 +93,7 @@ func (h *PermissionGrantHandler) RevokeGrant(c *gin.Context) {
 
 // ListRoleGrants lists grants for one role.
 // @Summary 查询角色 PermissionGrant
-// @Description 查询指定角色在当前租户下的有效 PermissionGrant
+// @Description 查询指定可见角色的有效 PermissionGrant
 // @ID listRolePermissionGrants
 // @Tags Authorization-Grants
 // @Produce json

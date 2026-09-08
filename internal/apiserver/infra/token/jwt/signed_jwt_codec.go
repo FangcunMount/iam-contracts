@@ -177,7 +177,6 @@ func (g *SignedJWTCodec) VerifySignatureAndClaims(ctx context.Context, tokenValu
 	loginIdentityID := parseStringID(claims.LoginIdentityID)
 	// 解析组织 ID
 	orgID := parseStringID(claims.OrgID)
-	// 解析租户 ID
 	attributes := cloneStringMap(claims.Attributes)
 	authTime := time.Time{}
 	if claims.AuthTime > 0 {
