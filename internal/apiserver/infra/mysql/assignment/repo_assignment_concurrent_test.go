@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// 并发创建相同的 assignment（相同 subject_type+subject_id+role_id+tenant_id），
+// 并发创建相同的 assignment（相同 subject_type+subject_id+role_id），
 // 直接使用 AssignmentPO 映射的规范 schema（对应 migration 000025）验证唯一保护，
 // 期望只有 1 条记录写入，其余被翻译为 code.ErrAssignmentAlreadyExists。
 func TestRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
@@ -89,7 +89,7 @@ func TestRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 
 	var cnt int64
 	require.NoError(t, db.Model(&AssignmentPO{}).
-		Where("subject_type = ? AND subject_id = ? AND role_id = ? AND tenant_id = ?", "user", "123", 42, "tenant-1").
+		Where("subject_type = ? AND subject_id = ? AND role_id = ?", "user", "123", 42).
 		Count(&cnt).Error)
 	require.Equal(t, int64(1), cnt)
 }
@@ -125,7 +125,7 @@ func TestRepository_Create_AllowsRegrantAfterHistoricalDeletion(t *testing.T) {
 
 	var activeCount int64
 	require.NoError(t, db.Model(&AssignmentPO{}).
-		Where("subject_type = ? AND subject_id = ? AND role_id = ? AND tenant_id = ? AND deleted_at IS NULL", "user", "123", 42, "tenant-1").
+		Where("subject_type = ? AND subject_id = ? AND role_id = ? AND deleted_at IS NULL", "user", "123", 42).
 		Count(&activeCount).Error)
 	require.Equal(t, int64(1), activeCount)
 }

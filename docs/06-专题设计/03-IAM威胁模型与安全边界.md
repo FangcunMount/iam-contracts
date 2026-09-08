@@ -116,7 +116,7 @@ Envelope encryption/KMS 的价值是把“能读数据库”和“能解密 secr
 
 ## 6. 授权威胁
 
-- confused deputy：服务用客户端提供的 Subject/Tenant 做 Check；
+- confused deputy：服务用客户端提供的 Subject 做 Check；
 - stale revoke：某实例不可变授权快照未 reload；
 - over-broad pattern：受信系统 Grant 的 resource/action wildcard 过宽；
 - UI-only auth：前端隐藏按钮但服务未 Check；

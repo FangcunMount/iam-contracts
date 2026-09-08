@@ -536,7 +536,7 @@ var _ sessionapp.Revoker = sessionServiceStub{}
 
 type routeAuthorizationStub struct{}
 
-func (routeAuthorizationStub) CheckRoutePermission(_ context.Context, _, _, _, _ string) (bool, error) {
+func (routeAuthorizationStub) CheckRoutePermission(_ context.Context, _, _, _ string) (bool, error) {
 	return true, nil
 }
 

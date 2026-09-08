@@ -16,13 +16,13 @@ TARGET_FILES = (
     ROOT / "internal/apiserver/docs/docs.go",
     ROOT / "internal/apiserver/docs/swagger.json",
     ROOT / "internal/apiserver/docs/swagger.yaml",
-    ROOT / "api/rest/authn.v2.yaml",
-    ROOT / "api/rest/authz.v3.yaml",
+    ROOT / "api/rest/authn.v3.yaml",
+    ROOT / "api/rest/authz.v4.yaml",
     ROOT / "api/rest/identity.v2.yaml",
     ROOT / "api/rest/idp.v2.yaml",
     ROOT / "api/rest/suggest.v2.yaml",
 )
-GENERATED_PREFIX = re.compile(r"github_com_FangcunMount_iam_v[34]_")
+GENERATED_PREFIX = re.compile(r"github_com_FangcunMount_iam_v[345]_")
 STABLE_WIRE_PREFIX = "github_com_FangcunMount_iam_v2_"
 
 

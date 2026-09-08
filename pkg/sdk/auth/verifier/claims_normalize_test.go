@@ -3,20 +3,11 @@ package verifier
 import (
 	"testing"
 
-	"github.com/FangcunMount/iam/v5/pkg/tenant"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNormalizeTenantClaim(t *testing.T) {
-	t.Parallel()
-
-	require.Equal(t, tenant.DefaultID, normalizeTenantClaim(""))
-	require.Equal(t, "fangcun", normalizeTenantClaim("fangcun"))
-	require.Equal(t, tenant.DefaultID, normalizeTenantClaim("1"))
-}
-
-func TestApplyTenantAndOrg(t *testing.T) {
+func TestApplyOrg(t *testing.T) {
 	t.Parallel()
 
 	t.Run("new token domain and org", func(t *testing.T) {
@@ -32,7 +23,7 @@ func TestApplyTenantAndOrg(t *testing.T) {
 	})
 }
 
-func TestExtractClaimsTenantDomainAndOrgID(t *testing.T) {
+func TestExtractClaimsOrgID(t *testing.T) {
 	t.Parallel()
 
 	token := jwt.New()
@@ -58,7 +49,7 @@ func TestExtractClaimsLegacyNumericTenantDoesNotInferOrg(t *testing.T) {
 	require.False(t, ok)
 }
 
-func TestApplyTenantAndOrgFromRemoteFields(t *testing.T) {
+func TestApplyOrgFromRemoteFields(t *testing.T) {
 	t.Parallel()
 
 	claims := &TokenClaims{UserID: "1001"}

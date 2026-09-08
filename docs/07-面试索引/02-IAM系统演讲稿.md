@@ -241,7 +241,7 @@ AuthN 不会把 `Principal` 领域对象直接交给 AuthZ。资源服务在认�
 两个关键不变量已经落到实现：
 
 - RefreshToken 只有在曾经有效且已被原子换新后再次出现，才会被判定为重放并撤销对应 Session；任意未签发令牌不会触发会话撤销。
-- 同一 `subject_type + subject_id + role_id + tenant_id` 的 active Assignment 由数据库唯一索引保护，并发写入不依赖应用层“先查后写”。
+- 同一 `subject_type + subject_id + role_id` 的 active Assignment 由数据库唯一索引保护，并发写入不依赖应用层“先查后写”。
 - Assignment 只产生 direct roles，RoleInheritance 才产生继承的 effective roles；编辑 Assignment 不能把两者混用。
 - REST v3 只管理 AuthZ 事实，授权 `Check` 由 gRPC v3 提供；服务间 Assignment 写入还需方法 ACL 与内容级 constraints。
 

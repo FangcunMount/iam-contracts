@@ -173,7 +173,7 @@ func (s *ResourceCatalog) validateChange(changedBy string) error {
 		return perrors.WithCode(code.ErrInternalServerError, "resource catalog is unavailable")
 	}
 	if strings.TrimSpace(changedBy) == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "tenant and changed by are required")
+		return perrors.WithCode(code.ErrInvalidArgument, "变更操作人必填")
 	}
 	return nil
 }

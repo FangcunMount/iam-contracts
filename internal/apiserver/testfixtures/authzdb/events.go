@@ -14,9 +14,9 @@ func Stager(t *testing.T, db *gorm.DB) *eventoutbox.Store {
 	cfg, err := eventcatalog.Parse([]byte(`version: "1"
 topics:
   version:
-    name: iam.authz.version
+    name: iam.authz.version.v2
 events:
-  iam.authz.version_changed:
+  iam.authz.version_changed.v2:
     topic: version
     delivery: durable_outbox
     aggregate: PolicyVersion

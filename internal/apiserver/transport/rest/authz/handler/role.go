@@ -141,8 +141,8 @@ func (h *RoleHandler) DeleteRole(c *gin.Context) {
 // @Param id path string true "角色ID"
 // @Success 200 {object} dto.Response{data=dto.RoleResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Description Role details are restricted to the authenticated request tenant, including platform callers.
-// @Failure 404 {object} dto.ErrorResponse "Role not found in request tenant"
+// @Description Protected role details require manage_protected; invisible roles return 404.
+// @Failure 404 {object} dto.ErrorResponse "Role not found or not visible"
 // @Router /v4/authz/roles/{id} [get]
 func (h *RoleHandler) GetRole(c *gin.Context) {
 	roleID, ok := parseIDParam(c, "id", "角色ID格式错误")

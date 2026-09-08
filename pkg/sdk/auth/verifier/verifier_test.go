@@ -119,7 +119,6 @@ func TestRemoteVerifyStrategyPassesConfiguredIssuerAndAudience(t *testing.T) {
 				SessionId:       "sid-1",
 				UserId:          "1",
 				LoginIdentityId: "2",
-				TenantId:        "3",
 				Issuer:          "https://iam.fangcunmount.cn",
 				Audience:        []string{"qs-api", "collection-api"},
 				Amr:             []string{"pwd"},
@@ -159,7 +158,6 @@ func TestRemoteVerifyStrategyOptionsOverrideConfig(t *testing.T) {
 				SessionId:       "sid-override",
 				UserId:          "1",
 				LoginIdentityId: "2",
-				TenantId:        "3",
 				Issuer:          "https://issuer.override",
 				Audience:        []string{"collection-api"},
 				Amr:             []string{"pwd"},
@@ -222,7 +220,6 @@ func TestRemoteVerifyStrategyReturnsSessionID(t *testing.T) {
 				SessionId:       "sid-remote",
 				UserId:          "1",
 				LoginIdentityId: "2",
-				TenantId:        "fangcun",
 
 				OrgId:           "42",
 				TokenType:       authnv3.TokenType_TOKEN_TYPE_ACCESS,
@@ -535,7 +532,6 @@ func validRemoteVerifyResponse() *authnv3.VerifyTokenResponse {
 		Claims: &authnv3.TokenClaims{
 			Subject:   "user:1",
 			UserId:    "1",
-			TenantId:  "fangcun",
 			ExpiresAt: timestamppb.New(time.Now().Add(time.Minute)),
 		},
 	}

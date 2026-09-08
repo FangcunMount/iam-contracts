@@ -2,6 +2,7 @@ package role
 
 import (
 	"context"
+	"errors"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
@@ -72,6 +73,9 @@ func (r *RoleRepository) findByID(ctx context.Context, id meta.ID, lock bool) (*
 		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
 	}
 	if err := query.First(&po, id.Uint64()).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, perrors.WithCode(code.ErrRoleNotFound, "角色不存在")
+		}
 		return nil, err
 	}
 	role, err := r.mapper.ToRoleBO(&po)
@@ -84,7 +88,7 @@ func (r *RoleRepository) findByID(ctx context.Context, id meta.ID, lock bool) (*
 	return role, nil
 }
 
-// FindByName 根据名称和租户获取角色
+// FindByName 根据全局名称获取角色
 func (r *RoleRepository) FindByName(ctx context.Context, name string) (*domain.Role, error) {
 	var po RolePO
 	err := r.WithContext(ctx).Where("name = ?", name).First(&po).Error

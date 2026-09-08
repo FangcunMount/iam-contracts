@@ -40,15 +40,18 @@ type Service struct {
 	reloader  policychange.RuntimePolicyReloader
 }
 
-func NewService(uow authzuow.UnitOfWork, repo domain.Repository, reloader policychange.RuntimePolicyReloader, providers ...objectattributeadmission.Coverage) *Service {
+func NewService(uow authzuow.UnitOfWork, repo domain.Repository, reloader policychange.RuntimePolicyReloader, guard management.Guard, providers ...objectattributeadmission.Coverage) *Service {
 	var coverage objectattributeadmission.Coverage
 	if len(providers) > 0 {
 		coverage = providers[0]
 	}
-	return &Service{uow: uow, repo: repo, reloader: reloader, guard: management.GuardFrom(reloader), providers: coverage}
+	return &Service{uow: uow, repo: repo, reloader: reloader, guard: guard, providers: coverage}
 }
 
 func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Grant, error) {
+	if err := s.guard.RequireOperation(ctx, "iam:authz:collection:permission_grants", "create"); err != nil {
+		return nil, err
+	}
 	if s == nil || s.uow == nil {
 		return nil, perrors.WithCode(code.ErrInternalServerError, "permission grant service is unavailable")
 	}
@@ -107,6 +110,9 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Grant,
 }
 
 func (s *Service) Revoke(ctx context.Context, cmd RevokeCommand) error {
+	if err := s.guard.RequireOperation(ctx, "iam:authz:collection:permission_grants", "revoke"); err != nil {
+		return err
+	}
 	if s == nil || s.uow == nil {
 		return perrors.WithCode(code.ErrInternalServerError, "permission grant service is unavailable")
 	}

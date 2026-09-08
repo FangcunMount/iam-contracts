@@ -33,11 +33,14 @@ type Service struct {
 	reloader policychange.RuntimePolicyReloader
 }
 
-func NewService(uow authzuow.UnitOfWork, repo domain.Repository, reloader policychange.RuntimePolicyReloader) *Service {
-	return &Service{uow: uow, repo: repo, reloader: reloader, guard: management.GuardFrom(reloader)}
+func NewService(uow authzuow.UnitOfWork, repo domain.Repository, reloader policychange.RuntimePolicyReloader, guard management.Guard) *Service {
+	return &Service{uow: uow, repo: repo, reloader: reloader, guard: guard}
 }
 
 func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Inheritance, error) {
+	if err := s.guard.RequireOperation(ctx, "iam:authz:collection:role_inheritances", "grant"); err != nil {
+		return nil, err
+	}
 	if s == nil || s.uow == nil {
 		return nil, perrors.WithCode(code.ErrInternalServerError, "role inheritance service is unavailable")
 	}
@@ -67,12 +70,15 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Inheri
 }
 
 func (s *Service) Revoke(ctx context.Context, cmd RevokeCommand) error {
+	if err := s.guard.RequireOperation(ctx, "iam:authz:collection:role_inheritances", "revoke"); err != nil {
+		return err
+	}
 	if s == nil || s.uow == nil {
 		return perrors.WithCode(code.ErrInternalServerError, "role inheritance service is unavailable")
 	}
 	cmd.RevokedBy = strings.TrimSpace(cmd.RevokedBy)
 	if cmd.ID.IsZero() || cmd.RevokedBy == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "tenant, inheritance id, and revoked by are required")
+		return perrors.WithCode(code.ErrInvalidArgument, "inheritance id and revoked by are required")
 	}
 	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
 		inheritance, err := tx.RoleInheritances.FindByID(txCtx, cmd.ID)
@@ -158,16 +164,16 @@ func (s *Service) List(ctx context.Context, roleID meta.ID) ([]*domain.Inheritan
 	return filtered, err
 }
 
-func (s *Service) requireRoles(ctx context.Context, tx authzuow.TxRepositories, child, parent meta.ID) error {
+func (s *Service) requireRoles(txCtx context.Context, tx authzuow.TxRepositories, child, parent meta.ID) error {
 	if child > parent {
 		child, parent = parent, child
 	}
 	for _, id := range []meta.ID{child, parent} {
-		target, err := tx.Roles.FindByIDForUpdate(ctx, id)
+		target, err := tx.Roles.FindByIDForUpdate(txCtx, id)
 		if err != nil {
 			return err
 		}
-		if err := s.guard.Require(ctx, target); err != nil {
+		if err := s.guard.Require(txCtx, target); err != nil {
 			return err
 		}
 	}

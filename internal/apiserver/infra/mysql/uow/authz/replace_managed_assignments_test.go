@@ -7,6 +7,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
+
 	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/subjectresolver"
 
 	assignmentApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
@@ -28,7 +30,7 @@ func TestReplaceManagedAssignmentsIsAtomicAndPreservesUnmanagedRoles(t *testing.
 	db := testhelpers.SetupTempSQLiteDB(t)
 	require.NoError(t, db.AutoMigrate(&roleRepo.RolePO{}, &assignmentRepo.AssignmentPO{}, &policyRepo.PolicyVersionPO{}))
 
-	ctx := context.Background()
+	ctx := management.WithAuthenticatedService(context.Background(), "admin")
 	roles := roleRepo.NewRoleRepository(db)
 	assignments := assignmentRepo.NewRepository(db)
 	roleByName := seedRoles(t, ctx, roles, "tenant_admin", "qs:staff", "qs:evaluator", "qs:content_manager")
@@ -41,7 +43,7 @@ func TestReplaceManagedAssignmentsIsAtomicAndPreservesUnmanagedRoles(t *testing.
 		delegate: authzUOW.NewUnitOfWork(db, subjectresolver.NewUserSubjectResolver(existingUserResolver{}), stager),
 	}
 	validator := assignmentDomain.NewValidator(roles, subjectresolver.NewUserSubjectResolver(existingUserResolver{}))
-	service := assignmentApp.NewCommandService(validator, roles, uow, nil)
+	service := assignmentApp.NewCommandService(validator, roles, uow, nil, management.NewGuard(nil))
 	sub, err := subject.NewUserRef(userID)
 	require.NoError(t, err)
 	managed := []string{"qs:staff", "qs:evaluator", "qs:content_manager"}
@@ -54,7 +56,7 @@ func TestReplaceManagedAssignmentsIsAtomicAndPreservesUnmanagedRoles(t *testing.
 	result, err := service.ReplaceManagedAssignments(ctx, cmd)
 	require.NoError(t, err)
 	require.True(t, result.Changed)
-	require.EqualValues(t, 1, result.PolicyVersion)
+	require.EqualValues(t, 2, result.PolicyVersion)
 	require.Equal(t, []string{"qs:content_manager", "qs:staff"}, result.DirectRoles)
 	require.Equal(t, []string{"qs:content_manager", "qs:staff", "tenant_admin"}, assignedRoleNames(t, ctx, assignments, roles, userID))
 	require.Equal(t, 1, stager.Count())
@@ -63,7 +65,7 @@ func TestReplaceManagedAssignmentsIsAtomicAndPreservesUnmanagedRoles(t *testing.
 	result, err = service.ReplaceManagedAssignments(ctx, cmd)
 	require.NoError(t, err)
 	require.False(t, result.Changed)
-	require.EqualValues(t, 1, result.PolicyVersion)
+	require.EqualValues(t, 2, result.PolicyVersion)
 	require.Equal(t, 1, stager.Count(), "idempotent replacement must not emit another version event")
 
 	stager.SetError(errors.New("outbox unavailable"))
@@ -78,7 +80,7 @@ func TestReplaceManagedAssignmentsIsAtomicAndPreservesUnmanagedRoles(t *testing.
 	current, err := policyRepo.NewPolicyVersionRepository(db).GetCurrent(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, current)
-	require.EqualValues(t, 1, current.Version, "failed replacement must roll back the policy version")
+	require.EqualValues(t, 2, current.Version, "failed replacement must roll back the policy version")
 }
 
 type existingUserResolver struct{}
@@ -142,7 +144,6 @@ func (r *lockingAssignmentReadRepository) ListBySubject(
 	context.Context,
 	assignmentDomain.SubjectType,
 	meta.ID,
-	string,
 ) ([]*assignmentDomain.Assignment, error) {
 	return nil, errors.New("managed replacement must use ListBySubjectForUpdate")
 }

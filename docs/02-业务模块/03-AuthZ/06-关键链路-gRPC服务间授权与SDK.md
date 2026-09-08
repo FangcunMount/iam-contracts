@@ -42,7 +42,7 @@ transport credential / mTLS or configured service credential
 
 `grpc_acl.yaml` 的默认策略是 deny。当前主要覆盖为：
 
-- `qs-apiserver.svc`：可调用全部五个 AuthZ v3 RPC。
+- `qs-apiserver.svc`：可调用全部五个 AuthZ v4 RPC。
 - `qs-collection-server.svc`：只可 `Check` 与 `GetAuthorizationSnapshot`。
 - `reporting`：只可 `GetAuthorizationSnapshot`。
 - `admin`：ACL 上允许 AuthorizationService 通配方法，但 Assignment 写仍要经过内容级授权。
@@ -101,7 +101,7 @@ attribute_key  = object.origin_type
 | `deny_code` | 稳定的 deny 机器代码 |
 | `matched_grant_id` | allow 时命中的 Grant |
 | `matched_role` | allow 时导致命中的 effective Role |
-| `policy_version` | 做决策的快照在该 Tenant 的版本 |
+| `policy_version` | 做决策的快照在全局版本 |
 | `missing_attribute_keys` | 条件 Grant 所需但未提交的属性 |
 
 `allowed=false` 是正常授权结果，不是 gRPC error。运行时不可用、请求违反 schema 或传输信任合同才是 error。业务调用方应分开统计两者。
@@ -122,7 +122,7 @@ SDK 提供两个方便方法：
 - `roles`：指定 app 下的 effective roles，包含继承结果。
 - `direct_roles`：指定 app 下由 Assignment 直接获得的角色。
 - `permissions`：指定 app 下去重合并的 Resource/Action 与 mode。
-- `policy_version`：当前快照的 Tenant version。
+- `policy_version`：当前快照的全局版本。
 
 `UNCONDITIONAL` 表示存在至少一条无条件 Grant；`OBJECT_CHECK_REQUIRED` 表示所有候选 Grant 都需具体对象检查。快照不包含某个具体对象的最终 allow，
 所以 UI/服务不能把 `OBJECT_CHECK_REQUIRED` 当成已授权。

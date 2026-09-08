@@ -44,7 +44,7 @@ type openAPISchema struct {
 }
 
 func TestLoginV2OpenAPIContractMatchesRequestValidation(t *testing.T) {
-	spec := loadOpenAPISpec(t, "api/rest/authn.v2.yaml")
+	spec := loadOpenAPISpec(t, "api/rest/authn.v3.yaml")
 
 	loginSchema := spec.schema(t, "LoginV2Request")
 	require.ElementsMatch(t, []string{"password", "phone_otp", "wechat", "wechat_scan", "wecom"}, loginSchema.Properties["auth_method"].Enum)

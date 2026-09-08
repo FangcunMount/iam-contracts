@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
+
 	grantapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/permissiongrant"
 	resourceapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/resource"
 	roleapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/role"
@@ -30,7 +32,7 @@ func seedRole(t *testing.T, db *gorm.DB, name string) role.Role {
 	t.Helper()
 	r, err := role.NewRole(name, name)
 	require.NoError(t, err)
-	require.NoError(t, rolerepo.NewRoleRepository(db).Create(context.Background(), &r))
+	require.NoError(t, rolerepo.NewRoleRepository(db).Create(management.WithAuthenticatedService(context.Background(), "admin"), &r))
 	return r
 }
 func concurrent(t *testing.T, a, b func() error) {
@@ -46,7 +48,7 @@ func concurrent(t *testing.T, a, b func() error) {
 func TestMySQLInheritanceAtomicGraphValidation(t *testing.T) {
 	db := authzdb.Open(t, true)
 	repo := inheritancerepo.NewRepository(db)
-	ctx := context.Background()
+	ctx := management.WithAuthenticatedService(context.Background(), "admin")
 	a, b := seedRole(t, db, "a"), seedRole(t, db, "b")
 	ab, err := roleinheritance.New(a.ID, b.ID, "seed")
 	require.NoError(t, err)
@@ -72,14 +74,14 @@ func TestMySQLInheritanceAtomicGraphValidation(t *testing.T) {
 }
 func TestMySQLRoleDeletionAndGrantSerialize(t *testing.T) {
 	db := authzdb.Open(t, true)
-	ctx := context.Background()
+	ctx := management.WithAuthenticatedService(context.Background(), "admin")
 	r := seedRole(t, db, "reader")
 	res, err := resource.NewResource("example:catalog:collection:documents", []string{"read"}, resource.WithDisplayName("Documents"))
 	require.NoError(t, err)
 	require.NoError(t, resourcerepo.NewResourceRepository(db).Create(ctx, &res))
 	uow := authzuow.NewUnitOfWork(db, nil, authzdb.Stager(t, db))
-	grants := grantapp.NewService(uow, grantrepo.NewRepository(db), nil)
-	roles := roleapp.NewRoleCatalog(uow, nil)
+	grants := grantapp.NewService(uow, grantrepo.NewRepository(db), nil, management.NewGuard(nil))
+	roles := roleapp.NewRoleCatalog(uow, nil, management.NewGuard(nil))
 	concurrent(t, func() error {
 		_, err := grants.Create(ctx, grantapp.CreateCommand{RoleID: r.ID, ResourceID: res.ID, Action: "read", Constraints: constraint.Empty(), GrantedBy: "seed"})
 		return err
@@ -97,7 +99,7 @@ type platformAdmission struct{}
 func (platformAdmission) RequireCatalogWrite(context.Context, subject.Ref, string) error { return nil }
 func TestMySQLResourceUpdateAndGrantSerialize(t *testing.T) {
 	db := authzdb.Open(t, true)
-	ctx := context.Background()
+	ctx := management.WithAuthenticatedService(context.Background(), "admin")
 	r := seedRole(t, db, "reader")
 	res, err := resource.NewResource("example:catalog:collection:documents", []string{"read", "use"}, resource.WithDisplayName("Documents"))
 	require.NoError(t, err)
@@ -105,7 +107,7 @@ func TestMySQLResourceUpdateAndGrantSerialize(t *testing.T) {
 	uow := authzuow.NewUnitOfWork(db, nil, authzdb.Stager(t, db))
 	actor, err := subject.NewUserRef(meta.ID(1))
 	require.NoError(t, err)
-	grants := grantapp.NewService(uow, grantrepo.NewRepository(db), nil)
+	grants := grantapp.NewService(uow, grantrepo.NewRepository(db), nil, management.NewGuard(nil))
 	resources := resourceapp.NewResourceCatalog(uow, nil, platformAdmission{})
 	concurrent(t, func() error {
 		_, err := grants.Create(ctx, grantapp.CreateCommand{RoleID: r.ID, ResourceID: res.ID, Action: "use", Constraints: constraint.Empty(), GrantedBy: "seed"})

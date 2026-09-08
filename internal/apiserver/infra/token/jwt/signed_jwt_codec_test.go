@@ -12,7 +12,6 @@ import (
 
 	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v5/pkg/tenant"
 	jwtv4 "github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/require"
 )

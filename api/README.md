@@ -7,8 +7,8 @@
 ```text
 api/
 ├── rest/
-│   ├── authn.v2.yaml
-│   ├── authz.v3.yaml
+│   ├── authn.v3.yaml
+│   ├── authz.v4.yaml
 │   ├── identity.v2.yaml
 │   ├── idp.v2.yaml
 │   └── suggest.v2.yaml
@@ -21,8 +21,8 @@ api/
 
 | 契约 | 当前能力 |
 | ---- | ---- |
-| [rest/authn.v2.yaml](rest/authn.v2.yaml) | 使用 `auth_method + method_payload` 的显式登录、登录准备、刷新、登出、验证、JWKS、账户和 signup |
-| [rest/authz.v3.yaml](rest/authz.v3.yaml) | PermissionGrant、Role、Assignment、RoleInheritance、Resource 与属性 Schema 管理；不提供授权判定 |
+| [rest/authn.v3.yaml](rest/authn.v3.yaml) | 使用 `auth_method + method_payload` 的显式登录、登录准备、刷新、登出、验证、JWKS、账户和 signup |
+| [rest/authz.v4.yaml](rest/authz.v4.yaml) | PermissionGrant、Role、Assignment、RoleInheritance、Resource 与属性 Schema 管理；不提供授权判定 |
 | [rest/identity.v2.yaml](rest/identity.v2.yaml) | 当前用户、profiles、profile-links |
 | [rest/idp.v2.yaml](rest/idp.v2.yaml) | IDP 健康检查和微信应用管理 |
 | [rest/suggest.v2.yaml](rest/suggest.v2.yaml) | 儿童档案联想搜索 |

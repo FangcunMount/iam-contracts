@@ -6,16 +6,17 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	redisinfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/cache/redis"
 	authmiddleware "github.com/FangcunMount/iam/v5/internal/pkg/middleware/authn"
 	"github.com/alicebob/miniredis/v2"
 	redisclient "github.com/redis/go-redis/v9"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 
 	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
 	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
@@ -208,7 +209,6 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	require.NotNil(t, gresp.Claims)
 	require.Equal(t, "1001", gresp.Claims.UserId)
 	require.Equal(t, "2002", gresp.Claims.LoginIdentityId)
-	require.Equal(t, "fangcun", gresp.Claims.TenantId)
 	require.Equal(t, "9001", gresp.Claims.OrgId)
 	require.Equal(t, []string{string(authentication.AMRPassword)}, gresp.Claims.Amr)
 	require.NotContains(t, gresp.Claims.Attributes, "phone_number")

@@ -35,7 +35,6 @@ func TestUpdateResourceDisplayNameJSONStates(t *testing.T) {
 			handler := NewResourceHandler(catalog, nil)
 			router := gin.New()
 			router.Use(func(c *gin.Context) {
-				requestctx.SetTenantID(c)
 				requestctx.SetUserID(c, meta.FromUint64(100))
 				c.Next()
 			})

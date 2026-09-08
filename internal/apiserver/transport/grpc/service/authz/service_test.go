@@ -39,7 +39,7 @@ func TestAuthorizationServerRequiresServiceIdentity(t *testing.T) {
 		objectAttributeAdmission: authzfixture.Policy(),
 	}
 	_, err := srv.Check(context.Background(), &authzv4.CheckRequest{
-		Subject: "user:1",  Resource: assessmentResource, Action: "retry",
+		Subject: "user:1", Resource: assessmentResource, Action: "retry",
 	})
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
 }
@@ -55,7 +55,7 @@ func TestAuthorizationServerCheckMapsTypedObjectContext(t *testing.T) {
 	}
 	ctx := serviceContext("qs-apiserver.svc")
 	resp, err := srv.Check(ctx, &authzv4.CheckRequest{
-		Subject: "user:1",  Resource: assessmentResource, Action: "retry",
+		Subject: "user:1", Resource: assessmentResource, Action: "retry",
 		ObjectContext: &authzv4.ObjectContext{
 			ObjectId: "assessment-1",
 			Attributes: []*authzv4.ObjectAttribute{{
@@ -84,13 +84,13 @@ func TestAuthorizationServerRejectsDuplicateAndUntrustedAttributes(t *testing.T)
 		{Key: authzfixture.AttributeKey, Value: &authzv4.ObjectAttribute_StringValue{StringValue: "plan"}},
 	}
 	_, err := srv.Check(serviceContext("qs-apiserver.svc"), &authzv4.CheckRequest{
-		Subject: "user:1",  Resource: assessmentResource, Action: "retry",
+		Subject: "user:1", Resource: assessmentResource, Action: "retry",
 		ObjectContext: &authzv4.ObjectContext{ObjectId: "assessment-1", Attributes: duplicate},
 	})
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 
 	_, err = srv.Check(serviceContext("admin"), &authzv4.CheckRequest{
-		Subject: "user:1",  Resource: assessmentResource, Action: "retry",
+		Subject: "user:1", Resource: assessmentResource, Action: "retry",
 		ObjectContext: &authzv4.ObjectContext{ObjectId: "assessment-1", Attributes: duplicate[:1]},
 	})
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
@@ -102,7 +102,7 @@ func TestAuthorizationServerUsesInjectedObjectAttributeAdmissionPolicy(t *testin
 	srv := &authorizationServer{checker: checker, objectAttributeAdmission: policy}
 
 	_, err := srv.Check(serviceContext("custom-caller.svc"), &authzv4.CheckRequest{
-		Subject: "user:1",  Resource: "custom:domain:collection:objects", Action: "read",
+		Subject: "user:1", Resource: "custom:domain:collection:objects", Action: "read",
 		ObjectContext: &authzv4.ObjectContext{ObjectId: "object-1", Attributes: []*authzv4.ObjectAttribute{{
 			Key:   "object.custom",
 			Value: &authzv4.ObjectAttribute_StringValue{StringValue: "trusted"},
@@ -126,7 +126,7 @@ func TestAuthorizationServerSnapshotPreservesAuthorizationMode(t *testing.T) {
 	}}
 	srv := &authorizationServer{snapshotReader: reader}
 	resp, err := srv.GetAuthorizationSnapshot(serviceContext("qs-apiserver.svc"), &authzv4.GetAuthorizationSnapshotRequest{
-		Subject: "user:1",  AppName: "qs",
+		Subject: "user:1", AppName: "qs",
 	})
 	require.NoError(t, err)
 	require.EqualValues(t, 7, resp.PolicyVersion)
@@ -140,7 +140,8 @@ func TestAuthorizationServerAssignmentsUseV3AndConstraints(t *testing.T) {
 		DefaultPolicy: "deny",
 		Services: map[string]assignmentadmission.ServiceConstraint{
 			"qs-apiserver.svc": {
-				Roles: []string{"qs:evaluator", "qs:staff"}, RequireDelegatedActorOnGrant: true,
+				SubjectTypes: []string{"user"},
+				Roles:        []string{"qs:evaluator", "qs:staff"}, RequireDelegatedActorOnGrant: true,
 			},
 		},
 	})
@@ -149,21 +150,21 @@ func TestAuthorizationServerAssignmentsUseV3AndConstraints(t *testing.T) {
 	srv := &authorizationServer{assignments: commands, assignmentAdmission: policy}
 
 	grantResponse, err := srv.GrantAssignment(serviceContext("qs-apiserver.svc"), &authzv4.GrantAssignmentRequest{
-		Subject: "user:100",  RoleName: "qs:evaluator", GrantedBy: "user:1",
+		Subject: "user:100", RoleName: "qs:evaluator", GrantedBy: "user:1",
 	})
 	require.NoError(t, err)
 	require.Len(t, commands.grants, 1)
 	require.EqualValues(t, 11, grantResponse.PolicyVersion)
 
 	revokeResponse, err := srv.RevokeAssignment(serviceContext("qs-apiserver.svc"), &authzv4.RevokeAssignmentRequest{
-		Subject: "user:100",  RoleName: "qs:evaluator",
+		Subject: "user:100", RoleName: "qs:evaluator",
 	})
 	require.NoError(t, err)
 	require.Equal(t, "service:qs-apiserver.svc", commands.revokes[0].ChangedBy)
 	require.EqualValues(t, 12, revokeResponse.PolicyVersion)
 
 	replaceResponse, err := srv.ReplaceManagedAssignments(serviceContext("qs-apiserver.svc"), &authzv4.ReplaceManagedAssignmentsRequest{
-		Subject: "user:100",  RoleNames: []string{"qs:evaluator", "qs:staff"},
+		Subject: "user:100", RoleNames: []string{"qs:evaluator", "qs:staff"},
 		ChangedBy: "user:1", Reason: "staff role update",
 	})
 	require.NoError(t, err)
@@ -178,17 +179,17 @@ func TestAuthorizationServerRejectsNilAssignmentAdmissionPolicy(t *testing.T) {
 	ctx := serviceContext("qs-apiserver.svc")
 
 	_, err := srv.GrantAssignment(ctx, &authzv4.GrantAssignmentRequest{
-		Subject: "user:100",  RoleName: "qs:evaluator", GrantedBy: "user:1",
+		Subject: "user:100", RoleName: "qs:evaluator", GrantedBy: "user:1",
 	})
 	require.Equal(t, codes.Internal, status.Code(err))
 
 	_, err = srv.RevokeAssignment(ctx, &authzv4.RevokeAssignmentRequest{
-		Subject: "user:100",  RoleName: "qs:evaluator",
+		Subject: "user:100", RoleName: "qs:evaluator",
 	})
 	require.Equal(t, codes.Internal, status.Code(err))
 
 	_, err = srv.ReplaceManagedAssignments(ctx, &authzv4.ReplaceManagedAssignmentsRequest{
-		Subject: "user:100",  RoleNames: []string{"qs:evaluator"}, ChangedBy: "user:1",
+		Subject: "user:100", RoleNames: []string{"qs:evaluator"}, ChangedBy: "user:1",
 	})
 	require.Equal(t, codes.Internal, status.Code(err))
 }
@@ -260,7 +261,7 @@ func TestAuthorizationV3GRPCLatencyBudget(t *testing.T) {
 
 func assessmentCheckRequest(subjectKey, originType string) *authzv4.CheckRequest {
 	return &authzv4.CheckRequest{
-		Subject: subjectKey,  Resource: assessmentResource, Action: "retry",
+		Subject: subjectKey, Resource: assessmentResource, Action: "retry",
 		ObjectContext: &authzv4.ObjectContext{ObjectId: "assessment-1", Attributes: []*authzv4.ObjectAttribute{{
 			Key:   authzfixture.AttributeKey,
 			Value: &authzv4.ObjectAttribute_StringValue{StringValue: originType},
@@ -317,7 +318,7 @@ func newMatrixRuntime(t *testing.T) *authzruntime.Runtime {
 		},
 		Grants:    []*permissiongrant.Grant{&admin, &evaluator, &planManager},
 		Resources: []*resource.Resource{&assessment},
-		Version: 41,
+		Version:   41,
 	}}, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(authzfixture.Policy()))
 	require.NoError(t, err)
 	return runtime
@@ -380,7 +381,7 @@ type snapshotReaderFake struct {
 	err      error
 }
 
-func (f *snapshotReaderFake) Read(_ context.Context, _ subject.Ref, _, _ string) (authzapp.SubjectSnapshot, error) {
+func (f *snapshotReaderFake) Read(_ context.Context, _ subject.Ref, _ string) (authzapp.SubjectSnapshot, error) {
 	if f.err != nil {
 		return authzapp.SubjectSnapshot{}, f.err
 	}

@@ -69,7 +69,6 @@ func (m *AuthzModule) InitializeWithDeps(deps AuthzModuleDeps) error {
 	if err := m.initializeRuntime(infra, domain, deps.SyncConfig); err != nil {
 		return err
 	}
-	m.initializeApplication(infra, domain)
 	if strings.TrimSpace(deps.AssignmentConstraintsFile) == "" {
 		return fmt.Errorf("assignment constraints file is required")
 	}
@@ -84,6 +83,7 @@ func (m *AuthzModule) InitializeWithDeps(deps AuthzModuleDeps) error {
 	if err != nil {
 		return err
 	}
+	m.initializeApplication(infra, domain)
 	return nil
 }
 

@@ -70,7 +70,7 @@ KMS/HSM 是未来的 `PrivateKeyStore/Resolver` 实现边界，不是当前能�
 - `internal/apiserver/infra/token/keyset`
 - `internal/apiserver/infra/mysql/jwks`
 - `internal/pkg/migration/migrations/000016_jwks_single_active_guard.*.sql`
-- `api/rest/authn.v2.yaml`
+- `api/rest/authn.v3.yaml`
 
 ```bash
 make api-validate

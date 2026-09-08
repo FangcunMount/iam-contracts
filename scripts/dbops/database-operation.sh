@@ -371,7 +371,7 @@ database_status() {
     return 1
   fi
   echo "schema guard: result=success required_base_tables=16 schema_objects=16 unexpected_objects=0"
-  echo "retirement guard: result=success expected_version=30 retired_tables_present=0 retired_table_privileges=0"
+  echo "retirement guard: result=success expected_version=32 retired_tables_present=0 retired_table_privileges=0"
 }
 
 mysql_scalar() {

@@ -43,13 +43,13 @@ type lifecycleSource struct {
 func (s *lifecycleSource) Load(context.Context) (authzruntime.Dataset, error) {
 	return authzruntime.Dataset{Version: s.version.Load()}, nil
 }
-func (s *lifecycleSource) ReadVersions(ctx context.Context) (map[string]int64, error) {
+func (s *lifecycleSource) ReadVersion(ctx context.Context) (int64, error) {
 	if s.block.Load() {
 		s.once.Do(func() { close(s.entered) })
 		<-ctx.Done()
-		return nil, ctx.Err()
+		return 0, ctx.Err()
 	}
-	return map[string]int64{"a": s.version.Load()}, nil
+	return s.version.Load(), nil
 }
 func TestPolicySyncRetriesRegistrationRestoresReadinessAndCancels(t *testing.T) {
 	source := &lifecycleSource{entered: make(chan struct{})}

@@ -93,10 +93,10 @@ func TestOutboxRelayDegradesWithoutEventBus(t *testing.T) {
 func TestOutboxRelayPublishesAndMarksPublished(t *testing.T) {
 	store := &relayStoreStub{pending: []outboxport.PendingEvent{{
 		EventID:       "evt-1",
-		EventType:     "iam.authz.version_changed",
+		EventType:     "iam.authz.version_changed.v2",
 		AggregateType: "PolicyVersion",
 		AggregateID:   "tenant-a:1",
-		TopicName:     "iam.authz.version",
+		TopicName:     "iam.authz.version.v2",
 		Payload:       []byte(`{"tenant_id":"tenant-a","version":1}`),
 	}}}
 	publisher := &relayPublisherStub{}
@@ -104,10 +104,10 @@ func TestOutboxRelayPublishesAndMarksPublished(t *testing.T) {
 
 	require.NoError(t, relay.DispatchDue(context.Background()))
 
-	require.Equal(t, []string{"iam.authz.version"}, publisher.topics)
+	require.Equal(t, []string{"iam.authz.version.v2"}, publisher.topics)
 	require.Len(t, publisher.messages, 1)
 	require.Equal(t, "evt-1", publisher.messages[0].UUID)
-	require.Equal(t, "iam.authz.version_changed", publisher.messages[0].Metadata["event_type"])
+	require.Equal(t, "iam.authz.version_changed.v2", publisher.messages[0].Metadata["event_type"])
 	require.Equal(t, []string{"evt-1"}, store.published)
 	require.Empty(t, store.failed)
 }
@@ -115,8 +115,8 @@ func TestOutboxRelayPublishesAndMarksPublished(t *testing.T) {
 func TestOutboxRelayMarksFailedWhenPublishFails(t *testing.T) {
 	store := &relayStoreStub{pending: []outboxport.PendingEvent{{
 		EventID:   "evt-1",
-		EventType: "iam.authz.version_changed",
-		TopicName: "iam.authz.version",
+		EventType: "iam.authz.version_changed.v2",
+		TopicName: "iam.authz.version.v2",
 		Payload:   []byte(`{}`),
 	}}}
 	publisher := &relayPublisherStub{err: errors.New("mq down")}

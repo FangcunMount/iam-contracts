@@ -28,7 +28,7 @@ func TestCreateRoleCommandRejectsInvalidValues(t *testing.T) {
 	require.Error(t, err)
 
 	_, err = NewCreateRoleCommand("admin", "Admin", "")
-	require.Error(t, err)
+	require.NoError(t, err)
 }
 
 func TestUpdateRoleCommandCopiesOptionalFields(t *testing.T) {
@@ -46,7 +46,7 @@ func TestUpdateRoleCommandCopiesOptionalFields(t *testing.T) {
 	require.Equal(t, "desc", *cmd.Description)
 }
 
-func TestListRolesQueryUsesTenantValueObject(t *testing.T) {
+func TestListRolesQueryPreservesPagination(t *testing.T) {
 	t.Parallel()
 
 	query, err := NewListRolesQuery(2, 5)

@@ -11,10 +11,9 @@ import (
 	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/FangcunMount/iam/v5/internal/pkg/requestctx"
-	"github.com/FangcunMount/iam/v5/pkg/tenant"
 )
 
-func TestApplyVerifiedClaimsSetsTenantIDForRoleResolution(t *testing.T) {
+func TestApplyVerifiedClaimsSetsIdentityContext(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Request = httptest.NewRequest("GET", "/identity/me", nil)
@@ -31,9 +30,6 @@ func TestApplyVerifiedClaimsSetsTenantIDForRoleResolution(t *testing.T) {
 
 	applyVerifiedClaims(c, claims)
 
-	if got := requestctx.TenantIDOrDefault(c); got != tenant.DefaultID {
-		t.Fatalf("TenantIDOrDefault() = %q, want %q", got, tenant.DefaultID)
-	}
 	if got, exists := c.Get(requestctx.KeyUserID); !exists || got != meta.ID(110001) {
 		t.Fatalf("gin user_id = %v exists=%v, want %v", got, exists, meta.ID(110001))
 	}

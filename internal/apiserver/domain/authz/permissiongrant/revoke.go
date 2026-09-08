@@ -15,7 +15,7 @@ const (
 	RevokeOutcomeNotFound       RevokeOutcome = "not_found"
 )
 
-// AtomicRevoker performs tenant-scoped revoke operations with explicit outcomes.
+// AtomicRevoker performs revoke operations with explicit outcomes.
 type AtomicRevoker interface {
 	AtomicRevoke(ctx context.Context, id meta.ID) (RevokeOutcome, error)
 }

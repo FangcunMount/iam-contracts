@@ -1024,7 +1024,7 @@ func TestRetiredAuthzRuntimeAndV2ContractsDoNotRegress(t *testing.T) {
 	assertFileContains(t, root, "internal/apiserver/domain/authz/permissiongrant/grant.go", "Constraint")
 	assertFileLacks(t, root, "internal/apiserver/domain/authz/resource/action.go", "type Scope")
 	assertFileLacks(t, root, "internal/apiserver/domain/authz/resource/action.go", "ScopeAll")
-	assertFileContains(t, root, "web/swagger-ui/swagger-ui-dist/swagger-initializer.js", "/openapi/authz.v3.yaml")
+	assertFileContains(t, root, "web/swagger-ui/swagger-ui-dist/swagger-initializer.js", "/openapi/authz.v4.yaml")
 	assertFileLacks(t, root, "web/swagger-ui/swagger-ui-dist/swagger-initializer.js", "authz.v2")
 	assertFileContains(t, root, "internal/apiserver/infra/authz/assignmentconstraints/loader.go", "/iam.authz.v4.AuthorizationService/GrantAssignment")
 	assertFileContains(t, root, "configs/grpc_acl.yaml", "/iam.authz.v4.AuthorizationService/ReplaceManagedAssignments")
@@ -1087,31 +1087,18 @@ func TestAuthzAuthorizationDoesNotUseRoleNameAdministratorBypasses(t *testing.T)
 	assertFileLacks(t, root, "internal/pkg/middleware/authn/jwt_middleware.go", "RequirePermission")
 }
 
-func TestAuthzStandaloneBootstrapUsesCanonicalTenantDomain(t *testing.T) {
-	t.Parallel()
-
+func TestAuthzStandaloneBootstrapUsesUnifiedRoleSpace(t *testing.T) {
 	root := repoRoot(t)
-	const rel = "configs/mysql/bootstrap.sql"
-	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+	data, err := os.ReadFile(filepath.Join(root, "configs/mysql/bootstrap.sql"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sql := string(data)
-	for _, table := range []string{
-		"authz_roles",
-		"authz_assignments",
-		"authz_role_inheritances",
-		"authz_permission_grants",
-		"authz_policy_versions",
-	} {
-		statement := extractInsertStatement(t, sql, table)
-		if strings.Contains(statement, "'1'") {
-			t.Fatalf("%s INSERT for %s contains legacy AuthZ tenant domain '1'; standalone bootstrap must use fangcun", rel, table)
-		}
-		if !strings.Contains(statement, "'fangcun'") {
-			t.Fatalf("%s INSERT for %s does not contain canonical AuthZ tenant domain 'fangcun'", rel, table)
-		}
+	if strings.Contains(string(data), "tenant_id") {
+		t.Fatal("bootstrap carries retired authorization dimension")
 	}
+	assertFileContains(t, root, "configs/mysql/bootstrap.sql", "management_protection")
+	assertFileContains(t, root, "configs/mysql/bootstrap.sql", "platform_admin")
+	assertFileContains(t, root, "configs/mysql/bootstrap.sql", "iam_admin")
 }
 
 func TestAuthzProductionCodeUsesSemanticDomainPackages(t *testing.T) {
@@ -1374,8 +1361,8 @@ func TestGRPCContractsHaveRuntimeAndSDKCompileGuards(t *testing.T) {
 	contracts := []struct {
 		module, version, proto, alias, generatedPackage, serviceFile, registerToken, sdkFile string
 	}{
-		{"authn", "v2", "api/grpc/iam/authn/v3/authn.proto", "authnv3", "api/grpc/iam/authn/v3", "internal/apiserver/transport/grpc/service/authn/service.go", "authnv3.RegisterAuthServiceServer", "pkg/sdk/auth/client/client.go"},
-		{"authz", "v3", "api/grpc/iam/authz/v4/authz.proto", "authzv4", "api/grpc/iam/authz/v4", "internal/apiserver/transport/grpc/service/authz/service.go", "authzv4.RegisterAuthorizationServiceServer", "pkg/sdk/authz/client.go"},
+		{"authn", "v3", "api/grpc/iam/authn/v3/authn.proto", "authnv3", "api/grpc/iam/authn/v3", "internal/apiserver/transport/grpc/service/authn/service.go", "authnv3.RegisterAuthServiceServer", "pkg/sdk/auth/client/client.go"},
+		{"authz", "v4", "api/grpc/iam/authz/v4/authz.proto", "authzv4", "api/grpc/iam/authz/v4", "internal/apiserver/transport/grpc/service/authz/service.go", "authzv4.RegisterAuthorizationServiceServer", "pkg/sdk/authz/client.go"},
 		{"identity", "v2", "api/grpc/iam/identity/v2/identity.proto", "identityv2", "api/grpc/iam/identity/v2", "internal/apiserver/transport/grpc/service/identity/service.go", "identityv2.RegisterIdentityReadServer", "pkg/sdk/identity/client.go"},
 		{"idp", "v2", "api/grpc/iam/idp/v2/idp.proto", "idpv2", "api/grpc/iam/idp/v2", "internal/apiserver/transport/grpc/service/idp/service.go", "idpv2.RegisterIDPServiceServer", "pkg/sdk/idp/client.go"},
 	}
@@ -1402,8 +1389,8 @@ func TestGRPCContractsHaveRuntimeAndSDKCompileGuards(t *testing.T) {
 		if strings.Contains(rel, "/v1/") {
 			t.Fatalf("%s is a retired gRPC v1 contract", rel)
 		}
-		if strings.Contains(rel, "/authz/") && !strings.Contains(rel, "/authz/v3/") {
-			t.Fatalf("%s is not the required AuthZ v3 contract", rel)
+		if strings.Contains(rel, "/authz/") && !strings.Contains(rel, "/authz/v4/") {
+			t.Fatalf("%s is not the required AuthZ v4 contract", rel)
 		}
 		return nil
 	})
@@ -1616,7 +1603,7 @@ func TestAuthnOnboardingAndProfileLinkContractsDoNotRegress(t *testing.T) {
 	assertFileLacks(t, root, "pkg/sdk/identity/profile_link_command.go", "CreateProfileLink")
 
 	for _, rel := range []string{
-		"api/rest/authn.v2.yaml",
+		"api/rest/authn.v3.yaml",
 		"internal/apiserver/docs/swagger.yaml",
 	} {
 		assertFileContains(t, root, rel, "/authn/signups/wechat-miniprogram")

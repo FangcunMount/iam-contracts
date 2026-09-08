@@ -14,7 +14,7 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
-// RoleCatalog mutates tenant role definitions in the same transaction as the
+// RoleCatalog mutates role definitions in the same transaction as the
 // policy version and outbox notification.
 type RoleCatalog struct {
 	guard             management.Guard
@@ -23,16 +23,19 @@ type RoleCatalog struct {
 	roleRemovalPolicy policyDomain.RoleRemovalPolicy
 }
 
-func NewRoleCatalog(uow authzuow.UnitOfWork, reloader policychange.RuntimePolicyReloader) *RoleCatalog {
+func NewRoleCatalog(uow authzuow.UnitOfWork, reloader policychange.RuntimePolicyReloader, guard management.Guard) *RoleCatalog {
 	return &RoleCatalog{
 		uow:               uow,
 		reloader:          reloader,
-		guard:             management.GuardFrom(reloader),
+		guard:             guard,
 		roleRemovalPolicy: policyDomain.RoleRemovalPolicy{},
 	}
 }
 
 func (s *RoleCatalog) CreateRole(ctx context.Context, cmd CreateRoleCommand) (*roleDomain.Role, error) {
+	if err := s.guard.RequireOperation(ctx, "iam:authz:collection:roles", "create"); err != nil {
+		return nil, err
+	}
 	if err := s.validateChange(cmd.ChangedBy); err != nil {
 		return nil, err
 	}
@@ -61,6 +64,9 @@ func (s *RoleCatalog) CreateRole(ctx context.Context, cmd CreateRoleCommand) (*r
 }
 
 func (s *RoleCatalog) UpdateRole(ctx context.Context, cmd UpdateRoleCommand) (*roleDomain.Role, error) {
+	if err := s.guard.RequireOperation(ctx, "iam:authz:collection:roles", "update"); err != nil {
+		return nil, err
+	}
 	if err := s.validateChange(cmd.ChangedBy); err != nil {
 		return nil, err
 	}
@@ -99,6 +105,9 @@ func (s *RoleCatalog) UpdateRole(ctx context.Context, cmd UpdateRoleCommand) (*r
 }
 
 func (s *RoleCatalog) DeleteRole(ctx context.Context, cmd DeleteRoleCommand) error {
+	if err := s.guard.RequireOperation(ctx, "iam:authz:collection:roles", "delete"); err != nil {
+		return err
+	}
 	if cmd.ID.IsZero() {
 		return perrors.WithCode(code.ErrInvalidArgument, "role id is required")
 	}
@@ -148,7 +157,7 @@ func (s *RoleCatalog) validateChange(changedBy string) error {
 		return perrors.WithCode(code.ErrInternalServerError, "role catalog is unavailable")
 	}
 	if strings.TrimSpace(changedBy) == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "tenant and changed by are required")
+		return perrors.WithCode(code.ErrInvalidArgument, "变更操作人必填")
 	}
 	return nil
 }

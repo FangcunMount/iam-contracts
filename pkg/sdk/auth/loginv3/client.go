@@ -1,4 +1,4 @@
-package loginv2
+package loginv3
 
 import (
 	"bytes"
@@ -46,22 +46,22 @@ func WithHeader(key, value string) Option {
 
 // NewClient creates a REST AuthN v2 login client.
 //
-// baseURL may be the IAM origin or an IAM /api/v2 URL. The client normalizes it
+// baseURL may be the IAM origin or an IAM /api/v3 URL. The client normalizes it
 // to call POST /api/v3/authn/login.
 func NewClient(baseURL string, opts ...Option) (*Client, error) {
 	baseURL = strings.TrimSpace(baseURL)
 	if baseURL == "" {
-		return nil, fmt.Errorf("loginv2: base URL is required")
+		return nil, fmt.Errorf("loginv3: base URL is required")
 	}
 
 	parsed, err := url.Parse(baseURL)
 	if err != nil {
-		return nil, fmt.Errorf("loginv2: parse base URL: %w", err)
+		return nil, fmt.Errorf("loginv3: parse base URL: %w", err)
 	}
 	if parsed.Scheme == "" || parsed.Host == "" {
-		return nil, fmt.Errorf("loginv2: base URL must be absolute")
+		return nil, fmt.Errorf("loginv3: base URL must be absolute")
 	}
-	parsed.Path = withAPIV2Path(parsed.Path)
+	parsed.Path = withAPIV3Path(parsed.Path)
 	parsed.RawQuery = ""
 	parsed.Fragment = ""
 
@@ -79,7 +79,7 @@ func NewClient(baseURL string, opts ...Option) (*Client, error) {
 // Login posts an explicit REST AuthN v2 login request.
 func (c *Client) Login(ctx context.Context, req LoginRequest) (*TokenPair, error) {
 	if c == nil {
-		return nil, fmt.Errorf("loginv2: client is nil")
+		return nil, fmt.Errorf("loginv3: client is nil")
 	}
 	if err := req.Validate(); err != nil {
 		return nil, err
@@ -87,12 +87,12 @@ func (c *Client) Login(ctx context.Context, req LoginRequest) (*TokenPair, error
 
 	body, err := json.Marshal(req)
 	if err != nil {
-		return nil, fmt.Errorf("loginv2: encode request: %w", err)
+		return nil, fmt.Errorf("loginv3: encode request: %w", err)
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.loginURL(), bytes.NewReader(body))
 	if err != nil {
-		return nil, fmt.Errorf("loginv2: build request: %w", err)
+		return nil, fmt.Errorf("loginv3: build request: %w", err)
 	}
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -108,13 +108,13 @@ func (c *Client) Login(ctx context.Context, req LoginRequest) (*TokenPair, error
 	}
 	resp, err := httpClient.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("loginv2: send request: %w", err)
+		return nil, fmt.Errorf("loginv3: send request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
 	if err != nil {
-		return nil, fmt.Errorf("loginv2: read response: %w", err)
+		return nil, fmt.Errorf("loginv3: read response: %w", err)
 	}
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		return nil, errorFromEnvelope(resp.StatusCode, respBody)
@@ -128,15 +128,15 @@ func (c *Client) loginURL() string {
 	return u.String()
 }
 
-func withAPIV2Path(path string) string {
+func withAPIV3Path(path string) string {
 	path = strings.TrimRight(path, "/")
 	if path == "" {
-		return "/api/v2"
+		return "/api/v3"
 	}
-	if strings.HasSuffix(path, "/api/v2") {
+	if strings.HasSuffix(path, "/api/v3") {
 		return path
 	}
-	return path + "/api/v2"
+	return path + "/api/v3"
 }
 
 type responseEnvelope struct {
@@ -153,18 +153,18 @@ func decodeTokenPair(statusCode int, body []byte) (*TokenPair, error) {
 			return nil, iamError(statusCode, *envelope.Code, envelope.Message, nil)
 		}
 		if len(envelope.Data) == 0 {
-			return nil, fmt.Errorf("loginv2: success response missing data")
+			return nil, fmt.Errorf("loginv3: success response missing data")
 		}
 		var tokenPair TokenPair
 		if err := json.Unmarshal(envelope.Data, &tokenPair); err != nil {
-			return nil, fmt.Errorf("loginv2: decode response data: %w", err)
+			return nil, fmt.Errorf("loginv3: decode response data: %w", err)
 		}
 		return &tokenPair, nil
 	}
 
 	var tokenPair TokenPair
 	if err := json.Unmarshal(body, &tokenPair); err != nil {
-		return nil, fmt.Errorf("loginv2: decode response: %w", err)
+		return nil, fmt.Errorf("loginv3: decode response: %w", err)
 	}
 	return &tokenPair, nil
 }

@@ -160,7 +160,7 @@ func analyzeRetirement(s retirementState) *TenantRetirementReport {
 		if row.LegacyDomain == "fangcun" && name == "tenant_admin" {
 			name = "iam_admin"
 		}
-		if row.ID.IsZero() || strings.TrimSpace(name) == "" || len(name) > 64 {
+		if row.ID.IsZero() || strings.TrimSpace(name) == "" || name != strings.TrimSpace(name) || len(name) > 64 {
 			issue("invalid_role", row.ID, name)
 		}
 		if previous, ok := names[name]; ok {
@@ -178,7 +178,7 @@ func analyzeRetirement(s retirementState) *TenantRetirementReport {
 		known(domain, id)
 		target, ok := roles[meta.ID(roleID)]
 		if !ok || target.LegacyDomain != domain || (active && target.DeletedAt != nil) {
-			issue("invalid_role_reference", id, fmt.Sprint(roleID))
+			issue("invalid_role_reference", id, fmt.Sprintf("role_id=%d record_domain=%s active=%t target_exists=%t target_name=%s target_domain=%s target_deleted=%t", roleID, domain, active, ok, target.Name, target.LegacyDomain, target.DeletedAt != nil))
 			return false
 		}
 		return true
@@ -209,7 +209,7 @@ func analyzeRetirement(s retirementState) *TenantRetirementReport {
 		if g.ResourceID != nil {
 			target, ok := resources[*g.ResourceID]
 			if !ok || (active && target.DeletedAt != nil) {
-				issue("invalid_resource_reference", g.ID, fmt.Sprint(*g.ResourceID))
+				issue("invalid_resource_reference", g.ID, fmt.Sprintf("resource_id=%d resource=%s action=%s active=%t target_exists=%t target_deleted=%t", *g.ResourceID, g.ResourcePattern, g.Action, active, ok, target.DeletedAt != nil))
 			}
 		}
 		c, err := constraint.ParseJSON([]byte(g.ConstraintSet))
@@ -233,7 +233,7 @@ func analyzeRetirement(s retirementState) *TenantRetirementReport {
 			issue("invalid_grant_key", g.ID, "canonical key mismatch")
 		}
 		if err := (role.Role{ManagementProtection: protection[meta.ID(g.RoleID)]}).ValidateGrant(grant.ResourcePattern, grant.Action); err != nil {
-			issue("sensitive_standard_grant", g.ID, err.Error())
+			issue("sensitive_standard_grant", g.ID, fmt.Sprintf("role_id=%d role=%s resource=%s action=%s active=%t deleted=%t revoked=%t", g.RoleID, roles[meta.ID(g.RoleID)].Name, g.ResourcePattern, g.Action, active, g.DeletedAt != nil, g.RevokedAt != nil))
 		}
 		r.grantKeys[g.ID] = grant.GrantKey
 		if active {

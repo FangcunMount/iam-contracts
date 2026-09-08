@@ -27,7 +27,6 @@ func TestBusinessOrgIDFromOrgClaimOnly(t *testing.T) {
 	t.Run("numeric tenant domain does not imply org", func(t *testing.T) {
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Request = httptest.NewRequest("GET", "/", nil)
-		SetTenantID(c)
 		SetClaims(c, &tokenapp.TokenClaims{})
 		_, ok := BusinessOrgID(c)
 		require.False(t, ok)

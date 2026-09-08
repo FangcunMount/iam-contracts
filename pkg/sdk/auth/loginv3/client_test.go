@@ -1,4 +1,4 @@
-package loginv2
+package loginv3
 
 import (
 	"context"
@@ -70,7 +70,7 @@ func TestClientLoginDoesNotDoubleAppendAPIV2(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewClient(server.URL + "/api/v2")
+	client, err := NewClient(server.URL + "/api/v3")
 	require.NoError(t, err)
 
 	_, err = client.Login(context.Background(), LoginRequest{

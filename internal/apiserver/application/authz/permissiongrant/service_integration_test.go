@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
+
 	permissionGrantApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/permissiongrant"
 	authztestutil "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/testutil"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
@@ -18,18 +20,18 @@ import (
 func TestPermissionGrantRevokeAlreadyRevokedIsIdempotentWithoutVersionBump(t *testing.T) {
 	fixture, _, stager := setupPermissionGrantService(t)
 	reloader := &recordingReloader{}
-	service := permissionGrantApp.NewService(fixture.UnitOfWork, fixture.PermissionGrants, reloader)
+	service := permissionGrantApp.NewService(fixture.UnitOfWork, fixture.PermissionGrants, reloader, management.NewGuard(nil))
 	role := seedRole(t, fixture.Roles, "qs:evaluator")
 	resource := seedResource(t, fixture.Resources)
 	grant := seedGrant(t, fixture.PermissionGrants, role, resource)
 
-	require.NoError(t, service.Revoke(context.Background(), permissionGrantApp.RevokeCommand{
+	require.NoError(t, service.Revoke(management.WithAuthenticatedService(context.Background(), "admin"), permissionGrantApp.RevokeCommand{
 		GrantID: grant.ID, RevokedBy: "operator-1",
 	}))
 	require.Len(t, stager.events, 1)
 	require.EqualValues(t, 1, fixture.PolicyVersionCount(t))
 
-	require.NoError(t, service.Revoke(context.Background(), permissionGrantApp.RevokeCommand{
+	require.NoError(t, service.Revoke(management.WithAuthenticatedService(context.Background(), "admin"), permissionGrantApp.RevokeCommand{
 		GrantID: grant.ID, RevokedBy: "operator-1",
 	}))
 	require.Len(t, stager.events, 1, "duplicate revoke must not publish another policy version")
@@ -41,7 +43,7 @@ func setupPermissionGrantService(t *testing.T) (*authztestutil.Fixture, *permiss
 	t.Helper()
 	recording := &recordingStager{}
 	fixture := authztestutil.NewFixture(t, recording)
-	service := permissionGrantApp.NewService(fixture.UnitOfWork, fixture.PermissionGrants, nil)
+	service := permissionGrantApp.NewService(fixture.UnitOfWork, fixture.PermissionGrants, nil, management.NewGuard(nil))
 	return fixture, service, recording
 }
 
@@ -49,7 +51,7 @@ func seedRole(t *testing.T, repository roleDomain.Repository, name string) roleD
 	t.Helper()
 	role, err := roleDomain.NewRole(name, name)
 	require.NoError(t, err)
-	require.NoError(t, repository.Create(context.Background(), &role))
+	require.NoError(t, repository.Create(management.WithAuthenticatedService(context.Background(), "admin"), &role))
 	return role
 }
 
@@ -62,7 +64,7 @@ func seedResource(t *testing.T, repository resourceDomain.Repository) resourceDo
 		resourceDomain.WithAttributeSchema(authzfixture.Schema()),
 	)
 	require.NoError(t, err)
-	require.NoError(t, repository.Create(context.Background(), &resource))
+	require.NoError(t, repository.Create(management.WithAuthenticatedService(context.Background(), "admin"), &resource))
 	return resource
 }
 
@@ -78,7 +80,7 @@ func seedGrant(
 		role.ID, resource.ID, resource.KeyString(), "retry", constraint.Empty(), "operator-1",
 	)
 	require.NoError(t, err)
-	require.NoError(t, repository.Create(context.Background(), &grant))
+	require.NoError(t, repository.Create(management.WithAuthenticatedService(context.Background(), "admin"), &grant))
 	return grant
 }
 
@@ -103,12 +105,12 @@ func TestConditionalGrantRequiresProviderBeforeCommit(t *testing.T) {
 	conditions, err := constraint.New(constraint.Equal("object.origin_type", constraint.StringValue("adhoc")))
 	require.NoError(t, err)
 	command := permissionGrantApp.CreateCommand{RoleID: role.ID, ResourceID: resource.ID, Action: "retry", Constraints: conditions, GrantedBy: "seed"}
-	_, err = service.Create(context.Background(), command)
+	_, err = service.Create(management.WithAuthenticatedService(context.Background(), "admin"), command)
 	require.Error(t, err)
 	require.Zero(t, fixture.PolicyVersionCount(t))
 	require.Empty(t, stager.events)
-	service = permissionGrantApp.NewService(fixture.UnitOfWork, fixture.PermissionGrants, nil, authzfixture.Policy())
-	_, err = service.Create(context.Background(), command)
+	service = permissionGrantApp.NewService(fixture.UnitOfWork, fixture.PermissionGrants, nil, management.NewGuard(nil), authzfixture.Policy())
+	_, err = service.Create(management.WithAuthenticatedService(context.Background(), "admin"), command)
 	require.NoError(t, err)
 	require.EqualValues(t, 1, fixture.PolicyVersionCount(t))
 	require.Len(t, stager.events, 1)

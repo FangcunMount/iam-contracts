@@ -4,7 +4,7 @@
 
 ## 结论
 
-AuthZ 的责任是根据受信的 Subject、Tenant、Resource、Action 和最小 ObjectAttributes 做授权决策。它不负责证明调用者是谁，不拥有用户与登录身份，不拥有业务对象，
+AuthZ 的责任是根据受信的 Subject、Resource、Action 和最小 ObjectAttributes 做授权决策。它不负责证明调用者是谁，不拥有用户与登录身份，不拥有业务对象，
 也不自己决定查询数据的最终范围。
 
 ```text

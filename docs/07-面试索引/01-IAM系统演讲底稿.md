@@ -96,7 +96,7 @@
 > AuthN 回答“怎样证明当前是他”。它拥有 LoginIdentity、Credential、Challenge、Principal、Session 和 Token。LoginIdentity 解决一个用户可以通过用户名、手机号、
 > 微信或企微等不同入口进入同一个 User 的问题。Principal 是一次认证成功的运行时结果，Session 和 Token 把这次认证延续成可撤销、可刷新的登录状态。
 >
-> AuthZ 回答“能对资源做什么”。它不是只检查一个 `role == admin`，而是把 Subject、Tenant、Resource、Action 和受信对象属性一起放入授权请求中，再返回允许或拒绝的 Decision。
+> AuthZ 回答“能对资源做什么”。它不是只检查一个 `role == admin`，而是把 Subject、Resource、Action 和受信对象属性一起放入授权请求中，再返回允许或拒绝的 Decision。
 >
 > 两个辅助模块是 IDP 和 Suggest。IDP 隔离微信、企微等 provider 的应用配置、凭据、AppToken 和协议差异，并把一次 provider proof 解析成请求级、
 > 已验证的 `ExternalIdentity`；它仍然不拥有 IAM User、LoginIdentity 或登录态。Suggest 从 Identity 事实派生联想搜索索引，但它不能回写 Profile，也不能成为通用授权引擎。
@@ -336,7 +336,7 @@
 ### 8.5 为什么最终从 Casbin 迁移到自有角色图？
 
 > 最终授权不仅要解析角色，还要校验 Resource Schema、执行类型化 ConstraintSet、返回 matched Grant 和实际加载版本。MySQL 因此保存 Assignment、RoleInheritance、
-> PermissionGrant 等管理事实由 IAM 领域表达，Evaluator 执行权限判定；自有不可变角色图计算 Tenant 隔离的角色继承闭包。事件也只是让快照 reload 的协调信号，不是策略真相。
+> PermissionGrant 等管理事实由 IAM 领域表达，Evaluator 执行权限判定；自有不可变角色图计算 角色管理保护的角色继承闭包。事件也只是让快照 reload 的协调信号，不是策略真相。
 
 ### 8.6 有了 MQ，为什么还需要 Outbox？
 

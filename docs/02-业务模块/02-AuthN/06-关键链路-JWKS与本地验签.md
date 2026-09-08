@@ -141,7 +141,7 @@ Action：
 | 原子数据库转换 | `internal/apiserver/infra/mysql/jwks` |
 | Scheduler/启动校验 | `internal/apiserver/infra/scheduler`、`internal/apiserver/container/authn` |
 | 单 active 迁移 | `internal/pkg/migration/migrations/000016_jwks_single_active_guard.*.sql` |
-| REST 契约 | `api/rest/authn.v2.yaml` |
+| REST 契约 | `api/rest/authn.v3.yaml` |
 
 ```bash
 go test -race ./internal/apiserver/domain/authn/signingkey/... \

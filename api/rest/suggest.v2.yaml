@@ -73,21 +73,6 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
-    internal_apiserver_transport_rest_suggest.ProfileSuggestResponse:
-      properties:
-        code:
-          type: integer
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/internal_apiserver_transport_rest_suggest.ProfileSuggestResponseItem'
-        message:
-          type: string
-      required:
-      - code
-      - data
-      - message
-      type: object
     github_com_FangcunMount_iam_v2_pkg_core.ErrResponse:
       properties:
         code:
@@ -101,6 +86,21 @@ components:
         reference:
           description: Reference 返回参考文档，可能有助于解决此错误
           type: string
+      type: object
+    internal_apiserver_transport_rest_suggest.ProfileSuggestResponse:
+      properties:
+        code:
+          type: integer
+        data:
+          items:
+            $ref: '#/components/schemas/internal_apiserver_transport_rest_suggest.ProfileSuggestResponseItem'
+          type: array
+        message:
+          type: string
+      required:
+      - code
+      - data
+      - message
       type: object
     internal_apiserver_transport_rest_suggest.ProfileSuggestResponseItem:
       properties:

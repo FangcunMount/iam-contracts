@@ -19,7 +19,7 @@ REST 路由统一挂在 `/api/v4/authz`：
 | RoleInheritance | `/api/v4/authz/role-inheritances` | 管理角色继承边 |
 | Resource | `/api/v4/authz/resources` | 管理资源和对象属性 schema |
 
-完整 method/path 以 `api/rest/authz.v3.yaml` 为准。REST 不提供 `/api/v4/authz/check`；需要判定的可信服务调用 gRPC。
+完整 method/path 以 `api/rest/authz.v4.yaml` 为准。REST 不提供 `/api/v4/authz/check`；需要判定的可信服务调用 gRPC。
 
 REST 是控制面，不是请求期权限决策面。若业务服务为了判定而调用 Role/Grant 列表并在本地重新实现 matcher，就会绕过快照、ConstraintSet 和 Decision 语义。
 服务间正确路径见 [gRPC 服务间授权与 SDK](06-关键链路-gRPC服务间授权与SDK.md)。
@@ -71,8 +71,7 @@ AuthZ router 先注册模块局部 health，然后要求 Role handler、JWT `Aut
 
 请求体中的 Subject、角色名或 actor 字符串不能替代传输层认证结果。AuthN middleware 只负责认证并写入可信请求上下文，不持有 Resource/Action，也不执行授权判定。
 
-REST 路由上的 Principal 来自 AuthN token verifier 返回的已验证 claims。JWT middleware 将 UserID、LoginIdentityID、TenantDomain、
-OrgID 和 TokenID 写入 request context。AuthZ `RouteDecisionService` 只使用其中 UserID 构造 `subject.Ref`，
+REST 路由上的 Principal 来自 AuthN token verifier 返回的已验证 claims。JWT middleware 将 UserID、LoginIdentityID、OrgID 和 TokenID 写入 request context。AuthZ `RouteDecisionService` 只使用其中 UserID 构造 `subject.Ref`，
 用 TenantDomain 作为当前 Tenant，再把路由能力转换为领域 `Request`。
 
 这意味着：
@@ -84,7 +83,7 @@ OrgID 和 TokenID 写入 request context。AuthZ `RouteDecisionService` 只使�
 
 ## `RequirePermissionOrGlobal`
 
-Resource 目录写路由使用 `RequirePlatformPermission`，只对 platform 求值；应用服务再次验证可信 actor，保护进程内调用。租户管理员保留 read/list/validate_action，角色名称不构成授权证据。
+Resource 目录写路由使用 `RequirePlatformPermission`，只对 platform 求值；应用服务再次验证可信 actor，保护进程内调用。普通 IAM 管理员保留 read/list/validate_action，角色名称不构成授权证据。
 
 其余采用 `RequirePermissionOrGlobal` 的管理路由授权顺序是：
 
@@ -107,7 +106,7 @@ Resource 目录写路由使用 `RequirePlatformPermission`，只对 platform 求
 AuthZ middleware 还对 `domain_permission`、`global_permission`、`denied`、`unauthenticated`、`error` 做低基数记录。这些结果是路由授权观测，
 不代替 runtime Check 的 allowed/denied/error 指标。
 
-这里没有 `super_admin`、`tenant_admin` 等角色名旁路。当前 bootstrap 通过平台域通配 PermissionGrant 提供全局能力，但中间件代码本身接受平台域内任何匹配 Grant。
+这里没有 `super_admin`、`iam_admin` 等角色名旁路。当前 bootstrap 通过平台域通配 PermissionGrant 提供全局能力，但中间件代码本身接受平台域内任何匹配 Grant。
 若要把“只有平台通配可全局放行”提升为强不变量，需要额外代码或数据门禁。
 
 当前代码注释说平台通配 Grant 是唯一全局授权机制，但实现并未检查 matched Grant 是否通配。所以文档必须以代码行为为准：“平台域中任何匹配的 PermissionGrant 均可放行”；
@@ -176,7 +175,7 @@ Suggest 有两层授权：外层路由先要求当前 Tenant 的 `profiles/searc
 | 事实 | 首要真相源 |
 | --- | --- |
 | 运行时是否注册 method/path | Gin router |
-| 对外 request/response schema | `api/rest/authz.v3.yaml` |
+| 对外 request/response schema | `api/rest/authz.v4.yaml` |
 | 路由需要的 Resource/Action | router middleware 绑定 + permission catalog |
 | 读者导航与边界 | `api/rest/README.md` 与本文 |
 

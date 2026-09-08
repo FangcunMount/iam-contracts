@@ -10,9 +10,9 @@
 | Authorization Evaluator | 资源/动作匹配、属性校验、条件求值和决策解释 |
 | Immutable role graph | 装载 Subject→Role 的 Assignment 与 Role→Role 的继承边，计算有效 Role |
 | Native runtime | 编译并发布不可变快照，维护版本、reload 和运行健康 |
-| transport/application | 建立可信 Subject/Tenant/Resource/Action/ObjectAttributes |
+| transport/application | 建立可信 Subject/Resource/Action/ObjectAttributes |
 
-Assignment 与角色继承组成一个成熟、封闭的图计算问题。当前实现直接使用 `subject.Ref`、`tenant.ID` 和 `role.Name` 构建只读图，保留直接/有效角色、Tenant 隔离、稳定排序、
+Assignment 与角色继承组成一个成熟、封闭的图计算问题。当前实现直接使用 `subject.Ref`、`tenant.ID` 和 `role.Name` 构建只读图，保留直接/有效角色、角色管理保护、稳定排序、
 菱形去重与 32 层边界。PermissionGrant 条件是 IAM 自己的版本化契约，由领域类型、Schema、错误码、审计标识和快照模式显式表达。
 
 ## 2. 为什么最终退役 Casbin

@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	Topic = "iam.authz.version"
+	Topic = "iam.authz.version.v2"
 )
 
 type PolicyVersionEventRecorder interface {

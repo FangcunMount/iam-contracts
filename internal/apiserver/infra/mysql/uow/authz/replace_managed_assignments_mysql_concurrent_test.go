@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
+
 	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/subjectresolver"
 
 	assignmentApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
@@ -44,13 +46,13 @@ func TestReplaceManagedAssignmentsMySQLConcurrentLinearization(t *testing.T) {
 	tenantID := fmt.Sprintf("replace-concurrent-%d", time.Now().UnixNano())
 	userID := meta.FromUint64(uint64(time.Now().UnixNano()%900_000_000 + 100_000_000))
 	t.Cleanup(func() {
-		ctx := context.Background()
+		ctx := management.WithAuthenticatedService(context.Background(), "admin")
 		require.NoError(t, db.WithContext(ctx).Unscoped().Where("tenant_id = ?", tenantID).Delete(&assignmentRepo.AssignmentPO{}).Error)
 		require.NoError(t, db.WithContext(ctx).Unscoped().Where("tenant_id = ?", tenantID).Delete(&roleRepo.RolePO{}).Error)
 		require.NoError(t, db.WithContext(ctx).Unscoped().Where("tenant_id = ?", tenantID).Delete(&policyRepo.PolicyVersionPO{}).Error)
 	})
 
-	ctx := context.Background()
+	ctx := management.WithAuthenticatedService(context.Background(), "admin")
 	roles := roleRepo.NewRoleRepository(db)
 	assignments := assignmentRepo.NewRepository(db)
 	roleByName := seedTenantRoles(t, ctx, roles, "qs:staff", "qs:evaluator")
@@ -68,7 +70,7 @@ func TestReplaceManagedAssignmentsMySQLConcurrentLinearization(t *testing.T) {
 		barrier:  barrier,
 	}
 	validator := assignmentDomain.NewValidator(roles, subjectresolver.NewUserSubjectResolver(existingUserResolver{}))
-	service := assignmentApp.NewCommandService(validator, roles, uow, nil)
+	service := assignmentApp.NewCommandService(validator, roles, uow, nil, management.NewGuard(nil))
 
 	policyVersions := policyRepo.NewPolicyVersionRepository(db)
 	beforeVersion := currentPolicyVersion(t, ctx, policyVersions)

@@ -88,7 +88,7 @@ func (h *RoleInheritanceHandler) Revoke(c *gin.Context) {
 	successNoContent(c)
 }
 
-// List lists active inheritance edges in the tenant.
+// List lists visible active inheritance edges.
 // @Summary 查询角色继承
 // @Description 查询当前租户中的有效角色继承，可按获得能力的角色过滤
 // @ID listRoleInheritances

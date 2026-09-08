@@ -73,7 +73,7 @@ func (s *authorizationServer) Check(ctx context.Context, req *authzv4.CheckReque
 		return nil, status.Error(codes.Unavailable, "authorization runtime is unavailable")
 	}
 	if req == nil || strings.TrimSpace(req.Subject) == "" || strings.TrimSpace(req.Resource) == "" || strings.TrimSpace(req.Action) == "" {
-		return nil, status.Error(codes.InvalidArgument, "subject, domain, resource, and action are required")
+		return nil, status.Error(codes.InvalidArgument, "subject, resource, and action are required")
 	}
 	sub, err := parseSubjectKey(req.Subject)
 	if err != nil {
@@ -106,7 +106,7 @@ func (s *authorizationServer) GetAuthorizationSnapshot(ctx context.Context, req 
 		return nil, status.Error(codes.Unavailable, "authorization snapshot service is unavailable")
 	}
 	if req == nil || strings.TrimSpace(req.Subject) == "" || strings.TrimSpace(req.AppName) == "" {
-		return nil, status.Error(codes.InvalidArgument, "subject, domain, and app_name are required")
+		return nil, status.Error(codes.InvalidArgument, "subject and app_name are required")
 	}
 	sub, err := parseSubjectKey(req.Subject)
 	if err != nil {
@@ -131,7 +131,7 @@ func (s *authorizationServer) GrantAssignment(ctx context.Context, req *authzv4.
 		return nil, status.Error(codes.Unavailable, "assignment service is unavailable")
 	}
 	if req == nil || req.Subject == "" || req.RoleName == "" {
-		return nil, status.Error(codes.InvalidArgument, "subject, domain, and role_name are required")
+		return nil, status.Error(codes.InvalidArgument, "subject and role_name are required")
 	}
 	admissionRequest, err := newAssignmentAdmissionRequest(
 		assignmentadmission.OperationGrant, req.Subject, req.RoleName, req.GrantedBy,
@@ -165,7 +165,7 @@ func (s *authorizationServer) RevokeAssignment(ctx context.Context, req *authzv4
 		return nil, status.Error(codes.Unavailable, "assignment service is unavailable")
 	}
 	if req == nil || req.Subject == "" || req.RoleName == "" {
-		return nil, status.Error(codes.InvalidArgument, "subject, domain, and role_name are required")
+		return nil, status.Error(codes.InvalidArgument, "subject and role_name are required")
 	}
 	admissionRequest, err := newAssignmentAdmissionRequest(
 		assignmentadmission.OperationRevoke, req.Subject, req.RoleName, req.RevokedBy,
@@ -200,7 +200,7 @@ func (s *authorizationServer) ReplaceManagedAssignments(ctx context.Context, req
 		return nil, status.Error(codes.Unavailable, "assignment service is unavailable")
 	}
 	if req == nil || strings.TrimSpace(req.Subject) == "" || strings.TrimSpace(req.ChangedBy) == "" {
-		return nil, status.Error(codes.InvalidArgument, "subject, domain, and changed_by are required")
+		return nil, status.Error(codes.InvalidArgument, "subject and changed_by are required")
 	}
 	replacementRequest, err := replacementAdmissionRequest(req)
 	if err != nil {

@@ -15,9 +15,9 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 SWAGGER_PATH = ROOT / "internal/apiserver/docs/swagger.yaml"
 REST_SPECS = [
-    ROOT / "api/rest/authn.v2.yaml",
+    ROOT / "api/rest/authn.v3.yaml",
     ROOT / "api/rest/identity.v2.yaml",
-    ROOT / "api/rest/authz.v3.yaml",
+    ROOT / "api/rest/authz.v4.yaml",
     ROOT / "api/rest/idp.v2.yaml",
     ROOT / "api/rest/suggest.v2.yaml",
 ]
@@ -95,7 +95,12 @@ def collect_oas_routes(spec: dict) -> set[str]:
         for method in item.keys():
             if method.lower() not in verbs:
                 continue
-            routes.add(f"{method.lower()} {normalize_path(base + p)}")
+            route_base = base
+            overrides = item[method].get("servers") or item.get("servers")
+            if overrides:
+                from urllib.parse import urlsplit
+                route_base = urlsplit(overrides[0]["url"]).path
+            routes.add(f"{method.lower()} {normalize_path(route_base + p)}")
     return routes
 
 

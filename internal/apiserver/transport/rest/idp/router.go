@@ -13,9 +13,9 @@ import (
 
 // Dependencies IDP 模块的依赖
 type Dependencies struct {
-	WechatAppHandler   *handler.WechatAppHandler
-	AuthMiddleware     gin.HandlerFunc
-	PermissionOrGlobal func(resource, action string) gin.HandlerFunc
+	WechatAppHandler *handler.WechatAppHandler
+	AuthMiddleware   gin.HandlerFunc
+	Permission       func(resource, action string) gin.HandlerFunc
 	// WechatAuthHandler 已移除 - 认证功能由 authn 模块统一提供
 }
 
@@ -48,39 +48,39 @@ func Register(engine *gin.Engine, deps Dependencies) {
 
 		// ============ 微信应用管理 ============
 		wechatApps := idpGroup.Group("/wechat-apps")
-		if deps.AuthMiddleware == nil || deps.PermissionOrGlobal == nil {
+		if deps.AuthMiddleware == nil || deps.Permission == nil {
 			log.Warn("IDP wechat-app management routes are not registered because admin middlewares are unavailable")
 			return
 		}
 		wechatApps.Use(deps.AuthMiddleware)
 		{
 			// 列表查询
-			wechatApps.GET("", deps.PermissionOrGlobal(authzapp.ResourceWechatApps, authzapp.ActionList), deps.WechatAppHandler.ListWechatApps)
+			wechatApps.GET("", deps.Permission(authzapp.ResourceWechatApps, authzapp.ActionList), deps.WechatAppHandler.ListWechatApps)
 
 			// 创建微信应用
-			wechatApps.POST("", deps.PermissionOrGlobal(authzapp.ResourceWechatApps, authzapp.ActionCreate), deps.WechatAppHandler.CreateWechatApp)
+			wechatApps.POST("", deps.Permission(authzapp.ResourceWechatApps, authzapp.ActionCreate), deps.WechatAppHandler.CreateWechatApp)
 
 			// 查询微信应用
-			wechatApps.GET("/:app_id", deps.PermissionOrGlobal(authzapp.ResourceWechatApps, authzapp.ActionRead), deps.WechatAppHandler.GetWechatApp)
+			wechatApps.GET("/:app_id", deps.Permission(authzapp.ResourceWechatApps, authzapp.ActionRead), deps.WechatAppHandler.GetWechatApp)
 
 			// 更新微信应用基础信息
-			wechatApps.PATCH("/:app_id", deps.PermissionOrGlobal(authzapp.ResourceWechatApps, authzapp.ActionUpdate), deps.WechatAppHandler.UpdateWechatApp)
+			wechatApps.PATCH("/:app_id", deps.Permission(authzapp.ResourceWechatApps, authzapp.ActionUpdate), deps.WechatAppHandler.UpdateWechatApp)
 
 			// 启用/禁用微信应用
-			wechatApps.POST("/:app_id/enable", deps.PermissionOrGlobal(authzapp.ResourceWechatApps, "enable"), deps.WechatAppHandler.EnableWechatApp)
-			wechatApps.POST("/:app_id/disable", deps.PermissionOrGlobal(authzapp.ResourceWechatApps, "disable"), deps.WechatAppHandler.DisableWechatApp)
+			wechatApps.POST("/:app_id/enable", deps.Permission(authzapp.ResourceWechatApps, "enable"), deps.WechatAppHandler.EnableWechatApp)
+			wechatApps.POST("/:app_id/disable", deps.Permission(authzapp.ResourceWechatApps, "disable"), deps.WechatAppHandler.DisableWechatApp)
 
 			// 获取访问令牌
-			wechatApps.GET("/:app_id/access-token", deps.PermissionOrGlobal(authzapp.ResourceWechatApps, "get_access_token"), deps.WechatAppHandler.GetAccessToken)
+			wechatApps.GET("/:app_id/access-token", deps.Permission(authzapp.ResourceWechatApps, "get_access_token"), deps.WechatAppHandler.GetAccessToken)
 
 			// 轮换认证密钥
-			wechatApps.POST("/rotate-auth-secret", deps.PermissionOrGlobal(authzapp.ResourceWechatApps, "rotate_auth_secret"), deps.WechatAppHandler.RotateAuthSecret)
+			wechatApps.POST("/rotate-auth-secret", deps.Permission(authzapp.ResourceWechatApps, "rotate_auth_secret"), deps.WechatAppHandler.RotateAuthSecret)
 
 			// 轮换消息密钥
-			wechatApps.POST("/rotate-msg-secret", deps.PermissionOrGlobal(authzapp.ResourceWechatApps, "rotate_msg_secret"), deps.WechatAppHandler.RotateMsgSecret)
+			wechatApps.POST("/rotate-msg-secret", deps.Permission(authzapp.ResourceWechatApps, "rotate_msg_secret"), deps.WechatAppHandler.RotateMsgSecret)
 
 			// 刷新访问令牌
-			wechatApps.POST("/refresh-access-token", deps.PermissionOrGlobal(authzapp.ResourceWechatApps, "refresh_access_token"), deps.WechatAppHandler.RefreshAccessToken)
+			wechatApps.POST("/refresh-access-token", deps.Permission(authzapp.ResourceWechatApps, "refresh_access_token"), deps.WechatAppHandler.RefreshAccessToken)
 		}
 	}
 }

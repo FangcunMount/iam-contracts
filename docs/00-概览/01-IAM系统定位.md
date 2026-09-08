@@ -319,7 +319,7 @@ IAM 的 AuthZ 需要解决：
 资源如何建模；
 Action 和受信 ObjectAttributes 如何参与判定；
 Role 如何聚合 PermissionGrant；
-Assignment 如何表达 Subject 在 Tenant 内持有 Role；
+Assignment 如何表达 Subject 持有 Role；
 RoleInheritance 如何复用角色能力；
 ConstraintSet 如何限制对象级 Grant；
 Check 如何在运行时快速判定；

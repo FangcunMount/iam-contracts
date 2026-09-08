@@ -9,29 +9,28 @@ import (
 	appquery "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/queryprofile"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/visibility"
 	suggestauthz "github.com/FangcunMount/iam/v5/internal/apiserver/infra/suggest/authorization"
-	"github.com/FangcunMount/iam/v5/pkg/tenant"
 )
 
 type stubRouteAuth struct {
-	allowPlatformProfiles bool
-	allowPlatformMobile   bool
-	allowTenantMobile     bool
-	err                   error
+	allowAllProfiles  bool
+	allowAllMobile    bool
+	allowScopedMobile bool
+	err               error
 }
 
-func (s stubRouteAuth) CheckRoutePermission(_ context.Context, _, domain, _, action string) (bool, error) {
+func (s stubRouteAuth) CheckRoutePermission(_ context.Context, _, _, action string) (bool, error) {
 	if s.err != nil {
 		return false, s.err
 	}
-	if domain == tenant.PlatformID {
-		if action == appquery.ActionList {
-			return s.allowPlatformProfiles, nil
-		}
-		if action == appquery.ActionSearchByMobile {
-			return s.allowPlatformMobile, nil
-		}
+	switch action {
+	case "list_all":
+		return s.allowAllProfiles, nil
+	case "search_by_mobile_all":
+		return s.allowAllMobile, nil
+	case appquery.ActionSearchByMobile:
+		return s.allowScopedMobile, nil
 	}
-	return action == appquery.ActionSearchByMobile && s.allowTenantMobile, nil
+	return false, nil
 }
 
 var _ authorizationapp.RoutePermissionChecker = stubRouteAuth{}
@@ -47,10 +46,10 @@ func TestFactsReaderNilReturnsEmpty(t *testing.T) {
 	}
 }
 
-func TestFactsReaderPlatformProfilePermission(t *testing.T) {
+func TestFactsReaderAllProfilePermission(t *testing.T) {
 	r := suggestauthz.NewFactsReader(stubRouteAuth{
-		allowPlatformProfiles: true,
-		allowPlatformMobile:   true,
+		allowAllProfiles: true,
+		allowAllMobile:   true,
 	})
 	facts, err := r.ReadAuthorizationFacts(context.Background(), visibility.Principal{
 		OperatorID: 100,
@@ -63,8 +62,8 @@ func TestFactsReaderPlatformProfilePermission(t *testing.T) {
 	}
 }
 
-func TestFactsReaderTenantMobilePermission(t *testing.T) {
-	r := suggestauthz.NewFactsReader(stubRouteAuth{allowTenantMobile: true})
+func TestFactsReaderScopedMobilePermission(t *testing.T) {
+	r := suggestauthz.NewFactsReader(stubRouteAuth{allowScopedMobile: true})
 	facts, err := r.ReadAuthorizationFacts(context.Background(), visibility.Principal{
 		OperatorID: 100,
 	})
@@ -100,11 +99,11 @@ func TestFactsReaderCheckerErrorFails(t *testing.T) {
 	}
 }
 
-func TestFactsReaderPlatformMobileExclusiveFromTenantMobile(t *testing.T) {
+func TestFactsReaderAllMobileSeparateFromScopedMobile(t *testing.T) {
 	r := suggestauthz.NewFactsReader(stubRouteAuth{
-		allowPlatformProfiles: true,
-		allowPlatformMobile:   true,
-		allowTenantMobile:     false,
+		allowAllProfiles:  true,
+		allowAllMobile:    true,
+		allowScopedMobile: false,
 	})
 	facts, err := r.ReadAuthorizationFacts(context.Background(), visibility.Principal{
 		OperatorID: 100,

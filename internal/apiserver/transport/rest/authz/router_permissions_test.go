@@ -23,7 +23,7 @@ func TestRegisterBindsAuthzRoutesToExplicitPermissions(t *testing.T) {
 		RoleInheritanceHandler: handler.NewRoleInheritanceHandler(nil),
 		ResourceHandler:        handler.NewResourceHandler(nil, nil),
 		AuthMiddleware:         func(c *gin.Context) { c.Next() },
-		PermissionOrGlobal:     permission,
+		Permission:             permission,
 	})
 
 	for _, key := range []string{

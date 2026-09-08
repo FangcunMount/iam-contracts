@@ -85,7 +85,7 @@ func (a Assignment) SubjectTypeString() string {
 	return string(a.SubjectType)
 }
 
-// Fact states that a subject holds a role inside a tenant.
+// Fact states that a subject holds a role in the unified role space.
 type Fact struct {
 	Subject  subject.Ref
 	RoleName role.Name

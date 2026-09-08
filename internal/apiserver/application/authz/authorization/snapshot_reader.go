@@ -29,7 +29,7 @@ func (r *SnapshotReader) Read(ctx context.Context, sub subject.Ref, appName stri
 		return SubjectSnapshot{}, perrors.WithCode(code.ErrInternalServerError, "authorization runtime is unavailable")
 	}
 	if sub.IsZero() || strings.TrimSpace(appName) == "" {
-		return SubjectSnapshot{}, perrors.WithCode(code.ErrInvalidArgument, "subject, tenant id, and app name are required")
+		return SubjectSnapshot{}, perrors.WithCode(code.ErrInvalidArgument, "主体和应用名称必填")
 	}
 	return r.runtime.GetAuthorizationSnapshot(ctx, sub, appName)
 }

@@ -80,7 +80,7 @@ func BuildSnapshot(dataset Dataset, loadedAt time.Time, providers ...objectattri
 	for _, assignment := range dataset.Assignments {
 		_, ok := roleByID[assignment.RoleID]
 		if !ok {
-			return nil, perrors.WithCode(code.ErrInvalidArgument, "assignment references an unknown or cross-tenant role")
+			return nil, perrors.WithCode(code.ErrInvalidArgument, "角色分配引用了不存在的角色")
 		}
 		sub, err := subject.ParseRef(assignment.SubjectKey)
 		if err != nil {
@@ -103,7 +103,7 @@ func BuildSnapshot(dataset Dataset, loadedAt time.Time, providers ...objectattri
 		}
 		roleRecord, ok := roleByID[grant.RoleID]
 		if !ok {
-			return nil, perrors.WithCode(code.ErrInvalidArgument, "permission grant references an unknown or cross-tenant role")
+			return nil, perrors.WithCode(code.ErrInvalidArgument, "权限授予引用了不存在的角色")
 		}
 		if err := (role.Role{ManagementProtection: roleRecord.ManagementProtection}).ValidateGrant(grant.ResourcePattern, grant.Action); err != nil {
 			return nil, err

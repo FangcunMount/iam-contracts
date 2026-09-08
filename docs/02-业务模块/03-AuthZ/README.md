@@ -32,7 +32,7 @@ AuthZ 回答一个问题：可信 Subject 在某个 Tenant 中，是否可以对
 
 ### 二、领域模型设计
 
-2. [领域模型设计](01-领域模型设计.md)：深入 Subject、Tenant、Role、Assignment、RoleInheritance、PermissionGrant、Resource、
+2. [领域模型设计](01-领域模型设计.md)：深入 Subject、Role、Assignment、RoleInheritance、PermissionGrant、Resource、
    ConstraintSet 和 ObjectAttributes 的责任与不变量。
 
 ### 三、关键链路分析
@@ -54,7 +54,7 @@ AuthZ 回答一个问题：可信 Subject 在某个 Tenant 中，是否可以对
 
 | 问题 | 当前答案 | 深入位置 |
 | --- | --- | --- |
-| 权限事实由谁拥有 | MySQL 中的 AuthZ v3 表；业务对象事实留在业务模块 | 00、01 |
+| 权限事实由谁拥有 | MySQL 中的 AuthZ v4 表；业务对象事实留在业务模块 | 00、01 |
 | Subject 为什么能得到某个 Role | 直接 Assignment，加 RoleInheritance 闭包 | 01、02 |
 | Role 为什么能执行动作 | 命中 PermissionGrant 的 Resource/Action，且条件满足 | 01、02 |
 | 对象属性为什么可信 | gRPC transport 按调用服务与资源白名单接收，业务服务负责加载对象 | 00、02、06、07 |
@@ -102,7 +102,7 @@ REST v3 / Assignment gRPC
 | 四段 Resource | 跨应用命名稳定，通配规则可审计 | 资源命名必须前置治理 |
 | 类型化 ConstraintSet v1 | 条件可校验、可版本化、可解释 | 当前只有 `eq`、`all_of` 和最多 8 个谓词 |
 | 不可变全量快照 | 请求期无锁读，失败不发布半快照 | reload 成本与多实例滞后需要运维治理 |
-| 自有不可变角色图 | 类型化表达继承闭包，权限语义和运行时实现均归 IAM | 需要自行保护深度边界、去重与 Tenant 隔离 |
+| 自有不可变角色图 | 类型化表达继承闭包，权限语义和运行时实现均归 IAM | 需要自行保护深度边界、去重与 角色管理保护 |
 | durable version event | 数据提交与通知记录同事务 | 不是跨实例同步 barrier，仍是最终一致 |
 | 受管 Assignment 替换 | 一个服务只能覆盖自己的角色集合 | constraints 配置和并发语义更复杂 |
 
@@ -112,7 +112,7 @@ REST v3 / Assignment gRPC
 
 ```text
 默认拒绝；
-Tenant 隔离；
+角色管理保护；
 Assignment 与 RoleInheritance 不混淆；
 继承图无环；
 direct roles 与 effective roles 不混淆；

@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestReloadRejectsTenantVersionRegression(t *testing.T) {
+func TestReloadRejectsGlobalVersionRegression(t *testing.T) {
 	source := &mutableSource{dataset: assessmentDataset(t)}
 	runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(authzfixture.Policy()))
 	require.NoError(t, err)
@@ -62,7 +62,7 @@ func (s *durableSource) Load(ctx context.Context) (authzruntime.Dataset, error) 
 func (s *durableSource) ReadVersion(ctx context.Context) (int64, error) {
 	if s.read != nil {
 		if err := s.read(ctx); err != nil {
-			return nil, err
+			return 0, err
 		}
 	}
 	return s.version, nil

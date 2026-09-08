@@ -15,7 +15,7 @@ func TestRegisterBindsJWKSAdminRoutesToExplicitActions(t *testing.T) {
 	Register(gin.New(), Dependencies{
 		JWKSHandler:    handler.NewJWKSHandler(nil, nil, nil),
 		AuthMiddleware: func(c *gin.Context) { c.Next() },
-		PermissionOrGlobal: func(resource, action string) gin.HandlerFunc {
+		Permission: func(resource, action string) gin.HandlerFunc {
 			captured[resource+"/"+action]++
 			return func(c *gin.Context) { c.Next() }
 		},

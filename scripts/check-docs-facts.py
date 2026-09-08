@@ -135,7 +135,7 @@ def check_generated_document_facts() -> None:
                 f"documented={documented_services[relative]} actual={services}"
             )
 
-    authz_contract = load_yaml("api/rest/authz.v3.yaml")
+    authz_contract = load_yaml("api/rest/authz.v4.yaml")
     authz_base = openapi_server_path(authz_contract)
     authz_paths = {
         authz_base + path: operations
@@ -407,7 +407,8 @@ def check_generated_document_facts() -> None:
         contract = load_yaml(str(contract_path.relative_to(ROOT)))
         base = openapi_server_path(contract)
         for route, operations in contract.get("paths", {}).items():
-            openapi_paths.setdefault(base + route, set()).update(
+            route_base = openapi_server_path(operations) if operations.get("servers") else base
+            openapi_paths.setdefault(route_base + route, set()).update(
                 method.lower()
                 for method in operations
                 if method.lower() in {"get", "post", "put", "patch", "delete"}
@@ -554,8 +555,8 @@ def check_migrations() -> None:
     }
     if up != down:
         fail(f"migration up/down numbers differ: up-only={sorted(up-down)} down-only={sorted(down-up)}")
-    if not up or max(up) != 30:
-        fail(f"documented latest migration is 30, repository has {max(up) if up else 'none'}")
+    if not up or max(up) != 32:
+        fail(f"documented latest migration is 32, repository has {max(up) if up else 'none'}")
     migration = (directory / "000016_jwks_single_active_guard.up.sql").read_text(encoding="utf-8")
     for token in ("active_guard", "uk_jwks_keys_single_active"):
         if token not in migration:
@@ -947,7 +948,7 @@ def check_database_operations_facts() -> None:
         "IAM_DB_OPS_ALLOW_DOCKER_CLIENT",
         "mysql:8.0",
         "retired_tables_present=",
-        "expected_version=30",
+        "expected_version=32",
         "performance schema capability:",
         "sys_table_statistics_select=",
         "rds_table_statistics_enabled=",

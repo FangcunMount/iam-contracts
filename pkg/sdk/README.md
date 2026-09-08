@@ -12,7 +12,7 @@
 - `pkg/sdk/auth/challenge`
 - `pkg/sdk/auth/jwks`
 - `pkg/sdk/auth/loginidentity`
-- `pkg/sdk/auth/loginv2`
+- `pkg/sdk/auth/loginv3`
 - `pkg/sdk/auth/verifier`
 - `pkg/sdk/auth/signup`
 - `pkg/sdk/authz`
@@ -51,7 +51,7 @@ pkg/sdk/
 │   ├── client/
 │   ├── jwks/
 │   ├── loginidentity/
-│   ├── loginv2/
+│   ├── loginv3/
 │   ├── signup/
 │   ├── verifier/
 ├── authz/                     # 授权判定 client
@@ -137,7 +137,7 @@ import (
     authclient "github.com/FangcunMount/iam/v5/pkg/sdk/auth/client"
     authjwks "github.com/FangcunMount/iam/v5/pkg/sdk/auth/jwks"
     authloginidentity "github.com/FangcunMount/iam/v5/pkg/sdk/auth/loginidentity"
-    authloginv2 "github.com/FangcunMount/iam/v5/pkg/sdk/auth/loginv2"
+    authloginv3 "github.com/FangcunMount/iam/v5/pkg/sdk/auth/loginv3"
     authsignup "github.com/FangcunMount/iam/v5/pkg/sdk/auth/signup"
     authverifier "github.com/FangcunMount/iam/v5/pkg/sdk/auth/verifier"
 )
@@ -145,7 +145,7 @@ import (
 _ = authclient.NewClient
 _ = authjwks.NewJWKSManager
 _ = authloginidentity.NewClient
-_ = authloginv2.NewClient
+_ = authloginv3.NewClient
 _ = authsignup.NewClient
 _ = authverifier.NewTokenVerifier
 ```
@@ -307,7 +307,7 @@ client, err := sdk.NewClient(ctx, &sdk.Config{
 | 模块 | 设计重点 | 说明 |
 | ---- | ---- | ---- |
 | `pkg/sdk` | 统一接入入口 | `sdk.Client` 负责装配连接与子客户端 |
-| `auth/loginv2` | REST v2 显式登录 | 覆盖 `/api/v3/authn/login`；gRPC 登录走 `auth/client` |
+| `auth/loginv3` | REST v2 显式登录 | 覆盖 `/api/v3/authn/login`；gRPC 登录走 `auth/client` |
 | `auth/jwks` | Chain of Responsibility | Cache → HTTP → gRPC → Seed |
 | `auth/verifier` | Strategy | Local / Remote / Fallback / Cache |
 | `identity` | 拆分式 Identity SDK | `Client` 负责 User / IdentityRead / IdentityLifecycle；`ProfileClient` 负责 ProfileCommand；`ProfileLinkClient` 负责 ProfileLink query/command |
@@ -321,7 +321,7 @@ client, err := sdk.NewClient(ctx, &sdk.Config{
 - 历史 v2 import `github.com/FangcunMount/iam/v2/pkg/sdk/transport` 已删除
 - 历史 v2 import `github.com/FangcunMount/iam/v2/pkg/sdk/observability` 已删除
 - `pkg/sdk/errors` 的高级分析 / matcher / handler API 已收回内部
-- `pkg/sdk/auth/loginv2` 是 REST AuthN v2 显式登录入口；`pkg/sdk/auth/client` 已对齐 gRPC v2 Login/token/JWKS/onboarding 契约
+- `pkg/sdk/auth/loginv3` 是 REST AuthN v2 显式登录入口；`pkg/sdk/auth/client` 已对齐 gRPC v2 Login/token/JWKS/onboarding 契约
 - `pkg/sdk/idp` 已对齐 v2 WeChat app 查询与 access token 获取/刷新契约
 - `pkg/sdk/identity` 保持拆分式客户端：`Client`、`ProfileClient`、`ProfileLinkClient`；ProfileLink 查询支持 `include_revoked`
 

@@ -42,9 +42,9 @@ func (r *Router) registerAuthnRoutes(engine *gin.Engine, deps routeDependencies,
 		if authMiddleware != nil {
 			authRequired = authMiddleware.AuthRequired()
 		}
-		var permissionOrGlobal func(resource, action string) gin.HandlerFunc
+		var permission func(resource, action string) gin.HandlerFunc
 		if authorizationMiddleware != nil {
-			permissionOrGlobal = authorizationMiddleware.RequirePermission
+			permission = authorizationMiddleware.RequirePermission
 		}
 		authnDeps := authnhttp.Dependencies{
 			AuthHandler:            deps.authn.AuthHandler,
@@ -53,7 +53,7 @@ func (r *Router) registerAuthnRoutes(engine *gin.Engine, deps routeDependencies,
 			WechatOpenLoginHandler: deps.authn.WechatOpenLoginHandler,
 			JWKSHandler:            deps.authn.JWKSHandler,
 			AuthMiddleware:         authRequired,
-			PermissionOrGlobal:     permissionOrGlobal,
+			Permission:             permission,
 		}
 		authnhttp.Register(engine, authnDeps)
 		if r.deps.SeedMockAuth.Enabled {
@@ -81,8 +81,7 @@ func (r *Router) registerAuthzRoutes(engine *gin.Engine, deps AuthzDeps, authMid
 			RoleInheritanceHandler: deps.RoleInheritanceHandler,
 			ResourceHandler:        deps.ResourceHandler,
 			AuthMiddleware:         authMiddleware.AuthRequired(),
-			PermissionOrGlobal:     authorizationMiddleware.RequirePermission,
-			PlatformPermission:     authorizationMiddleware.RequirePermission,
+			Permission:             authorizationMiddleware.RequirePermission,
 		})
 		log.Info("✅ Authz module routes registered")
 		return
@@ -98,9 +97,9 @@ func (r *Router) registerAuthzRoutes(engine *gin.Engine, deps AuthzDeps, authMid
 func (r *Router) registerIDPRoutes(engine *gin.Engine, deps routeDependencies, authMiddleware *authnMiddleware.JWTAuthMiddleware, authorizationMiddleware *authzMiddleware.Middleware) {
 	if r.deps.ModuleStatus.idpAvailable() && deps.idp.WechatAppHandler != nil && authMiddleware != nil && authorizationMiddleware != nil {
 		idphttp.Register(engine, idphttp.Dependencies{
-			WechatAppHandler:   deps.idp.WechatAppHandler,
-			AuthMiddleware:     authMiddleware.AuthRequired(),
-			PermissionOrGlobal: authorizationMiddleware.RequirePermission,
+			WechatAppHandler: deps.idp.WechatAppHandler,
+			AuthMiddleware:   authMiddleware.AuthRequired(),
+			Permission:       authorizationMiddleware.RequirePermission,
 		})
 		log.Info("✅ IDP module routes registered")
 		return

@@ -51,7 +51,6 @@ func TestSnapshotReaderDelegatesValidQuery(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, runtime.snapshot, snapshot)
 	require.Equal(t, sub, runtime.subject)
-	require.Equal(t, "fangcun", runtime.tenantID)
 	require.Equal(t, "qs", runtime.appName)
 }
 
@@ -67,7 +66,6 @@ func (s *decisionRuntimeStub) Check(_ context.Context, request authorizationdoma
 
 type snapshotRuntimeStub struct {
 	subject  subject.Ref
-	tenantID string
 	appName  string
 	snapshot authorizationapp.SubjectSnapshot
 }
@@ -79,7 +77,6 @@ func (s *snapshotRuntimeStub) GetAuthorizationSnapshot(
 	appName string,
 ) (authorizationapp.SubjectSnapshot, error) {
 	s.subject = sub
-	s.tenantID = tenantID
 	s.appName = appName
 	return s.snapshot, nil
 }

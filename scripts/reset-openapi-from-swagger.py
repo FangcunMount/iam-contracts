@@ -9,6 +9,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -18,8 +19,8 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_SWAGGER = ROOT / "internal/apiserver/docs/swagger.yaml"
 SPEC_PATHS = {
-    "authn": ROOT / "api/rest/authn.v2.yaml",
-    "authz": ROOT / "api/rest/authz.v3.yaml",
+    "authn": ROOT / "api/rest/authn.v3.yaml",
+    "authz": ROOT / "api/rest/authz.v4.yaml",
     "identity": ROOT / "api/rest/identity.v2.yaml",
     "idp": ROOT / "api/rest/idp.v2.yaml",
     "suggest": ROOT / "api/rest/suggest.v2.yaml",
@@ -51,6 +52,8 @@ def map_path(path: str) -> str:
         path = path[len("/v2") :] or "/"
     elif path.startswith("/v3/") or path == "/v3":
         path = path[len("/v3") :] or "/"
+    elif path.startswith("/v4/") or path == "/v4":
+        path = path[len("/v4") :] or "/"
     if path == "/.well-known/jwks.json":
         return path
     if path.startswith("/admin/jwks/"):
@@ -334,6 +337,16 @@ def main() -> int:
     for module, spec_path in SPEC_PATHS.items():
         spec = load_yaml(spec_path)
         spec["paths"] = module_paths[module]
+        if module in ("authn", "authz"):
+            version = "3" if module == "authn" else "4"
+            spec["info"]["version"] = version + ".0.0"
+            for server in spec.get("servers", []):
+                server["url"] = re.sub(r"/api/v\d+", "/api/v" + version, server["url"])
+        if module == "authn" and "/.well-known/jwks.json" in spec["paths"]:
+            spec["paths"]["/.well-known/jwks.json"]["servers"] = [
+                {"url": re.sub(r"/api/v\d+", "/api/v2", server["url"])}
+                for server in spec.get("servers", [])
+            ]
         spec_tags = spec.get("tags", [])
         spec["tags"] = merge_tags(spec_tags, sorted(all_tags[module]))
 

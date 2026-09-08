@@ -41,6 +41,10 @@ func run(args []string, output io.Writer) error {
 		return errors.New("a maintenance subcommand is required")
 	}
 	switch args[0] {
+	case "purge-login-state":
+		return runPurgeLoginState(args[1:], output)
+	case "tenant-retirement":
+		return runTenantRetirement(args[1:], output)
 	case "purge-refresh-tokens":
 		return runPurgeRefreshTokens(args[1:], output)
 	case "dispose-sensitive-logs":
@@ -59,6 +63,15 @@ func authzConvergeDatabaseFromEnvironment() (*gorm.DB, error) {
 	port, err := envInt("MYSQL_PORT", 3306)
 	if err != nil {
 		return nil, err
+	}
+	if parsedHost, parsedPort, splitErr := net.SplitHostPort(host); splitErr == nil {
+		host = parsedHost
+		if strings.TrimSpace(os.Getenv("MYSQL_PORT")) == "" {
+			port, err = strconv.Atoi(parsedPort)
+			if err != nil {
+				return nil, errors.New("authorization database connection environment is invalid")
+			}
+		}
 	}
 	username := strings.TrimSpace(firstEnvironment("MYSQL_USER", "MYSQL_USERNAME"))
 	password := firstEnvironment("MYSQL_PASSWORD")

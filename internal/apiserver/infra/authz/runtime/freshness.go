@@ -53,7 +53,7 @@ func (r *Runtime) confirm(snapshot *Snapshot, began time.Time) {
 	r.current.CompareAndSwap(snapshot, &confirmed)
 }
 
-// Reconcile reads durable versions, including tenants whose notification was lost.
+// Reconcile reads durable versions, recovering lost notifications.
 func (r *Runtime) Reconcile(ctx context.Context) (resultErr error) {
 	defer func() {
 		r.health.mu.Lock()

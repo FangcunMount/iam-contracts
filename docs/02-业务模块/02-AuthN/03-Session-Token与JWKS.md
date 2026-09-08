@@ -42,7 +42,7 @@ JWT 负责可验证声明，Redis 负责在线撤销和续期状态，MySQL 负�
 4. 把 RefreshToken 保存到 Redis；
 5. 返回 `登录结果 = Principal + TokenPair`。
 
-Access token 由当前 active RS256 key 签名，payload 是类型化投影（含 `user_id`/`login_identity_id`/`sid`/`tenant_id`/`amr`/`auth_time` 等）。
+Access token 由当前 active RS256 key 签名，payload 是类型化投影（含 `user_id`/`login_identity_id`/`sid`/`amr`/`auth_time` 等）。
 JWT 可读但不保证机密；敏感字段默认不进入 access JWT。Refresh token 是不透明随机值，服务端只保存轮换/重放检测与 Session 关联；
 认证上下文与允许续期的投影以 Session 为权威来源。
 
@@ -74,7 +74,7 @@ Session 创建成功后，若 mint 返回错误或不完整的 TokenSet，或 `S
 Session 在 Redis 中除主记录外，还维护按 User 和 LoginIdentity 的索引，以支持“退出全部设备”、禁用身份和封禁用户后的批量撤销。多键更新使用 WATCH 重试，失败必须显式返回，不能假装部分索引已经一致。
 
 新 Session 只保存强类型 `AuthContext` 与 `TokenContext`：前者持有 Method/Realm/AMR/AuthenticatedAt，后者只持有
-TenantDomain、OrgID 和准入后的 Attributes。Redis `schema_version=2` 不再写 `AuthMethod/Realm/AMR/SessionClaims`
+OrgID 和准入后的 Attributes。Redis `schema_version=2` 不再写 `AuthMethod/Realm/AMR/SessionClaims`
 副本；读取历史 v1 JSON 时由 Redis adapter 映射为新模型，手机号和 provider 标识不会进入新的 TokenContext。
 
 ## 4. Refresh Token Rotation
@@ -259,7 +259,7 @@ REST/gRPC VerifyToken 及直接应用调用均要求 ExpectedAudience：缺失�
 
 IAM 中间件使用 `auth.resource_audience`（默认 iam-api），启动时要求该值存在于签发列表。默认新令牌包含 iam-api、qs-api、collection-api。按一次切换发布：旧令牌缺少 iam-api 时不能访问 IAM 受保护资源，可用有效 RefreshToken 换取新令牌，否则重新登录；不添加跳过受众校验的开关。
 
-JWT Go 字段 TenantDomain 仍使用历史 JSON 名 tenant_id，AuthN 不再保存数值 TenantID。NewRefreshToken 只接收明确期限与令牌自身信息；RestoreRefreshToken 独立恢复旧 Redis 快照。旧存储没有 issued_at，恢复保留原先读取时赋值的兼容行为，不将其视为历史签发时间证据。
+JWT 仅映射身份、会话、OrgID、受众与时间事实。NewRefreshToken 接收明确期限与令牌信息；RestoreRefreshToken 保留仍有用途的旧 Redis 兼容数据，不恢复授权隔离快照。旧存储缺少 issued_at，其读取时间不能作为历史签发时间证据。
 
 PublicJWK.ValidateStructure 与 JWKS.ValidateStructure 检查公开结构，允许空 JWKS；ValidateSigningProfile 要求 IAM 的 RSA/RS256、sig 与 kid。密钥生命周期继续决定可签名、验签和发布状态。JWKSPublisher 负责公开投影与发布缓存，空集合与非空集合统一更新 ETag 和快照，结构有效不代表当前可提供验签密钥。
 

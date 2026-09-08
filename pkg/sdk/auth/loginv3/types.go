@@ -1,5 +1,5 @@
-// Package loginv2 provides the REST AuthN v2 explicit login client.
-package loginv2
+// Package loginv3 provides the REST AuthN v3 explicit login client.
+package loginv3
 
 import (
 	"encoding/json"

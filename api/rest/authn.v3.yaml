@@ -1,16 +1,16 @@
 openapi: 3.1.0
 info:
   title: IAM · AuthN API v2（认证中心）
-  version: 2.0.0
+  version: 3.0.0
   description: 身份认证、令牌生命周期、登录身份开通与 JWKS REST API。公开登录入口使用 auth_method + method_payload 显式 v2 契约。
   contact:
     name: API Support
     email: yshujie@163.com
     url: https://github.com/FangcunMount/iam
 servers:
-- url: https://iam.fangcunmount.cn/api/v2
+- url: https://iam.fangcunmount.cn/api/v3
   description: Production
-- url: http://localhost:18081/api/v2
+- url: http://localhost:18081/api/v3
   description: Local Dev
 security:
 - bearerAuth: []
@@ -54,6 +54,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+    servers:
+    - url: https://iam.fangcunmount.cn/api/v2
+    - url: http://localhost:18081/api/v2
   /authn/admin/jwks/keys:
     get:
       tags:
@@ -392,6 +395,7 @@ paths:
                   method_payload:
                     username: admin@example.com
                     password: Admin@123
+                    tenant_id: 1
               phone_otp:
                 value:
                   auth_method: phone_otp
@@ -786,27 +790,6 @@ components:
           schema:
             $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
   schemas:
-    github_com_FangcunMount_iam_v2_internal_apiserver_application_authn_jwks.PublicJWK:
-      properties:
-        alg:
-          type: string
-        crv:
-          type: string
-        e:
-          type: string
-        kid:
-          type: string
-        kty:
-          type: string
-        n:
-          type: string
-        use:
-          type: string
-        x:
-          type: string
-        y:
-          type: string
-      type: object
     github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.CreateKeyRequest:
       properties:
         algorithm:
@@ -947,9 +930,9 @@ components:
         access_token:
           type: string
         expected_audience:
-          minItems: 1
           items:
             type: string
+          minItems: 1
           type: array
         expected_issuer:
           type: string
@@ -987,7 +970,7 @@ components:
           type: string
         publicJwk:
           allOf:
-          - $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_application_authn_jwks.PublicJWK'
+          - $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.PublicJWK'
           description: 公钥 JWK
         status:
           description: 密钥状态
@@ -1032,7 +1015,7 @@ components:
           type: string
         publicJwk:
           allOf:
-          - $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_application_authn_jwks.PublicJWK'
+          - $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.PublicJWK'
           description: 公钥 JWK
         status:
           description: 密钥状态 (active, grace, retired)
@@ -1079,6 +1062,27 @@ components:
         message:
           type: string
       type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.PublicJWK:
+      properties:
+        alg:
+          type: string
+        crv:
+          type: string
+        e:
+          type: string
+        kid:
+          type: string
+        kty:
+          type: string
+        n:
+          type: string
+        use:
+          type: string
+        x:
+          type: string
+        y:
+          type: string
+      type: object
     github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.PublishableKeyInfo:
       properties:
         algorithm:
@@ -1095,7 +1099,7 @@ components:
           type: string
         publicJwk:
           allOf:
-          - $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_application_authn_jwks.PublicJWK'
+          - $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.PublicJWK'
           description: 公钥 JWK
         status:
           description: 密钥状态
@@ -1172,7 +1176,7 @@ components:
           description: 生效时间
           type: string
         org_id:
-          description: 业务组织 ID
+          description: IAM 授权域
           type: string
         session_id:
           description: 会话 ID
@@ -1180,11 +1184,8 @@ components:
         subject:
           description: 主体
           type: string
-        tenant_domain:
-          description: IAM 授权域
-          type: string
         token_type:
-          description: access/service
+          description: access
           type: string
         user_id:
           description: 用户 ID

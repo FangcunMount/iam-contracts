@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
+
 	assignmentapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/testutil"
 	assignmentdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
@@ -31,13 +33,13 @@ func (rejectedEvent) Stage(context.Context, ...event.DomainEvent) error {
 func TestIDAndNameGrantShareResolverTransactionAndRollback(t *testing.T) {
 	resolver := &recordingResolver{}
 	fixture := testutil.NewAssignmentFixture(t, resolver)
-	ctx := context.Background()
+	ctx := management.WithAuthenticatedService(context.Background(), "admin")
 	roles := fixture.Roles
 	r, err := role.NewRole("reader", "Reader")
 	require.NoError(t, err)
 	require.NoError(t, roles.Create(ctx, &r))
 	validator := assignmentdomain.NewValidatorWithSubjectResolver(roles, resolver)
-	service := assignmentapp.NewCommandService(validator, roles, fixture.UnitOfWork, nil)
+	service := assignmentapp.NewCommandService(validator, roles, fixture.UnitOfWork, nil, management.NewGuard(nil))
 	cmd, err := assignmentapp.NewGrantCommand(assignmentdomain.SubjectTypeUser, meta.ID(1), r.ID, "seed")
 	require.NoError(t, err)
 	granted, err := service.Grant(ctx, cmd)
@@ -47,7 +49,7 @@ func TestIDAndNameGrantShareResolverTransactionAndRollback(t *testing.T) {
 	require.NoError(t, err)
 	version, err := service.GrantByRoleName(ctx, assignmentapp.GrantByRoleNameCommand{Subject: sub, RoleName: r.Name.String(), GrantedBy: "seed"})
 	require.NoError(t, err)
-	require.EqualValues(t, 2, version)
+	require.EqualValues(t, 3, version)
 	require.Equal(t, 2, resolver.calls)
 	assignments, err := fixture.Assignments.ListByRole(ctx, r.ID)
 	require.NoError(t, err)
@@ -56,7 +58,7 @@ func TestIDAndNameGrantShareResolverTransactionAndRollback(t *testing.T) {
 		require.Equal(t, r.ID, a.RoleID)
 	}
 	require.EqualValues(t, 2, fixture.OutboxCount(t))
-	failed := assignmentapp.NewCommandService(validator, roles, fixture.WithEventStager(rejectedEvent{}), nil)
+	failed := assignmentapp.NewCommandService(validator, roles, fixture.WithEventStager(rejectedEvent{}), nil, management.NewGuard(nil))
 	cmd.SubjectID = meta.ID(3)
 	_, err = failed.Grant(ctx, cmd)
 	require.Error(t, err)

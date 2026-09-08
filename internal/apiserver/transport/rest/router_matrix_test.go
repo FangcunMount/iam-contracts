@@ -148,8 +148,8 @@ func loadRESTOpenAPISpecs(t *testing.T) openAPISpec {
 	root := repoRoot(t)
 	paths := map[string]map[string]any{}
 	for _, rel := range []string{
-		"api/rest/authn.v2.yaml",
-		"api/rest/authz.v3.yaml",
+		"api/rest/authn.v3.yaml",
+		"api/rest/authz.v4.yaml",
 		"api/rest/identity.v2.yaml",
 		"api/rest/idp.v2.yaml",
 		"api/rest/suggest.v2.yaml",

@@ -65,6 +65,917 @@ const docTemplate = `{
                 }
             }
         },
+        "/v2/identity/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取当前登录用户的资料信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Identity-Users"
+                ],
+                "summary": "获取当前用户信息",
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "部分更新当前登录用户的信息，支持更新昵称和联系方式",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Identity-Users"
+                ],
+                "summary": "更新当前用户信息",
+                "parameters": [
+                    {
+                        "description": "更新用户请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_request.UserUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/identity/me/profiles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取当前登录用户作为关系用户的所有档案",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Identity-Profiles"
+                ],
+                "summary": "获取当前用户的档案列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "偏移量",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "每页数量",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.ProfilePageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/identity/profile-links": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "查询用户或档案的档案关系列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Identity-ProfileLink"
+                ],
+                "summary": "查询档案关系",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户 ID",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "档案 ID",
+                        "name": "profile_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否包含已撤销档案关系",
+                        "name": "include_revoked",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "偏移量",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "每页数量",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.ProfileLinkPageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/identity/profiles/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "根据档案 ID 查询档案详情，只能查询当前用户关系的档案",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Identity-Profiles"
+                ],
+                "summary": "查询档案（仅限当前用户可访问的档案）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "档案 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.ProfileResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限访问此档案",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "档案不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "部分更新当前用户可访问的档案信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Identity-Profiles"
+                ],
+                "summary": "更新档案",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "档案 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新档案请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_request.ProfileUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.ProfileResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限修改此档案",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "档案不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/idp/wechat-apps": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-Wechat"
+                ],
+                "summary": "查询微信应用列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "微信应用类型 (MiniProgram/MP)",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "微信应用状态 (Enabled/Disabled/Archived)",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.WechatAppListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-Wechat"
+                ],
+                "summary": "创建微信应用",
+                "parameters": [
+                    {
+                        "description": "创建微信应用请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_request.CreateWechatAppRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "创建成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.WechatAppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/idp/wechat-apps/refresh-access-token": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-Wechat"
+                ],
+                "summary": "强制刷新访问令牌",
+                "parameters": [
+                    {
+                        "description": "刷新访问令牌请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_request.RefreshAccessTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "刷新成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.AccessTokenResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "应用不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/idp/wechat-apps/rotate-auth-secret": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-Wechat"
+                ],
+                "summary": "轮换认证密钥（AppSecret）",
+                "parameters": [
+                    {
+                        "description": "轮换认证密钥请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_request.RotateAuthSecretRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "轮换成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.RotateSecretResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "应用不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/idp/wechat-apps/rotate-msg-secret": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-Wechat"
+                ],
+                "summary": "轮换消息加解密密钥",
+                "parameters": [
+                    {
+                        "description": "轮换消息密钥请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_request.RotateMsgSecretRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "轮换成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.RotateSecretResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "应用不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/idp/wechat-apps/{app_id}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-Wechat"
+                ],
+                "summary": "查询微信应用",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "微信应用 ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.WechatAppResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "应用不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-Wechat"
+                ],
+                "summary": "更新微信应用基础信息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "微信应用 ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新微信应用请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_request.UpdateWechatAppRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.WechatAppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "应用不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/idp/wechat-apps/{app_id}/access-token": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-Wechat"
+                ],
+                "summary": "获取访问令牌（带缓存和自动刷新）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "微信应用 ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.AccessTokenResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "应用不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/idp/wechat-apps/{app_id}/disable": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-Wechat"
+                ],
+                "summary": "禁用微信应用",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "微信应用 ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "禁用成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.WechatAppResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "应用不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/idp/wechat-apps/{app_id}/enable": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IDP-Wechat"
+                ],
+                "summary": "启用微信应用",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "微信应用 ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "启用成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.WechatAppResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "应用不存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/suggest/profile": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "基于索引召回并按当前用户数据权限过滤；数字关键词支持档案 ID，手机号搜索需额外授权",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Suggest"
+                ],
+                "summary": "档案联想搜索",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "关键词；纯数字可为档案 ID 或手机号（手机号需授权）",
+                        "name": "k",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "返回条数上限",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "联想结果（按权重降序，去重）",
+                        "schema": {
+                            "$ref": "#/definitions/internal_apiserver_transport_rest_suggest.ProfileSuggestResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数缺失",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未认证",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "无搜索权限",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "请求过于频繁",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v3/authn/admin/jwks/keys": {
             "get": {
                 "security": [
@@ -1051,917 +1962,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/v2/identity/me": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "获取当前登录用户的资料信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Identity-Users"
-                ],
-                "summary": "获取当前用户信息",
-                "responses": {
-                    "200": {
-                        "description": "查询成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.UserResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "部分更新当前登录用户的信息，支持更新昵称和联系方式",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Identity-Users"
-                ],
-                "summary": "更新当前用户信息",
-                "parameters": [
-                    {
-                        "description": "更新用户请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_request.UserUpdateRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "更新成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.UserResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v2/identity/me/profiles": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "获取当前登录用户作为关系用户的所有档案",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Identity-Profiles"
-                ],
-                "summary": "获取当前用户的档案列表",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "偏移量",
-                        "name": "offset",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 20,
-                        "description": "每页数量",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "查询成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.ProfilePageResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v2/identity/profile-links": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "查询用户或档案的档案关系列表",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Identity-ProfileLink"
-                ],
-                "summary": "查询档案关系",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "用户 ID",
-                        "name": "user_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "档案 ID",
-                        "name": "profile_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "是否包含已撤销档案关系",
-                        "name": "include_revoked",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "偏移量",
-                        "name": "offset",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 20,
-                        "description": "每页数量",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "查询成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.ProfileLinkPageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v2/identity/profiles/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "根据档案 ID 查询档案详情，只能查询当前用户关系的档案",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Identity-Profiles"
-                ],
-                "summary": "查询档案（仅限当前用户可访问的档案）",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "档案 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "查询成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.ProfileResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "无权限访问此档案",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "档案不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "部分更新当前用户可访问的档案信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Identity-Profiles"
-                ],
-                "summary": "更新档案",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "档案 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "更新档案请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_request.ProfileUpdateRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "更新成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.ProfileResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "无权限修改此档案",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "档案不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v2/idp/wechat-apps": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-Wechat"
-                ],
-                "summary": "查询微信应用列表",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "微信应用类型 (MiniProgram/MP)",
-                        "name": "type",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "微信应用状态 (Enabled/Disabled/Archived)",
-                        "name": "status",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "查询成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.WechatAppListResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-Wechat"
-                ],
-                "summary": "创建微信应用",
-                "parameters": [
-                    {
-                        "description": "创建微信应用请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_request.CreateWechatAppRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "创建成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.WechatAppResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v2/idp/wechat-apps/refresh-access-token": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-Wechat"
-                ],
-                "summary": "强制刷新访问令牌",
-                "parameters": [
-                    {
-                        "description": "刷新访问令牌请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_request.RefreshAccessTokenRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "刷新成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.AccessTokenResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "应用不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v2/idp/wechat-apps/rotate-auth-secret": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-Wechat"
-                ],
-                "summary": "轮换认证密钥（AppSecret）",
-                "parameters": [
-                    {
-                        "description": "轮换认证密钥请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_request.RotateAuthSecretRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "轮换成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.RotateSecretResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "应用不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v2/idp/wechat-apps/rotate-msg-secret": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-Wechat"
-                ],
-                "summary": "轮换消息加解密密钥",
-                "parameters": [
-                    {
-                        "description": "轮换消息密钥请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_request.RotateMsgSecretRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "轮换成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.RotateSecretResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "应用不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v2/idp/wechat-apps/{app_id}": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-Wechat"
-                ],
-                "summary": "查询微信应用",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "微信应用 ID",
-                        "name": "app_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "查询成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.WechatAppResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "应用不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-Wechat"
-                ],
-                "summary": "更新微信应用基础信息",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "微信应用 ID",
-                        "name": "app_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "更新微信应用请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_request.UpdateWechatAppRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "更新成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.WechatAppResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "应用不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v2/idp/wechat-apps/{app_id}/access-token": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-Wechat"
-                ],
-                "summary": "获取访问令牌（带缓存和自动刷新）",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "微信应用 ID",
-                        "name": "app_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "获取成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.AccessTokenResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "应用不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v2/idp/wechat-apps/{app_id}/disable": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-Wechat"
-                ],
-                "summary": "禁用微信应用",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "微信应用 ID",
-                        "name": "app_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "禁用成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.WechatAppResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "应用不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v2/idp/wechat-apps/{app_id}/enable": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "IDP-Wechat"
-                ],
-                "summary": "启用微信应用",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "微信应用 ID",
-                        "name": "app_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "启用成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.WechatAppResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "应用不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_idp_response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v2/suggest/profile": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "基于索引召回并按当前用户数据权限过滤；数字关键词支持档案 ID，手机号搜索需额外授权",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Suggest"
-                ],
-                "summary": "档案联想搜索",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "关键词；纯数字可为档案 ID 或手机号（手机号需授权）",
-                        "name": "k",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "返回条数上限",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "联想结果（按权重降序，去重）",
-                        "schema": {
-                            "$ref": "#/definitions/internal_apiserver_transport_rest_suggest.ProfileSuggestResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "参数缺失",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未认证",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "无搜索权限",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    },
-                    "429": {
-                        "description": "请求过于频繁",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/v4/authz/assignments/grant": {
             "post": {
                 "consumes": [
@@ -2869,7 +2869,7 @@ const docTemplate = `{
         },
         "/v4/authz/roles/{id}": {
             "get": {
-                "description": "Role details are restricted to the authenticated request tenant, including platform callers.",
+                "description": "Protected role details require manage_protected; invisible roles return 404.",
                 "produces": [
                     "application/json"
                 ],
@@ -2906,7 +2906,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Role not found in request tenant",
+                        "description": "Role not found or not visible",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse"
                         }
@@ -3775,7 +3775,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "org_id": {
-                    "description": "业务组织 ID",
+                    "description": "IAM 授权域",
                     "type": "string"
                 },
                 "session_id": {
@@ -3784,10 +3784,6 @@ const docTemplate = `{
                 },
                 "subject": {
                     "description": "主体",
-                    "type": "string"
-                },
-                "tenant_domain": {
-                    "description": "IAM 授权域",
                     "type": "string"
                 },
                 "token_type": {
@@ -3874,9 +3870,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "subject_type": {
-                    "type": "string"
-                },
-                "tenant_id": {
                     "type": "string"
                 }
             }
@@ -3971,6 +3964,13 @@ const docTemplate = `{
                 },
                 "display_name": {
                     "type": "string"
+                },
+                "management_protection": {
+                    "type": "string",
+                    "enum": [
+                        "standard",
+                        "protected"
+                    ]
                 },
                 "name": {
                     "type": "string"
@@ -4068,9 +4068,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "role_id": {
-                    "type": "string"
-                },
-                "tenant_id": {
                     "type": "string"
                 }
             }
@@ -4183,9 +4180,6 @@ const docTemplate = `{
                 },
                 "role_id": {
                     "type": "string"
-                },
-                "tenant_id": {
-                    "type": "string"
                 }
             }
         },
@@ -4201,10 +4195,10 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "name": {
+                "management_protection": {
                     "type": "string"
                 },
-                "tenant_id": {
+                "name": {
                     "type": "string"
                 }
             }

@@ -40,6 +40,6 @@ func TestNewRoleRejectsInvalidState(t *testing.T) {
 	_, err = NewRole("admin", "")
 	assert.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 
-	_, err = NewRole("admin", "管理员")
+	_, err = NewRole("admin", "管理员", WithManagementProtection("invalid"))
 	assert.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 }

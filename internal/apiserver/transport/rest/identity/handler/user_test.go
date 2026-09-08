@@ -12,28 +12,18 @@ import (
 	appuser "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/user"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v5/internal/pkg/requestctx"
-	"github.com/FangcunMount/iam/v5/pkg/tenant"
 )
 
-func TestResolveRolesIncludesPlatformRoles(t *testing.T) {
+func TestResolveRolesUsesUnifiedSpace(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/v2/identity/me", nil)
-	requestctx.SetTenantID(c)
 
-	h := &UserHandler{
-		effectiveRoles: userRoleLookupStub{
-			rolesByDomain: map[string][]string{
-				tenant.DefaultID:  {"qs:admin"},
-				tenant.PlatformID: {"super_admin"},
-			},
-		},
-	}
+	h := &UserHandler{effectiveRoles: userRoleLookupStub{roles: []string{"qs:admin", "platform_admin"}}}
 
 	got := h.resolveRoles(c, meta.FromUint64(10001))
-	want := []string{"qs:admin", "super_admin"}
+	want := []string{"qs:admin", "platform_admin"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("resolveRoles() = %#v, want %#v", got, want)
 	}
@@ -59,9 +49,9 @@ func TestNewUserResponseUsesNicknameAndFallsBackToName(t *testing.T) {
 }
 
 type userRoleLookupStub struct {
-	rolesByDomain map[string][]string
+	roles []string
 }
 
-func (s userRoleLookupStub) EffectiveRoleNamesForSubject(_ context.Context, _ subject.Ref, domain string) ([]string, error) {
-	return append([]string(nil), s.rolesByDomain[domain]...), nil
+func (s userRoleLookupStub) EffectiveRoleNamesForSubject(_ context.Context, _ subject.Ref) ([]string, error) {
+	return append([]string(nil), s.roles...), nil
 }

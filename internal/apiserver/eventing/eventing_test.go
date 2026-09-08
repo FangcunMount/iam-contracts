@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAuthzVersionChangedKeepsLegacyPayloadShape(t *testing.T) {
+func TestAuthzVersionChangedPublishesOnlyGlobalVersion(t *testing.T) {
 	evt := policy.NewVersionChangedEvent(7)
 
 	payload, err := eventcodec.EncodePayload(evt)
@@ -20,7 +20,7 @@ func TestAuthzVersionChangedKeepsLegacyPayloadShape(t *testing.T) {
 
 	var decoded map[string]any
 	require.NoError(t, json.Unmarshal(payload, &decoded))
-	require.Equal(t, map[string]any{"tenant_id": "tenant-a", "version": float64(7)}, decoded)
+	require.Equal(t, map[string]any{"version": float64(7)}, decoded)
 	require.Equal(t, eventing.AuthzVersionChanged, evt.EventType())
 }
 

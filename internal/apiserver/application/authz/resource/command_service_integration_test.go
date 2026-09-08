@@ -39,10 +39,9 @@ func TestUpdateResourceRejectsCandidateThatInvalidatesActiveGrant(t *testing.T) 
 	require.Zero(t, db.PolicyVersionCount(t))
 }
 
-func TestUpdateResourceVersionsEveryTenantWithAnActiveGrant(t *testing.T) {
+func TestUpdateResourceAdvancesOneGlobalVersion(t *testing.T) {
 	_, catalog, resources, grants, stager := setupResourceCatalog(t)
 	resource := seedAssessmentResource(t, resources)
-	seedGrant(t, grants, resource)
 	seedGrant(t, grants, resource)
 
 	cmd, err := resourceApp.NewUpdateResourceCommand(resource.ID, nil, []string{"retry", "read"}, nil, nil)
@@ -53,7 +52,7 @@ func TestUpdateResourceVersionsEveryTenantWithAnActiveGrant(t *testing.T) {
 
 	_, err = catalog.UpdateResource(context.Background(), cmd)
 	require.NoError(t, err)
-	require.Len(t, stager.events, 3)
+	require.Len(t, stager.events, 1)
 }
 
 func setupResourceCatalog(t *testing.T) (*authztestutil.Fixture, *resourceApp.ResourceCatalog, resourceDomain.Repository, permissiongrantDomain.Repository, *recordingStager) {

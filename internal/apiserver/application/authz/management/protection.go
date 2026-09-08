@@ -3,6 +3,8 @@ package management
 
 import (
 	"context"
+	admission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
+	"slices"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
@@ -31,9 +33,18 @@ type Checker interface {
 	Check(context.Context, authorization.Request) (authorization.Decision, error)
 }
 
-type Guard struct{ checker Checker }
+type Guard struct {
+	checker     Checker
+	assignments admission.Policy
+}
 
-func NewGuard(checker Checker) Guard { return Guard{checker: checker} }
+func NewGuard(checker Checker, policies ...admission.Policy) Guard {
+	g := Guard{checker: checker}
+	if len(policies) > 0 {
+		g.assignments = policies[0]
+	}
+	return g
+}
 
 func (g Guard) CanManageProtected(ctx context.Context) (bool, error) {
 	a, ok := ctx.Value(actorKey{}).(actor)
@@ -55,6 +66,7 @@ func (g Guard) CanManageProtected(ctx context.Context) (bool, error) {
 }
 
 func (g Guard) Require(ctx context.Context, roles ...*role.Role) error {
+	needsProtection := false
 	for _, r := range roles {
 		if r == nil {
 			return perrors.WithCode(code.ErrInvalidArgument, "角色不存在")
@@ -62,21 +74,19 @@ func (g Guard) Require(ctx context.Context, roles ...*role.Role) error {
 		if err := r.ManagementProtection.Validate(); err != nil {
 			return err
 		}
-		if r.IsProtected() {
-			allowed, err := g.CanManageProtected(ctx)
-			if err != nil {
-				return err
-			}
-			if !allowed {
-				return perrors.WithCode(code.ErrPermissionDenied, "操作受保护角色需要专门管理权限")
-			}
-			return nil
+		needsProtection = needsProtection || r.IsProtected()
+	}
+	if needsProtection {
+		allowed, err := g.CanManageProtected(ctx)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return perrors.WithCode(code.ErrPermissionDenied, "操作受保护角色需要专门管理权限")
 		}
 	}
 	return nil
 }
-
-func GuardFrom(source any) Guard { checker, _ := source.(Checker); return NewGuard(checker) }
 
 func (g Guard) Visible(ctx context.Context, target *role.Role) (bool, error) {
 	if target == nil {
@@ -97,6 +107,88 @@ func (g Guard) RequireVisible(ctx context.Context, target *role.Role) error {
 	}
 	if !allowed {
 		return perrors.WithCode(code.ErrRoleNotFound, "角色不存在")
+	}
+	return nil
+}
+
+// RequireOperation 在应用入口校验原始操作权限；服务身份只接受可信上下文。
+func (g Guard) RequireOperation(ctx context.Context, resource, action string) error {
+	a, ok := ctx.Value(actorKey{}).(actor)
+	if ok && a.service == "admin" {
+		return nil
+	}
+	if !ok || a.service != "" || a.user.IsZero() || g.checker == nil {
+		return deniedOperation()
+	}
+	request, err := authorization.NewRequest(a.user, resource, action, authorization.ObjectContext{})
+	if err != nil {
+		return err
+	}
+	decision, err := g.checker.Check(ctx, request)
+	if err != nil {
+		return err
+	}
+	if !decision.Allowed {
+		return deniedOperation()
+	}
+	return nil
+}
+func deniedOperation() error {
+	return perrors.WithCode(code.ErrPermissionDenied, "授权管理操作不被允许")
+}
+
+func (g Guard) RequireAssignment(ctx context.Context, sub subject.Ref, target *role.Role, operation admission.Operation, changedBy string) error {
+	a, ok := ctx.Value(actorKey{}).(actor)
+	if !ok {
+		return deniedOperation()
+	}
+	if a.service != "" && a.service != "admin" {
+		if g.assignments == nil || target == nil {
+			return deniedOperation()
+		}
+		err := g.assignments.AuthorizeAssignment(admission.Request{CallerService: a.service, Subject: sub, RoleName: target.Name, Operation: operation, DelegatedActor: changedBy})
+		if err != nil {
+			return deniedOperation()
+		}
+	} else if err := g.RequireOperation(ctx, "iam:authz:collection:assignments", string(operation)); err != nil {
+		return err
+	}
+	return g.Require(ctx, target)
+}
+
+// RequireReplacement 从部署策略重建管理集合，禁止命令自行扩大 Replace 范围。
+func (g Guard) RequireReplacement(ctx context.Context, sub subject.Ref, names, managed []string, changedBy string) error {
+	a, ok := ctx.Value(actorKey{}).(actor)
+	if !ok {
+		return deniedOperation()
+	}
+	if a.service == "" || a.service == "admin" {
+		if err := g.RequireOperation(ctx, "iam:authz:collection:assignments", "grant"); err != nil {
+			return err
+		}
+		return g.RequireOperation(ctx, "iam:authz:collection:assignments", "revoke")
+	}
+	if g.assignments == nil {
+		return deniedOperation()
+	}
+	roleNames := make([]role.Name, 0, len(names))
+	for _, name := range names {
+		n, err := role.NewName(name)
+		if err != nil {
+			return err
+		}
+		roleNames = append(roleNames, n)
+	}
+	allowed, err := g.assignments.AuthorizeReplacement(admission.ReplacementRequest{CallerService: a.service, Subject: sub, RoleNames: roleNames, DelegatedActor: changedBy})
+	if err != nil {
+		return deniedOperation()
+	}
+	actual := slices.Clone(managed)
+	slices.Sort(actual)
+	actual = slices.Compact(actual)
+	slices.Sort(allowed)
+	if !slices.Equal(actual, allowed) {
+		return deniedOperation()
 	}
 	return nil
 }

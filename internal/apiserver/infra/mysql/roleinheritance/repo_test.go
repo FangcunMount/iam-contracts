@@ -21,7 +21,7 @@ func TestRepositoryRejectsCycleAndAllowsRegrantAfterRevoke(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, db.AutoMigrate(&repo.InheritancePO{}, &rolepo.RolePO{}))
 	for i := uint64(1); i <= 3; i++ {
-		require.NoError(t, db.Exec("INSERT INTO authz_roles (id,name,display_name,tenant_id,version) VALUES (?,?,?,?,1)", i, meta.FromUint64(i).String(), "Role", "tenant-a").Error)
+		require.NoError(t, db.Exec("INSERT INTO authz_roles (id,name,display_name,management_protection,version) VALUES (?,?,?,?,1)", i, meta.FromUint64(i).String(), "Role", "standard").Error)
 	}
 	repository := repo.NewRepository(db)
 	ctx := context.Background()

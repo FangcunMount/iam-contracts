@@ -7,7 +7,7 @@ import (
 )
 
 type Repository interface {
-	// CreateChecked locks the tenant graph and validates references, cycles and depth atomically.
+	// CreateChecked locks the role graph and validates references, cycles and depth atomically.
 	CreateChecked(ctx context.Context, inheritance *Inheritance) error
 	AtomicRevoke(ctx context.Context, id meta.ID) (RevokeOutcome, error)
 	FindByID(ctx context.Context, id meta.ID) (*Inheritance, error)

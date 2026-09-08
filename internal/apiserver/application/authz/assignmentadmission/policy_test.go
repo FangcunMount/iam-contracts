@@ -7,7 +7,6 @@ import (
 
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/tenant"
 )
 
 func mustSubject(t *testing.T, value string) subject.Ref {
@@ -17,15 +16,6 @@ func mustSubject(t *testing.T, value string) subject.Ref {
 		t.Fatalf("subject.ParseRef(%q) error = %v", value, err)
 	}
 	return ref
-}
-
-func mustTenant(t *testing.T, value string) tenant.ID {
-	t.Helper()
-	id, err := tenant.NewID(value)
-	if err != nil {
-		t.Fatalf("tenant.NewID(%q) error = %v", value, err)
-	}
-	return id
 }
 
 func mustRoleName(t *testing.T, value string) role.Name {
@@ -102,6 +92,7 @@ func TestAuthorizeReplacementReturnsEntireManagedSetAndRejectsEscalation(t *test
 		DefaultPolicy: "deny",
 		Services: map[string]ServiceConstraint{
 			"qs-apiserver.svc": {
+				SubjectTypes:                 []string{"user"},
 				Roles:                        []string{"qs:staff", "qs:evaluator", "qs:staff"},
 				RequireDelegatedActorOnGrant: true,
 			},

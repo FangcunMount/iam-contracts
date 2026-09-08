@@ -47,7 +47,7 @@ func (s *RoleQueryService) GetRoleByID(
 	return target, nil
 }
 
-// GetRoleByName 根据名称获取角色（租户内）
+// GetRoleByName 根据名称获取角色
 func (s *RoleQueryService) GetRoleByName(
 	ctx context.Context,
 	name string,
@@ -62,7 +62,7 @@ func (s *RoleQueryService) GetRoleByName(
 	return target, nil
 }
 
-// ListRoles 列出角色（支持分页和租户过滤）
+// ListRoles 列出角色（支持分页和管理保护过滤）
 func (s *RoleQueryService) ListRoles(
 	ctx context.Context,
 	query ListRolesQuery,
@@ -91,7 +91,7 @@ func (s *RoleQueryService) ListRoles(
 	}, nil
 }
 
-// ListAllRoles 列出指定租户的所有角色
+// ListAllRoles 列出可见角色
 func (s *RoleQueryService) ListAllRoles(
 	ctx context.Context,
 

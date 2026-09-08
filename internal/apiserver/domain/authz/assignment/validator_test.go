@@ -36,7 +36,7 @@ func TestValidateGrantAndRevokeCommands_Invalids(t *testing.T) {
 	assert.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 }
 
-func TestCheckRoleExists_NotFoundAndTenantMismatch(t *testing.T) {
+func TestCheckRoleExists_NotFoundAndExisting(t *testing.T) {
 	repoNotFound := &testhelpers.RoleRepoStub{R: nil, Err: perrors.WithCode(code.ErrRoleNotFound, "notfound")}
 	v1 := assignment.NewValidator(repoNotFound, subjectresolver.NewUserSubjectResolver(testhelpers.NewUserResolverStub()))
 	err := v1.CheckRoleExists(context.Background(), meta.FromUint64(100))
@@ -46,8 +46,7 @@ func TestCheckRoleExists_NotFoundAndTenantMismatch(t *testing.T) {
 	repo := &testhelpers.RoleRepoStub{R: &role.Role{}, Err: nil}
 	v2 := assignment.NewValidator(repo, subjectresolver.NewUserSubjectResolver(testhelpers.NewUserResolverStub()))
 	err = v2.CheckRoleExists(context.Background(), meta.FromUint64(100))
-	require.Error(t, err)
-	assert.True(t, perrors.IsCode(err, code.ErrPermissionDenied))
+	require.NoError(t, err)
 }
 
 func TestCheckSubjectExists_OnlySupportsExistingUsers(t *testing.T) {

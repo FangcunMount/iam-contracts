@@ -65,7 +65,6 @@ func main() {
 		fmt.Printf("Token 有效\n")
 		fmt.Printf("用户 ID: %s\n", result.Claims.UserID)
 		fmt.Printf("会话 ID: %s\n", result.Claims.SessionID)
-		fmt.Printf("授权域: %s\n", result.Claims.AuthorizationDomain())
 		if orgID, ok := result.Claims.BusinessOrgID(); ok {
 			fmt.Printf("业务 org_id: %d\n", orgID)
 		}

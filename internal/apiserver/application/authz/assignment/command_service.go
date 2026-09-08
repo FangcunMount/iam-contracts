@@ -3,6 +3,7 @@ package assignment
 
 import (
 	"context"
+	admission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
 	"sort"
 	"strings"
 
@@ -34,8 +35,8 @@ type CommandService struct {
 	reloader  policychange.RuntimePolicyReloader
 }
 
-func NewCommandService(validator assignmentDomain.Validator, roles roleDomain.Repository, uow authzuow.UnitOfWork, reloader policychange.RuntimePolicyReloader) *CommandService {
-	return &CommandService{validator: validator, roles: roles, uow: uow, reloader: reloader, guard: management.GuardFrom(reloader)}
+func NewCommandService(validator assignmentDomain.Validator, roles roleDomain.Repository, uow authzuow.UnitOfWork, reloader policychange.RuntimePolicyReloader, guard management.Guard) *CommandService {
+	return &CommandService{validator: validator, roles: roles, uow: uow, reloader: reloader, guard: guard}
 }
 
 func (s *CommandService) Grant(ctx context.Context, cmd GrantCommand) (*assignmentDomain.Assignment, error) {
@@ -57,7 +58,7 @@ func (s *CommandService) RevokeByID(ctx context.Context, cmd RevokeByIDCommand) 
 		if err != nil {
 			return err
 		}
-		if err := s.guard.Require(txCtx, target); err != nil {
+		if err := s.guard.RequireAssignment(txCtx, subject.Ref{Type: assignment.SubjectType, ID: assignment.SubjectID}, target, admission.OperationRevoke, cmd.ChangedBy); err != nil {
 			return err
 		}
 		return tx.Assignments.Delete(txCtx, assignment.ID)
@@ -118,7 +119,7 @@ func (s *CommandService) executeGrant(ctx context.Context, cmd GrantCommand) (gr
 		if err != nil {
 			return errors.Wrap(err, "获取角色失败")
 		}
-		if err := s.guard.Require(txCtx, role); err != nil {
+		if err := s.guard.RequireAssignment(txCtx, subject.Ref{Type: cmd.SubjectType, ID: cmd.SubjectID}, role, admission.OperationGrant, cmd.GrantedBy); err != nil {
 			return err
 		}
 		assignment, err := assignmentDomain.NewAssignment(cmd.SubjectType, cmd.SubjectID, cmd.RoleID, assignmentDomain.WithGrantedBy(cmd.GrantedBy))
@@ -147,7 +148,7 @@ func (s *CommandService) revokeWithVersion(ctx context.Context, cmd RevokeComman
 		if err != nil {
 			return errors.Wrap(err, "获取角色失败")
 		}
-		if err := s.guard.Require(txCtx, role); err != nil {
+		if err := s.guard.RequireAssignment(txCtx, subject.Ref{Type: cmd.SubjectType, ID: cmd.SubjectID}, role, admission.OperationRevoke, cmd.ChangedBy); err != nil {
 			return err
 		}
 		return tx.Assignments.DeleteBySubjectAndRole(txCtx, cmd.SubjectType, cmd.SubjectID, cmd.RoleID)
@@ -165,6 +166,9 @@ func (s *CommandService) ReplaceManagedAssignments(ctx context.Context, cmd Repl
 		return ReplaceManagedAssignmentsResult{}, err
 	}
 	cmd = validated
+	if err := s.guard.RequireReplacement(ctx, cmd.Subject, cmd.RoleNames, cmd.ManagedRoleNames, cmd.ChangedBy); err != nil {
+		return ReplaceManagedAssignmentsResult{}, err
+	}
 	result := ReplaceManagedAssignmentsResult{}
 	replacementPolicy := assignmentDomain.ReplacementPolicy{}
 	err = s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {

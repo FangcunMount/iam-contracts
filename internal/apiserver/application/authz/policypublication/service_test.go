@@ -17,11 +17,10 @@ func TestHandlerReloadsRuntimeAndRecordsVersionEvent(t *testing.T) {
 	recorder := &recorderStub{}
 	handler := NewService(reloader, recorder)
 
-	err := handler.Handle(context.Background(), []byte(`{"tenant_id":"tenant-a","version":7}`), eventing.AuthzVersionChanged)
+	err := handler.Handle(context.Background(), []byte(`{"version":7}`), eventing.AuthzVersionChanged)
 
 	require.NoError(t, err)
 	require.Equal(t, 1, reloader.reloads)
-	require.Equal(t, "tenant-a", recorder.tenantID)
 	require.Equal(t, int64(7), recorder.version)
 	require.False(t, recorder.eventAt.IsZero())
 }
@@ -32,7 +31,7 @@ func TestHandlerIgnoresOtherEvents(t *testing.T) {
 	reloader := &reloaderStub{}
 	handler := NewService(reloader, nil)
 
-	err := handler.Handle(context.Background(), []byte(`{"tenant_id":"tenant-a","version":7}`), "iam.login_otp_sms")
+	err := handler.Handle(context.Background(), []byte(`{"version":7}`), "iam.login_otp_sms")
 
 	require.NoError(t, err)
 	require.Zero(t, reloader.reloads)
@@ -56,7 +55,7 @@ func TestHandlerReturnsReloadFailureForMessageRetry(t *testing.T) {
 	reloader := &reloaderStub{err: errors.New("database unavailable")}
 	handler := NewService(reloader, nil)
 
-	err := handler.Handle(context.Background(), []byte(`{"tenant_id":"tenant-a","version":7}`), eventing.AuthzVersionChanged)
+	err := handler.Handle(context.Background(), []byte(`{"version":7}`), eventing.AuthzVersionChanged)
 
 	require.ErrorContains(t, err, "reload authz runtime policy")
 	require.Equal(t, 3, reloader.reloads)
@@ -73,13 +72,11 @@ func (s *reloaderStub) LoadPolicy(context.Context) error {
 }
 
 type recorderStub struct {
-	tenantID string
-	version  int64
-	eventAt  time.Time
+	version int64
+	eventAt time.Time
 }
 
 func (s *recorderStub) RecordPolicyVersionEvent(version int64, eventAt time.Time) {
-	s.tenantID = tenantID
 	s.version = version
 	s.eventAt = eventAt
 }

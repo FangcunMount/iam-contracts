@@ -14,29 +14,30 @@ func (m *AuthzModule) initializeApplication(
 	infra *authzInfrastructureComponents,
 	domain *authzDomainComponents,
 ) {
+	guard := management.NewGuard(infra.authorizationRuntime, m.assignmentAdmissionPolicy)
 	m.authorizationDecisions = authorizationApp.NewDecisionService(infra.authorizationRuntime)
 	m.resourceCatalog = resourceApp.NewResourceCatalog(infra.unitOfWork, infra.authorizationRuntime, m.authorizationDecisions)
 	m.resourceDirectory = resourceApp.NewResourceQueryService(infra.resourceRepository)
 
-	m.roleCatalog = roleApp.NewRoleCatalog(infra.unitOfWork, infra.authorizationRuntime)
+	m.roleCatalog = roleApp.NewRoleCatalog(infra.unitOfWork, infra.authorizationRuntime, guard)
 	m.roleDirectory = roleApp.NewRoleQueryService(infra.roleRepository, management.NewGuard(infra.authorizationRuntime))
 
 	m.permissionGrantService = permissionGrantApp.NewService(
 		infra.unitOfWork,
 		infra.permissionGrantRepository,
-		infra.authorizationRuntime, m.attributeProviders,
+		infra.authorizationRuntime, guard, m.attributeProviders,
 	)
 	m.roleInheritanceService = roleInheritanceApp.NewService(
 		infra.unitOfWork,
 		infra.roleInheritanceRepository,
-		infra.authorizationRuntime,
+		infra.authorizationRuntime, guard,
 	)
 
 	m.assignmentCommands = assignmentApp.NewCommandService(
 		domain.assignmentValidator,
 		infra.roleRepository,
 		infra.unitOfWork,
-		infra.authorizationRuntime,
+		infra.authorizationRuntime, guard,
 	)
 	m.assignmentDirectory = assignmentApp.NewDirectory(domain.assignmentValidator, infra.assignmentRepository, infra.roleRepository, management.NewGuard(infra.authorizationRuntime))
 

@@ -92,7 +92,7 @@ func Validate(config Config) error {
 		}
 		if len(normalizeSet(constraint.SubjectTypes)) == 0 ||
 			len(normalizeSet(constraint.Roles)) == 0 {
-			return fmt.Errorf("assignment constraint for %s requires domains, subject_types, and roles", serviceName)
+			return fmt.Errorf("assignment constraint for %s requires subject_types and roles", serviceName)
 		}
 	}
 	return nil

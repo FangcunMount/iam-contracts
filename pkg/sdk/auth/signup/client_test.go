@@ -91,7 +91,7 @@ func TestClientEnsuresMockConsumer(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewClient(server.URL+"/api/v2", WithSeedMockSecret("seed-secret"))
+	client, err := NewClient(server.URL+"/api/v3", WithSeedMockSecret("seed-secret"))
 	require.NoError(t, err)
 
 	resp, err := client.EnsureMockConsumer(context.Background(), EnsureMockConsumerRequest{

@@ -3,8 +3,6 @@ default_policy: deny
 services:
   qs-apiserver.svc:
     allow_all: false
-    domains:
-      - fangcun
     subject_types:
       - user
     roles:

@@ -77,7 +77,7 @@ func TestClientListAndUnlink(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewClient(server.URL + "/api/v2")
+	client, err := NewClient(server.URL + "/api/v3")
 	require.NoError(t, err)
 
 	list, err := client.List(context.Background())
