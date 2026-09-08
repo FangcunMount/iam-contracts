@@ -71,7 +71,7 @@ sequenceDiagram
 `subject`、`domain`、`resource`、`action` 都必填。
 
 - Subject 必须是 `<type>:<iam-id>`，ID 要能解析且非零。
-- Domain 是 Tenant 授权域。proto 字段保留 `domain` 名称，不代表对外暴露 Casbin 模型。
+- 新版请求不再包含授权分区参数；Proto 删除的字段编号和名称设为 reserved。资源标识的业务模块段保持不变。
 - Resource 必须是四段具体 key，不能由请求方使用通配。
 - Action 必须是具体动作。
 

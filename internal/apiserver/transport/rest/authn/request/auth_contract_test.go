@@ -12,7 +12,7 @@ import (
 )
 
 type openAPISpec struct {
-	Paths      map[string]map[string]openAPIOperation `yaml:"paths"`
+	Paths      map[string]openAPIPath `yaml:"paths"`
 	Components struct {
 		Schemas map[string]openAPISchema `yaml:"schemas"`
 	} `yaml:"components"`
@@ -126,4 +126,27 @@ func repoRoot(t *testing.T) string {
 		require.NotEqual(t, dir, parent, "go.mod not found")
 		dir = parent
 	}
+}
+
+// Path Item 允许 servers 等元数据，只有 HTTP 方法节点属于 Operation。
+type openAPIPath map[string]openAPIOperation
+
+func (p *openAPIPath) UnmarshalYAML(node *yaml.Node) error {
+	var entries map[string]yaml.Node
+	if err := node.Decode(&entries); err != nil {
+		return err
+	}
+	*p = openAPIPath{}
+	for _, method := range []string{"get", "post", "put", "patch", "delete", "options", "head", "trace"} {
+		value, ok := entries[method]
+		if !ok {
+			continue
+		}
+		var operation openAPIOperation
+		if err := value.Decode(&operation); err != nil {
+			return err
+		}
+		(*p)[method] = operation
+	}
+	return nil
 }

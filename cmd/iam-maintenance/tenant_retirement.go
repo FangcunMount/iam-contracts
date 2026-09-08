@@ -6,18 +6,22 @@ import (
 	"errors"
 	"flag"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance"
 )
 
 func runTenantRetirement(args []string, output io.Writer) error {
-	if len(args) == 0 || (args[0] != "preflight" && args[0] != "prepare") {
-		return errors.New("tenant-retirement requires preflight or prepare")
+	if len(args) == 0 || (args[0] != "preflight" && args[0] != "prepare" && args[0] != "govern") {
+		return errors.New("tenant-retirement requires preflight, prepare, or govern")
 	}
 	flags := flag.NewFlagSet("tenant-retirement", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	fingerprint := flags.String("fingerprint", "", "required preflight fingerprint for prepare")
+	backup := flags.String("backup-sha256", "", "full database backup SHA256")
+	approved := flags.String("approved-ids", "", "explicitly approved record IDs")
+	frozen := flags.Bool("writes-stopped", false, "all traffic, writers, and consumers are stopped")
 	timeout := flags.Duration("timeout", 5*time.Minute, "operation timeout")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
@@ -37,13 +41,20 @@ func runTenantRetirement(args []string, output io.Writer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	var report *maintenance.TenantRetirementReport
-	if args[0] == "prepare" {
+	if args[0] == "prepare" || args[0] == "govern" {
 		unlock, lockErr := acquireAuthzV3ConvergeLock(ctx, pool, *timeout)
 		if lockErr != nil {
 			return lockErr
 		}
 		defer unlock()
-		report, err = maintenance.PrepareTenantRetirement(ctx, db, *fingerprint)
+		if args[0] == "govern" {
+			if !*frozen {
+				return errors.New("离线治理必须停止全部流量、写入和消费者")
+			}
+			report, err = maintenance.ArchiveApprovedRetirementIssues(ctx, db, *fingerprint, *backup, strings.Split(*approved, ","))
+		} else {
+			report, err = maintenance.PrepareTenantRetirement(ctx, db, *fingerprint)
+		}
 	} else {
 		report, err = maintenance.AnalyzeTenantRetirement(ctx, db)
 	}

@@ -149,7 +149,7 @@
 
 #### 通稿
 
-> Token 被验证后，transport 或 middleware 只会形成可信的 `UserID` 和 `TenantID` 请求上下文。资源服务再以 Identity User 为锚点构造 AuthZ Subject，
+> Token 被验证后，transport 或 middleware 只会形成可信的 `UserID` 和业务 `OrgID` 请求上下文。资源服务再以 Identity User 为锚点构造 AuthZ Subject，
 > 加上 Resource、Action 和已加载对象的受信属性，调用 AuthZ Check。
 >
 > 所以 AuthN 和 AuthZ 会在一次请求中前后衔接，但不需要让 AuthN 领域模块直接把 Principal 转成 AuthZ 的 Subject。Identity User 是它们共同的稳定身份锚点。
@@ -320,7 +320,7 @@
 
 ### 8.2 AuthN 和 AuthZ 到底是什么关系？
 
-> 它们在请求链路上前后衔接，但不需要领域模块直接依赖。AuthN 验证请求者并产生可信 UserID/TenantID 上下文；资源服务以 Identity User 为锚点构造 AuthZ Subject，再对当前 Resource、
+> 它们在请求链路上前后衔接，但不需要领域模块直接依赖。AuthN 验证请求者并产生可信 UserID/OrgID 上下文；资源服务以 Identity User 为锚点构造 AuthZ Subject，再对当前 Resource、
 > Action 和受信对象属性做决策。它们通过稳定身份引用对齐，不互相拥有对方模型。
 
 ### 8.3 为什么不只用 JWT？

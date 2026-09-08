@@ -104,7 +104,7 @@ GET /api/v2/.well-known/jwks.json
 响应只包含公钥，并保留现有 JSON、ETag 和 Cache-Control 语义。公共 JWKS 每次构建都查询数据库；REST 先构建响应，再判断客户端 ETag/Last-Modified 是否匹配。`GetCurrentCacheTag` 可复用短期标签快照，不能据此认为公共请求跳过数据库查询。进程快照用于标签读取与观测，不决定数据库中的 active 状态。
 资源服务应固定可信 issuer/JWKS URL，校验算法 allowlist、签名以及 `iss/aud/exp/nbf`；`kid` 未命中时可刷新，但不得跳过验签或接受任意 `jku/jwk`。
 
-管理入口统一位于 `/api/v3/authn/admin/jwks/keys`。它们需要用户 JWT，并通过 `RequirePermissionOrGlobal` 检查 `iam:authn:collection:jwks` 上的明确
+管理入口统一位于 `/api/v3/authn/admin/jwks/keys`。它们需要用户 JWT，并通过 `RequirePermission` 检查 `iam:authn:collection:jwks` 上的明确
 Action：
 
 | 请求 | Action |

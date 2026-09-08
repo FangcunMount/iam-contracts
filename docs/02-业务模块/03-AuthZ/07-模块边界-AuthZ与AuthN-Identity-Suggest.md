@@ -31,7 +31,7 @@ Suggest     组合 Principal + Capability + Identity 查询得到最终建议
 
 ## AuthN → AuthZ：认证结果变成 Subject
 
-AuthN 回答“这个请求代表谁”，AuthZ 回答“这个主体能不能做某事”。两者的连接点是 Principal 中稳定 UserID 和 TenantDomain，而不是登录名、手机号、UnionID 或角色名。
+AuthN 回答“这个请求代表谁”，AuthZ 回答“这个主体能不能做某事”。两者的连接点是 已验证上下文中的稳定 UserID，而不是登录名、手机号、UnionID 或角色名。
 
 REST 链路为：
 
@@ -39,10 +39,9 @@ REST 链路为：
 Bearer token
   -> AuthN VerifyToken
   -> verified TokenClaims
-  -> request context(UserID, TenantDomain, ...)
+  -> request context(UserID, OrgID, ...)
   -> AuthZ route middleware builds subject user:<UserID>
-  -> current Tenant Check
-  -> optional platform Tenant fallback
+  -> 统一 Resource/Action Check
 ```
 
 不变量：
@@ -87,9 +86,9 @@ Suggest 不拥有新的权限模型。它使用 AuthZ capability 决定可以向
 ```text
 REST /suggest/profiles
   -> AuthN user JWT
-  -> current Tenant profiles/search route permission
+  -> profiles/search route permission
   -> Suggest application service
-  -> platform profiles/list permission ? AllProfile : Tenant-limited scope
+  -> profiles/list_all permission ? AllProfile : Org/owner/relationship scope
   -> mobile query additionally requires profiles/search_by_mobile
   -> Identity provider executes filtered query
 ```
@@ -187,7 +186,7 @@ Snapshot 是 IAM 运行时投影。外部服务长期存储它会产生独立撤
 6. deny、attribute missing、contract error 与业务 not-found 的分层。
 7. proto/SDK、ACL、属性白名单、集成测试和运维观测。
 
-新增一条管理路由时，则必须检查 AuthN Principal、current/platform Tenant 语义、permission catalog、bootstrap Grant、OpenAPI 和 route-contract。
+新增一条管理路由时，则必须检查 AuthN Principal、角色管理保护语义、permission catalog、bootstrap Grant、OpenAPI 和 route-contract。
 
 ## 证据边界
 

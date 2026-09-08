@@ -127,7 +127,7 @@ T = 本次请求期望保留的目标角色
 ### 事务内的精确算法
 
 1. 再次校验 Subject 存在。
-2. 按 name 加载 M 中的 Role，确认均属于目标 Tenant。
+2. 按全局唯一 name 加载 M 中的 Role，在事务内校验引用及管理保护。
 3. 按 Role ID 排序，再依次 `FOR UPDATE` 锁定，降低多角色并发时的死锁顺序不一致。
 4. 使用 `ListBySubjectForUpdate` 当前读锁定 Subject 的直接 Assignment，只投影出属于 M 的部分；即使事务已建立旧快照，锁等待后也会读取最新已提交状态。
 5. 软删除 `currentManaged - T`。
@@ -232,6 +232,6 @@ Assignment constraints 必须决定调用服务是否允许代表该 actor 写�
 
 Assignment 的 ID 入口和名称入口共用 `executeGrant`，内部结果同时包含 Assignment 和提交版本；名称解析完成后复用同一参数验证、主体解析、角色锁、写入及版本/事件流程。撤销共用 `revokeWithVersion`，既有撤销幂等差异保持。事务 resolver 来自注入的 AuthZ 端口，不在用例里重新注册仅支持 User 的 Identity 适配器。
 
-Resource 创建、更新、删除先在应用服务执行 platform 目录写入准入，再进入事务。目录通知域统一为 platform；更新还递增依赖该资源的租户版本，去重后每租户一次，事件同事务写入。普通 Grant 管理接口不能向非 platform 角色新授予明确的目录 create/update/delete。
+Resource 创建、更新、删除先在应用服务检查目录操作权限，再进入事务；事实变更、全局版本递增和 Outbox 写入同事务完成。普通角色不能获得覆盖目录 create/update/delete 的 Grant，通配符同样受检查。
 
 继承写入使用 `CreateChecked`，按 ID 顺序锁定全部 Role，再读取现有边并调用共享图策略；没有通过表存在性跳过校验的分支。

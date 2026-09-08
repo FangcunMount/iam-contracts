@@ -235,7 +235,7 @@ Principal  = AuthN 对本次认证结果的表达
 Subject    = AuthZ 用于赋权和判定的主体引用
 ```
 
-AuthN 不会把 `Principal` 领域对象直接交给 AuthZ。资源服务在认证完成后从可信请求上下文取得 `UserID / TenantID`，再以 Identity User 为锚点构造 AuthZ Subject。
+AuthN 不会把 `Principal` 领域对象直接交给 AuthZ。资源服务在认证完成后从可信请求上下文取得 `UserID / OrgID`，再以 Identity User 为锚点构造 AuthZ Subject。
 因此 AuthN 和 AuthZ 不直接关联彼此的领域模型，二者都以 Identity User 为稳定桥梁。
 
 两个关键不变量已经落到实现：
@@ -316,7 +316,7 @@ Application / Domain
 AuthN 和 AuthZ 也不需要建立领域模型直连：
 
 ```text
-AuthN 验证 Token，向请求上下文写入可信 UserID / TenantID
+AuthN 验证 Token，向请求上下文写入可信 UserID / OrgID
   -> 资源服务理解当前资源和业务动作
   -> 资源服务以 Identity User 为锚点构造 AuthZ Subject
   -> AuthZ 对 Subject / Resource / Action / trusted ObjectAttributes 给出 Decision
