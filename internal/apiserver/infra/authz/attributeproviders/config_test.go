@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/objectattributeadmission"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/constraint"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/infra/authz/attributeproviders"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/objectattributeadmission"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/attributeproviders"
 	"github.com/stretchr/testify/require"
 )
 

@@ -191,9 +191,9 @@ JWKSManager (Chain of Responsibility 模式)
 
 ```go
 import (
-    sdk "github.com/FangcunMount/iam/v3/pkg/sdk"
-    authjwks "github.com/FangcunMount/iam/v3/pkg/sdk/auth/jwks"
-    authverifier "github.com/FangcunMount/iam/v3/pkg/sdk/auth/verifier"
+    sdk "github.com/FangcunMount/iam/v4/pkg/sdk"
+    authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
+    authverifier "github.com/FangcunMount/iam/v4/pkg/sdk/auth/verifier"
 )
 ```
 
@@ -398,8 +398,7 @@ if time.Now().After(result.Claims.ExpiresAt) {
 }
 ```
 
-`VerifyOptions.AllowedTokenTypes` 默认仅包含 `TOKEN_TYPE_ACCESS`。验证服务令牌时必须显式传入
-`TOKEN_TYPE_SERVICE`；本地和远端策略执行同一 token-type 约束。
+`VerifyOptions.AllowedTokenTypes` 默认仅包含 `TOKEN_TYPE_ACCESS`。本地和远端策略拒绝退役类型与未知类型，即使调用方显式配置允许也不能恢复支持。
 
 ## 高级用法
 

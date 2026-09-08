@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/maintenance"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/maintenance"
 	"github.com/alicebob/miniredis/v2"
 )
 

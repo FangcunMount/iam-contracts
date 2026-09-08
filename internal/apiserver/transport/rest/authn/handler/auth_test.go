@@ -11,9 +11,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/session"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/token"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/session"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 type loginServiceCaptureStub struct {

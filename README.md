@@ -227,8 +227,8 @@ import (
     "context"
     "log"
 
-    authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
-    sdk "github.com/FangcunMount/iam/v3/pkg/sdk"
+    authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+    sdk "github.com/FangcunMount/iam/v4/pkg/sdk"
 )
 
 func main() {
@@ -255,7 +255,7 @@ func main() {
 
 SDK 是接入产品层，不是业务层。
 
-它封装 REST/gRPC/JWKS/ServiceAuth/AuthZ Check 等接入复杂度，但不定义 IAM 业务规则。
+它封装 REST/gRPC/JWKS/mTLS/AuthZ Check 等接入复杂度，但不定义 IAM 业务规则。
 
 ## 文档导航
 

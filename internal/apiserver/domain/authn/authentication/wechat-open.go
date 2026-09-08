@@ -6,9 +6,9 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // WechatOpenProofSpec 微信开放平台认证凭据规范

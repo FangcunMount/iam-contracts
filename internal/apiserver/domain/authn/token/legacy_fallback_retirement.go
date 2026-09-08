@@ -4,7 +4,7 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 // LegacyFallbackRetirementPolicy defines the minimum evidence window required

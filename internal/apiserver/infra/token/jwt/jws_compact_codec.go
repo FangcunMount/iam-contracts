@@ -1,4 +1,4 @@
-// Package jwt implements IAM access/service token encoding with JWS compact JWT.
+// Package jwt implements IAM access token encoding with JWS compact JWT.
 package jwt
 
 import (
@@ -10,10 +10,9 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/logger"
-	tokendomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v3/internal/pkg/authnclaims"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
-	pkgauth "github.com/FangcunMount/iam/v3/pkg/auth"
+	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	pkgauth "github.com/FangcunMount/iam/v4/pkg/auth"
 	jwtv4 "github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 )
@@ -40,7 +39,7 @@ type JWSKeySource interface {
 	VerificationKey(ctx context.Context, kid string) (*VerificationKey, error)
 }
 
-// JWSCompactTokenCodec 将 IAM access/service claims 编码为 JWS Compact Signed JWT，
+// JWSCompactTokenCodec 将 IAM access claims 编码为 JWS Compact Signed JWT，
 // 并把验签通过的 JWT Claims Set 投影为领域事实。
 type JWSCompactTokenCodec struct {
 	issuer              string       // 签发者域名
@@ -159,37 +158,7 @@ func (g *JWSCompactTokenCodec) IssueAccessToken(ctx context.Context,
 	return token, nil
 }
 
-// IssueServiceToken 颁发服务令牌
-func (g *JWSCompactTokenCodec) IssueServiceToken(ctx context.Context, subject string, audience []string, attributes map[string]string, expiresIn time.Duration) (*tokendomain.ServiceToken, error) {
-	// 获取当前时间
-	now := time.Now()
-	// 生成令牌 ID
-	tokenID := uuid.NewString()
-	allowedAttributes := authnclaims.EncodeServiceAttributes(attributes)
-	// 创建 JWT 声明
-	claims := jwtPayloadClaims{
-		TokenType:  string(tokendomain.TokenTypeService),
-		Attributes: cloneStringMap(allowedAttributes),
-		RegisteredClaims: jwtv4.RegisteredClaims{
-			ID:        tokenID,
-			Subject:   subject,
-			Issuer:    g.issuer,
-			Audience:  jwtv4.ClaimStrings(cloneStrings(audience)),
-			IssuedAt:  jwtv4.NewNumericDate(now),
-			ExpiresAt: jwtv4.NewNumericDate(now.Add(expiresIn)),
-			NotBefore: jwtv4.NewNumericDate(now),
-		},
-	}
-	// 签名 JWT
-	tokenString, err := g.signClaims(ctx, claims)
-	if err != nil {
-		return nil, err
-	}
-	// 创建服务令牌
-	return tokendomain.NewServiceToken(tokenID, tokenString, subject, audience, allowedAttributes, expiresIn), nil
-}
-
-// VerifyBearerToken 验证 access/service bearer token。
+// VerifyBearerToken 验证 access bearer token。
 
 func (g *JWSCompactTokenCodec) VerifyBearerToken(ctx context.Context, tokenValue string) (*tokendomain.VerifiedTokenClaims, error) {
 	// 解析 JWT
@@ -254,7 +223,7 @@ func (g *JWSCompactTokenCodec) VerifyBearerToken(ctx context.Context, tokenValue
 	case "":
 		missingTokenTypeTotal.Inc()
 		tokenType = tokendomain.TokenTypeAccess
-	case tokendomain.TokenTypeAccess, tokendomain.TokenTypeService:
+	case tokendomain.TokenTypeAccess:
 	default:
 		return nil, fmt.Errorf("unsupported token_type: %q", claims.TokenType)
 	}
@@ -290,9 +259,6 @@ func (g *JWSCompactTokenCodec) VerifyBearerToken(ctx context.Context, tokenValue
 		Audience: []string(claims.Audience), Attributes: attributes, AMR: claims.AMR,
 		AuthenticatedAt: authTime, IssuedAt: numericDateTime(claims.IssuedAt),
 		NotBefore: numericDateTime(claims.NotBefore), ExpiresAt: numericDateTime(claims.ExpiresAt),
-	}
-	if tokenType == tokendomain.TokenTypeService {
-		return tokendomain.NewVerifiedServiceClaims(verified)
 	}
 	return tokendomain.NewVerifiedUserTokenClaims(verified)
 }

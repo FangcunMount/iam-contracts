@@ -4,9 +4,9 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authorizationdomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	authorizationdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 // RoutePermissionChecker decides whether a subject may perform an action on a

@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	admissiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/session"
-	tokendomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
+	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 

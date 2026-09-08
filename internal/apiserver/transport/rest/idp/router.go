@@ -7,8 +7,8 @@ import (
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/gin-gonic/gin"
 
-	authzapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/authorization"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/idp/handler"
+	authzapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/idp/handler"
 )
 
 // Dependencies IDP 模块的依赖

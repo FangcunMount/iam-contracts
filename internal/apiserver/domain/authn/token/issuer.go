@@ -2,13 +2,12 @@ package token
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"github.com/google/uuid"
 )
 
@@ -93,44 +92,4 @@ func (s *tokenSetMinter) issueRefreshToken(subject *AccessTokenSubject, sess *se
 	token.IssuedAt = now
 	// 返回刷新令牌
 	return token, nil
-}
-
-// serviceTokenIssuer 是服务令牌颁发器的实现。
-type serviceTokenIssuer struct {
-	tokenCodec BearerTokenCodec
-	accessTTL  time.Duration
-}
-
-// newServiceTokenIssuer 创建服务令牌颁发器。
-func newServiceTokenIssuer(tokenCodec BearerTokenCodec, accessTTL time.Duration) ServiceTokenIssuer {
-	return &serviceTokenIssuer{tokenCodec: tokenCodec, accessTTL: accessTTL}
-}
-
-// IssueServiceToken 颁发服务令牌。
-func (s *serviceTokenIssuer) IssueServiceToken(ctx context.Context, subject string, audience []string, attributes map[string]string, ttl time.Duration) (*ServiceToken, error) {
-	// 验证主题
-	if strings.TrimSpace(subject) == "" {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "subject is required")
-	}
-	if !hasNonEmptyAudience(audience) {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "audience is required")
-	}
-	// 验证 TTL
-	if ttl <= 0 {
-		ttl = s.accessTTL
-	}
-	token, err := s.tokenCodec.IssueServiceToken(ctx, subject, audience, attributes, ttl)
-	if err != nil {
-		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to generate service token")
-	}
-	return token, nil
-}
-
-func hasNonEmptyAudience(audience []string) bool {
-	for _, value := range audience {
-		if strings.TrimSpace(value) != "" {
-			return true
-		}
-	}
-	return false
 }

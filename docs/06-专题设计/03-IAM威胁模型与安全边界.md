@@ -8,7 +8,7 @@ IAM 至少保护：
 
 - 用户账户和 Profile 关系；
 - password/OTP/OAuth proof；
-- Session、access/refresh/service token；
+- Session、access/refresh token；
 - JWT 私钥和 IDP AppSecret；
 - Role/Assignment/RoleInheritance/PermissionGrant/ConstraintSet；
 - 审计/运行日志中的身份元数据；
@@ -48,7 +48,7 @@ flowchart LR
     Client["Browser / App"] --> Edge["REST edge"]
     Service["Business service"] --> RPC["gRPC edge"]
     Edge --> AuthN["AuthN"]
-    RPC --> SvcID["mTLS + service auth + ACL"]
+    RPC --> SvcID["mTLS + ACL"]
     Provider["Wechat / WeCom"] --> IDP["IDP adapters"]
     AuthN --> DB[(MySQL)]
     AuthN --> Redis[(Redis)]
@@ -124,7 +124,7 @@ Envelope encryption/KMS 的价值是把“能读数据库”和“能解密 secr
 - service credential compromise：可信服务 token 被用于越权管理 RPC。
 
 控制包括可信上下文构造、default deny、PermissionGrant/Resource Schema 校验、per-instance broadcast/reload health、
-mTLS + service auth + ACL 和敏感操作对象级 Check。
+mTLS + ACL 和敏感操作对象级 Check。
 
 ### 6.1 Confused deputy 的完整路径
 

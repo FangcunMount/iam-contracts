@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	admissiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
-	grantdomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/grant"
-	tokendomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	grantdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/grant"
+	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -53,7 +53,7 @@ func TestApplicationRejectsDisallowedTokenType(t *testing.T) {
 	t.Parallel()
 
 	app := &application{verifier: verifierStub{claims: &tokendomain.VerifiedTokenClaims{
-		TokenType: TokenTypeService,
+		TokenType: TokenType("service"),
 		Issuer:    "https://iam.fangcunmount.cn",
 		Audience:  []string{"qs-api"},
 	}}}
@@ -73,7 +73,7 @@ func TestApplicationDefaultsToAccessTokenType(t *testing.T) {
 	t.Parallel()
 
 	app := &application{verifier: verifierStub{claims: &tokendomain.VerifiedTokenClaims{
-		TokenType: TokenTypeService,
+		TokenType: TokenType("service"),
 	}}}
 	result, err := app.VerifyToken(context.Background(), VerifyTokenRequest{AccessToken: "service-token"})
 	require.NoError(t, err)

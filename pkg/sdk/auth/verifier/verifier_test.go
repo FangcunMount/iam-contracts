@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
-	authjwks "github.com/FangcunMount/iam/v3/pkg/sdk/auth/jwks"
-	"github.com/FangcunMount/iam/v3/pkg/sdk/config"
-	iamerrors "github.com/FangcunMount/iam/v3/pkg/sdk/errors"
+	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
+	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
+	iamerrors "github.com/FangcunMount/iam/v4/pkg/sdk/errors"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jws"
@@ -201,10 +201,10 @@ func TestLocalVerifyStrategyRejectsServiceTokenByDefault(t *testing.T) {
 	require.Nil(t, result)
 
 	result, err = strategy.Verify(context.Background(), token, &VerifyOptions{
-		AllowedTokenTypes: []authnv2.TokenType{authnv2.TokenType_TOKEN_TYPE_SERVICE},
+		AllowedTokenTypes: []authnv2.TokenType{authnv2.TokenType(3)},
 	})
-	require.NoError(t, err)
-	require.Equal(t, "service", result.Claims.TokenType)
+	require.ErrorIs(t, err, iamerrors.ErrTokenInvalid)
+	require.Nil(t, result)
 }
 
 func TestRemoteVerifyStrategyReturnsSessionID(t *testing.T) {

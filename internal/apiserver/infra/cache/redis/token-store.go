@@ -10,10 +10,10 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	cachegovernance "github.com/FangcunMount/iam/v3/internal/apiserver/application/cachegovernance"
-	cachemodel "github.com/FangcunMount/iam/v3/internal/apiserver/cache"
-	tokendomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	cachegovernance "github.com/FangcunMount/iam/v4/internal/apiserver/application/cachegovernance"
+	cachemodel "github.com/FangcunMount/iam/v4/internal/apiserver/cache"
+	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // RedisStore Redis 令牌存储实现
@@ -61,7 +61,7 @@ func (s *RedisStore) FamilyInspectors() []cachegovernance.FamilyInspector {
 	return []cachegovernance.FamilyInspector{
 		newRedisFamilyInspector(cachemodel.FamilyAuthnRefreshToken, s.client, "刷新令牌采用 JSON String 存储。"),
 		newRedisFamilyInspector(cachemodel.FamilyAuthnConsumedRefreshToken, s.client, "已消费刷新令牌采用摘要 key + 最小 JSON marker 存储。"),
-		newRedisFamilyInspector(cachemodel.FamilyAuthnRevokedAccessToken, s.client, "已撤销 access/service bearer token 采用 marker String 存储；family 名保留历史兼容。"),
+		newRedisFamilyInspector(cachemodel.FamilyAuthnRevokedAccessToken, s.client, "已撤销 access bearer token 采用 marker String 存储；family 名保留历史兼容。"),
 	}
 }
 
@@ -237,7 +237,7 @@ func (s *RedisStore) DeleteRefreshToken(ctx context.Context, tokenValue string) 
 	return nil
 }
 
-// MarkBearerTokenRevoked 标记 access/service bearer token 已撤销。
+// MarkBearerTokenRevoked 标记 access bearer token 已撤销。
 func (s *RedisStore) MarkBearerTokenRevoked(ctx context.Context, tokenID string, expiry time.Duration) error {
 	key := revokedBearerTokenRedisKey(tokenID)
 	storeKey, err := newStoreKey(key)
@@ -254,7 +254,7 @@ func (s *RedisStore) MarkBearerTokenRevoked(ctx context.Context, tokenID string,
 	return nil
 }
 
-// IsBearerTokenRevoked 检查 access/service bearer token 是否已撤销。
+// IsBearerTokenRevoked 检查 access bearer token 是否已撤销。
 func (s *RedisStore) IsBearerTokenRevoked(ctx context.Context, tokenID string) (bool, error) {
 	key := revokedBearerTokenRedisKey(tokenID)
 	storeKey, err := newStoreKey(key)

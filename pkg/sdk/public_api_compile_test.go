@@ -5,20 +5,19 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/FangcunMount/iam/v3/pkg/sdk"
-	authchallenge "github.com/FangcunMount/iam/v3/pkg/sdk/auth/challenge"
-	authclient "github.com/FangcunMount/iam/v3/pkg/sdk/auth/client"
-	authjwks "github.com/FangcunMount/iam/v3/pkg/sdk/auth/jwks"
-	authloginidentity "github.com/FangcunMount/iam/v3/pkg/sdk/auth/loginidentity"
-	authloginv2 "github.com/FangcunMount/iam/v3/pkg/sdk/auth/loginv2"
-	authserviceauth "github.com/FangcunMount/iam/v3/pkg/sdk/auth/serviceauth"
-	authsignup "github.com/FangcunMount/iam/v3/pkg/sdk/auth/signup"
-	authverifier "github.com/FangcunMount/iam/v3/pkg/sdk/auth/verifier"
-	"github.com/FangcunMount/iam/v3/pkg/sdk/authz"
-	"github.com/FangcunMount/iam/v3/pkg/sdk/config"
-	sdkerrors "github.com/FangcunMount/iam/v3/pkg/sdk/errors"
-	"github.com/FangcunMount/iam/v3/pkg/sdk/identity"
-	"github.com/FangcunMount/iam/v3/pkg/sdk/idp"
+	sdk "github.com/FangcunMount/iam/v4/pkg/sdk"
+	authchallenge "github.com/FangcunMount/iam/v4/pkg/sdk/auth/challenge"
+	authclient "github.com/FangcunMount/iam/v4/pkg/sdk/auth/client"
+	authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
+	authloginidentity "github.com/FangcunMount/iam/v4/pkg/sdk/auth/loginidentity"
+	authloginv2 "github.com/FangcunMount/iam/v4/pkg/sdk/auth/loginv2"
+	authsignup "github.com/FangcunMount/iam/v4/pkg/sdk/auth/signup"
+	authverifier "github.com/FangcunMount/iam/v4/pkg/sdk/auth/verifier"
+	"github.com/FangcunMount/iam/v4/pkg/sdk/authz"
+	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
+	sdkerrors "github.com/FangcunMount/iam/v4/pkg/sdk/errors"
+	"github.com/FangcunMount/iam/v4/pkg/sdk/identity"
+	"github.com/FangcunMount/iam/v4/pkg/sdk/idp"
 )
 
 type compileMetrics struct{}
@@ -58,7 +57,6 @@ func TestPublicAPISurfaceCompiles(t *testing.T) {
 	var _ *sdk.TokenVerifyConfig
 	var _ *sdk.CircuitBreakerConfig
 	var _ *sdk.ObservabilityConfig
-	var _ *sdk.ServiceAuthConfig
 
 	var _ sdk.MetricsCollector = (*compileMetrics)(nil)
 	var _ sdk.TracingHook = (*compileTracing)(nil)
@@ -135,7 +133,6 @@ func TestPublicAPISurfaceCompiles(t *testing.T) {
 	var _ = authverifier.NewTokenVerifier
 	var _ = (*authverifier.TokenClaims).AuthorizationDomain
 	var _ = (*authverifier.TokenClaims).BusinessOrgID
-	var _ = authserviceauth.NewServiceAuthHelper
 
 	var _ *authz.Client
 	var _ = authz.NewClient

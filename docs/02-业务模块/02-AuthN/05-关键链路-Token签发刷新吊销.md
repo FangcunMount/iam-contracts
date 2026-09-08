@@ -11,10 +11,9 @@
 | Principal | 本次证明成功的运行时主体 | 不代表已通过后续准入，不是持久化 User |
 | AuthenticationGrant | Session + UserTokenSet 的颁发结果 | 不独立持久化，不作为公开 DTO |
 | Session | 原始认证上下文、续期投影、在线状态 | Redis 保存，可过期、延期、撤销 |
-| UserTokenSet | 一次初始颁发/刷新产生的 AccessToken + RefreshToken | 不包含 ServiceToken |
+| UserTokenSet | 一次初始颁发/刷新产生的 AccessToken + RefreshToken | 仅包含用户令牌 |
 | AccessToken | 用户访问凭证，RS256 Signed JWT | 包含 Session 关联；可在线撤销 |
 | RefreshToken | 不透明续期凭证 | 关联 Session，严格轮换，以 Session 为上下文权威来源 |
-| ServiceToken | 服务间 bearer token | 没有用户 Session/Refresh，仍接受在线 token-ID 撤销检查 |
 
 公开登录与刷新返回 token pair（AccessToken、RefreshToken、ExpiresIn、TokenType），不单独暴露 SessionID。Token 内容、JOSE 概念与历史格式兼容见 [Session、Token 与 JWKS](03-Session-Token与JWKS.md)；Principal 的形成见 [Login 链路](04-关键链路-Login登录认证.md)。本文是各生命周期操作的 canonical 说明。
 
@@ -90,22 +89,18 @@ sequenceDiagram
     Codec-->>V: VerifiedTokenClaims or error
     V->>TS: IsBearerTokenRevoked(jti)
     TS-->>V: not revoked or error
-    alt service token
-        V-->>A: verified claims
-    else user access token
-        V->>SS: GetActive(sessionID)
-        SS-->>V: active Session or error
-        V->>AP: Require(UserID, LoginIdentityID)
-        AP-->>V: admitted or error
-        V-->>A: verified claims
-    end
+    V->>SS: GetActive(sessionID)
+    SS-->>V: active Session or error
+    V->>AP: Require(UserID, LoginIdentityID)
+    AP-->>V: admitted or error
+    V-->>A: verified claims
     A->>A: enforce accepted type and expected audience
     A-->>C: claims or failure
 ```
 
-任何一步错误立即拒绝，图中后续步骤只在前一步成功时执行。Codec 校验签名、RS256 算法与 key 绑定、canonical issuer、exp/nbf/iat，并解析已登记类型。应用 verification policy 再约束 accepted token type 和 audience；默认只接受 access，服务凭证路径必须明确接受 service。
+任何一步错误立即拒绝，图中后续步骤只在前一步成功时执行。Codec 校验签名、RS256 算法与 key 绑定、canonical issuer、exp/nbf/iat，并解析已登记类型。应用 verification policy 再约束 accepted token type 和 audience；仅接受 access，退役和未知类型均拒绝。
 
-用户令牌的 Session/Admission 不是可选检查。ServiceToken 跳过用户 Session/Admission，但必须先经过 bearer 撤销标记检查。服务 Token 不得通过用户会话路径获取 Refresh 能力。
+用户令牌的 Session/Admission 不是可选检查。服务间调用使用 mTLS + ACL，不颁发用户 Session 或 RefreshToken。
 
 SDK 本地 JWKS 验签不读取在线撤销、Session 或 User/LoginIdentity 状态。它只能按本地策略接受签名和声明，不能提供同等即时撤销能力。缓存或远程失败后 fallback local 会改变安全语义；业务接入应明确选择，见 [两类验签边界](03-Session-Token与JWKS.md)。验签成功后仍需 AuthZ 资源授权。
 
@@ -189,7 +184,6 @@ stateDiagram-v2
 | 操作 | 实际副作用 | 边界 |
 | --- | --- | --- |
 | Revoke AccessToken | 验证 bearer，写 jti marker，再撤销关联 Session | 标记 TTL 来自剩余令牌寿命；分步失败返回错误 |
-| Revoke ServiceToken | 验证 bearer，写 jti marker | 不触碰用户 Session |
 | Revoke RefreshToken | 查 refresh，撤销关联 Session，再删除 refresh | 不枚举全部 access token |
 | Revoke Session | 改为 revoked 并清理关联索引 | 不删除 User/LoginIdentity |
 | User block/deactivate | MySQL 同事务写状态和撤销 outbox，worker 批量撤销 Session | 在线 Admission 同时阻断，outbox 负责最终收敛 |

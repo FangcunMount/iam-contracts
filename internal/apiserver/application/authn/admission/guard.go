@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	admissiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 // MapError 将 Admission 领域错误映射为稳定的 AuthN/Identity 应用错误契约。

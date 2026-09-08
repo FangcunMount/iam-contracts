@@ -1,5 +1,9 @@
 # IAM Go SDK v3 迁移说明
 
+## v4 服务认证退役
+
+删除服务 JWT 签发 RPC、SDK helper 和自动续期。调用方切换 mTLS + ACL，统一升级或整体回滚。protobuf 保留删除枚举的编号和名称，其他协议路径不随 Go module 主版本变更。
+
 ## 本文回答
 
 这篇文档只回答 4 件事：
@@ -11,12 +15,12 @@
 
 ## 30 秒结论
 
-- `v3.0.0` 的 Go module 路径是 `github.com/FangcunMount/iam/v3`；调用方必须同时更新依赖版本和 import path
+- `v4.0.0` 的 Go module 路径是 `github.com/FangcunMount/iam/v4`；调用方必须同时更新依赖版本和 import path
 - REST URL、OpenAPI 版本/component ID 和 gRPC proto package 继续保持 v2；Go module major 升级不等于 wire 契约升级
-- 公开稳定入口现在固定为：`pkg/sdk`、`pkg/sdk/config`、`pkg/sdk/auth/client`、`pkg/sdk/auth/loginv2`、`pkg/sdk/auth/jwks`、`pkg/sdk/auth/verifier`、`pkg/sdk/auth/serviceauth`、`pkg/sdk/authz`、`pkg/sdk/identity`、`pkg/sdk/idp`、`pkg/sdk/errors`
+- 公开稳定入口现在固定为：`pkg/sdk`、`pkg/sdk/config`、`pkg/sdk/auth/client`、`pkg/sdk/auth/loginv2`、`pkg/sdk/auth/jwks`、`pkg/sdk/auth/verifier`、`pkg/sdk/authz`、`pkg/sdk/identity`、`pkg/sdk/idp`、`pkg/sdk/errors`
 - 历史 v2 import `github.com/FangcunMount/iam/v2/pkg/sdk/transport` 和 `github.com/FangcunMount/iam/v2/pkg/sdk/observability` 已分别移入 `pkg/sdk/internal/transport` 与 `pkg/sdk/internal/observability`，不再对外公开
 - `pkg/sdk/errors` 只保留小型 facade；高级 `Analyze / matcher / handler` 能力已收回内部
-- `pkg/sdk/auth` 兼容 façade 已删除，认证入口统一切到 `client`、`jwks`、`verifier`、`serviceauth`
+- `pkg/sdk/auth` 兼容 façade 已删除，认证入口统一切到 `client`、`jwks`、`verifier`
 - REST AuthN v2 登录入口为 `pkg/sdk/auth/loginv2`；gRPC token/JWKS/onboarding 客户端统一走 `pkg/sdk/auth/client` 的 v2 契约
 - 2026-05 的契约整理仍在 v2 下进行：`AuthService.Login`、`IDPService.GetWechatAccessToken/RefreshWechatAccessToken`、ProfileLink `include_revoked` 已进入 v2 proto 和 SDK
 - `sdk.NewTokenVerifier(...)`、`sdk.NewJWKSManager(...)`、`sdk.NewJWKSManagerWithClient(...)`、`sdk.NewServiceAuthHelper(...)` 已删除
@@ -70,7 +74,7 @@ gRPC `VerifyToken` 响应的 `TokenClaims` 已增加 `org_id` 字段（field 22�
 | `auth_time` 双读 | 优先顶层 `auth_time`（unix），兼容 `attributes.auth_time`（RFC3339）；服务端回退命中由 `iam_jwt_legacy_attribute_auth_time_fallback_total` 计数 |
 | access JWT 不再含 `auth_method`/`realm` | 需要认证手段读 `amr`；需要原始认证时间读 `AuthenticatedAt`；`AuthTime` 仅为弃用别名 |
 | 敏感 attributes 默认不进入 JWT | 不要依赖 `phone_number`、provider 原始 ID 等旧透传字段 |
-| token type 默认策略 | Verify 默认只接受 access；service token 必须在 `AllowedTokenTypes` 中显式允许 |
+| token type 默认策略 | Verify 默认只接受 access；退役的 service 和未知类型始终拒绝 |
 
 ## 新的公开边界
 
@@ -82,7 +86,6 @@ gRPC `VerifyToken` 响应的 `TokenClaims` 已增加 `org_id` 字段（field 22�
 - `pkg/sdk/auth/loginv2`
 - `pkg/sdk/auth/jwks`
 - `pkg/sdk/auth/verifier`
-- `pkg/sdk/auth/serviceauth`
 - `pkg/sdk/authz`
 - `pkg/sdk/identity`
 - `pkg/sdk/idp`
@@ -100,11 +103,10 @@ gRPC `VerifyToken` 响应的 `TokenClaims` 已增加 `org_id` 字段（field 22�
 | ---- | ---- |
 | `github.com/FangcunMount/iam/v2/pkg/sdk/transport` | `pkg/sdk` + `pkg/sdk/config` |
 | `github.com/FangcunMount/iam/v2/pkg/sdk/observability` | `Config.Observability` + `sdk.WithMetricsCollector(...)` / `sdk.WithTracingHook(...)` |
-| `pkg/sdk/auth` | `pkg/sdk/auth/client`、`pkg/sdk/auth/loginv2`、`pkg/sdk/auth/jwks`、`pkg/sdk/auth/verifier`、`pkg/sdk/auth/serviceauth` |
+| `pkg/sdk/auth` | `pkg/sdk/auth/client`、`pkg/sdk/auth/loginv2`、`pkg/sdk/auth/jwks`、`pkg/sdk/auth/verifier` |
 | `sdk.NewTokenVerifier(...)` | `authverifier.NewTokenVerifier(...)` |
 | `sdk.NewJWKSManager(...)` | `authjwks.NewJWKSManager(...)` |
 | `sdk.NewJWKSManagerWithClient(...)` | `authjwks.NewJWKSManager(..., authjwks.WithAuthClient(client.Auth()))` |
-| `sdk.NewServiceAuthHelper(...)` | `authserviceauth.NewServiceAuthHelper(..., client.Auth())` |
 | `errors.Analyze(err)` | 不再公开；调用方只使用 `AsIAMError`、`GRPCCode`、`Message`、`ToHTTPStatus` |
 | `errors.AuthErrors.Match(err)` | 用 `errors.IsUnauthorized(err)`、`errors.IsPermissionDenied(err)` 等谓词代替 |
 | `errors.NewErrorHandler(...)` | 不再公开；调用方直接写自己的分支处理 |
@@ -148,7 +150,7 @@ _ = transport.RequestIDInterceptor
 新写法：
 
 ```go
-import sdk "github.com/FangcunMount/iam/v3/pkg/sdk"
+import sdk "github.com/FangcunMount/iam/v4/pkg/sdk"
 
 ctx = sdk.WithRequestID(ctx, "req-123")
 ```
@@ -199,8 +201,8 @@ verifier, err := sdk.NewTokenVerifier(verifyCfg, jwksCfg, client)
 新写法：
 
 ```go
-import authjwks "github.com/FangcunMount/iam/v3/pkg/sdk/auth/jwks"
-import authverifier "github.com/FangcunMount/iam/v3/pkg/sdk/auth/verifier"
+import authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
+import authverifier "github.com/FangcunMount/iam/v4/pkg/sdk/auth/verifier"
 
 jwksManager, err := authjwks.NewJWKSManager(jwksCfg,
     authjwks.WithCacheEnabled(true),
@@ -214,7 +216,6 @@ verifier, err := authverifier.NewTokenVerifier(verifyCfg, jwksManager, client.Au
 - `client.Auth()` → `*authclient.Client`
 - `sdk.NewJWKSManager` / `sdk.NewJWKSManagerWithClient` → `auth/jwks.NewJWKSManager`
 - `sdk.NewTokenVerifier` → `auth/verifier.NewTokenVerifier`
-- `sdk.NewServiceAuthHelper` → `auth/serviceauth.NewServiceAuthHelper`
 
 ### 4. 从高级错误分析迁回稳定 facade
 
@@ -255,7 +256,7 @@ default:
 
 ## 建议的迁移顺序
 
-1. 将 `go.mod` 依赖升级为 `github.com/FangcunMount/iam/v3 v3.0.0`，并把 IAM import 的 `/v2/` 统一改为 `/v3/`
+1. 将 `go.mod` 依赖升级为 `github.com/FangcunMount/iam/v4 v3.0.0`，并把 IAM import 的 `/v2/` 统一改为 `/v3/`
 2. 删除 `TokenClaims.TenantID` 读取，按语义改用 `AuthorizationDomain()` 或 `BusinessOrgID()`
 3. 删除 `JWKSStats` 引用，改用 fetcher `Stats()`、熔断器 `State()` 或应用级 metrics collector
 4. 运行 `go mod tidy`、全量测试和实际 IAM 集成验证；不要改 REST URL 或 `iam.*.v2` proto package

@@ -1,8 +1,8 @@
 package process
 
 import (
-	"github.com/FangcunMount/iam/v3/internal/apiserver/config"
-	"github.com/FangcunMount/iam/v3/internal/pkg/grpc"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/config"
+	"github.com/FangcunMount/iam/v4/internal/pkg/grpc"
 )
 
 // buildGRPCServer 构建 GRPC 服务器

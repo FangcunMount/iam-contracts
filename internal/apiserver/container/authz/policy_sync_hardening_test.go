@@ -9,8 +9,8 @@ import (
 	"time"
 
 	cbmessaging "github.com/FangcunMount/component-base/pkg/messaging"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/authorization"
-	authzruntime "github.com/FangcunMount/iam/v3/internal/apiserver/infra/authz/runtime"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
+	authzruntime "github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/runtime"
 	"github.com/stretchr/testify/require"
 )
 

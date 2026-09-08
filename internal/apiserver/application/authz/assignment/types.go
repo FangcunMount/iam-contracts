@@ -5,12 +5,12 @@ import (
 	"strings"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	assignmentDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/assignment"
-	roleDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
+	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // Commands 承载角色赋权写用例；REST 以 role_id 写入，gRPC 以 role_name 写入。

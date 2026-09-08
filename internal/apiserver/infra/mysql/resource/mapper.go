@@ -3,9 +3,9 @@ package resource
 import (
 	"encoding/json"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/attribute"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/attribute"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // Mapper Resource BO 和 PO 转换器

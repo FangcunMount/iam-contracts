@@ -83,7 +83,6 @@ IDP 解析外部 provider 身份
 - 用户 access token 是 RS256 JWT，但 IAM 在线验证仍检查撤销标记、Session 和主体状态。
 - Refresh token 使用 Redis Lua 原子轮换；当前先延长 Session，再轮换 token，失败时存在 TTL 已变化的窗口。
 - SDK 本地 JWKS 验签不具备 IAM 在线验证的即时撤销语义。
-- ServiceToken 属于 Token 领域，但不建立用户 Session，也不具有 Refresh 能力。
 - AuthN 管理路由不按管理员角色名旁路：JWKS 与 Session 操作使用明确的 AuthZ Resource/Action，并依次检查当前 Tenant 与平台域。
 
 ## 代码入口

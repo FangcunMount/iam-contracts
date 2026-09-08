@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	domainvisibility "github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/visibility"
+	domainvisibility "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
 )
 
 type countingVisibility struct {

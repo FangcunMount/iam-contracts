@@ -1,8 +1,8 @@
 package handler
 
 import (
-	appprofile "github.com/FangcunMount/iam/v3/internal/apiserver/application/identity/profile"
-	_ "github.com/FangcunMount/iam/v3/pkg/core" // imported for swagger
+	appprofile "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/profile"
+	_ "github.com/FangcunMount/iam/v4/pkg/core" // imported for swagger
 )
 
 // ProfileHandler 档案 REST 处理器。

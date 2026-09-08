@@ -1,9 +1,9 @@
 package handler
 
 import (
-	assignmentDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/assignment"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/authz/dto"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/dto"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // toAssignmentResponse 转换为响应对象

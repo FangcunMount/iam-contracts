@@ -155,7 +155,7 @@ AdmissionPolicy 在 GrantIssuer 创建 Session 前读取：
 1. LoginIdentity 存在、归属于声明 User 且 active；
 2. Identity 的 UserStatusReader 返回 User active。
 
-missing、blocked、inactive、disabled、归属不符以及状态查询错误都会阻止颁发。Refresher 和在线用户 Token Verifier 复用该规则；ServiceToken 走独立分支。这些检查不是跨 MySQL/Redis 的全局锁，不能声称与并发禁用线性一致；后续在线复查和 Identity 的撤销 outbox 分别承担即时请求判断与最终状态收敛。
+missing、blocked、inactive、disabled、归属不符以及状态查询错误都会阻止颁发。Refresher 和在线用户 Token Verifier 复用该规则。这些检查不是跨 MySQL/Redis 的全局锁，不能声称与并发禁用线性一致；后续在线复查和 Identity 的撤销 outbox 分别承担即时请求判断与最终状态收敛。
 
 ## 5. 对外错误与可观测性
 

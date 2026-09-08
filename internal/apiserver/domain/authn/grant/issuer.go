@@ -7,9 +7,9 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
-	admissiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 // Dependencies 是认证结果颁发所需的领域协作者。

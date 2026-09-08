@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package iam.authz.v3;
 
-option go_package = "github.com/FangcunMount/iam/v3/api/grpc/iam/authz/v3;authzv3";
+option go_package = "github.com/FangcunMount/iam/v4/api/grpc/iam/authz/v3;authzv3";
 
 service AuthorizationService {
   rpc Check(CheckRequest) returns (CheckResponse);

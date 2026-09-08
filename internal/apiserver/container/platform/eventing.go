@@ -7,12 +7,12 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/component-base/pkg/messaging"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/eventing"
-	messagingInfra "github.com/FangcunMount/iam/v3/internal/apiserver/infra/messaging"
-	eventoutbox "github.com/FangcunMount/iam/v3/internal/apiserver/infra/mysql/eventoutbox"
-	"github.com/FangcunMount/iam/v3/pkg/event"
-	"github.com/FangcunMount/iam/v3/pkg/eventcatalog"
-	"github.com/FangcunMount/iam/v3/pkg/eventruntime"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/eventing"
+	messagingInfra "github.com/FangcunMount/iam/v4/internal/apiserver/infra/messaging"
+	eventoutbox "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/eventoutbox"
+	"github.com/FangcunMount/iam/v4/pkg/event"
+	"github.com/FangcunMount/iam/v4/pkg/eventcatalog"
+	"github.com/FangcunMount/iam/v4/pkg/eventruntime"
 	"gorm.io/gorm"
 )
 

@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	apiserverconfig "github.com/FangcunMount/iam/v3/internal/apiserver/config"
-	apiserveroptions "github.com/FangcunMount/iam/v3/internal/apiserver/options"
-	grpcpkg "github.com/FangcunMount/iam/v3/internal/pkg/grpc"
-	genericoptions "github.com/FangcunMount/iam/v3/internal/pkg/options"
+	apiserverconfig "github.com/FangcunMount/iam/v4/internal/apiserver/config"
+	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
+	grpcpkg "github.com/FangcunMount/iam/v4/internal/pkg/grpc"
+	genericoptions "github.com/FangcunMount/iam/v4/internal/pkg/options"
 )
 
 func TestApplyGRPCOptionsMapsMTLSAuthACLAudit(t *testing.T) {

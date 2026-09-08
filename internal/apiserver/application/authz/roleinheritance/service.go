@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	policychange "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/policychange"
-	authzuow "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/uow"
-	domain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/roleinheritance"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	policychange "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policychange"
+	authzuow "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/uow"
+	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/roleinheritance"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 type CreateCommand struct {

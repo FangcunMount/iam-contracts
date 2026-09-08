@@ -25,12 +25,12 @@ fi
 # 检查Go插件是否安装
 if ! command -v protoc-gen-go &> /dev/null; then
     echo "❌ protoc-gen-go 未安装，正在安装..."
-    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+    go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
 fi
 
 if ! command -v protoc-gen-go-grpc &> /dev/null; then
     echo "❌ protoc-gen-go-grpc 未安装，正在安装..."
-    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.1
 fi
 
 # 查找所有 proto 文件

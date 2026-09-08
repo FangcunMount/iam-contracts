@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	appquery "github.com/FangcunMount/iam/v3/internal/apiserver/application/suggest/queryprofile"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/visibility"
+	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
 )
 
 type stubFacts struct {

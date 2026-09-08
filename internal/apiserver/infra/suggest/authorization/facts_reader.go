@@ -4,10 +4,10 @@ import (
 	"context"
 	"strconv"
 
-	authorizationapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/authorization"
-	appquery "github.com/FangcunMount/iam/v3/internal/apiserver/application/suggest/queryprofile"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/visibility"
-	"github.com/FangcunMount/iam/v3/pkg/tenant"
+	authorizationapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
+	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
+	"github.com/FangcunMount/iam/v4/pkg/tenant"
 )
 
 // FactsReader 从 AuthZ 查询 Suggest 授权事实。

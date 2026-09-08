@@ -4,12 +4,12 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/authfailure"
-	authnexternal "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/externalidentity"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/principal"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/signin/method"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/authfailure"
+	authnexternal "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/externalidentity"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/principal"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 // SignIn 登录

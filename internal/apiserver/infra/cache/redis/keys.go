@@ -10,7 +10,7 @@ import (
 var (
 	refreshTokenKeyspace         = rediskeyspace.New("refresh_token")
 	consumedRefreshTokenKeyspace = rediskeyspace.New("consumed_refresh_token")
-	// revoked_access_token is a legacy physical keyspace name shared by access/service bearer-token markers.
+	// revoked_access_token is a legacy physical keyspace name shared by access bearer-token markers.
 	revokedAccessTokenKeyspace        = rediskeyspace.New("revoked_access_token")
 	sessionKeyspace                   = rediskeyspace.New("session")
 	userSessionIndexKeyspace          = rediskeyspace.New("user_session_index")

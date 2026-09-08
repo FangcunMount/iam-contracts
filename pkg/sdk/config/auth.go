@@ -46,11 +46,3 @@ type ObservabilityConfig struct {
 	MetricsSubsystem     string
 	ServiceName          string
 }
-
-// ServiceAuthConfig 服务间认证配置。
-type ServiceAuthConfig struct {
-	ServiceID      string
-	TargetAudience []string
-	TokenTTL       time.Duration
-	RefreshBefore  time.Duration
-}

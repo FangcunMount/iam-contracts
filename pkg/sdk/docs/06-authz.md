@@ -165,22 +165,7 @@ allowed, err := client.Authz().Allow(
 
 ### 2.3 和服务间认证一起用
 
-如果当前调用链需要服务间认证，先用 `ServiceAuthHelper` 包装上下文，再调用 `Authz()`：
-
-```go
-authCtx, err := helper.NewAuthenticatedContext(ctx)
-if err != nil {
-    return err
-}
-
-allowed, err := client.Authz().Allow(
-    authCtx,
-    "user:user-123",
-    "tenant-a",
-    "qs:evaluation:collection:reports",
-    "read",
-)
-```
+配置 mTLS 后直接使用原始 context 调用 `Authz()`。服务证书身份接受 ACL 校验，请求中的用户 subject 和业务授权条件保持不变。
 
 ## 3. 核心设计
 

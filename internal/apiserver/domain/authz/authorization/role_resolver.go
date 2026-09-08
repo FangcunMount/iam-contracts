@@ -1,9 +1,9 @@
 package authorization
 
 import (
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/tenant"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
 )
 
 // RoleResolver defines the authorization-domain capability for resolving a

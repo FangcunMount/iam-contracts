@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	policychange "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/policychange"
-	authzuow "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/uow"
-	assignmentDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/assignment"
-	roleDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/subject"
+	policychange "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policychange"
+	authzuow "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/uow"
+	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
+	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
 )
 
 type GrantByRoleNameCommand struct {

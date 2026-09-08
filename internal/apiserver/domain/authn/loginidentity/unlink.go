@@ -3,7 +3,7 @@ package loginidentity
 import (
 	"context"
 
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // UnlinkOutcome 是原子解绑动作在同一事务内核对归属、活跃身份数量并解绑后的结果。

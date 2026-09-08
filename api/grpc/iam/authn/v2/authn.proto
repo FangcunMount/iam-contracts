@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package iam.authn.v2;
 
-option go_package = "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2;authnv2";
+option go_package = "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2;authnv2";
 
 import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
@@ -21,7 +21,8 @@ enum TokenType {
   TOKEN_TYPE_UNSPECIFIED = 0;
   TOKEN_TYPE_ACCESS = 1;
   TOKEN_TYPE_REFRESH = 2;
-  TOKEN_TYPE_SERVICE = 3;
+  reserved 3;
+  reserved "TOKEN_TYPE_SERVICE";
 }
 
 // ============= 通用消息 =============
@@ -117,16 +118,6 @@ message RevokeRefreshTokenRequest {
 }
 message RevokeRefreshTokenResponse {}
 
-message IssueServiceTokenRequest {
-  string subject = 1;
-  repeated string audience = 2;
-  google.protobuf.Duration ttl = 3;
-  OperatorContext operator = 10;
-  google.protobuf.Struct attributes = 20;
-}
-message IssueServiceTokenResponse {
-  TokenPair token_pair = 1;
-}
 
 service AuthService {
   rpc Login(LoginRequest) returns (LoginResponse);
@@ -134,7 +125,6 @@ service AuthService {
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
   rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
   rpc RevokeRefreshToken(RevokeRefreshTokenRequest) returns (RevokeRefreshTokenResponse);
-  rpc IssueServiceToken(IssueServiceTokenRequest) returns (IssueServiceTokenResponse);
 }
 
 // ============= AuthSignupService =============

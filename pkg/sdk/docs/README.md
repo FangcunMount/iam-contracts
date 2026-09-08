@@ -57,7 +57,7 @@
 3. **[Token 生命周期](./03-token-lifecycle.md)**
    - 用户态 token 的消费边界
    - `VerifyToken` / `RefreshToken` / `Revoke*` / `GetJWKS`
-   - `IssueServiceToken` 的调用边界
+   - 用户 Token 与服务证书的边界
 
 4. **[JWT 本地验证](./04-jwt-verification.md)**
    - TokenVerifier 使用
@@ -68,7 +68,7 @@
    - 监控和统计
 
 5. **[服务间认证](./05-service-auth.md)**
-   - ServiceAuthHelper 基础用法
+   - mTLS 证书配置
    - 自动 Token 刷新
    - Jitter 和退避策略
    - 熔断保护

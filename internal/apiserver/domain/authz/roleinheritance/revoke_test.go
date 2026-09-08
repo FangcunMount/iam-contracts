@@ -3,7 +3,7 @@ package roleinheritance_test
 import (
 	"testing"
 
-	domain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/roleinheritance"
+	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/roleinheritance"
 	"github.com/stretchr/testify/require"
 )
 

@@ -7,11 +7,11 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/gin-gonic/gin"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/authz/dto"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v3/internal/pkg/requestctx"
-	"github.com/FangcunMount/iam/v3/pkg/core"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/dto"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
+	"github.com/FangcunMount/iam/v4/pkg/core"
 )
 
 // getTenantID 从上下文中获取租户ID。

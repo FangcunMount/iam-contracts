@@ -6,7 +6,7 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 // KeyManagementAppService 签名密钥管理查询应用服务。

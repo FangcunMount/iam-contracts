@@ -3,7 +3,7 @@ package refreshindex
 import (
 	"fmt"
 
-	domainprofile "github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/profile"
+	domainprofile "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
 )
 
 // ChangeKind 表达索引投影变更种类。

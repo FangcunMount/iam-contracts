@@ -3,10 +3,10 @@ package handler
 import (
 	"context"
 
-	roleInheritanceApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/roleinheritance"
-	roleInheritanceDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/roleinheritance"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/authz/dto"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	roleInheritanceApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/roleinheritance"
+	roleInheritanceDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/roleinheritance"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/dto"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/gin-gonic/gin"
 )
 

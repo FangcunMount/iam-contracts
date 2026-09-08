@@ -4,9 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	authzapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/authorization"
-	authnMiddleware "github.com/FangcunMount/iam/v3/internal/pkg/middleware/authn"
-	authzMiddleware "github.com/FangcunMount/iam/v3/internal/pkg/middleware/authz"
+	authzapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
+	authnMiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authn"
+	authzMiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authz"
 )
 
 // registerAdminRoutes 注册管理员路由

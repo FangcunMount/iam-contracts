@@ -3,8 +3,8 @@ package authz
 import (
 	"context"
 
-	authzv3 "github.com/FangcunMount/iam/v3/api/grpc/iam/authz/v3"
-	"github.com/FangcunMount/iam/v3/pkg/sdk/errors"
+	authzv3 "github.com/FangcunMount/iam/v4/api/grpc/iam/authz/v3"
+	"github.com/FangcunMount/iam/v4/pkg/sdk/errors"
 )
 
 func (c *Client) Check(ctx context.Context, req *authzv3.CheckRequest) (*authzv3.CheckResponse, error) {

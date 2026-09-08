@@ -5,7 +5,7 @@ import (
 
 	"github.com/mozillazg/go-pinyin"
 
-	domainprofile "github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/profile"
+	domainprofile "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
 )
 
 // ternarySearchTree 实现三元搜索树用于前缀/通配符查找。

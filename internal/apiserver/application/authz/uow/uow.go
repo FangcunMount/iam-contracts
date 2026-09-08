@@ -3,13 +3,13 @@ package uow
 import (
 	"context"
 
-	assignmentDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/assignment"
-	permissionGrantDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/permissiongrant"
-	policyDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/policy"
-	resourceDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/resource"
-	roleDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/role"
-	roleInheritanceDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/roleinheritance"
-	"github.com/FangcunMount/iam/v3/pkg/event"
+	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
+	permissionGrantDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
+	policyDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/policy"
+	resourceDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
+	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
+	roleInheritanceDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/roleinheritance"
+	"github.com/FangcunMount/iam/v4/pkg/event"
 )
 
 type TxRepositories struct {

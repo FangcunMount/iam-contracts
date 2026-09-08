@@ -1,7 +1,7 @@
 package sdk
 
 import (
-	"github.com/FangcunMount/iam/v3/pkg/sdk/config"
+	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
 	"google.golang.org/grpc"
 )
 
@@ -13,7 +13,7 @@ type KeepaliveConfig = config.KeepaliveConfig
 type TokenVerifyConfig = config.TokenVerifyConfig
 type CircuitBreakerConfig = config.CircuitBreakerConfig
 type ObservabilityConfig = config.ObservabilityConfig
-type ServiceAuthConfig = config.ServiceAuthConfig
+
 type ClientOption = config.ClientOption
 type MetricsCollector = config.MetricsCollector
 type TracingHook = config.TracingHook

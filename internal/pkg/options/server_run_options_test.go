@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/FangcunMount/iam/v3/internal/pkg/server"
+	"github.com/FangcunMount/iam/v4/internal/pkg/server"
 )
 
 func TestServerRunOptionsCompleteNormalizesMode(t *testing.T) {

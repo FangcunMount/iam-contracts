@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	linkingapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/linking"
-	tokenapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/token"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v3/internal/pkg/requestctx"
+	linkingapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
+	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

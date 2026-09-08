@@ -10,8 +10,8 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	pkgauth "github.com/FangcunMount/iam/v3/pkg/auth"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	pkgauth "github.com/FangcunMount/iam/v4/pkg/auth"
 	"github.com/google/uuid"
 )
 

@@ -1,8 +1,8 @@
 package assignment
 
 import (
-	assignmentDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/assignment"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // Mapper 负责 Assignment 领域对象和持久化对象之间的转换。

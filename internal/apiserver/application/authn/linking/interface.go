@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	idpresolver "github.com/FangcunMount/iam/v3/internal/apiserver/application/idp/externalidentity"
-	loginidentity "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	idpresolver "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
+	loginidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // ==========================================================================

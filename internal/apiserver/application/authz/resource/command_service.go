@@ -2,16 +2,17 @@ package resource
 
 import (
 	"context"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v3/pkg/tenant"
 	"strings"
 
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v4/pkg/tenant"
+
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	policychange "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/policychange"
-	authzuow "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/uow"
-	policyDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/policy"
-	resourceDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	policychange "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policychange"
+	authzuow "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/uow"
+	policyDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/policy"
+	resourceDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 // ResourceCatalog manages protected resource definitions transactionally with

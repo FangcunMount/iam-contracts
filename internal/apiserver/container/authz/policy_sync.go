@@ -8,8 +8,8 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	cbmessaging "github.com/FangcunMount/component-base/pkg/messaging"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/policypublication"
-	authzruntime "github.com/FangcunMount/iam/v3/internal/apiserver/infra/authz/runtime"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policypublication"
+	authzruntime "github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/runtime"
 )
 
 type policySyncRuntime interface {

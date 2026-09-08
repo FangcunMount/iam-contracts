@@ -2,14 +2,15 @@ package roleinheritance_test
 
 import (
 	"context"
-	rolepo "github.com/FangcunMount/iam/v3/internal/apiserver/infra/mysql/role"
 	"testing"
 
+	rolepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/role"
+
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/roleinheritance"
-	repo "github.com/FangcunMount/iam/v3/internal/apiserver/infra/mysql/roleinheritance"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/roleinheritance"
+	repo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/roleinheritance"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"

@@ -1,6 +1,6 @@
 package options
 
-import authzruntime "github.com/FangcunMount/iam/v3/internal/apiserver/infra/authz/runtime"
+import authzruntime "github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/runtime"
 
 type AuthzOptions struct {
 	PolicySync             authzruntime.Config `mapstructure:"policy-sync" json:"policy_sync"`

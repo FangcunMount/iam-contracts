@@ -254,7 +254,6 @@ def check_generated_document_facts() -> None:
             "LifetimePolicy",
             "AuthenticationGrant",
             "GrantIssuer",
-            "ServiceToken",
             "TokenSetMinter",
             "Refresher",
             "Verifier",
@@ -298,7 +297,6 @@ def check_generated_document_facts() -> None:
             "UserTokenSet",
             "AccessToken",
             "RefreshToken",
-            "ServiceToken",
             "Subject.Ref",
             "Tenant.ID",
             "Role",
@@ -399,13 +397,10 @@ def check_generated_document_facts() -> None:
         ROOT / "docs/02-业务模块/02-AuthN/05-关键链路-Token签发刷新吊销.md"
     ).read_text(encoding="utf-8")
     bearer_revocation_step = "V->>TS: IsBearerTokenRevoked(jti)"
-    service_token_branch = "alt service token"
     if bearer_revocation_step not in token_lifecycle_doc:
         fail("AuthN token lifecycle diagram is missing bearer-token revocation")
-    if service_token_branch not in token_lifecycle_doc:
-        fail("AuthN token lifecycle diagram is missing the service-token branch")
-    if token_lifecycle_doc.index(bearer_revocation_step) > token_lifecycle_doc.index(service_token_branch):
-        fail("AuthN token lifecycle diagram branches before bearer-token revocation")
+    if "alt service token" in token_lifecycle_doc:
+        fail("AuthN token lifecycle diagram contains a retired branch")
 
     openapi_paths: dict[str, set[str]] = {}
     for contract_path in sorted((ROOT / "api/rest").glob("*.yaml")):
@@ -1039,7 +1034,7 @@ def check_compatibility_retirement_evidence() -> None:
     )
     swagger = (ROOT / "internal/apiserver/docs/swagger.yaml").read_text(encoding="utf-8")
     for token, source, label in (
-        ("module github.com/FangcunMount/iam/v3", go_mod, "v3 Go module path"),
+        ("module github.com/FangcunMount/iam/v4", go_mod, "v3 Go module path"),
         ("v2.0.10", sdk_migration, "SDK deprecation release"),
         ("免除 Batch C 的最短 30 天等待期", sdk_migration, "SDK owner waiver"),
         ("v3.0.0", sdk_migration, "SDK v3 release"),

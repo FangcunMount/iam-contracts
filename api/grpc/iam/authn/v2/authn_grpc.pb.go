@@ -24,7 +24,6 @@ const (
 	AuthService_RefreshToken_FullMethodName       = "/iam.authn.v2.AuthService/RefreshToken"
 	AuthService_RevokeToken_FullMethodName        = "/iam.authn.v2.AuthService/RevokeToken"
 	AuthService_RevokeRefreshToken_FullMethodName = "/iam.authn.v2.AuthService/RevokeRefreshToken"
-	AuthService_IssueServiceToken_FullMethodName  = "/iam.authn.v2.AuthService/IssueServiceToken"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -36,7 +35,6 @@ type AuthServiceClient interface {
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*RefreshTokenResponse, error)
 	RevokeToken(ctx context.Context, in *RevokeTokenRequest, opts ...grpc.CallOption) (*RevokeTokenResponse, error)
 	RevokeRefreshToken(ctx context.Context, in *RevokeRefreshTokenRequest, opts ...grpc.CallOption) (*RevokeRefreshTokenResponse, error)
-	IssueServiceToken(ctx context.Context, in *IssueServiceTokenRequest, opts ...grpc.CallOption) (*IssueServiceTokenResponse, error)
 }
 
 type authServiceClient struct {
@@ -97,16 +95,6 @@ func (c *authServiceClient) RevokeRefreshToken(ctx context.Context, in *RevokeRe
 	return out, nil
 }
 
-func (c *authServiceClient) IssueServiceToken(ctx context.Context, in *IssueServiceTokenRequest, opts ...grpc.CallOption) (*IssueServiceTokenResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(IssueServiceTokenResponse)
-	err := c.cc.Invoke(ctx, AuthService_IssueServiceToken_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -116,7 +104,6 @@ type AuthServiceServer interface {
 	RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error)
 	RevokeToken(context.Context, *RevokeTokenRequest) (*RevokeTokenResponse, error)
 	RevokeRefreshToken(context.Context, *RevokeRefreshTokenRequest) (*RevokeRefreshTokenResponse, error)
-	IssueServiceToken(context.Context, *IssueServiceTokenRequest) (*IssueServiceTokenResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -141,9 +128,6 @@ func (UnimplementedAuthServiceServer) RevokeToken(context.Context, *RevokeTokenR
 }
 func (UnimplementedAuthServiceServer) RevokeRefreshToken(context.Context, *RevokeRefreshTokenRequest) (*RevokeRefreshTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RevokeRefreshToken not implemented")
-}
-func (UnimplementedAuthServiceServer) IssueServiceToken(context.Context, *IssueServiceTokenRequest) (*IssueServiceTokenResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method IssueServiceToken not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -256,24 +240,6 @@ func _AuthService_RevokeRefreshToken_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_IssueServiceToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IssueServiceTokenRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).IssueServiceToken(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_IssueServiceToken_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).IssueServiceToken(ctx, req.(*IssueServiceTokenRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -300,10 +266,6 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RevokeRefreshToken",
 			Handler:    _AuthService_RevokeRefreshToken_Handler,
-		},
-		{
-			MethodName: "IssueServiceToken",
-			Handler:    _AuthService_IssueServiceToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

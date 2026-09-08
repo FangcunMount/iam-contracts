@@ -3,8 +3,8 @@ package session
 import (
 	"time"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // Status 表示认证会话的生命周期状态。

@@ -7,10 +7,10 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
-	admissiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 type refresher struct {

@@ -10,10 +10,10 @@ import (
 
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	authnexternal "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/externalidentity"
-	idpresolver "github.com/FangcunMount/iam/v3/internal/apiserver/application/idp/externalidentity"
-	idpidentity "github.com/FangcunMount/iam/v3/internal/apiserver/domain/idp/externalidentity"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/idp/wechatapp"
+	authnexternal "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/externalidentity"
+	idpresolver "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
+	idpidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/externalidentity"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/wechatapp"
 	"github.com/stretchr/testify/require"
 )
 

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	challengeDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/challenge"
+	challengeDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/challenge"
 	"github.com/stretchr/testify/require"
 )
 

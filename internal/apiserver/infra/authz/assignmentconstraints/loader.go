@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/FangcunMount/component-base/pkg/grpc/interceptors"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/assignmentadmission"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignmentadmission"
 	"gopkg.in/yaml.v3"
 )
 

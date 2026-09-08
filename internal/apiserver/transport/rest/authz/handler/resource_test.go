@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	resourceApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/resource"
-	resourceDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v3/internal/pkg/requestctx"
+	resourceApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/resource"
+	resourceDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

@@ -6,9 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	cachegovernancehandler "github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/cachegovernance/handler"
-	authnMiddleware "github.com/FangcunMount/iam/v3/internal/pkg/middleware/authn"
-	authzMiddleware "github.com/FangcunMount/iam/v3/internal/pkg/middleware/authz"
+	cachegovernancehandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/cachegovernance/handler"
+	authnMiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authn"
+	authzMiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authz"
 )
 
 // Router 集中的路由管理器

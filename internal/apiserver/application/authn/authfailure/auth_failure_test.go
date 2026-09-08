@@ -3,7 +3,7 @@ package authfailure
 import (
 	"testing"
 
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 )
 

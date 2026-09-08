@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	signingkeydomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/signingkey"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	signingkeydomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/signingkey"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 )
 
 type KeyStatus = signingkeydomain.Status

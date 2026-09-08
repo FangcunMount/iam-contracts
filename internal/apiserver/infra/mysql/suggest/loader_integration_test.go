@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	appquery "github.com/FangcunMount/iam/v3/internal/apiserver/application/suggest/queryprofile"
-	apprefresh "github.com/FangcunMount/iam/v3/internal/apiserver/application/suggest/refreshindex"
-	domainsearch "github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/search"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/visibility"
-	suggestmemory "github.com/FangcunMount/iam/v3/internal/apiserver/infra/suggest/index/memory"
+	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
+	apprefresh "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/refreshindex"
+	domainsearch "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/search"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
+	suggestmemory "github.com/FangcunMount/iam/v4/internal/apiserver/infra/suggest/index/memory"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )

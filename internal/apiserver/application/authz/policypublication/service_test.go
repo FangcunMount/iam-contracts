@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/eventing"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/eventing"
 	"github.com/stretchr/testify/require"
 )
 

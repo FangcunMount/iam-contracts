@@ -1,8 +1,8 @@
 package token
 
 import (
-	grantdomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/grant"
-	tokendomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/token"
+	grantdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/grant"
+	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
 )
 
 type SessionCreator = grantdomain.SessionCreator
@@ -21,7 +21,6 @@ type ConsumedRefreshToken = tokendomain.ConsumedRefreshToken
 const (
 	TokenTypeAccess  = tokendomain.TokenTypeAccess
 	TokenTypeRefresh = tokendomain.TokenTypeRefresh
-	TokenTypeService = tokendomain.TokenTypeService
 )
 
 // cloneStrings 克隆字符串切片

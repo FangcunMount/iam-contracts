@@ -8,8 +8,8 @@ import (
 	"math/big"
 	"time"
 
-	jwtinfra "github.com/FangcunMount/iam/v3/internal/apiserver/infra/token/jwt"
-	pkgauth "github.com/FangcunMount/iam/v3/pkg/auth"
+	jwtinfra "github.com/FangcunMount/iam/v4/internal/apiserver/infra/token/jwt"
+	pkgauth "github.com/FangcunMount/iam/v4/pkg/auth"
 )
 
 // manager 是密钥管理器。

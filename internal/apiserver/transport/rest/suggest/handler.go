@@ -4,10 +4,10 @@ import (
 	stderrors "errors"
 
 	pkgerrors "github.com/FangcunMount/component-base/pkg/errors"
-	appquery "github.com/FangcunMount/iam/v3/internal/apiserver/application/suggest/queryprofile"
-	domainsearch "github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/search"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/pkg/core"
+	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
+	domainsearch "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/search"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/pkg/core"
 	"github.com/gin-gonic/gin"
 )
 

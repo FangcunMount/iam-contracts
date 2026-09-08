@@ -4,10 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	assignmentrepo "github.com/FangcunMount/iam/v3/internal/apiserver/infra/mysql/assignment"
-	rolerepo "github.com/FangcunMount/iam/v3/internal/apiserver/infra/mysql/role"
-	"github.com/FangcunMount/iam/v3/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	assignmentrepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/assignment"
+	rolerepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/role"
+	"github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 )

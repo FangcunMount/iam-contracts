@@ -1,6 +1,6 @@
 package admission
 
-import "github.com/FangcunMount/iam/v3/internal/pkg/meta"
+import "github.com/FangcunMount/iam/v4/internal/pkg/meta"
 
 // Subject 表示待准入的认证主体与登录身份组合。
 //

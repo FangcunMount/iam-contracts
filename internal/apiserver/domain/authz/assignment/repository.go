@@ -3,7 +3,7 @@ package assignment
 import (
 	"context"
 
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // Repository 赋权仓储接口（Driven Port）

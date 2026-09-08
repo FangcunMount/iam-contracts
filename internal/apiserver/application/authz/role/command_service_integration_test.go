@@ -5,13 +5,13 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	roleApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/role"
-	authztestutil "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/testutil"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/constraint"
-	permissiongrantDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/resource"
-	roleDomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
+	roleApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/role"
+	authztestutil "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/testutil"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
+	permissiongrantDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
+	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 )
 

@@ -3,9 +3,10 @@ package role
 
 import (
 	"context"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/tenant"
 
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
+
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 )
 
 // Repository 角色仓储接口（Driven Port）

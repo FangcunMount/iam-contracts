@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"testing"
 
-	assignmentapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/assignment"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/testutil"
-	assignmentdomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/assignment"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v3/pkg/event"
+	assignmentapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignment"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/testutil"
+	assignmentdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/pkg/event"
 	"github.com/stretchr/testify/require"
 )
 

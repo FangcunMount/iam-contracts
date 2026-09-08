@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	domain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/idp/externalidentity"
-	wechatapp "github.com/FangcunMount/iam/v3/internal/apiserver/domain/idp/wechatapp"
+	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/externalidentity"
+	wechatapp "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/wechatapp"
 	"github.com/stretchr/testify/require"
 )
 

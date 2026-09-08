@@ -214,12 +214,12 @@
 
   <g filter="url(#shadow)">
     <rect x="1175" y="1530" width="360" height="205" rx="17" class="authn-model"/>
-    <text x="1200" y="1560" class="stereotype">SERVICE CREDENTIAL BRANCH</text>
-    <text x="1355" y="1593" text-anchor="middle" class="compact-model">ServiceToken</text>
+    <text x="1200" y="1560" class="stereotype">SERVICE TRANSPORT BOUNDARY</text>
+    <text x="1355" y="1593" text-anchor="middle" class="compact-model">mTLS + ACL</text>
     <line x1="1175" y1="1613" x2="1535" y2="1613" class="divider"/>
-    <text x="1200" y="1647" class="field">ServiceTokenIssuer</text>
+    <text x="1200" y="1647" class="field">证书认证 → 服务身份</text>
     <text x="1200" y="1679" class="field">无用户 Session · 无 Refresh</text>
-    <text x="1200" y="1711" class="small">不执行用户 Admission</text>
+    <text x="1200" y="1711" class="small">业务 AuthZ 独立校验</text>
   </g>
 
   <path d="M557 1632 H613" class="solid"/>
@@ -232,7 +232,7 @@
     <text x="325" y="1843" text-anchor="middle" class="model">Verifier｜验证认证凭证</text>
     <line x1="125" y1="1863" x2="525" y2="1863" class="divider"/>
     <text x="150" y="1897" class="field">用户令牌：撤销 + Session + Admission</text>
-    <text x="150" y="1929" class="field">服务令牌：撤销 marker + 签名与声明</text>
+    <text x="150" y="1929" class="field">用户令牌：撤销 marker + 签名与声明</text>
     <text x="150" y="1961" class="small">真实性成立仍不等于 AuthZ 放行</text>
   </g>
 
@@ -253,7 +253,7 @@
     <line x1="1085" y1="1863" x2="1535" y2="1863" class="divider"/>
     <text x="1110" y="1897" class="field">撤销 BearerToken / Session</text>
     <text x="1110" y="1929" class="field">支持按 User / LoginIdentity 批量终止</text>
-    <text x="1110" y="1961" class="small">用户令牌联动 Session；服务令牌仅写 marker</text>
+    <text x="1110" y="1961" class="small">用户令牌联动 Session 与撤销 marker</text>
   </g>
 
   <path d="M865 1737 V1755 H325 V1778" class="association"/>
@@ -583,7 +583,7 @@
     <text x="810" y="2747" class="knowledge-text">• Verifier、Refresher 持续检查 Session 与 Admission</text>
     <text x="810" y="2782" class="knowledge-text">• Refresher 原子轮换令牌，并在生命周期上限内延长 Session</text>
     <text x="810" y="2817" class="knowledge-text">• RefreshToken 重放会触发对应 Session 撤销</text>
-    <text x="810" y="2852" class="knowledge-text">• ServiceToken 无用户 Session、无 Refresh、无用户 Admission</text>
+    <text x="810" y="2852" class="knowledge-text">• 服务调用通过 mTLS 与 ACL；用户令牌绑定 Session</text>
     <text x="810" y="2887" class="knowledge-text">• JWT / JWKS / Redis 是适配实现，不是核心领域模型</text>
   </g>
 

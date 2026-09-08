@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authorizationapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/authorization"
-	authorizationdomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	authorizationapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
+	authorizationdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 

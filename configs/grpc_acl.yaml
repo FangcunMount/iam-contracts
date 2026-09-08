@@ -48,7 +48,6 @@ services:
       # AuthService - Token 验证和管理
       - /iam.authn.v2.AuthService/VerifyToken
       - /iam.authn.v2.AuthService/RefreshToken
-      - /iam.authn.v2.AuthService/IssueServiceToken
       
       # JWKSService - 公钥获取
       - /iam.authn.v2.JWKSService/GetJWKS
@@ -99,7 +98,6 @@ services:
       # AuthService - Token 验证和管理
       - /iam.authn.v2.AuthService/VerifyToken
       - /iam.authn.v2.AuthService/RefreshToken
-      - /iam.authn.v2.AuthService/IssueServiceToken
       
       # JWKSService - 公钥获取
       - /iam.authn.v2.JWKSService/GetJWKS
@@ -137,7 +135,6 @@ services:
       # Authn 运维操作
       - /iam.authn.v2.AuthService/RevokeToken
       - /iam.authn.v2.AuthService/RevokeRefreshToken
-      - /iam.authn.v2.AuthService/IssueServiceToken
       # Identity 运维操作
       - /iam.identity.v2.IdentityLifecycle/DeactivateUser
       - /iam.identity.v2.IdentityLifecycle/BlockUser

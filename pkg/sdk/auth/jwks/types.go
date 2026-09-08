@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
+	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 

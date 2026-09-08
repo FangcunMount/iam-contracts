@@ -7,16 +7,14 @@ import (
 	"testing"
 	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
-	authclient "github.com/FangcunMount/iam/v3/pkg/sdk/auth/client"
-	authjwks "github.com/FangcunMount/iam/v3/pkg/sdk/auth/jwks"
-	authserviceauth "github.com/FangcunMount/iam/v3/pkg/sdk/auth/serviceauth"
-	authverifier "github.com/FangcunMount/iam/v3/pkg/sdk/auth/verifier"
+	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	authclient "github.com/FangcunMount/iam/v4/pkg/sdk/auth/client"
+	authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
+	authverifier "github.com/FangcunMount/iam/v4/pkg/sdk/auth/verifier"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -25,8 +23,7 @@ type sdkAuthServiceClientStub struct {
 	verifyResp *authnv2.VerifyTokenResponse
 	verifyErr  error
 
-	issueResp *authnv2.IssueServiceTokenResponse
-	issueErr  error
+	issueErr error
 }
 
 func (s *sdkAuthServiceClientStub) VerifyToken(ctx context.Context, in *authnv2.VerifyTokenRequest, _ ...grpc.CallOption) (*authnv2.VerifyTokenResponse, error) {
@@ -48,10 +45,6 @@ func (s *sdkAuthServiceClientStub) RevokeToken(context.Context, *authnv2.RevokeT
 
 func (s *sdkAuthServiceClientStub) RevokeRefreshToken(context.Context, *authnv2.RevokeRefreshTokenRequest, ...grpc.CallOption) (*authnv2.RevokeRefreshTokenResponse, error) {
 	return nil, nil
-}
-
-func (s *sdkAuthServiceClientStub) IssueServiceToken(context.Context, *authnv2.IssueServiceTokenRequest, ...grpc.CallOption) (*authnv2.IssueServiceTokenResponse, error) {
-	return s.issueResp, s.issueErr
 }
 
 type sdkJWKSServiceClientStub struct {
@@ -111,12 +104,6 @@ func TestAuthSubpackagesComposeWithSDKClient(t *testing.T) {
 				ExpiresAt: timestamppb.New(time.Now().Add(time.Minute)),
 			},
 		},
-		issueResp: &authnv2.IssueServiceTokenResponse{
-			TokenPair: &authnv2.TokenPair{
-				AccessToken: "svc-token",
-				ExpiresIn:   durationpb.New(time.Minute),
-			},
-		},
 	}
 
 	client := &Client{
@@ -152,16 +139,4 @@ func TestAuthSubpackagesComposeWithSDKClient(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "sid-1", result.Claims.SessionID)
 
-	helper, err := authserviceauth.NewServiceAuthHelper(&ServiceAuthConfig{
-		ServiceID:      "qs-service",
-		TargetAudience: []string{"iam-service"},
-		TokenTTL:       time.Minute,
-		RefreshBefore:  5 * time.Second,
-	}, client.Auth())
-	require.NoError(t, err)
-	defer helper.Stop()
-
-	token, err := helper.GetToken(context.Background())
-	require.NoError(t, err)
-	require.Equal(t, "svc-token", token)
 }

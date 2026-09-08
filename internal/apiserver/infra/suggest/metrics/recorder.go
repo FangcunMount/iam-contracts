@@ -3,9 +3,9 @@ package metrics
 import (
 	"time"
 
-	appquery "github.com/FangcunMount/iam/v3/internal/apiserver/application/suggest/queryprofile"
-	apprefresh "github.com/FangcunMount/iam/v3/internal/apiserver/application/suggest/refreshindex"
-	domainsearch "github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/search"
+	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
+	apprefresh "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/refreshindex"
+	domainsearch "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/search"
 )
 
 // RateLimitRecorder 记录 REST 限流指标。

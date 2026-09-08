@@ -9,10 +9,10 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authz/assignment"
-	testhelpers "github.com/FangcunMount/iam/v3/internal/apiserver/testhelpers"
-	"github.com/FangcunMount/iam/v3/internal/pkg/code"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
+	testhelpers "github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
+	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 

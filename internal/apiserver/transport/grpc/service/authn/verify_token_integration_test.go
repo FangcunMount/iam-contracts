@@ -11,24 +11,19 @@ import (
 	"testing"
 	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
-	tokenapp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/token"
-	admissiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/session"
-	tokendomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/token"
-	redisinfra "github.com/FangcunMount/iam/v3/internal/apiserver/infra/cache/redis"
-	tokenjwt "github.com/FangcunMount/iam/v3/internal/apiserver/infra/token/jwt"
-	authhandler "github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/authn/handler"
-	resp "github.com/FangcunMount/iam/v3/internal/apiserver/transport/rest/authn/response"
-	"github.com/FangcunMount/iam/v3/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v3/pkg/core"
-	"github.com/alicebob/miniredis/v2"
+	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
+	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
+	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
+	tokenjwt "github.com/FangcunMount/iam/v4/internal/apiserver/infra/token/jwt"
+	authhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/handler"
+	resp "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/response"
+	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v4/pkg/core"
 	"github.com/gin-gonic/gin"
-	goredis "github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // 集成测试：与登录一致的签发链（IssueToken → JWT）→ 本地解析 tenant_id →
@@ -304,63 +299,4 @@ func TestIntegration_VerifyToken_GRPC_IncludeMetadata(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, gresp.Valid)
 	require.NotNil(t, gresp.Metadata)
-}
-
-func TestIntegration_ServiceTokenIssueVerifyRevokeRoundTrip(t *testing.T) {
-	ctx := context.Background()
-	mr := miniredis.RunT(t)
-	client := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { _ = client.Close() })
-
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(t, err)
-	codec := tokenjwt.NewJWSCompactTokenCodec(
-		"https://iam.integration.test",
-		[]string{"qs-api"},
-		fixedJWSKeySource{kid: "service-integration-kid", key: privateKey},
-	)
-	tokens := tokenapp.NewCapabilities(tokenapp.Dependencies{
-		BearerTokenCodec: codec,
-		TokenStore:       redisinfra.NewRedisStore(client),
-		AccessTTL:        time.Hour,
-	})
-	server := &authServiceServer{
-		serviceTokenIssuer: tokens.ServiceTokenIssuer,
-		tokenVerifier:      tokens.Verifier,
-		tokenRevoker:       tokens.Revoker,
-	}
-
-	_, err = server.IssueServiceToken(ctx, &authnv2.IssueServiceTokenRequest{Subject: "service:worker"})
-	require.Error(t, err)
-	require.Equal(t, codes.InvalidArgument, status.Code(err))
-
-	issued, err := server.IssueServiceToken(ctx, &authnv2.IssueServiceTokenRequest{
-		Subject:  "service:worker",
-		Audience: []string{"qs-api"},
-	})
-	require.NoError(t, err)
-	require.NotNil(t, issued.TokenPair)
-	require.NotEmpty(t, issued.TokenPair.AccessToken)
-
-	verified, err := server.VerifyToken(ctx, &authnv2.VerifyTokenRequest{
-		AccessToken:        issued.TokenPair.AccessToken,
-		ExpectedAudience:   []string{"qs-api"},
-		AcceptedTokenTypes: []authnv2.TokenType{authnv2.TokenType_TOKEN_TYPE_SERVICE},
-	})
-	require.NoError(t, err)
-	require.True(t, verified.Valid)
-	require.Equal(t, authnv2.TokenType_TOKEN_TYPE_SERVICE, verified.Claims.TokenType)
-	require.Equal(t, "service:worker", verified.Claims.Subject)
-
-	_, err = server.RevokeToken(ctx, &authnv2.RevokeTokenRequest{AccessToken: issued.TokenPair.AccessToken})
-	require.NoError(t, err)
-
-	verified, err = server.VerifyToken(ctx, &authnv2.VerifyTokenRequest{
-		AccessToken:        issued.TokenPair.AccessToken,
-		ExpectedAudience:   []string{"qs-api"},
-		AcceptedTokenTypes: []authnv2.TokenType{authnv2.TokenType_TOKEN_TYPE_SERVICE},
-	})
-	require.NoError(t, err)
-	require.False(t, verified.Valid)
-	require.Nil(t, verified.Claims)
 }

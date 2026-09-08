@@ -3,10 +3,9 @@ package authn
 import (
 	"context"
 	"strings"
-	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
-	tokenApp "github.com/FangcunMount/iam/v3/internal/apiserver/application/authn/token"
+	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	tokenApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -55,8 +54,6 @@ func acceptedDomainTokenTypes(values []authnv2.TokenType) []tokenApp.TokenType {
 		switch value {
 		case authnv2.TokenType_TOKEN_TYPE_ACCESS:
 			out = append(out, tokenApp.TokenTypeAccess)
-		case authnv2.TokenType_TOKEN_TYPE_SERVICE:
-			out = append(out, tokenApp.TokenTypeService)
 		case authnv2.TokenType_TOKEN_TYPE_REFRESH:
 			out = append(out, tokenApp.TokenTypeRefresh)
 		default:
@@ -108,45 +105,6 @@ func (s *authServiceServer) RevokeRefreshToken(ctx context.Context, req *authnv2
 		return nil, toGRPCError(err)
 	}
 	return &authnv2.RevokeRefreshTokenResponse{}, nil
-}
-
-func (s *authServiceServer) IssueServiceToken(ctx context.Context, req *authnv2.IssueServiceTokenRequest) (*authnv2.IssueServiceTokenResponse, error) {
-	if s.serviceTokenIssuer == nil {
-		return nil, status.Error(codes.Unimplemented, "service token issuer not configured")
-	}
-	if req == nil || strings.TrimSpace(req.GetSubject()) == "" {
-		return nil, status.Error(codes.InvalidArgument, "subject is required")
-	}
-	if !hasNonEmptyAudience(req.GetAudience()) {
-		return nil, status.Error(codes.InvalidArgument, "audience is required")
-	}
-
-	var ttl time.Duration
-	if req.GetTtl() != nil {
-		ttl = req.GetTtl().AsDuration()
-		if ttl < 0 {
-			return nil, status.Error(codes.InvalidArgument, "ttl must be non-negative")
-		}
-	}
-
-	var attrs map[string]string
-	if req.GetAttributes() != nil {
-		attrs = structToStringMap(req.GetAttributes().AsMap())
-	}
-
-	result, err := s.serviceTokenIssuer.IssueServiceToken(ctx, tokenApp.IssueServiceTokenRequest{
-		Subject:    strings.TrimSpace(req.GetSubject()),
-		Audience:   cloneAudience(req.GetAudience()),
-		TTL:        ttl,
-		Attributes: attrs,
-	})
-	if err != nil {
-		return nil, toGRPCError(err)
-	}
-
-	return &authnv2.IssueServiceTokenResponse{
-		TokenPair: toProtoTokenPair(result.TokenPair),
-	}, nil
 }
 
 func hasNonEmptyAudience(values []string) bool {

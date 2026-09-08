@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/FangcunMount/component-base/pkg/logger"
-	authnv2 "github.com/FangcunMount/iam/v3/api/grpc/iam/authn/v2"
-	"github.com/FangcunMount/iam/v3/pkg/sdk/config"
+	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
+	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
 )
 
 // RemoteVerifyStrategy 远程验证策略（调用 IAM 服务）。
@@ -104,6 +104,11 @@ func (s *RemoteVerifyStrategy) Verify(ctx context.Context, tokenString string, o
 	}
 
 	logger.L(ctx).Debugw("RemoteVerifyStrategy verify success", "strategy", s.Name(), "subject", claims.Subject, "tenant_domain", claims.TenantDomain, "org_id", claims.OrgID)
+	if resp.Metadata != nil {
+		if err := policy.validateTokenType(protoTokenTypeString(resp.Metadata.TokenType)); err != nil {
+			return nil, err
+		}
+	}
 	metadata := buildVerifyMetadataFromProto(resp.Metadata)
 	if metadata == nil {
 		metadata = buildVerifyMetadataFromClaims(claims)
@@ -135,14 +140,14 @@ func acceptedProtoTokenTypes(opts *VerifyOptions) []authnv2.TokenType {
 
 func protoTokenTypeString(tokenType authnv2.TokenType) string {
 	switch tokenType {
-	case authnv2.TokenType_TOKEN_TYPE_SERVICE:
-		return "service"
 	case authnv2.TokenType_TOKEN_TYPE_REFRESH:
 		return "refresh"
 	case authnv2.TokenType_TOKEN_TYPE_ACCESS:
 		return "access"
+	case authnv2.TokenType_TOKEN_TYPE_UNSPECIFIED:
+		return "access" // Only the absent legacy type retains compatibility.
 	default:
-		return "access" // 历史远端响应缺失 token_type 时保持有界兼容
+		return "invalid"
 	}
 }
 

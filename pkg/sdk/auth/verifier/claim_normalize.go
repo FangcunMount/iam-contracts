@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/FangcunMount/iam/v3/pkg/tenant"
+	"github.com/FangcunMount/iam/v4/pkg/tenant"
 )
 
 // normalizeTenantClaim 将 JWT tenant_id 归一化为 IAM 授权域；历史数值 token 映射为默认域，不推导 org。

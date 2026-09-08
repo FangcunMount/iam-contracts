@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/infra/authz/attributeproviders"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/infra/mysql/eventoutbox"
-	authzmysqluow "github.com/FangcunMount/iam/v3/internal/apiserver/infra/mysql/uow/authz"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/maintenance"
-	"github.com/FangcunMount/iam/v3/pkg/eventcatalog"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/attributeproviders"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/eventoutbox"
+	authzmysqluow "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/uow/authz"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/maintenance"
+	"github.com/FangcunMount/iam/v4/pkg/eventcatalog"
 )
 
 func runAuthzHardening(args []string, output io.Writer) error {

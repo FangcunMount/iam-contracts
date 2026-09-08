@@ -1,8 +1,8 @@
 package grant
 
 import (
-	sessiondomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/session"
-	tokendomain "github.com/FangcunMount/iam/v3/internal/apiserver/domain/authn/token"
+	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
+	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
 )
 
 // AuthenticationGrant 表示一次认证成功后建立的完整在线认证结果。

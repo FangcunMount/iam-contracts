@@ -4,8 +4,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/profile"
-	"github.com/FangcunMount/iam/v3/internal/apiserver/domain/suggest/visibility"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
+	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/visibility"
 )
 
 // Keyword 表达一次档案联想查询的关键字。

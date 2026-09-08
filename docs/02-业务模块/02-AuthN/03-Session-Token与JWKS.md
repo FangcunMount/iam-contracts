@@ -177,7 +177,7 @@ service-only 路径必须显式接受 `service`，不再以空列表表示通用
 
 ### Domain verifier
 
-在密码学验证后，access/service token 都先检查 bearer-token revocation marker。之后 access token 继续检查 active Session 与 Admission；service token 跳过用户 Session/Admission。
+在密码学验证后，AccessToken 检查 bearer-token revocation marker、active Session 与 Admission。服务身份由 mTLS 建立。
 
 SDK `LocalVerifyStrategy` 只覆盖 codec + 本地 policy（RS256、必填 issuer/audience、clock skew）。它无法仅凭 JWKS 知道：
 

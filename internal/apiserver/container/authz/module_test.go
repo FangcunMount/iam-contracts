@@ -3,7 +3,7 @@ package authz
 import (
 	"testing"
 
-	objectattributeadmission "github.com/FangcunMount/iam/v3/internal/apiserver/application/authz/objectattributeadmission"
+	objectattributeadmission "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/objectattributeadmission"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
