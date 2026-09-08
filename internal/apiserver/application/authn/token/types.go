@@ -22,25 +22,3 @@ const (
 	TokenTypeAccess  = tokendomain.TokenTypeAccess
 	TokenTypeRefresh = tokendomain.TokenTypeRefresh
 )
-
-// cloneStrings 克隆字符串切片
-func cloneStrings(in []string) []string {
-	if len(in) == 0 {
-		return nil
-	}
-	out := make([]string, len(in))
-	copy(out, in)
-	return out
-}
-
-// cloneStringMap 克隆字符串映射
-func cloneStringMap(in map[string]string) map[string]string {
-	if len(in) == 0 {
-		return nil
-	}
-	out := make(map[string]string, len(in))
-	for k, v := range in {
-		out[k] = v
-	}
-	return out
-}

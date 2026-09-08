@@ -22,8 +22,6 @@ import (
 )
 
 type tokenOperationsStub struct {
-	issueRes  *tokenApp.TokenIssueResult
-	issueErr  error
 	verifyReq tokenApp.VerifyTokenRequest
 	verifyErr error
 	revokeErr error

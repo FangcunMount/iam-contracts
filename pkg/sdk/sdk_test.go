@@ -22,8 +22,6 @@ type sdkAuthServiceClientStub struct {
 	verifyReq  *authnv2.VerifyTokenRequest
 	verifyResp *authnv2.VerifyTokenResponse
 	verifyErr  error
-
-	issueErr error
 }
 
 func (s *sdkAuthServiceClientStub) VerifyToken(ctx context.Context, in *authnv2.VerifyTokenRequest, _ ...grpc.CallOption) (*authnv2.VerifyTokenResponse, error) {

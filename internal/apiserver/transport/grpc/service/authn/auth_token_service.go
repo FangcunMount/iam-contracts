@@ -106,12 +106,3 @@ func (s *authServiceServer) RevokeRefreshToken(ctx context.Context, req *authnv2
 	}
 	return &authnv2.RevokeRefreshTokenResponse{}, nil
 }
-
-func hasNonEmptyAudience(values []string) bool {
-	for _, value := range values {
-		if strings.TrimSpace(value) != "" {
-			return true
-		}
-	}
-	return false
-}

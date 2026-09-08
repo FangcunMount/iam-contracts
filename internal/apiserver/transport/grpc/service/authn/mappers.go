@@ -236,17 +236,6 @@ func cloneAttributes(in map[string]string) map[string]string {
 	return out
 }
 
-func structToStringMap(s map[string]any) map[string]string {
-	if len(s) == 0 {
-		return nil
-	}
-	out := make(map[string]string, len(s))
-	for k, v := range s {
-		out[k] = fmt.Sprint(v)
-	}
-	return out
-}
-
 func credentialTypeString(typ credDomain.CredentialType) string {
 	if typ == "" {
 		return ""

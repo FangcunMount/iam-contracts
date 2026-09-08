@@ -56,7 +56,7 @@ func TestMTLSAuthorizationWithoutServiceToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			conn, err := grpc.NewClient(lis.Addr().String(), grpc.WithTransportCredentials(credentials.NewTLS(ca.Client(tt.pair))))
 			require.NoError(t, err)
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			if tt.bearer {
