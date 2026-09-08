@@ -143,9 +143,7 @@ func (o *Options) validateRemovedSuggestOptions() []error {
 	if o.Suggest.RemovedSnapshot != nil {
 		errs = append(errs, errors.New("suggest.snapshot has been removed; suggest indexes are not persisted to files"))
 	}
-	if o.Suggest.RemovedLoaderPlaceholderTenantID != nil {
-		errs = append(errs, errors.New("suggest.loader_placeholder_tenant_id has been removed; use suggest.loader_placeholder_org_id"))
-	}
+
 	return errs
 }
 

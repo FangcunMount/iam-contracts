@@ -70,6 +70,8 @@ func TestReplaceManagedAssignmentsMySQLConcurrentLinearization(t *testing.T) {
 	service := assignmentApp.NewCommandService(validator, roles, uow, nil, management.NewGuard(nil))
 
 	policyVersions := policyRepo.NewPolicyVersionRepository(db)
+	_, err = policyVersions.GetOrCreate(ctx)
+	require.NoError(t, err)
 	beforeVersion := currentPolicyVersion(t, ctx, policyVersions)
 	beforeEvents := stager.Count()
 

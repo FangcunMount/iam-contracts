@@ -61,5 +61,6 @@ func Open(t *testing.T, mysqlRequired bool) *gorm.DB {
 	}
 	require.NoError(t, db.AutoMigrate(&rolerepo.RolePO{}, &resourcerepo.ResourcePO{}, &assignmentrepo.AssignmentPO{}, &inheritancerepo.InheritancePO{}, &grantrepo.GrantPO{}, &policyrepo.PolicyVersionPO{}, &eventoutbox.OutboxPO{}))
 	require.NoError(t, db.Exec("CREATE TABLE users (id BIGINT PRIMARY KEY, status INT NOT NULL, deleted_at DATETIME NULL)").Error)
+	require.NoError(t, db.Create(&policyrepo.PolicyVersionPO{PolicyVersion: 1}).Error)
 	return db
 }

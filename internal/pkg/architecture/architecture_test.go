@@ -2417,21 +2417,6 @@ func extractAuthzResourceKeysFromSQL(t *testing.T, sql string) []string {
 	return values
 }
 
-func extractInsertStatement(t *testing.T, sql, table string) string {
-	t.Helper()
-	prefix := "INSERT INTO `" + table + "`"
-	start := strings.Index(sql, prefix)
-	if start < 0 {
-		t.Fatalf("%s bootstrap insert not found", table)
-	}
-	statement := sql[start:]
-	end := strings.Index(statement, ";")
-	if end < 0 {
-		t.Fatalf("%s bootstrap insert is not terminated", table)
-	}
-	return statement[:end+1]
-}
-
 func assertFourSegmentResourceValues(t *testing.T, label string, values []string) {
 	t.Helper()
 	for _, value := range values {

@@ -229,8 +229,6 @@ func TestRemovedRuntimeYAMLKeysDecodeIntoValidationTombstones(t *testing.T) {
 		{name: "server write timeout", key: "server.write-timeout", yaml: "server:\n  write-timeout: 60\n"},
 		{name: "suggest data dir", key: "suggest.data_dir", yaml: "suggest:\n  data_dir: /tmp/private\n"},
 		{name: "suggest snapshot", key: "suggest.snapshot", yaml: "suggest:\n  snapshot: true\n"},
-		{name: "suggest tenant placeholder", key: "suggest.loader_placeholder_tenant_id", yaml: "suggest:\n  loader_placeholder_tenant_id: 1\n"},
-		{name: "suggest zero tenant placeholder", key: "suggest.loader_placeholder_tenant_id", yaml: "suggest:\n  loader_placeholder_tenant_id: 0\n"},
 		{name: "sms mq topic", key: "sms.mq.topic", yaml: "sms:\n  mq:\n    topic: custom.sms\n"},
 		{name: "sms empty mq topic", key: "sms.mq.topic", yaml: "sms:\n  mq:\n    topic: ''\n"},
 	}

@@ -211,9 +211,8 @@ type SuggestOptions struct {
 	DisableMobileMask  bool   `json:"disable_mobile_mask" mapstructure:"disable_mobile_mask"`
 	// RemovedDataDir and RemovedSnapshot are decode-only tombstones. They make
 	// retired configuration fail closed instead of being silently ignored.
-	RemovedDataDir                   *string `json:"-" mapstructure:"data_dir"`
-	RemovedSnapshot                  *bool   `json:"-" mapstructure:"snapshot"`
-	RemovedLoaderPlaceholderTenantID *int64  `json:"-" mapstructure:"loader_placeholder_tenant_id"`
+	RemovedDataDir  *string `json:"-" mapstructure:"data_dir"`
+	RemovedSnapshot *bool   `json:"-" mapstructure:"snapshot"`
 	// LoaderPlaceholderOrgID 内建 Loader 注入的 org_id；0 表示索引不虚构组织维度。
 	LoaderPlaceholderOrgID int64 `json:"loader_placeholder_org_id" mapstructure:"loader_placeholder_org_id"`
 	// WildcardKeyCap 通配符展开的最大终端键数；0 使用领域默认。

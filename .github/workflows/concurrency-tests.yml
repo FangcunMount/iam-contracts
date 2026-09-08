@@ -118,7 +118,7 @@ jobs:
           set -o pipefail
           export MYSQL_PWD="$MYSQL_PASSWORD"
           mkdir -p test-artifacts
-          go test ./internal/apiserver/infra/mysql/... \
+          go test -p 1 ./internal/apiserver/infra/mysql/... \
             -run "Concurrent|Concurrency" \
             -v \
             -count=1 \

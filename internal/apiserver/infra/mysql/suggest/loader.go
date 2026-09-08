@@ -1,6 +1,6 @@
 // Package suggest 从 MySQL 加载档案联想索引项。
 // 默认 SQL 为过渡读模型：org_id 来自 PlaceholderOrgID（profiles 表尚无 org 列），
-// 授权域由 JWT tenant domain 承担，不进入索引；owner_operator_ids 来自 profiles.created_by。
+// owner_operator_ids 来自 profiles.created_by；业务 OrgID 用于可见性过滤。
 package suggest
 
 import (

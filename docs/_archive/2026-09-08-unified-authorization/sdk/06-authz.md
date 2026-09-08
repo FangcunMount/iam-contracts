@@ -17,7 +17,7 @@
          │                    │                    │
          └────────────────────┴────────────────────┘
                               ↓
-      iam.authz.v4.AuthorizationService.Check(subject, resource, action)
+      iam.authz.v4.AuthorizationService.Check(subject, domain, resource, action)
                               ↓
                  原生 Runtime 解析角色、Grant 与对象条件
                               ↓
@@ -31,6 +31,8 @@
 │ subject  │ 谁在请求资源                                     │
 │          │ user:<id> / group:<id> / service:<id>           │
 ├─────────────────────────────────────────────────────────────┤
+│ domain   │ 在哪个租户域                                     │
+│          │ default / tenant-a                               │
 ├─────────────────────────────────────────────────────────────┤
 │ resource │ 访问什么资源                                     │
 │          │ iam:identity:instance:profile / qs:...:reports    │
@@ -44,7 +46,7 @@
 
 ```text
 1️⃣ 业务侧准备判定输入
-   subject / resource / action / 可选 ObjectContext
+   subject / domain / resource / action / 可选 ObjectContext
                 ↓
 2️⃣ SDK 发起 gRPC 调用
    client.Authz().Check(...) / Allow(...)
@@ -75,7 +77,7 @@
 | Assignment 增量写入 | ✅ 已支持 | `GrantAssignment` / `RevokeAssignment` |
 | 受管 Assignment 替换 | ✅ 已支持 | `ReplaceManagedAssignments` |
 | Explain / 调试原因 | ✅ 基础支持 | 响应包含 reason、deny code 和匹配 Grant |
-| Role/Grant/Resource/Inheritance 管理 | ❌ 不在 SDK `Authz()` 范围 | 这些管理面属于 REST v4 / 后台能力 |
+| Role/Grant/Resource/Inheritance 管理 | ❌ 不在 SDK `Authz()` 范围 | 这些管理面属于 REST v3 / 后台能力 |
 
 ### 3 行代码开始
 
@@ -95,7 +97,7 @@ allowed, err := client.Authz().Allow(
 
 更适合使用 `client.Authz()` 的场景：
 
-- 业务服务已经拿到了明确的 `subject / resource / action`
+- 业务服务已经拿到了明确的 `subject / domain / resource / action`
 - 你只需要一个布尔判定结果，或一个最小的 `CheckResponse`
 - 你希望复用 SDK 已有的连接、mTLS、metadata、重试和错误包装
 
@@ -124,7 +126,7 @@ allowed, err := client.Authz().Allow(
 - 已存在 `ctx`
 - 已创建 `client`
 - 已按需导入 `sdk`、`authzv4`、`errors`
-- 你已经在业务侧准备好了最终的 `subject / resource / action`
+- 你已经在业务侧准备好了最终的 `subject / domain / resource / action`
 
 文档里保留的是**最小可理解片段**；如果你需要 `package main + import + 启动代码` 的完整版本，直接看上面的 `_examples/authz/main.go`。
 
@@ -141,6 +143,7 @@ defer client.Close()
 
 resp, err := client.Authz().Check(ctx, &authzv4.CheckRequest{
     Subject: "user:user-123",
+    Domain:  "default",
     Resource: "iam:identity:instance:profile",
     Action:  "read",
 })
@@ -184,7 +187,7 @@ allowed, err := client.Authz().Allow(
 ```text
 Allow(...)
   ↓
-Check(&CheckRequest{subject, resource, action, object_context})
+Check(&CheckRequest{subject, domain, resource, action, object_context})
   ↓
 authorizationService.Check(ctx, req)
   ↓
@@ -213,6 +216,17 @@ service:<service-id>
 
 SDK 不替你推断 `subject`，调用方要自己传入最终字符串。  
 这和服务端 gRPC 合同保持一致，见 [../../../api/grpc/iam/authz/v4/authz.proto](../../../api/grpc/iam/authz/v4/authz.proto)。
+
+#### `domain`
+
+`domain` 对应授权数据的租户域。
+
+常见取值：
+
+- `default`
+- 某个明确租户 ID，例如 `tenant-a`
+
+如果你的系统本身就是多租户，一定要把 `domain` 当成显式参数，不要在 SDK 调用层偷偷省略。
 
 #### `resource`
 
@@ -262,6 +276,7 @@ if !allowed {
 ```go
 resp, err := client.Authz().Check(ctx, &authzv4.CheckRequest{
     Subject: sub,
+    Domain:  dom,
     Resource: resource,
     Action:  act,
 })
@@ -282,6 +297,7 @@ if !resp.Allowed {
 raw := client.Authz().Raw()
 resp, err := raw.Check(ctx, &authzv4.CheckRequest{
     Subject: sub,
+    Domain:  dom,
     Resource: resource,
     Action:  act,
 })
@@ -313,7 +329,7 @@ _ = allowed
 
 - `Authz()` 当前只封装**单次 PDP**
 - 它不是完整的授权管理 SDK
-- 它不负责帮你构造 `subject / resource / action`，也不信任终端用户直接提交对象属性
+- 它不负责帮你构造 `subject / domain / resource / action`，也不信任终端用户直接提交对象属性
 - 它不替你做批量判定、Explain、菜单裁剪
 
 一句话说，`Authz()` 解决的是“已经拿到一条权限判断输入，稳定地发到 IAM 做判定”。

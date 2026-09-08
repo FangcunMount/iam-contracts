@@ -37,7 +37,7 @@ func runTenantRetirement(args []string, output io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer pool.Close()
+	defer func() { _ = pool.Close() }()
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	var report *maintenance.TenantRetirementReport

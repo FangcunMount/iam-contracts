@@ -140,7 +140,7 @@ if result.Valid {
 
 - 签名正确
 - `exp` / `nbf` / `iss` / `aud` 等本地可判定声明正确
-- JWT 内自带 claims 可直接读取，例如 `user_id`、`org_id`（业务组织透传）、`sid`
+- JWT 内自带 claims 可直接读取，例如 `user_id`、`tenant_id`（IAM 授权域，如 `fangcun`）、`org_id`（业务组织透传）、`sid`
 
 但它**不能保证**这些状态的即时生效：
 
@@ -358,6 +358,7 @@ type TokenClaims struct {
     SessionID       string
     UserID          string
     LoginIdentityID string
+    TenantDomain    string // IAM 授权域（JWT tenant_id）
     OrgID           string // 业务组织（JWT org_id 透传）
     Issuer          string
     Audience        []string
@@ -371,6 +372,7 @@ type TokenClaims struct {
     Extra           map[string]interface{}
 }
 
+// AuthorizationDomain() 返回 IAM 授权域
 // BusinessOrgID() (uint64, bool) 读取业务 org_id；无 claim 时 ok=false
 ```
 
@@ -383,8 +385,9 @@ if err != nil {
     return
 }
 
+domain := result.Claims.AuthorizationDomain()
 if orgID, ok := result.Claims.BusinessOrgID(); ok {
-    log.Printf("org_id=%d", orgID)
+    log.Printf("org_id=%d domain=%s", orgID, domain)
 }
 
 // 角色和权限不进入 AuthN JWT；请调用 AuthZ 能力完成授权判断。

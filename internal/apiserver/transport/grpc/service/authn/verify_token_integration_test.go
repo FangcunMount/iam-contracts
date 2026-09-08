@@ -23,7 +23,6 @@ import (
 	admissiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
 	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
-	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
 	tokenjwt "github.com/FangcunMount/iam/v5/internal/apiserver/infra/token/jwt"
 	authhandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/handler"
 	resp "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/response"
@@ -33,26 +32,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// 集成测试：与登录一致的签发链（IssueToken → JWT）→ 本地解析 tenant_id →
-// gRPC VerifyToken 与 REST POST /verify 返回的 user_id / login_identity_id / tenant_id 一致。
-
-type noopTokenStore struct{}
-
-func (noopTokenStore) SaveRefreshToken(context.Context, *tokendomain.RefreshToken) error { return nil }
-func (noopTokenStore) RotateRefreshToken(context.Context, string, string, *tokendomain.RefreshToken) (bool, error) {
-	return true, nil
-}
-func (noopTokenStore) GetRefreshToken(context.Context, string) (*tokendomain.RefreshToken, error) {
-	return nil, nil
-}
-func (noopTokenStore) GetConsumedRefreshToken(context.Context, string) (*tokendomain.ConsumedRefreshToken, error) {
-	return nil, nil
-}
-func (noopTokenStore) DeleteRefreshToken(context.Context, string) error { return nil }
-func (noopTokenStore) MarkBearerTokenRevoked(context.Context, string, time.Duration) error {
-	return nil
-}
-func (noopTokenStore) IsBearerTokenRevoked(context.Context, string) (bool, error) { return false, nil }
+// 集成测试覆盖统一签发事实，以及 gRPC 与 REST 验证返回的身份声明。
 
 type memorySessionStore struct {
 	sessions map[string]*sessiondomain.Session

@@ -49,8 +49,6 @@ cors:
   allowed-headers:
     - "Content-Type"
     - "Authorization"
-    - "tenant_id"
-    - "tenant-id"
 
 # ----------------------------------------------------------------------------
 # 2.2 gRPC 服务配置（生产环境 - 安全模式）

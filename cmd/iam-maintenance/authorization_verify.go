@@ -30,7 +30,7 @@ func runAuthorizationVerify(args []string, output io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer pool.Close()
+	defer func() { _ = pool.Close() }()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	dataset, err := authzruntime.NewMySQLSource(db).Load(ctx)

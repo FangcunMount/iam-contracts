@@ -28,7 +28,7 @@ func runAuthorizationMigration(args []string, output io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer pool.Close()
+	defer func() { _ = pool.Close() }()
 	database := firstEnvironment("MYSQL_DATABASE", "MYSQL_DBNAME")
 	version, applied, err := migration.NewMigrator(pool, &migration.Config{Enabled: true, Database: database}).RunTo(uint(*target))
 	if err != nil {

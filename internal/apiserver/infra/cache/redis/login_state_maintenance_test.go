@@ -12,7 +12,7 @@ import (
 func TestPurgeLoginStatePreviewAndApplyPreserveUnrelatedKeys(t *testing.T) {
 	mr := miniredis.RunT(t)
 	client := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 	ctx := context.Background()
 	keys := []string{sessionRedisKey("sid"), userSessionIndexRedisKey("1"), loginIdentitySessionIndexRedisKey("2"), refreshTokenRedisKey("secret"), consumedRefreshTokenRedisKey("secret"), revokedBearerTokenRedisKey("jti")}
 	for _, key := range append(keys, "qs:cache:keep", challengeRedisKey("keep"), wechatAccessTokenRedisKey("keep")) {

@@ -67,11 +67,15 @@ type RetirementRoleChange struct {
 	Protection role.ManagementProtection `json:"management_protection"`
 }
 type RetirementPermission struct {
-	Subject      string  `json:"subject"`
-	RoleID       meta.ID `json:"role_id"`
-	Resource     string  `json:"resource"`
-	Action       string  `json:"action"`
-	LegacyDomain string  `json:"legacy_domain"`
+	Subject                   string   `json:"subject"`
+	RoleID                    meta.ID  `json:"role_id"`
+	Resource                  string   `json:"resource"`
+	Action                    string   `json:"action"`
+	LegacyDomain              string   `json:"legacy_domain"`
+	NewRoleName               string   `json:"new_role_name"`
+	ConstraintSet             string   `json:"constraint_set"`
+	AddedProfileActions       []string `json:"added_profile_actions"`
+	PartitionSelectionRemoved bool     `json:"partition_selection_removed"`
 }
 type TenantRetirementReport struct {
 	Fingerprint          string                 `json:"fingerprint"`
@@ -271,7 +275,23 @@ func analyzeRetirement(s retirementState) *TenantRetirementReport {
 		}
 		for _, g := range s.Grants {
 			if g.DeletedAt == nil && g.RevokedAt == nil && closure[g.RoleID] {
-				r.Permissions = append(r.Permissions, RetirementPermission{a.SubjectType + ":" + a.SubjectID, meta.ID(g.RoleID), g.ResourcePattern, g.Action, g.LegacyDomain})
+				name := roles[meta.ID(g.RoleID)].Name
+				for _, change := range r.Roles {
+					if change.ID == meta.ID(g.RoleID) {
+						name = change.After
+						break
+					}
+				}
+				added := []string{}
+				if g.LegacyDomain == "platform" && resource.Pattern(g.ResourcePattern).Covers(resource.Pattern("iam:identity:collection:profiles")) {
+					switch g.Action {
+					case "list":
+						added = append(added, "list_all")
+					case "search_by_mobile":
+						added = append(added, "search_by_mobile_all")
+					}
+				}
+				r.Permissions = append(r.Permissions, RetirementPermission{Subject: a.SubjectType + ":" + a.SubjectID, RoleID: meta.ID(g.RoleID), Resource: g.ResourcePattern, Action: g.Action, LegacyDomain: g.LegacyDomain, NewRoleName: name, ConstraintSet: g.ConstraintSet, AddedProfileActions: added, PartitionSelectionRemoved: true})
 			}
 		}
 	}

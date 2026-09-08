@@ -993,7 +993,7 @@ def check_compatibility_retirement_evidence() -> None:
     verifier_types = (ROOT / "pkg/sdk/auth/verifier/types.go").read_text(encoding="utf-8")
     jwks_types = (ROOT / "pkg/sdk/auth/jwks/types.go").read_text(encoding="utf-8")
     sdk_compile = (ROOT / "pkg/sdk/public_api_compile_test.go").read_text(encoding="utf-8")
-    sdk_migration = (ROOT / "pkg/sdk/docs/07-migration-breaking-changes.md").read_text(
+    sdk_migration = (ROOT / "docs/_archive/2026-09-08-unified-authorization/sdk/07-migration-breaking-changes.md").read_text(
         encoding="utf-8"
     )
     swagger = (ROOT / "internal/apiserver/docs/swagger.yaml").read_text(encoding="utf-8")

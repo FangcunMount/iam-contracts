@@ -32,7 +32,7 @@ func runPurgeLoginState(args []string, output io.Writer) error {
 		return err
 	}
 	client := goredis.NewClient(options)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	result, err := redisinfra.PurgeLoginState(ctx, client, *batch, *apply)
