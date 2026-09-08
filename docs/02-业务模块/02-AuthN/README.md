@@ -16,7 +16,35 @@ AuthN 证明“当前请求者是谁”，维持认证会话，并把认证结�
 
 JWT、JWKS 和 Redis 是第三段的适配实现，不是与三个子域并列的领域阶段。
 
-## 阅读路径
+## 按任务阅读
+
+| 你要回答的问题 | 首选入口 |
+| --- | --- |
+| 第一次理解 AuthN | [模块总览](00-模块总览.md) → [局部领域模型](01-领域模型与认证策略.md) |
+| 修改密码/OTP/provider 登录 | [Login 主链路](04-关键链路-Login登录认证.md) |
+| 修改绑定、解绑或最近认证 | [Linking 主链路](03-关键链路-Linking登录身份绑定.md) |
+| 修改签发、刷新、撤销 | [Token 主链路](05-关键链路-Token签发刷新吊销.md) |
+| 理解原始认证时间、Session 寿命和旧格式 | [Session/Token 模型](03-Session-Token与JWKS.md) |
+| 排查 key rotation、JWKS 和备份 | [JWKS 生命周期](06-关键链路-JWKS与本地验签.md) |
+
+## 主题归属与维护规则
+
+每项规则在下表指定的文档讲透，其他文档只保留必要摘要并回链。短文用于建立模型，链路文档负责具体执行；修改实现时同时核对主文、摘要和图，不能只补一段文字。
+
+| 主题 | canonical 文档 |
+| --- | --- |
+| 领域对象、生命周期与职责 | 01 领域模型 |
+| SignUp Prepare/UoW、创建与修复 | 02 注册登录与身份绑定 |
+| Link/Unlink 最近认证、证明、幂等、会话影响 | 03 Linking 链路 |
+| SignIn/策略/凭据记录与错误 | 04 Login 链路 |
+| Grant/Verify/Refresh/Revoke 执行与补偿 | 05 Token 链路 |
+| 上下文投影、寿命、历史兼容退役门禁 | 03 Session、Token 与 JWKS |
+| 签名密钥状态、发布、管理与运行 | 06 JWKS 链路 |
+| 跨模块事实交换、分层与改动范围 | 07 模块边界、08 代码索引 |
+
+文件保留既有编号和链接，其中两个 03 分别承担模型与绑定链路；按标题和上述主题定位。扩展设计必须明确标注尚未实现，通用建议不得放进当前执行时序。图须说明是对象关系、成功路径、含失败分支的执行时序，还是业务生命周期。
+
+## 完整阅读路径
 
 1. [模块总览](00-模块总览.md)：先建立“认证关系 → 身份与准入 → 认证状态”的统一模型。
 2. [领域模型与认证策略](01-领域模型与认证策略.md)：区分 LoginIdentity、Credential、Challenge、Principal、Session、AuthenticationGrant 和 Token 概念族。
@@ -41,8 +69,9 @@ JWT、JWKS 和 Redis 是第三段的适配实现，不是与三个子域并列�
 
 ```text
 IDP 解析外部 provider 身份
-  -> AuthN 把证明映射为 LoginIdentity / Principal / AuthenticationGrant
-  -> Identity 提供 User 当前状态
+  -> AuthN 映射 LoginIdentity，验证证明并形成 Principal
+  -> Admission 读取 Identity User / AuthN LoginIdentity 当前状态
+  -> GrantIssuer 颁发 AuthenticationGrant
   -> AuthZ 对 Principal 对应主体做资源授权
 ```
 

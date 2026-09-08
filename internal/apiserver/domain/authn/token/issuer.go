@@ -19,6 +19,9 @@ type tokenSetMinter struct {
 	accessTTL      time.Duration
 }
 
+// 确保 tokenSetMinter 实现 TokenSetMinter 接口。
+var _ TokenSetMinter = &tokenSetMinter{}
+
 // newTokenSetMinter 创建用户令牌颁发器。
 func newTokenSetMinter(tokenCodec BearerTokenCodec, refreshExpirer SessionRefreshExpirer, accessTTL time.Duration) TokenSetMinter {
 	return &tokenSetMinter{
@@ -28,17 +31,20 @@ func newTokenSetMinter(tokenCodec BearerTokenCodec, refreshExpirer SessionRefres
 
 // MintTokenSet 颁发用户令牌。
 func (s *tokenSetMinter) MintTokenSet(ctx context.Context, principal *authentication.Principal, sess *sessiondomain.Session) (*UserTokenSet, error) {
+	// 参数校验
 	if principal == nil {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "principal is required")
 	}
+	// 会话校验
 	if sess == nil {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "session is required")
 	}
+	// 主体与会话校验
 	if err := validatePrincipalSessionAlignment(principal, sess); err != nil {
 		return nil, err
 	}
 
-	// 构建用户令牌主体
+	// 构建访问令牌主体
 	subject := accessTokenSubjectFromAuth(principal, sess)
 	now := time.Now().UTC()
 	subject.Attributes = cloneStringMap(subject.Attributes)
@@ -66,21 +72,26 @@ func (s *tokenSetMinter) MintTokenSet(ctx context.Context, principal *authentica
 	if err != nil {
 		return nil, perrors.WrapC(err, code.ErrInternalServerError, "failed to generate refresh token")
 	}
+
+	// 返回令牌集
 	return NewUserTokenSet(accessToken, refreshToken), nil
 }
 
 // issueRefreshToken 颁发刷新令牌。
 func (s *tokenSetMinter) issueRefreshToken(subject *AccessTokenSubject, sess *sessiondomain.Session, now time.Time) (*RefreshToken, error) {
+	// 计算刷新令牌过期时间
 	refreshExpiresAt, err := s.refreshExpirer.NextRefreshExpiresAt(now, sess)
 	if err != nil {
 		return nil, err
 	}
-	// Session 持有认证上下文权威事实；新 RefreshToken 不再写入重复上下文。
+	// 颁发刷新令牌
 	token := NewRefreshTokenWithExpiry(
 		uuid.NewString(), uuid.NewString(), sess.SessionID, subject.UserID, subject.LoginIdentityID,
 		subject.TenantID, nil, nil, refreshExpiresAt,
 	)
+	// 设置颁发时间
 	token.IssuedAt = now
+	// 返回刷新令牌
 	return token, nil
 }
 

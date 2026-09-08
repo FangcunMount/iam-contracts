@@ -162,7 +162,7 @@
     <text x="1040" y="915" class="stereotype">AUTHENTICATION RESULT</text>
     <text x="1275" y="948" text-anchor="middle" class="model">AuthDecision → Principal</text>
     <line x1="1015" y1="968" x2="1535" y2="968" class="divider"/>
-    <text x="1040" y="1002" class="field">Decision：OK · Code · CredentialRecord</text>
+    <text x="1040" y="1002" class="field">Decision：OK · Code · CredentialEffect</text>
     <text x="1040" y="1034" class="field">Principal：UserID · LoginIdentityID · AMR · Claims</text>
     <text x="1040" y="1066" class="small">只有成功判定才产生请求级 Principal</text>
   </g>

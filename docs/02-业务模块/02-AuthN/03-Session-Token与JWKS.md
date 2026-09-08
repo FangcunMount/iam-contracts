@@ -30,6 +30,8 @@ JWT 负责可验证声明，Redis 负责在线撤销和续期状态，MySQL 负�
 
 因此代码中的 `BearerTokenCodec` 是领域端口，`JWSCompactTokenCodec` 是具体 wire adapter；`VerifiedTokenClaims` 是完成验签、标准时间和 issuer 校验后的领域事实，不能反向当作 JWT Header、原始 Payload 或 Signature。
 
+详细执行顺序、错误分支和补偿由 [Token 生命周期链路](05-关键链路-Token签发刷新吊销.md) 维护；本文负责对象、上下文权威、寿命、兼容门禁和验证语义。
+
 ## 2. 登录签发
 
 `grant.Issuer.Issue` 的实际步骤是：
@@ -88,9 +90,9 @@ sequenceDiagram
     C->>T: old refresh token
     T->>R: load old token
     T->>S: load active session
-    T->>T: rebuild Principal from Session
     T->>T: check User/LoginIdentity status
-    T->>T: check expiry and mint new pair
+    T->>T: check refresh expiry
+    T->>T: rebuild Principal from Session and mint new pair
     T->>S: extend to new refresh expiry
     T->>R: CAS rotate old -> new
     R-->>T: rotated / conflict
@@ -134,7 +136,7 @@ Session 是先延长，refresh token 后轮换。如果轮换最终冲突或 Red
 却意味着失败请求也可能改变 Session 生存时间。
 
 更严格的设计可把 Session 延长和 refresh 轮换放进同一 Lua 脚本，或先轮换再以幂等方式延长；前者要求两类键和校验逻辑共享一个原子脚本，后者则要处理“令牌已轮换但 Session 延长失败”的更危险窗口。
-当前选择优先避免发出已轮换但无活跃 Session 的令牌，接受失败时 TTL 可能延长的较小风险。
+当前顺序优先避免“轮换已成功但延期失败”的窗口，接受失败时 TTL 可能延长；并发 revoke 仍可使会话失效，不能承诺响应返回时会话一直 active。轮换通信错误也可能意味着写入已完成但响应不确定，旧 token 不保证仍可使用。
 
 ## 5. 撤销语义
 
@@ -220,7 +222,7 @@ SDK `LocalVerifyStrategy` 只覆盖 codec + 本地 policy（RS256、必填 issue
 
 ### JWKS 为什么需要 grace key？
 
-轮换前签发的 token 仍由旧私钥签名。如果立刻删除旧公钥，所有未过期 token 会同时失效。grace 窗口应至少覆盖允许验证的旧 token 寿命和缓存传播时间。
+轮换前签发的 token 仍由旧私钥签名。如果立刻移除旧公钥，消费者更新 JWKS 后会拒绝相关未过期 token，而保留旧缓存的消费者可能继续接受。grace 窗口应至少覆盖允许验证的旧 token 寿命和缓存传播时间。
 
 ## 10. 事实来源与验证
 

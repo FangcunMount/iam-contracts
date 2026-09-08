@@ -138,9 +138,9 @@ func newRefreshToken(id, value, sessionID string, userID, loginIdentityID, tenan
 type ServiceToken struct {
 	TokenMetadata
 
-	Subject    string
-	Audience   []string
-	Attributes map[string]string
+	Subject    string            // 令牌主题
+	Audience   []string          // 受众，令牌预期给谁使用
+	Attributes map[string]string // 属性，令牌携带的额外信息
 }
 
 func (*ServiceToken) Kind() TokenType { return TokenTypeService }
@@ -177,30 +177,30 @@ type ConsumedRefreshToken struct {
 // 它不是 JWT wire model，也不包含 JWT Header/Signature。
 type VerifiedTokenClaims struct {
 	// —— 令牌元数据 —— //
-	TokenID   string
-	TokenType TokenType
-	SessionID string
-	Subject   string
+	TokenID   string    // 令牌ID
+	TokenType TokenType // 令牌类型
+	SessionID string    // 会话ID
+	Subject   string    // 令牌主题
 
 	// —— 令牌主体 —— //
-	UserID          meta.ID
-	LoginIdentityID meta.ID
-	TenantDomain    string
-	OrgID           meta.ID
+	UserID          meta.ID // 用户ID
+	LoginIdentityID meta.ID // 登录身份ID
+	TenantDomain    string  // 租户域
+	OrgID           meta.ID // 组织ID
 
 	// —— 令牌认证 —— //
-	Issuer          string
-	AuthenticatedAt time.Time
+	Issuer          string    // 令牌颁发者
+	AuthenticatedAt time.Time // 令牌认证时间
 
 	// —— 令牌属性 —— //
-	Audience   []string
-	Attributes map[string]string
-	AMR        []string
+	Audience   []string          // 受众，令牌预期给谁使用
+	Attributes map[string]string // 属性，令牌携带的额外信息
+	AMR        []string          // 认证方法引用
 
 	// —— 令牌时间 —— //
-	IssuedAt  time.Time
-	NotBefore time.Time
-	ExpiresAt time.Time
+	IssuedAt  time.Time // 令牌颁发时间
+	NotBefore time.Time // 令牌生效时间
+	ExpiresAt time.Time // 令牌过期时间
 }
 
 // NewVerifiedUserTokenClaims 构造并校验用户访问令牌事实。

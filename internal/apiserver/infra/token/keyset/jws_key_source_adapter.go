@@ -12,46 +12,59 @@ import (
 	pkgauth "github.com/FangcunMount/iam/v3/pkg/auth"
 )
 
-type JWSKeySourceAdapter struct {
-	manager interface {
-		GetActiveKey(ctx context.Context) (*Key, error)
-		GetKeyByKid(ctx context.Context, kid string) (*Key, error)
-	}
-	keyResolver PrivateKeyResolver
+// manager 是密钥管理器。
+type manager interface {
+	// GetActiveKey 获取活动密钥
+	GetActiveKey(ctx context.Context) (*Key, error)
+	// GetKeyByKid 根据密钥ID获取密钥
+	GetKeyByKid(ctx context.Context, kid string) (*Key, error)
 }
 
-func NewJWSKeySourceAdapter(manager interface {
-	GetActiveKey(ctx context.Context) (*Key, error)
-	GetKeyByKid(ctx context.Context, kid string) (*Key, error)
-}, keyResolver PrivateKeyResolver) *JWSKeySourceAdapter {
+// JWSKeySourceAdapter 是 JWS 签名与验签密钥源的适配器。
+type JWSKeySourceAdapter struct {
+	manager     manager            // 密钥管理器
+	keyResolver PrivateKeyResolver // 私钥解析器
+}
+
+// NewJWSKeySourceAdapter 创建 JWS 签名与验签密钥源的适配器。
+func NewJWSKeySourceAdapter(manager manager, keyResolver PrivateKeyResolver) *JWSKeySourceAdapter {
 	return &JWSKeySourceAdapter{
 		manager:     manager,
 		keyResolver: keyResolver,
 	}
 }
 
+// ActiveSigningKey 获取活动签名密钥
 func (s *JWSKeySourceAdapter) ActiveSigningKey(ctx context.Context) (*jwtinfra.SigningKey, error) {
+	// 获取活动密钥
 	activeKey, err := s.manager.GetActiveKey(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get active key: %w", err)
 	}
+	// 如果活动密钥为空，则返回错误
 	if activeKey == nil {
 		return nil, fmt.Errorf("active key is nil")
 	}
+	// 如果活动密钥不可用于签名，则返回错误
 	if !activeKey.CanSignAt(time.Now()) {
 		return nil, fmt.Errorf("key %s is not eligible for signing", activeKey.Kid)
 	}
+	// 如果活动密钥算法不支持，则返回错误
 	if activeKey.Algorithm != pkgauth.TokenProfileAlgorithm {
 		return nil, fmt.Errorf("key %s uses unsupported algorithm %s", activeKey.Kid, activeKey.Algorithm)
 	}
+	// 解析私钥
 	rawKey, err := s.keyResolver.ResolveSigningKey(ctx, activeKey.Kid, activeKey.Algorithm)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve private key: %w", err)
 	}
+	// 如果私钥类型不匹配，则返回错误
 	privateKey, ok := rawKey.(*rsa.PrivateKey)
 	if !ok {
 		return nil, fmt.Errorf("expected RSA private key, got %T", rawKey)
 	}
+
+	// 返回签名密钥
 	return &jwtinfra.SigningKey{
 		Kid:        activeKey.Kid,
 		Algorithm:  activeKey.Algorithm,
