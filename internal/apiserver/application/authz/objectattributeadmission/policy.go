@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 )
 
 type Request struct{ CallerService, ResourceKey, AttributeKey string }

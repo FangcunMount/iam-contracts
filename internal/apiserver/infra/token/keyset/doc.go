@@ -13,7 +13,7 @@
 //
 // KeyManager is an infrastructure coordinator because activation spans private
 // material and a database transaction. It delegates state rules to the embedded
-// signingkey.Key. KeySetBuilder publishes only active/grace public keys that are
+// signingkey.Key. JWKSPublisher publishes only active/grace public keys that are
 // valid at the build time; it never exposes private material. JWSKeySourceAdapter
 // supplies RSA signing or verification keys to the compact-JWS codec after the
 // domain eligibility checks pass.

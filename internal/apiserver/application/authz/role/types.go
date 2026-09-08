@@ -5,10 +5,9 @@ import (
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	roleDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 type Catalog interface {
@@ -18,21 +17,22 @@ type Catalog interface {
 }
 
 type Directory interface {
-	GetRoleByID(ctx context.Context, tenantID tenant.ID, roleID meta.ID) (*roleDomain.Role, error)
-	GetRoleByName(ctx context.Context, tenantID, name string) (*roleDomain.Role, error)
+	GetRoleByID(ctx context.Context, roleID meta.ID) (*roleDomain.Role, error)
+	GetRoleByName(ctx context.Context, name string) (*roleDomain.Role, error)
 	ListRoles(ctx context.Context, query ListRolesQuery) (*ListRolesResult, error)
-	ListRolesByTenant(ctx context.Context, tenantID string) ([]*roleDomain.Role, error)
+	ListAllRoles(ctx context.Context) ([]*roleDomain.Role, error)
 }
 
 type CreateRoleCommand struct {
-	Name        roleDomain.Name
-	DisplayName string
-	TenantID    tenant.ID
+	ManagementProtection roleDomain.ManagementProtection
+	Name                 roleDomain.Name
+	DisplayName          string
+
 	Description string
 	ChangedBy   string
 }
 
-func NewCreateRoleCommand(name, displayName, tenantID, description string) (CreateRoleCommand, error) {
+func NewCreateRoleCommand(name, displayName, description string) (CreateRoleCommand, error) {
 	roleName, err := roleDomain.NewName(name)
 	if err != nil {
 		return CreateRoleCommand{}, err
@@ -41,14 +41,11 @@ func NewCreateRoleCommand(name, displayName, tenantID, description string) (Crea
 	if displayName == "" {
 		return CreateRoleCommand{}, perrors.WithCode(code.ErrInvalidArgument, "显示名称不能为空")
 	}
-	tenantIDValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return CreateRoleCommand{}, err
-	}
 	return CreateRoleCommand{
-		Name:        roleName,
-		DisplayName: displayName,
-		TenantID:    tenantIDValue,
+		Name:                 roleName,
+		ManagementProtection: roleDomain.ManagementStandard,
+		DisplayName:          displayName,
+
 		Description: description,
 	}, nil
 }
@@ -57,21 +54,17 @@ func (cmd CreateRoleCommand) NameString() string {
 	return cmd.Name.String()
 }
 
-func (cmd CreateRoleCommand) TenantIDString() string {
-	return cmd.TenantID.String()
-}
-
 type UpdateRoleCommand struct {
-	ID          meta.ID
-	TenantID    string
+	ID meta.ID
+
 	ChangedBy   string
 	DisplayName *string
 	Description *string
 }
 
 type DeleteRoleCommand struct {
-	ID        meta.ID
-	TenantID  string
+	ID meta.ID
+
 	ChangedBy string
 }
 
@@ -100,25 +93,16 @@ func NewUpdateRoleCommand(id meta.ID, displayName, description *string) (UpdateR
 }
 
 type ListRolesQuery struct {
-	TenantID tenant.ID
-	Offset   int
-	Limit    int
+	Offset int
+	Limit  int
 }
 
-func NewListRolesQuery(tenantID string, offset, limit int) (ListRolesQuery, error) {
-	tenantIDValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return ListRolesQuery{}, err
-	}
+func NewListRolesQuery(offset, limit int) (ListRolesQuery, error) {
 	return ListRolesQuery{
-		TenantID: tenantIDValue,
-		Offset:   offset,
-		Limit:    limit,
-	}, nil
-}
 
-func (query ListRolesQuery) TenantIDString() string {
-	return query.TenantID.String()
+		Offset: offset,
+		Limit:  limit,
+	}, nil
 }
 
 type ListRolesResult struct {

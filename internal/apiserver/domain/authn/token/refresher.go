@@ -7,10 +7,10 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
-	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	admissiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 type refresher struct {
@@ -47,8 +47,8 @@ func (s *refresher) RefreshToken(ctx context.Context, refreshTokenValue string) 
 		return nil, err
 	}
 
-	principal := s.principalFromSession(sess, refreshToken)
-	newTokenSet, err := s.issueRotatedTokenSet(ctx, principal, sess)
+	sess = s.sessionForRefresh(sess, refreshToken)
+	newTokenSet, err := s.issueRotatedTokenSet(ctx, sess)
 	if err != nil {
 		return nil, err
 	}
@@ -154,8 +154,8 @@ func (s *refresher) ensureRefreshTokenUsable(ctx context.Context, value string, 
 	return perrors.WithCode(code.ErrRefreshTokenExpired, "refresh token has expired")
 }
 
-// principalFromSession 以 Session 为认证上下文权威来源；仅当 Session 缺上下文时回退 RefreshToken 历史字段。
-func (s *refresher) principalFromSession(sess *sessiondomain.Session, refreshToken *RefreshToken) *authentication.Principal {
+// sessionForRefresh 在会话副本上恢复历史上下文，不修改加载的会话。
+func (s *refresher) sessionForRefresh(sess *sessiondomain.Session, refreshToken *RefreshToken) *sessiondomain.Session {
 	authContext := sess.AuthContext.Clone()
 	tokenContext := sess.TokenContext.Clone()
 	authMethod := strings.TrimSpace(string(authContext.Method))
@@ -173,7 +173,7 @@ func (s *refresher) principalFromSession(sess *sessiondomain.Session, refreshTok
 		realm = strings.TrimSpace(refreshToken.Realm)
 		amr = append([]string(nil), refreshToken.AMR...)
 		legacyClaims = s.legacyContextDecoder.Decode(refreshToken.SessionClaims)
-		if tokenContext.TenantDomain == "" && len(legacyClaims) > 0 {
+		if len(legacyClaims) > 0 {
 			tokenContext = tokenContextFromClaims(legacyClaims)
 		}
 	}
@@ -185,22 +185,18 @@ func (s *refresher) principalFromSession(sess *sessiondomain.Session, refreshTok
 		authenticatedAt = resolveAuthenticatedAt(legacyClaims, time.Time{})
 	}
 
-	principal := &authentication.Principal{
-		UserID:          sess.UserID,
-		LoginIdentityID: sess.LoginIdentityID,
-		TenantID:        sess.TenantID,
-		SessionID:       sess.SessionID,
-		TokenContext:    tokenContext,
-	}
+	restored := *sess
+	restored.TokenContext = tokenContext
+	restored.AuthContext = authContext
 	if authMethod != "" || realm != "" || len(amr) > 0 || !authenticatedAt.IsZero() {
-		principal.ApplyAuthContext(authentication.RestoreAuthenticationContext(
+		restored.AuthContext = authentication.RestoreAuthenticationContext(
 			authentication.Method(authMethod),
 			realm,
 			amrStringsToAMR(amr),
 			authenticatedAt,
-		))
+		)
 	}
-	return principal
+	return &restored
 }
 
 func sessionHasAuthContext(sess *sessiondomain.Session) bool {
@@ -226,11 +222,11 @@ func amrStringsToAMR(values []string) []authentication.AMR {
 	return out
 }
 
-func (s *refresher) issueRotatedTokenSet(ctx context.Context, principal *authentication.Principal, sess *sessiondomain.Session) (*UserTokenSet, error) {
+func (s *refresher) issueRotatedTokenSet(ctx context.Context, sess *sessiondomain.Session) (*UserTokenSet, error) {
 	if s.tokenSetMinter == nil {
 		return nil, perrors.WithCode(code.ErrInternalServerError, "token set minter is not configured")
 	}
-	set, err := s.tokenSetMinter.MintTokenSet(ctx, principal, sess)
+	set, err := s.tokenSetMinter.MintTokenSet(ctx, sess)
 	if err != nil {
 		return nil, err
 	}

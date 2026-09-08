@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/infra/token/keyset"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/infra/token/keyset"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

@@ -3,7 +3,7 @@ package loginidentity
 import (
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // LoginIdentity 绑定 IAM 用户到具体的登录标识

@@ -4,8 +4,8 @@ package signup
 import (
 	"strings"
 
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/auth/internal/restclient"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/auth/internal/restclient"
 )
 
 type WechatMiniProgramRequest struct {

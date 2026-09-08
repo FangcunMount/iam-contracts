@@ -1,6 +1,6 @@
 # 关键链路：gRPC 服务间授权与 SDK
 
-> 状态：已实现 · 本文以 `iam.authz.v3.AuthorizationService` proto、gRPC 服务、拦截器/ACL、Assignment constraints 与 Go SDK 为依据。
+> 状态：已实现 · 本文以 `iam.authz.v4.AuthorizationService` proto、gRPC 服务、拦截器/ACL、Assignment constraints 与 Go SDK 为依据。
 
 ## 结论
 
@@ -22,7 +22,7 @@ REST v3 不提供 Check。外部业务服务不应下载 Role/Grant 后自行实
 | `RevokeAssignment` | 增量写 | subject、domain、role_name、revoked_by/reason | policy version | 同上 |
 | `ReplaceManagedAssignments` | 集合写 | subject、domain、role_names、changed_by/reason | managed target subset、version、changed | service identity + method ACL + explicit managed role set |
 
-proto `api/grpc/iam/authz/v3/authz.proto` 是 RPC 名、字段号、枚举值与响应形状的机器真相源。
+proto `api/grpc/iam/authz/v4/authz.proto` 是 RPC 名、字段号、枚举值与响应形状的机器真相源。
 `api/grpc/README.md` 与 `pkg/sdk/docs/06-authz.md` 只做使用说明，不能重新定义契约。
 
 ## 服务身份是所有 RPC 的前置条件
@@ -42,7 +42,7 @@ transport credential / mTLS or configured service credential
 
 `grpc_acl.yaml` 的默认策略是 deny。当前主要覆盖为：
 
-- `qs-apiserver.svc`：可调用全部五个 AuthZ v3 RPC。
+- `qs-apiserver.svc`：可调用全部五个 AuthZ v4 RPC。
 - `qs-collection-server.svc`：只可 `Check` 与 `GetAuthorizationSnapshot`。
 - `reporting`：只可 `GetAuthorizationSnapshot`。
 - `admin`：ACL 上允许 AuthorizationService 通配方法，但 Assignment 写仍要经过内容级授权。
@@ -71,7 +71,7 @@ sequenceDiagram
 `subject`、`domain`、`resource`、`action` 都必填。
 
 - Subject 必须是 `<type>:<iam-id>`，ID 要能解析且非零。
-- Domain 是 Tenant 授权域。proto 字段保留 `domain` 名称，不代表对外暴露 Casbin 模型。
+- 新版请求不再包含授权分区参数；Proto 删除的字段编号和名称设为 reserved。资源标识的业务模块段保持不变。
 - Resource 必须是四段具体 key，不能由请求方使用通配。
 - Action 必须是具体动作。
 
@@ -101,7 +101,7 @@ attribute_key  = object.origin_type
 | `deny_code` | 稳定的 deny 机器代码 |
 | `matched_grant_id` | allow 时命中的 Grant |
 | `matched_role` | allow 时导致命中的 effective Role |
-| `policy_version` | 做决策的快照在该 Tenant 的版本 |
+| `policy_version` | 做决策的快照在全局版本 |
 | `missing_attribute_keys` | 条件 Grant 所需但未提交的属性 |
 
 `allowed=false` 是正常授权结果，不是 gRPC error。运行时不可用、请求违反 schema 或传输信任合同才是 error。业务调用方应分开统计两者。
@@ -122,7 +122,7 @@ SDK 提供两个方便方法：
 - `roles`：指定 app 下的 effective roles，包含继承结果。
 - `direct_roles`：指定 app 下由 Assignment 直接获得的角色。
 - `permissions`：指定 app 下去重合并的 Resource/Action 与 mode。
-- `policy_version`：当前快照的 Tenant version。
+- `policy_version`：当前快照的全局版本。
 
 `UNCONDITIONAL` 表示存在至少一条无条件 Grant；`OBJECT_CHECK_REQUIRED` 表示所有候选 Grant 都需具体对象检查。快照不包含某个具体对象的最终 allow，
 所以 UI/服务不能把 `OBJECT_CHECK_REQUIRED` 当成已授权。

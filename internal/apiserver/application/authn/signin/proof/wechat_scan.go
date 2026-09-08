@@ -5,13 +5,13 @@ import (
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/challenge"
-	authnexternal "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	idpresolver "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	idpidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/challenge"
+	authnexternal "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	idpresolver "github.com/FangcunMount/iam/v5/internal/apiserver/application/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	idpidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 type wechatScanBuilder struct {
@@ -30,7 +30,7 @@ func (*wechatScanBuilder) CredentialKind() method.CredentialKind {
 	return method.CredentialKindWechatScan
 }
 
-func (b *wechatScanBuilder) Build(ctx context.Context, payload method.Payload, common method.CommonPayload) (authentication.AuthCredential, error) {
+func (b *wechatScanBuilder) Build(ctx context.Context, payload method.Payload, common method.CommonPayload) (authentication.IdentityProof, error) {
 	// 验证微信扫码登录方式凭证是否有效
 	scanPayload, ok := payload.(method.WechatScanPayload)
 	if !ok {
@@ -75,12 +75,9 @@ func (b *wechatScanBuilder) Build(ctx context.Context, payload method.Payload, c
 	}
 
 	// 构建微信扫码登录方式凭证
-	return authentication.NewWechatOpenCredential(authentication.WechatOpenProofSpec{
-		TenantID:  common.TenantID,
-		RemoteIP:  common.RemoteIP,
-		UserAgent: common.UserAgent,
-		AppID:     wechatIdentity.Realm,
-		OpenID:    wechatIdentity.OpenID,
-		UnionID:   wechatIdentity.UnionID,
+	return authentication.NewWechatOpenProof(authentication.WechatOpenProofSpec{
+		AppID:   wechatIdentity.Realm,
+		OpenID:  wechatIdentity.OpenID,
+		UnionID: wechatIdentity.UnionID,
 	})
 }

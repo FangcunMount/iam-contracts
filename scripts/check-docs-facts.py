@@ -135,15 +135,15 @@ def check_generated_document_facts() -> None:
                 f"documented={documented_services[relative]} actual={services}"
             )
 
-    authz_contract = load_yaml("api/rest/authz.v3.yaml")
+    authz_contract = load_yaml("api/rest/authz.v4.yaml")
     authz_base = openapi_server_path(authz_contract)
     authz_paths = {
         authz_base + path: operations
         for path, operations in authz_contract.get("paths", {}).items()
     }
     for method, route in (
-        ("get", "/api/v3/authz/roles"),
-        ("post", "/api/v3/authz/grants"),
+        ("get", "/api/v4/authz/roles"),
+        ("post", "/api/v4/authz/grants"),
     ):
         if method not in authz_paths.get(route, {}):
             fail(f"AuthZ REST contract is missing documented {method.upper()} {route}")
@@ -156,10 +156,10 @@ def check_generated_document_facts() -> None:
     if "/api/v2/authz" in all_api_markdown:
         fail("API README files still contain retired /api/v2/authz URLs")
 
-    authz_proto = (ROOT / "api/grpc/iam/authz/v3/authz.proto").read_text(
+    authz_proto = (ROOT / "api/grpc/iam/authz/v4/authz.proto").read_text(
         encoding="utf-8"
     )
-    authz_proto_path = ROOT / "api/grpc/iam/authz/v3/authz.proto"
+    authz_proto_path = ROOT / "api/grpc/iam/authz/v4/authz.proto"
     package_match = re.search(r"^package\s+([A-Za-z0-9_.]+);", authz_proto, re.MULTILINE)
     if package_match is None or "service AuthorizationService" not in authz_proto or not re.search(
         r"\brpc\s+Check\s*\(", authz_proto
@@ -175,7 +175,7 @@ def check_generated_document_facts() -> None:
 
     authz_rpcs = proto_service_rpcs(authz_proto_path, "AuthorizationService")
     grpc_authz_row = re.search(
-        r"^\|\s*\[[^\]]+\]\(iam/authz/v3/authz\.proto\)\s*\|\s*`AuthorizationService`\s*\|\s*(.*?)\s*\|$",
+        r"^\|\s*\[[^\]]+\]\(iam/authz/v4/authz\.proto\)\s*\|\s*`AuthorizationService`\s*\|\s*(.*?)\s*\|$",
         grpc_readme,
         re.MULTILINE,
     )
@@ -246,31 +246,6 @@ def check_generated_document_facts() -> None:
             "AuthorizationEvaluator.Evaluate",
             "AuthZ Middleware",
         ),
-        "docs/_images/architecture/core-domain-model-v7.svg": (
-            "建立认证关系",
-            "确认身份与准入",
-            "延续认证状态",
-            "AdmissionPolicy",
-            "LifetimePolicy",
-            "AuthenticationGrant",
-            "GrantIssuer",
-            "TokenSetMinter",
-            "Refresher",
-            "Verifier",
-            "Revoker",
-            "Assignment",
-            "RoleInheritance",
-            "PermissionGrant",
-            "ConstraintSet",
-            "建权与赋权",
-            "验权与决策",
-            "施权与执行",
-            "AuthorizationRuntimeSnapshot",
-            "DecisionService",
-            "AuthorizationEvaluator",
-            "AuthZ Middleware",
-            "自有不可变角色图",
-        ),
         "docs/_images/architecture/core-domain-model-v8.svg": (
             "聚合边界与领域知识",
             "13 个小聚合",
@@ -292,13 +267,13 @@ def check_generated_document_facts() -> None:
             "AuthDecision",
             "Principal",
             "AdmissionDecision",
-            "AuthenticationGrant",
+            "AccessTokenClaims",
             "Session",
             "UserTokenSet",
             "AccessToken",
             "RefreshToken",
             "Subject.Ref",
-            "Tenant.ID",
+            "ManagementProtection",
             "Role",
             "Assignment",
             "RoleInheritance",
@@ -342,18 +317,6 @@ def check_generated_document_facts() -> None:
             "DecisionEngine",
             "MatchedPermission",
             "Casbin RoleManager",
-        ),
-        "docs/_images/architecture/core-domain-model-v7.svg": (
-            ">RoleBinding<",
-            ">Permission<",
-            "ObjectScope",
-            "DecisionEngine",
-            "MatchedPermission",
-            "Casbin RoleManager",
-            "五个核心对象",
-            "2｜策略变更与发布",
-            "3｜验权与决策 → 施权与执行",
-            "服务令牌：签名与声明",
         ),
         "docs/_images/architecture/core-domain-model-v8.svg": (
             "Authenticator",
@@ -407,7 +370,8 @@ def check_generated_document_facts() -> None:
         contract = load_yaml(str(contract_path.relative_to(ROOT)))
         base = openapi_server_path(contract)
         for route, operations in contract.get("paths", {}).items():
-            openapi_paths.setdefault(base + route, set()).update(
+            route_base = openapi_server_path(operations) if operations.get("servers") else base
+            openapi_paths.setdefault(route_base + route, set()).update(
                 method.lower()
                 for method in operations
                 if method.lower() in {"get", "post", "put", "patch", "delete"}
@@ -415,7 +379,7 @@ def check_generated_document_facts() -> None:
 
     runtime_readme_routes = {
         "/.well-known/jwks.json": {"get"},
-        "/api/v3/authz/health": {"get"},
+        "/api/v4/authz/health": {"get"},
         "/api/v2/idp/health": {"get"},
     }
     for route, methods in runtime_readme_routes.items():
@@ -554,8 +518,8 @@ def check_migrations() -> None:
     }
     if up != down:
         fail(f"migration up/down numbers differ: up-only={sorted(up-down)} down-only={sorted(down-up)}")
-    if not up or max(up) != 29:
-        fail(f"documented latest migration is 29, repository has {max(up) if up else 'none'}")
+    if not up or max(up) != 32:
+        fail(f"documented latest migration is 32, repository has {max(up) if up else 'none'}")
     migration = (directory / "000016_jwks_single_active_guard.up.sql").read_text(encoding="utf-8")
     for token in ("active_guard", "uk_jwks_keys_single_active"):
         if token not in migration:
@@ -947,7 +911,7 @@ def check_database_operations_facts() -> None:
         "IAM_DB_OPS_ALLOW_DOCKER_CLIENT",
         "mysql:8.0",
         "retired_tables_present=",
-        "expected_version=29",
+        "expected_version=32",
         "performance schema capability:",
         "sys_table_statistics_select=",
         "rds_table_statistics_enabled=",
@@ -1029,12 +993,12 @@ def check_compatibility_retirement_evidence() -> None:
     verifier_types = (ROOT / "pkg/sdk/auth/verifier/types.go").read_text(encoding="utf-8")
     jwks_types = (ROOT / "pkg/sdk/auth/jwks/types.go").read_text(encoding="utf-8")
     sdk_compile = (ROOT / "pkg/sdk/public_api_compile_test.go").read_text(encoding="utf-8")
-    sdk_migration = (ROOT / "pkg/sdk/docs/07-migration-breaking-changes.md").read_text(
+    sdk_migration = (ROOT / "docs/_archive/2026-09-08-unified-authorization/sdk/07-migration-breaking-changes.md").read_text(
         encoding="utf-8"
     )
     swagger = (ROOT / "internal/apiserver/docs/swagger.yaml").read_text(encoding="utf-8")
     for token, source, label in (
-        ("module github.com/FangcunMount/iam/v4", go_mod, "v3 Go module path"),
+        ("module github.com/FangcunMount/iam/v5", go_mod, "v3 Go module path"),
         ("v2.0.10", sdk_migration, "SDK deprecation release"),
         ("免除 Batch C 的最短 30 天等待期", sdk_migration, "SDK owner waiver"),
         ("v3.0.0", sdk_migration, "SDK v3 release"),

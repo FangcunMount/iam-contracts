@@ -6,8 +6,8 @@ import (
 	"time"
 
 	cbmessaging "github.com/FangcunMount/component-base/pkg/messaging"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policypublication"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/eventing"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policypublication"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/eventing"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,11 +31,10 @@ func TestAuthzPolicySyncSubscriberRegistersAndReloadsRuntime(t *testing.T) {
 	require.Contains(t, subscriber.channel, ChannelPrefix+".")
 	require.Contains(t, subscriber.channel, "#ephemeral")
 	require.Equal(t, subscriber.channel, recorder.policySyncChannel)
-	msg := cbmessaging.NewMessage("msg-1", []byte(`{"tenant_id":"tenant-a","version":12}`))
+	msg := cbmessaging.NewMessage("msg-1", []byte(`{"version":12}`))
 	msg.Metadata = map[string]string{"event_type": eventing.AuthzVersionChanged}
 	require.NoError(t, subscriber.handler(context.Background(), msg))
 	require.Equal(t, 1, reloader.reloads)
-	require.Equal(t, "tenant-a", recorder.tenantID)
 	require.Equal(t, int64(12), recorder.version)
 	require.False(t, recorder.eventAt.IsZero())
 
@@ -79,7 +78,6 @@ func (s *policySyncReloaderStub) LoadPolicy(context.Context) error {
 }
 
 type policySyncRuntimeHealthStub struct {
-	tenantID          string
 	version           int64
 	eventAt           time.Time
 	policySyncChannel string
@@ -93,8 +91,7 @@ func (s *policySyncRuntimeHealthStub) RuntimeHealthDetails() map[string]any {
 	return nil
 }
 
-func (s *policySyncRuntimeHealthStub) RecordPolicyVersionEvent(tenantID string, version int64, eventAt time.Time) {
-	s.tenantID = tenantID
+func (s *policySyncRuntimeHealthStub) RecordPolicyVersionEvent(version int64, eventAt time.Time) {
 	s.version = version
 	s.eventAt = eventAt
 }

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/profile"
 )
 
 func TestRefresherFullUsesQueryStartAsDeltaCursor(t *testing.T) {

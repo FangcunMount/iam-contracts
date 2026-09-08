@@ -4,9 +4,9 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // passwordBuilder 密码登录方式构造器
@@ -23,7 +23,7 @@ func (passwordBuilder) CredentialKind() method.CredentialKind {
 }
 
 // Build 构建密码登录方式
-func (passwordBuilder) Build(_ context.Context, payload method.Payload, common method.CommonPayload) (authentication.AuthCredential, error) {
+func (passwordBuilder) Build(_ context.Context, payload method.Payload, common method.CommonPayload) (authentication.IdentityProof, error) {
 	// 验证密码登录方式凭证是否有效
 	passwordPayload, ok := payload.(method.PasswordPayload)
 	if !ok {
@@ -31,11 +31,9 @@ func (passwordBuilder) Build(_ context.Context, payload method.Payload, common m
 	}
 
 	// 构建密码登录方式凭证
-	return authentication.NewPasswordCredential(authentication.PasswordProofSpec{
-		TenantID:  common.TenantID,
-		RemoteIP:  common.RemoteIP,
-		UserAgent: common.UserAgent,
-		Username:  passwordPayload.Username,
-		Password:  passwordPayload.Password,
+	return authentication.NewPasswordProof(authentication.PasswordProofSpec{
+
+		Username: passwordPayload.Username,
+		Password: passwordPayload.Password,
 	})
 }

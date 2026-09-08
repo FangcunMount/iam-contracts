@@ -2,22 +2,23 @@ package request
 
 import (
 	"encoding/json"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
-// LoginV2Request 是 v2 显式登录请求。
-type LoginV2Request struct {
+// LoginV3Request 是 v3 显式登录请求。
+type LoginV3Request struct {
 	AuthMethod    string          `json:"auth_method" binding:"required" enums:"password,phone_otp,wechat,wechat_scan,wecom"` // 认证方式：password | phone_otp | wechat | wechat_scan | wecom
 	DeviceID      string          `json:"device_id,omitempty"`                                                                // 设备 ID
 	MethodPayload json.RawMessage `json:"method_payload" binding:"required" swaggertype:"object"`                             // 凭证（wechat_scan 需要 app_id/code/state；其他方式按 auth_method 解析）
 }
 
-// Validate 验证 v2 登录请求。
-func (r *LoginV2Request) Validate() error {
+// Validate 验证 v3 登录请求。
+func (r *LoginV3Request) Validate() error {
 	if !session.IsPublicAuthMethod(r.AuthMethod) {
 		return perrors.WithCode(code.ErrUnsupportedAuthMethod, "invalid authentication method: %s", r.AuthMethod)
 	}
@@ -32,7 +33,6 @@ type PasswordCredentials struct {
 	// Username 登录名：须与登录身份 identifier 一致（例如配置的登录名或邮箱）
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
-	TenantID uint64 `json:"tenant_id,omitempty"`
 }
 
 // PhoneOTPCredentials 手机号验证码凭证
@@ -97,7 +97,7 @@ func (r *LogoutRequest) Validate() error {
 type VerifyTokenRequest struct {
 	AccessToken      string   `json:"access_token" binding:"required"`
 	ExpectedIssuer   string   `json:"expected_issuer,omitempty"`
-	ExpectedAudience []string `json:"expected_audience,omitempty"`
+	ExpectedAudience []string `json:"expected_audience" binding:"required,min=1"`
 }
 
 // Validate 验证令牌验证请求
@@ -105,6 +105,11 @@ func (r *VerifyTokenRequest) Validate() error {
 	if r.AccessToken == "" {
 		return perrors.WithCode(code.ErrInvalidArgument, "access_token is required")
 	}
+	audience, err := tokendomain.NormalizeExpectedAudience(r.ExpectedAudience)
+	if err != nil {
+		return err
+	}
+	r.ExpectedAudience = audience
 	return nil
 }
 

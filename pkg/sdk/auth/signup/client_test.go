@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	sdkerrors "github.com/FangcunMount/iam/v4/pkg/sdk/errors"
+	sdkerrors "github.com/FangcunMount/iam/v5/pkg/sdk/errors"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +16,7 @@ func TestClientSignsUpWithWechatMiniProgram(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPost, r.Method)
-		require.Equal(t, "/api/v2/authn/signups/wechat-miniprogram", r.URL.Path)
+		require.Equal(t, "/api/v3/authn/signups/wechat-miniprogram", r.URL.Path)
 
 		var req WechatMiniProgramRequest
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
@@ -66,7 +66,7 @@ func TestClientEnsuresMockConsumer(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPost, r.Method)
-		require.Equal(t, "/api/v2/internal/authn/mock-consumers/ensure", r.URL.Path)
+		require.Equal(t, "/api/v3/internal/authn/mock-consumers/ensure", r.URL.Path)
 		require.Equal(t, "seed-secret", r.Header.Get(SeedMockSecretHeader))
 
 		var req EnsureMockConsumerRequest
@@ -91,7 +91,7 @@ func TestClientEnsuresMockConsumer(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewClient(server.URL+"/api/v2", WithSeedMockSecret("seed-secret"))
+	client, err := NewClient(server.URL+"/api/v3", WithSeedMockSecret("seed-secret"))
 	require.NoError(t, err)
 
 	resp, err := client.EnsureMockConsumer(context.Background(), EnsureMockConsumerRequest{

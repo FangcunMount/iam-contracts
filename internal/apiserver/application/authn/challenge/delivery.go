@@ -3,7 +3,7 @@ package challenge
 import (
 	"time"
 
-	challengeDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/challenge"
+	challengeDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/challenge"
 )
 
 // SMSOTPDelivery 短信验证码发送依赖

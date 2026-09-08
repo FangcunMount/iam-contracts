@@ -1,7 +1,5 @@
 package method
 
-import "github.com/FangcunMount/iam/v4/internal/pkg/meta"
-
 // AuthMethod 是对外登录方式，来自 REST/gRPC auth_method。
 type AuthMethod string
 
@@ -17,7 +15,7 @@ const (
 //
 // 它是 application/method 层的选择结果字段。这里保留独立类型，是为了让
 // AuthMethod（对外登录方式）与领域认证证明类型在应用层语义上分开；
-// 真正构造领域 AuthCredential 时由 proof 层按该值选择 Builder。
+// 真正构造领域 IdentityProof 时由 proof 层按该值选择 Builder。
 type CredentialKind string
 
 const (
@@ -37,12 +35,11 @@ type LoginMethod interface {
 
 // LoginRequest 是 application login 用例的结构化请求。
 //
-// TenantID、RemoteIP、UserAgent 是请求上下文，必须由上游 transport /
+// RemoteIP、UserAgent 是请求上下文，必须由上游 transport /
 // compatibility 装配到 LoginRequest 顶层字段。Payload 只允许携带具体登录
 // 方式需要的字段，领域层和 proof 层不得再从 Payload 中读取这些公共上下文。
 type LoginRequest struct {
 	AuthMethod AuthMethod
-	TenantID   meta.ID
 	RemoteIP   string
 	UserAgent  string
 	Payload    Payload
@@ -54,9 +51,4 @@ type LoginMethodSelection struct {
 	CredentialKind CredentialKind
 	Common         CommonPayload
 	Payload        Payload
-}
-
-// TenantID 返回所选登录请求上下文中的租户ID。
-func (s LoginMethodSelection) TenantID() meta.ID {
-	return s.Common.TenantID
 }

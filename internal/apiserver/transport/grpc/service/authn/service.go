@@ -1,13 +1,13 @@
 package authn
 
 import (
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	challengeApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/challenge"
-	jwksApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/jwks"
-	linkingApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
-	sessionApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/session"
-	signupApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signup"
-	tokenApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	challengeApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/challenge"
+	jwksApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/jwks"
+	linkingApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/linking"
+	sessionApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/session"
+	signupApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signup"
+	tokenApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
 	"google.golang.org/grpc"
 )
 
@@ -58,46 +58,46 @@ func (s *Service) Register(server *grpc.Server) {
 		return
 	}
 	if s.auth.sessionSvc != nil || s.auth.tokenVerifier != nil || s.auth.tokenRevoker != nil {
-		authnv2.RegisterAuthServiceServer(server, &s.auth)
+		authnv3.RegisterAuthServiceServer(server, &s.auth)
 	}
 	if s.signup.signupService != nil {
-		authnv2.RegisterAuthSignupServiceServer(server, &s.signup)
+		authnv3.RegisterAuthSignupServiceServer(server, &s.signup)
 	}
 	if s.challenge.loginPhoneOTPSender != nil {
-		authnv2.RegisterAuthChallengeServiceServer(server, &s.challenge)
+		authnv3.RegisterAuthChallengeServiceServer(server, &s.challenge)
 	}
 	if s.loginIdentity.linking != nil {
-		authnv2.RegisterLoginIdentityServiceServer(server, &s.loginIdentity)
+		authnv3.RegisterLoginIdentityServiceServer(server, &s.loginIdentity)
 	}
 	if s.jwks.keyPublish != nil {
-		authnv2.RegisterJWKSServiceServer(server, &s.jwks)
+		authnv3.RegisterJWKSServiceServer(server, &s.jwks)
 	}
 }
 
 type authServiceServer struct {
-	authnv2.UnimplementedAuthServiceServer
+	authnv3.UnimplementedAuthServiceServer
 	sessionSvc    sessionApp.ApplicationService
 	tokenVerifier tokenApp.Verifier
 	tokenRevoker  tokenApp.Revoker
 }
 
 type jwksServiceServer struct {
-	authnv2.UnimplementedJWKSServiceServer
+	authnv3.UnimplementedJWKSServiceServer
 	keyPublish *jwksApp.KeyPublishAppService
 }
 
 type authSignupServiceServer struct {
-	authnv2.UnimplementedAuthSignupServiceServer
+	authnv3.UnimplementedAuthSignupServiceServer
 	signupService signupApp.SignupService
 }
 
 type authChallengeServiceServer struct {
-	authnv2.UnimplementedAuthChallengeServiceServer
+	authnv3.UnimplementedAuthChallengeServiceServer
 	loginPhoneOTPSender challengeApp.LoginPhoneOTPSender
 }
 
 type loginIdentityServiceServer struct {
-	authnv2.UnimplementedLoginIdentityServiceServer
+	authnv3.UnimplementedLoginIdentityServiceServer
 	linking            linkingApp.Linker
 	phoneLinkOTPSender challengeApp.PhoneLinkOTPSender
 }

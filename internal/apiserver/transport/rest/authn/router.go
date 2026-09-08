@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	authzapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	authhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/handler"
-	authnMiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authn"
+	authzapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	authhandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/handler"
+	authnMiddleware "github.com/FangcunMount/iam/v5/internal/pkg/middleware/authn"
 )
 
 // Dependencies describes the external collaborators needed to expose authn endpoints.
@@ -18,7 +18,7 @@ type Dependencies struct {
 	WechatOpenLoginHandler *authhandler.WechatOpenLoginAuthorizeHandler // 微信扫码登录授权处理器（公开）
 	JWKSHandler            *authhandler.JWKSHandler                     // JWKS 处理器
 	AuthMiddleware         gin.HandlerFunc                              // 当前用户认证中间件
-	PermissionOrGlobal     func(resource, action string) gin.HandlerFunc
+	Permission             func(resource, action string) gin.HandlerFunc
 }
 
 // Register exposes the authentication endpoints that issue and refresh tokens.
@@ -27,7 +27,7 @@ func Register(engine *gin.Engine, deps Dependencies) {
 		return
 	}
 
-	api := engine.Group("/api/v2/authn")
+	api := engine.Group("/api/v3/authn")
 
 	// 注册符合 v2 API 文档的认证端点
 	registerAuthEndpoints(api.Group(""), deps.AuthHandler)
@@ -43,7 +43,7 @@ func Register(engine *gin.Engine, deps Dependencies) {
 	registerJWKSPublicEndpoints(engine, deps.JWKSHandler)
 
 	// 注册 JWKS 管理端点（管理员接口）
-	registerJWKSAdminEndpoints(api.Group("/admin"), deps.JWKSHandler, deps.AuthMiddleware, deps.PermissionOrGlobal)
+	registerJWKSAdminEndpoints(api.Group("/admin"), deps.JWKSHandler, deps.AuthMiddleware, deps.Permission)
 }
 
 // RegisterSeedMock exposes the internal mock-consumer ensure endpoint when explicitly enabled.
@@ -56,7 +56,7 @@ func RegisterSeedMock(engine *gin.Engine, onboardingHandler *authhandler.Onboard
 		return
 	}
 
-	internal := engine.Group("/api/v2/internal/authn")
+	internal := engine.Group("/api/v3/internal/authn")
 	internal.Use(authnMiddleware.RequireSeedMockSecret(sharedSecret))
 	registerInternalMockConsumerEndpoints(internal, onboardingHandler)
 }
@@ -68,7 +68,7 @@ func registerAuthEndpoints(group *gin.RouterGroup, handler *authhandler.AuthHand
 	}
 
 	// 认证端点(符合 API 文档)
-	group.POST("/login", handler.LoginV2)
+	group.POST("/login", handler.LoginV3)
 	group.POST("/challenges/phone-otp", handler.SendLoginPhoneOTP)
 	group.POST("/refresh_token", handler.RefreshToken)
 	group.POST("/logout", handler.Logout)
@@ -99,9 +99,9 @@ func registerJWKSAdminEndpoints(
 	admin *gin.RouterGroup,
 	handler *authhandler.JWKSHandler,
 	authMiddleware gin.HandlerFunc,
-	permissionOrGlobal func(resource, action string) gin.HandlerFunc,
+	permission func(resource, action string) gin.HandlerFunc,
 ) {
-	if admin == nil || handler == nil || authMiddleware == nil || permissionOrGlobal == nil {
+	if admin == nil || handler == nil || authMiddleware == nil || permission == nil {
 		return
 	}
 	admin.Use(authMiddleware)
@@ -110,13 +110,13 @@ func registerJWKSAdminEndpoints(
 	jwks := admin.Group("/jwks")
 	{
 		// 密钥管理
-		jwks.POST("/keys", permissionOrGlobal(authzapp.ResourceJWKS, authzapp.ActionCreate), handler.CreateKey)
-		jwks.GET("/keys", permissionOrGlobal(authzapp.ResourceJWKS, authzapp.ActionList), handler.ListKeys)
-		jwks.GET("/keys/:kid", permissionOrGlobal(authzapp.ResourceJWKS, authzapp.ActionRead), handler.GetKey)
-		jwks.POST("/keys/:kid/retire", permissionOrGlobal(authzapp.ResourceJWKS, "retire"), handler.RetireKey)
-		jwks.POST("/keys/:kid/force-retire", permissionOrGlobal(authzapp.ResourceJWKS, "force_retire"), handler.ForceRetireKey)
-		jwks.POST("/keys/cleanup", permissionOrGlobal(authzapp.ResourceJWKS, "cleanup"), handler.CleanupExpiredKeys)
-		jwks.GET("/keys/publishable", permissionOrGlobal(authzapp.ResourceJWKS, "list_publishable"), handler.GetPublishableKeys)
+		jwks.POST("/keys", permission(authzapp.ResourceJWKS, authzapp.ActionCreate), handler.CreateKey)
+		jwks.GET("/keys", permission(authzapp.ResourceJWKS, authzapp.ActionList), handler.ListKeys)
+		jwks.GET("/keys/:kid", permission(authzapp.ResourceJWKS, authzapp.ActionRead), handler.GetKey)
+		jwks.POST("/keys/:kid/retire", permission(authzapp.ResourceJWKS, "retire"), handler.RetireKey)
+		jwks.POST("/keys/:kid/force-retire", permission(authzapp.ResourceJWKS, "force_retire"), handler.ForceRetireKey)
+		jwks.POST("/keys/cleanup", permission(authzapp.ResourceJWKS, "cleanup"), handler.CleanupExpiredKeys)
+		jwks.GET("/keys/publishable", permission(authzapp.ResourceJWKS, "list_publishable"), handler.GetPublishableKeys)
 	}
 }
 

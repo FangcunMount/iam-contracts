@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func (s *KeySetBuilder) setClockForTest(now func() time.Time) {
+func (s *JWKSPublisher) setClockForTest(now func() time.Time) {
 	if s == nil || now == nil {
 		return
 	}
@@ -127,12 +127,14 @@ func TestKey_ValidateAndJWKValidation(t *testing.T) {
 	// EC requires crv,x,y
 	jwkEC := PublicJWK{Kty: "EC", Use: "sig", Alg: "ES256", Kid: "e1", Crv: mustStr("P-256"), X: mustStr("x"), Y: mustStr("y")}
 	kEC := NewKey("e1", jwkEC)
-	require.NoError(t, kEC.Validate())
+	require.Error(t, kEC.Validate())
+	require.NoError(t, kEC.JWK.ValidateStructure())
 
 	// OKP requires crv,x
 	jwkOKP := PublicJWK{Kty: "OKP", Use: "sig", Alg: "EdDSA", Kid: "o1", Crv: mustStr("Ed25519"), X: mustStr("x")}
 	kOKP := NewKey("o1", jwkOKP)
-	require.NoError(t, kOKP.Validate())
+	require.Error(t, kOKP.Validate())
+	require.NoError(t, kOKP.JWK.ValidateStructure())
 
 	// invalid time range
 	nb := time.Now().Add(10 * time.Hour)
@@ -143,14 +145,14 @@ func TestKey_ValidateAndJWKValidation(t *testing.T) {
 }
 
 func TestJWKS_ValidateAndHelpers(t *testing.T) {
-	// empty JWKS invalid
+	// An empty JWKS is structurally valid but cannot supply a verification key.
 	j := &JWKS{}
-	assert.Error(t, j.Validate())
+	assert.NoError(t, j.ValidateStructure())
 
 	// valid JWKS
 	jwk := PublicJWK{Kty: "RSA", Use: "sig", Alg: "RS256", Kid: "a1", N: mustStr("n"), E: mustStr("e")}
 	j2 := &JWKS{Keys: []PublicJWK{jwk}}
-	require.NoError(t, j2.Validate())
+	require.NoError(t, j2.ValidateStructure())
 	assert.Equal(t, 1, j2.Count())
 	assert.False(t, j2.IsEmpty())
 	found := j2.FindByKid("a1")
@@ -210,7 +212,7 @@ func (r *snapshotTestRepository) CountByStatus(context.Context, KeyStatus) (int6
 	return 0, nil
 }
 
-func TestKeySetBuilderSnapshotStatus(t *testing.T) {
+func TestJWKSPublisherSnapshotStatus(t *testing.T) {
 	repo := &snapshotTestRepository{
 		publishable: []*Key{
 			NewKey("kid-1", PublicJWK{
@@ -223,7 +225,7 @@ func TestKeySetBuilderSnapshotStatus(t *testing.T) {
 			}),
 		},
 	}
-	builder := NewKeySetBuilder(repo)
+	builder := NewJWKSPublisher(repo)
 
 	initial := builder.SnapshotStatus()
 	assert.False(t, initial.Cached)
@@ -240,7 +242,7 @@ func TestKeySetBuilderSnapshotStatus(t *testing.T) {
 	assert.Equal(t, tag.ETag, snapshot.CacheTag.ETag)
 }
 
-func TestKeySetBuilderCurrentCacheTagUsesFreshSnapshotWithinTTL(t *testing.T) {
+func TestJWKSPublisherCurrentCacheTagUsesFreshSnapshotWithinTTL(t *testing.T) {
 	repo := &snapshotTestRepository{
 		publishable: []*Key{
 			NewKey("kid-1", PublicJWK{
@@ -253,7 +255,7 @@ func TestKeySetBuilderCurrentCacheTagUsesFreshSnapshotWithinTTL(t *testing.T) {
 			}),
 		},
 	}
-	builder := NewKeySetBuilder(repo)
+	builder := NewJWKSPublisher(repo)
 
 	first, err := builder.GetCurrentCacheTag(context.Background())
 	require.NoError(t, err)
@@ -264,7 +266,7 @@ func TestKeySetBuilderCurrentCacheTagUsesFreshSnapshotWithinTTL(t *testing.T) {
 	require.Equal(t, int64(1), repo.calls.Load())
 }
 
-func TestKeySetBuilderCurrentCacheTagRefreshesAfterTTL(t *testing.T) {
+func TestJWKSPublisherCurrentCacheTagRefreshesAfterTTL(t *testing.T) {
 	now := time.Date(2026, 4, 29, 12, 0, 0, 0, time.UTC)
 	repo := &snapshotTestRepository{
 		publishable: []*Key{
@@ -278,7 +280,7 @@ func TestKeySetBuilderCurrentCacheTagRefreshesAfterTTL(t *testing.T) {
 			}),
 		},
 	}
-	builder := NewKeySetBuilder(repo)
+	builder := NewJWKSPublisher(repo)
 	builder.setClockForTest(func() time.Time { return now })
 
 	_, err := builder.GetCurrentCacheTag(context.Background())
@@ -290,7 +292,7 @@ func TestKeySetBuilderCurrentCacheTagRefreshesAfterTTL(t *testing.T) {
 	require.Equal(t, int64(2), repo.calls.Load())
 }
 
-func TestKeySetBuilderConcurrentSnapshotAccessIsStable(t *testing.T) {
+func TestJWKSPublisherConcurrentSnapshotAccessIsStable(t *testing.T) {
 	repo := &snapshotTestRepository{
 		publishable: []*Key{
 			NewKey("kid-1", PublicJWK{
@@ -303,7 +305,7 @@ func TestKeySetBuilderConcurrentSnapshotAccessIsStable(t *testing.T) {
 			}),
 		},
 	}
-	builder := NewKeySetBuilder(repo)
+	builder := NewJWKSPublisher(repo)
 
 	var wg sync.WaitGroup
 	for i := 0; i < 20; i++ {
@@ -320,4 +322,34 @@ func TestKeySetBuilderConcurrentSnapshotAccessIsStable(t *testing.T) {
 	snapshot := builder.SnapshotStatus()
 	require.True(t, snapshot.Cached)
 	require.Equal(t, 1, snapshot.KeyCount)
+}
+
+func TestEmptyPublicationReplacesPriorSnapshot(t *testing.T) {
+	repo := &snapshotTestRepository{publishable: []*Key{NewKey("key", PublicJWK{Kty: "RSA", Kid: "key", Alg: "RS256", Use: "sig", N: mustStr("n"), E: mustStr("e")})}}
+	publisher := NewJWKSPublisher(repo)
+	_, oldTag, err := publisher.BuildJWKS(context.Background())
+	require.NoError(t, err)
+	repo.publishable = nil
+	data, tag, err := publisher.BuildJWKS(context.Background())
+	require.NoError(t, err)
+	require.JSONEq(t, `{"keys":[]}`, string(data))
+	require.NotEqual(t, oldTag.ETag, tag.ETag)
+	current, err := publisher.GetCurrentCacheTag(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, tag, current)
+	require.Equal(t, 0, publisher.SnapshotStatus().KeyCount)
+	require.True(t, publisher.SnapshotStatus().Cached)
+}
+
+func TestJWKStructureDoesNotImplyIAMSigningEligibility(t *testing.T) {
+	public := PublicJWK{Kty: "RSA", N: mustStr("n"), E: mustStr("e")}
+	require.NoError(t, public.ValidateStructure())
+	require.Error(t, public.ValidateSigningProfile())
+	public.Kid = "kid"
+	public.Alg = "RS256"
+	public.Use = "sig"
+	require.NoError(t, public.ValidateSigningProfile())
+	public.Alg = "RS384"
+	require.Error(t, public.ValidateSigningProfile())
+	require.NoError(t, (&JWKS{Keys: []PublicJWK{}}).ValidateStructure())
 }

@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"strings"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	signupApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signup"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	signupApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signup"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func (s *authSignupServiceServer) SignUpWithWechatMiniProgram(ctx context.Context, req *authnv2.SignUpWithWechatMiniProgramRequest) (*authnv2.SignupResult, error) {
+func (s *authSignupServiceServer) SignUpWithWechatMiniProgram(ctx context.Context, req *authnv3.SignUpWithWechatMiniProgramRequest) (*authnv3.SignupResult, error) {
 	if s.signupService == nil {
 		return nil, status.Error(codes.Unimplemented, "signup service not configured")
 	}
@@ -27,7 +27,7 @@ func (s *authSignupServiceServer) SignUpWithWechatMiniProgram(ctx context.Contex
 	return toProtoSignupResult(result), nil
 }
 
-func wechatMiniProgramSignupRequestFromGRPC(req *authnv2.SignUpWithWechatMiniProgramRequest) (signupApp.SignupRequest, error) {
+func wechatMiniProgramSignupRequestFromGRPC(req *authnv3.SignUpWithWechatMiniProgramRequest) (signupApp.SignupRequest, error) {
 	if req == nil {
 		return signupApp.SignupRequest{}, fmt.Errorf("request is required")
 	}

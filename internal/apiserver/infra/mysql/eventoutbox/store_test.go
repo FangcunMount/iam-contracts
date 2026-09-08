@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/eventing"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/eventoutbox"
-	"github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v4/pkg/event"
-	"github.com/FangcunMount/iam/v4/pkg/eventcatalog"
-	"github.com/FangcunMount/iam/v4/pkg/outboxcore"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/eventing"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/eventoutbox"
+	"github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v5/pkg/event"
+	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
+	"github.com/FangcunMount/iam/v5/pkg/outboxcore"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -33,11 +33,11 @@ func testOutboxCatalog(t *testing.T) *eventcatalog.Catalog {
 version: "1"
 topics:
   authz_version:
-    name: iam.authz.version
+    name: iam.authz.version.v2
   notification_sms:
     name: iam.notify.sms
 events:
-  iam.authz.version_changed:
+  iam.authz.version_changed.v2:
     topic: authz_version
     delivery: durable_outbox
     aggregate: PolicyVersion
@@ -116,7 +116,7 @@ func TestClaimAndMarkEventLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, claimed, 1)
 	require.Equal(t, eventing.AuthzVersionChanged, claimed[0].EventType)
-	require.Equal(t, "iam.authz.version", claimed[0].TopicName)
+	require.Equal(t, "iam.authz.version.v2", claimed[0].TopicName)
 
 	var payload map[string]any
 	require.NoError(t, json.Unmarshal(claimed[0].Payload, &payload))
@@ -193,7 +193,7 @@ func statusRow(eventID, status string, createdAt time.Time) eventoutbox.OutboxPO
 		EventType:     eventing.AuthzVersionChanged,
 		AggregateType: "PolicyVersion",
 		AggregateID:   "tenant-a",
-		TopicName:     "iam.authz.version",
+		TopicName:     "iam.authz.version.v2",
 		PayloadJSON:   `{"tenant_id":"tenant-a","version":1}`,
 		Status:        status,
 		NextAttemptAt: createdAt,

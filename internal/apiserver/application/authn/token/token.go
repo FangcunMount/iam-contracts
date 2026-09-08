@@ -3,12 +3,12 @@ package token
 import (
 	"time"
 
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-// Token 是向 application 调用方返回的令牌 DTO；领域模型位于 domain/authn/token。
-type Token struct {
+// IssuedTokenDTO 是向 application 调用方返回的令牌 DTO；领域模型位于 domain/authn/token。
+type IssuedTokenDTO struct {
 	ID string // 令牌ID
 
 	// --- 令牌主体信息 ---
@@ -20,38 +20,29 @@ type Token struct {
 	SessionID       string  // 会话ID
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-	TenantID        meta.ID // 租户ID
 
-	// --- 对外令牌投影 ---
-	Audience   []string          // 受众
-	Attributes map[string]string // 属性
-	IssuedAt   time.Time         // 颁发时间
-	ExpiresAt  time.Time         // 过期时间
+	// --- 令牌期限 ---
+	IssuedAt  time.Time // 颁发时间
+	ExpiresAt time.Time // 过期时间
 }
 
-// NewAccessToken 创建访问令牌
-func NewAccessToken(id, value, sessionID string, userID meta.ID, loginIdentityID meta.ID, tenantID meta.ID, expiresIn time.Duration) *Token {
-	return tokenFromAccess(tokendomain.NewAccessToken(id, value, sessionID, userID, loginIdentityID, tenantID, expiresIn))
+// NewAccessToken constructs a DTO from explicit access-token facts.
+func NewAccessToken(id, value, sessionID string, userID meta.ID, loginIdentityID meta.ID, issuedAt, expiresAt time.Time) *IssuedTokenDTO {
+	return tokenFromAccess(tokendomain.NewAccessToken(id, value, sessionID, userID, loginIdentityID, issuedAt, expiresAt))
 }
 
-// NewRefreshToken 创建相对当前时间过期的刷新令牌。
-// 该构造器用于需要表达 TTL 的测试和调用方；生产签发路径使用显式过期时间构造器。
-func NewRefreshToken(id, value, sessionID string, userID meta.ID, loginIdentityID meta.ID, tenantID meta.ID, amr []string, sessionClaims map[string]string, expiresIn time.Duration) *Token {
-	return tokenFromRefresh(tokendomain.NewRefreshToken(id, value, sessionID, userID, loginIdentityID, tenantID, amr, sessionClaims, expiresIn))
-}
-
-// NewRefreshTokenWithExpiry 创建指定过期时间的刷新令牌。
-func NewRefreshTokenWithExpiry(id, value, sessionID string, userID meta.ID, loginIdentityID meta.ID, tenantID meta.ID, amr []string, sessionClaims map[string]string, expiresAt time.Time) *Token {
-	return tokenFromRefresh(tokendomain.NewRefreshTokenWithExpiry(id, value, sessionID, userID, loginIdentityID, tenantID, amr, sessionClaims, expiresAt))
+// NewRefreshToken constructs a DTO from explicit refresh-token facts.
+func NewRefreshToken(id, value, sessionID string, userID, loginIdentityID meta.ID, issuedAt, expiresAt time.Time) *IssuedTokenDTO {
+	return tokenFromRefresh(tokendomain.NewRefreshToken(id, value, sessionID, userID, loginIdentityID, issuedAt, expiresAt))
 }
 
 // IsExpired 检查令牌是否已过期
-func (t *Token) IsExpired() bool {
+func (t *IssuedTokenDTO) IsExpired() bool {
 	return time.Now().After(t.ExpiresAt)
 }
 
 // RemainingDuration 返回令牌剩余时间
-func (t *Token) RemainingDuration() time.Duration {
+func (t *IssuedTokenDTO) RemainingDuration() time.Duration {
 	if t.IsExpired() {
 		return 0
 	}
@@ -60,12 +51,12 @@ func (t *Token) RemainingDuration() time.Duration {
 
 // TokenPair 令牌对
 type TokenPair struct {
-	AccessToken  *Token // 访问令牌
-	RefreshToken *Token // 刷新令牌
+	AccessToken  *IssuedTokenDTO // 访问令牌
+	RefreshToken *IssuedTokenDTO // 刷新令牌
 }
 
 // NewTokenPair 创建令牌对
-func NewTokenPair(accessToken, refreshToken *Token) *TokenPair {
+func NewTokenPair(accessToken, refreshToken *IssuedTokenDTO) *TokenPair {
 	return &TokenPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -79,25 +70,25 @@ func tokenPairFromDomain(set *tokendomain.UserTokenSet) *TokenPair {
 	return NewTokenPair(tokenFromAccess(set.AccessToken), tokenFromRefresh(set.RefreshToken))
 }
 
-func tokenFromAccess(token *tokendomain.AccessToken) *Token {
+func tokenFromAccess(token *tokendomain.AccessToken) *IssuedTokenDTO {
 	if token == nil {
 		return nil
 	}
-	return &Token{
-		ID: token.ID, Type: TokenTypeAccess, Value: token.Value, Subject: token.Subject,
+	return &IssuedTokenDTO{
+		ID: token.ID, Type: TokenTypeAccess, Value: token.Value, Subject: token.Subject(),
 		SessionID: token.SessionID, UserID: token.UserID, LoginIdentityID: token.LoginIdentityID,
-		TenantID: token.TenantID,
+
 		IssuedAt: token.IssuedAt, ExpiresAt: token.ExpiresAt,
 	}
 }
 
-func tokenFromRefresh(token *tokendomain.RefreshToken) *Token {
+func tokenFromRefresh(token *tokendomain.RefreshToken) *IssuedTokenDTO {
 	if token == nil {
 		return nil
 	}
-	return &Token{
+	return &IssuedTokenDTO{
 		ID: token.ID, Type: TokenTypeRefresh, Value: token.Value, SessionID: token.SessionID,
-		UserID: token.UserID, LoginIdentityID: token.LoginIdentityID, TenantID: token.TenantID,
+		UserID: token.UserID, LoginIdentityID: token.LoginIdentityID,
 		IssuedAt: token.IssuedAt, ExpiresAt: token.ExpiresAt,
 	}
 }

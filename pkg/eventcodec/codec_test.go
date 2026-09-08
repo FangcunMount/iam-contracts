@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/FangcunMount/iam/v4/pkg/event"
-	"github.com/FangcunMount/iam/v4/pkg/eventcodec"
+	"github.com/FangcunMount/iam/v5/pkg/event"
+	"github.com/FangcunMount/iam/v5/pkg/eventcodec"
 	"github.com/stretchr/testify/require"
 )
 

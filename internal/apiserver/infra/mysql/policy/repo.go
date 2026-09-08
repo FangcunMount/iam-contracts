@@ -2,214 +2,67 @@ package policy
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"time"
+	"math"
 
-	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/policy"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-// PolicyVersionRepository PolicyVersion 仓储实现
+// PolicyVersionRepository 保存唯一的全局策略版本，调用方负责授权事实与事件事务。
 type PolicyVersionRepository struct {
-	mysql.BaseRepository[*PolicyVersionPO]
-	mapper *Mapper
 	db     *gorm.DB
+	mapper *Mapper
 }
 
 var _ domain.Repository = (*PolicyVersionRepository)(nil)
 
-// NewPolicyVersionRepository 创建 PolicyVersion 仓储
 func NewPolicyVersionRepository(db *gorm.DB) domain.Repository {
-	base := mysql.NewBaseRepository[*PolicyVersionPO](db)
-	base.SetErrorTranslator(mysql.NewDuplicateToTranslator(func(e error) error {
-		return perrors.WithCode(code.ErrPolicyVersionAlreadyExists, "policy version already exists")
-	}))
-
-	return &PolicyVersionRepository{
-		BaseRepository: base,
-		mapper:         NewMapper(),
-		db:             db,
-	}
+	return &PolicyVersionRepository{db: db, mapper: NewMapper()}
 }
-
-// Create 创建新版本
-func (r *PolicyVersionRepository) Create(ctx context.Context, pv *domain.PolicyVersion) error {
-	po := r.mapper.ToPO(pv)
-
-	return r.BaseRepository.CreateAndSync(ctx, po, func(updated *PolicyVersionPO) {
-		pv.ID = domain.PolicyVersionID(updated.ID)
-	})
-}
-
-// FindByID 根据ID查找版本
-func (r *PolicyVersionRepository) FindByID(ctx context.Context, id domain.PolicyVersionID) (*domain.PolicyVersion, error) {
-	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
-	if err != nil {
-		return nil, fmt.Errorf("failed to find policy version: %w", err)
-	}
-
-	bo := r.mapper.ToBO(po)
-	if bo == nil {
-		return nil, gorm.ErrRecordNotFound
-	}
-
-	return bo, nil
-}
-
-// GetCurrent 获取租户当前版本
-func (r *PolicyVersionRepository) GetCurrent(ctx context.Context, tenantID string) (*domain.PolicyVersion, error) {
+func (r *PolicyVersionRepository) GetCurrent(ctx context.Context) (*domain.PolicyVersion, error) {
 	var po PolicyVersionPO
-
-	err := r.WithContext(ctx).
-		Where("tenant_id = ?", tenantID).
-		Order("policy_version DESC").
-		First(&po).Error
-
+	err := r.db.WithContext(ctx).First(&po, 1).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil // 租户没有版本记录，返回 nil
-		}
-		return nil, fmt.Errorf("failed to get current version: %w", err)
+		return nil, err
 	}
-
-	bo := r.mapper.ToBO(&po)
-	return bo, nil
+	return r.mapper.ToBO(&po), nil
 }
-
-// GetOrCreate 获取或创建租户的策略版本
-func (r *PolicyVersionRepository) GetOrCreate(ctx context.Context, tenantID string) (*domain.PolicyVersion, error) {
-	// 先尝试获取当前版本
-	current, err := r.GetCurrent(ctx, tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get current version: %w", err)
+func (r *PolicyVersionRepository) GetOrCreate(ctx context.Context) (*domain.PolicyVersion, error) {
+	row := PolicyVersionPO{PolicyVersion: 1, ChangedBy: "system", Reason: "初始化全局策略版本"}
+	row.ID = meta.ID(1)
+	if err := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error; err != nil {
+		return nil, err
 	}
-
-	// 如果已存在，直接返回
-	if current != nil {
-		return current, nil
-	}
-
-	// 不存在则创建初始版本
-	newVersion := domain.NewPolicyVersion(
-		tenantID,
-		1, // 初始版本号为 1
-		domain.WithChangedBy("system"),
-		domain.WithReason("初始化策略版本"),
-	)
-
-	if err := r.Create(ctx, &newVersion); err != nil {
-		return nil, fmt.Errorf("failed to create initial version: %w", err)
-	}
-
-	return &newVersion, nil
+	return r.GetCurrent(ctx)
 }
-
-// Increment 递增版本号并记录变更
-func (r *PolicyVersionRepository) Increment(ctx context.Context, tenantID, changedBy, reason string) (*domain.PolicyVersion, error) {
-	const maxAttempts = 16
-	var lastErr error
-
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		currentVersion, err := r.getVersionNumberForUpdate(ctx, tenantID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get current version: %w", err)
-		}
-
-		newVersion := domain.NewPolicyVersion(
-			tenantID,
-			currentVersion+1,
-			domain.WithChangedBy(changedBy),
-			domain.WithReason(reason),
-		)
-
-		if err := r.Create(ctx, &newVersion); err != nil {
-			if !perrors.IsCode(err, code.ErrPolicyVersionAlreadyExists) {
-				return nil, fmt.Errorf("failed to create new version: %w", err)
-			}
-			lastErr = err
-			time.Sleep(time.Duration(attempt) * 10 * time.Millisecond)
-			continue
-		}
-
-		return &newVersion, nil
+func (r *PolicyVersionRepository) Increment(ctx context.Context, changedBy, reason string) (*domain.PolicyVersion, error) {
+	if _, err := r.GetOrCreate(ctx); err != nil {
+		return nil, err
 	}
-
-	return nil, fmt.Errorf("failed to create new version after retry: %w", lastErr)
-}
-
-// GetVersionNumber 获取租户当前版本号
-func (r *PolicyVersionRepository) GetVersionNumber(ctx context.Context, tenantID string) (int64, error) {
-	pv, err := r.GetCurrent(ctx, tenantID)
-	if err != nil {
-		return 0, err
+	var row PolicyVersionPO
+	q := r.db.WithContext(ctx)
+	if q.Dialector.Name() != "sqlite" {
+		q = q.Clauses(clause.Locking{Strength: "UPDATE"})
 	}
-
-	if pv == nil {
-		return 0, nil // 没有版本记录，返回 0
+	if err := q.First(&row, 1).Error; err != nil {
+		return nil, err
 	}
-
-	return pv.Version, nil
-}
-
-// getVersionNumberForUpdate reads the tenant's latest version under a row lock
-// when the database dialect supports it. It is used by Increment inside the
-// caller's authorization policy transaction.
-func (r *PolicyVersionRepository) getVersionNumberForUpdate(ctx context.Context, tenantID string) (int64, error) {
-	var po PolicyVersionPO
-	query := r.WithContext(ctx).
-		Where("tenant_id = ?", tenantID).
-		Order("policy_version DESC")
-	if r.db != nil && r.db.Dialector != nil && r.db.Dialector.Name() != "sqlite" {
-		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
+	if row.PolicyVersion == math.MaxInt64 {
+		return nil, fmt.Errorf("全局策略版本已达上限")
 	}
-
-	err := query.First(&po).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return 0, nil
-		}
-		return 0, err
+	result := r.db.WithContext(ctx).Model(&PolicyVersionPO{}).Where("id = ? AND policy_version = ?", 1, row.PolicyVersion).Updates(map[string]any{"policy_version": row.PolicyVersion + 1, "changed_by": changedBy, "reason": reason})
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	return po.PolicyVersion, nil
-}
-
-// ListByTenant 列出租户的版本历史
-func (r *PolicyVersionRepository) ListByTenant(ctx context.Context, tenantID string, offset, limit int) ([]*domain.PolicyVersion, int64, error) {
-	var pos []*PolicyVersionPO
-	var total int64
-
-	// 统计总数
-	if err := r.WithContext(ctx).Model(&PolicyVersionPO{}).Where("tenant_id = ?", tenantID).Count(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("failed to count policy versions: %w", err)
+	if result.RowsAffected != 1 {
+		return nil, fmt.Errorf("全局策略版本并发更新冲突")
 	}
-
-	// 查询列表
-	err := r.WithContext(ctx).
-		Where("tenant_id = ?", tenantID).
-		Order("policy_version DESC").
-		Offset(offset).
-		Limit(limit).
-		Find(&pos).Error
-
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to list policy versions: %w", err)
-	}
-
-	bos := r.mapper.ToBOList(pos)
-
-	return bos, total, nil
-}
-
-// Delete 删除版本（软删除）
-func (r *PolicyVersionRepository) Delete(ctx context.Context, id domain.PolicyVersionID) error {
-	err := r.BaseRepository.DeleteByID(ctx, id.Uint64())
-	if err != nil {
-		return fmt.Errorf("failed to delete policy version: %w", err)
-	}
-
-	return nil
+	return r.GetCurrent(ctx)
 }

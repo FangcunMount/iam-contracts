@@ -11,13 +11,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"
 
-	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
-	authhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/handler"
-	authzhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/handler"
-	uchandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/identity/handler"
-	idphandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/idp/handler"
-	genericapiserver "github.com/FangcunMount/iam/v4/internal/pkg/server"
+	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	appquery "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/queryprofile"
+	authhandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/handler"
+	authzhandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authz/handler"
+	uchandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/identity/handler"
+	idphandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/idp/handler"
+	genericapiserver "github.com/FangcunMount/iam/v5/internal/pkg/server"
 )
 
 func TestRouterRouteMatrixIncludesKeyPaths(t *testing.T) {
@@ -34,24 +34,24 @@ func TestRouterRouteMatrixIncludesKeyPaths(t *testing.T) {
 		{http.MethodGet, "/health"},
 		{http.MethodGet, "/readyz"},
 		{http.MethodGet, "/.well-known/jwks.json"},
-		{http.MethodPost, "/api/v2/authn/login"},
-		{http.MethodPost, "/api/v2/authn/challenges/phone-otp"},
-		{http.MethodGet, "/api/v2/authn/login-identities"},
-		{http.MethodPost, "/api/v2/authn/login-identities/phone/challenge"},
-		{http.MethodPost, "/api/v2/authn/login-identities/phone"},
-		{http.MethodPost, "/api/v2/authn/login-identities/wechat-miniprogram"},
-		{http.MethodPost, "/api/v2/authn/login-identities/wecom"},
-		{http.MethodDelete, "/api/v2/authn/login-identities/:id"},
-		{http.MethodPost, "/api/v2/authn/refresh_token"},
-		{http.MethodPost, "/api/v2/authn/signups/wechat-miniprogram"},
-		{http.MethodPost, "/api/v2/internal/authn/mock-consumers/ensure"},
-		{http.MethodGet, "/api/v3/authz/health"},
-		{http.MethodGet, "/api/v3/authz/roles"},
-		{http.MethodPost, "/api/v3/authz/grants"},
-		{http.MethodDelete, "/api/v3/authz/grants/:id"},
-		{http.MethodPost, "/api/v3/authz/role-inheritances"},
-		{http.MethodGet, "/api/v3/authz/role-inheritances"},
-		{http.MethodDelete, "/api/v3/authz/role-inheritances/:id"},
+		{http.MethodPost, "/api/v3/authn/login"},
+		{http.MethodPost, "/api/v3/authn/challenges/phone-otp"},
+		{http.MethodGet, "/api/v3/authn/login-identities"},
+		{http.MethodPost, "/api/v3/authn/login-identities/phone/challenge"},
+		{http.MethodPost, "/api/v3/authn/login-identities/phone"},
+		{http.MethodPost, "/api/v3/authn/login-identities/wechat-miniprogram"},
+		{http.MethodPost, "/api/v3/authn/login-identities/wecom"},
+		{http.MethodDelete, "/api/v3/authn/login-identities/:id"},
+		{http.MethodPost, "/api/v3/authn/refresh_token"},
+		{http.MethodPost, "/api/v3/authn/signups/wechat-miniprogram"},
+		{http.MethodPost, "/api/v3/internal/authn/mock-consumers/ensure"},
+		{http.MethodGet, "/api/v4/authz/health"},
+		{http.MethodGet, "/api/v4/authz/roles"},
+		{http.MethodPost, "/api/v4/authz/grants"},
+		{http.MethodDelete, "/api/v4/authz/grants/:id"},
+		{http.MethodPost, "/api/v4/authz/role-inheritances"},
+		{http.MethodGet, "/api/v4/authz/role-inheritances"},
+		{http.MethodDelete, "/api/v4/authz/role-inheritances/:id"},
 		{http.MethodGet, "/api/v2/identity/me"},
 		{http.MethodGet, "/api/v2/identity/profiles/:id"},
 		{http.MethodGet, "/api/v2/identity/profile-links"},
@@ -63,7 +63,7 @@ func TestRouterRouteMatrixIncludesKeyPaths(t *testing.T) {
 	} {
 		assertRoutePresent(t, routes, route.method, route.path)
 	}
-	assertRouteAbsent(t, routes, http.MethodPost, "/api/v2/authn/login/prep/phone-otp")
+	assertRouteAbsent(t, routes, http.MethodPost, "/api/v3/authn/login/prep/phone-otp")
 	assertRouteAbsent(t, routes, http.MethodPost, "/api/v2/identity/profiles")
 	assertRouteAbsent(t, routes, http.MethodPost, "/api/v2/identity/profile-links")
 	assertRouteAbsent(t, routes, http.MethodPost, "/api/v2/identity/profile-links/:id/revoke")
@@ -148,8 +148,8 @@ func loadRESTOpenAPISpecs(t *testing.T) openAPISpec {
 	root := repoRoot(t)
 	paths := map[string]map[string]any{}
 	for _, rel := range []string{
-		"api/rest/authn.v2.yaml",
-		"api/rest/authz.v3.yaml",
+		"api/rest/authn.v3.yaml",
+		"api/rest/authz.v4.yaml",
 		"api/rest/identity.v2.yaml",
 		"api/rest/idp.v2.yaml",
 		"api/rest/suggest.v2.yaml",
@@ -183,12 +183,12 @@ func routeMustBeDocumented(route gin.RouteInfo) bool {
 	exemptions := map[string]string{
 		http.MethodGet + " /readyz":                                                          "internal traffic-readiness probe",
 		http.MethodGet + " /api/v2/public/info":                                              "runtime discovery metadata",
-		http.MethodPost + " /api/v2/internal/authn/mock-consumers/ensure":                    "seeddata-only internal route",
+		http.MethodPost + " /api/v3/internal/authn/mock-consumers/ensure":                    "seeddata-only internal route",
 		http.MethodPost + " /api/v2/admin/sessions/:sessionId/revoke":                        "operator-only session control",
 		http.MethodPost + " /api/v2/admin/login-identities/:loginIdentityId/sessions/revoke": "operator-only session control",
 		http.MethodPost + " /api/v2/admin/users/:userId/sessions/revoke":                     "operator-only session control",
 		http.MethodGet + " /api/v2/idp/health":                                               "module-local health probe",
-		http.MethodGet + " /api/v3/authz/health":                                             "module-local health probe",
+		http.MethodGet + " /api/v4/authz/health":                                             "module-local health probe",
 	}
 	_, exempt := exemptions[route.Method+" "+route.Path]
 	if exempt {

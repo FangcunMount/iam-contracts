@@ -4,57 +4,63 @@ import (
 	"context"
 	"strings"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
+
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	policychange "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policychange"
-	authzuow "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/uow"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/roleinheritance"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	policychange "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	authzuow "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/roleinheritance"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 type CreateCommand struct {
-	TenantID        string
 	RoleID          meta.ID
 	InheritedRoleID meta.ID
 	GrantedBy       string
 }
 
 type RevokeCommand struct {
-	TenantID  string
 	ID        meta.ID
 	RevokedBy string
 	Reason    string
 }
 
 type Service struct {
+	guard    management.Guard
 	uow      authzuow.UnitOfWork
 	repo     domain.Repository
 	reloader policychange.RuntimePolicyReloader
 }
 
-func NewService(uow authzuow.UnitOfWork, repo domain.Repository, reloader policychange.RuntimePolicyReloader) *Service {
-	return &Service{uow: uow, repo: repo, reloader: reloader}
+func NewService(uow authzuow.UnitOfWork, repo domain.Repository, reloader policychange.RuntimePolicyReloader, guard management.Guard) *Service {
+	return &Service{uow: uow, repo: repo, reloader: reloader, guard: guard}
 }
 
 func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Inheritance, error) {
+	if err := s.guard.RequireOperation(ctx, "iam:authz:collection:role_inheritances", "grant"); err != nil {
+		return nil, err
+	}
 	if s == nil || s.uow == nil {
 		return nil, perrors.WithCode(code.ErrInternalServerError, "role inheritance service is unavailable")
 	}
-	cmd.TenantID = strings.TrimSpace(cmd.TenantID)
 	cmd.GrantedBy = strings.TrimSpace(cmd.GrantedBy)
-	inheritance, err := domain.New(cmd.RoleID, cmd.InheritedRoleID, cmd.TenantID, cmd.GrantedBy)
+	inheritance, err := domain.New(cmd.RoleID, cmd.InheritedRoleID, cmd.GrantedBy)
 	if err != nil {
 		return nil, err
 	}
 	err = s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
+		if err := s.requireRoles(txCtx, tx, inheritance.RoleID, inheritance.InheritedRoleID); err != nil {
+			return err
+		}
 		if err := tx.RoleInheritances.CreateChecked(txCtx, &inheritance); err != nil {
 			return err
 		}
-		version, err := tx.PolicyVersions.Increment(txCtx, cmd.TenantID, cmd.GrantedBy, "role inheritance created")
+		version, err := tx.PolicyVersions.Increment(txCtx, cmd.GrantedBy, "role inheritance created")
 		if err != nil {
 			return err
 		}
-		return policychange.StagePolicyVersionChanged(txCtx, tx.Events, cmd.TenantID, version)
+		return policychange.StagePolicyVersionChanged(txCtx, tx.Events, version)
 	})
 	if err != nil {
 		return nil, err
@@ -64,23 +70,25 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Inheri
 }
 
 func (s *Service) Revoke(ctx context.Context, cmd RevokeCommand) error {
+	if err := s.guard.RequireOperation(ctx, "iam:authz:collection:role_inheritances", "revoke"); err != nil {
+		return err
+	}
 	if s == nil || s.uow == nil {
 		return perrors.WithCode(code.ErrInternalServerError, "role inheritance service is unavailable")
 	}
-	cmd.TenantID = strings.TrimSpace(cmd.TenantID)
 	cmd.RevokedBy = strings.TrimSpace(cmd.RevokedBy)
-	if cmd.TenantID == "" || cmd.ID.IsZero() || cmd.RevokedBy == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "tenant, inheritance id, and revoked by are required")
+	if cmd.ID.IsZero() || cmd.RevokedBy == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "inheritance id and revoked by are required")
 	}
 	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
 		inheritance, err := tx.RoleInheritances.FindByID(txCtx, cmd.ID)
 		if err != nil {
 			return err
 		}
-		if inheritance.TenantIDString() != cmd.TenantID {
-			return perrors.WithCode(code.ErrInvalidArgument, "role inheritance does not belong to tenant")
+		if err := s.requireRoles(txCtx, tx, inheritance.RoleID, inheritance.InheritedRoleID); err != nil {
+			return err
 		}
-		outcome, err := tx.RoleInheritances.AtomicRevoke(txCtx, cmd.ID, cmd.TenantID)
+		outcome, err := tx.RoleInheritances.AtomicRevoke(txCtx, cmd.ID)
 		if err != nil {
 			return err
 		}
@@ -94,11 +102,11 @@ func (s *Service) Revoke(ctx context.Context, cmd RevokeCommand) error {
 		if reason == "" {
 			reason = "role inheritance revoked"
 		}
-		version, err := tx.PolicyVersions.Increment(txCtx, cmd.TenantID, cmd.RevokedBy, reason)
+		version, err := tx.PolicyVersions.Increment(txCtx, cmd.RevokedBy, reason)
 		if err != nil {
 			return err
 		}
-		return policychange.StagePolicyVersionChanged(txCtx, tx.Events, cmd.TenantID, version)
+		return policychange.StagePolicyVersionChanged(txCtx, tx.Events, version)
 	})
 	if err != nil {
 		return err
@@ -107,23 +115,67 @@ func (s *Service) Revoke(ctx context.Context, cmd RevokeCommand) error {
 	return nil
 }
 
-func (s *Service) List(ctx context.Context, tenantID string, roleID meta.ID) ([]*domain.Inheritance, error) {
+func (s *Service) List(ctx context.Context, roleID meta.ID) ([]*domain.Inheritance, error) {
 	if s == nil || s.repo == nil {
 		return nil, perrors.WithCode(code.ErrInternalServerError, "role inheritance repository is unavailable")
 	}
-	tenantID = strings.TrimSpace(tenantID)
-	if tenantID == "" {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "tenant is required")
+
+	if s.uow == nil {
+		return nil, perrors.WithCode(code.ErrInternalServerError, "角色查询不可用")
 	}
-	items, err := s.repo.ListActiveByTenant(ctx, tenantID)
-	if err != nil || roleID.IsZero() {
-		return items, err
+	var filtered []*domain.Inheritance
+	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
+		if !roleID.IsZero() {
+			target, err := tx.Roles.FindByID(txCtx, roleID)
+			if err != nil {
+				return err
+			}
+			if err = s.guard.RequireVisible(txCtx, target); err != nil {
+				return err
+			}
+		}
+		items, err := tx.RoleInheritances.ListActive(txCtx)
+		if err != nil {
+			return err
+		}
+		filtered = make([]*domain.Inheritance, 0, len(items))
+		for _, item := range items {
+			if item == nil || (!roleID.IsZero() && item.RoleID != roleID) {
+				continue
+			}
+			visible := true
+			for _, id := range []meta.ID{item.RoleID, item.InheritedRoleID} {
+				target, err := tx.Roles.FindByID(txCtx, id)
+				if err != nil {
+					return err
+				}
+				ok, err := s.guard.Visible(txCtx, target)
+				if err != nil {
+					return err
+				}
+				visible = visible && ok
+			}
+			if visible {
+				filtered = append(filtered, item)
+			}
+		}
+		return nil
+	})
+	return filtered, err
+}
+
+func (s *Service) requireRoles(txCtx context.Context, tx authzuow.TxRepositories, child, parent meta.ID) error {
+	if child > parent {
+		child, parent = parent, child
 	}
-	filtered := make([]*domain.Inheritance, 0, len(items))
-	for _, item := range items {
-		if item != nil && item.RoleID == roleID {
-			filtered = append(filtered, item)
+	for _, id := range []meta.ID{child, parent} {
+		target, err := tx.Roles.FindByIDForUpdate(txCtx, id)
+		if err != nil {
+			return err
+		}
+		if err := s.guard.Require(txCtx, target); err != nil {
+			return err
 		}
 	}
-	return filtered, nil
+	return nil
 }

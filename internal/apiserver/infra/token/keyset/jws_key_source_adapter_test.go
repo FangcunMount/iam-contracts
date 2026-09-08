@@ -95,3 +95,17 @@ func publicJWKForTest(kid string, publicKey *rsa.PublicKey) PublicJWK {
 		E:   &e,
 	}
 }
+
+func TestKeySourceRejectsPersistedJWKOutsideSigningProfile(t *testing.T) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+	for _, mutate := range []func(*PublicJWK){func(j *PublicJWK) { j.Use = "enc" }, func(j *PublicJWK) { j.Alg = "RS384" }, func(j *PublicJWK) { j.Kid = "different" }} {
+		key := NewKey("kid", publicJWKForTest("kid", &privateKey.PublicKey))
+		mutate(&key.JWK)
+		source := NewJWSKeySourceAdapter(jwtKeySourceManagerStub{active: key}, jwtKeySourceResolverStub{privateKey: privateKey})
+		_, err := source.ActiveSigningKey(context.Background())
+		require.Error(t, err)
+		_, err = source.VerificationKey(context.Background(), "kid")
+		require.Error(t, err)
+	}
+}

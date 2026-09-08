@@ -3,7 +3,7 @@ package options
 import (
 	"time"
 
-	challengeDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/challenge"
+	challengeDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/challenge"
 )
 
 // RemovedAppOptions captures removed app.* keys solely so startup can reject
@@ -16,6 +16,7 @@ type RemovedAppOptions struct {
 
 // AuthOptions configures JWT token issuing and verification.
 type AuthOptions struct {
+	ResourceAudience    string                 `json:"resource_audience" mapstructure:"resource_audience"`
 	JWTIssuer           string                 `json:"jwt_issuer" mapstructure:"jwt_issuer"`
 	AccessTokenAudience []string               `json:"access_token_audience" mapstructure:"access_token_audience"`
 	AccessTokenTTL      time.Duration          `json:"access_token_ttl" mapstructure:"access_token_ttl"`
@@ -33,9 +34,12 @@ type PasswordLockoutOptions struct {
 
 func NewAuthOptions() *AuthOptions {
 	return &AuthOptions{
-		AccessTokenTTL:  15 * time.Minute,
-		RefreshTokenTTL: 7 * 24 * time.Hour,
-		SessionMaxTTL:   24 * time.Hour,
+		JWTIssuer:           "https://iam.fangcunmount.cn",
+		AccessTokenAudience: []string{"iam-api", "qs-api", "collection-api"},
+		ResourceAudience:    "iam-api",
+		AccessTokenTTL:      15 * time.Minute,
+		RefreshTokenTTL:     7 * 24 * time.Hour,
+		SessionMaxTTL:       24 * time.Hour,
 		PasswordLockout: PasswordLockoutOptions{
 			Enabled:      false,
 			Threshold:    5,
@@ -207,9 +211,8 @@ type SuggestOptions struct {
 	DisableMobileMask  bool   `json:"disable_mobile_mask" mapstructure:"disable_mobile_mask"`
 	// RemovedDataDir and RemovedSnapshot are decode-only tombstones. They make
 	// retired configuration fail closed instead of being silently ignored.
-	RemovedDataDir                   *string `json:"-" mapstructure:"data_dir"`
-	RemovedSnapshot                  *bool   `json:"-" mapstructure:"snapshot"`
-	RemovedLoaderPlaceholderTenantID *int64  `json:"-" mapstructure:"loader_placeholder_tenant_id"`
+	RemovedDataDir  *string `json:"-" mapstructure:"data_dir"`
+	RemovedSnapshot *bool   `json:"-" mapstructure:"snapshot"`
 	// LoaderPlaceholderOrgID 内建 Loader 注入的 org_id；0 表示索引不虚构组织维度。
 	LoaderPlaceholderOrgID int64 `json:"loader_placeholder_org_id" mapstructure:"loader_placeholder_org_id"`
 	// WildcardKeyCap 通配符展开的最大终端键数；0 使用领域默认。

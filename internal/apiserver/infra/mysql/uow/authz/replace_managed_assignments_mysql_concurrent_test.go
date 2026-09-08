@@ -2,26 +2,27 @@ package authz_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sort"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/subjectresolver"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
 
-	assignmentApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignment"
-	authzAppUOW "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/uow"
-	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
-	policyDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/policy"
-	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	assignmentRepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/assignment"
-	policyRepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/policy"
-	roleRepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/role"
-	authzUOW "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/uow/authz"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/subjectresolver"
+
+	assignmentApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
+	authzAppUOW "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
+	assignmentDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	policyDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
+	roleDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	assignmentRepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/assignment"
+	policyRepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
+	roleRepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
+	authzUOW "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/uow/authz"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -41,21 +42,19 @@ func TestReplaceManagedAssignmentsMySQLConcurrentLinearization(t *testing.T) {
 		&policyRepo.PolicyVersionPO{},
 	))
 
-	tenantID := fmt.Sprintf("replace-concurrent-%d", time.Now().UnixNano())
 	userID := meta.FromUint64(uint64(time.Now().UnixNano()%900_000_000 + 100_000_000))
-	t.Cleanup(func() {
-		ctx := context.Background()
-		require.NoError(t, db.WithContext(ctx).Unscoped().Where("tenant_id = ?", tenantID).Delete(&assignmentRepo.AssignmentPO{}).Error)
-		require.NoError(t, db.WithContext(ctx).Unscoped().Where("tenant_id = ?", tenantID).Delete(&roleRepo.RolePO{}).Error)
-		require.NoError(t, db.WithContext(ctx).Unscoped().Where("tenant_id = ?", tenantID).Delete(&policyRepo.PolicyVersionPO{}).Error)
-	})
 
-	ctx := context.Background()
+	ctx := management.WithAuthenticatedService(context.Background(), "admin")
 	roles := roleRepo.NewRoleRepository(db)
 	assignments := assignmentRepo.NewRepository(db)
-	roleByName := seedTenantRoles(t, ctx, roles, tenantID, "qs:staff", "qs:evaluator")
-	seedTenantAssignment(t, ctx, assignments, tenantID, userID, roleByName["qs:staff"].ID)
-	seedTenantAssignment(t, ctx, assignments, tenantID, userID, roleByName["qs:evaluator"].ID)
+	roleByName := seedConcurrentRoles(t, ctx, roles, "qs:staff", "qs:evaluator")
+	t.Cleanup(func() {
+		ids := []meta.ID{roleByName["qs:staff"].ID, roleByName["qs:evaluator"].ID}
+		require.NoError(t, db.Unscoped().Where("subject_id = ? AND role_id IN ?", userID, ids).Delete(&assignmentRepo.AssignmentPO{}).Error)
+		require.NoError(t, db.Unscoped().Where("id IN ?", ids).Delete(&roleRepo.RolePO{}).Error)
+	})
+	seedConcurrentAssignment(t, ctx, assignments, userID, roleByName["qs:staff"].ID)
+	seedConcurrentAssignment(t, ctx, assignments, userID, roleByName["qs:evaluator"].ID)
 
 	sub, err := subject.NewUserRef(userID)
 	require.NoError(t, err)
@@ -68,10 +67,12 @@ func TestReplaceManagedAssignmentsMySQLConcurrentLinearization(t *testing.T) {
 		barrier:  barrier,
 	}
 	validator := assignmentDomain.NewValidator(roles, subjectresolver.NewUserSubjectResolver(existingUserResolver{}))
-	service := assignmentApp.NewCommandService(validator, roles, uow, nil)
+	service := assignmentApp.NewCommandService(validator, roles, uow, nil, management.NewGuard(nil))
 
 	policyVersions := policyRepo.NewPolicyVersionRepository(db)
-	beforeVersion := currentPolicyVersion(t, ctx, policyVersions, tenantID)
+	_, err = policyVersions.GetOrCreate(ctx)
+	require.NoError(t, err)
+	beforeVersion := currentPolicyVersion(t, ctx, policyVersions)
 	beforeEvents := stager.Count()
 
 	commands := make([]assignmentApp.ReplaceManagedAssignmentsCommand, 0, 2)
@@ -83,7 +84,7 @@ func TestReplaceManagedAssignmentsMySQLConcurrentLinearization(t *testing.T) {
 		{target: []string{"qs:evaluator"}, changedBy: "user:concurrent-b"},
 	} {
 		cmd, cmdErr := assignmentApp.NewReplaceManagedAssignmentsCommand(
-			sub, tenantID, input.target, managed, input.changedBy, "concurrent-replace",
+			sub, input.target, managed, input.changedBy, "concurrent-replace",
 		)
 		require.NoError(t, cmdErr)
 		commands = append(commands, cmd)
@@ -118,11 +119,11 @@ func TestReplaceManagedAssignmentsMySQLConcurrentLinearization(t *testing.T) {
 		require.True(t, result.result.Changed)
 	}
 
-	final := assignedTenantRoleNames(t, ctx, assignments, roles, tenantID, userID)
+	final := assignedConcurrentRoleNames(t, ctx, assignments, roles, userID)
 	validTargets := [][]string{{"qs:staff"}, {"qs:evaluator"}}
 	require.Contains(t, validTargets, final, "concurrent replace must end in one complete managed target set")
 
-	afterVersion := currentPolicyVersion(t, ctx, policyVersions, tenantID)
+	afterVersion := currentPolicyVersion(t, ctx, policyVersions)
 	require.Equal(t, beforeVersion+2, afterVersion)
 	require.Equal(t, beforeEvents+2, stager.Count())
 }
@@ -167,8 +168,8 @@ type roleReadBarrierRepository struct {
 	once    sync.Once
 }
 
-func (r *roleReadBarrierRepository) FindByName(ctx context.Context, tenantID, name string) (*roleDomain.Role, error) {
-	role, err := r.Repository.FindByName(ctx, tenantID, name)
+func (r *roleReadBarrierRepository) FindByName(ctx context.Context, name string) (*roleDomain.Role, error) {
+	role, err := r.Repository.FindByName(ctx, name)
 	if err == nil {
 		r.once.Do(r.barrier.ArriveAndWait)
 	}
@@ -195,11 +196,11 @@ func mysqlDSN(host string) string {
 	return user + ":" + password + "@tcp(" + host + ":" + port + ")/" + database + "?charset=utf8mb4&parseTime=True&loc=Local"
 }
 
-func seedTenantRoles(t *testing.T, ctx context.Context, repo roleDomain.Repository, tenantID string, names ...string) map[string]*roleDomain.Role {
+func seedConcurrentRoles(t *testing.T, ctx context.Context, repo roleDomain.Repository, names ...string) map[string]*roleDomain.Role {
 	t.Helper()
 	result := make(map[string]*roleDomain.Role, len(names))
 	for _, name := range names {
-		role, err := roleDomain.NewRole(name, name, tenantID)
+		role, err := roleDomain.NewRole(name, name)
 		require.NoError(t, err)
 		require.NoError(t, repo.Create(ctx, &role))
 		copyRole := role
@@ -208,25 +209,25 @@ func seedTenantRoles(t *testing.T, ctx context.Context, repo roleDomain.Reposito
 	return result
 }
 
-func seedTenantAssignment(t *testing.T, ctx context.Context, repo assignmentDomain.Repository, tenantID string, subjectID, roleID meta.ID) {
+func seedConcurrentAssignment(t *testing.T, ctx context.Context, repo assignmentDomain.Repository, subjectID, roleID meta.ID) {
 	t.Helper()
 	assignment, err := assignmentDomain.NewAssignment(
-		assignmentDomain.SubjectTypeUser, subjectID, roleID, tenantID, assignmentDomain.WithGrantedBy("seed"),
+		assignmentDomain.SubjectTypeUser, subjectID, roleID, assignmentDomain.WithGrantedBy("seed"),
 	)
 	require.NoError(t, err)
 	require.NoError(t, repo.Create(ctx, &assignment))
 }
 
-func assignedTenantRoleNames(
+func assignedConcurrentRoleNames(
 	t *testing.T,
 	ctx context.Context,
 	assignments assignmentDomain.Repository,
 	roles roleDomain.Repository,
-	tenantID string,
+
 	subjectID meta.ID,
 ) []string {
 	t.Helper()
-	rows, err := assignments.ListBySubject(ctx, assignmentDomain.SubjectTypeUser, subjectID, tenantID)
+	rows, err := assignments.ListBySubject(ctx, assignmentDomain.SubjectTypeUser, subjectID)
 	require.NoError(t, err)
 	names := make([]string, 0, len(rows))
 	for _, assignment := range rows {
@@ -238,9 +239,9 @@ func assignedTenantRoleNames(
 	return names
 }
 
-func currentPolicyVersion(t *testing.T, ctx context.Context, repo policyDomain.Repository, tenantID string) int64 {
+func currentPolicyVersion(t *testing.T, ctx context.Context, repo policyDomain.Repository) int64 {
 	t.Helper()
-	current, err := repo.GetCurrent(ctx, tenantID)
+	current, err := repo.GetCurrent(ctx)
 	require.NoError(t, err)
 	if current == nil {
 		return 0

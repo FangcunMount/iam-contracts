@@ -4,13 +4,13 @@ import (
 	"context"
 	"strings"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	tokenApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	tokenApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func (s *authServiceServer) VerifyToken(ctx context.Context, req *authnv2.VerifyTokenRequest) (*authnv2.VerifyTokenResponse, error) {
+func (s *authServiceServer) VerifyToken(ctx context.Context, req *authnv3.VerifyTokenRequest) (*authnv3.VerifyTokenResponse, error) {
 	if s.tokenVerifier == nil {
 		return nil, status.Error(codes.Unimplemented, "token verifier not configured")
 	}
@@ -28,33 +28,33 @@ func (s *authServiceServer) VerifyToken(ctx context.Context, req *authnv2.Verify
 		return nil, toGRPCError(err)
 	}
 
-	resp := &authnv2.VerifyTokenResponse{}
+	resp := &authnv3.VerifyTokenResponse{}
 	if result != nil {
 		resp.Valid = result.Valid
 	}
 	if resp.Valid {
-		resp.Status = authnv2.TokenStatus_TOKEN_STATUS_VALID
+		resp.Status = authnv3.TokenStatus_TOKEN_STATUS_VALID
 		resp.Claims = toProtoTokenClaims(result.Claims)
 		if req.GetIncludeMetadata() {
 			resp.Metadata = buildTokenMetadata(result.Claims)
 		}
 	} else {
-		resp.Status = authnv2.TokenStatus_TOKEN_STATUS_REVOKED
+		resp.Status = authnv3.TokenStatus_TOKEN_STATUS_REVOKED
 		resp.FailureReason = "token invalid or expired"
 	}
 	return resp, nil
 }
 
-func acceptedDomainTokenTypes(values []authnv2.TokenType) []tokenApp.TokenType {
+func acceptedDomainTokenTypes(values []authnv3.TokenType) []tokenApp.TokenType {
 	if len(values) == 0 {
 		return []tokenApp.TokenType{tokenApp.TokenTypeAccess}
 	}
 	out := make([]tokenApp.TokenType, 0, len(values))
 	for _, value := range values {
 		switch value {
-		case authnv2.TokenType_TOKEN_TYPE_ACCESS:
+		case authnv3.TokenType_TOKEN_TYPE_ACCESS:
 			out = append(out, tokenApp.TokenTypeAccess)
-		case authnv2.TokenType_TOKEN_TYPE_REFRESH:
+		case authnv3.TokenType_TOKEN_TYPE_REFRESH:
 			out = append(out, tokenApp.TokenTypeRefresh)
 		default:
 			out = append(out, tokenApp.TokenType("invalid"))
@@ -63,7 +63,7 @@ func acceptedDomainTokenTypes(values []authnv2.TokenType) []tokenApp.TokenType {
 	return out
 }
 
-func (s *authServiceServer) RefreshToken(ctx context.Context, req *authnv2.RefreshTokenRequest) (*authnv2.RefreshTokenResponse, error) {
+func (s *authServiceServer) RefreshToken(ctx context.Context, req *authnv3.RefreshTokenRequest) (*authnv3.RefreshTokenResponse, error) {
 	if s.sessionSvc == nil {
 		return nil, status.Error(codes.Unimplemented, "session service not configured")
 	}
@@ -76,12 +76,12 @@ func (s *authServiceServer) RefreshToken(ctx context.Context, req *authnv2.Refre
 		return nil, toGRPCError(err)
 	}
 
-	return &authnv2.RefreshTokenResponse{
+	return &authnv3.RefreshTokenResponse{
 		TokenPair: toProtoTokenPair(result.TokenPair),
 	}, nil
 }
 
-func (s *authServiceServer) RevokeToken(ctx context.Context, req *authnv2.RevokeTokenRequest) (*authnv2.RevokeTokenResponse, error) {
+func (s *authServiceServer) RevokeToken(ctx context.Context, req *authnv3.RevokeTokenRequest) (*authnv3.RevokeTokenResponse, error) {
 	if s.tokenRevoker == nil {
 		return nil, status.Error(codes.Unimplemented, "token revoker not configured")
 	}
@@ -91,10 +91,10 @@ func (s *authServiceServer) RevokeToken(ctx context.Context, req *authnv2.Revoke
 	if err := s.tokenRevoker.RevokeAccessToken(ctx, req.GetAccessToken()); err != nil {
 		return nil, toGRPCError(err)
 	}
-	return &authnv2.RevokeTokenResponse{}, nil
+	return &authnv3.RevokeTokenResponse{}, nil
 }
 
-func (s *authServiceServer) RevokeRefreshToken(ctx context.Context, req *authnv2.RevokeRefreshTokenRequest) (*authnv2.RevokeRefreshTokenResponse, error) {
+func (s *authServiceServer) RevokeRefreshToken(ctx context.Context, req *authnv3.RevokeRefreshTokenRequest) (*authnv3.RevokeRefreshTokenResponse, error) {
 	if s.tokenRevoker == nil {
 		return nil, status.Error(codes.Unimplemented, "token revoker not configured")
 	}
@@ -104,5 +104,5 @@ func (s *authServiceServer) RevokeRefreshToken(ctx context.Context, req *authnv2
 	if err := s.tokenRevoker.RevokeRefreshToken(ctx, req.GetRefreshToken()); err != nil {
 		return nil, toGRPCError(err)
 	}
-	return &authnv2.RevokeRefreshTokenResponse{}, nil
+	return &authnv3.RevokeRefreshTokenResponse{}, nil
 }

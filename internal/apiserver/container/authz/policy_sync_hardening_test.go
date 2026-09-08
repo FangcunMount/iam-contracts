@@ -9,8 +9,8 @@ import (
 	"time"
 
 	cbmessaging "github.com/FangcunMount/component-base/pkg/messaging"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
-	authzruntime "github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/runtime"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
+	authzruntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,15 +41,15 @@ type lifecycleSource struct {
 }
 
 func (s *lifecycleSource) Load(context.Context) (authzruntime.Dataset, error) {
-	return authzruntime.Dataset{Versions: map[string]int64{"a": s.version.Load()}}, nil
+	return authzruntime.Dataset{Version: s.version.Load()}, nil
 }
-func (s *lifecycleSource) ReadVersions(ctx context.Context) (map[string]int64, error) {
+func (s *lifecycleSource) ReadVersion(ctx context.Context) (int64, error) {
 	if s.block.Load() {
 		s.once.Do(func() { close(s.entered) })
 		<-ctx.Done()
-		return nil, ctx.Err()
+		return 0, ctx.Err()
 	}
-	return map[string]int64{"a": s.version.Load()}, nil
+	return s.version.Load(), nil
 }
 func TestPolicySyncRetriesRegistrationRestoresReadinessAndCancels(t *testing.T) {
 	source := &lifecycleSource{entered: make(chan struct{})}
@@ -64,7 +64,7 @@ func TestPolicySyncRetriesRegistrationRestoresReadinessAndCancels(t *testing.T) 
 	ready, _, _ := runtime.ReloadHealth()
 	require.False(t, ready)
 	require.NoError(t, syncer.Start(context.Background()))
-	require.True(t, runtime.PolicyVersionLoaded("a", 2), "initial reconciliation must close startup gap")
+	require.True(t, runtime.PolicyVersionLoaded(2), "initial reconciliation must close startup gap")
 	require.NoError(t, syncer.Start(context.Background()))
 	ready, _, _ = runtime.ReloadHealth()
 	require.False(t, ready)

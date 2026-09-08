@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	domainprofile "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
+	domainprofile "github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/profile"
 )
 
 // Refresher 编排 Full/Delta 刷新、游标与互斥。

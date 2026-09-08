@@ -36,7 +36,7 @@
 
 `PrepareStep → ResolveUserStep → EnsureLoginIdentityStep → EnsureCredentialStep`（事务内后三步）。
 
-Transport：`OnboardingHandler` → `/api/v2/authn/signups/*`（Handler 名称历史遗留，实现为 signup 包）。
+Transport：`OnboardingHandler` → `/api/v3/authn/signups/*`（Handler 名称历史遗留，实现为 signup 包）。
 
 ### session.ApplicationService
 
@@ -44,11 +44,11 @@ Transport：`OnboardingHandler` → `/api/v2/authn/signups/*`（Handler 名称�
 - `RenewSession` → `token.RefreshToken`
 - `Logout` → token 撤销
 
-装配时由 assembler 构建 `signin.SignIn` 再注入 session；SignIn 只依赖 `AuthenticationGrantIssuer`，session 续期与登出分别依赖 `Refresher`、`Revoker`。Grant 领域服务在创建 Session 前完成 Admission，并统一建立 `Session + TokenSet`。
+SignIn 在应用层分别调用 AdmissionPolicy、SessionCreator 和 InitialTokenIssuer，并负责新会话的失败补偿；续期和登出仍分别由 Refresher、Revoker 处理。
 
 ### token.Capabilities
 
-组合根输出 `AuthenticationGrantIssuer`、`Refresher`、`Revoker`、`Verifier` 四个窄能力。它们不是统一门面；调用方只保存真正使用的接口。JWT 为 infra 实现细节。
+组合根输出 `InitialTokenIssuer`、`Refresher`、`Revoker`、`Verifier` 四个窄能力。它们不是统一门面；调用方只保存真正使用的接口。JWT 为 infra 实现细节。
 
 ### linking + 敏感解绑
 

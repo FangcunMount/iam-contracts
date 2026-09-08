@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/externalidentity"
-	wechatapp "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/wechatapp"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/externalidentity"
+	wechatapp "github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/wechatapp"
 )
 
 // Resolver resolves a one-time provider proof into a request-scoped identity.

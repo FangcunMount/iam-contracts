@@ -1,8 +1,8 @@
 package idp
 
 import (
-	externalidentity "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/wechatapp"
+	externalidentity "github.com/FangcunMount/iam/v5/internal/apiserver/application/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/idp/wechatapp"
 )
 
 func (m *IDPModule) initializeApplication(domainServices *idpDomainServices, externalConfig externalidentity.Config) error {

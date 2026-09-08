@@ -1,8 +1,8 @@
 package authn
 
 import (
-	grpctransport "github.com/FangcunMount/iam/v4/internal/apiserver/transport/grpc"
-	authngrpc "github.com/FangcunMount/iam/v4/internal/apiserver/transport/grpc/service/authn"
+	grpctransport "github.com/FangcunMount/iam/v5/internal/apiserver/transport/grpc"
+	authngrpc "github.com/FangcunMount/iam/v5/internal/apiserver/transport/grpc/service/authn"
 )
 
 // CollectGRPC appends authn gRPC registration when the module is available.

@@ -5,12 +5,11 @@ import (
 	"strings"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
-	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	assignmentDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	roleDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // Commands 承载角色赋权写用例；REST 以 role_id 写入，gRPC 以 role_name 写入。
@@ -44,20 +43,16 @@ type GrantCommand struct {
 	SubjectType assignmentDomain.SubjectType
 	SubjectID   meta.ID
 	RoleID      meta.ID
-	TenantID    string
-	GrantedBy   string
+
+	GrantedBy string
 }
 
-func NewGrantCommand(subjectType assignmentDomain.SubjectType, subjectID, roleID meta.ID, tenantID, grantedBy string) (GrantCommand, error) {
-	tenantIDValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return GrantCommand{}, err
-	}
+func NewGrantCommand(subjectType assignmentDomain.SubjectType, subjectID, roleID meta.ID, grantedBy string) (GrantCommand, error) {
 	if _, err := assignmentDomain.NewAssignment(
 		subjectType,
 		subjectID,
 		roleID,
-		tenantIDValue.String(),
+
 		assignmentDomain.WithGrantedBy(grantedBy),
 	); err != nil {
 		return GrantCommand{}, err
@@ -66,8 +61,8 @@ func NewGrantCommand(subjectType assignmentDomain.SubjectType, subjectID, roleID
 		SubjectType: subjectType,
 		SubjectID:   subjectID,
 		RoleID:      roleID,
-		TenantID:    tenantIDValue.String(),
-		GrantedBy:   grantedBy,
+
+		GrantedBy: grantedBy,
 	}, nil
 }
 
@@ -76,21 +71,17 @@ type RevokeCommand struct {
 	SubjectType assignmentDomain.SubjectType
 	SubjectID   meta.ID
 	RoleID      meta.ID
-	TenantID    string
-	ChangedBy   string
-	Reason      string
+
+	ChangedBy string
+	Reason    string
 }
 
-func NewRevokeCommand(subjectType assignmentDomain.SubjectType, subjectID, roleID meta.ID, tenantID, changedBy, reason string) (RevokeCommand, error) {
+func NewRevokeCommand(subjectType assignmentDomain.SubjectType, subjectID, roleID meta.ID, changedBy, reason string) (RevokeCommand, error) {
 	if _, err := subject.NewRef(subject.Type(subjectType), subjectID); err != nil {
 		return RevokeCommand{}, err
 	}
 	if roleID.IsZero() {
 		return RevokeCommand{}, errors.WithCode(code.ErrInvalidArgument, "角色ID不能为空")
-	}
-	tenantIDValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return RevokeCommand{}, err
 	}
 	if strings.TrimSpace(changedBy) == "" {
 		return RevokeCommand{}, errors.WithCode(code.ErrInvalidArgument, "changed by is required")
@@ -99,61 +90,49 @@ func NewRevokeCommand(subjectType assignmentDomain.SubjectType, subjectID, roleI
 		SubjectType: subjectType,
 		SubjectID:   subjectID,
 		RoleID:      roleID,
-		TenantID:    tenantIDValue.String(),
-		ChangedBy:   changedBy,
-		Reason:      reason,
+
+		ChangedBy: changedBy,
+		Reason:    reason,
 	}, nil
 }
 
 // RevokeByIDCommand 根据 ID 撤销授权命令。
 type RevokeByIDCommand struct {
 	AssignmentID assignmentDomain.AssignmentID
-	TenantID     string
-	ChangedBy    string
-	Reason       string
+
+	ChangedBy string
+	Reason    string
 }
 
-func NewRevokeByIDCommand(assignmentID assignmentDomain.AssignmentID, tenantID, changedBy, reason string) (RevokeByIDCommand, error) {
+func NewRevokeByIDCommand(assignmentID assignmentDomain.AssignmentID, changedBy, reason string) (RevokeByIDCommand, error) {
 	if assignmentID.Uint64() == 0 {
 		return RevokeByIDCommand{}, errors.WithCode(code.ErrInvalidArgument, "赋权ID不能为空")
-	}
-	tenantIDValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return RevokeByIDCommand{}, err
 	}
 	if strings.TrimSpace(changedBy) == "" {
 		return RevokeByIDCommand{}, errors.WithCode(code.ErrInvalidArgument, "changed by is required")
 	}
 	return RevokeByIDCommand{
 		AssignmentID: assignmentID,
-		TenantID:     tenantIDValue.String(),
-		ChangedBy:    changedBy,
-		Reason:       reason,
+
+		ChangedBy: changedBy,
+		Reason:    reason,
 	}, nil
 }
 
-func NewGrantByRoleNameCommand(sub subject.Ref, tenantID, roleName, grantedBy string) (GrantByRoleNameCommand, error) {
+func NewGrantByRoleNameCommand(sub subject.Ref, roleName, grantedBy string) (GrantByRoleNameCommand, error) {
 	if sub.IsZero() {
 		return GrantByRoleNameCommand{}, errors.WithCode(code.ErrInvalidArgument, "subject is required")
-	}
-	tenantIDValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return GrantByRoleNameCommand{}, err
 	}
 	roleNameValue, err := roleDomain.NewName(roleName)
 	if err != nil {
 		return GrantByRoleNameCommand{}, err
 	}
-	return GrantByRoleNameCommand{Subject: sub, TenantID: tenantIDValue.String(), RoleName: roleNameValue.String(), GrantedBy: grantedBy}, nil
+	return GrantByRoleNameCommand{Subject: sub, RoleName: roleNameValue.String(), GrantedBy: grantedBy}, nil
 }
 
-func NewRevokeByRoleNameCommand(sub subject.Ref, tenantID, roleName, changedBy, reason string) (RevokeByRoleNameCommand, error) {
+func NewRevokeByRoleNameCommand(sub subject.Ref, roleName, changedBy, reason string) (RevokeByRoleNameCommand, error) {
 	if sub.IsZero() {
 		return RevokeByRoleNameCommand{}, errors.WithCode(code.ErrInvalidArgument, "subject is required")
-	}
-	tenantIDValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return RevokeByRoleNameCommand{}, err
 	}
 	roleNameValue, err := roleDomain.NewName(roleName)
 	if err != nil {
@@ -162,12 +141,12 @@ func NewRevokeByRoleNameCommand(sub subject.Ref, tenantID, roleName, changedBy, 
 	if strings.TrimSpace(changedBy) == "" {
 		return RevokeByRoleNameCommand{}, errors.WithCode(code.ErrInvalidArgument, "changed by is required")
 	}
-	return RevokeByRoleNameCommand{Subject: sub, TenantID: tenantIDValue.String(), RoleName: roleNameValue.String(), ChangedBy: changedBy, Reason: reason}, nil
+	return RevokeByRoleNameCommand{Subject: sub, RoleName: roleNameValue.String(), ChangedBy: changedBy, Reason: reason}, nil
 }
 
 type ReplaceManagedAssignmentsCommand struct {
-	Subject          subject.Ref
-	TenantID         string
+	Subject subject.Ref
+
 	RoleNames        []string
 	ManagedRoleNames []string
 	ChangedBy        string
@@ -176,7 +155,7 @@ type ReplaceManagedAssignmentsCommand struct {
 
 func NewReplaceManagedAssignmentsCommand(
 	sub subject.Ref,
-	tenantID string,
+
 	roleNames []string,
 	managedRoleNames []string,
 	changedBy string,
@@ -185,16 +164,12 @@ func NewReplaceManagedAssignmentsCommand(
 	if sub.IsZero() {
 		return ReplaceManagedAssignmentsCommand{}, errors.WithCode(code.ErrInvalidArgument, "subject is required")
 	}
-	tenantIDValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return ReplaceManagedAssignmentsCommand{}, err
-	}
 	changedBy = strings.TrimSpace(changedBy)
 	if changedBy == "" {
 		return ReplaceManagedAssignmentsCommand{}, errors.WithCode(code.ErrInvalidArgument, "changed by is required")
 	}
 	return ReplaceManagedAssignmentsCommand{
-		Subject: sub, TenantID: tenantIDValue.String(), RoleNames: roleNames,
+		Subject: sub, RoleNames: roleNames,
 		ManagedRoleNames: managedRoleNames, ChangedBy: changedBy, Reason: strings.TrimSpace(reason),
 	}, nil
 }
@@ -203,11 +178,9 @@ func NewReplaceManagedAssignmentsCommand(
 type ListBySubjectQuery struct {
 	SubjectType assignmentDomain.SubjectType
 	SubjectID   meta.ID
-	TenantID    string
 }
 
 // ListByRoleQuery 根据角色列出角色绑定查询。
 type ListByRoleQuery struct {
-	RoleID   meta.ID
-	TenantID string
+	RoleID meta.ID
 }

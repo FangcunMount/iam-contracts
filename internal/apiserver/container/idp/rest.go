@@ -1,8 +1,8 @@
 package idp
 
 import (
-	resttransport "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest"
-	idphandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/idp/handler"
+	resttransport "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest"
+	idphandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/idp/handler"
 )
 
 // CollectREST wires IDP REST handlers when the module is available.

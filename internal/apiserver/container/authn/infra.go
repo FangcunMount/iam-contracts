@@ -10,25 +10,25 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	authnUow "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/uow"
-	externalidentity "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/container/idp"
-	admissionDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	userDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/user"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/useraccess"
-	redisInfra "github.com/FangcunMount/iam/v4/internal/apiserver/infra/cache/redis"
-	credentialrepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/credential"
-	jwksMysql "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/jwks"
-	loginidentityrepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/loginidentity"
-	mysqlAuthnUow "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/uow/authn"
-	mysqluser "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/user"
-	jwtinfra "github.com/FangcunMount/iam/v4/internal/apiserver/infra/token/jwt"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/token/keyset"
-	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
-	genericapiserver "github.com/FangcunMount/iam/v4/internal/pkg/server"
-	pkgauth "github.com/FangcunMount/iam/v4/pkg/auth"
-	"github.com/FangcunMount/iam/v4/pkg/event"
+	authnUow "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/uow"
+	externalidentity "github.com/FangcunMount/iam/v5/internal/apiserver/application/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/container/idp"
+	admissionDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	userDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/user"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/useraccess"
+	redisInfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/cache/redis"
+	credentialrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/credential"
+	jwksMysql "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/jwks"
+	loginidentityrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/loginidentity"
+	mysqlAuthnUow "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/uow/authn"
+	mysqluser "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/user"
+	jwtinfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/token/jwt"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/token/keyset"
+	apiserveroptions "github.com/FangcunMount/iam/v5/internal/apiserver/options"
+	genericapiserver "github.com/FangcunMount/iam/v5/internal/pkg/server"
+	pkgauth "github.com/FangcunMount/iam/v5/pkg/auth"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 )
 
 type authnInfrastructureComponents struct {
@@ -49,9 +49,9 @@ type authnInfrastructureComponents struct {
 	keyGenerator      keyset.KeyGenerator
 	privKeyResolver   keyset.PrivateKeyResolver
 	keyManager        *keyset.KeyManager
-	keySetBuilder     *keyset.KeySetBuilder
+	keySetBuilder     *keyset.JWKSPublisher
 	keyRotation       *keyset.KeyRotation
-	signedJWTCodec    *jwtinfra.JWSCompactTokenCodec
+	signedJWTCodec    *jwtinfra.SignedJWTCodec
 
 	tokenStore   *redisInfra.RedisStore
 	sessionStore *redisInfra.SessionStore
@@ -135,7 +135,7 @@ func configureKeyServices(
 		MaxPublishableKeys: jwksOptions.Rotation.MaxPublishableKey,
 	}
 	infra.keyManager = keyset.NewKeyManagerWithPolicy(infra.keyRepo, infra.keyGenerator, infra.privateKeyStorage, policy)
-	infra.keySetBuilder = keyset.NewKeySetBuilder(infra.keyRepo)
+	infra.keySetBuilder = keyset.NewJWKSPublisher(infra.keyRepo)
 	infra.keyRotation = keyset.NewKeyRotation(
 		infra.keyManager,
 		policy,
@@ -144,9 +144,8 @@ func configureKeyServices(
 	if err := ensureJWKSReady(infra, environment, jwksOptions, log.New(log.NewOptions())); err != nil {
 		return err
 	}
-	infra.signedJWTCodec = jwtinfra.NewJWSCompactTokenCodec(
+	infra.signedJWTCodec = jwtinfra.NewSignedJWTCodec(
 		authOptions.JWTIssuer,
-		authOptions.AccessTokenAudience,
 		keyset.NewJWSKeySourceAdapter(infra.keyManager, infra.privKeyResolver),
 	)
 	return nil

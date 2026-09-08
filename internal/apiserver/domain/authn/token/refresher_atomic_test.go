@@ -12,11 +12,11 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
-	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	admissiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 func TestRefresherConcurrentUseReturnsOnlyOneTokenPair(t *testing.T) {
@@ -159,20 +159,12 @@ type atomicTokenPairMinterStub struct {
 	next int
 }
 
-func (s *atomicTokenPairMinterStub) MintTokenSet(_ context.Context, principal *authentication.Principal, session *sessiondomain.Session) (*UserTokenSet, error) {
+func (s *atomicTokenPairMinterStub) MintTokenSet(_ context.Context, session *sessiondomain.Session) (*UserTokenSet, error) {
 	s.mu.Lock()
 	s.next++
 	n := s.next
 	s.mu.Unlock()
-	access := NewAccessToken(
-		meta.FromUint64(uint64(100+n)).String(),
-		meta.FromUint64(uint64(200+n)).String(),
-		session.SessionID,
-		principal.UserID,
-		principal.LoginIdentityID,
-		principal.TenantID,
-		time.Minute,
-	)
+	access := NewAccessToken(meta.FromUint64(uint64(100+n)).String(), meta.FromUint64(uint64(200+n)).String(), session.SessionID, session.UserID, session.LoginIdentityID, time.Now(), time.Now().Add(time.Minute))
 	refresh := testRefreshToken(
 		meta.FromUint64(uint64(300+n)).String(),
 		meta.FromUint64(uint64(400+n)).String(),
@@ -310,11 +302,7 @@ func (admissionPolicyStub) Evaluate(_ context.Context, subject admissiondomain.S
 }
 
 func testRefreshToken(id, value string) *RefreshToken {
-	token := NewRefreshToken(
-		id, value, "session-id",
-		meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3),
-		nil, nil, time.Hour,
-	)
+	token := NewRefreshToken(id, value, "session-id", meta.FromUint64(1), meta.FromUint64(2), time.Now(), time.Now().Add(time.Hour))
 	token.AuthMethod = "password"
 	return token
 }
@@ -324,9 +312,8 @@ func testActiveSession() *sessiondomain.Session {
 		"session-id",
 		meta.FromUint64(1),
 		meta.FromUint64(2),
-		meta.FromUint64(3),
 		authentication.RestoreAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, time.Now().Add(-time.Hour).UTC()),
-		authentication.TokenContext{TenantDomain: "fangcun"},
+		sessiondomain.TokenContext{},
 		time.Now().Add(time.Hour),
 	)
 }

@@ -3,8 +3,8 @@ package credential
 import (
 	"time"
 
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/credential"
-	base "github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/credential"
+	base "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 )
 
 type Mapper struct{}

@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	sdk "github.com/FangcunMount/iam/v4/pkg/sdk"
+	sdk "github.com/FangcunMount/iam/v5/pkg/sdk"
 )
 
 func main() {

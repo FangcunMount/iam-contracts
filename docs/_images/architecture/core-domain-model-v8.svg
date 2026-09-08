@@ -267,7 +267,7 @@
     <text x="2490" y="1166" text-anchor="middle" class="root-title">Session｜认证会话</text>
     <line x1="2240" y1="1189" x2="2740" y2="1189" class="divider"/>
     <text x="2265" y="1225" class="field">SessionID · UserID · LoginIdentityID</text>
-    <text x="2265" y="1259" class="field">TenantID · AuthContext · TokenContext</text>
+    <text x="2265" y="1259" class="field">AuthContext · TokenContext</text>
     <text x="2265" y="1293" class="field">Status · CreatedAt · ExpiresAt</text>
   </g>
   <rect x="2770" y="1093" width="320" height="105" rx="13" class="vo"/>
@@ -288,7 +288,7 @@
     <line x1="1330" y1="1594" x2="1830" y2="1594" class="divider"/>
     <text x="1355" y="1630" class="field">TokenMetadata</text>
     <text x="1355" y="1664" class="field">SessionID · UserID · LoginIdentityID</text>
-    <text x="1355" y="1698" class="field">TenantID · Session 关联</text>
+    <text x="1355" y="1698" class="field">Session 关联</text>
   </g>
   <rect x="1860" y="1498" width="280" height="105" rx="13" class="vo"/>
   <text x="2000" y="1532" text-anchor="middle" class="vo-title">TokenMetadata</text>
@@ -306,20 +306,20 @@
   <text x="2238" y="1462" class="section-title">认证请求值与判定结果｜非聚合</text>
   <text x="2238" y="1490" class="section-note">只在一次认证/准入判断中传递，不独立维护生命周期</text>
   <rect x="2240" y="1520" width="400" height="105" rx="13" class="vo"/>
-  <text x="2440" y="1554" text-anchor="middle" class="vo-title">AuthCredential｜认证证明</text>
+  <text x="2440" y="1554" text-anchor="middle" class="vo-title">AuthCredential｜身份核验证明</text>
   <text x="2440" y="1585" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt; 请求携带的 proof</text>
   <text x="2440" y="1612" text-anchor="middle" class="vo-body">不持久化为长期 Credential</text>
   <rect x="2670" y="1520" width="420" height="105" rx="13" class="domain-result"/>
-  <text x="2880" y="1554" text-anchor="middle" class="vo-title">AuthDecision｜认证判定</text>
+  <text x="2880" y="1554" text-anchor="middle" class="vo-title">AuthDecision｜身份核验判定</text>
   <text x="2880" y="1585" text-anchor="middle" class="vo-body">&lt;&lt;domain result&gt;&gt; OK · Code</text>
-  <text x="2880" y="1612" text-anchor="middle" class="vo-body">CredentialRecord · Principal</text>
+  <text x="2880" y="1612" text-anchor="middle" class="vo-body">CredentialEffect · Principal</text>
   <rect x="2240" y="1650" width="400" height="110" rx="13" class="vo"/>
-  <text x="2440" y="1684" text-anchor="middle" class="vo-title">Principal｜认证主体</text>
+  <text x="2440" y="1684" text-anchor="middle" class="vo-title">Principal｜核验主体</text>
   <text x="2440" y="1715" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt; UserID · LoginIdentityID</text>
-  <text x="2440" y="1742" text-anchor="middle" class="vo-body">TenantID · AMR · Claims</text>
+  <text x="2440" y="1742" text-anchor="middle" class="vo-body">AuthenticationContext</text>
   <rect x="2670" y="1650" width="420" height="110" rx="13" class="domain-result"/>
-  <text x="2880" y="1684" text-anchor="middle" class="vo-title">AdmissionDecision｜准入判定</text>
-  <text x="2880" y="1715" text-anchor="middle" class="vo-body">&lt;&lt;domain result&gt;&gt; Status</text>
+  <text x="2880" y="1684" text-anchor="middle" class="vo-title">admission.Decision｜登录准入</text>
+  <text x="2880" y="1715" text-anchor="middle" class="vo-body">&lt;&lt;domain result&gt;&gt; Outcome / Reason</text>
   <text x="2880" y="1742" text-anchor="middle" class="vo-body">UserID · LoginIdentityID</text>
 
   <!-- AuthN issued objects -->
@@ -327,10 +327,10 @@
   <text x="1330" y="1874" class="section-title">认证结果与已颁发凭证｜领域对象，但不是独立聚合</text>
   <text x="1330" y="1902" class="section-note">RefreshToken 因拥有单次轮换、重放检测和存储生命周期，已在上方单独建模为聚合根</text>
   <rect x="1330" y="1932" width="410" height="170" rx="15" class="domain-result"/>
-  <text x="1535" y="1968" text-anchor="middle" class="vo-title">AuthenticationGrant｜认证结果</text>
+  <text x="1535" y="1968" text-anchor="middle" class="vo-title">AccessTokenClaims｜令牌声明</text>
   <text x="1535" y="2002" text-anchor="middle" class="vo-body">&lt;&lt;domain result&gt;&gt;</text>
-  <text x="1535" y="2034" text-anchor="middle" class="vo-body">Session + UserTokenSet</text>
-  <text x="1535" y="2066" text-anchor="middle" class="vo-body">一次建立/续期的组合结果</text>
+  <text x="1535" y="2034" text-anchor="middle" class="vo-body">主体 · 会话 · 受众 · 期限</text>
+  <text x="1535" y="2066" text-anchor="middle" class="vo-body">声明构造不执行验签</text>
   <rect x="1770" y="1932" width="410" height="170" rx="15" class="domain-result"/>
   <text x="1975" y="1968" text-anchor="middle" class="vo-title">UserTokenSet｜令牌集合</text>
   <text x="1975" y="2002" text-anchor="middle" class="vo-body">&lt;&lt;domain result&gt;&gt;</text>
@@ -385,7 +385,7 @@
   <text x="3270" y="405" class="knowledge-title">领域知识｜授权事实不是一张万能规则表</text>
   <text x="3270" y="443" class="knowledge-text">• Role 负责命名能力集合；能力本身来自独立的 PermissionGrant</text>
   <text x="3270" y="477" class="knowledge-text">• Assignment、RoleInheritance、PermissionGrant 分别表达赋权、复用与许可，不互相替代</text>
-  <text x="3270" y="511" class="knowledge-text">• Tenant.ID 约束所有授权事实；Resource 是可授权能力目录，不是业务对象实例</text>
+  <text x="3270" y="511" class="knowledge-text">• ManagementProtection 保护敏感管理能力；Resource 是可授权能力目录，不是业务对象实例</text>
 
   <!-- AuthZ aggregate 09 Role -->
   <rect x="3240" y="585" width="710" height="350" rx="22" class="aggregate-boundary boundary-authz"/>
@@ -396,14 +396,14 @@
     <text x="3472" y="726" text-anchor="middle" class="root-title">Role｜角色</text>
     <line x1="3270" y1="749" x2="3675" y2="749" class="divider"/>
     <text x="3295" y="785" class="field">ID · Name · DisplayName</text>
-    <text x="3295" y="819" class="field">TenantID · Description</text>
+    <text x="3295" y="819" class="field">Description · IsSystem</text>
     <text x="3295" y="851" class="small">本身不内嵌权限集合</text>
   </g>
   <rect x="3700" y="653" width="220" height="95" rx="13" class="vo"/>
   <text x="3810" y="686" text-anchor="middle" class="vo-title">Role.Name</text>
   <text x="3810" y="717" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt;</text>
   <rect x="3700" y="773" width="220" height="95" rx="13" class="vo"/>
-  <text x="3810" y="806" text-anchor="middle" class="vo-title">Tenant.ID</text>
+  <text x="3810" y="806" text-anchor="middle" class="vo-title" style="font-size:17px">ManagementProtection</text>
   <text x="3810" y="837" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt;</text>
 
   <!-- AuthZ aggregate 10 Resource -->
@@ -435,14 +435,14 @@
     <text x="3472" y="1121" text-anchor="middle" class="root-title">Assignment｜角色分配</text>
     <line x1="3270" y1="1144" x2="3675" y2="1144" class="divider"/>
     <text x="3295" y="1180" class="field">ID · SubjectType · SubjectID</text>
-    <text x="3295" y="1214" class="field">RoleID · TenantID · GrantedBy</text>
+    <text x="3295" y="1214" class="field">RoleID · GrantedBy</text>
     <text x="3295" y="1246" class="small">表达当前 direct role 事实</text>
   </g>
   <rect x="3700" y="1048" width="220" height="95" rx="13" class="vo"/>
   <text x="3810" y="1081" text-anchor="middle" class="vo-title">Subject.Ref</text>
   <text x="3810" y="1112" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt;</text>
   <rect x="3700" y="1168" width="220" height="95" rx="13" class="vo"/>
-  <text x="3810" y="1201" text-anchor="middle" class="vo-title">Tenant.ID</text>
+  <text x="3810" y="1201" text-anchor="middle" class="vo-title">AssignmentID</text>
   <text x="3810" y="1232" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt;</text>
   <path d="M3472 1046 V937" class="reference"/>
   <text x="3492" y="965" class="small">RoleID → Role.ID</text>
@@ -456,14 +456,14 @@
     <text x="4222" y="1121" text-anchor="middle" class="root-title">RoleInheritance｜角色继承</text>
     <line x1="4020" y1="1144" x2="4425" y2="1144" class="divider"/>
     <text x="4045" y="1180" class="field">ID · RoleID · InheritedRoleID</text>
-    <text x="4045" y="1214" class="field">TenantID · GrantedBy · RevokedAt</text>
+    <text x="4045" y="1214" class="field">GrantedBy · RevokedAt</text>
     <text x="4045" y="1246" class="small">一条有生命周期的 DAG 边</text>
   </g>
   <rect x="4450" y="1048" width="220" height="95" rx="13" class="vo"/>
   <text x="4560" y="1081" text-anchor="middle" class="vo-title">Role Ref Pair</text>
   <text x="4560" y="1112" text-anchor="middle" class="vo-body">子角色 / 被继承角色</text>
   <rect x="4450" y="1168" width="220" height="95" rx="13" class="vo"/>
-  <text x="4560" y="1201" text-anchor="middle" class="vo-title">Tenant.ID</text>
+  <text x="4560" y="1201" text-anchor="middle" class="vo-title">RevokeOutcome</text>
   <text x="4560" y="1232" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt;</text>
   <path d="M4222 1046 V960 H3810 V870" class="reference"/>
   <text x="4025" y="952" class="small">RoleID / InheritedRoleID → Role.ID</text>
@@ -476,7 +476,7 @@
     <text x="3295" y="1475" class="aggregate-label" fill="#6941a5">&lt;&lt;aggregate root&gt;&gt;</text>
     <text x="3597" y="1516" text-anchor="middle" class="root-title">PermissionGrant｜权限授予</text>
     <line x1="3270" y1="1539" x2="3925" y2="1539" class="divider"/>
-    <text x="3295" y="1575" class="field">ID · TenantID · RoleID · ResourceID</text>
+    <text x="3295" y="1575" class="field">ID · RoleID · ResourceID</text>
     <text x="3295" y="1609" class="field">ResourcePattern · ActionPattern · ConstraintSet</text>
     <text x="3295" y="1643" class="field">GrantKey · GrantedBy · GrantedAt · RevokedAt</text>
     <text x="3295" y="1681" class="small">一条 allow-only 授权事实；支持幂等撤销</text>
@@ -504,7 +504,7 @@
   <rect x="3270" y="1920" width="440" height="205" rx="15" class="vo"/>
   <text x="3490" y="1957" text-anchor="middle" class="vo-title">AuthorizationRequest｜授权请求</text>
   <text x="3490" y="1991" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt;</text>
-  <text x="3490" y="2023" text-anchor="middle" class="vo-body">Subject.Ref · Tenant.ID</text>
+  <text x="3490" y="2023" text-anchor="middle" class="vo-body">Subject.Ref</text>
   <text x="3490" y="2055" text-anchor="middle" class="vo-body">Resource.Key · Action · ObjectContext</text>
   <text x="3490" y="2087" text-anchor="middle" class="vo-body">不接受客户端自报角色</text>
   <rect x="3740" y="1920" width="430" height="205" rx="15" class="vo"/>
@@ -523,10 +523,10 @@
   <rect x="3240" y="2230" width="1460" height="480" rx="20" class="knowledge"/>
   <text x="3270" y="2270" class="knowledge-title">领域不变量｜授权事实必须可解释、可约束、可拒绝</text>
   <text x="3270" y="2314" class="knowledge-text">角色与赋权</text>
-  <text x="3300" y="2350" class="knowledge-text">• Role.Name 在 Tenant 内唯一；活跃 Assignment 业务键唯一</text>
+  <text x="3300" y="2350" class="knowledge-text">• Role.Name 全局唯一；活跃 Assignment 业务键唯一</text>
   <text x="3300" y="2384" class="knowledge-text">• Role 删除前不得仍被赋权、继承或权限授予引用</text>
   <text x="3270" y="2432" class="knowledge-text">角色继承</text>
-  <text x="3300" y="2468" class="knowledge-text">• 只能在同一 Tenant 内继承；不能自继承；整个角色图不能成环</text>
+  <text x="3300" y="2468" class="knowledge-text">• 普通角色不得继承受保护角色；不能自继承；整个角色图不能成环</text>
   <text x="3270" y="2516" class="knowledge-text">资源与权限授予</text>
   <text x="3300" y="2552" class="knowledge-text">• PermissionGrant 必须通过 Resource 的动作与属性 Schema 校验</text>
   <text x="3300" y="2586" class="knowledge-text">• 条件授权不得覆盖 list / search / batch；活跃 GrantKey 唯一</text>

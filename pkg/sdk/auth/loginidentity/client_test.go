@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	sdkerrors "github.com/FangcunMount/iam/v4/pkg/sdk/errors"
+	sdkerrors "github.com/FangcunMount/iam/v5/pkg/sdk/errors"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +16,7 @@ func TestClientLinksWechatMiniProgram(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPost, r.Method)
-		require.Equal(t, "/api/v2/authn/login-identities/wechat-miniprogram", r.URL.Path)
+		require.Equal(t, "/api/v3/authn/login-identities/wechat-miniprogram", r.URL.Path)
 		require.Equal(t, "Bearer access-token", r.Header.Get("Authorization"))
 
 		var req LinkWechatMiniProgramRequest
@@ -67,9 +67,9 @@ func TestClientListAndUnlink(t *testing.T) {
 		seen[r.Method+" "+r.URL.Path] = true
 		w.Header().Set("Content-Type", "application/json")
 		switch r.Method + " " + r.URL.Path {
-		case "GET /api/v2/authn/login-identities":
+		case "GET /api/v3/authn/login-identities":
 			_, _ = w.Write([]byte(`{"code":0,"message":"success","data":{"items":[{"id":"1","provider":"phone","realm":"global","identifier":"+8613800138000","status":"active","linked_at":"2026-05-10T10:00:00Z"}]}}`))
-		case "DELETE /api/v2/authn/login-identities/1":
+		case "DELETE /api/v3/authn/login-identities/1":
 			_, _ = w.Write([]byte(`{"code":0,"message":"success","data":{"message":"login identity unlinked"}}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -77,7 +77,7 @@ func TestClientListAndUnlink(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewClient(server.URL + "/api/v2")
+	client, err := NewClient(server.URL + "/api/v3")
 	require.NoError(t, err)
 
 	list, err := client.List(context.Background())
@@ -88,8 +88,8 @@ func TestClientListAndUnlink(t *testing.T) {
 	msg, err := client.Unlink(context.Background(), "1")
 	require.NoError(t, err)
 	require.Equal(t, "login identity unlinked", msg.Message)
-	require.True(t, seen["GET /api/v2/authn/login-identities"])
-	require.True(t, seen["DELETE /api/v2/authn/login-identities/1"])
+	require.True(t, seen["GET /api/v3/authn/login-identities"])
+	require.True(t, seen["DELETE /api/v3/authn/login-identities/1"])
 }
 
 func TestClientReturnsIAMErrorFromEnvelope(t *testing.T) {

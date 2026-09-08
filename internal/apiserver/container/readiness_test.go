@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	eventoutbox "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/eventoutbox"
-	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
-	"github.com/FangcunMount/iam/v4/pkg/outboxcore"
+	eventoutbox "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/eventoutbox"
+	apiserveroptions "github.com/FangcunMount/iam/v5/internal/apiserver/options"
+	"github.com/FangcunMount/iam/v5/pkg/outboxcore"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"

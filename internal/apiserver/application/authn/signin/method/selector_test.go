@@ -5,8 +5,7 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 )
 
@@ -76,9 +75,9 @@ func TestSelectorBuildsSelectedMethodPayload(t *testing.T) {
 
 	selected, err := DefaultSelector().Select(context.Background(), LoginRequest{
 		AuthMethod: AuthMethodPassword,
-		TenantID:   meta.FromUint64(77),
-		RemoteIP:   "127.0.0.1",
-		UserAgent:  "iam-test",
+
+		RemoteIP:  "127.0.0.1",
+		UserAgent: "iam-test",
 		Payload: PasswordPayload{
 			Username: "alice",
 			Password: "secret",
@@ -92,7 +91,6 @@ func TestSelectorBuildsSelectedMethodPayload(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "alice", payload.Username)
 	require.Equal(t, "secret", payload.Password)
-	require.Equal(t, uint64(77), selected.Common.TenantID.Uint64())
 	require.Equal(t, "127.0.0.1", selected.Common.RemoteIP)
 	require.Equal(t, "iam-test", selected.Common.UserAgent)
 }

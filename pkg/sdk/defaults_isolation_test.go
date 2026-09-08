@@ -3,7 +3,7 @@ package sdk_test
 import (
 	"testing"
 
-	"github.com/FangcunMount/iam/v4/pkg/sdk"
+	"github.com/FangcunMount/iam/v5/pkg/sdk"
 )
 
 func TestDefaultConfigReturnsIndependentMutableValues(t *testing.T) {

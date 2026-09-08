@@ -1,8 +1,8 @@
 package authn
 
 import (
-	resttransport "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest"
-	authnhandler "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/handler"
+	resttransport "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest"
+	authnhandler "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/handler"
 )
 
 // CollectREST wires authn REST handlers when the module is available.
@@ -33,4 +33,5 @@ func CollectREST(available bool, mod *AuthnModule, deps *resttransport.Deps) {
 	deps.Authn.JWKSHandler = authnhandler.NewJWKSHandler(caps.KeyManagementApp, caps.KeyLifecycleApp, caps.KeyPublishApp)
 	deps.Authn.SessionAdminHandler = authnhandler.NewSessionAdminHandler(caps.SessionRevoker)
 	deps.Authn.TokenVerifier = caps.Tokens.Verifier
+	deps.Authn.ResourceAudience = mod.resourceAudience
 }

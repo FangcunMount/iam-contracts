@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/objectattributeadmission"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/objectattributeadmission"
 	"gopkg.in/yaml.v3"
 )
 

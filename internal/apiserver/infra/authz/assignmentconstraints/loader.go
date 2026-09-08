@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/FangcunMount/component-base/pkg/grpc/interceptors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignmentadmission"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
 	"gopkg.in/yaml.v3"
 )
 
@@ -60,9 +60,9 @@ func loadConfig(path string) (assignmentadmission.Config, error) {
 }
 
 const (
-	grantAssignmentMethod    = "/iam.authz.v3.AuthorizationService/GrantAssignment"
-	revokeAssignmentMethod   = "/iam.authz.v3.AuthorizationService/RevokeAssignment"
-	replaceAssignmentsMethod = "/iam.authz.v3.AuthorizationService/ReplaceManagedAssignments"
+	grantAssignmentMethod    = "/iam.authz.v4.AuthorizationService/GrantAssignment"
+	revokeAssignmentMethod   = "/iam.authz.v4.AuthorizationService/RevokeAssignment"
+	replaceAssignmentsMethod = "/iam.authz.v4.AuthorizationService/ReplaceManagedAssignments"
 )
 
 func validateAgainstACL(config assignmentadmission.Config, aclPath string) error {

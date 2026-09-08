@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/maintenance"
 	"github.com/alicebob/miniredis/v2"
 )
 
@@ -104,7 +103,7 @@ func TestAuthzV3ConvergeRequiresOperationAndApplyEvidence(t *testing.T) {
 		{"authz-v3-converge", "unknown"},
 		{"authz-v3-converge", "apply"},
 		{"authz-v3-converge", "apply", "--confirm=wrong", "--expected-source-hash=" + strings.Repeat("a", 64)},
-		{"authz-v3-converge", "apply", "--confirm=" + maintenance.AuthzV3ConvergeConfirmation},
+		{"authz-v3-converge", "apply", "--confirm=" + "RETIRED"},
 		{"authz-v3-converge", "preflight", "--confirm=unexpected"},
 		{"authz-v3-converge", "evidence", "--build-sha="},
 	} {

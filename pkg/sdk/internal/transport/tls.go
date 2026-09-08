@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"

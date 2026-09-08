@@ -2,46 +2,29 @@ package session
 
 import (
 	"context"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/testhelpers"
 	"testing"
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/proof"
-	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/proof"
+	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 )
 
 type sessionTokenCapabilitiesStub struct {
-	captured *authentication.Principal
+	captured *sessiondomain.Session
 }
 
-func (s *sessionTokenCapabilitiesStub) IssueAuthentication(ctx context.Context, principal *authentication.Principal) (*tokenapp.TokenPair, error) {
+func (s *sessionTokenCapabilitiesStub) IssueInitialTokens(ctx context.Context, principal *sessiondomain.Session) (*tokenapp.TokenPair, error) {
 	s.captured = principal
-	access := tokenapp.NewAccessToken(
-		"access-id",
-		"access-value",
-		"session-id",
-		principal.UserID,
-		principal.LoginIdentityID,
-		meta.ZeroID,
-		time.Minute,
-	)
-	refresh := tokenapp.NewRefreshToken(
-		"refresh-id",
-		"refresh-value",
-		"session-id",
-		principal.UserID,
-		principal.LoginIdentityID,
-		meta.ZeroID,
-		nil,
-		nil,
-		time.Hour,
-	)
+	access := tokenapp.NewAccessToken("access-id", "access-value", "session-id", principal.UserID, principal.LoginIdentityID, time.Now(), time.Now().Add(time.Minute))
+	refresh := tokenapp.NewRefreshToken("refresh-id", "refresh-value", "session-id", principal.UserID, principal.LoginIdentityID, time.Now(), time.Now().Add(time.Hour))
 	return tokenapp.NewTokenPair(access, refresh), nil
 }
 
@@ -58,7 +41,7 @@ func (s *sessionTokenCapabilitiesStub) RevokeRefreshToken(ctx context.Context, t
 }
 
 type sessionTokenCapabilities interface {
-	tokenapp.AuthenticationGrantIssuer
+	tokenapp.InitialTokenIssuer
 	tokenapp.Refresher
 	tokenapp.Revoker
 }
@@ -67,11 +50,12 @@ func newSessionServiceForTest(t *testing.T, tokens sessionTokenCapabilities, aut
 	t.Helper()
 
 	signIn := signin.New(signin.Dependencies{
-		AuthenticationGrantIssuer: tokens,
-		Authenticator:             auth,
-		MethodRegistry:            method.DefaultSelector(),
-		ProofFactory:              proof.DefaultFactory(nil, nil),
-		CredentialRecorder:        nil,
+		TokenIssuer:     tokens,
+		AdmissionPolicy: testhelpers.AuthnFlow{}, SessionCreator: testhelpers.AuthnFlow{}, SessionRevoker: testhelpers.AuthnFlow{},
+		Authenticator:      auth,
+		MethodRegistry:     method.DefaultSelector(),
+		ProofFactory:       proof.DefaultFactory(nil, nil),
+		CredentialRecorder: nil,
 	})
 	svc, err := NewApplicationService(Dependencies{
 		Refresher: tokens,

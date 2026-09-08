@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
+	apiserveroptions "github.com/FangcunMount/iam/v5/internal/apiserver/options"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -109,7 +109,7 @@ func TestAPIServerYAMLConfigMapsToRuntimeOptions(t *testing.T) {
 				assertEqual(t, "migration database", opts.MigrationOptions.Database, "iam")
 				assertEqual(t, "server mode", opts.GenericServerRunOptions.Mode, "release")
 				assertEqual(t, "auth issuer", opts.Auth.JWTIssuer, "https://iam.fangcunmount.cn")
-				assertEqual(t, "auth audience count", len(opts.Auth.AccessTokenAudience), 2)
+				assertEqual(t, "auth audience count", len(opts.Auth.AccessTokenAudience), 3)
 				assertEqual(t, "auth session max ttl", opts.Auth.SessionMaxTTL, 24*time.Hour)
 				assertEqual(t, "password lockout enabled", opts.Auth.PasswordLockout.Enabled, true)
 				assertEqual(t, "password lockout threshold", opts.Auth.PasswordLockout.Threshold, 5)
@@ -229,8 +229,6 @@ func TestRemovedRuntimeYAMLKeysDecodeIntoValidationTombstones(t *testing.T) {
 		{name: "server write timeout", key: "server.write-timeout", yaml: "server:\n  write-timeout: 60\n"},
 		{name: "suggest data dir", key: "suggest.data_dir", yaml: "suggest:\n  data_dir: /tmp/private\n"},
 		{name: "suggest snapshot", key: "suggest.snapshot", yaml: "suggest:\n  snapshot: true\n"},
-		{name: "suggest tenant placeholder", key: "suggest.loader_placeholder_tenant_id", yaml: "suggest:\n  loader_placeholder_tenant_id: 1\n"},
-		{name: "suggest zero tenant placeholder", key: "suggest.loader_placeholder_tenant_id", yaml: "suggest:\n  loader_placeholder_tenant_id: 0\n"},
 		{name: "sms mq topic", key: "sms.mq.topic", yaml: "sms:\n  mq:\n    topic: custom.sms\n"},
 		{name: "sms empty mq topic", key: "sms.mq.topic", yaml: "sms:\n  mq:\n    topic: ''\n"},
 	}

@@ -12,7 +12,7 @@ import (
 )
 
 type openAPISpec struct {
-	Paths      map[string]map[string]openAPIOperation `yaml:"paths"`
+	Paths      map[string]openAPIPath `yaml:"paths"`
 	Components struct {
 		Schemas map[string]openAPISchema `yaml:"schemas"`
 	} `yaml:"components"`
@@ -43,23 +43,23 @@ type openAPISchema struct {
 	Properties  map[string]openAPISchema `yaml:"properties"`
 }
 
-func TestLoginV2OpenAPIContractMatchesRequestValidation(t *testing.T) {
-	spec := loadOpenAPISpec(t, "api/rest/authn.v2.yaml")
+func TestLoginV3OpenAPIContractMatchesRequestValidation(t *testing.T) {
+	spec := loadOpenAPISpec(t, "api/rest/authn.v3.yaml")
 
-	loginSchema := spec.schema(t, "LoginV2Request")
+	loginSchema := spec.schema(t, "LoginV3Request")
 	require.ElementsMatch(t, []string{"password", "phone_otp", "wechat", "wechat_scan", "wecom"}, loginSchema.Properties["auth_method"].Enum)
 	require.Contains(t, loginSchema.Properties["method_payload"].Description, "wechat_scan")
 	require.Equal(t, "object", loginSchema.Properties["method_payload"].Type)
 
 	for _, method := range loginSchema.Properties["auth_method"].Enum {
-		req := LoginV2Request{
+		req := LoginV3Request{
 			AuthMethod:    method,
 			MethodPayload: json.RawMessage(`{}`),
 		}
 		require.NoError(t, req.Validate(), "OpenAPI auth_method %q must be accepted by request validation", method)
 	}
 
-	req := LoginV2Request{
+	req := LoginV3Request{
 		AuthMethod:    "jwt_token",
 		MethodPayload: json.RawMessage(`{"access_token":"token"}`),
 	}
@@ -126,4 +126,27 @@ func repoRoot(t *testing.T) string {
 		require.NotEqual(t, dir, parent, "go.mod not found")
 		dir = parent
 	}
+}
+
+// Path Item 允许 servers 等元数据，只有 HTTP 方法节点属于 Operation。
+type openAPIPath map[string]openAPIOperation
+
+func (p *openAPIPath) UnmarshalYAML(node *yaml.Node) error {
+	var entries map[string]yaml.Node
+	if err := node.Decode(&entries); err != nil {
+		return err
+	}
+	*p = openAPIPath{}
+	for _, method := range []string{"get", "post", "put", "patch", "delete", "options", "head", "trace"} {
+		value, ok := entries[method]
+		if !ok {
+			continue
+		}
+		var operation openAPIOperation
+		if err := value.Decode(&operation); err != nil {
+			return err
+		}
+		(*p)[method] = operation
+	}
+	return nil
 }

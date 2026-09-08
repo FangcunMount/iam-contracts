@@ -1,7 +1,7 @@
 // Package authzschema provides business independent authorization examples.
 package authzschema
 
-import "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/attribute"
+import "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/attribute"
 
 const AttributeKey = "object.status"
 

@@ -7,7 +7,7 @@
 | 场景 | 推荐入口 | 安全语义 |
 | --- | --- | --- |
 | 业务服务调用 Identity/AuthZ/IDP | `sdk.NewClient` | gRPC + service identity |
-| 用户登录/OTP/绑定 | `auth/loginv2`、`challenge`、`loginidentity` | REST，按 endpoint 公开/用户 token |
+| 用户登录/OTP/绑定 | `auth/loginv3`、`challenge`、`loginidentity` | REST，按 endpoint 公开/用户 token |
 | 低延迟 JWT 验签 | `auth/jwks` + local verifier | 签名/claims，本地撤销窗口 |
 | 强即时撤销验证 | `client.Auth().VerifyToken` / remote verifier | IAM 在线状态检查 |
 

@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	loginidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	loginidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,7 +19,6 @@ func TestPrepareStepBuildsLoginIdentityData(t *testing.T) {
 	openID := "openid-1"
 	unionID := "union-1"
 	appID := "wx-app"
-	tenantID := meta.FromUint64(9001)
 
 	tests := []struct {
 		name                   string
@@ -35,13 +34,12 @@ func TestPrepareStepBuildsLoginIdentityData(t *testing.T) {
 			name: "opera password",
 			req: SignupRequest{
 				LoginIdentity: UsernameLoginIdentityInput{
-					Username:      "zhangsan",
-					RealmTenantID: tenantID,
+					Username: "zhangsan",
 				},
 			},
 			needPasswordCredential: true,
 			provider:               loginidentity.ProviderUsername,
-			realm:                  tenantID.String(),
+			realm:                  loginidentity.RealmDefault,
 			identifier:             "zhangsan",
 		},
 		{

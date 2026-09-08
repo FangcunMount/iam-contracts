@@ -1,8 +1,8 @@
 package role
 
 import (
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	base "github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	base "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 )
 
 // Mapper 领域对象与PO的转换器
@@ -21,8 +21,9 @@ func (m *Mapper) ToRoleBO(po *RolePO) (*domain.Role, error) {
 	role, err := domain.NewRole(
 		po.Name,
 		po.DisplayName,
-		po.TenantID,
+
 		domain.WithID(po.ID),
+		domain.WithManagementProtection(domain.ManagementProtection(po.ManagementProtection)),
 		domain.WithDescription(po.Description),
 	)
 	if err != nil {
@@ -40,9 +41,10 @@ func (m *Mapper) ToRolePO(role *domain.Role) *RolePO {
 		AuditFields: base.AuditFields{
 			ID: role.ID,
 		},
-		Name:        role.NameString(),
-		DisplayName: role.DisplayName,
-		TenantID:    role.TenantIDString(),
+		Name:                 role.NameString(),
+		ManagementProtection: string(role.ManagementProtection),
+		DisplayName:          role.DisplayName,
+
 		Description: role.Description,
 	}
 }

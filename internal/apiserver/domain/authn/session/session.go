@@ -3,8 +3,8 @@ package session
 import (
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // Status 表示认证会话的生命周期状态。
@@ -26,11 +26,10 @@ type Session struct {
 	// —— 身份信息 —— //
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-	TenantID        meta.ID // 租户ID
 
 	// —— 认证信息 —— //
 	AuthContext  authentication.AuthenticationContext
-	TokenContext authentication.TokenContext
+	TokenContext TokenContext
 
 	// —— 状态信息 —— //
 	Status       Status     // 状态
@@ -42,10 +41,10 @@ type Session struct {
 }
 
 // NewWithContexts 创建以强类型认证上下文和令牌上下文为权威来源的会话。
-func NewWithContexts(sessionID string, userID, loginIdentityID, tenantID meta.ID, authContext authentication.AuthenticationContext, tokenContext authentication.TokenContext, expiresAt time.Time) *Session {
+func NewWithContexts(sessionID string, userID, loginIdentityID meta.ID, authContext authentication.AuthenticationContext, tokenContext TokenContext, expiresAt time.Time) *Session {
 	now := time.Now()
 	return &Session{
-		SessionID: sessionID, UserID: userID, LoginIdentityID: loginIdentityID, TenantID: tenantID,
+		SessionID: sessionID, UserID: userID, LoginIdentityID: loginIdentityID,
 		AuthContext: authContext.Clone(), TokenContext: tokenContext.Clone(),
 		Status: StatusActive, CreatedAt: now, ExpiresAt: expiresAt,
 	}

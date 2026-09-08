@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // AuthenticationState 是一次原子认证状态更新后的结果。
@@ -14,7 +14,7 @@ type AuthenticationState struct {
 	NewlyLocked    bool
 }
 
-// MaterialRotation 描述认证成功时可选的凭据材料轮换。
+// MaterialRotation 描述身份核验成功时可选的凭据材料轮换。
 type MaterialRotation struct {
 	Material []byte
 	Algo     *string

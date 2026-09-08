@@ -1,6 +1,6 @@
 package verifier
 
-import "github.com/FangcunMount/iam/v4/pkg/sdk/config"
+import "github.com/FangcunMount/iam/v5/pkg/sdk/config"
 
 // WithVerifyStrategy 设置验证策略。
 func WithVerifyStrategy(strategy VerifyStrategy) TokenVerifierOption {

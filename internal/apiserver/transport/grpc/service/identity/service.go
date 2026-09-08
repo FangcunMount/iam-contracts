@@ -3,10 +3,10 @@ package identity
 import (
 	"google.golang.org/grpc"
 
-	identityv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/identity/v2"
-	profileApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/profile"
-	profileLinkApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/profilelink"
-	userApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/user"
+	identityv2 "github.com/FangcunMount/iam/v5/api/grpc/iam/identity/v2"
+	profileApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/profile"
+	profileLinkApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/profilelink"
+	userApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/user"
 )
 
 // Service 聚合 identity 模块的 gRPC 服务

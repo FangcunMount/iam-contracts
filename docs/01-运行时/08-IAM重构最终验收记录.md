@@ -5,7 +5,7 @@
 ## 1. 当前结论
 
 截至 2026-08-26，生产库曾验收 `version=28, dirty=0`，16 张 BASE TABLE 精确匹配，active RoleBinding 重复组为 0；`casbin_rule`、
-`authz_cutover_state` 与 `authz_resources.scope_kinds` 均不存在。AuthZ v3 功能基线 SHA `d3f58369d8c58dbf50ae15282f5641bc370055a6`
+`authz_cutover_state` 与 `authz_resources.scope_kinds` 均不存在。AuthZ v4 功能基线 SHA `d3f58369d8c58dbf50ae15282f5641bc370055a6`
 与 000028 AuthN 功能发布 SHA `9fab2d674a5d0e11e11dbd8a24098aba8b1c7851` 均已部署并通过独立健康检查。`000019–000028` 的历史迁移发布和部署观察已经闭合；
 migration 25 基线 `c84c638d46ade0a2b1b65379289931ef9e28b172` 仍作为 RoleBinding guard 的历史发布证据保留。
 
@@ -30,14 +30,14 @@ migration 25 基线 `c84c638d46ade0a2b1b65379289931ef9e28b172` 仍作为 RoleBin
 | 数据库操作单一脚本 | 已实现 | `scripts/dbops/database-operation.sh`、`database_operation_test.go` |
 | MySQL 8 合成备份恢复与 migration 25 guard | 已实现并完成同 SHA 验收 | [MySQL 8 run `32791721351`](https://github.com/FangcunMount/iam/actions/runs/32791721351) 覆盖 full-chain migration、复合唯一索引并发语义、生产同款 preflight 与 backup/restore fixture |
 | 文档可生成事实门禁 | 已实现 | `scripts/check-docs-facts.py` 从 proto、bootstrap、开发配置和 active Markdown 生成期望值，校验服务矩阵、资源示例、Quick Start 端口和状态计数 |
-| Active docs 语义分类 | 已生成核对 | Active docs 状态计数：总计 `83` 篇，`已实现` `83` 篇，`规划改造` `0` 篇。历史目标提示词已退出 active 层 |
+| Active docs 语义分类 | 已生成核对 | Active docs 状态计数：总计 `84` 篇，`已实现` `84` 篇，`规划改造` `0` 篇。历史目标提示词已退出 active 层 |
 | 遗留资产退役 | 已完成生产验收 | `000019–000024` 的批次证据见 [遗留资产、兼容层与数据库退役审计](../05-工程质量与运维/06-遗留资产兼容层与数据库退役审计.md) |
-| AuthZ v3 一步到位切换 | 已完成生产验收 | [切换 `32859067799`](https://github.com/FangcunMount/iam/actions/runs/32859067799)、[数据库状态 `32876762969`](https://github.com/FangcunMount/iam/actions/runs/32876762969)、[RoleBinding guard `32876761874`](https://github.com/FangcunMount/iam/actions/runs/32876761874) |
+| AuthZ v4 一步到位切换 | 已完成生产验收 | [切换 `32859067799`](https://github.com/FangcunMount/iam/actions/runs/32859067799)、[数据库状态 `32876762969`](https://github.com/FangcunMount/iam/actions/runs/32876762969)、[RoleBinding guard `32876761874`](https://github.com/FangcunMount/iam/actions/runs/32876761874) |
 
 ## 4. 最终发布证据
 
 以下条目绑定 000028 功能发布 SHA `9fab2d674a5d0e11e11dbd8a24098aba8b1c7851`。成功 run 只证明对应层，不自动补齐其他证据；
-历史 RoleBinding guard 和 AuthZ v3 最终切换证据另列在其后。
+历史 RoleBinding guard 和 AuthZ v4 最终切换证据另列在其后。
 
 | 项目 | 当前状态 | 责任方 | 完成条件与安全元数据 |
 | --- | --- | --- | --- |
@@ -50,7 +50,7 @@ migration 25 基线 `c84c638d46ade0a2b1b65379289931ef9e28b172` 仍作为 RoleBin
 | Production Health Check | 已通过 | 平台运维 | [健康检查 run `32925995472`](https://github.com/FangcunMount/iam/actions/runs/32925995472) 证明容器 healthy、`/healthz=200`、`/readyz=200`、运行 SHA 精确匹配且 MySQL/Redis 可达 |
 | AuthZ gRPC 安全消息 | 仓库侧通过，生产抽样待登记 | 应用运维 | 安全 mapper 与测试已通过；仍需保存不含底层错误文本的生产黑盒验证结论 |
 
-### 4.1 AuthZ v3 最终切换
+### 4.1 AuthZ v4 最终切换
 
 | 项目 | 当前状态 | 证据 |
 | --- | --- | --- |
@@ -108,5 +108,5 @@ RDS 基础备份满足当前最低保护要求，但增强恢复能力只完成�
 
 ## 7. 关闭条件
 
-当前可以分别陈述“仓库门禁通过”“`000019–000028` 生产迁移完成”“AuthZ v3 与 000028 AuthN 功能 SHA 均已部署且健康检查成功”，不能合并成“所有历史安全与恢复事项已最终关闭”。只有第 4、5、
+当前可以分别陈述“仓库门禁通过”“`000019–000028` 生产迁移完成”“AuthZ v4 与 000028 AuthN 功能 SHA 均已部署且健康检查成功”，不能合并成“所有历史安全与恢复事项已最终关闭”。只有第 4、5、
 6 节剩余项都有真实、安全的元数据证据，才能把整个 IAM 历史治理结论改为“最终验收全部完成”；这些历史缺口不改变本轮功能发布已完成的结论。

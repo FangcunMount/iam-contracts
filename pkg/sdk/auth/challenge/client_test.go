@@ -16,7 +16,7 @@ func TestClientSendsLoginPhoneOTP(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPost, r.Method)
-		require.Equal(t, "/api/v2/authn/challenges/phone-otp", r.URL.Path)
+		require.Equal(t, "/api/v3/authn/challenges/phone-otp", r.URL.Path)
 
 		var req SendLoginPhoneOTPRequest
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
@@ -60,7 +60,7 @@ func TestClientStartsWechatOpenAuthorize(t *testing.T) {
 	expiresAt := time.Date(2026, 6, 4, 12, 0, 0, 0, time.UTC)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPost, r.Method)
-		require.Equal(t, "/api/v2/authn/wechat-open/authorize", r.URL.Path)
+		require.Equal(t, "/api/v3/authn/wechat-open/authorize", r.URL.Path)
 
 		var req WechatOpenAuthorizeRequest
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
@@ -89,7 +89,7 @@ func TestClientStartsWechatOpenAuthorizeWithEmptyNonce(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPost, r.Method)
-		require.Equal(t, "/api/v2/authn/wechat-open/authorize", r.URL.Path)
+		require.Equal(t, "/api/v3/authn/wechat-open/authorize", r.URL.Path)
 
 		var req WechatOpenAuthorizeRequest
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))

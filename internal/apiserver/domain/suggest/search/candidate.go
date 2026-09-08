@@ -1,6 +1,6 @@
 package search
 
-import "github.com/FangcunMount/iam/v4/internal/apiserver/domain/suggest/profile"
+import "github.com/FangcunMount/iam/v5/internal/apiserver/domain/suggest/profile"
 
 // MatchStrength 表示召回匹配强度，用于排序。
 type MatchStrength uint8

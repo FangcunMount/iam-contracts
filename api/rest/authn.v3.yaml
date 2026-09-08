@@ -1,0 +1,1245 @@
+openapi: 3.1.0
+info:
+  title: IAM · AuthN API v2（认证中心）
+  version: 3.0.0
+  description: 身份认证、令牌生命周期、登录身份开通与 JWKS REST API。公开登录入口使用 auth_method + method_payload 显式 v2 契约。
+  contact:
+    name: API Support
+    email: yshujie@163.com
+    url: https://github.com/FangcunMount/iam
+servers:
+- url: https://iam.fangcunmount.cn/api/v3
+  description: Production
+- url: http://localhost:18081/api/v3
+  description: Local Dev
+security:
+- bearerAuth: []
+tags:
+- name: Authentication-Auth
+  description: 认证与令牌生命周期
+- name: Authentication-JWKS
+  description: 公钥集管理
+- name: 认证
+paths:
+  /.well-known/jwks.json:
+    get:
+      tags:
+      - Authentication-JWKS
+      summary: 获取 JWKS
+      description: 获取 JSON Web Key Set，用于验证 JWT 签名
+      responses:
+        '200':
+          description: JWKS JSON
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: 缓存控制
+            ETag:
+              schema:
+                type: string
+              description: 实体标签
+            Last-Modified:
+              schema:
+                type: string
+              description: 最后修改时间
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+        '500':
+          description: 服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+    servers:
+    - url: https://iam.fangcunmount.cn/api/v2
+    - url: http://localhost:18081/api/v2
+  /authn/admin/jwks/keys:
+    get:
+      tags:
+      - Authentication-JWKS
+      summary: 列出密钥
+      description: 分页列出所有密钥
+      parameters:
+      - name: status
+        in: query
+        description: 状态过滤 (active, grace, retired)
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 每页数量
+        schema:
+          type: integer
+          default: 20
+      - name: offset
+        in: query
+        description: 偏移量
+        schema:
+          type: integer
+          default: 0
+      responses:
+        '200':
+          description: 密钥列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.KeyListResponse'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '403':
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '500':
+          description: 服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+    post:
+      tags:
+      - Authentication-JWKS
+      summary: 创建密钥
+      description: 创建新的签名密钥
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.CreateKeyRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.KeyResponse'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '403':
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '500':
+          description: 服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+  /authn/admin/jwks/keys/{kid}:
+    get:
+      tags:
+      - Authentication-JWKS
+      summary: 获取密钥详情
+      description: 根据 kid 获取密钥详细信息
+      parameters:
+      - name: kid
+        in: path
+        description: 密钥 ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 密钥详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.KeyResponse'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '403':
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '404':
+          description: 密钥不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '500':
+          description: 服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+  /authn/admin/jwks/keys/{kid}/force-retire:
+    post:
+      tags:
+      - Authentication-JWKS
+      summary: 强制退役密钥
+      description: 强制将任何状态的密钥转为 Retired（用于紧急情况）
+      parameters:
+      - name: kid
+        in: path
+        description: 密钥 ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: 强制退役成功
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '403':
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '404':
+          description: 密钥不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '500':
+          description: 服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+  /authn/admin/jwks/keys/{kid}/retire:
+    post:
+      tags:
+      - Authentication-JWKS
+      summary: 退役密钥
+      description: 将密钥状态从 Grace 转为 Retired
+      parameters:
+      - name: kid
+        in: path
+        description: 密钥 ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: 退役成功
+        '400':
+          description: 参数错误或状态不允许
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '403':
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '404':
+          description: 密钥不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '500':
+          description: 服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+  /authn/admin/jwks/keys/cleanup:
+    post:
+      tags:
+      - Authentication-JWKS
+      summary: 清理过期密钥
+      description: 删除已过期的 Retired 密钥
+      responses:
+        '200':
+          description: 清理结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.CleanupResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '403':
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '500':
+          description: 服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+  /authn/admin/jwks/keys/publishable:
+    get:
+      tags:
+      - Authentication-JWKS
+      summary: 获取可发布的密钥
+      description: 获取当前会被发布到 JWKS 的密钥列表（用于预览或调试）
+      responses:
+        '200':
+          description: 可发布的密钥列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.PublishableKeysResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '403':
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+        '500':
+          description: 服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+  /authn/challenges/phone-otp:
+    post:
+      tags:
+      - 认证
+      summary: 发送登录短信验证码
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.SendLoginPhoneOTPRequest'
+      responses:
+        '200':
+          description: 已受理
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.MessageResponse'
+  /authn/login:
+    post:
+      tags:
+      - Authentication-Auth
+      summary: 显式登录
+      description: 使用 auth_method 明确选择认证方式，method_payload 按认证方式解析。v2 只开放 password、phone_otp、wechat、wechat_scan、wecom。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LoginV3Request'
+            examples:
+              password:
+                value:
+                  auth_method: password
+                  method_payload:
+                    username: admin@example.com
+                    password: Admin@123
+                    tenant_id: 1
+              phone_otp:
+                value:
+                  auth_method: phone_otp
+                  method_payload:
+                    phone: '+8613811112222'
+                    otp_code: '123456'
+              wechat:
+                value:
+                  auth_method: wechat
+                  method_payload:
+                    app_id: wx_appid
+                    code: js_code
+              wechat_scan:
+                value:
+                  auth_method: wechat_scan
+                  method_payload:
+                    app_id: wx_open_appid
+                    code: oauth_code
+                    state: oauth_state
+              wecom:
+                value:
+                  auth_method: wecom
+                  method_payload:
+                    corp_id: corp_id
+                    auth_code: auth_code
+      responses:
+        '200':
+          description: 登录成功，返回访问令牌和刷新令牌
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.TokenPair'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+        '401':
+          description: 认证失败
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+  /authn/login-identities:
+    get:
+      tags:
+      - 认证
+      summary: 列出当前用户登录身份
+      responses:
+        '200':
+          description: 当前用户已绑定的登录身份
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.LoginIdentityListResponse'
+  /authn/login-identities/{id}:
+    delete:
+      tags:
+      - 认证
+      summary: 解绑登录身份
+      parameters:
+      - name: id
+        in: path
+        description: 登录身份 ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 已解绑
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.MessageResponse'
+  /authn/login-identities/phone:
+    post:
+      tags:
+      - 认证
+      summary: 绑定手机号登录身份
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LinkPhoneRequest'
+      responses:
+        '200':
+          description: 绑定结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.LinkLoginIdentityResponse'
+  /authn/login-identities/phone/challenge:
+    post:
+      tags:
+      - 认证
+      summary: 发送手机号绑定验证码
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LinkPhoneChallengeRequest'
+      responses:
+        '200':
+          description: 已发送
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.MessageResponse'
+  /authn/login-identities/wechat-miniprogram:
+    post:
+      tags:
+      - 认证
+      summary: 绑定微信小程序登录身份
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LinkWechatMiniProgramRequest'
+      responses:
+        '200':
+          description: 绑定结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.LinkLoginIdentityResponse'
+  /authn/login-identities/wechat-open:
+    post:
+      tags:
+      - 认证
+      summary: 完成微信开放平台扫码绑定
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LinkWechatOpenRequest'
+      responses:
+        '200':
+          description: 绑定结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.LinkLoginIdentityResponse'
+  /authn/login-identities/wechat-open/authorize:
+    post:
+      tags:
+      - 认证
+      summary: 发起微信开放平台扫码绑定授权
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LinkWechatOpenAuthorizeRequest'
+      responses:
+        '200':
+          description: 授权地址与 state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.WechatOpenAuthorizeResponse'
+  /authn/login-identities/wecom:
+    post:
+      tags:
+      - 认证
+      summary: 绑定企业微信登录身份
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LinkWecomRequest'
+      responses:
+        '200':
+          description: 绑定结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.LinkLoginIdentityResponse'
+  /authn/logout:
+    post:
+      tags:
+      - 认证
+      summary: 用户登出
+      description: 撤销访问令牌和刷新令牌
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LogoutRequest'
+      responses:
+        '200':
+          description: 登出成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.MessageResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+  /authn/refresh_token:
+    post:
+      tags:
+      - 认证
+      summary: 刷新访问令牌
+      description: 使用刷新令牌获取新的访问令牌
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.RefreshTokenRequest'
+      responses:
+        '200':
+          description: 刷新成功，返回新的访问令牌
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.TokenPair'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+        '401':
+          description: 刷新令牌无效或已过期
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+  /authn/signups/wechat-miniprogram:
+    post:
+      tags:
+      - 认证
+      summary: 微信小程序登录身份开通
+      description: 通过微信小程序 code 建立 User 与 LoginIdentity 绑定。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.SignUpWithWeChatMiniProgramRequest'
+      responses:
+        '200':
+          description: 开通成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.SignupResult'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+        '409':
+          description: 登录身份已绑定到其他用户
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+  /authn/verify:
+    post:
+      tags:
+      - 认证
+      summary: 验证访问令牌
+      description: 验证访问令牌的有效性并返回声明信息
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.VerifyTokenRequest'
+      responses:
+        '200':
+          description: 验证成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.TokenVerifyResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+        '401':
+          description: 令牌无效
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+  /authn/wechat-open/authorize:
+    post:
+      tags:
+      - 认证
+      summary: 发起微信开放平台扫码登录授权
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.WechatOpenLoginAuthorizeRequest'
+      responses:
+        '200':
+          description: 授权地址与 state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.WechatOpenAuthorizeResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    KeyId:
+      in: path
+      name: kid
+      required: true
+      schema:
+        type: string
+    Limit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Offset:
+      in: query
+      name: offset
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+  responses:
+    Unauthorized:
+      description: 未认证
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+    Forbidden:
+      description: 无权限
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+    NotFound:
+      description: 不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+    Conflict:
+      description: 冲突
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+    BadRequest:
+      description: 参数错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+    InternalServerError:
+      description: 服务器内部错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_pkg_core.ErrResponse'
+  schemas:
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.CreateKeyRequest:
+      properties:
+        algorithm:
+          description: 签名算法
+          type: string
+        notAfter:
+          description: 过期时间（可选）
+          type: string
+        notBefore:
+          description: 生效时间（可选）
+          type: string
+      required:
+      - algorithm
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LinkPhoneChallengeRequest:
+      properties:
+        phone:
+          type: string
+      required:
+      - phone
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LinkPhoneRequest:
+      properties:
+        otp_code:
+          type: string
+        phone:
+          type: string
+      required:
+      - otp_code
+      - phone
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LinkWechatMiniProgramRequest:
+      properties:
+        app_id:
+          type: string
+        code:
+          type: string
+      required:
+      - app_id
+      - code
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LinkWechatOpenAuthorizeRequest:
+      properties:
+        nonce:
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LinkWechatOpenRequest:
+      properties:
+        code:
+          type: string
+        state:
+          type: string
+      required:
+      - code
+      - state
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LinkWecomRequest:
+      properties:
+        code:
+          type: string
+        corp_id:
+          type: string
+      required:
+      - code
+      - corp_id
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LoginV3Request:
+      properties:
+        auth_method:
+          description: 认证方式：password | phone_otp | wechat | wechat_scan | wecom
+          enum:
+          - password
+          - phone_otp
+          - wechat
+          - wechat_scan
+          - wecom
+          type: string
+        device_id:
+          description: 设备 ID
+          type: string
+        method_payload:
+          description: 凭证（wechat_scan 需要 app_id/code/state；其他方式按 auth_method 解析）
+          type: object
+      required:
+      - auth_method
+      - method_payload
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.LogoutRequest:
+      properties:
+        access_token:
+          description: 可选，撤销访问令牌
+          type: string
+        refresh_token:
+          description: 可选，撤销刷新令牌
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.RefreshTokenRequest:
+      properties:
+        refresh_token:
+          type: string
+      required:
+      - refresh_token
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.SendLoginPhoneOTPRequest:
+      properties:
+        phone:
+          description: 支持 E.164 或国内手机号，服务端规范为 E.164
+          type: string
+      required:
+      - phone
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.SignUpWithWeChatMiniProgramRequest:
+      properties:
+        appId:
+          type: string
+        avatar:
+          type: string
+        email:
+          type: string
+        jsCode:
+          type: string
+        meta:
+          additionalProperties: true
+          type: object
+        name:
+          type: string
+        nickname:
+          type: string
+        phone:
+          type: string
+      required:
+      - appId
+      - jsCode
+      - name
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.VerifyTokenRequest:
+      properties:
+        access_token:
+          type: string
+        expected_audience:
+          items:
+            type: string
+          minItems: 1
+          type: array
+        expected_issuer:
+          type: string
+      required:
+      - access_token
+      - expected_audience
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.WechatOpenLoginAuthorizeRequest:
+      properties:
+        nonce:
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.CleanupResponse:
+      properties:
+        deletedCount:
+          description: 删除的密钥数量
+          type: integer
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.KeyInfo:
+      properties:
+        algorithm:
+          description: 签名算法
+          type: string
+        createdAt:
+          description: 创建时间
+          type: string
+        kid:
+          description: 密钥 ID
+          type: string
+        notAfter:
+          description: 过期时间
+          type: string
+        notBefore:
+          description: 生效时间
+          type: string
+        publicJwk:
+          allOf:
+          - $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.PublicJWK'
+          description: 公钥 JWK
+        status:
+          description: 密钥状态
+          type: string
+        updatedAt:
+          description: 更新时间
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.KeyListResponse:
+      properties:
+        keys:
+          description: 密钥列表
+          items:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.KeyInfo'
+          type: array
+        limit:
+          description: 每页数量
+          type: integer
+        offset:
+          description: 偏移量
+          type: integer
+        total:
+          description: 总数
+          type: integer
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.KeyResponse:
+      properties:
+        algorithm:
+          description: 签名算法
+          type: string
+        createdAt:
+          description: 创建时间
+          type: string
+        kid:
+          description: 密钥 ID
+          type: string
+        notAfter:
+          description: 过期时间
+          type: string
+        notBefore:
+          description: 生效时间
+          type: string
+        publicJwk:
+          allOf:
+          - $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.PublicJWK'
+          description: 公钥 JWK
+        status:
+          description: 密钥状态 (active, grace, retired)
+          type: string
+        updatedAt:
+          description: 更新时间
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.LinkLoginIdentityResponse:
+      properties:
+        login_identity:
+          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.LoginIdentityResponse'
+        reused:
+          type: boolean
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.LoginIdentityListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.LoginIdentityResponse'
+          type: array
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.LoginIdentityResponse:
+      properties:
+        global_identifier:
+          type: string
+        id:
+          type: string
+        identifier:
+          type: string
+        linked_at:
+          type: string
+        provider:
+          type: string
+        realm:
+          type: string
+        status:
+          type: string
+        verified_at:
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.MessageResponse:
+      properties:
+        message:
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.PublicJWK:
+      properties:
+        alg:
+          type: string
+        crv:
+          type: string
+        e:
+          type: string
+        kid:
+          type: string
+        kty:
+          type: string
+        n:
+          type: string
+        use:
+          type: string
+        x:
+          type: string
+        y:
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.PublishableKeyInfo:
+      properties:
+        algorithm:
+          description: 签名算法
+          type: string
+        kid:
+          description: 密钥 ID
+          type: string
+        notAfter:
+          description: 过期时间
+          type: string
+        notBefore:
+          description: 生效时间
+          type: string
+        publicJwk:
+          allOf:
+          - $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.PublicJWK'
+          description: 公钥 JWK
+        status:
+          description: 密钥状态
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.PublishableKeysResponse:
+      properties:
+        keys:
+          description: 可发布的密钥列表
+          items:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.PublishableKeyInfo'
+          type: array
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.SignupCredential:
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.SignupResult:
+      properties:
+        credential:
+          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.SignupCredential'
+        email:
+          type: string
+        isNewIdentity:
+          type: boolean
+        isNewUser:
+          type: boolean
+        loginIdentityId:
+          type: integer
+        phone:
+          type: string
+        userId:
+          type: integer
+        userName:
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.TokenClaims:
+      properties:
+        amr:
+          items:
+            type: string
+          type: array
+        attributes:
+          additionalProperties:
+            type: string
+          type: object
+        audience:
+          description: 受众
+          items:
+            type: string
+          type: array
+        authenticated_at:
+          description: 原始认证时间
+          type: string
+        expires_at:
+          description: 过期时间
+          type: string
+        issued_at:
+          description: 签发时间
+          type: string
+        issuer:
+          description: 签发者
+          type: string
+        jti:
+          description: JWT ID（可选）
+          type: string
+        login_identity_id:
+          description: 登录身份 ID
+          type: string
+        not_before:
+          description: 生效时间
+          type: string
+        org_id:
+          description: IAM 授权域
+          type: string
+        session_id:
+          description: 会话 ID
+          type: string
+        subject:
+          description: 主体
+          type: string
+        token_type:
+          description: access
+          type: string
+        user_id:
+          description: 用户 ID
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.TokenPair:
+      properties:
+        access_token:
+          description: 访问令牌
+          type: string
+        expires_in:
+          description: 过期时间（秒）
+          type: integer
+        refresh_token:
+          description: 刷新令牌（可选）
+          type: string
+        token_type:
+          description: 令牌类型（Bearer）
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.TokenVerifyResponse:
+      properties:
+        claims:
+          allOf:
+          - $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.TokenClaims'
+          description: 令牌声明（如果有效）
+        valid:
+          description: 令牌是否有效
+          type: boolean
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_response.WechatOpenAuthorizeResponse:
+      properties:
+        app_id:
+          type: string
+        authorize_url:
+          type: string
+        expires_at:
+          type: string
+        nonce:
+          type: string
+        state:
+          type: string
+      type: object
+    github_com_FangcunMount_iam_v2_pkg_core.ErrResponse:
+      properties:
+        code:
+          description: Code 定义了业务错误代码
+          type: integer
+        message:
+          description: 'Message 包含此消息的详细信息
+
+            此消息适合暴露给外部'
+          type: string
+        reference:
+          description: Reference 返回参考文档，可能有助于解决此错误
+          type: string
+      type: object

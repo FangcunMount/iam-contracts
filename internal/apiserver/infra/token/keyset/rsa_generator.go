@@ -9,8 +9,8 @@ import (
 	"math/big"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	pkgauth "github.com/FangcunMount/iam/v4/pkg/auth"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	pkgauth "github.com/FangcunMount/iam/v5/pkg/auth"
 )
 
 // RSAKeyGenerator RSA 密钥生成器
@@ -71,7 +71,7 @@ func (g *RSAKeyGenerator) GenerateKeyPair(ctx context.Context, algorithm, kid st
 	}
 
 	// 验证生成的 JWK
-	if err := publicJWK.Validate(); err != nil {
+	if err := publicJWK.ValidateSigningProfile(); err != nil {
 		return nil, errors.WithCode(
 			code.ErrInvalidJWK,
 			"generated JWK validation failed: %v",

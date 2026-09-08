@@ -6,21 +6,17 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-type bearerTokenCodecStub struct {
-	claims *VerifiedTokenClaims
+type signatureVerifierStub struct {
+	claims *AccessTokenClaims
 }
 
-func (*bearerTokenCodecStub) IssueAccessToken(context.Context, *AccessTokenSubject, time.Duration) (*AccessToken, error) {
-	return nil, nil
-}
-
-func (s *bearerTokenCodecStub) VerifyBearerToken(context.Context, string) (*VerifiedTokenClaims, error) {
+func (s *signatureVerifierStub) VerifySignatureAndClaims(context.Context, string) (*AccessTokenClaims, error) {
 	return s.claims, nil
 }
 
@@ -71,19 +67,19 @@ func (*trackingSessionRevokerStub) RevokeByLoginIdentity(context.Context, meta.I
 }
 
 func TestAccessTokenRevocationPreservesSessionRevocation(t *testing.T) {
-	claims := &VerifiedTokenClaims{TokenID: "access-id", TokenType: TokenTypeAccess, SessionID: "sid", Subject: "1", ExpiresAt: time.Now().Add(time.Hour)}
-	codec := &bearerTokenCodecStub{claims: claims}
+	claims := &AccessTokenClaims{TokenID: "access-id", TokenType: TokenTypeAccess, Audience: []string{"qs-api"}, SessionID: "sid", Subject: "1", ExpiresAt: time.Now().Add(time.Hour)}
+	codec := &signatureVerifierStub{claims: claims}
 	store := &bearerTokenStoreStub{revoked: map[string]bool{}}
 	sessions := &trackingSessionRevokerStub{}
 	require.NoError(t, newRevoker(codec, store, sessions).RevokeBearerToken(context.Background(), "access"))
 	require.True(t, store.revoked[claims.TokenID])
 	require.Equal(t, 1, sessions.revokeCalls)
-	_, err := newVerifier(codec, store, nil, nil).VerifyToken(context.Background(), "access")
+	_, err := newVerifier(codec, store, nil, nil).VerifyToken(context.Background(), "access", []string{"qs-api"})
 	require.Equal(t, code.ErrTokenInvalid, perrors.ParseCoder(err).Code())
 }
 
 func TestRetiredTypeRejectedBeforeSessionAndStoreAccess(t *testing.T) {
-	codec := &bearerTokenCodecStub{claims: &VerifiedTokenClaims{TokenType: TokenType("service")}}
-	_, err := newVerifier(codec, nil, nil, nil).VerifyToken(context.Background(), "retired")
+	codec := &signatureVerifierStub{claims: &AccessTokenClaims{TokenType: TokenType("service")}}
+	_, err := newVerifier(codec, nil, nil, nil).VerifyToken(context.Background(), "retired", []string{"qs-api"})
 	require.Equal(t, code.ErrTokenInvalid, perrors.ParseCoder(err).Code())
 }

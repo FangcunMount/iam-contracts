@@ -92,9 +92,9 @@ infra 管外部资源。
 
 三个核心模块的事实所有权与协作边界见下图：
 
-![IAM 三核心模块领域模型 V7](docs/_images/architecture/core-domain-model-v7.png)
+![IAM 三核心模块领域模型 V7](docs/_images/architecture/core-domain-model-v8.png)
 
-[SVG 图源](docs/_images/architecture/core-domain-model-v7.svg)
+[SVG 图源](docs/_images/architecture/core-domain-model-v8.svg)
 
 ## 快速开始
 
@@ -177,8 +177,8 @@ REST API 适合 Web、App、管理后台、登录、HTTP 调试和 Suggest Profi
 契约入口：
 
 - [api/rest/README.md](api/rest/README.md)
-- [api/rest/authn.v2.yaml](api/rest/authn.v2.yaml)
-- [api/rest/authz.v3.yaml](api/rest/authz.v3.yaml)
+- [api/rest/authn.v3.yaml](api/rest/authn.v3.yaml)
+- [api/rest/authz.v4.yaml](api/rest/authz.v4.yaml)
 - [api/rest/identity.v2.yaml](api/rest/identity.v2.yaml)
 - [api/rest/idp.v2.yaml](api/rest/idp.v2.yaml)
 - [api/rest/suggest.v2.yaml](api/rest/suggest.v2.yaml)
@@ -204,8 +204,8 @@ gRPC 面向可信服务间调用，当前发布 v2 proto。
 契约入口：
 
 - [api/grpc/README.md](api/grpc/README.md)
-- [api/grpc/iam/authn/v2/authn.proto](api/grpc/iam/authn/v2/authn.proto)
-- [api/grpc/iam/authz/v3/authz.proto](api/grpc/iam/authz/v3/authz.proto)
+- [api/grpc/iam/authn/v3/authn.proto](api/grpc/iam/authn/v3/authn.proto)
+- [api/grpc/iam/authz/v4/authz.proto](api/grpc/iam/authz/v4/authz.proto)
 - [api/grpc/iam/identity/v2/identity.proto](api/grpc/iam/identity/v2/identity.proto)
 - [api/grpc/iam/idp/v2/idp.proto](api/grpc/iam/idp/v2/idp.proto)
 
@@ -227,8 +227,8 @@ import (
     "context"
     "log"
 
-    authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-    sdk "github.com/FangcunMount/iam/v4/pkg/sdk"
+    authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+    sdk "github.com/FangcunMount/iam/v5/pkg/sdk"
 )
 
 func main() {
@@ -242,7 +242,7 @@ func main() {
     }
     defer client.Close()
 
-    resp, err := client.Auth().VerifyToken(ctx, &authnv2.VerifyTokenRequest{
+    resp, err := client.Auth().VerifyToken(ctx, &authnv3.VerifyTokenRequest{
         AccessToken: "jwt-token",
     })
     if err != nil {

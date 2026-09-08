@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
-	signupapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signup"
-	credentialinfra "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/credential"
-	loginidentityinfra "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/loginidentity"
-	mysqlauthnuow "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/uow/authn"
-	mysqluser "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/user"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	signupapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signup"
+	credentialinfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/credential"
+	loginidentityinfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/loginidentity"
+	mysqlauthnuow "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/uow/authn"
+	mysqluser "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/user"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/testhelpers"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,7 +30,6 @@ func TestSignupPersistsLoginIdentityAndPasswordCredentialV2(t *testing.T) {
 	email, err := meta.NewEmail("opera-loginidentity@example.com")
 	require.NoError(t, err)
 	password := "secret"
-	tenantID := meta.FromUint64(9001)
 
 	result, err := svc.SignUp(context.Background(), signupapp.SignupRequest{
 		User: signupapp.SignupUserInput{
@@ -39,8 +38,7 @@ func TestSignupPersistsLoginIdentityAndPasswordCredentialV2(t *testing.T) {
 			Email: email,
 		},
 		LoginIdentity: signupapp.UsernameLoginIdentityInput{
-			Username:      "zhangsan",
-			RealmTenantID: tenantID,
+			Username: "zhangsan",
 		},
 		Credential: &signupapp.SignupCredentialInput{
 			Password: &signupapp.PasswordCredentialInput{Plaintext: password},
@@ -53,7 +51,7 @@ func TestSignupPersistsLoginIdentityAndPasswordCredentialV2(t *testing.T) {
 
 	var identityCount int64
 	require.NoError(t, db.Table("auth_login_identities").
-		Where("id = ? AND provider = ? AND realm = ? AND identifier = ?", result.LoginIdentityID, "username", tenantID.String(), "zhangsan").
+		Where("id = ? AND provider = ? AND realm = ? AND identifier = ?", result.LoginIdentityID, "username", "default", "zhangsan").
 		Count(&identityCount).Error)
 	require.Equal(t, int64(1), identityCount)
 

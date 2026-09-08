@@ -17,7 +17,7 @@
 INSERT INTO `users` (`id`, `name`, `nickname`, `phone`, `email`, `status`, `created_at`, `updated_at`,
                      `deleted_at`, `created_by`, `updated_by`, `deleted_by`, `version`)
 VALUES (10001, '系统用户', '', NULL, 'system@fangcunmount.com', 1, NOW(), NOW(), NULL, 0, 0, 0, 1),
-       (110001, '租户管理员', '', NULL, 'admin@fangcunmount.com', 1, NOW(), NOW(), NULL, 0, 0, 0, 1),
+       (110001, 'IAM 管理员', '', NULL, 'admin@fangcunmount.com', 1, NOW(), NOW(), NULL, 0, 0, 0, 1),
        (110002, '内容管理员', '', NULL, 'content_manager@fangcunmount.com', 1, NOW(), NOW(), NULL, 0, 0, 0, 1)
 ON DUPLICATE KEY UPDATE `name`       = VALUES(`name`),
                         `nickname`   = VALUES(`nickname`),
@@ -35,11 +35,11 @@ ON DUPLICATE KEY UPDATE `name`       = VALUES(`name`),
 INSERT INTO `auth_login_identities` (`id`, `user_id`, `provider`, `realm`, `identifier`, `global_identifier`,
                                      `status`, `verified_at`, `linked_at`, `profile_json`, `meta_json`, `created_at`,
                                      `updated_at`, `deleted_at`, `created_by`, `updated_by`, `deleted_by`, `version`)
-VALUES (910100001, 10001, 'username', '1', 'system@fangcunmount.com', NULL, 'active', NOW(), NOW(), NULL, NULL, NOW(),
+VALUES (910100001, 10001, 'username', 'default', 'system@fangcunmount.com', NULL, 'active', NOW(), NOW(), NULL, NULL, NOW(),
         NOW(), NULL, 0, 0, 0, 1),
-       (910100002, 110001, 'username', '1', 'admin@fangcunmount.com', NULL, 'active', NOW(), NOW(), NULL, NULL, NOW(),
+       (910100002, 110001, 'username', 'default', 'admin@fangcunmount.com', NULL, 'active', NOW(), NOW(), NULL, NULL, NOW(),
         NOW(), NULL, 0, 0, 0, 1),
-       (910100003, 110002, 'username', '1', 'content_manager@fangcunmount.com', NULL, 'active', NOW(), NOW(), NULL,
+       (910100003, 110002, 'username', 'default', 'content_manager@fangcunmount.com', NULL, 'active', NOW(), NOW(), NULL,
         NULL, NOW(), NOW(), NULL, 0, 0, 0, 1)
 ON DUPLICATE KEY UPDATE `user_id`           = VALUES(`user_id`),
                         `provider`          = VALUES(`provider`),
@@ -104,20 +104,19 @@ ON DUPLICATE KEY UPDATE `name`       = VALUES(`name`),
 -- ----------------------------------------------------------------------------
 -- Roles
 -- ----------------------------------------------------------------------------
-INSERT INTO `authz_roles` (`id`, `name`, `display_name`, `tenant_id`, `is_system`, `description`, `created_at`,
+INSERT INTO `authz_roles` (`management_protection`, `id`, `name`, `display_name`, `is_system`, `description`, `created_at`,
                            `updated_at`, `created_by`, `updated_by`, `deleted_by`, `version`)
-VALUES (900000001, 'super_admin', '平台超级管理员', 'platform', 1, '平台控制面的根角色', NOW(), NOW(), 0, 0, 0, 1),
-       (1, 'super_admin', '租户超级管理员', 'fangcun', 1, '方寸默认租户的超级管理员角色', NOW(), NOW(), 0, 0, 0, 1),
-       (2, 'tenant_admin', '租户管理员', 'fangcun', 1, '管理本租户内的所有资源', NOW(), NOW(), 0, 0, 0, 1),
-       (3, 'user', '普通用户', 'fangcun', 1, '普通用户权限', NOW(), NOW(), 0, 0, 0, 1),
-       (900000101, 'qs:admin', 'QS管理员', 'fangcun', 1, 'QS服务所有资源的管理权限', NOW(), NOW(), 0, 0, 0, 1),
-       (900000102, 'qs:content_manager', '内容管理员', 'fangcun', 1, '问卷、量表和常模表的管理权限', NOW(), NOW(), 0, 0, 0, 1),
-       (900000103, 'qs:evaluator', '评估员', 'fangcun', 1, '测评执行、批量评估及仅 adhoc 测评重试', NOW(), NOW(), 0, 0, 0, 1),
-       (900000104, 'qs:staff', '普通员工', 'fangcun', 1, '基本查看权限', NOW(), NOW(), 0, 0, 0, 1),
-       (900000105, 'qs:evaluation_plan_manager', '测评计划管理员', 'fangcun', 1, '测评计划的管理权限', NOW(), NOW(), 0, 0, 0,
+VALUES ('protected', 900000001, 'platform_admin', '平台超级管理员', 1, '平台控制面的根角色', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 1, 'super_admin', '超级管理员', 1, '普通管理角色', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 2, 'iam_admin', 'IAM 管理员', 1, '管理获授权的 IAM 资源', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 3, 'user', '普通用户', 1, '普通用户权限', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000101, 'qs:admin', 'QS管理员', 1, 'QS服务所有资源的管理权限', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000102, 'qs:content_manager', '内容管理员', 1, '问卷、量表和常模表的管理权限', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000103, 'qs:evaluator', '评估员', 1, '测评执行、批量评估及仅 adhoc 测评重试', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000104, 'qs:staff', '普通员工', 1, '基本查看权限', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000105, 'qs:evaluation_plan_manager', '测评计划管理员', 1, '测评计划的管理权限', NOW(), NOW(), 0, 0, 0,
         1)
 ON DUPLICATE KEY UPDATE `display_name` = VALUES(`display_name`),
-                        `tenant_id`    = VALUES(`tenant_id`),
                         `is_system`    = VALUES(`is_system`),
                         `description`  = VALUES(`description`),
                         `deleted_at`   = NULL,
@@ -136,12 +135,12 @@ VALUES (901000001, 'iam:identity:instance:profile', '个人资料', 'iam', 'iden
         JSON_ARRAY('read', 'search', 'create', 'update', 'deactivate', 'block', 'link_external_identity'),
         '用户资料、状态和外部身份关联管理', NOW(), NOW(), 0, 0, 0, 1),
        (901000003, 'iam:identity:collection:profiles', '档案', 'iam', 'identity', 'collection',
-        JSON_ARRAY('read', 'list', 'search', 'create', 'update', 'search_by_mobile'), '档案查询、注册与更新', NOW(), NOW(), 0, 0, 0, 1),
+        JSON_ARRAY('list_all', 'search_by_mobile_all', 'read', 'list', 'search', 'create', 'update', 'search_by_mobile'), '档案查询、注册与更新', NOW(), NOW(), 0, 0, 0, 1),
        (901000004, 'iam:identity:collection:profile-links', '档案关系', 'iam', 'identity', 'collection',
         JSON_ARRAY('read', 'list', 'grant', 'update_relation', 'revoke', 'bulk_revoke', 'import'),
         '档案关系授予、更新、撤销与导入', NOW(), NOW(), 0, 0, 0, 1),
        (901000005, 'iam:authz:collection:roles', '角色管理', 'iam', 'authz', 'collection',
-        JSON_ARRAY('create', 'read', 'update', 'delete', 'list'), '角色目录管理', NOW(), NOW(), 0, 0, 0, 1),
+        JSON_ARRAY('manage_protected', 'create', 'read', 'update', 'delete', 'list'), '角色目录管理', NOW(), NOW(), 0, 0, 0, 1),
        (901000006, 'iam:authz:collection:assignments', '角色分配', 'iam', 'authz', 'collection',
         JSON_ARRAY('list', 'grant', 'revoke'), '主体与角色分配管理', NOW(), NOW(), 0, 0, 0, 1),
        (901000007, 'iam:authz:collection:permission_grants', '权限授权', 'iam', 'authz', 'collection',
@@ -214,7 +213,7 @@ ON DUPLICATE KEY UPDATE `key`          = VALUES(`key`),
 -- ----------------------------------------------------------------------------
 -- Role assignments
 -- ----------------------------------------------------------------------------
-INSERT INTO `authz_assignments` (`id`, `subject_type`, `subject_id`, `role_id`, `tenant_id`, `granted_by`, `granted_at`,
+INSERT INTO `authz_assignments` (`id`, `subject_type`, `subject_id`, `role_id`, `granted_by`, `granted_at`,
                                  `created_at`, `updated_at`, `deleted_at`, `created_by`, `updated_by`, `deleted_by`,
                                  `version`)
 SELECT `seed`.*
@@ -222,7 +221,6 @@ FROM (SELECT 902000001 AS `id`,
              'user'    AS `subject_type`,
              '10001'   AS `subject_id`,
              900000001 AS `role_id`,
-             'platform' AS `tenant_id`,
              'system'  AS `granted_by`,
              NOW()     AS `granted_at`,
              NOW()     AS `created_at`,
@@ -233,21 +231,20 @@ FROM (SELECT 902000001 AS `id`,
              0         AS `deleted_by`,
              1         AS `version`
       UNION ALL
-      SELECT 902000002, 'user', '10001', 2, 'fangcun', 'system', NOW(), NOW(), NOW(), NULL, 0, 0, 0, 1
+      SELECT 902000002, 'user', '10001', 2, 'system', NOW(), NOW(), NOW(), NULL, 0, 0, 0, 1
       UNION ALL
-      SELECT 902000003, 'user', '10001', 900000101, 'fangcun', 'system', NOW(), NOW(), NOW(), NULL, 0, 0, 0, 1
+      SELECT 902000003, 'user', '10001', 900000101, 'system', NOW(), NOW(), NOW(), NULL, 0, 0, 0, 1
       UNION ALL
-      SELECT 902000004, 'user', '110001', 2, 'fangcun', 'system', NOW(), NOW(), NOW(), NULL, 0, 0, 0, 1
+      SELECT 902000004, 'user', '110001', 2, 'system', NOW(), NOW(), NOW(), NULL, 0, 0, 0, 1
       UNION ALL
-      SELECT 902000005, 'user', '110001', 900000101, 'fangcun', 'system', NOW(), NOW(), NOW(), NULL, 0, 0, 0, 1
+      SELECT 902000005, 'user', '110001', 900000101, 'system', NOW(), NOW(), NOW(), NULL, 0, 0, 0, 1
       UNION ALL
-      SELECT 902000006, 'user', '110002', 900000102, 'fangcun', 'system', NOW(), NOW(), NOW(), NULL, 0, 0, 0, 1) AS `seed`
+      SELECT 902000006, 'user', '110002', 900000102, 'system', NOW(), NOW(), NOW(), NULL, 0, 0, 0, 1) AS `seed`
 WHERE NOT EXISTS(SELECT 1
                  FROM `authz_assignments` `a`
                  WHERE `a`.`subject_type` = `seed`.`subject_type`
                    AND `a`.`subject_id` = `seed`.`subject_id`
                    AND `a`.`role_id` = `seed`.`role_id`
-                   AND `a`.`tenant_id` = `seed`.`tenant_id`
                    AND `a`.`deleted_at` IS NULL);
 
 -- ----------------------------------------------------------------------------
@@ -267,112 +264,108 @@ WHERE `key` = 'qs:evaluation:collection:assessments'
   AND `deleted_at` IS NULL;
 
 INSERT INTO `authz_role_inheritances`
-    (`id`, `tenant_id`, `role_id`, `inherited_role_id`, `granted_by`, `granted_at`,
+    (`id`, `role_id`, `inherited_role_id`, `granted_by`, `granted_at`,
      `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_by`, `version`)
-SELECT `seed`.`id`, `seed`.`tenant_id`, `child`.`id`, `parent`.`id`, 'bootstrap', NOW(),
+SELECT `seed`.`id`, `child`.`id`, `parent`.`id`, 'bootstrap', NOW(),
        NOW(), NOW(), 0, 0, 0, 1
 FROM (
-    SELECT 905000001 AS `id`, 'fangcun' AS `tenant_id`, 'tenant_admin' AS `child_role`, 'user' AS `parent_role`
-    UNION ALL SELECT 905000002, 'fangcun', 'qs:admin', 'qs:content_manager'
-    UNION ALL SELECT 905000003, 'fangcun', 'qs:admin', 'qs:evaluator'
-    UNION ALL SELECT 905000004, 'fangcun', 'qs:admin', 'qs:evaluation_plan_manager'
-    UNION ALL SELECT 905000005, 'fangcun', 'qs:evaluator', 'qs:staff'
-    UNION ALL SELECT 905000006, 'fangcun', 'qs:evaluation_plan_manager', 'qs:staff'
-    UNION ALL SELECT 905000007, 'fangcun', 'super_admin', 'tenant_admin'
-    UNION ALL SELECT 905000008, 'fangcun', 'super_admin', 'qs:admin'
+    SELECT 905000001 AS `id`, 'iam_admin' AS `child_role`, 'user' AS `parent_role`
+    UNION ALL SELECT 905000002, 'qs:admin', 'qs:content_manager'
+    UNION ALL SELECT 905000003, 'qs:admin', 'qs:evaluator'
+    UNION ALL SELECT 905000004, 'qs:admin', 'qs:evaluation_plan_manager'
+    UNION ALL SELECT 905000005, 'qs:evaluator', 'qs:staff'
+    UNION ALL SELECT 905000006, 'qs:evaluation_plan_manager', 'qs:staff'
+    UNION ALL SELECT 905000007, 'super_admin', 'iam_admin'
+    UNION ALL SELECT 905000008, 'super_admin', 'qs:admin'
 ) AS `seed`
 JOIN `authz_roles` AS `child`
-  ON `child`.`tenant_id` = `seed`.`tenant_id`
- AND `child`.`name` = `seed`.`child_role`
+  ON `child`.`name` = `seed`.`child_role`
  AND `child`.`deleted_at` IS NULL
 JOIN `authz_roles` AS `parent`
-  ON `parent`.`tenant_id` = `seed`.`tenant_id`
- AND `parent`.`name` = `seed`.`parent_role`
+  ON `parent`.`name` = `seed`.`parent_role`
  AND `parent`.`deleted_at` IS NULL
 WHERE NOT EXISTS (
     SELECT 1
     FROM `authz_role_inheritances` AS `existing`
-    WHERE `existing`.`tenant_id` = `seed`.`tenant_id`
-      AND `existing`.`role_id` = `child`.`id`
+    WHERE `existing`.`role_id` = `child`.`id`
       AND `existing`.`inherited_role_id` = `parent`.`id`
       AND `existing`.`revoked_at` IS NULL
       AND `existing`.`deleted_at` IS NULL
 );
 
 INSERT INTO `authz_permission_grants`
-    (`id`, `tenant_id`, `role_id`, `resource_id`, `resource_pattern`, `action`, `constraint_set`,
+    (`id`, `role_id`, `resource_id`, `resource_pattern`, `action`, `constraint_set`,
      `grant_key`, `granted_by`, `granted_at`, `created_at`, `updated_at`, `created_by`, `updated_by`,
      `deleted_by`, `version`)
 SELECT 1000000000000000000 + CAST(CONV(SUBSTRING(`resolved`.`grant_key`, 1, 14), 16, 10) AS UNSIGNED),
-       `resolved`.`tenant_id`, `resolved`.`role_id`, `resolved`.`resource_id`, `resolved`.`resource_pattern`,
+       `resolved`.`role_id`, `resolved`.`resource_id`, `resolved`.`resource_pattern`,
        `resolved`.`action`, `resolved`.`constraint_set`, `resolved`.`grant_key`, 'bootstrap', NOW(), NOW(), NOW(),
        0, 0, 0, 1
 FROM (
-    SELECT `expanded`.`tenant_id`, `role`.`id` AS `role_id`, `catalog`.`id` AS `resource_id`,
+    SELECT `role`.`id` AS `role_id`, `catalog`.`id` AS `resource_id`,
            `expanded`.`resource_pattern`, `expanded`.`action`, `expanded`.`constraint_set`,
            LOWER(SHA2(CONCAT(
-               'v1', CHAR(0), `expanded`.`tenant_id`, CHAR(0), `role`.`id`, CHAR(0),
+               'v2', CHAR(0), `role`.`id`, CHAR(0),
                COALESCE(`catalog`.`id`, 0), CHAR(0), `expanded`.`resource_pattern`, CHAR(0),
                `expanded`.`action`, CHAR(0), `expanded`.`constraint_set`
            ), 256)) AS `grant_key`
     FROM (
-        SELECT `raw`.`tenant_id`, `raw`.`role_name`, `raw`.`resource_pattern`,
+        SELECT `raw`.`role_name`, `raw`.`resource_pattern`,
                `action_rows`.`action`, `raw`.`constraint_set`
         FROM (
-            SELECT 'platform' AS `tenant_id`, 'super_admin' AS `role_name`, '*:*:*:*' AS `resource_pattern`,
+            SELECT 'platform_admin' AS `role_name`, '*:*:*:*' AS `resource_pattern`,
                    JSON_ARRAY('*') AS `actions`, '{"version":1,"all_of":[]}' AS `constraint_set`
-            UNION ALL SELECT 'fangcun', 'tenant_admin', 'iam:identity:collection:users',
+            UNION ALL SELECT 'iam_admin', 'iam:identity:collection:users',
                    JSON_ARRAY('read','search','create','update','deactivate','block','link_external_identity'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'tenant_admin', 'iam:identity:collection:profiles',
+            UNION ALL SELECT 'iam_admin', 'iam:identity:collection:profiles',
                    JSON_ARRAY('read','list','search','create','update','search_by_mobile'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'tenant_admin', 'iam:identity:collection:profile-links',
+            UNION ALL SELECT 'iam_admin', 'iam:identity:collection:profile-links',
                    JSON_ARRAY('read','list','grant','update_relation','revoke','bulk_revoke','import'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'tenant_admin', 'iam:authz:collection:roles',
+            UNION ALL SELECT 'iam_admin', 'iam:authz:collection:roles',
                    JSON_ARRAY('create','read','update','delete','list'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'tenant_admin', 'iam:authz:collection:assignments',
+            UNION ALL SELECT 'iam_admin', 'iam:authz:collection:assignments',
                    JSON_ARRAY('list','grant','revoke'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'tenant_admin', 'iam:authz:collection:permission_grants',
+            UNION ALL SELECT 'iam_admin', 'iam:authz:collection:permission_grants',
                    JSON_ARRAY('list','create','revoke'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'tenant_admin', 'iam:authz:collection:role_inheritances',
+            UNION ALL SELECT 'iam_admin', 'iam:authz:collection:role_inheritances',
                    JSON_ARRAY('list','grant','revoke'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'tenant_admin', 'iam:authz:collection:resources',
+            UNION ALL SELECT 'iam_admin', 'iam:authz:collection:resources',
                    JSON_ARRAY('read','list','validate_action'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'tenant_admin', 'iam:authn:collection:login_identities',
+            UNION ALL SELECT 'iam_admin', 'iam:authn:collection:login_identities',
                    JSON_ARRAY('read','update','enable','disable'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'user', 'iam:identity:instance:profile',
+            UNION ALL SELECT 'user', 'iam:identity:instance:profile',
                    JSON_ARRAY('read','update'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'qs:admin', 'qs:*:*:*',
+            UNION ALL SELECT 'qs:admin', 'qs:*:*:*',
                    JSON_ARRAY('*'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'qs:content_manager', 'qs:questionnaire:collection:questionnaires',
+            UNION ALL SELECT 'qs:content_manager', 'qs:questionnaire:collection:questionnaires',
                    JSON_ARRAY('create','read','list','update','delete','publish','unpublish','archive','statistics'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'qs:content_manager', 'qs:scale:collection:scales',
+            UNION ALL SELECT 'qs:content_manager', 'qs:scale:collection:scales',
                    JSON_ARRAY('create','read','list','update','delete','publish','unpublish','archive'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'qs:content_manager', 'qs:modelcatalog:collection:norm_tables',
+            UNION ALL SELECT 'qs:content_manager', 'qs:modelcatalog:collection:norm_tables',
                    JSON_ARRAY('read','list','import'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'qs:evaluator', 'qs:answersheet:collection:answersheets',
+            UNION ALL SELECT 'qs:evaluator', 'qs:answersheet:collection:answersheets',
                    JSON_ARRAY('read','list','statistics'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'qs:evaluator', 'qs:evaluation:collection:assessments',
+            UNION ALL SELECT 'qs:evaluator', 'qs:evaluation:collection:assessments',
                    JSON_ARRAY('read','list','batch_evaluate','statistics'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'qs:evaluator', 'qs:evaluation:collection:assessments',
+            UNION ALL SELECT 'qs:evaluator', 'qs:evaluation:collection:assessments',
                    JSON_ARRAY('retry'), '{"version":1,"all_of":[{"key":"object.origin_type","operator":"eq","value":{"type":"string","string":"adhoc"}}]}'
-            UNION ALL SELECT 'fangcun', 'qs:evaluator', 'qs:evaluation:collection:reports',
+            UNION ALL SELECT 'qs:evaluator', 'qs:evaluation:collection:reports',
                    JSON_ARRAY('read','list'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'qs:evaluator', 'qs:actor:collection:testees',
+            UNION ALL SELECT 'qs:evaluator', 'qs:actor:collection:testees',
                    JSON_ARRAY('analyze','statistics'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'qs:staff', 'qs:actor:collection:testees',
+            UNION ALL SELECT 'qs:staff', 'qs:actor:collection:testees',
                    JSON_ARRAY('read','list'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'qs:evaluation_plan_manager', 'qs:plan:collection:evaluation_plans',
+            UNION ALL SELECT 'qs:evaluation_plan_manager', 'qs:plan:collection:evaluation_plans',
                    JSON_ARRAY('create','read','list','update','pause','resume','cancel','enroll','terminate','statistics'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'qs:evaluation_plan_manager', 'qs:plan_task:collection:evaluation_plan_tasks',
+            UNION ALL SELECT 'qs:evaluation_plan_manager', 'qs:plan_task:collection:evaluation_plan_tasks',
                    JSON_ARRAY('schedule','read','list','open','complete','expire','cancel'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'fangcun', 'qs:evaluation_plan_manager', 'qs:evaluation:collection:assessments',
+            UNION ALL SELECT 'qs:evaluation_plan_manager', 'qs:evaluation:collection:assessments',
                    JSON_ARRAY('retry'), '{"version":1,"all_of":[{"key":"object.origin_type","operator":"eq","value":{"type":"string","string":"plan"}}]}'
         ) AS `raw`
         JOIN JSON_TABLE(`raw`.`actions`, '$[*]' COLUMNS (`action` VARCHAR(64) PATH '$')) AS `action_rows`
     ) AS `expanded`
     JOIN `authz_roles` AS `role`
-      ON `role`.`tenant_id` = `expanded`.`tenant_id`
-     AND `role`.`name` = `expanded`.`role_name`
+      ON `role`.`name` = `expanded`.`role_name`
      AND `role`.`deleted_at` IS NULL
     LEFT JOIN `authz_resources` AS `catalog`
       ON `catalog`.`key` = `expanded`.`resource_pattern`
@@ -389,10 +382,9 @@ WHERE NOT EXISTS (
 -- ----------------------------------------------------------------------------
 -- Policy versions
 -- ----------------------------------------------------------------------------
-INSERT INTO `authz_policy_versions` (`id`, `tenant_id`, `policy_version`, `changed_by`, `reason`, `created_at`,
+INSERT INTO `authz_policy_versions` (`id`, `policy_version`, `changed_by`, `reason`, `created_at`,
                                      `updated_at`, `deleted_at`, `created_by`, `updated_by`, `deleted_by`, `version`)
-VALUES (903000001, 'platform', 1, 'bootstrap', 'bootstrap baseline', NOW(), NOW(), NULL, 0, 0, 0, 1),
-       (903000002, 'fangcun', 1, 'bootstrap', 'bootstrap baseline', NOW(), NOW(), NULL, 0, 0, 0, 1)
+VALUES (1, 1, 'bootstrap', 'bootstrap baseline', NOW(), NOW(), NULL, 0, 0, 0, 1)
 ON DUPLICATE KEY UPDATE `changed_by` = VALUES(`changed_by`),
                         `reason`     = VALUES(`reason`),
                         `deleted_at` = NULL,
@@ -420,30 +412,3 @@ WHERE `retired_resource`.`key` = 'iam:authz:action:check'
         AND `dependent_grant`.`deleted_at` IS NULL
   );
 
-UPDATE `authz_roles` AS `retired_role`
-SET `deleted_at` = NOW(),
-    `deleted_by` = 0,
-    `updated_at` = NOW(),
-    `updated_by` = 0,
-    `version` = `version` + 1
-WHERE `retired_role`.`tenant_id` = 'platform'
-  AND `retired_role`.`name` IN ('platform:admin', 'iam:admin')
-  AND `retired_role`.`deleted_at` IS NULL
-  AND NOT EXISTS (
-      SELECT 1 FROM `authz_assignments` AS `dependent_assignment`
-      WHERE `dependent_assignment`.`role_id` = `retired_role`.`id`
-        AND `dependent_assignment`.`deleted_at` IS NULL
-  )
-  AND NOT EXISTS (
-      SELECT 1 FROM `authz_permission_grants` AS `dependent_grant`
-      WHERE `dependent_grant`.`role_id` = `retired_role`.`id`
-        AND `dependent_grant`.`revoked_at` IS NULL
-        AND `dependent_grant`.`deleted_at` IS NULL
-  )
-  AND NOT EXISTS (
-      SELECT 1 FROM `authz_role_inheritances` AS `dependent_inheritance`
-      WHERE (`dependent_inheritance`.`role_id` = `retired_role`.`id`
-          OR `dependent_inheritance`.`inherited_role_id` = `retired_role`.`id`)
-        AND `dependent_inheritance`.`revoked_at` IS NULL
-        AND `dependent_inheritance`.`deleted_at` IS NULL
-  );

@@ -50,7 +50,7 @@ flowchart LR
 | --- | --- | --- |
 | Identity | 内部 User、Profile 与业务关系事实 | 凭据验证、Token、Permission |
 | AuthN | 如何证明请求者、维持 Session、签发/验证 Token | Profile 主数据、资源授权 |
-| AuthZ | Subject 在 Tenant 下能对 Resource/Action 做什么，并按受信对象属性求值 | 登录凭据、外部 provider、搜索索引和业务关系事实 |
+| AuthZ | Subject 能对 Resource/Action 做什么，并按受信对象属性求值 | 登录凭据、外部 provider、搜索索引和业务关系事实 |
 | IDP | provider app/secret/token 与外部声明验证 | IAM User、Session、资源授权 |
 | Suggest | 从 Identity 派生可见、脱敏的联想候选 | 主数据写入、通用授权结论 |
 
@@ -177,7 +177,7 @@ docs/
 | Go SDK | `pkg/sdk` + `public_api_compile_test.go` |
 | 数据结构 | `internal/pkg/migration/migrations` |
 | 事件语义 | `configs/events.yaml` |
-| AuthZ 判定契约与运行时 | `api/grpc/iam/authz/v3/authz.proto` + `internal/apiserver/infra/authz/runtime` |
+| AuthZ 判定契约与运行时 | `api/grpc/iam/authz/v4/authz.proto` + `internal/apiserver/infra/authz/runtime` |
 | 运行模式 | `internal/pkg/server/runtime_profile.go` + dev/prod config |
 | 分层边界 | `internal/pkg/architecture` |
 | 人工/生产证据 | [IAM 重构与生产验收记录](01-运行时/08-IAM重构最终验收记录.md) |

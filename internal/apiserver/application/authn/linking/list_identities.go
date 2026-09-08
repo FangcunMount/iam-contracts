@@ -3,8 +3,8 @@ package linking
 import (
 	"context"
 
-	loginidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	loginidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // List 列出用户仍可见的登录身份。

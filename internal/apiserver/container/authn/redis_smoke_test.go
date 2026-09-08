@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	cachegovernance "github.com/FangcunMount/iam/v4/internal/apiserver/application/cachegovernance"
-	cachemodel "github.com/FangcunMount/iam/v4/internal/apiserver/cache"
-	jwksmysql "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/jwks"
-	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
-	genericapiserver "github.com/FangcunMount/iam/v4/internal/pkg/server"
+	cachegovernance "github.com/FangcunMount/iam/v5/internal/apiserver/application/cachegovernance"
+	cachemodel "github.com/FangcunMount/iam/v5/internal/apiserver/cache"
+	jwksmysql "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/jwks"
+	apiserveroptions "github.com/FangcunMount/iam/v5/internal/apiserver/options"
+	genericapiserver "github.com/FangcunMount/iam/v5/internal/pkg/server"
 	"github.com/alicebob/miniredis/v2"
 	goredis "github.com/redis/go-redis/v9"
 	"gorm.io/driver/sqlite"
@@ -60,7 +60,7 @@ func TestAuthnModuleInitializeWithRedisAdapters(t *testing.T) {
 	if caps.LoginIdentityLinking == nil {
 		t.Fatalf("expected LoginIdentityLinking to be initialized")
 	}
-	if caps.Tokens.AuthenticationGrantIssuer == nil || caps.Tokens.Refresher == nil || caps.Tokens.Revoker == nil || caps.Tokens.Verifier == nil {
+	if caps.Tokens.InitialTokenIssuer == nil || caps.Tokens.Refresher == nil || caps.Tokens.Revoker == nil || caps.Tokens.Verifier == nil {
 		t.Fatalf("expected token capabilities to be initialized")
 	}
 	assertInspectorFamilies(t, module.CacheFamilyInspectors(), []cachemodel.Family{

@@ -5,27 +5,26 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	resourceApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/resource"
-	authztestutil "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/testutil"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
-	permissiongrantDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
-	resourceDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	authzfixture "github.com/FangcunMount/iam/v4/internal/apiserver/testfixtures/assessment"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/pkg/event"
+	resourceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/resource"
+	authztestutil "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/testutil"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
+	permissiongrantDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	resourceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/assessment"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 	"github.com/stretchr/testify/require"
 )
 
 func TestUpdateResourceRejectsCandidateThatInvalidatesActiveGrant(t *testing.T) {
 	db, catalog, resources, grants, _ := setupResourceCatalog(t)
 	resource := seedAssessmentResource(t, resources)
-	seedGrant(t, grants, resource, "tenant-a")
+	seedGrant(t, grants, resource)
 
 	cmd, err := resourceApp.NewUpdateResourceCommand(resource.ID, nil, []string{"read"}, nil, nil)
 	require.NoError(t, err)
-	cmd.TenantID = "tenant-operator"
 	cmd.ChangedBy = "operator"
 	cmd.Actor, err = subject.NewUserRef(meta.FromUint64(1))
 	require.NoError(t, err)
@@ -40,22 +39,20 @@ func TestUpdateResourceRejectsCandidateThatInvalidatesActiveGrant(t *testing.T) 
 	require.Zero(t, db.PolicyVersionCount(t))
 }
 
-func TestUpdateResourceVersionsEveryTenantWithAnActiveGrant(t *testing.T) {
+func TestUpdateResourceAdvancesOneGlobalVersion(t *testing.T) {
 	_, catalog, resources, grants, stager := setupResourceCatalog(t)
 	resource := seedAssessmentResource(t, resources)
-	seedGrant(t, grants, resource, "tenant-b")
-	seedGrant(t, grants, resource, "tenant-a")
+	seedGrant(t, grants, resource)
 
 	cmd, err := resourceApp.NewUpdateResourceCommand(resource.ID, nil, []string{"retry", "read"}, nil, nil)
 	require.NoError(t, err)
-	cmd.TenantID = "tenant-operator"
 	cmd.ChangedBy = "operator"
 	cmd.Actor, err = subject.NewUserRef(meta.FromUint64(1))
 	require.NoError(t, err)
 
 	_, err = catalog.UpdateResource(context.Background(), cmd)
 	require.NoError(t, err)
-	require.Len(t, stager.events, 3)
+	require.Len(t, stager.events, 1)
 }
 
 func setupResourceCatalog(t *testing.T) (*authztestutil.Fixture, *resourceApp.ResourceCatalog, resourceDomain.Repository, permissiongrantDomain.Repository, *recordingStager) {
@@ -79,10 +76,10 @@ func seedAssessmentResource(t *testing.T, repository resourceDomain.Repository) 
 	return resource
 }
 
-func seedGrant(t *testing.T, repository permissiongrantDomain.Repository, resource resourceDomain.Resource, tenantID string) {
+func seedGrant(t *testing.T, repository permissiongrantDomain.Repository, resource resourceDomain.Resource) {
 	t.Helper()
 	grant, err := permissiongrantDomain.New(
-		meta.FromUint64(17), tenantID, resource.ID, resource.KeyString(), "retry", constraint.Empty(), "operator",
+		meta.FromUint64(17), resource.ID, resource.KeyString(), "retry", constraint.Empty(), "operator",
 	)
 	require.NoError(t, err)
 	require.NoError(t, repository.Create(context.Background(), &grant))
@@ -104,7 +101,7 @@ func TestCatalogFailsClosedWithoutPlatformAuthorizer(t *testing.T) {
 	catalog := resourceApp.NewResourceCatalog(fixture.UnitOfWork, nil)
 	actor, err := subject.NewUserRef(meta.FromUint64(1))
 	require.NoError(t, err)
-	_, err = catalog.CreateResource(context.Background(), resourceApp.CreateResourceCommand{Actor: actor, TenantID: "platform", ChangedBy: "1"})
+	_, err = catalog.CreateResource(context.Background(), resourceApp.CreateResourceCommand{Actor: actor, ChangedBy: "1"})
 	require.Error(t, err)
 	require.Zero(t, fixture.PolicyVersionCount(t))
 }

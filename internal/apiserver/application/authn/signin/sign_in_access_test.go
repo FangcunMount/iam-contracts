@@ -5,19 +5,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/testhelpers"
+
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	credentialapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/credential"
-	authnexternal "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	idpresolver "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	idpidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	credentialapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/credential"
+	authnexternal "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	idpresolver "github.com/FangcunMount/iam/v5/internal/apiserver/application/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	idpidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-func TestSignInPreservesAuthenticationGrantIssuerErrorCodes(t *testing.T) {
+func TestSignInPreservesInitialTokenIssuerErrorCodes(t *testing.T) {
 	tests := []struct {
 		name      string
 		issueCode int
@@ -33,15 +36,15 @@ func TestSignInPreservesAuthenticationGrantIssuerErrorCodes(t *testing.T) {
 			principal := &authentication.Principal{
 				UserID:          meta.FromUint64(1),
 				LoginIdentityID: meta.FromUint64(2),
-				TenantID:        meta.FromUint64(3),
 			}
-			grantIssuer := &authenticationGrantIssuerStub{errCode: tt.issueCode}
+			initialTokenIssuer := &initialTokenIssuerStub{errCode: tt.issueCode}
 			strategy := signInStrategyStub{decision: authentication.AuthDecision{OK: true, Principal: principal}}
 			usecase := New(Dependencies{
-				AuthenticationGrantIssuer: grantIssuer,
-				MethodRegistry:            signInMethodRegistryStub{},
-				ProofFactory:              signInProofFactoryStub{},
-				Authenticator:             authentication.NewAuthenticator(strategy),
+				TokenIssuer:     initialTokenIssuer,
+				AdmissionPolicy: testhelpers.AuthnFlow{}, SessionCreator: testhelpers.AuthnFlow{}, SessionRevoker: testhelpers.AuthnFlow{},
+				MethodRegistry: signInMethodRegistryStub{},
+				ProofFactory:   signInProofFactoryStub{},
+				Authenticator:  authentication.NewAuthenticator(strategy),
 			})
 
 			result, err := usecase.Execute(context.Background(), method.LoginRequest{})
@@ -57,27 +60,29 @@ func TestSignInPreservesAuthenticationGrantIssuerErrorCodes(t *testing.T) {
 					t.Fatalf("Execute() result = %#v, want nil", result)
 				}
 			}
-			if !grantIssuer.called {
-				t.Fatal("IssueAuthentication() was not called")
+			if !initialTokenIssuer.called {
+				t.Fatal("IssueInitialTokens() was not called")
 			}
 		})
 	}
 }
 
-func TestSignInRecordsCredentialBeforeIssuingAuthenticationGrant(t *testing.T) {
+func TestSignInRecordsCredentialBeforeIssuingInitialTokens(t *testing.T) {
 	t.Parallel()
 
 	principal := &authentication.Principal{
-		UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), TenantID: meta.FromUint64(3),
-	}
+		UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2)}
 	order := make([]string, 0, 2)
-	grantIssuer := &authenticationGrantIssuerStub{order: &order}
+	initialTokenIssuer := &initialTokenIssuerStub{order: &order}
 	usecase := New(Dependencies{
-		AuthenticationGrantIssuer: grantIssuer,
-		MethodRegistry:            signInMethodRegistryStub{},
-		ProofFactory:              signInProofFactoryStub{},
+		TokenIssuer:     initialTokenIssuer,
+		AdmissionPolicy: testhelpers.AuthnFlow{}, SessionCreator: testhelpers.AuthnFlow{}, SessionRevoker: testhelpers.AuthnFlow{},
+		MethodRegistry: signInMethodRegistryStub{},
+		ProofFactory:   signInProofFactoryStub{},
 		Authenticator: authentication.NewAuthenticator(signInStrategyStub{decision: authentication.AuthDecision{
-			OK: true, Principal: principal, CredentialID: meta.FromUint64(4),
+			OK: true, Principal: principal,
+
+			CredentialUpdate: &authentication.CredentialUpdate{CredentialID: meta.FromUint64(4)},
 		}}),
 		CredentialRecorder: credentialRecorderStub{order: &order},
 	})
@@ -131,7 +136,7 @@ func (signInMethodRegistryStub) Select(context.Context, method.LoginRequest) (me
 
 type signInProofFactoryStub struct{}
 
-func (signInProofFactoryStub) Build(context.Context, method.LoginMethodSelection) (authentication.AuthCredential, error) {
+func (signInProofFactoryStub) Build(context.Context, method.LoginMethodSelection) (authentication.IdentityProof, error) {
 	return signInCredentialStub{}, nil
 }
 
@@ -139,7 +144,7 @@ type signInProofFactoryErrorStub struct {
 	err error
 }
 
-func (s signInProofFactoryErrorStub) Build(context.Context, method.LoginMethodSelection) (authentication.AuthCredential, error) {
+func (s signInProofFactoryErrorStub) Build(context.Context, method.LoginMethodSelection) (authentication.IdentityProof, error) {
 	return nil, s.err
 }
 
@@ -151,7 +156,7 @@ func (signInStrategyStub) Kind() authentication.CredentialKind {
 	return authentication.CredentialKindPassword
 }
 
-func (s signInStrategyStub) Authenticate(context.Context, authentication.AuthCredential) (authentication.AuthDecision, error) {
+func (s signInStrategyStub) Authenticate(context.Context, authentication.IdentityProof) (authentication.AuthDecision, error) {
 	return s.decision, nil
 }
 
@@ -166,13 +171,13 @@ func (s credentialRecorderStub) Record(context.Context, authentication.AuthDecis
 	return nil
 }
 
-type authenticationGrantIssuerStub struct {
+type initialTokenIssuerStub struct {
 	called  bool
 	errCode int
 	order   *[]string
 }
 
-func (s *authenticationGrantIssuerStub) IssueAuthentication(_ context.Context, principal *authentication.Principal) (*tokenapp.TokenPair, error) {
+func (s *initialTokenIssuerStub) IssueInitialTokens(_ context.Context, principal *sessiondomain.Session) (*tokenapp.TokenPair, error) {
 	s.called = true
 	if s.order != nil {
 		*s.order = append(*s.order, "issue")
@@ -181,7 +186,26 @@ func (s *authenticationGrantIssuerStub) IssueAuthentication(_ context.Context, p
 		return nil, perrors.WithCode(s.errCode, "authentication grant denied")
 	}
 	return tokenapp.NewTokenPair(
-		tokenapp.NewAccessToken("a", "access", principal.SessionID, principal.UserID, principal.LoginIdentityID, principal.TenantID, time.Minute),
-		tokenapp.NewRefreshToken("r", "refresh", principal.SessionID, principal.UserID, principal.LoginIdentityID, principal.TenantID, nil, nil, time.Hour),
+		tokenapp.NewAccessToken("a", "access", "session-id", principal.UserID, principal.LoginIdentityID, time.Now(), time.Now().Add(time.Minute)),
+		tokenapp.NewRefreshToken("r", "refresh", "session-id", principal.UserID, principal.LoginIdentityID, time.Now(), time.Now().Add(time.Hour)),
 	), nil
+}
+
+// 租户仅从登录请求进入会话；身份核验结果不承载或确认租户归属。
+
+func TestSignInRejectsContradictoryDecisionBeforeRecording(t *testing.T) {
+	order := []string{}
+	issuer := &initialTokenIssuerStub{}
+	usecase := New(Dependencies{
+		TokenIssuer: issuer, AdmissionPolicy: testhelpers.AuthnFlow{}, SessionCreator: testhelpers.AuthnFlow{}, SessionRevoker: testhelpers.AuthnFlow{},
+		MethodRegistry: signInMethodRegistryStub{}, ProofFactory: signInProofFactoryStub{},
+		Authenticator: authentication.NewAuthenticator(signInStrategyStub{decision: authentication.AuthDecision{
+			OK: true, Principal: &authentication.Principal{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2)},
+			CredentialUpdate: &authentication.CredentialUpdate{CredentialID: meta.FromUint64(3), Effect: authentication.CredentialEffectRecordFailure},
+		}}), CredentialRecorder: credentialRecorderStub{order: &order},
+	})
+	result, err := usecase.Execute(context.Background(), method.LoginRequest{})
+	if err == nil || result != nil || len(order) != 0 || issuer.called {
+		t.Fatal("invalid decision must stop before credential recording and token issuance")
+	}
 }

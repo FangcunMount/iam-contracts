@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	identityv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/identity/v2"
-	profileLinkApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/profilelink"
-	userApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/user"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	identityv2 "github.com/FangcunMount/iam/v5/api/grpc/iam/identity/v2"
+	profileLinkApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/profilelink"
+	userApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/user"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 

@@ -4,20 +4,21 @@ import (
 	"context"
 	"strings"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
+
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authorizationapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/objectattributeadmission"
-	policychange "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policychange"
-	authzuow "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/uow"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/objectattributeadmission"
+	policychange "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	authzuow "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 type CreateCommand struct {
-	TenantID    string
 	RoleID      meta.ID
 	ResourceID  resource.ResourceID
 	Action      string
@@ -26,36 +27,38 @@ type CreateCommand struct {
 }
 
 type RevokeCommand struct {
-	TenantID  string
 	GrantID   meta.ID
 	RevokedBy string
 	Reason    string
 }
 
 type Service struct {
+	guard     management.Guard
 	providers objectattributeadmission.Coverage
 	uow       authzuow.UnitOfWork
 	repo      domain.Repository
 	reloader  policychange.RuntimePolicyReloader
 }
 
-func NewService(uow authzuow.UnitOfWork, repo domain.Repository, reloader policychange.RuntimePolicyReloader, providers ...objectattributeadmission.Coverage) *Service {
+func NewService(uow authzuow.UnitOfWork, repo domain.Repository, reloader policychange.RuntimePolicyReloader, guard management.Guard, providers ...objectattributeadmission.Coverage) *Service {
 	var coverage objectattributeadmission.Coverage
 	if len(providers) > 0 {
 		coverage = providers[0]
 	}
-	return &Service{uow: uow, repo: repo, reloader: reloader, providers: coverage}
+	return &Service{uow: uow, repo: repo, reloader: reloader, guard: guard, providers: coverage}
 }
 
 func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Grant, error) {
+	if err := s.guard.RequireOperation(ctx, "iam:authz:collection:permission_grants", "create"); err != nil {
+		return nil, err
+	}
 	if s == nil || s.uow == nil {
 		return nil, perrors.WithCode(code.ErrInternalServerError, "permission grant service is unavailable")
 	}
-	cmd.TenantID = strings.TrimSpace(cmd.TenantID)
 	cmd.GrantedBy = strings.TrimSpace(cmd.GrantedBy)
 	cmd.Action = strings.TrimSpace(cmd.Action)
-	if cmd.TenantID == "" || cmd.RoleID.IsZero() || cmd.ResourceID.Uint64() == 0 || cmd.GrantedBy == "" {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "tenant, role, resource, and granted by are required")
+	if cmd.RoleID.IsZero() || cmd.ResourceID.Uint64() == 0 || cmd.GrantedBy == "" {
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "role, resource, and granted by are required")
 	}
 	var created domain.Grant
 	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
@@ -63,21 +66,21 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Grant,
 		if err != nil {
 			return err
 		}
-		if !role.BelongsToTenant(cmd.TenantID) {
-			return perrors.WithCode(code.ErrInvalidArgument, "role does not belong to tenant")
-		}
 		catalogResource, err := tx.Resources.FindByIDForUpdate(txCtx, cmd.ResourceID)
 		if err != nil {
 			return err
 		}
-		if cmd.TenantID != "platform" && catalogResource.KeyString() == authorizationapp.ResourceResources && (cmd.Action == "create" || cmd.Action == "update" || cmd.Action == "delete") {
-			return perrors.WithCode(code.ErrPermissionDenied, "catalog write grants require platform tenant")
+		if err := s.guard.Require(txCtx, role); err != nil {
+			return err
 		}
 		grant, err := domain.New(
-			cmd.RoleID, cmd.TenantID, cmd.ResourceID, catalogResource.KeyString(),
+			cmd.RoleID, cmd.ResourceID, catalogResource.KeyString(),
 			cmd.Action, cmd.Constraints, cmd.GrantedBy,
 		)
 		if err != nil {
+			return err
+		}
+		if err := role.ValidateGrant(grant.ResourcePattern, grant.Action); err != nil {
 			return err
 		}
 		if err := grant.ValidateAgainst(*catalogResource); err != nil {
@@ -89,11 +92,11 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Grant,
 		if err := tx.PermissionGrants.Create(txCtx, &grant); err != nil {
 			return err
 		}
-		version, err := tx.PolicyVersions.Increment(txCtx, cmd.TenantID, cmd.GrantedBy, "permission grant created")
+		version, err := tx.PolicyVersions.Increment(txCtx, cmd.GrantedBy, "permission grant created")
 		if err != nil {
 			return err
 		}
-		if err := policychange.StagePolicyVersionChanged(txCtx, tx.Events, cmd.TenantID, version); err != nil {
+		if err := policychange.StagePolicyVersionChanged(txCtx, tx.Events, version); err != nil {
 			return err
 		}
 		created = grant
@@ -107,13 +110,15 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Grant,
 }
 
 func (s *Service) Revoke(ctx context.Context, cmd RevokeCommand) error {
+	if err := s.guard.RequireOperation(ctx, "iam:authz:collection:permission_grants", "revoke"); err != nil {
+		return err
+	}
 	if s == nil || s.uow == nil {
 		return perrors.WithCode(code.ErrInternalServerError, "permission grant service is unavailable")
 	}
-	cmd.TenantID = strings.TrimSpace(cmd.TenantID)
 	cmd.RevokedBy = strings.TrimSpace(cmd.RevokedBy)
-	if cmd.TenantID == "" || cmd.GrantID.IsZero() || cmd.RevokedBy == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "tenant, grant id, and revoked by are required")
+	if cmd.GrantID.IsZero() || cmd.RevokedBy == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "grant id and revoked by are required")
 	}
 	revoked := false
 	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
@@ -121,10 +126,14 @@ func (s *Service) Revoke(ctx context.Context, cmd RevokeCommand) error {
 		if err != nil {
 			return err
 		}
-		if grant.TenantIDString() != cmd.TenantID {
-			return perrors.WithCode(code.ErrInvalidArgument, "permission grant does not belong to tenant")
+		target, err := tx.Roles.FindByIDForUpdate(txCtx, grant.RoleID)
+		if err != nil {
+			return err
 		}
-		outcome, err := tx.PermissionGrants.AtomicRevoke(txCtx, cmd.GrantID, cmd.TenantID)
+		if err := s.guard.Require(txCtx, target); err != nil {
+			return err
+		}
+		outcome, err := tx.PermissionGrants.AtomicRevoke(txCtx, cmd.GrantID)
 		if err != nil {
 			return err
 		}
@@ -143,11 +152,11 @@ func (s *Service) Revoke(ctx context.Context, cmd RevokeCommand) error {
 		if reason == "" {
 			reason = "permission grant revoked"
 		}
-		version, err := tx.PolicyVersions.Increment(txCtx, cmd.TenantID, cmd.RevokedBy, reason)
+		version, err := tx.PolicyVersions.Increment(txCtx, cmd.RevokedBy, reason)
 		if err != nil {
 			return err
 		}
-		return policychange.StagePolicyVersionChanged(txCtx, tx.Events, cmd.TenantID, version)
+		return policychange.StagePolicyVersionChanged(txCtx, tx.Events, version)
 	})
 	if err != nil {
 		return err
@@ -158,12 +167,27 @@ func (s *Service) Revoke(ctx context.Context, cmd RevokeCommand) error {
 	return nil
 }
 
-func (s *Service) ListByRole(ctx context.Context, roleID meta.ID, tenantID string) ([]*domain.Grant, error) {
+func (s *Service) ListByRole(ctx context.Context, roleID meta.ID) ([]*domain.Grant, error) {
 	if s == nil || s.repo == nil {
 		return nil, perrors.WithCode(code.ErrInternalServerError, "permission grant repository is unavailable")
 	}
-	if roleID.IsZero() || strings.TrimSpace(tenantID) == "" {
-		return nil, perrors.WithCode(code.ErrInvalidArgument, "role id and tenant are required")
+	if roleID.IsZero() {
+		return nil, perrors.WithCode(code.ErrInvalidArgument, "role id is required")
 	}
-	return s.repo.ListByRole(ctx, roleID, tenantID)
+	if s.uow == nil {
+		return nil, perrors.WithCode(code.ErrInternalServerError, "角色查询不可用")
+	}
+	var result []*domain.Grant
+	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
+		target, err := tx.Roles.FindByID(txCtx, roleID)
+		if err != nil {
+			return err
+		}
+		if err = s.guard.RequireVisible(txCtx, target); err != nil {
+			return err
+		}
+		result, err = tx.PermissionGrants.ListByRole(txCtx, roleID)
+		return err
+	})
+	return result, err
 }

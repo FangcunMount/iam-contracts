@@ -5,15 +5,15 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/logger"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
-// Authenticator 认证器
+// Authenticator 身份核验器
 type Authenticator struct {
 	strategies map[CredentialKind]AuthStrategy
 }
 
-// NewAuthenticator 创建认证器
+// NewAuthenticator 创建身份核验器
 func NewAuthenticator(strategies ...AuthStrategy) *Authenticator {
 	authenticator := &Authenticator{
 		strategies: make(map[CredentialKind]AuthStrategy, len(strategies)),
@@ -24,7 +24,7 @@ func NewAuthenticator(strategies ...AuthStrategy) *Authenticator {
 	return authenticator
 }
 
-// Register 注册认证策略
+// Register 注册身份核验策略
 func (a *Authenticator) Register(strategy AuthStrategy) {
 	if a == nil || strategy == nil {
 		return
@@ -35,33 +35,33 @@ func (a *Authenticator) Register(strategy AuthStrategy) {
 	a.strategies[strategy.Kind()] = strategy
 }
 
-// Authenticate 认证
+// Authenticate 执行身份核验
 // 统一流程：
-// 1. 获取领域凭据类型对应的认证策略
-// 2. 执行认证
-func (a *Authenticator) Authenticate(ctx context.Context, proof AuthCredential) (AuthDecision, error) {
+// 1. 获取领域凭据类型对应的身份核验策略
+// 2. 执行身份核验
+func (a *Authenticator) Authenticate(ctx context.Context, proof IdentityProof) (AuthDecision, error) {
 	l := logger.L(ctx)
 	if proof == nil {
 		return AuthDecision{}, perrors.WithCode(code.ErrInvalidArgument, "authentication credential is required")
 	}
 
-	// 获取认证凭据类型
+	// 获取身份核验证明类型
 	credentialKind := proof.CredentialKind()
 	if credentialKind == "" {
 		return AuthDecision{}, perrors.WithCode(code.ErrInvalidArgument, "unsupported authentication credential kind: %s", credentialKind)
 	}
 
-	// 获取认证策略
+	// 获取身份核验策略
 	strategy := a.strategyFor(credentialKind)
 	if strategy == nil {
-		l.Errorw("不支持的认证场景", "action", logger.ActionLogin, "credential_kind", string(credentialKind))
+		l.Errorw("不支持的身份核验场景", "action", logger.ActionLogin, "credential_kind", string(credentialKind))
 		return AuthDecision{}, perrors.WithCode(code.ErrInvalidArgument, "unsupported authentication credential kind: %s", credentialKind)
 	}
 
-	// 执行认证
+	// 执行身份核验
 	decision, err := strategy.Authenticate(ctx, proof)
 	if err != nil {
-		l.Errorw("认证策略执行出错",
+		l.Errorw("身份核验策略执行出错",
 			"action", logger.ActionLogin,
 			"credential_kind", string(credentialKind),
 			"result", "failed",
@@ -71,19 +71,23 @@ func (a *Authenticator) Authenticate(ctx context.Context, proof AuthCredential) 
 		return AuthDecision{}, err
 	}
 
-	// 认证不通过
+	if err := decision.Validate(); err != nil {
+		return AuthDecision{}, perrors.WrapC(err, code.ErrInternalServerError, "invalid authentication decision")
+	}
+
+	// 身份核验未通过
 	if !decision.OK {
-		l.Warnw("认证不通过（域层）", "action", logger.ActionLogin, "credential_kind", string(credentialKind), "code", decision.Code)
+		l.Warnw("身份核验未通过", "action", logger.ActionLogin, "credential_kind", string(credentialKind), "code", decision.Code)
 		return decision, nil
 	}
 
-	// 认证通过
-	l.Debugw("认证成功（域层）", "action", logger.ActionLogin, "credential_kind", string(credentialKind), "user_id", decision.Principal.UserID.String(), "login_identity_id", decision.Principal.LoginIdentityID.String(), "tenant_id", decision.Principal.TenantID.String())
+	// 身份核验通过
+	l.Debugw("身份核验成功", "action", logger.ActionLogin, "credential_kind", string(credentialKind), "user_id", decision.Principal.UserID.String(), "login_identity_id", decision.Principal.LoginIdentityID.String())
 
 	return decision, nil
 }
 
-// strategyFor 获取认证策略
+// strategyFor 获取身份核验策略
 func (a *Authenticator) strategyFor(credentialKind CredentialKind) AuthStrategy {
 	return a.strategies[credentialKind]
 }

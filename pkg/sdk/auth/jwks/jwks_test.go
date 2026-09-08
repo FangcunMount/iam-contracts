@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/config"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -20,11 +20,11 @@ import (
 var testJWKSJSON = []byte(`{"keys":[]}`)
 
 type jwksClientStub struct {
-	resp *authnv2.GetJWKSResponse
+	resp *authnv3.GetJWKSResponse
 	err  error
 }
 
-func (s *jwksClientStub) GetJWKS(context.Context, *authnv2.GetJWKSRequest) (*authnv2.GetJWKSResponse, error) {
+func (s *jwksClientStub) GetJWKS(context.Context, *authnv3.GetJWKSRequest) (*authnv3.GetJWKSResponse, error) {
 	return s.resp, s.err
 }
 
@@ -44,12 +44,12 @@ func (f *failingFetcher) Name() string {
 }
 
 type jwksServiceServer struct {
-	authnv2.UnimplementedJWKSServiceServer
-	resp *authnv2.GetJWKSResponse
+	authnv3.UnimplementedJWKSServiceServer
+	resp *authnv3.GetJWKSResponse
 	err  error
 }
 
-func (s *jwksServiceServer) GetJWKS(context.Context, *authnv2.GetJWKSRequest) (*authnv2.GetJWKSResponse, error) {
+func (s *jwksServiceServer) GetJWKS(context.Context, *authnv3.GetJWKSRequest) (*authnv3.GetJWKSResponse, error) {
 	return s.resp, s.err
 }
 
@@ -70,7 +70,7 @@ func TestHTTPFetcherFetch(t *testing.T) {
 
 func TestGRPCFetcherFetch(t *testing.T) {
 	fetcher := NewGRPCFetcher(&jwksClientStub{
-		resp: &authnv2.GetJWKSResponse{
+		resp: &authnv3.GetJWKSResponse{
 			Jwks:         testJWKSJSON,
 			LastModified: timestamppb.New(time.Now()),
 		},
@@ -89,8 +89,8 @@ func TestGRPCEndpointFetcherFetch(t *testing.T) {
 	defer func() { _ = lis.Close() }()
 
 	server := grpc.NewServer()
-	authnv2.RegisterJWKSServiceServer(server, &jwksServiceServer{
-		resp: &authnv2.GetJWKSResponse{Jwks: testJWKSJSON},
+	authnv3.RegisterJWKSServiceServer(server, &jwksServiceServer{
+		resp: &authnv3.GetJWKSResponse{Jwks: testJWKSJSON},
 	})
 	defer server.Stop()
 

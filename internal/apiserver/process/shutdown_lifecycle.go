@@ -108,7 +108,7 @@ func startAuthzPolicySync(lifecycle *processruntime.Lifecycle, sync authzPolicyS
 	if reporter, ok := sync.(authzPolicySyncChannelReporter); ok {
 		channel = reporter.Channel()
 	}
-	log.Infow("Authz policy sync subscriber initialized", "topic", "iam.authz.version", "channel", channel)
+	log.Infow("Authz policy sync subscriber initialized", "topic", "iam.authz.version.v2", "channel", channel)
 }
 
 // runOutboxRelay 运行出box 调度器

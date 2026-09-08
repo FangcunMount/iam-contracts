@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	authorizationapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	authorizationdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	authorizationapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	authorizationdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,13 +25,12 @@ func TestRouteDecisionServiceBuildsCanonicalRequest(t *testing.T) {
 	service := authorizationapp.NewRouteDecisionService(authorizationapp.NewDecisionService(runtime))
 
 	allowed, err := service.CheckRoutePermission(
-		context.Background(), "user:42", "tenant-a", "iam:authz:collection:roles", "read",
+		context.Background(), "user:42", "iam:authz:collection:roles", "read",
 	)
 
 	require.NoError(t, err)
 	require.True(t, allowed)
 	require.Equal(t, "user:42", runtime.request.Subject.String())
-	require.Equal(t, "tenant-a", runtime.request.TenantIDString())
 	require.Equal(t, "iam:authz:collection:roles", string(runtime.request.ResourceKey))
 	require.Equal(t, "read", string(runtime.request.Action))
 }

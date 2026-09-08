@@ -16,7 +16,7 @@ var jwtAttributeDenyList = map[string]struct{}{
 	"phone_number": {}, "wx_openid": {}, "wx_unionid": {},
 	"wecom_user_id": {}, "wecom_open_user_id": {}, "wecom_state": {}, "wecom_corp_id": {},
 	"auth_method": {}, "realm": {}, "login_identity_id": {},
-	"tenant_domain": {}, "org_id": {}, "provider_raw": {},
+	"org_id": {}, "provider_raw": {},
 }
 
 // EncodeJWTAttributes 将已准入字段编码为 JWT attributes（allowlist）。

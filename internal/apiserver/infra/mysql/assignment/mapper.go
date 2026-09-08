@@ -1,8 +1,8 @@
 package assignment
 
 import (
-	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	assignmentDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // Mapper 负责 Assignment 领域对象和持久化对象之间的转换。
@@ -23,7 +23,7 @@ func (m *Mapper) ToBO(po *AssignmentPO) (*assignmentDomain.Assignment, error) {
 		assignmentDomain.SubjectType(po.SubjectType),
 		meta.MustFromUint64(parseStoredID(po.SubjectID)),
 		meta.FromUint64(po.RoleID),
-		po.TenantID,
+
 		assignmentDomain.WithID(assignmentDomain.AssignmentID(po.ID)),
 		assignmentDomain.WithGrantedBy(po.GrantedBy),
 	)
@@ -43,8 +43,8 @@ func (m *Mapper) ToPO(bo *assignmentDomain.Assignment) *AssignmentPO {
 		SubjectType: bo.SubjectTypeString(),
 		SubjectID:   bo.SubjectID.String(),
 		RoleID:      bo.RoleID.Uint64(),
-		TenantID:    bo.TenantIDString(),
-		GrantedBy:   bo.GrantedBy,
+
+		GrantedBy: bo.GrantedBy,
 	}
 	id := meta.FromUint64(bo.ID.Uint64()) // 来自业务对象，必定有效
 	po.ID = id

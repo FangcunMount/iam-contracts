@@ -4,10 +4,8 @@ import (
 	"context"
 	"time"
 
-	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	admissiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
 )
 
 // Store 持久化 RefreshToken、消费事实与 Bearer Token 撤销事实。
@@ -28,28 +26,15 @@ type Store interface {
 	IsBearerTokenRevoked(ctx context.Context, tokenID string) (bool, error)
 }
 
-// BearerTokenCodec 对 access bearer token 进行编码和密码学验证。
-// 领域只依赖该能力，不感知 JWT/JWS 等 wire format。
-type BearerTokenCodec interface {
-	// IssueAccessToken 颁发访问令牌
-	IssueAccessToken(ctx context.Context, subject *AccessTokenSubject, expiresIn time.Duration) (*AccessToken, error)
-	// VerifyBearerToken 验证 access bearer token
-	VerifyBearerToken(ctx context.Context, tokenValue string) (*VerifiedTokenClaims, error)
+// AccessTokenEncoder encodes an already assembled claims set; it does not create issuance facts.
+type AccessTokenEncoder interface {
+	EncodeAccessToken(context.Context, *AccessTokenClaims) (string, error)
 }
 
-// AccessTokenSubject 访问令牌编码所需的已绑定 Session 的认证主体快照。
-// 领域层完成投影后，JWT adapter 只负责序列化，不再从任意 Claims 推断授权域。
-type AccessTokenSubject struct {
-	UserID          meta.ID
-	LoginIdentityID meta.ID
-	TenantID        meta.ID
-	SessionID       string
-	TenantDomain    string
-	OrgID           string
-	AMR             []string
-	AuthenticatedAt time.Time
-	// Attributes 是已经过准入的对外附加字段，不再代表任意 Principal.Claims。
-	Attributes map[string]string
+// AccessTokenSignatureVerifier verifies signature, canonical issuer, time and claim invariants.
+// Recipient audience and online authentication state are checked by Verifier.
+type AccessTokenSignatureVerifier interface {
+	VerifySignatureAndClaims(context.Context, string) (*AccessTokenClaims, error)
 }
 
 // LegacyAuthenticationContextSnapshotDecoder 只负责读取迁移前 RefreshToken 中的认证上下文快照。
@@ -70,13 +55,13 @@ type SessionExtender = sessiondomain.Extender
 // SessionRefreshExpirer 是会话刷新过期时间计算器
 type SessionRefreshExpirer = sessiondomain.RefreshExpirer
 
-// AdmissionPolicy 是认证准入策略
+// AdmissionPolicy 是登录准入策略
 type AdmissionPolicy = admissiondomain.Policy
 
 // TokenSetMinter 在既有 Session 上签发尚未持久化的用户令牌集合
 type TokenSetMinter interface {
 	// MintTokenSet 颁发用户令牌。
-	MintTokenSet(ctx context.Context, principal *authentication.Principal, sess *sessiondomain.Session) (*UserTokenSet, error)
+	MintTokenSet(ctx context.Context, sess *sessiondomain.Session) (*UserTokenSet, error)
 }
 
 // Refresher 轮换 RefreshToken 并延续认证状态。
@@ -90,7 +75,7 @@ type Refresher interface {
 // Verifier 在线验证 access token 及用户认证状态。
 type Verifier interface {
 	// VerifyToken 验证令牌。
-	VerifyToken(ctx context.Context, tokenValue string) (*VerifiedTokenClaims, error)
+	VerifyToken(ctx context.Context, tokenValue string, expectedAudience []string) (*AccessTokenClaims, error)
 }
 
 // Revoker 撤销 bearer token 及其关联 Session。

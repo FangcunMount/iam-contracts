@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	linkingapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	linkingapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/linking"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -25,7 +25,7 @@ func (s *capturingLinker) Link(_ context.Context, req linkingapp.LinkRequest) (*
 
 func TestLinkServicesForwardOriginalActorAuthenticationTime(t *testing.T) {
 	at := time.Now().Add(-time.Hour).UTC().Truncate(time.Second)
-	actor := &authnv2.AuthenticatedUserContext{UserId: "7", AuthenticatedAt: timestamppb.New(at)}
+	actor := &authnv3.AuthenticatedUserContext{UserId: "7", AuthenticatedAt: timestamppb.New(at)}
 	for _, method := range []string{"phone", "mini", "wecom"} {
 		t.Run(method, func(t *testing.T) {
 			linker := &capturingLinker{}
@@ -33,11 +33,11 @@ func TestLinkServicesForwardOriginalActorAuthenticationTime(t *testing.T) {
 			var err error
 			switch method {
 			case "phone":
-				_, err = s.LinkPhone(context.Background(), &authnv2.LinkPhoneRequest{Actor: actor})
+				_, err = s.LinkPhone(context.Background(), &authnv3.LinkPhoneRequest{Actor: actor})
 			case "mini":
-				_, err = s.LinkWechatMiniProgram(context.Background(), &authnv2.LinkWechatMiniProgramRequest{Actor: actor})
+				_, err = s.LinkWechatMiniProgram(context.Background(), &authnv3.LinkWechatMiniProgramRequest{Actor: actor})
 			case "wecom":
-				_, err = s.LinkWecom(context.Background(), &authnv2.LinkWecomRequest{Actor: actor})
+				_, err = s.LinkWecom(context.Background(), &authnv3.LinkWecomRequest{Actor: actor})
 			}
 			require.NoError(t, err)
 			require.Equal(t, meta.FromUint64(7), linker.request.UserID)

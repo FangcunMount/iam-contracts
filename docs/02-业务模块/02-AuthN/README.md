@@ -1,20 +1,33 @@
-# AuthN：认证、会话与令牌
+# AuthN：身份核验与登录态管理
 
 > 状态：已实现 · 认证模型、核心用例、Session/Token/JWKS 与已知失败窗口已按当前实现复核。
 
 AuthN 证明“当前请求者是谁”，维持认证会话，并把认证结果转化为可验证令牌。它不维护 User/Profile 档案，不配置外部身份源，也不回答资源授权问题。
 
-从领域知识看，AuthN 不是一串 provider、Session 和 JWT 组件，而是三个连续子域：
+从领域职责看，AuthN 包含三组能力；这组分类与下述登录流程的四个环节不同：
 
 ```text
-建立认证关系 → 确认身份与准入 → 延续认证状态
+认证关系管理 / 身份核验与登录准入 / 登录态管理
 ```
 
 - 建立认证关系：用 `LoginIdentity`、`Credential` 表达“系统凭什么认识你”；
-- 确认身份与准入：用 `Challenge`、`Authenticator`、`AuthDecision`、`Principal`、`AdmissionPolicy` 表达“如何确认现在是你”；
-- 延续认证状态：用 `AuthenticationGrant`、`Session`、Token 与 `GrantIssuer`、`Verifier`、`Refresher`、`Revoker` 表达“如何让系统持续相信是你”。
+- 身份核验与登录准入：用 `Challenge`、`Authenticator`、`AuthDecision`、`Principal`、`AdmissionPolicy` 表达“如何确认现在是你”；
+- 登录态管理：用 `登录结果`、`Session`、Token 与 `SignIn`、`Verifier`、`Refresher`、`Revoker` 表达“如何让系统持续相信是你”。
 
-JWT、JWKS 和 Redis 是第三段的适配实现，不是与三个子域并列的领域阶段。
+JWT、JWKS 和 Redis 是登录态管理相关的适配实现，不是独立的登录环节。
+
+AuthN 是身份核验及登录态管理模块。其登录用例统一称为：
+
+**身份核验 → 登录准入 → 会话建立 → 令牌颁发。**
+
+| 环节 | 职责 | 输出 |
+| --- | --- | --- |
+| 身份核验 | 核验请求者是否控制某个登录身份，并确认对应主体 | AuthDecision；通过时包含 Principal |
+| 登录准入 | 判断主体当前是否允许建立或维持登录态 | admission.Decision |
+| 会话建立 | 创建并保存可管理的登录状态 | Session |
+| 令牌颁发 | 交付访问与续期凭证，并保存初始刷新令牌 | TokenPair |
+
+“身份核验成功”只表示第一环节成功；“登录成功”表示四个环节全部完成。Authenticator、Authenticate、AuthDecision 等英文代码标识保留，AuthN 模块名称保持不变。
 
 ## 按任务阅读
 
@@ -25,7 +38,7 @@ JWT、JWKS 和 Redis 是第三段的适配实现，不是与三个子域并列�
 | 修改绑定、解绑或最近认证 | [Linking 主链路](03-关键链路-Linking登录身份绑定.md) |
 | 修改签发、刷新、撤销 | [Token 主链路](05-关键链路-Token签发刷新吊销.md) |
 | 理解原始认证时间、Session 寿命和旧格式 | [Session/Token 模型](03-Session-Token与JWKS.md) |
-| 排查 key rotation、JWKS 和备份 | [JWKS 生命周期](06-关键链路-JWKS与本地验签.md) |
+| 排查 key rotation、JWKS 和备份 | [签名密钥生命周期与 JWKS 发布](06-关键链路-JWKS与本地验签.md) |
 
 ## 主题归属与维护规则
 
@@ -46,12 +59,12 @@ JWT、JWKS 和 Redis 是第三段的适配实现，不是与三个子域并列�
 
 ## 完整阅读路径
 
-1. [模块总览](00-模块总览.md)：先建立“认证关系 → 身份与准入 → 认证状态”的统一模型。
-2. [领域模型与认证策略](01-领域模型与认证策略.md)：区分 LoginIdentity、Credential、Challenge、Principal、Session、AuthenticationGrant 和 Token 概念族。
+1. [模块总览](00-模块总览.md)：先理解认证关系、身份核验与登录准入、登录态管理的职责划分。
+2. [领域模型与身份核验策略](01-领域模型与认证策略.md)：区分 LoginIdentity、Credential、Challenge、Principal、Session、登录结果 和 Token 概念族。
 3. [注册、登录与身份绑定](02-注册登录与身份绑定.md)：理解三条写链路的事务、幂等和并发边界。
 4. [Session、Token 与 JWKS](03-Session-Token与JWKS.md)：理解在线状态、刷新轮换、撤销与两种验签语义。
 5. [登录身份绑定](03-关键链路-Linking登录身份绑定.md)：深入理解绑定、解绑和最后一个 active identity 的并发保护。
-6. [登录认证](04-关键链路-Login登录认证.md)：深入理解认证策略、失败记录和锁定语义。
+6. [登录认证](04-关键链路-Login登录认证.md)：深入理解身份核验策略、失败记录和锁定语义。
 7. [Token 签发、刷新与吊销](05-关键链路-Token签发刷新吊销.md)：深入理解 Redis 状态机和失败窗口。
 8. [JWKS 与本地验签](06-关键链路-JWKS与本地验签.md)：深入理解密钥生命周期和离线验证边界。
 9. [模块边界](07-模块边界-AuthN与Identity-IDP-AuthZ.md)：理解 User、外部身份和 Subject 的跨模块转换。
@@ -71,19 +84,19 @@ JWT、JWKS 和 Redis 是第三段的适配实现，不是与三个子域并列�
 IDP 解析外部 provider 身份
   -> AuthN 映射 LoginIdentity，验证证明并形成 Principal
   -> Admission 读取 Identity User / AuthN LoginIdentity 当前状态
-  -> GrantIssuer 颁发 AuthenticationGrant
+  -> SignIn 颁发 登录结果
   -> AuthZ 对 Principal 对应主体做资源授权
 ```
 
 ## 当前实现要特别记住的七点
 
 - SignUp 的外部身份解析在事务外，本地 User/LoginIdentity/Credential 在一个 MySQL UoW 中提交。
-- `AuthenticationGrant = Session + UserTokenSet`；SignIn 只依赖应用 `AuthenticationGrantIssuer`，
-  领域 `GrantIssuer` 内部先 Admission，再建立 Session 与令牌集合。
+- SignIn 在应用层分别调用 AdmissionPolicy、SessionCreator 和 InitialTokenIssuer，并负责新会话的失败补偿；续期和登出仍分别由 Refresher、Revoker 处理。
+  准入返回 Decision；只有明确通过才创建 Session，随后颁发并保存初始令牌。
 - 用户 access token 是 RS256 JWT，但 IAM 在线验证仍检查撤销标记、Session 和主体状态。
 - Refresh token 使用 Redis Lua 原子轮换；当前先延长 Session，再轮换 token，失败时存在 TTL 已变化的窗口。
 - SDK 本地 JWKS 验签不具备 IAM 在线验证的即时撤销语义。
-- AuthN 管理路由不按管理员角色名旁路：JWKS 与 Session 操作使用明确的 AuthZ Resource/Action，并依次检查当前 Tenant 与平台域。
+- AuthN 管理路由不按管理员角色名旁路：JWKS 与 Session 操作使用明确的 AuthZ Resource/Action，并依次检查当前授权域 与平台域。
 
 ## 代码入口
 

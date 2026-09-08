@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	loginidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	loginidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // loginIdentityPrepareDeps 登录身份准备依赖。
@@ -35,7 +35,7 @@ type preparedLoginIdentity struct {
 // prepareSignupLoginIdentity 准备登录身份。
 func (i UsernameLoginIdentityInput) prepareSignupLoginIdentity(_ context.Context, _ loginIdentityPrepareDeps, user SignupUserInput) (preparedLoginIdentity, error) {
 	identifier := usernameIdentifier(user, i.Username)
-	key, err := loginidentity.NewUsernameProviderKey(i.RealmTenantID, identifier)
+	key, err := loginidentity.NewUsernameProviderKey(identifier)
 	if err != nil {
 		return preparedLoginIdentity{}, incompleteProviderKeyError()
 	}

@@ -34,6 +34,6 @@ var (
 	})
 	policyVersionLag = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "iam", Subsystem: "authz_native", Name: "policy_version_lag_max",
-		Help: "Maximum observed event-to-loaded policy version lag without tenant labels.",
+		Help: "Maximum observed event-to-loaded policy version lag without dynamic labels.",
 	})
 )

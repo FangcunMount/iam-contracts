@@ -1,8 +1,8 @@
 package process
 
 import (
-	"github.com/FangcunMount/iam/v4/internal/apiserver/config"
-	genericapiserver "github.com/FangcunMount/iam/v4/internal/pkg/server"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/config"
+	genericapiserver "github.com/FangcunMount/iam/v5/internal/pkg/server"
 )
 
 // buildGenericServer 构建通用服务器

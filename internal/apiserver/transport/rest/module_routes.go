@@ -6,14 +6,14 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	appquery "github.com/FangcunMount/iam/v4/internal/apiserver/application/suggest/queryprofile"
-	authnhttp "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn"
-	authzhttp "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz"
-	userhttp "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/identity"
-	idphttp "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/idp"
-	suggesthttp "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/suggest"
-	authnMiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authn"
-	authzMiddleware "github.com/FangcunMount/iam/v4/internal/pkg/middleware/authz"
+	appquery "github.com/FangcunMount/iam/v5/internal/apiserver/application/suggest/queryprofile"
+	authnhttp "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn"
+	authzhttp "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authz"
+	userhttp "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/identity"
+	idphttp "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/idp"
+	suggesthttp "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/suggest"
+	authnMiddleware "github.com/FangcunMount/iam/v5/internal/pkg/middleware/authn"
+	authzMiddleware "github.com/FangcunMount/iam/v5/internal/pkg/middleware/authz"
 )
 
 // registerModuleRoutes 注册模块路由
@@ -42,9 +42,9 @@ func (r *Router) registerAuthnRoutes(engine *gin.Engine, deps routeDependencies,
 		if authMiddleware != nil {
 			authRequired = authMiddleware.AuthRequired()
 		}
-		var permissionOrGlobal func(resource, action string) gin.HandlerFunc
+		var permission func(resource, action string) gin.HandlerFunc
 		if authorizationMiddleware != nil {
-			permissionOrGlobal = authorizationMiddleware.RequirePermissionOrGlobal
+			permission = authorizationMiddleware.RequirePermission
 		}
 		authnDeps := authnhttp.Dependencies{
 			AuthHandler:            deps.authn.AuthHandler,
@@ -53,7 +53,7 @@ func (r *Router) registerAuthnRoutes(engine *gin.Engine, deps routeDependencies,
 			WechatOpenLoginHandler: deps.authn.WechatOpenLoginHandler,
 			JWKSHandler:            deps.authn.JWKSHandler,
 			AuthMiddleware:         authRequired,
-			PermissionOrGlobal:     permissionOrGlobal,
+			Permission:             permission,
 		}
 		authnhttp.Register(engine, authnDeps)
 		if r.deps.SeedMockAuth.Enabled {
@@ -81,8 +81,7 @@ func (r *Router) registerAuthzRoutes(engine *gin.Engine, deps AuthzDeps, authMid
 			RoleInheritanceHandler: deps.RoleInheritanceHandler,
 			ResourceHandler:        deps.ResourceHandler,
 			AuthMiddleware:         authMiddleware.AuthRequired(),
-			PermissionOrGlobal:     authorizationMiddleware.RequirePermissionOrGlobal,
-			PlatformPermission:     authorizationMiddleware.RequirePlatformPermission,
+			Permission:             authorizationMiddleware.RequirePermission,
 		})
 		log.Info("✅ Authz module routes registered")
 		return
@@ -98,9 +97,9 @@ func (r *Router) registerAuthzRoutes(engine *gin.Engine, deps AuthzDeps, authMid
 func (r *Router) registerIDPRoutes(engine *gin.Engine, deps routeDependencies, authMiddleware *authnMiddleware.JWTAuthMiddleware, authorizationMiddleware *authzMiddleware.Middleware) {
 	if r.deps.ModuleStatus.idpAvailable() && deps.idp.WechatAppHandler != nil && authMiddleware != nil && authorizationMiddleware != nil {
 		idphttp.Register(engine, idphttp.Dependencies{
-			WechatAppHandler:   deps.idp.WechatAppHandler,
-			AuthMiddleware:     authMiddleware.AuthRequired(),
-			PermissionOrGlobal: authorizationMiddleware.RequirePermissionOrGlobal,
+			WechatAppHandler: deps.idp.WechatAppHandler,
+			AuthMiddleware:   authMiddleware.AuthRequired(),
+			Permission:       authorizationMiddleware.RequirePermission,
 		})
 		log.Info("✅ IDP module routes registered")
 		return

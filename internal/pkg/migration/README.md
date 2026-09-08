@@ -113,7 +113,7 @@ import (
     "database/sql"
     "fmt"
     
-    "github.com/FangcunMount/iam/v4/internal/pkg/migration"
+    "github.com/FangcunMount/iam/v5/internal/pkg/migration"
     _ "github.com/go-sql-driver/mysql"
 )
 

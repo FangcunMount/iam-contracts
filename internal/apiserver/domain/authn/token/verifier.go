@@ -4,13 +4,13 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	admissiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	admissiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 type verifier struct {
-	tokenCodec      BearerTokenCodec
+	tokenCodec      AccessTokenSignatureVerifier
 	tokenStore      Store
 	sessionLoader   SessionLoader
 	admissionPolicy AdmissionPolicy
@@ -19,16 +19,20 @@ type verifier struct {
 // 实现 Verifier 接口
 var _ Verifier = &verifier{}
 
-func newVerifier(tokenCodec BearerTokenCodec, tokenStore Store, sessionLoader SessionLoader, admissionPolicy AdmissionPolicy) Verifier {
+func newVerifier(tokenCodec AccessTokenSignatureVerifier, tokenStore Store, sessionLoader SessionLoader, admissionPolicy AdmissionPolicy) Verifier {
 	return &verifier{
 		tokenCodec: tokenCodec, tokenStore: tokenStore,
 		sessionLoader: sessionLoader, admissionPolicy: admissionPolicy,
 	}
 }
 
-func (s *verifier) VerifyToken(ctx context.Context, tokenValue string) (*VerifiedTokenClaims, error) {
+func (s *verifier) VerifyToken(ctx context.Context, tokenValue string, expectedAudience []string) (*AccessTokenClaims, error) {
+	expectedAudience, err := NormalizeExpectedAudience(expectedAudience)
+	if err != nil {
+		return nil, err
+	}
 	// 解析令牌（codec 负责签名、alg/kid、canonical issuer、exp/nbf/iat）
-	claims, err := s.tokenCodec.VerifyBearerToken(ctx, tokenValue)
+	claims, err := s.tokenCodec.VerifySignatureAndClaims(ctx, tokenValue)
 	if err != nil {
 		return nil, perrors.WrapC(err, code.ErrTokenInvalid, "failed to parse bearer token")
 	}
@@ -36,6 +40,10 @@ func (s *verifier) VerifyToken(ctx context.Context, tokenValue string) (*Verifie
 		return nil, perrors.WithCode(code.ErrTokenInvalid, "unsupported token type for online verification: %s", claims.TokenType)
 	}
 
+	if !matchesAudience(claims.Audience, expectedAudience) {
+		audienceFailures.WithLabelValues("mismatch").Inc()
+		return nil, perrors.WithCode(code.ErrTokenInvalid, "token audience does not match recipient")
+	}
 	// 用户访问令牌依次检查撤销标记、Session 和准入状态。
 	if err := s.checkTokenValid(ctx, claims); err != nil {
 		return nil, err
@@ -51,7 +59,7 @@ func (s *verifier) VerifyToken(ctx context.Context, tokenValue string) (*Verifie
 	return claims, nil
 }
 
-func (s *verifier) checkTokenValid(ctx context.Context, claims *VerifiedTokenClaims) error {
+func (s *verifier) checkTokenValid(ctx context.Context, claims *AccessTokenClaims) error {
 	isRevoked, err := s.tokenStore.IsBearerTokenRevoked(ctx, claims.TokenID)
 	if err != nil {
 		return perrors.WrapC(err, code.ErrInternalServerError, "failed to check revoked bearer token")

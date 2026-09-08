@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	challengeApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/challenge"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/eventing"
-	"github.com/FangcunMount/iam/v4/pkg/event"
+	challengeApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/challenge"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/eventing"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 )
 
 // LoginOTPSMSPayload 登录 OTP 短信投递消息体（与具体厂商解耦）

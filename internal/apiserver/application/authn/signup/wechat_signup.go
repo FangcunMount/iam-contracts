@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authnexternal "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/externalidentity"
-	idpresolver "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
-	loginidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
-	idpidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	authnexternal "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/externalidentity"
+	idpresolver "github.com/FangcunMount/iam/v5/internal/apiserver/application/idp/externalidentity"
+	loginidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
+	idpidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 type externalIdentityResolver interface {

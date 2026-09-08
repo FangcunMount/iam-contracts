@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authorizationapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	authorizationdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	authorizationapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	authorizationdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,7 +36,7 @@ func TestSnapshotReaderValidatesQueryBeforeDelegating(t *testing.T) {
 	t.Parallel()
 
 	reader := authorizationapp.NewSnapshotReader(&snapshotRuntimeStub{})
-	_, err := reader.Read(context.Background(), subject.Ref{}, "", "")
+	_, err := reader.Read(context.Background(), subject.Ref{}, "")
 	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 }
 
@@ -46,12 +46,11 @@ func TestSnapshotReaderDelegatesValidQuery(t *testing.T) {
 	sub, err := subject.NewUserRef(meta.FromUint64(42))
 	require.NoError(t, err)
 	runtime := &snapshotRuntimeStub{snapshot: authorizationapp.SubjectSnapshot{EffectiveRoles: []string{"qs:staff"}}}
-	snapshot, err := authorizationapp.NewSnapshotReader(runtime).Read(context.Background(), sub, "fangcun", "qs")
+	snapshot, err := authorizationapp.NewSnapshotReader(runtime).Read(context.Background(), sub, "qs")
 
 	require.NoError(t, err)
 	require.Equal(t, runtime.snapshot, snapshot)
 	require.Equal(t, sub, runtime.subject)
-	require.Equal(t, "fangcun", runtime.tenantID)
 	require.Equal(t, "qs", runtime.appName)
 }
 
@@ -67,7 +66,6 @@ func (s *decisionRuntimeStub) Check(_ context.Context, request authorizationdoma
 
 type snapshotRuntimeStub struct {
 	subject  subject.Ref
-	tenantID string
 	appName  string
 	snapshot authorizationapp.SubjectSnapshot
 }
@@ -75,11 +73,10 @@ type snapshotRuntimeStub struct {
 func (s *snapshotRuntimeStub) GetAuthorizationSnapshot(
 	_ context.Context,
 	sub subject.Ref,
-	tenantID string,
+
 	appName string,
 ) (authorizationapp.SubjectSnapshot, error) {
 	s.subject = sub
-	s.tenantID = tenantID
 	s.appName = appName
 	return s.snapshot, nil
 }
@@ -90,7 +87,6 @@ func TestCatalogWriteRequiresPlatformDecision(t *testing.T) {
 	runtime := &decisionRuntimeStub{}
 	service := authorizationapp.NewDecisionService(runtime)
 	require.True(t, perrors.IsCode(service.RequireCatalogWrite(context.Background(), actor, "update"), code.ErrPermissionDenied))
-	require.Equal(t, "platform", runtime.request.TenantIDString())
 	require.Equal(t, actor, runtime.request.Subject)
 	runtime.decision.Allowed = true
 	require.NoError(t, service.RequireCatalogWrite(context.Background(), actor, "update"))

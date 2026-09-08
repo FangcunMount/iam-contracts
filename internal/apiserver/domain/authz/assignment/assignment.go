@@ -4,35 +4,34 @@ import (
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-// Assignment 表达主体在租户内持有某个角色的赋权事实（聚合根）。
+// Assignment 表达主体持有某个角色的赋权事实（聚合根）。
 type Assignment struct {
-	ID          AssignmentID
+	ID AssignmentID
+
+	//---- 赋权主体 ----
 	SubjectType SubjectType // user/group/service
 	SubjectID   meta.ID     // 用户或组ID
-	RoleID      meta.ID     // 角色ID
-	TenantID    tenant.ID   // 租户ID（域）
-	GrantedBy   string      // 授权人
+
+	//---- 赋权事实 ----
+	RoleID meta.ID // 角色ID
+
+	//---- 赋权来源 ----
+	GrantedBy string // 授权人
 }
 
 // NewAssignment 创建新赋权。
-func NewAssignment(subjectType SubjectType, subjectID meta.ID, roleID meta.ID, tenantID string, opts ...Option) (Assignment, error) {
+func NewAssignment(subjectType SubjectType, subjectID meta.ID, roleID meta.ID, opts ...Option) (Assignment, error) {
 	subjectType = SubjectType(strings.TrimSpace(string(subjectType)))
-	tenantIDValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return Assignment{}, err
-	}
 	a := Assignment{
 		SubjectType: subjectType,
 		SubjectID:   subjectID,
 		RoleID:      roleID,
-		TenantID:    tenantIDValue,
 	}
 	for _, opt := range opts {
 		opt(&a)
@@ -85,27 +84,15 @@ func (a Assignment) SubjectTypeString() string {
 	return string(a.SubjectType)
 }
 
-func (a Assignment) TenantIDString() string {
-	return a.TenantID.String()
-}
-
-func (a Assignment) BelongsToTenant(tenantID string) bool {
-	target, err := tenant.NewID(tenantID)
-	if err != nil {
-		return false
-	}
-	return a.TenantID == target
-}
-
-// Fact states that a subject holds a role inside a tenant.
+// Fact states that a subject holds a role in the unified role space.
 type Fact struct {
-	Subject   subject.Ref
-	RoleName  role.Name
-	TenantID  tenant.ID
+	Subject  subject.Ref
+	RoleName role.Name
+
 	GrantedBy string
 }
 
-func NewFact(sub subject.Ref, roleName, tenantID, grantedBy string) (Fact, error) {
+func NewFact(sub subject.Ref, roleName, grantedBy string) (Fact, error) {
 	grantedBy = strings.TrimSpace(grantedBy)
 	if sub.IsZero() {
 		return Fact{}, perrors.WithCode(code.ErrInvalidArgument, "subject is required")
@@ -114,17 +101,9 @@ func NewFact(sub subject.Ref, roleName, tenantID, grantedBy string) (Fact, error
 	if err != nil {
 		return Fact{}, err
 	}
-	tenantIDValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return Fact{}, err
-	}
-	return Fact{Subject: sub, RoleName: roleNameValue, TenantID: tenantIDValue, GrantedBy: grantedBy}, nil
+	return Fact{Subject: sub, RoleName: roleNameValue, GrantedBy: grantedBy}, nil
 }
 
 func (f Fact) RoleNameString() string {
 	return f.RoleName.String()
-}
-
-func (f Fact) TenantIDString() string {
-	return f.TenantID.String()
 }

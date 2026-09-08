@@ -8,23 +8,22 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
-	"github.com/FangcunMount/iam/v4/pkg/tenant"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/requestctx"
 	"github.com/gin-gonic/gin"
 )
 
 type routePermissionCheckerStub struct {
-	allowedByTenant map[string]bool
-	errorsByTenant  map[string]error
+	allowed bool
+	err     error
 }
 
-func (s routePermissionCheckerStub) CheckRoutePermission(_ context.Context, _, tenantID, _, _ string) (bool, error) {
-	return s.allowedByTenant[tenantID], s.errorsByTenant[tenantID]
+func (s routePermissionCheckerStub) CheckRoutePermission(_ context.Context, _, _, _ string) (bool, error) {
+	return s.allowed, s.err
 }
 
-func TestRequirePermissionOrGlobal(t *testing.T) {
+func TestRequirePermission(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -33,14 +32,12 @@ func TestRequirePermissionOrGlobal(t *testing.T) {
 		withUser   bool
 		wantStatus int
 	}{
-		{name: "domain permission", checker: routePermissionCheckerStub{allowedByTenant: map[string]bool{tenant.DefaultID: true}}, withUser: true, wantStatus: http.StatusNoContent},
-		{name: "platform permission", checker: routePermissionCheckerStub{allowedByTenant: map[string]bool{tenant.PlatformID: true}}, withUser: true, wantStatus: http.StatusNoContent},
-		{name: "both domains deny", checker: routePermissionCheckerStub{}, withUser: true, wantStatus: http.StatusForbidden},
-		{name: "domain failure and platform deny", checker: routePermissionCheckerStub{errorsByTenant: map[string]error{tenant.DefaultID: errors.New("domain sentinel")}}, withUser: true, wantStatus: http.StatusInternalServerError},
-		{name: "domain failure but platform allows", checker: routePermissionCheckerStub{allowedByTenant: map[string]bool{tenant.PlatformID: true}, errorsByTenant: map[string]error{tenant.DefaultID: errors.New("domain sentinel")}}, withUser: true, wantStatus: http.StatusNoContent},
-		{name: "platform failure and domain deny", checker: routePermissionCheckerStub{errorsByTenant: map[string]error{tenant.PlatformID: errors.New("platform sentinel")}}, withUser: true, wantStatus: http.StatusInternalServerError},
-		{name: "expired policy", checker: routePermissionCheckerStub{errorsByTenant: map[string]error{tenant.DefaultID: perrors.WithCode(code.ErrAuthorizationPolicyUnavailable, "expired")}, allowedByTenant: map[string]bool{tenant.PlatformID: true}}, withUser: true, wantStatus: http.StatusServiceUnavailable},
-		{name: "missing principal", checker: routePermissionCheckerStub{}, wantStatus: http.StatusUnauthorized},
+
+		{name: "allowed", checker: routePermissionCheckerStub{allowed: true}, withUser: true, wantStatus: http.StatusNoContent},
+		{name: "denied", withUser: true, wantStatus: http.StatusForbidden},
+		{name: "checker failure", checker: routePermissionCheckerStub{err: errors.New("unavailable")}, withUser: true, wantStatus: http.StatusInternalServerError},
+		{name: "expired policy", checker: routePermissionCheckerStub{err: perrors.WithCode(code.ErrAuthorizationPolicyUnavailable, "expired")}, withUser: true, wantStatus: http.StatusServiceUnavailable},
+		{name: "missing principal", wantStatus: http.StatusUnauthorized},
 	}
 
 	for _, tt := range tests {
@@ -52,13 +49,12 @@ func TestRequirePermissionOrGlobal(t *testing.T) {
 			if tc.withUser {
 				engine.Use(func(c *gin.Context) {
 					requestctx.SetUserID(c, meta.FromUint64(10001))
-					requestctx.SetTenantID(c, tenant.DefaultID)
 					c.Next()
 				})
 			}
 			middleware := NewMiddleware(tc.checker)
 			engine.GET("/protected",
-				middleware.RequirePermissionOrGlobal("iam:authz:collection:roles", "read"),
+				middleware.RequirePermission("iam:authz:collection:roles", "read"),
 				func(c *gin.Context) { c.Status(http.StatusNoContent) },
 			)
 

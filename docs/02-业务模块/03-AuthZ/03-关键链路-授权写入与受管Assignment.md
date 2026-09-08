@@ -35,7 +35,7 @@ Assignment 同时提供增量 Grant/Revoke 与“只替换受管集合”的批�
 
 若事实先提交、版本后写，版本写失败会让其他实例永远不知道需要 reload。若事件先发布、事实后提交，消费方可能提前建立旧快照并不再重试。
 
-当前的事务内 Outbox 设计把“该 Tenant 有新版本”变成可靠事实；事务外 relay 失败只会延迟通知，不会丢失通知意图。
+当前的事务内 Outbox 设计把“全局策略有新版本”变成可靠事实；事务外 relay 失败只会延迟通知，不会丢失通知意图。
 
 ### 为什么 reload 不在事务内
 
@@ -45,11 +45,11 @@ reload 需要重读完整 AuthZ 数据集并构建快照。将它放在写事务
 
 | 操作 | 核心不变量 |
 | --- | --- |
-| Create/Update/Delete Role | Tenant 边界、被引用关系与版本一致性 |
+| Create/Update/Delete Role | 角色保护边界、被引用关系与版本一致性 |
 | Grant/Revoke Assignment | Subject→Role 直接关系；约束授权器决定可管理范围 |
 | ReplaceManagedAssignments | 只替换约束策略定义的受管角色集合 |
 | Grant/Revoke Permission | Resource/Action/ConstraintSet 合法 |
-| Grant/Revoke Inheritance | 同 Tenant、禁止自继承与成环 |
+| Grant/Revoke Inheritance | 引用完整性、禁止自继承与成环 |
 | Register/Update Resource | attribute schema 可校验、可供运行时求值 |
 
 ### 删除是否安全由引用决定
@@ -65,7 +65,7 @@ reload 需要重读完整 AuthZ 数据集并构建快照。将它放在写事务
 
 `GrantAssignment` 增加一条直接 Assignment；`RevokeAssignment` 删除一条直接 Assignment。它们不是角色继承操作，也不接受 effective roles 作为输入。
 
-调用方必须提交目标 Tenant、Subject 和 Role。服务间调用还会经过 Assignment 约束授权器，限制调用方可以管理哪些角色。
+调用方必须提交目标Subject 和 Role。服务间调用还会经过 Assignment 约束授权器，限制调用方可以管理哪些角色。
 
 增量写入的具体防线为：
 
@@ -80,16 +80,16 @@ gRPC service identity + method ACL
   -> increment PolicyVersion + stage Outbox
 ```
 
-方法 ACL 只能回答“该服务能否调用 GrantAssignment”，不能回答“它能否在任意 Tenant 给任意 Subject 授任意 Role”。Assignment constraints 是内容级的第二道授权，
+方法 ACL 只能回答“该服务能否调用 GrantAssignment”，不能回答“它能否给任意 Subject 授任意 Role”。Assignment constraints 是内容级的第二道授权，
 两者不可互相替代。
 
 ## `ReplaceManagedAssignments`
 
-该 RPC 用于把一个 Subject 在某个 Tenant 下的“受管 Assignment 集合”替换为目标集合。
+该 RPC 用于把一个 Subject 的“受管 Assignment 集合”替换为目标集合。
 
 算法语义：
 
-1. 约束授权器根据调用服务、Tenant 和候选角色给出可管理的 Role 集合。
+1. 约束授权器根据调用服务和候选角色给出可管理的 Role 集合。
 2. 目标 `role_ids` 必须全部属于该受管集合。
 3. 读取 Subject 当前直接 Assignment。
 4. 删除受管集合中但不在目标集合内的 Assignment。
@@ -127,7 +127,7 @@ T = 本次请求期望保留的目标角色
 ### 事务内的精确算法
 
 1. 再次校验 Subject 存在。
-2. 按 name 加载 M 中的 Role，确认均属于目标 Tenant。
+2. 按全局唯一 name 加载 M 中的 Role，在事务内校验引用及管理保护。
 3. 按 Role ID 排序，再依次 `FOR UPDATE` 锁定，降低多角色并发时的死锁顺序不一致。
 4. 使用 `ListBySubjectForUpdate` 当前读锁定 Subject 的直接 Assignment，只投影出属于 M 的部分；即使事务已建立旧快照，锁等待后也会读取最新已提交状态。
 5. 软删除 `currentManaged - T`。
@@ -172,7 +172,7 @@ Assignment 写入依赖约束授权器。当前缺失实现时的行为不完全
 
 生产和开发配置已经显式提供约束文件，但默认空配置仍可能触发上述差异。部署检查应把约束实现或文件视为必填项，不能依赖默认值。
 
-constraints 不只列出角色，还将 caller service、allowed methods、Tenant/domain、Subject 类型/范围、Role 集合与 delegated actor 规则绑在一起。
+constraints 不只列出角色，还将 caller service、allowed methods、Subject 类型/范围、Role 集合与 delegated actor 规则绑在一起。
 配置与 `grpc_acl.yaml` 必须做覆盖对齐：
 
 - ACL 有方法但 constraints 无 caller 规则：实际调用将被内容级拒绝或失败。
@@ -232,6 +232,6 @@ Assignment constraints 必须决定调用服务是否允许代表该 actor 写�
 
 Assignment 的 ID 入口和名称入口共用 `executeGrant`，内部结果同时包含 Assignment 和提交版本；名称解析完成后复用同一参数验证、主体解析、角色锁、写入及版本/事件流程。撤销共用 `revokeWithVersion`，既有撤销幂等差异保持。事务 resolver 来自注入的 AuthZ 端口，不在用例里重新注册仅支持 User 的 Identity 适配器。
 
-Resource 创建、更新、删除先在应用服务执行 platform 目录写入准入，再进入事务。目录通知域统一为 platform；更新还递增依赖该资源的租户版本，去重后每租户一次，事件同事务写入。普通 Grant 管理接口不能向非 platform 角色新授予明确的目录 create/update/delete。
+Resource 创建、更新、删除先在应用服务检查目录操作权限，再进入事务；事实变更、全局版本递增和 Outbox 写入同事务完成。普通角色不能获得覆盖目录 create/update/delete 的 Grant，通配符同样受检查。
 
-继承写入使用 `CreateChecked`，按 ID 顺序锁定租户内所有 Role，再读取现有边并调用共享图策略；没有通过表存在性跳过校验的分支。
+继承写入使用 `CreateChecked`，按 ID 顺序锁定全部 Role，再读取现有边并调用共享图策略；没有通过表存在性跳过校验的分支。

@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	sdkerrors "github.com/FangcunMount/iam/v4/pkg/sdk/errors"
+	sdkerrors "github.com/FangcunMount/iam/v5/pkg/sdk/errors"
 	"google.golang.org/grpc/codes"
 )
 
@@ -57,7 +57,7 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 	if parsed.Scheme == "" || parsed.Host == "" {
 		return nil, fmt.Errorf("restclient: base URL must be absolute")
 	}
-	parsed.Path = withAPIV2Path(parsed.Path)
+	parsed.Path = withAPIV3Path(parsed.Path)
 	parsed.RawQuery = ""
 	parsed.Fragment = ""
 
@@ -135,15 +135,15 @@ func encodeBody(in any) (io.Reader, error) {
 	return bytes.NewReader(body), nil
 }
 
-func withAPIV2Path(path string) string {
+func withAPIV3Path(path string) string {
 	path = strings.TrimRight(path, "/")
 	if path == "" {
-		return "/api/v2"
+		return "/api/v3"
 	}
-	if strings.HasSuffix(path, "/api/v2") {
+	if strings.HasSuffix(path, "/api/v3") {
 		return path
 	}
-	return path + "/api/v2"
+	return path + "/api/v3"
 }
 
 type responseEnvelope struct {

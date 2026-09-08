@@ -5,17 +5,17 @@ import (
 	"strings"
 	"sync"
 
-	assignmentApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignment"
-	assignmentAdmissionApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/assignmentadmission"
-	authorizationApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	objectattributeadmission "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/objectattributeadmission"
-	permissionGrantApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/permissiongrant"
-	policychange "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policychange"
-	resourceApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/resource"
-	roleApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/role"
-	roleInheritanceApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/roleinheritance"
-	assignmentConstraints "github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/assignmentconstraints"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/attributeproviders"
+	assignmentApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
+	assignmentAdmissionApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
+	authorizationApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	objectattributeadmission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/objectattributeadmission"
+	permissionGrantApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/permissiongrant"
+	policychange "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	resourceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/resource"
+	roleApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/role"
+	roleInheritanceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/roleinheritance"
+	assignmentConstraints "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/assignmentconstraints"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/attributeproviders"
 )
 
 // AuthzModule 授权模块
@@ -69,7 +69,6 @@ func (m *AuthzModule) InitializeWithDeps(deps AuthzModuleDeps) error {
 	if err := m.initializeRuntime(infra, domain, deps.SyncConfig); err != nil {
 		return err
 	}
-	m.initializeApplication(infra, domain)
 	if strings.TrimSpace(deps.AssignmentConstraintsFile) == "" {
 		return fmt.Errorf("assignment constraints file is required")
 	}
@@ -84,6 +83,7 @@ func (m *AuthzModule) InitializeWithDeps(deps AuthzModuleDeps) error {
 	if err != nil {
 		return err
 	}
+	m.initializeApplication(infra, domain)
 	return nil
 }
 

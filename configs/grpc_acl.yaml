@@ -46,21 +46,21 @@ services:
       - /iam.identity.v2.IdentityLifecycle/BlockUser
       
       # AuthService - Token 验证和管理
-      - /iam.authn.v2.AuthService/VerifyToken
-      - /iam.authn.v2.AuthService/RefreshToken
+      - /iam.authn.v3.AuthService/VerifyToken
+      - /iam.authn.v3.AuthService/RefreshToken
       
       # JWKSService - 公钥获取
-      - /iam.authn.v2.JWKSService/GetJWKS
+      - /iam.authn.v3.JWKSService/GetJWKS
       
       # IDPService - 微信应用查询
       - /iam.idp.v2.IDPService/GetWechatApp
 
       # AuthorizationService - PDP（策略判定）
-      - /iam.authz.v3.AuthorizationService/Check
-      - /iam.authz.v3.AuthorizationService/GetAuthorizationSnapshot
-      - /iam.authz.v3.AuthorizationService/GrantAssignment
-      - /iam.authz.v3.AuthorizationService/RevokeAssignment
-      - /iam.authz.v3.AuthorizationService/ReplaceManagedAssignments
+      - /iam.authz.v4.AuthorizationService/Check
+      - /iam.authz.v4.AuthorizationService/GetAuthorizationSnapshot
+      - /iam.authz.v4.AuthorizationService/GrantAssignment
+      - /iam.authz.v4.AuthorizationService/RevokeAssignment
+      - /iam.authz.v4.AuthorizationService/ReplaceManagedAssignments
     denied_methods: []
 
   # QS Collection Server - 数据收集服务
@@ -96,15 +96,15 @@ services:
       - /iam.identity.v2.IdentityLifecycle/BlockUser
       
       # AuthService - Token 验证和管理
-      - /iam.authn.v2.AuthService/VerifyToken
-      - /iam.authn.v2.AuthService/RefreshToken
+      - /iam.authn.v3.AuthService/VerifyToken
+      - /iam.authn.v3.AuthService/RefreshToken
       
       # JWKSService - 公钥获取
-      - /iam.authn.v2.JWKSService/GetJWKS
+      - /iam.authn.v3.JWKSService/GetJWKS
 
       # AuthorizationService - PDP
-      - /iam.authz.v3.AuthorizationService/Check
-      - /iam.authz.v3.AuthorizationService/GetAuthorizationSnapshot
+      - /iam.authz.v4.AuthorizationService/Check
+      - /iam.authz.v4.AuthorizationService/GetAuthorizationSnapshot
     denied_methods: []
 
   # 内部管理工具
@@ -119,13 +119,13 @@ services:
       - /iam.identity.v2.ProfileLinkCommand/*
       - /iam.identity.v2.IdentityLifecycle/*
       # 所有 Authn 服务方法
-      - /iam.authn.v2.AuthService/*
-      - /iam.authn.v2.AuthSignupService/*
-      - /iam.authn.v2.AuthChallengeService/*
-      - /iam.authn.v2.LoginIdentityService/*
-      - /iam.authn.v2.JWKSService/*
+      - /iam.authn.v3.AuthService/*
+      - /iam.authn.v3.AuthSignupService/*
+      - /iam.authn.v3.AuthChallengeService/*
+      - /iam.authn.v3.LoginIdentityService/*
+      - /iam.authn.v3.JWKSService/*
       - /iam.idp.v2.IDPService/*
-      - /iam.authz.v3.AuthorizationService/*
+      - /iam.authz.v4.AuthorizationService/*
 
   # 运维工具
   - service_name: ops
@@ -133,8 +133,8 @@ services:
     description: "运维工具，用于密钥轮换、Token 撤销等运维操作"
     allowed_methods:
       # Authn 运维操作
-      - /iam.authn.v2.AuthService/RevokeToken
-      - /iam.authn.v2.AuthService/RevokeRefreshToken
+      - /iam.authn.v3.AuthService/RevokeToken
+      - /iam.authn.v3.AuthService/RevokeRefreshToken
       # Identity 运维操作
       - /iam.identity.v2.IdentityLifecycle/DeactivateUser
       - /iam.identity.v2.IdentityLifecycle/BlockUser
@@ -156,7 +156,7 @@ services:
       - /iam.identity.v2.IdentityRead/BatchGetProfiles
       - /iam.identity.v2.ProfileLinkQuery/ListProfiles
       - /iam.identity.v2.ProfileLinkQuery/ListProfileLinks
-      - /iam.authz.v3.AuthorizationService/GetAuthorizationSnapshot
+      - /iam.authz.v4.AuthorizationService/GetAuthorizationSnapshot
 
 # 服务凭证配置（用于应用层鉴权）
 # ============================================================================

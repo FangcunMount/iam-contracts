@@ -3,14 +3,16 @@ package roleinheritance
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	rolerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
+
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/roleinheritance"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/roleinheritance"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -35,16 +37,16 @@ func (r *Repository) CreateChecked(ctx context.Context, inheritance *domain.Inhe
 		if inheritance == nil {
 			return perrors.WithCode(code.ErrInvalidArgument, "inheritance required")
 		}
-		var roleIDs []uint64
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Table("authz_roles").Where("tenant_id = ? AND deleted_at IS NULL", inheritance.TenantIDString()).Order("id ASC").Pluck("id", &roleIDs).Error; err != nil {
+		var roleRows []rolerepo.RolePO
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Table("authz_roles").Where("deleted_at IS NULL").Order("id ASC").Find(&roleRows).Error; err != nil {
 			return err
 		}
-		nodes := make([]domain.RoleNode, 0, len(roleIDs))
-		for _, id := range roleIDs {
-			nodes = append(nodes, domain.RoleNode{ID: meta.FromUint64(id), TenantID: inheritance.TenantIDString()})
+		nodes := make([]domain.RoleNode, 0, len(roleRows))
+		for _, row := range roleRows {
+			nodes = append(nodes, domain.RoleNode{ID: row.ID, ManagementProtection: role.ManagementProtection(row.ManagementProtection)})
 		}
 		var rows []*InheritancePO
-		query := tx.Where("tenant_id = ? AND revoked_at IS NULL AND deleted_at IS NULL", inheritance.TenantIDString()).Order("id ASC")
+		query := tx.Where("revoked_at IS NULL AND deleted_at IS NULL").Order("id ASC")
 		if tx.Dialector != nil && tx.Dialector.Name() != "sqlite" {
 			query = query.Clauses(clause.Locking{Strength: "UPDATE"})
 		}
@@ -75,13 +77,10 @@ func (r *Repository) CreateChecked(ctx context.Context, inheritance *domain.Inhe
 	})
 }
 
-func (r *Repository) AtomicRevoke(ctx context.Context, id meta.ID, tenantID string) (domain.RevokeOutcome, error) {
+func (r *Repository) AtomicRevoke(ctx context.Context, id meta.ID) (domain.RevokeOutcome, error) {
 	now := time.Now()
 	query := r.WithContext(ctx).Model(&InheritancePO{}).
 		Where("id = ? AND revoked_at IS NULL", id.Uint64())
-	if strings.TrimSpace(tenantID) != "" {
-		query = query.Where("tenant_id = ?", strings.TrimSpace(tenantID))
-	}
 	result := query.Updates(map[string]any{
 		"revoked_at": now,
 		"updated_at": now,
@@ -100,9 +99,6 @@ func (r *Repository) AtomicRevoke(ctx context.Context, id meta.ID, tenantID stri
 		findQuery = findQuery.Clauses(clause.Locking{Strength: "UPDATE"})
 	}
 	findQuery = findQuery.Where("id = ?", id.Uint64())
-	if strings.TrimSpace(tenantID) != "" {
-		findQuery = findQuery.Where("tenant_id = ?", strings.TrimSpace(tenantID))
-	}
 	if err := findQuery.First(&po).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return domain.RevokeOutcomeNotFound, nil
@@ -123,10 +119,10 @@ func (r *Repository) FindByID(ctx context.Context, id meta.ID) (*domain.Inherita
 	return r.mapper.ToBO(po)
 }
 
-func (r *Repository) ListActiveByTenant(ctx context.Context, tenantID string) ([]*domain.Inheritance, error) {
+func (r *Repository) ListActive(ctx context.Context) ([]*domain.Inheritance, error) {
 	var rows []*InheritancePO
 	if err := r.WithContext(ctx).
-		Where("tenant_id = ? AND revoked_at IS NULL AND deleted_at IS NULL", tenantID).
+		Where("revoked_at IS NULL AND deleted_at IS NULL").
 		Order("id ASC").
 		Find(&rows).Error; err != nil {
 		return nil, err

@@ -4,76 +4,86 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
-func TestPrincipalFromSessionPrefersSessionContext(t *testing.T) {
+func TestSessionForRefreshPrefersSessionContext(t *testing.T) {
 	s := &refresher{legacyContextDecoder: normalizeLegacyContextDecoder(nil)}
 	authenticatedAt := time.Unix(1700000100, 0).UTC()
 	sess := sessiondomain.NewWithContexts(
-		"sid", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3),
+		"sid", meta.FromUint64(1), meta.FromUint64(2),
 		authentication.RestoreAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, authenticatedAt),
-		authentication.TokenContext{TenantDomain: "fangcun"}, time.Now().Add(time.Hour),
+		sessiondomain.TokenContext{}, time.Now().Add(time.Hour),
 	)
 
-	refresh := NewRefreshToken("rid", "rval", "sid", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), []string{"otp"}, map[string]string{"tenant_domain": "legacy"}, time.Hour)
+	refresh := RestoreRefreshToken("rid", "rval", "sid", meta.FromUint64(1), meta.FromUint64(2), time.Now().Add(time.Hour), LegacyRefreshContext{AMR: []string{"otp"}, SessionClaims: map[string]string{"tenant_domain": "legacy"}})
 	refresh.AuthMethod = "phone_otp"
 	refresh.Realm = "legacy-realm"
 
-	principal := s.principalFromSession(sess, refresh)
-	require.Equal(t, "password", string(principal.AuthContext.Method))
-	require.Equal(t, "global", principal.AuthContext.Realm)
-	require.Equal(t, []string{"pwd"}, principal.AuthContext.AMRStrings())
-	require.Equal(t, "fangcun", principal.TokenContext.TenantDomain)
-	require.Equal(t, authenticatedAt, principal.AuthContext.AuthenticatedAt)
+	restored := s.sessionForRefresh(sess, refresh)
+	require.Equal(t, "password", string(restored.AuthContext.Method))
+	require.Equal(t, "global", restored.AuthContext.Realm)
+	require.Equal(t, []string{"pwd"}, restored.AuthContext.AMRStrings())
+	require.Equal(t, authenticatedAt, restored.AuthContext.AuthenticatedAt)
 }
 
-func TestPrincipalFromSessionFallsBackToRefreshToken(t *testing.T) {
-	s := &refresher{legacyContextDecoder: normalizeLegacyContextDecoder(nil)}
-	sess := &sessiondomain.Session{
-		SessionID: "sid", UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), TenantID: meta.FromUint64(3),
-		Status: sessiondomain.StatusActive, CreatedAt: time.Now().Add(-time.Hour), ExpiresAt: time.Now().Add(time.Hour),
-	}
-	refresh := NewRefreshToken("rid", "rval", "sid", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), []string{"otp"}, map[string]string{"tenant_domain": "legacy"}, time.Hour)
-	refresh.AuthMethod = "phone_otp"
-	refresh.Realm = "legacy-realm"
-
-	principal := s.principalFromSession(sess, refresh)
-	require.Equal(t, "phone_otp", string(principal.AuthContext.Method))
-	require.Equal(t, "legacy-realm", principal.AuthContext.Realm)
-	require.Equal(t, []string{"otp"}, principal.AuthContext.AMRStrings())
-	require.Equal(t, "legacy", principal.TokenContext.TenantDomain)
-	require.Equal(t, sess.CreatedAt.UTC(), principal.AuthContext.AuthenticatedAt)
-}
-
-func TestPrincipalFromSessionDoesNotInventMissingHistoricalAuthTime(t *testing.T) {
+func TestSessionForRefreshFallsBackToRefreshToken(t *testing.T) {
 	s := &refresher{legacyContextDecoder: normalizeLegacyContextDecoder(nil)}
 	sess := &sessiondomain.Session{
 		SessionID: "sid", UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2),
-		TenantID: meta.FromUint64(3), Status: sessiondomain.StatusActive, ExpiresAt: time.Now().Add(time.Hour),
+		Status: sessiondomain.StatusActive, CreatedAt: time.Now().Add(-time.Hour), ExpiresAt: time.Now().Add(time.Hour),
 	}
-	refresh := NewRefreshToken("rid", "rval", "sid", meta.FromUint64(1), meta.FromUint64(2), meta.FromUint64(3), []string{"pwd"}, nil, time.Hour)
+	refresh := RestoreRefreshToken("rid", "rval", "sid", meta.FromUint64(1), meta.FromUint64(2), time.Now().Add(time.Hour), LegacyRefreshContext{AMR: []string{"otp"}, SessionClaims: map[string]string{"tenant_domain": "legacy"}})
+	refresh.AuthMethod = "phone_otp"
+	refresh.Realm = "legacy-realm"
+
+	restored := s.sessionForRefresh(sess, refresh)
+	require.Equal(t, "phone_otp", string(restored.AuthContext.Method))
+	require.Equal(t, "legacy-realm", restored.AuthContext.Realm)
+	require.Equal(t, []string{"otp"}, restored.AuthContext.AMRStrings())
+	require.Equal(t, sess.CreatedAt.UTC(), restored.AuthContext.AuthenticatedAt)
+}
+
+func TestSessionForRefreshDoesNotInventMissingHistoricalAuthTime(t *testing.T) {
+	s := &refresher{legacyContextDecoder: normalizeLegacyContextDecoder(nil)}
+	sess := &sessiondomain.Session{
+		SessionID: "sid", UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2),
+		Status: sessiondomain.StatusActive, ExpiresAt: time.Now().Add(time.Hour),
+	}
+	refresh := RestoreRefreshToken("rid", "rval", "sid", meta.FromUint64(1), meta.FromUint64(2), time.Now().Add(time.Hour), LegacyRefreshContext{AMR: []string{"pwd"}, SessionClaims: nil})
 	refresh.AuthMethod = "password"
 	refresh.Realm = "global"
 
-	principal := s.principalFromSession(sess, refresh)
-	require.True(t, principal.AuthContext.AuthenticatedAt.IsZero())
+	restored := s.sessionForRefresh(sess, refresh)
+	require.True(t, restored.AuthContext.AuthenticatedAt.IsZero())
 }
 
-func TestAccessTokenSubjectKeepsAuthContextAuthenticatedAt(t *testing.T) {
+func TestAccessTokenClaimsProjectionKeepsAuthContextAuthenticatedAt(t *testing.T) {
 	authenticatedAt := time.Unix(1700000200, 0).UTC()
-	principal := &authentication.Principal{
-		UserID: meta.FromUint64(10), LoginIdentityID: meta.FromUint64(20),
-		TokenContext: authentication.TokenContext{TenantDomain: "fangcun"},
-	}
-	principal.ApplyAuthContext(authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, authenticatedAt))
 	sess := &sessiondomain.Session{
 		SessionID: "sid-1", UserID: meta.FromUint64(10), LoginIdentityID: meta.FromUint64(20),
-		AuthContext: authentication.RestoreAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, time.Unix(1, 0).UTC()),
+		TokenContext: sessiondomain.TokenContext{},
+		AuthContext:  authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, authenticatedAt),
+		CreatedAt:    time.Unix(1, 0).UTC(),
 	}
-	got := accessTokenSubjectFromAuth(principal, sess)
+	got := accessTokenClaimsFromSession(sess)
 	require.Equal(t, authenticatedAt, got.AuthenticatedAt)
+}
+
+func TestSessionForRefreshRestoresLegacyContextWithoutMutatingLoadedSession(t *testing.T) {
+	s := &refresher{legacyContextDecoder: normalizeLegacyContextDecoder(nil)}
+	sess := &sessiondomain.Session{SessionID: "sid", CreatedAt: time.Unix(1700000000, 0).UTC()}
+	refresh := RestoreRefreshToken("rid", "value", "sid", meta.FromUint64(1), meta.FromUint64(2), time.Now().Add(time.Hour), LegacyRefreshContext{AMR: []string{"pwd"}, SessionClaims: map[string]string{"tenant_domain": "legacy"}})
+	refresh.AuthMethod = "password"
+	refresh.Realm = "global"
+	restored := s.sessionForRefresh(sess, refresh)
+	require.NotSame(t, sess, restored)
+	require.Empty(t, sess.AuthContext.Method)
+	subject := accessTokenClaimsFromSession(restored)
+	require.Equal(t, "sid", subject.SessionID)
+	require.Equal(t, []string{"pwd"}, subject.AMR)
+	require.Equal(t, sess.CreatedAt, subject.AuthenticatedAt)
 }

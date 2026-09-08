@@ -1,8 +1,8 @@
 package dto
 
 import (
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 type CreatePermissionGrantRequest struct {
@@ -17,8 +17,8 @@ type RevokePermissionGrantRequest struct {
 }
 
 type PermissionGrantResponse struct {
-	ID              meta.ID        `json:"id" swaggertype:"string"`
-	TenantID        string         `json:"tenant_id"`
+	ID meta.ID `json:"id" swaggertype:"string"`
+
 	RoleID          meta.ID        `json:"role_id" swaggertype:"string"`
 	ResourceID      meta.ID        `json:"resource_id" swaggertype:"string"`
 	ResourcePattern string         `json:"resource_pattern"`

@@ -5,15 +5,17 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	assignmentrepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/assignment"
-	permissiongrantrepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/permissiongrant"
-	policyrepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/policy"
-	resourcerepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/resource"
-	rolerepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/role"
-	roleinheritancerepo "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/roleinheritance"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	assignmentrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/assignment"
+	permissiongrantrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
+	policyrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
+	resourcerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
+	rolerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
+	roleinheritancerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/roleinheritance"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 
@@ -45,40 +47,40 @@ func (s *MySQLSource) Load(ctx context.Context) (Dataset, error) {
 
 func loadDataset(db *gorm.DB) (Dataset, error) {
 	var roleRows []*rolerepo.RolePO
-	if err := db.Where("deleted_at IS NULL").Order("tenant_id ASC, id ASC").Find(&roleRows).Error; err != nil {
+	if err := db.Where("deleted_at IS NULL").Order("id ASC").Find(&roleRows).Error; err != nil {
 		return Dataset{}, err
 	}
 	roles := make([]RoleRecord, 0, len(roleRows))
 	for _, row := range roleRows {
-		roles = append(roles, RoleRecord{ID: row.ID, TenantID: row.TenantID, Name: row.Name})
+		roles = append(roles, RoleRecord{ID: row.ID, Name: row.Name, ManagementProtection: role.ManagementProtection(row.ManagementProtection)})
 	}
 
 	var assignmentRows []*assignmentrepo.AssignmentPO
-	if err := db.Where("deleted_at IS NULL").Order("tenant_id ASC, id ASC").Find(&assignmentRows).Error; err != nil {
+	if err := db.Where("deleted_at IS NULL").Order("id ASC").Find(&assignmentRows).Error; err != nil {
 		return Dataset{}, err
 	}
 	assignments := make([]AssignmentRecord, 0, len(assignmentRows))
 	for _, row := range assignmentRows {
 		assignments = append(assignments, AssignmentRecord{
-			TenantID: row.TenantID, SubjectKey: row.SubjectType + ":" + row.SubjectID,
-			RoleID: meta.FromUint64(row.RoleID),
+			SubjectKey: row.SubjectType + ":" + row.SubjectID,
+			RoleID:     meta.FromUint64(row.RoleID),
 		})
 	}
 
 	var inheritanceRows []*roleinheritancerepo.InheritancePO
-	if err := db.Where("deleted_at IS NULL AND revoked_at IS NULL").Order("tenant_id ASC, id ASC").Find(&inheritanceRows).Error; err != nil {
+	if err := db.Where("deleted_at IS NULL AND revoked_at IS NULL").Order("id ASC").Find(&inheritanceRows).Error; err != nil {
 		return Dataset{}, err
 	}
 	inheritances := make([]InheritanceRecord, 0, len(inheritanceRows))
 	for _, row := range inheritanceRows {
 		inheritances = append(inheritances, InheritanceRecord{
-			TenantID: row.TenantID, RoleID: meta.FromUint64(row.RoleID),
+			RoleID:          meta.FromUint64(row.RoleID),
 			InheritedRoleID: meta.FromUint64(row.InheritedRoleID),
 		})
 	}
 
 	var grantRows []*permissiongrantrepo.GrantPO
-	if err := db.Where("deleted_at IS NULL AND revoked_at IS NULL").Order("tenant_id ASC, id ASC").Find(&grantRows).Error; err != nil {
+	if err := db.Where("deleted_at IS NULL AND revoked_at IS NULL").Order("id ASC").Find(&grantRows).Error; err != nil {
 		return Dataset{}, err
 	}
 	grantMapper := permissiongrantrepo.Mapper{}
@@ -105,35 +107,24 @@ func loadDataset(db *gorm.DB) (Dataset, error) {
 		resources = append(resources, catalogResource)
 	}
 
-	versions, err := readVersions(db)
+	version, err := readVersion(db)
 	if err != nil {
 		return Dataset{}, err
 	}
 
 	return Dataset{
 		Roles: roles, Assignments: assignments, Inheritances: inheritances,
-		Grants: grants, Resources: resources, Versions: versions,
+		Grants: grants, Resources: resources, Version: version,
 	}, nil
 }
 
-func (s *MySQLSource) ReadVersions(ctx context.Context) (map[string]int64, error) {
-	return readVersions(s.db.WithContext(ctx))
+func (s *MySQLSource) ReadVersion(ctx context.Context) (int64, error) {
+	return readVersion(s.db.WithContext(ctx))
 }
-func readVersions(db *gorm.DB) (map[string]int64, error) {
-	type versionRow struct {
-		TenantID string `gorm:"column:tenant_id"`
-		Version  int64  `gorm:"column:policy_version"`
+func readVersion(db *gorm.DB) (int64, error) {
+	var row policyrepo.PolicyVersionPO
+	if err := db.Where("id = ?", 1).First(&row).Error; err != nil {
+		return 0, err
 	}
-	var versionRows []versionRow
-	if err := db.Model(&policyrepo.PolicyVersionPO{}).
-		Select("tenant_id, MAX(policy_version) AS policy_version").
-		Where("deleted_at IS NULL").Group("tenant_id").Scan(&versionRows).Error; err != nil {
-		return nil, err
-	}
-	versions := make(map[string]int64, len(versionRows))
-	for _, row := range versionRows {
-		versions[row.TenantID] = row.Version
-	}
-
-	return versions, nil
+	return row.PolicyVersion, nil
 }

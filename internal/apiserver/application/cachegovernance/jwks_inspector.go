@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	jwksapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/jwks"
+	jwksapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/jwks"
 )
 
 type jwksPublishSnapshotInspector struct {

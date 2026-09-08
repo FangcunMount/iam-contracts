@@ -5,14 +5,14 @@ import (
 
 	"gorm.io/gorm"
 
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	sessionrevocation "github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/sessionrevocation"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	sessionrevocation "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/sessionrevocation"
 )
 
 // EffectiveRoleReader resolves direct and inherited roles for a subject.
 type EffectiveRoleReader interface {
-	EffectiveRoleNamesForSubject(ctx context.Context, subject subject.Ref, tenantID string) ([]string, error)
+	EffectiveRoleNamesForSubject(ctx context.Context, subject subject.Ref) ([]string, error)
 }
 
 // IdentityModuleDeps contains the runtime dependencies required to assemble the

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/pkg/event"
-	"github.com/FangcunMount/iam/v4/pkg/eventcatalog"
-	"github.com/FangcunMount/iam/v4/pkg/eventcodec"
-	outboxport "github.com/FangcunMount/iam/v4/pkg/outbox"
+	"github.com/FangcunMount/iam/v5/pkg/event"
+	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
+	"github.com/FangcunMount/iam/v5/pkg/eventcodec"
+	outboxport "github.com/FangcunMount/iam/v5/pkg/outbox"
 )
 
 const (

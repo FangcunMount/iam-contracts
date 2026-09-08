@@ -4,15 +4,14 @@ import (
 	"context"
 	"strings"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/pkg/tenant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	policychange "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policychange"
-	authzuow "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/uow"
-	policyDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/policy"
-	resourceDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	policychange "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	authzuow "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
+	policyDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
+	resourceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // ResourceCatalog manages protected resource definitions transactionally with
@@ -44,8 +43,7 @@ func (s *ResourceCatalog) CreateResource(ctx context.Context, cmd CreateResource
 	if err := s.requireWrite(ctx, cmd.Actor, "create"); err != nil {
 		return nil, err
 	}
-	cmd.TenantID = tenant.PlatformID
-	if err := s.validateChange(cmd.TenantID, cmd.ChangedBy); err != nil {
+	if err := s.validateChange(cmd.ChangedBy); err != nil {
 		return nil, err
 	}
 	created, err := resourceDomain.NewResource(
@@ -61,11 +59,11 @@ func (s *ResourceCatalog) CreateResource(ctx context.Context, cmd CreateResource
 		if err := tx.Resources.Create(txCtx, &created); err != nil {
 			return err
 		}
-		version, err := tx.PolicyVersions.Increment(txCtx, cmd.TenantID, cmd.ChangedBy, "authorization resource created")
+		version, err := tx.PolicyVersions.Increment(txCtx, cmd.ChangedBy, "authorization resource created")
 		if err != nil {
 			return err
 		}
-		return policychange.StagePolicyVersionChanged(txCtx, tx.Events, cmd.TenantID, version)
+		return policychange.StagePolicyVersionChanged(txCtx, tx.Events, version)
 	})
 	if err != nil {
 		return nil, err
@@ -78,8 +76,7 @@ func (s *ResourceCatalog) UpdateResource(ctx context.Context, cmd UpdateResource
 	if err := s.requireWrite(ctx, cmd.Actor, "update"); err != nil {
 		return nil, err
 	}
-	cmd.TenantID = tenant.PlatformID
-	if err := s.validateChange(cmd.TenantID, cmd.ChangedBy); err != nil {
+	if err := s.validateChange(cmd.ChangedBy); err != nil {
 		return nil, err
 	}
 	var updated *resourceDomain.Resource
@@ -117,12 +114,12 @@ func (s *ResourceCatalog) UpdateResource(ctx context.Context, cmd UpdateResource
 		if err := tx.Resources.Update(txCtx, updated); err != nil {
 			return err
 		}
-		for _, tenantID := range s.resourceChangePolicy.AffectedResourceTenantIDs(cmd.TenantID, grants) {
-			version, err := tx.PolicyVersions.Increment(txCtx, tenantID, cmd.ChangedBy, "authorization resource updated")
+		{
+			version, err := tx.PolicyVersions.Increment(txCtx, cmd.ChangedBy, "authorization resource updated")
 			if err != nil {
 				return err
 			}
-			if err := policychange.StagePolicyVersionChanged(txCtx, tx.Events, tenantID, version); err != nil {
+			if err := policychange.StagePolicyVersionChanged(txCtx, tx.Events, version); err != nil {
 				return err
 			}
 		}
@@ -139,11 +136,10 @@ func (s *ResourceCatalog) DeleteResource(ctx context.Context, cmd DeleteResource
 	if err := s.requireWrite(ctx, cmd.Actor, "delete"); err != nil {
 		return err
 	}
-	cmd.TenantID = tenant.PlatformID
 	if cmd.ID.Uint64() == 0 {
 		return perrors.WithCode(code.ErrInvalidArgument, "resource id is required")
 	}
-	if err := s.validateChange(cmd.TenantID, cmd.ChangedBy); err != nil {
+	if err := s.validateChange(cmd.ChangedBy); err != nil {
 		return err
 	}
 	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
@@ -160,11 +156,11 @@ func (s *ResourceCatalog) DeleteResource(ctx context.Context, cmd DeleteResource
 		if err := tx.Resources.Delete(txCtx, cmd.ID); err != nil {
 			return err
 		}
-		version, err := tx.PolicyVersions.Increment(txCtx, cmd.TenantID, cmd.ChangedBy, "authorization resource deleted")
+		version, err := tx.PolicyVersions.Increment(txCtx, cmd.ChangedBy, "authorization resource deleted")
 		if err != nil {
 			return err
 		}
-		return policychange.StagePolicyVersionChanged(txCtx, tx.Events, cmd.TenantID, version)
+		return policychange.StagePolicyVersionChanged(txCtx, tx.Events, version)
 	})
 	if err == nil {
 		policychange.ReloadRuntimePolicy(ctx, s.reloader, "authorization_resource_deleted")
@@ -172,12 +168,12 @@ func (s *ResourceCatalog) DeleteResource(ctx context.Context, cmd DeleteResource
 	return err
 }
 
-func (s *ResourceCatalog) validateChange(tenantID, changedBy string) error {
+func (s *ResourceCatalog) validateChange(changedBy string) error {
 	if s == nil || s.uow == nil {
 		return perrors.WithCode(code.ErrInternalServerError, "resource catalog is unavailable")
 	}
-	if strings.TrimSpace(tenantID) == "" || strings.TrimSpace(changedBy) == "" {
-		return perrors.WithCode(code.ErrInvalidArgument, "tenant and changed by are required")
+	if strings.TrimSpace(changedBy) == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "变更操作人必填")
 	}
 	return nil
 }

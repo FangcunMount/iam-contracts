@@ -8,21 +8,20 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
-	appuser "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/user"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	requestdto "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/identity/request"
-	responsedto "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/identity/response"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
-	"github.com/FangcunMount/iam/v4/pkg/core"
-	"github.com/FangcunMount/iam/v4/pkg/tenant"
+	appuser "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/user"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	requestdto "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/identity/request"
+	responsedto "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/identity/response"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/requestctx"
+	"github.com/FangcunMount/iam/v5/pkg/core"
 )
 
 var _ = core.ErrResponse{}
 
 type EffectiveRoleReader interface {
-	EffectiveRoleNamesForSubject(ctx context.Context, subject subject.Ref, tenantID string) ([]string, error)
+	EffectiveRoleNamesForSubject(ctx context.Context, subject subject.Ref) ([]string, error)
 }
 
 // UserHandler 基础用户 REST 处理器
@@ -155,44 +154,12 @@ func (h *UserHandler) resolveRoles(c *gin.Context, userID meta.ID) []string {
 	if err != nil {
 		return nil
 	}
-	domains := []string{requestctx.TenantIDOrDefault(c)}
-	if domains[0] != tenant.PlatformID {
-		domains = append(domains, tenant.PlatformID)
-	}
-
-	seen := make(map[string]struct{}, 4)
-	out := make([]string, 0, 4)
-	for idx, dom := range domains {
-		raw, err := h.effectiveRoles.EffectiveRoleNamesForSubject(c.Request.Context(), subjectRef, dom)
-		if err != nil {
-			log.Debugw("me: role name lookup failed", "subject_type", string(subjectRef.Type), "subject_id", subjectRef.ID, "domain", dom, "error", err)
-			if idx == 0 {
-				return nil
-			}
-			continue
-		}
-		if len(raw) == 0 {
-			if idx == 0 {
-				log.Debugw("me: no roles", "subject_type", string(subjectRef.Type), "subject_id", subjectRef.ID, "domain", dom)
-			}
-			continue
-		}
-		for _, r := range raw {
-			r = strings.TrimSpace(r)
-			if r == "" {
-				continue
-			}
-			if _, exists := seen[r]; exists {
-				continue
-			}
-			seen[r] = struct{}{}
-			out = append(out, r)
-		}
-	}
-	if len(out) == 0 {
+	roles, err := h.effectiveRoles.EffectiveRoleNamesForSubject(c.Request.Context(), subjectRef)
+	if err != nil {
+		log.Debugw("me: role name lookup failed", "subject_id", subjectRef.ID, "error", err)
 		return nil
 	}
-	return out
+	return roles
 }
 
 func newUserResponse(u *appuser.UserResult, roles []string) responsedto.UserResponse {

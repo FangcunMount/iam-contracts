@@ -11,9 +11,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 type loginServiceCaptureStub struct {
@@ -84,7 +84,7 @@ func (s *tokenOperationsCaptureStub) VerifyToken(context.Context, token.VerifyTo
 	return &token.TokenVerifyResult{Valid: false}, nil
 }
 
-func TestAuthHandlerLoginV2AdaptersUseExplicitSelection(t *testing.T) {
+func TestAuthHandlerLoginV3AdaptersUseExplicitSelection(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
@@ -109,7 +109,6 @@ func TestAuthHandlerLoginV2AdaptersUseExplicitSelection(t *testing.T) {
 				require.True(t, ok)
 				require.Equal(t, "alice", payload.Username)
 				require.Equal(t, "secret", payload.Password)
-				require.Equal(t, uint64(77), req.TenantID.Uint64())
 			},
 		},
 		{
@@ -190,7 +189,7 @@ func TestAuthHandlerLoginV2AdaptersUseExplicitSelection(t *testing.T) {
 			stub := &loginServiceCaptureStub{}
 			h := NewAuthHandler(stub, token.Capabilities{}, nil)
 
-			w := performAuthRequest(h.LoginV2, tc.body)
+			w := performAuthRequest(h.LoginV3, tc.body)
 
 			require.Equal(t, http.StatusOK, w.Code)
 			require.True(t, stub.called)
@@ -200,7 +199,7 @@ func TestAuthHandlerLoginV2AdaptersUseExplicitSelection(t *testing.T) {
 	}
 }
 
-func TestAuthHandlerLoginV2RejectsInvalidContract(t *testing.T) {
+func TestAuthHandlerLoginV3RejectsInvalidContract(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
@@ -223,7 +222,7 @@ func TestAuthHandlerLoginV2RejectsInvalidContract(t *testing.T) {
 			stub := &loginServiceCaptureStub{}
 			h := NewAuthHandler(stub, token.Capabilities{}, nil)
 
-			w := performAuthRequest(h.LoginV2, tc.body)
+			w := performAuthRequest(h.LoginV3, tc.body)
 
 			require.Equal(t, http.StatusBadRequest, w.Code)
 			require.False(t, stub.called)
@@ -281,13 +280,13 @@ func TestAuthHandlerTokenEndpointsPropagateApplicationErrors(t *testing.T) {
 		{
 			name:     "verify token invalid",
 			call:     func(h *AuthHandler) gin.HandlerFunc { return h.VerifyToken },
-			body:     `{"access_token":"access-token"}`,
+			body:     `{"access_token":"access-token","expected_audience":["qs-api"]}`,
 			tokenOps: &tokenOperationsCaptureStub{verifyErr: perrors.WithCode(code.ErrTokenInvalid, "invalid access")},
 		},
 		{
 			name:     "revoke token invalid",
 			call:     func(h *AuthHandler) gin.HandlerFunc { return h.RevokeToken },
-			body:     `{"access_token":"access-token"}`,
+			body:     `{"access_token":"access-token","expected_audience":["qs-api"]}`,
 			tokenOps: &tokenOperationsCaptureStub{revokeErr: perrors.WithCode(code.ErrTokenInvalid, "invalid access")},
 		},
 	}

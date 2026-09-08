@@ -5,21 +5,21 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 type revoker struct {
-	tokenCodec     BearerTokenCodec
+	tokenCodec     AccessTokenSignatureVerifier
 	tokenStore     Store
 	sessionRevoker SessionRevoker
 }
 
-func newRevoker(tokenCodec BearerTokenCodec, tokenStore Store, sessionRevoker SessionRevoker) Revoker {
+func newRevoker(tokenCodec AccessTokenSignatureVerifier, tokenStore Store, sessionRevoker SessionRevoker) Revoker {
 	return &revoker{tokenCodec: tokenCodec, tokenStore: tokenStore, sessionRevoker: sessionRevoker}
 }
 
 func (s *revoker) RevokeBearerToken(ctx context.Context, tokenValue string) error {
-	claims, err := s.tokenCodec.VerifyBearerToken(ctx, tokenValue)
+	claims, err := s.tokenCodec.VerifySignatureAndClaims(ctx, tokenValue)
 	if err != nil {
 		return perrors.WrapC(err, code.ErrTokenInvalid, "failed to parse token for revocation")
 	}

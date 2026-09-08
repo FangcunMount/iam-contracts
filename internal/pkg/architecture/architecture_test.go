@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/FangcunMount/iam/v4/pkg/eventcatalog"
+	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
 )
 
-const modulePath = "github.com/FangcunMount/iam/v4/"
+const modulePath = "github.com/FangcunMount/iam/v5/"
 
 var activeLegacyApplicationInfrastructureImports = map[string]string{}
 
@@ -477,8 +477,8 @@ func TestAuthnConsumersDependOnNarrowCapabilities(t *testing.T) {
 	}{
 		{
 			path:      "internal/apiserver/application/authn/signin/deps.go",
-			required:  []string{"tokenapp.AuthenticationGrantIssuer"},
-			forbidden: []string{"TokenApplicationService", "tokenapp.Capabilities", "AdmissionPolicy", "SessionCreator", "TokenSetMinter"},
+			required:  []string{"tokenapp.InitialTokenIssuer", "admissiondomain.Policy", "sessiondomain.Creator"},
+			forbidden: []string{"TokenApplicationService", "tokenapp.Capabilities", "TokenSetMinter"},
 		},
 		{
 			path:      "internal/apiserver/application/authn/session/service.go",
@@ -515,17 +515,17 @@ func TestAuthnGrantOwnsAdmissionAndSessionTokenCoordination(t *testing.T) {
 	t.Parallel()
 
 	root := repoRoot(t)
-	assertFileContains(t, root, "internal/apiserver/domain/authn/grant/grant.go", "type AuthenticationGrant struct")
-	assertFileContains(t, root, "internal/apiserver/domain/authn/grant/issuer.go", "admissiondomain.Require(")
-	assertFileContains(t, root, "internal/apiserver/domain/authn/grant/issuer.go", "s.sessionCreator.Create(")
-	assertFileContains(t, root, "internal/apiserver/domain/authn/grant/issuer.go", "s.tokenSetMinter.MintTokenSet(")
+	assertFileContains(t, root, "internal/apiserver/application/authn/token/initial_issuer.go", "s.saver.SaveRefreshToken(")
+	assertFileContains(t, root, "internal/apiserver/application/authn/signin/completion.go", "s.deps.AdmissionPolicy.Evaluate(")
+	assertFileContains(t, root, "internal/apiserver/application/authn/signin/completion.go", "s.deps.SessionCreator.Create(")
+	assertFileContains(t, root, "internal/apiserver/application/authn/token/initial_issuer.go", "s.minter.MintTokenSet(")
 
 	tokenSource, err := os.ReadFile(filepath.Join(root, "internal", "apiserver", "domain", "authn", "token", "token.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(tokenSource), "type AuthenticationGrant struct") {
-		t.Fatal("domain/authn/token must not own AuthenticationGrant; Session + TokenSet coordination belongs to domain/authn/grant")
+	if strings.Contains(string(tokenSource), "type SessionEstablishmentResult struct") {
+		t.Fatal("domain/authn/token must not own SessionEstablishmentResult; Session + TokenSet coordination belongs to domain/authn/establishment")
 	}
 }
 
@@ -551,7 +551,7 @@ func TestAuthnAdmissionPolicyDoesNotRegressToSubjectAccessSessionModel(t *testin
 	assertFileContains(t, root, "internal/apiserver/domain/authn/admission/policy.go", "type Policy interface")
 	assertFileContains(t, root, "internal/apiserver/domain/authn/admission/require.go", "func Require(")
 	assertFileContains(t, root, "internal/apiserver/application/authn/admission/guard.go", "func MapError(")
-	assertFileContains(t, root, "internal/apiserver/domain/authn/grant/issuer.go", "admissiondomain.Require(")
+	assertFileContains(t, root, "internal/apiserver/application/authn/signin/completion.go", "s.deps.AdmissionPolicy.Evaluate(")
 }
 
 func TestRESTRegistrarsDoNotUsePackageGlobalDependencies(t *testing.T) {
@@ -1016,18 +1016,18 @@ func TestRetiredAuthzRuntimeAndV2ContractsDoNotRegress(t *testing.T) {
 	} else if len(matches) > 0 {
 		t.Fatalf("retired AuthZ v2 contract files still exist: %v", matches)
 	}
-	assertFileContains(t, root, "api/grpc/iam/authz/v3/authz.proto", "OBJECT_CHECK_REQUIRED")
-	assertFileContains(t, root, "api/grpc/iam/authz/v3/authz.proto", "oneof value")
+	assertFileContains(t, root, "api/grpc/iam/authz/v4/authz.proto", "OBJECT_CHECK_REQUIRED")
+	assertFileContains(t, root, "api/grpc/iam/authz/v4/authz.proto", "oneof value")
 	assertFileContains(t, root, "internal/apiserver/infra/authz/runtime/snapshot.go", "BuildSnapshot")
 	assertFileContains(t, root, "internal/apiserver/infra/authz/runtime/role_graph.go", "type roleGraph struct")
 	assertFileLacks(t, root, "go.mod", "github.com/casbin/")
 	assertFileContains(t, root, "internal/apiserver/domain/authz/permissiongrant/grant.go", "Constraint")
 	assertFileLacks(t, root, "internal/apiserver/domain/authz/resource/action.go", "type Scope")
 	assertFileLacks(t, root, "internal/apiserver/domain/authz/resource/action.go", "ScopeAll")
-	assertFileContains(t, root, "web/swagger-ui/swagger-ui-dist/swagger-initializer.js", "/openapi/authz.v3.yaml")
+	assertFileContains(t, root, "web/swagger-ui/swagger-ui-dist/swagger-initializer.js", "/openapi/authz.v4.yaml")
 	assertFileLacks(t, root, "web/swagger-ui/swagger-ui-dist/swagger-initializer.js", "authz.v2")
-	assertFileContains(t, root, "internal/apiserver/infra/authz/assignmentconstraints/loader.go", "/iam.authz.v3.AuthorizationService/GrantAssignment")
-	assertFileContains(t, root, "configs/grpc_acl.yaml", "/iam.authz.v3.AuthorizationService/ReplaceManagedAssignments")
+	assertFileContains(t, root, "internal/apiserver/infra/authz/assignmentconstraints/loader.go", "/iam.authz.v4.AuthorizationService/GrantAssignment")
+	assertFileContains(t, root, "configs/grpc_acl.yaml", "/iam.authz.v4.AuthorizationService/ReplaceManagedAssignments")
 	assertFileLacks(t, root, "internal/apiserver/infra/authz/assignmentconstraints/loader.go", "iam.authz.v2")
 	assertFileLacks(t, root, "pkg/sdk/docs/06-authz.md", "iam.authz.v2")
 }
@@ -1042,7 +1042,7 @@ func TestAuthnAndAuthzHTTPMiddlewareStaySeparated(t *testing.T) {
 	assertFileLacks(t, root, authnMiddleware, "RequirePermission")
 	assertFileLacks(t, root, authnMiddleware, "RoutePermissionChecker")
 	assertFileContains(t, root, authzMiddleware, "type RoutePermissionChecker interface")
-	assertFileContains(t, root, authzMiddleware, "RequirePermissionOrGlobal")
+	assertFileContains(t, root, authzMiddleware, "RequirePermission")
 }
 
 func TestAuthzBootstrapSeedsUseFourSegmentResourceKeys(t *testing.T) {
@@ -1083,35 +1083,22 @@ func TestAuthzAuthorizationDoesNotUseRoleNameAdministratorBypasses(t *testing.T)
 			assertFileLacks(t, root, check.path, value)
 		}
 	}
-	assertFileContains(t, root, "internal/pkg/middleware/authz/middleware.go", "RequirePermissionOrGlobal")
+	assertFileContains(t, root, "internal/pkg/middleware/authz/middleware.go", "RequirePermission")
 	assertFileLacks(t, root, "internal/pkg/middleware/authn/jwt_middleware.go", "RequirePermission")
 }
 
-func TestAuthzStandaloneBootstrapUsesCanonicalTenantDomain(t *testing.T) {
-	t.Parallel()
-
+func TestAuthzStandaloneBootstrapUsesUnifiedRoleSpace(t *testing.T) {
 	root := repoRoot(t)
-	const rel = "configs/mysql/bootstrap.sql"
-	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+	data, err := os.ReadFile(filepath.Join(root, "configs/mysql/bootstrap.sql"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sql := string(data)
-	for _, table := range []string{
-		"authz_roles",
-		"authz_assignments",
-		"authz_role_inheritances",
-		"authz_permission_grants",
-		"authz_policy_versions",
-	} {
-		statement := extractInsertStatement(t, sql, table)
-		if strings.Contains(statement, "'1'") {
-			t.Fatalf("%s INSERT for %s contains legacy AuthZ tenant domain '1'; standalone bootstrap must use fangcun", rel, table)
-		}
-		if !strings.Contains(statement, "'fangcun'") {
-			t.Fatalf("%s INSERT for %s does not contain canonical AuthZ tenant domain 'fangcun'", rel, table)
-		}
+	if strings.Contains(string(data), "tenant_id") {
+		t.Fatal("bootstrap carries retired authorization dimension")
 	}
+	assertFileContains(t, root, "configs/mysql/bootstrap.sql", "management_protection")
+	assertFileContains(t, root, "configs/mysql/bootstrap.sql", "platform_admin")
+	assertFileContains(t, root, "configs/mysql/bootstrap.sql", "iam_admin")
 }
 
 func TestAuthzProductionCodeUsesSemanticDomainPackages(t *testing.T) {
@@ -1374,21 +1361,21 @@ func TestGRPCContractsHaveRuntimeAndSDKCompileGuards(t *testing.T) {
 	contracts := []struct {
 		module, version, proto, alias, generatedPackage, serviceFile, registerToken, sdkFile string
 	}{
-		{"authn", "v2", "api/grpc/iam/authn/v2/authn.proto", "authnv2", "api/grpc/iam/authn/v2", "internal/apiserver/transport/grpc/service/authn/service.go", "authnv2.RegisterAuthServiceServer", "pkg/sdk/auth/client/client.go"},
-		{"authz", "v3", "api/grpc/iam/authz/v3/authz.proto", "authzv3", "api/grpc/iam/authz/v3", "internal/apiserver/transport/grpc/service/authz/service.go", "authzv3.RegisterAuthorizationServiceServer", "pkg/sdk/authz/client.go"},
+		{"authn", "v3", "api/grpc/iam/authn/v3/authn.proto", "authnv3", "api/grpc/iam/authn/v3", "internal/apiserver/transport/grpc/service/authn/service.go", "authnv3.RegisterAuthServiceServer", "pkg/sdk/auth/client/client.go"},
+		{"authz", "v4", "api/grpc/iam/authz/v4/authz.proto", "authzv4", "api/grpc/iam/authz/v4", "internal/apiserver/transport/grpc/service/authz/service.go", "authzv4.RegisterAuthorizationServiceServer", "pkg/sdk/authz/client.go"},
 		{"identity", "v2", "api/grpc/iam/identity/v2/identity.proto", "identityv2", "api/grpc/iam/identity/v2", "internal/apiserver/transport/grpc/service/identity/service.go", "identityv2.RegisterIdentityReadServer", "pkg/sdk/identity/client.go"},
 		{"idp", "v2", "api/grpc/iam/idp/v2/idp.proto", "idpv2", "api/grpc/iam/idp/v2", "internal/apiserver/transport/grpc/service/idp/service.go", "idpv2.RegisterIDPServiceServer", "pkg/sdk/idp/client.go"},
 	}
 	for _, contract := range contracts {
 		assertFileContains(t, root, contract.proto, "package iam."+contract.module+"."+contract.version+";")
-		assertFileContains(t, root, contract.proto, "github.com/FangcunMount/iam/v4/"+contract.generatedPackage+";"+contract.alias)
+		assertFileContains(t, root, contract.proto, "github.com/FangcunMount/iam/v5/"+contract.generatedPackage+";"+contract.alias)
 		assertFileContains(t, root, filepath.ToSlash(filepath.Join(contract.generatedPackage, contract.module+".pb.go")), "package "+contract.alias)
 		assertFileContains(t, root, filepath.ToSlash(filepath.Join(contract.generatedPackage, contract.module+"_grpc.pb.go")), "package "+contract.alias)
 		assertFileContains(t, root, contract.serviceFile, "api/grpc/iam/"+contract.module+"/"+contract.version)
 		assertFileContains(t, root, contract.serviceFile, contract.registerToken)
 		assertFileContains(t, root, contract.sdkFile, "api/grpc/iam/"+contract.module+"/"+contract.version)
 	}
-	assertFileContains(t, root, "pkg/sdk/public_api_compile_test.go", `github.com/FangcunMount/iam/v4/pkg/sdk`)
+	assertFileContains(t, root, "pkg/sdk/public_api_compile_test.go", `github.com/FangcunMount/iam/v5/pkg/sdk`)
 
 	grpcRoot := filepath.Join(root, "api", "grpc", "iam")
 	err := filepath.WalkDir(grpcRoot, func(path string, entry os.DirEntry, err error) error {
@@ -1402,8 +1389,8 @@ func TestGRPCContractsHaveRuntimeAndSDKCompileGuards(t *testing.T) {
 		if strings.Contains(rel, "/v1/") {
 			t.Fatalf("%s is a retired gRPC v1 contract", rel)
 		}
-		if strings.Contains(rel, "/authz/") && !strings.Contains(rel, "/authz/v3/") {
-			t.Fatalf("%s is not the required AuthZ v3 contract", rel)
+		if strings.Contains(rel, "/authz/") && !strings.Contains(rel, "/authz/v4/") {
+			t.Fatalf("%s is not the required AuthZ v4 contract", rel)
 		}
 		return nil
 	})
@@ -1416,7 +1403,7 @@ func TestGoModuleV3BoundaryAndRetiredSDKSymbolsDoNotRegress(t *testing.T) {
 	t.Parallel()
 
 	root := repoRoot(t)
-	assertFileContains(t, root, "go.mod", "module github.com/FangcunMount/iam/v4")
+	assertFileContains(t, root, "go.mod", "module github.com/FangcunMount/iam/v5")
 	assertFileLacks(t, root, "pkg/sdk/auth/verifier/types.go", "TenantID string")
 	assertFileLacks(t, root, "pkg/sdk/auth/jwks/types.go", "type JWKSStats struct")
 	assertFileLacks(t, root, "pkg/sdk/public_api_compile_test.go", "authjwks.JWKSStats")
@@ -1429,7 +1416,7 @@ func TestGoModuleV3BoundaryAndRetiredSDKSymbolsDoNotRegress(t *testing.T) {
 		rel := filepath.ToSlash(mustRel(t, root, path))
 		for _, imp := range imports {
 			if strings.HasPrefix(imp, retiredModulePath) {
-				t.Fatalf("%s imports retired Go module path %s; v3 code must import github.com/FangcunMount/iam/v4", rel, imp)
+				t.Fatalf("%s imports retired Go module path %s; v3 code must import github.com/FangcunMount/iam/v5", rel, imp)
 			}
 		}
 	})
@@ -1445,7 +1432,7 @@ func TestRetiredInternalJWKSHelpersDoNotRegress(t *testing.T) {
 		"GetCacheControl",
 		"ValidateJWKS",
 	} {
-		assertFileLacks(t, root, "internal/apiserver/infra/token/keyset/keyset_builder.go", token)
+		assertFileLacks(t, root, "internal/apiserver/infra/token/keyset/jwks_publisher.go", token)
 	}
 }
 
@@ -1609,14 +1596,14 @@ func TestAuthnOnboardingAndProfileLinkContractsDoNotRegress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assertFileContains(t, root, "api/grpc/iam/authn/v2/authn.proto", "login_identity_id")
+	assertFileContains(t, root, "api/grpc/iam/authn/v3/authn.proto", "login_identity_id")
 
 	assertFileContains(t, root, "api/grpc/iam/identity/v2/identity.proto", "rpc EstablishProfileLink")
 	assertFileLacks(t, root, "api/grpc/iam/identity/v2/identity.proto", "CreateProfileLink")
 	assertFileLacks(t, root, "pkg/sdk/identity/profile_link_command.go", "CreateProfileLink")
 
 	for _, rel := range []string{
-		"api/rest/authn.v2.yaml",
+		"api/rest/authn.v3.yaml",
 		"internal/apiserver/docs/swagger.yaml",
 	} {
 		assertFileContains(t, root, rel, "/authn/signups/wechat-miniprogram")
@@ -2428,21 +2415,6 @@ func extractAuthzResourceKeysFromSQL(t *testing.T, sql string) []string {
 		t.Fatal("authz_resources bootstrap keys not found")
 	}
 	return values
-}
-
-func extractInsertStatement(t *testing.T, sql, table string) string {
-	t.Helper()
-	prefix := "INSERT INTO `" + table + "`"
-	start := strings.Index(sql, prefix)
-	if start < 0 {
-		t.Fatalf("%s bootstrap insert not found", table)
-	}
-	statement := sql[start:]
-	end := strings.Index(statement, ";")
-	if end < 0 {
-		t.Fatalf("%s bootstrap insert is not terminated", table)
-	}
-	return statement[:end+1]
 }
 
 func assertFourSegmentResourceValues(t *testing.T, label string, values []string) {

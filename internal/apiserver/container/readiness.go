@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	readinessapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/readiness"
-	readinessmetrics "github.com/FangcunMount/iam/v4/internal/apiserver/infra/observability/readiness"
+	readinessapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/readiness"
+	readinessmetrics "github.com/FangcunMount/iam/v5/internal/apiserver/infra/observability/readiness"
 )
 
 func (c *Container) ReadinessChecker() *readinessapp.Checker {
@@ -70,7 +70,7 @@ func (c *Container) checkAuthnReady(context.Context) error {
 		return errors.New("authn unavailable")
 	}
 	tokens := c.AuthnModule.ApplicationCapabilities().Tokens
-	if tokens.AuthenticationGrantIssuer == nil || tokens.Refresher == nil || tokens.Revoker == nil || tokens.Verifier == nil {
+	if tokens.InitialTokenIssuer == nil || tokens.Refresher == nil || tokens.Revoker == nil || tokens.Verifier == nil {
 		return errors.New("authn token service unavailable")
 	}
 	return nil

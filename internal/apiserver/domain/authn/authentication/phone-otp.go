@@ -6,41 +6,35 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-// ====================== 认证凭据（认证所需的数据） ========================
+// ====================== 身份核验证明（请求级输入） ========================
 
-// PhoneOTPProofSpec 手机号验证码认证凭据规格
+// PhoneOTPProofSpec 手机号验证码身份核验证明规格
 type PhoneOTPProofSpec struct {
-	TenantID  meta.ID // 认证域
-	RemoteIP  string  // 认证客户端IP
-	UserAgent string  // 认证客户端UA
-	PhoneE164 string  // 手机号
-	OTP       string  // 验证码
+	PhoneE164 string // 手机号
+	OTP       string // 验证码
 }
 
-// PhoneOTPCredential 认证凭据（手机号+验证码）
-type PhoneOTPCredential struct {
-	TenantID  meta.ID // 认证域
-	RemoteIP  string  // 认证客户端IP
-	UserAgent string  // 认证客户端UA
-	PhoneE164 string  // 手机号
-	OTP       string  // 验证码
+// PhoneOTPProof 身份核验证明（手机号+验证码）
+type PhoneOTPProof struct {
+	PhoneE164 string // 手机号
+	OTP       string // 验证码
 }
 
-// 确保 PhoneOTPCredential 实现了 AuthCredential 接口
-var _ AuthCredential = (*PhoneOTPCredential)(nil)
+// 确保 PhoneOTPProof 实现了 IdentityProof 接口
+var _ IdentityProof = (*PhoneOTPProof)(nil)
 
-// CredentialKind 返回认证凭据类型
-func (c *PhoneOTPCredential) CredentialKind() CredentialKind {
+// CredentialKind 返回身份核验证明类型
+func (c *PhoneOTPProof) CredentialKind() CredentialKind {
 	return CredentialKindPhoneOTP
 }
 
-// NewPhoneOTPCredential 构造手机号验证码认证凭据
-func NewPhoneOTPCredential(spec PhoneOTPProofSpec) (AuthCredential, error) {
+// NewPhoneOTPProof 构造手机号验证码身份核验证明
+func NewPhoneOTPProof(spec PhoneOTPProofSpec) (IdentityProof, error) {
 	if spec.PhoneE164 == "" {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "phone number is required for phone otp authentication")
 	}
@@ -48,25 +42,22 @@ func NewPhoneOTPCredential(spec PhoneOTPProofSpec) (AuthCredential, error) {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "otp code is required for phone otp authentication")
 	}
 
-	return &PhoneOTPCredential{
-		TenantID:  spec.TenantID,
-		RemoteIP:  spec.RemoteIP,
-		UserAgent: spec.UserAgent,
+	return &PhoneOTPProof{
 		PhoneE164: spec.PhoneE164,
 		OTP:       spec.OTP,
 	}, nil
 }
 
-// ================= 认证策略（执行认证的认证器） ========================
+// ================= 身份核验策略 ========================
 
-// PhoneOTPAuthStrategy 手机短信验证码认证策略
+// PhoneOTPAuthStrategy 手机短信验证码身份核验策略
 type PhoneOTPAuthStrategy struct {
 	credentialKind CredentialKind
 	identityRepo   LoginIdentityRepository
 	otpVerifier    LoginPhoneOTPVerifier
 }
 
-// 实现认证策略接口
+// 实现身份核验策略接口
 var _ AuthStrategy = (*PhoneOTPAuthStrategy)(nil)
 
 func NewPhoneOTPAuthStrategyWithLoginIdentity(
@@ -80,22 +71,22 @@ func NewPhoneOTPAuthStrategyWithLoginIdentity(
 	}
 }
 
-// Kind 返回认证策略类型
+// Kind 返回身份核验策略类型
 func (p *PhoneOTPAuthStrategy) Kind() CredentialKind {
 	return p.credentialKind
 }
 
 // Authenticate 执行手机验证码认证
-// 认证流程：
+// 身份核验流程：
 // 1. 验证并消费OTP（防止重放攻击）
 // 2. 根据手机号查找登录身份
 // 3. 检查 LoginIdentity 状态
-// 4. 返回认证判决
-func (p *PhoneOTPAuthStrategy) Authenticate(ctx context.Context, credential AuthCredential) (AuthDecision, error) {
-	// 断言认证凭据类型
-	otpCredential, ok := credential.(*PhoneOTPCredential)
+// 4. 返回身份核验决策
+func (p *PhoneOTPAuthStrategy) Authenticate(ctx context.Context, credential IdentityProof) (AuthDecision, error) {
+	// 断言身份核验证明类型
+	otpCredential, ok := credential.(*PhoneOTPProof)
 	if !ok {
-		return AuthDecision{}, fmt.Errorf("phone otp strategy expects *PhoneOTPCredential, got %T", credential)
+		return AuthDecision{}, fmt.Errorf("phone otp strategy expects *PhoneOTPProof, got %T", credential)
 	}
 
 	// 验证并消费OTP（防止重放攻击）
@@ -136,40 +127,31 @@ func (p *PhoneOTPAuthStrategy) Authenticate(ctx context.Context, credential Auth
 		return *statusFailure, nil
 	}
 
-	// 构造认证成功决策
+	// 构造身份核验成功决策
 	return p.buildPhoneOTPSuccessDecision(
-		ctx,
-		otpCredential,
 		lookup.LoginIdentityID,
 		lookup.UserID,
-		meta.ZeroID,
 	), nil
 }
 
 // verifyLoginOTP 验证OTP并标记为已使用
-func (p *PhoneOTPAuthStrategy) verifyLoginOTP(ctx context.Context, credential *PhoneOTPCredential) (bool, error) {
+func (p *PhoneOTPAuthStrategy) verifyLoginOTP(ctx context.Context, credential *PhoneOTPProof) (bool, error) {
 	return p.otpVerifier.VerifyAndConsumeLoginPhoneOTP(ctx, credential.PhoneE164, credential.OTP)
 }
 
-// buildPhoneOTPSuccessDecision 认证成功，构造Principal
+// buildPhoneOTPSuccessDecision 身份核验成功，构造Principal
 func (p *PhoneOTPAuthStrategy) buildPhoneOTPSuccessDecision(
-	ctx context.Context,
-	credential *PhoneOTPCredential,
 	loginIdentityID meta.ID,
 	userID meta.ID,
-	credentialID meta.ID,
 ) AuthDecision {
 	principal := &Principal{
 		LoginIdentityID: loginIdentityID,
 		UserID:          userID,
-		TenantID:        credential.TenantID,
 	}
 	principal.ApplyAuthContext(NewAuthenticationContext(MethodPhoneOTP, loginidentity.RealmGlobal, []AMR{AMROTP}, time.Now().UTC()))
 
 	return AuthDecision{
-		OK:              true,
-		Principal:       principal,
-		LoginIdentityID: loginIdentityID,
-		CredentialID:    credentialID,
+		OK:        true,
+		Principal: principal,
 	}
 }

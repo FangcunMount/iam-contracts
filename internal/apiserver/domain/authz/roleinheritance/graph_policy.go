@@ -4,34 +4,38 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 const MaxHierarchyDepth = 32
 
 type RoleNode struct {
-	ID       meta.ID
-	TenantID string
+	ManagementProtection role.ManagementProtection
+	ID                   meta.ID
 }
 
 // ValidateGraph is shared by atomic writes, runtime compilation and preflight.
 // Depth counts role nodes, including the directly assigned role.
 func ValidateGraph(roles []RoleNode, edges []*Inheritance) error {
-	tenants := make(map[meta.ID]string, len(roles))
+	protections := make(map[meta.ID]role.ManagementProtection, len(roles))
+	identities := make(map[meta.ID]struct{}, len(roles))
 	indegree := make(map[meta.ID]int, len(roles))
 	depth := make(map[meta.ID]int, len(roles))
 	previous := make(map[meta.ID]meta.ID)
 	graph := make(map[meta.ID][]meta.ID)
 	for _, node := range roles {
-		if node.ID.IsZero() || node.TenantID == "" {
+		if node.ID.IsZero() {
 			return invalidGraph("invalid role node %s", node.ID)
 		}
-		if _, exists := tenants[node.ID]; exists {
+		if _, exists := identities[node.ID]; exists {
 			return invalidGraph("duplicate role %s", node.ID)
 		}
-		tenants[node.ID] = node.TenantID
+		identities[node.ID] = struct{}{}
+		protections[node.ID] = node.ManagementProtection
 		indegree[node.ID] = 0
 		depth[node.ID] = 1
 	}
@@ -42,10 +46,13 @@ func ValidateGraph(roles []RoleNode, edges []*Inheritance) error {
 		if !edge.IsActive() {
 			continue
 		}
-		child, childOK := tenants[edge.RoleID]
-		parent, parentOK := tenants[edge.InheritedRoleID]
-		if !childOK || !parentOK || child != edge.TenantIDString() || parent != child {
-			return invalidGraph("unknown or cross-tenant role in edge %s -> %s", edge.RoleID, edge.InheritedRoleID)
+		_, childOK := identities[edge.RoleID]
+		_, parentOK := identities[edge.InheritedRoleID]
+		if !childOK || !parentOK {
+			return invalidGraph("unknown role in edge %s -> %s", edge.RoleID, edge.InheritedRoleID)
+		}
+		if protections[edge.RoleID] != role.ManagementProtected && protections[edge.InheritedRoleID] == role.ManagementProtected {
+			return invalidGraph("普通角色不能继承受保护角色")
 		}
 		graph[edge.RoleID] = append(graph[edge.RoleID], edge.InheritedRoleID)
 		indegree[edge.InheritedRoleID]++

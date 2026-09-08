@@ -7,13 +7,13 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/uow"
-	idpresolver "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
-	loginidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
-	userDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/user"
-	idpidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/uow"
+	idpresolver "github.com/FangcunMount/iam/v5/internal/apiserver/application/idp/externalidentity"
+	loginidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
+	userDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/user"
+	idpidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -125,9 +125,8 @@ func TestOnboardPreservesLoginIdentityDisabledErrorCode(t *testing.T) {
 
 	phone, err := meta.NewPhone("13800138013")
 	require.NoError(t, err)
-	tenantID := meta.FromUint64(9001)
 	loginID := "existing-login"
-	key := mustUsernameProviderKey(t, tenantID, loginID)
+	key := mustUsernameProviderKey(t, loginID)
 	existingUser, err := userDomain.NewUser("existing", phone, userDomain.WithID(meta.FromUint64(100)))
 	require.NoError(t, err)
 	userRepo := &userRepoStub{
@@ -164,8 +163,7 @@ func TestOnboardPreservesLoginIdentityDisabledErrorCode(t *testing.T) {
 			Phone: phone,
 		},
 		LoginIdentity: UsernameLoginIdentityInput{
-			Username:      loginID,
-			RealmTenantID: tenantID,
+			Username: loginID,
 		},
 	})
 
@@ -187,7 +185,7 @@ func TestUserResolverDoesNotReuseUserByPhoneWithoutLoginIdentity(t *testing.T) {
 		},
 	}
 
-	key := mustUsernameProviderKey(t, meta.FromUint64(9001), "new-login")
+	key := mustUsernameProviderKey(t, "new-login")
 	result, err := newResolveUserStep(userRepo).Run(
 		context.Background(),
 		registrationRepositories{

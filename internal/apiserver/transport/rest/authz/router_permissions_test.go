@@ -3,8 +3,8 @@ package authz
 import (
 	"testing"
 
-	authzapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/handler"
+	authzapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authz/handler"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +23,7 @@ func TestRegisterBindsAuthzRoutesToExplicitPermissions(t *testing.T) {
 		RoleInheritanceHandler: handler.NewRoleInheritanceHandler(nil),
 		ResourceHandler:        handler.NewResourceHandler(nil, nil),
 		AuthMiddleware:         func(c *gin.Context) { c.Next() },
-		PermissionOrGlobal:     permission,
+		Permission:             permission,
 	})
 
 	for _, key := range []string{

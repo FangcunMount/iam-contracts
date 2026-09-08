@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,25 +27,23 @@ func TestPasswordAuthStrategy_AllCases(t *testing.T) {
 	ctx := context.Background()
 	loginIdentityID := meta.FromUint64(12)
 	userID := meta.FromUint64(22)
-	tenantID := meta.FromUint64(1)
 
 	makeLookup := func(status loginidentity.Status) *authentication.LoginIdentityLookup {
 		return &authentication.LoginIdentityLookup{
 			LoginIdentityID: loginIdentityID,
 			UserID:          userID,
 			Provider:        loginidentity.ProviderUsername,
-			Realm:           tenantID.String(),
+			Realm:           loginidentity.RealmDefault,
 			Identifier:      "u",
 			Status:          status,
-			ScopedTenantID:  tenantID,
 		}
 	}
 	makeAuth := func(identityRepo *loginIdentityRepoTestDouble, credRepo *loginIdentityCredentialRepoTestDouble, hasher *hasherStub) *authentication.Authenticator {
 		return authentication.NewAuthenticator(authentication.NewPasswordAuthStrategyWithLoginIdentity(credRepo, identityRepo, hasher))
 	}
-	makeProof := func(username, password string, tenantID meta.ID) authentication.AuthCredential {
-		proof, err := authentication.NewPasswordCredential(authentication.PasswordProofSpec{
-			TenantID: tenantID,
+	makeProof := func(username, password string) authentication.IdentityProof {
+		proof, err := authentication.NewPasswordProof(authentication.PasswordProofSpec{
+
 			Username: username,
 			Password: password,
 		})
@@ -63,33 +61,33 @@ func TestPasswordAuthStrategy_AllCases(t *testing.T) {
 
 	// 1. login identity not found -> invalid credential
 	a1 := makeAuth(newLoginIdentityRepoTestDouble(), credRepo(meta.ZeroID, ""), &hasherStub{pepper: "p"})
-	d1, err := a1.Authenticate(ctx, makeProof("u", "p", tenantID))
+	d1, err := a1.Authenticate(ctx, makeProof("u", "p"))
 	require.NoError(t, err)
 	require.False(t, d1.OK)
 	require.Equal(t, code.ErrInvalidCredentials, d1.Code)
 
 	// 2. disabled identity
 	a2 := makeAuth(newLoginIdentityRepoTestDouble(makeLookup(loginidentity.StatusDisabled)), credRepo(meta.ZeroID, ""), &hasherStub{pepper: "p"})
-	d2, err := a2.Authenticate(ctx, makeProof("u", "p", tenantID))
+	d2, err := a2.Authenticate(ctx, makeProof("u", "p"))
 	require.NoError(t, err)
 	require.False(t, d2.OK)
 	require.Equal(t, code.ErrLoginIdentityDisabled, d2.Code)
 
 	// 3. no password credential set
 	a4 := makeAuth(newLoginIdentityRepoTestDouble(makeLookup(loginidentity.StatusActive)), credRepo(meta.ZeroID, ""), &hasherStub{pepper: "p"})
-	d4, err := a4.Authenticate(ctx, makeProof("u", "p", tenantID))
+	d4, err := a4.Authenticate(ctx, makeProof("u", "p"))
 	require.NoError(t, err)
 	require.False(t, d4.OK)
 	require.Equal(t, code.ErrInvalidCredentials, d4.Code)
 
 	// 4. wrong password -> invalid credential with CredentialID
 	a5 := makeAuth(newLoginIdentityRepoTestDouble(makeLookup(loginidentity.StatusActive)), credRepo(meta.FromUint64(100), "some-other"), &hasherStub{pepper: "p"})
-	d5, err := a5.Authenticate(ctx, makeProof("u", "p", tenantID))
+	d5, err := a5.Authenticate(ctx, makeProof("u", "p"))
 	require.NoError(t, err)
 	require.False(t, d5.OK)
 	require.Equal(t, code.ErrInvalidCredentials, d5.Code)
-	require.Equal(t, meta.FromUint64(100), d5.CredentialID)
-	require.Equal(t, authentication.CredentialEffectRecordFailure, d5.CredentialEffect)
+	require.Equal(t, meta.FromUint64(100), d5.CredentialUpdate.CredentialID)
+	require.Equal(t, authentication.CredentialEffectRecordFailure, d5.CredentialUpdate.Effect)
 
 	// 5. disabled password credential
 	disabledCreds := &loginIdentityCredentialRepoTestDouble{
@@ -98,11 +96,11 @@ func TestPasswordAuthStrategy_AllCases(t *testing.T) {
 		},
 	}
 	aDisabled := makeAuth(newLoginIdentityRepoTestDouble(makeLookup(loginidentity.StatusActive)), disabledCreds, &hasherStub{pepper: "p"})
-	dDisabled, err := aDisabled.Authenticate(ctx, makeProof("u", "p", tenantID))
+	dDisabled, err := aDisabled.Authenticate(ctx, makeProof("u", "p"))
 	require.NoError(t, err)
 	require.False(t, dDisabled.OK)
 	require.Equal(t, code.ErrCredentialDisabled, dDisabled.Code)
-	require.Equal(t, meta.FromUint64(101), dDisabled.CredentialID)
+	require.Equal(t, meta.FromUint64(101), dDisabled.CredentialUpdate.CredentialID)
 
 	// 6. locked password credential
 	lockedUntil := time.Now().Add(time.Hour)
@@ -112,30 +110,30 @@ func TestPasswordAuthStrategy_AllCases(t *testing.T) {
 		},
 	}
 	aLocked := makeAuth(newLoginIdentityRepoTestDouble(makeLookup(loginidentity.StatusActive)), lockedCreds, &hasherStub{pepper: "p"})
-	dLocked, err := aLocked.Authenticate(ctx, makeProof("u", "p", tenantID))
+	dLocked, err := aLocked.Authenticate(ctx, makeProof("u", "p"))
 	require.NoError(t, err)
 	require.False(t, dLocked.OK)
 	require.Equal(t, code.ErrCredentialLocked, dLocked.Code)
-	require.Equal(t, meta.FromUint64(102), dLocked.CredentialID)
+	require.Equal(t, meta.FromUint64(102), dLocked.CredentialUpdate.CredentialID)
 
-	// 7. success, need rehash -> ShouldRotate true and NewMaterial set
+	// 7. 身份核验成功且需要 rehash 时，返回完整的材料轮换意图。
 	pepper := "pep"
 	pass := "pwd"
 	stored := pass + pepper
 	a6 := makeAuth(newLoginIdentityRepoTestDouble(makeLookup(loginidentity.StatusActive)), credRepo(meta.FromUint64(200), stored), &hasherStub{pepper: pepper, need: true, newh: "new-hash"})
-	d6, err := a6.Authenticate(ctx, makeProof("u", pass, tenantID))
+	d6, err := a6.Authenticate(ctx, makeProof("u", pass))
 	require.NoError(t, err)
 	require.True(t, d6.OK)
-	require.True(t, d6.ShouldRotate)
-	require.Equal(t, []byte("new-hash"), d6.NewMaterial)
-	require.Equal(t, authentication.CredentialEffectRecordSuccess, d6.CredentialEffect)
+	require.NotNil(t, d6.CredentialUpdate.Rotation)
+	require.Equal(t, []byte("new-hash"), d6.CredentialUpdate.Rotation.Material)
+	require.Equal(t, authentication.CredentialEffectRecordSuccess, d6.CredentialUpdate.Effect)
 
 	// 8. success, no rehash
 	a7 := makeAuth(newLoginIdentityRepoTestDouble(makeLookup(loginidentity.StatusActive)), credRepo(meta.FromUint64(200), stored), &hasherStub{pepper: pepper, need: false})
-	d7, err := a7.Authenticate(ctx, makeProof("u", pass, tenantID))
+	d7, err := a7.Authenticate(ctx, makeProof("u", pass))
 	require.NoError(t, err)
 	require.True(t, d7.OK)
-	require.False(t, d7.ShouldRotate)
+	require.Nil(t, d7.CredentialUpdate.Rotation)
 
 	// 9. mock-consumer maps to username/default and does not require tenant scope.
 	mockIdentityID := meta.FromUint64(13)
@@ -153,7 +151,7 @@ func TestPasswordAuthStrategy_AllCases(t *testing.T) {
 		},
 	}
 	a8 := makeAuth(mockRepo, mockCreds, &hasherStub{pepper: pepper, need: false})
-	d8, err := a8.Authenticate(ctx, makeProof("ref@example.com", pass, meta.ZeroID))
+	d8, err := a8.Authenticate(ctx, makeProof("ref@example.com", pass))
 	require.NoError(t, err)
 	require.True(t, d8.OK)
 	require.NotNil(t, d8.Principal)

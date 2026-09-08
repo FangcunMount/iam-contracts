@@ -2,9 +2,9 @@ package apiserver
 
 import (
 	"github.com/FangcunMount/component-base/pkg/log"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/config"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/options"
-	"github.com/FangcunMount/iam/v4/pkg/app"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/config"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/options"
+	"github.com/FangcunMount/iam/v5/pkg/app"
 )
 
 // commandDesc 命令描述

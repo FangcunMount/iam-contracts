@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/messaging"
-	apiserverconfig "github.com/FangcunMount/iam/v4/internal/apiserver/config"
-	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
-	genericoptions "github.com/FangcunMount/iam/v4/internal/pkg/options"
+	apiserverconfig "github.com/FangcunMount/iam/v5/internal/apiserver/config"
+	apiserveroptions "github.com/FangcunMount/iam/v5/internal/apiserver/options"
+	genericoptions "github.com/FangcunMount/iam/v5/internal/pkg/options"
 )
 
 func TestNormalizeNSQConfigAppliesRuntimeDefaults(t *testing.T) {
@@ -70,11 +70,11 @@ func TestDurableTopicNamesFromCatalogReturnsOnlyDurableTopics(t *testing.T) {
 version: "1"
 topics:
   authz_version:
-    name: iam.authz.version
+    name: iam.authz.version.v2
   notification_sms:
     name: iam.notify.sms
 events:
-  iam.authz.version_changed:
+  iam.authz.version_changed.v2:
     topic: authz_version
     delivery: durable_outbox
     handler: iam-policy-sync
@@ -88,8 +88,8 @@ events:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(topics) != 1 || topics[0] != "iam.authz.version" {
-		t.Fatalf("durable topics = %#v, want only iam.authz.version", topics)
+	if len(topics) != 1 || topics[0] != "iam.authz.version.v2" {
+		t.Fatalf("durable topics = %#v, want only iam.authz.version.v2", topics)
 	}
 }
 
@@ -98,11 +98,11 @@ func TestEnsureDurableTopicsCreatesOnlyDurableCatalogTopics(t *testing.T) {
 version: "1"
 topics:
   authz_version:
-    name: iam.authz.version
+    name: iam.authz.version.v2
   notification_sms:
     name: iam.notify.sms
 events:
-  iam.authz.version_changed:
+  iam.authz.version_changed.v2:
     topic: authz_version
     delivery: durable_outbox
     handler: iam-policy-sync
@@ -131,8 +131,8 @@ events:
 	if err := s.ensureDurableTopics(nsqdAddr); err != nil {
 		t.Fatal(err)
 	}
-	if len(created) != 1 || created[0] != "iam.authz.version" {
-		t.Fatalf("created topics = %#v, want only iam.authz.version", created)
+	if len(created) != 1 || created[0] != "iam.authz.version.v2" {
+		t.Fatalf("created topics = %#v, want only iam.authz.version.v2", created)
 	}
 }
 

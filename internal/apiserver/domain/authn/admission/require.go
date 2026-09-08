@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// DeniedError 表示认证主体未通过领域准入判定。
+// DeniedError 表示认证主体未通过登录准入判定。
 type DeniedError struct {
 	Decision Decision
 }
@@ -18,7 +18,7 @@ func (e *DeniedError) Error() string {
 	return fmt.Sprintf("authentication admission denied: %s", e.Decision.Reason)
 }
 
-// EvaluationError 表示认证准入策略无法完成判定。
+// EvaluationError 表示登录准入策略无法完成判定。
 type EvaluationError struct {
 	Err error
 }

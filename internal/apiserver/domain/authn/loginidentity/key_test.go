@@ -4,15 +4,13 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
 func TestProviderSpecificKeyConstructorsAssignRealmSemantics(t *testing.T) {
 	t.Parallel()
-
-	tenantID := meta.FromUint64(9001)
 	phone, err := meta.NewPhone("13811112222")
 	require.NoError(t, err)
 
@@ -25,10 +23,10 @@ func TestProviderSpecificKeyConstructorsAssignRealmSemantics(t *testing.T) {
 		globalID   string
 	}{
 		{
-			name:       "tenant username",
-			construct:  func() (ProviderKey, error) { return NewUsernameProviderKey(tenantID, "zhangsan") },
+			name:       "default username",
+			construct:  func() (ProviderKey, error) { return NewUsernameProviderKey("zhangsan") },
 			provider:   ProviderUsername,
-			realm:      tenantID.String(),
+			realm:      RealmDefault,
 			identifier: "zhangsan",
 		},
 		{
@@ -94,7 +92,7 @@ func TestProviderSpecificKeyConstructorsRejectIncompleteInput(t *testing.T) {
 		name      string
 		construct func() (ProviderKey, error)
 	}{
-		{name: "username identifier", construct: func() (ProviderKey, error) { return NewUsernameProviderKey(meta.ZeroID, " ") }},
+		{name: "username identifier", construct: func() (ProviderKey, error) { return NewUsernameProviderKey(" ") }},
 		{name: "mock identifier", construct: func() (ProviderKey, error) { return NewMockConsumerProviderKey(" ") }},
 		{name: "phone identifier", construct: func() (ProviderKey, error) { return NewPhoneProviderKey(phone) }},
 		{name: "wechat mini realm", construct: func() (ProviderKey, error) { return NewWechatMinipProviderKey(" ", "open-1", "") }},

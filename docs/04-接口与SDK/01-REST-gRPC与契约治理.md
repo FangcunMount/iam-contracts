@@ -15,7 +15,7 @@ REST 适合浏览器、管理端和跨语言公开接入；gRPC 适合可信服�
 
 ## 2. REST 契约闭环
 
-OpenAPI 3.1 分模块保存于 `api/rest/*.v2.yaml` 与 `api/rest/authz.v3.yaml`。一次 REST 变更至少检查：
+OpenAPI 3.1 分模块保存于 `api/rest/*.v2.yaml` 与 `api/rest/authz.v4.yaml`。一次 REST 变更至少检查：
 
 ```text
 OpenAPI path + schema + security
@@ -38,7 +38,7 @@ Proto 位于：
 
 ```text
 api/grpc/iam/{authn,identity,idp}/v2/*.proto
-api/grpc/iam/authz/v3/*.proto
+api/grpc/iam/authz/v4/*.proto
 ```
 
 `container.grpcRegistrations()` 只收集 available module 的 registration，`transport/grpc.Registry` 完成注册后才将服务标为 SERVING。

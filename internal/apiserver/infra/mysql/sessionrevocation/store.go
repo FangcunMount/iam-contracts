@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	app "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/sessionrevocation"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	app "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/sessionrevocation"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

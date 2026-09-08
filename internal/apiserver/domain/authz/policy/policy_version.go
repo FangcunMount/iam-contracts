@@ -1,30 +1,23 @@
 package policy
 
 import (
-	"strings"
-
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // PolicyVersion 策略版本（用于缓存失效通知）
 type PolicyVersion struct {
-	ID        PolicyVersionID
-	TenantID  tenant.ID // 租户ID
-	Version   int64     // 版本号
-	ChangedBy string    // 变更人
-	Reason    string    // 变更原因
+	ID PolicyVersionID
+	// 租户ID
+	Version   int64  // 版本号
+	ChangedBy string // 变更人
+	Reason    string // 变更原因
 }
 
 // NewPolicyVersion 创建新版本
-func NewPolicyVersion(tenantID string, version int64, opts ...PolicyVersionOption) PolicyVersion {
-	tenantIDValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		tenantIDValue = tenant.ID(strings.TrimSpace(tenantID))
-	}
+func NewPolicyVersion(version int64, opts ...PolicyVersionOption) PolicyVersion {
 	pv := PolicyVersion{
-		TenantID: tenantIDValue,
-		Version:  version,
+
+		Version: version,
 	}
 	for _, opt := range opts {
 		opt(&pv)
@@ -41,10 +34,6 @@ func WithChangedBy(by string) PolicyVersionOption {
 }
 func WithReason(reason string) PolicyVersionOption {
 	return func(pv *PolicyVersion) { pv.Reason = reason }
-}
-
-func (pv PolicyVersion) TenantIDString() string {
-	return pv.TenantID.String()
 }
 
 // PolicyVersionID 策略版本ID值对象

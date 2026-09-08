@@ -2,9 +2,9 @@
 package handler
 
 import (
-	roleApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/dto"
+	roleApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/role"
+	roleDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authz/dto"
 	"github.com/gin-gonic/gin"
 )
 
@@ -35,20 +35,14 @@ func NewRoleHandler(
 // @Param request body dto.CreateRoleRequest true "创建角色请求"
 // @Success 200 {object} dto.Response{data=dto.RoleResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/roles [post]
+// @Router /v4/authz/roles [post]
 func (h *RoleHandler) CreateRole(c *gin.Context) {
 	var req dto.CreateRoleRequest
 	if !bindJSON(c, &req) {
 		return
 	}
 
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
-
-	cmd, err := roleApp.NewCreateRoleCommand(req.Name, req.DisplayName, tenantID, req.Description)
+	cmd, err := roleApp.NewCreateRoleCommand(req.Name, req.DisplayName, req.Description)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -60,6 +54,9 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 	}
 	cmd.ChangedBy = userID.String()
 
+	if req.ManagementProtection != "" {
+		cmd.ManagementProtection = roleDomain.ManagementProtection(req.ManagementProtection)
+	}
 	createdRole, err := h.commander.CreateRole(c.Request.Context(), cmd)
 	if err != nil {
 		handleError(c, err)
@@ -78,7 +75,7 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 // @Param request body dto.UpdateRoleRequest true "更新角色请求"
 // @Success 200 {object} dto.Response{data=dto.RoleResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/roles/{id} [put]
+// @Router /v4/authz/roles/{id} [put]
 func (h *RoleHandler) UpdateRole(c *gin.Context) {
 	roleID, ok := parseIDParam(c, "id", "角色ID格式错误")
 	if !ok {
@@ -95,17 +92,12 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 		handleError(c, err)
 		return
 	}
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
 	userID, err := getUserID(c)
 	if err != nil {
 		handleError(c, err)
 		return
 	}
-	cmd.TenantID, cmd.ChangedBy = tenantID, userID.String()
+	cmd.ChangedBy = userID.String()
 
 	updatedRole, err := h.commander.UpdateRole(c.Request.Context(), cmd)
 	if err != nil {
@@ -122,24 +114,19 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 // @Param id path string true "角色ID"
 // @Success 200 {object} dto.Response
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/roles/{id} [delete]
+// @Router /v4/authz/roles/{id} [delete]
 func (h *RoleHandler) DeleteRole(c *gin.Context) {
 	roleID, ok := parseIDParam(c, "id", "角色ID格式错误")
 	if !ok {
 		return
 	}
 
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
 	userID, err := getUserID(c)
 	if err != nil {
 		handleError(c, err)
 		return
 	}
-	if err := h.commander.DeleteRole(c.Request.Context(), roleApp.DeleteRoleCommand{ID: roleID, TenantID: tenantID, ChangedBy: userID.String()}); err != nil {
+	if err := h.commander.DeleteRole(c.Request.Context(), roleApp.DeleteRoleCommand{ID: roleID, ChangedBy: userID.String()}); err != nil {
 		handleError(c, err)
 		return
 	}
@@ -154,26 +141,16 @@ func (h *RoleHandler) DeleteRole(c *gin.Context) {
 // @Param id path string true "角色ID"
 // @Success 200 {object} dto.Response{data=dto.RoleResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Description Role details are restricted to the authenticated request tenant, including platform callers.
-// @Failure 404 {object} dto.ErrorResponse "Role not found in request tenant"
-// @Router /v3/authz/roles/{id} [get]
+// @Description Protected role details require manage_protected; invisible roles return 404.
+// @Failure 404 {object} dto.ErrorResponse "Role not found or not visible"
+// @Router /v4/authz/roles/{id} [get]
 func (h *RoleHandler) GetRole(c *gin.Context) {
 	roleID, ok := parseIDParam(c, "id", "角色ID格式错误")
 	if !ok {
 		return
 	}
 
-	tenantString, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
-	tenantID, err := tenant.NewID(tenantString)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
-	foundRole, err := h.queryer.GetRoleByID(c.Request.Context(), tenantID, roleID)
+	foundRole, err := h.queryer.GetRoleByID(c.Request.Context(), roleID)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -190,20 +167,14 @@ func (h *RoleHandler) GetRole(c *gin.Context) {
 // @Param limit query int false "每页数量" default(10)
 // @Success 200 {object} dto.ListResponse{data=[]dto.RoleResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/roles [get]
+// @Router /v4/authz/roles [get]
 func (h *RoleHandler) ListRoles(c *gin.Context) {
 	var query dto.ListRoleQuery
 	if !bindQuery(c, &query) {
 		return
 	}
 
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
-
-	listQuery, err := roleApp.NewListRolesQuery(tenantID, query.Offset, query.Limit)
+	listQuery, err := roleApp.NewListRolesQuery(query.Offset, query.Limit)
 	if err != nil {
 		handleError(c, err)
 		return

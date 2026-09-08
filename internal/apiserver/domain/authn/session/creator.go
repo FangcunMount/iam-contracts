@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // creator 用于创建会话。
@@ -26,7 +26,7 @@ func NewCreator(store Store, lifetime LifetimePolicy) Creator {
 	return newCreator(store, lifetime)
 }
 
-func (c *creator) Create(ctx context.Context, principal *authentication.Principal) (*Session, error) {
+func (c *creator) Create(ctx context.Context, principal *authentication.Principal, tokenContext TokenContext) (*Session, error) {
 	if principal == nil {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "principal is required")
 	}
@@ -36,8 +36,8 @@ func (c *creator) Create(ctx context.Context, principal *authentication.Principa
 	}
 
 	session := NewWithContexts(
-		uuid.NewString(), principal.UserID, principal.LoginIdentityID, principal.TenantID,
-		principal.AuthContext, principal.TokenContext, expiresAt,
+		uuid.NewString(), principal.UserID, principal.LoginIdentityID,
+		principal.AuthContext, tokenContext, expiresAt,
 	)
 
 	if err := c.store.Save(ctx, session); err != nil {

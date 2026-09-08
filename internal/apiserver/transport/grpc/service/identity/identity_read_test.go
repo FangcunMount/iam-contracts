@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	identityv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/identity/v2"
-	userApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/identity/user"
+	identityv2 "github.com/FangcunMount/iam/v5/api/grpc/iam/identity/v2"
+	userApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/user"
 	"github.com/stretchr/testify/require"
 )
 

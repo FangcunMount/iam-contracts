@@ -10,13 +10,13 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/log"
-	cachegovernance "github.com/FangcunMount/iam/v4/internal/apiserver/application/cachegovernance"
-	cachemodel "github.com/FangcunMount/iam/v4/internal/apiserver/cache"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/pkg/authnclaims"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	cachegovernance "github.com/FangcunMount/iam/v5/internal/apiserver/application/cachegovernance"
+	cachemodel "github.com/FangcunMount/iam/v5/internal/apiserver/cache"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/authnclaims"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -49,9 +49,8 @@ type sessionAuthenticationContextData struct {
 }
 
 type sessionTokenContextData struct {
-	TenantDomain string            `json:"tenant_domain,omitempty"`
-	OrgID        uint64            `json:"org_id,omitempty"`
-	Attributes   map[string]string `json:"attributes,omitempty"`
+	OrgID      uint64            `json:"org_id,omitempty"`
+	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
 // sessionData 是 Redis wire model。PascalCase 字段用于兼容既有 JSON；
@@ -61,7 +60,6 @@ type sessionData struct {
 	SessionID       string                            `json:"SessionID"`
 	UserID          uint64                            `json:"UserID"`
 	LoginIdentityID uint64                            `json:"LoginIdentityID"`
-	TenantID        uint64                            `json:"TenantID"`
 	AuthContext     *sessionAuthenticationContextData `json:"auth_context,omitempty"`
 	TokenContext    *sessionTokenContextData          `json:"token_context,omitempty"`
 	Status          sessiondomain.Status              `json:"Status"`
@@ -260,13 +258,13 @@ func encodeSessionPayload(sess *sessiondomain.Session) ([]byte, error) {
 	tokenContext := sess.TokenContext.Clone()
 	data := sessionData{
 		SchemaVersion: currentSessionSchemaVersion,
-		SessionID:     sess.SessionID, UserID: sess.UserID.Uint64(), LoginIdentityID: sess.LoginIdentityID.Uint64(), TenantID: sess.TenantID.Uint64(),
+		SessionID:     sess.SessionID, UserID: sess.UserID.Uint64(), LoginIdentityID: sess.LoginIdentityID.Uint64(),
 		AuthContext: &sessionAuthenticationContextData{
 			Method: string(authContext.Method), Realm: authContext.Realm,
 			AMR: authContext.AMRStrings(), AuthenticatedAt: authContext.AuthenticatedAt,
 		},
 		TokenContext: &sessionTokenContextData{
-			TenantDomain: tokenContext.TenantDomain, OrgID: tokenContext.OrgID.Uint64(), Attributes: tokenContext.Attributes,
+			OrgID: tokenContext.OrgID.Uint64(), Attributes: tokenContext.Attributes,
 		},
 		Status: sess.Status, CreatedAt: sess.CreatedAt, ExpiresAt: sess.ExpiresAt,
 		RevokedAt: sess.RevokedAt, RevokeReason: sess.RevokeReason, RevokedBy: sess.RevokedBy,
@@ -288,18 +286,15 @@ func decodeSessionPayload(payload []byte) (*sessiondomain.Session, error) {
 			amrValues(data.AuthContext.AMR), data.AuthContext.AuthenticatedAt,
 		)
 	}
-	tokenContext := authentication.TokenContext{}
+	tokenContext := sessiondomain.TokenContext{}
 	if data.TokenContext != nil {
-		tokenContext = authentication.TokenContext{
-			TenantDomain: data.TokenContext.TenantDomain,
-			OrgID:        meta.FromUint64(data.TokenContext.OrgID),
-			Attributes:   cloneStringValues(data.TokenContext.Attributes),
+		tokenContext = sessiondomain.TokenContext{
+
+			OrgID:      meta.FromUint64(data.TokenContext.OrgID),
+			Attributes: cloneStringValues(data.TokenContext.Attributes),
 		}
 	} else if len(data.SessionClaims) > 0 {
 		legacy := authnclaims.DecodeSnapshot(data.SessionClaims)
-		if domain, ok := legacy["tenant_domain"].(string); ok {
-			tokenContext.TenantDomain = domain
-		}
 		if raw, ok := legacy["org_id"].(string); ok {
 			if id, err := meta.ParseID(raw); err == nil {
 				tokenContext.OrgID = id
@@ -308,7 +303,7 @@ func decodeSessionPayload(payload []byte) (*sessiondomain.Session, error) {
 		tokenContext.Attributes = authnclaims.EncodeJWTAttributes(legacy)
 	}
 	sess := &sessiondomain.Session{
-		SessionID: data.SessionID, UserID: meta.FromUint64(data.UserID), LoginIdentityID: meta.FromUint64(data.LoginIdentityID), TenantID: meta.FromUint64(data.TenantID),
+		SessionID: data.SessionID, UserID: meta.FromUint64(data.UserID), LoginIdentityID: meta.FromUint64(data.LoginIdentityID),
 		AuthContext: authContext, TokenContext: tokenContext,
 		Status: data.Status, CreatedAt: data.CreatedAt, ExpiresAt: data.ExpiresAt,
 		RevokedAt: data.RevokedAt, RevokeReason: data.RevokeReason, RevokedBy: data.RevokedBy,

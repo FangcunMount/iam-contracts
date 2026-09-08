@@ -9,14 +9,14 @@ import (
 	"github.com/gin-gonic/gin"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	challengeapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/challenge"
-	linkingapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
-	tokenapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	req "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/request"
-	resp "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/response"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
-	"github.com/FangcunMount/iam/v4/internal/pkg/requestctx"
+	challengeapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/challenge"
+	linkingapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/linking"
+	tokenapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	req "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/request"
+	resp "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/response"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/requestctx"
 )
 
 // WechatOpenLinkConfig 微信开放平台扫码绑定的服务端配置（app_id/redirect_uri 不来自前端）。
@@ -58,7 +58,7 @@ func NewLoginIdentityHandler(
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} resp.LoginIdentityListResponse "当前用户已绑定的登录身份"
-// @Router /v2/authn/login-identities [get]
+// @Router /v3/authn/login-identities [get]
 func (h *LoginIdentityHandler) List(c *gin.Context) {
 	userID, err := requestctx.RequiredUserID(c)
 	if err != nil {
@@ -85,7 +85,7 @@ func (h *LoginIdentityHandler) List(c *gin.Context) {
 // @Security BearerAuth
 // @Param request body req.LinkPhoneChallengeRequest true "手机号"
 // @Success 200 {object} resp.MessageResponse "已发送"
-// @Router /v2/authn/login-identities/phone/challenge [post]
+// @Router /v3/authn/login-identities/phone/challenge [post]
 func (h *LoginIdentityHandler) SendPhoneLinkChallenge(c *gin.Context) {
 	if _, err := requestctx.RequiredUserID(c); err != nil {
 		h.Error(c, err)
@@ -120,7 +120,7 @@ func (h *LoginIdentityHandler) SendPhoneLinkChallenge(c *gin.Context) {
 // @Security BearerAuth
 // @Param request body req.LinkPhoneRequest true "手机号与验证码"
 // @Success 200 {object} resp.LinkLoginIdentityResponse "绑定结果"
-// @Router /v2/authn/login-identities/phone [post]
+// @Router /v3/authn/login-identities/phone [post]
 func (h *LoginIdentityHandler) LinkPhone(c *gin.Context) {
 	userID, err := requestctx.RequiredUserID(c)
 	if err != nil {
@@ -159,7 +159,7 @@ func (h *LoginIdentityHandler) LinkPhone(c *gin.Context) {
 // @Security BearerAuth
 // @Param request body req.LinkWechatMiniProgramRequest true "微信小程序 code"
 // @Success 200 {object} resp.LinkLoginIdentityResponse "绑定结果"
-// @Router /v2/authn/login-identities/wechat-miniprogram [post]
+// @Router /v3/authn/login-identities/wechat-miniprogram [post]
 func (h *LoginIdentityHandler) LinkWechatMiniProgram(c *gin.Context) {
 	userID, err := requestctx.RequiredUserID(c)
 	if err != nil {
@@ -198,7 +198,7 @@ func (h *LoginIdentityHandler) LinkWechatMiniProgram(c *gin.Context) {
 // @Security BearerAuth
 // @Param request body req.LinkWechatOpenAuthorizeRequest false "可选 nonce"
 // @Success 200 {object} resp.WechatOpenAuthorizeResponse "授权地址与 state"
-// @Router /v2/authn/login-identities/wechat-open/authorize [post]
+// @Router /v3/authn/login-identities/wechat-open/authorize [post]
 func (h *LoginIdentityHandler) StartWechatOpenLink(c *gin.Context) {
 	userID, err := requestctx.RequiredUserID(c)
 	if err != nil {
@@ -241,7 +241,7 @@ func (h *LoginIdentityHandler) StartWechatOpenLink(c *gin.Context) {
 // @Security BearerAuth
 // @Param request body req.LinkWechatOpenRequest true "微信回调 code 与 state"
 // @Success 200 {object} resp.LinkLoginIdentityResponse "绑定结果"
-// @Router /v2/authn/login-identities/wechat-open [post]
+// @Router /v3/authn/login-identities/wechat-open [post]
 func (h *LoginIdentityHandler) CompleteWechatOpenLink(c *gin.Context) {
 	userID, err := requestctx.RequiredUserID(c)
 	if err != nil {
@@ -282,7 +282,7 @@ func (h *LoginIdentityHandler) CompleteWechatOpenLink(c *gin.Context) {
 // @Security BearerAuth
 // @Param request body req.LinkWecomRequest true "企业微信 code"
 // @Success 200 {object} resp.LinkLoginIdentityResponse "绑定结果"
-// @Router /v2/authn/login-identities/wecom [post]
+// @Router /v3/authn/login-identities/wecom [post]
 func (h *LoginIdentityHandler) LinkWecom(c *gin.Context) {
 	userID, err := requestctx.RequiredUserID(c)
 	if err != nil {
@@ -320,7 +320,7 @@ func (h *LoginIdentityHandler) LinkWecom(c *gin.Context) {
 // @Security BearerAuth
 // @Param id path string true "登录身份 ID"
 // @Success 200 {object} resp.MessageResponse "已解绑"
-// @Router /v2/authn/login-identities/{id} [delete]
+// @Router /v3/authn/login-identities/{id} [delete]
 func (h *LoginIdentityHandler) Unlink(c *gin.Context) {
 	userID, err := requestctx.RequiredUserID(c)
 	if err != nil {

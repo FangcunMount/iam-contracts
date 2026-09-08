@@ -2,14 +2,14 @@ version: "1"
 
 topics:
   authz_version:
-    name: iam.authz.version
+    name: iam.authz.version.v2
     description: Authorization policy version changes.
   notification_sms:
     name: iam.notify.sms
     description: SMS notification tasks.
 
 events:
-  iam.authz.version_changed:
+  iam.authz.version_changed.v2:
     topic: authz_version
     delivery: durable_outbox
     aggregate: PolicyVersion

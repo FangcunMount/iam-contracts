@@ -104,21 +104,21 @@ GET /api/v2/.well-known/jwks.json
 响应只包含公钥，并保留现有 JSON、ETag 和 Cache-Control 语义。公共 JWKS 每次构建都查询数据库；REST 先构建响应，再判断客户端 ETag/Last-Modified 是否匹配。`GetCurrentCacheTag` 可复用短期标签快照，不能据此认为公共请求跳过数据库查询。进程快照用于标签读取与观测，不决定数据库中的 active 状态。
 资源服务应固定可信 issuer/JWKS URL，校验算法 allowlist、签名以及 `iss/aud/exp/nbf`；`kid` 未命中时可刷新，但不得跳过验签或接受任意 `jku/jwk`。
 
-管理入口统一位于 `/api/v2/authn/admin/jwks/keys`。它们需要用户 JWT，并通过 `RequirePermissionOrGlobal` 检查 `iam:authn:collection:jwks` 上的明确
+管理入口统一位于 `/api/v3/authn/admin/jwks/keys`。它们需要用户 JWT，并通过 `RequirePermission` 检查 `iam:authn:collection:jwks` 上的明确
 Action：
 
 | 请求 | Action |
 | --- | --- |
-| `POST /api/v2/authn/admin/jwks/keys` | `create` |
-| `GET /api/v2/authn/admin/jwks/keys` | `list` |
-| `GET /api/v2/authn/admin/jwks/keys/{kid}` | `read` |
-| `POST /api/v2/authn/admin/jwks/keys/{kid}/retire` | `retire` |
-| `POST /api/v2/authn/admin/jwks/keys/{kid}/force-retire` | `force_retire` |
-| `POST /api/v2/authn/admin/jwks/keys/cleanup` | `cleanup` |
-| `GET /api/v2/authn/admin/jwks/keys/publishable` | `list_publishable` |
+| `POST /api/v3/authn/admin/jwks/keys` | `create` |
+| `GET /api/v3/authn/admin/jwks/keys` | `list` |
+| `GET /api/v3/authn/admin/jwks/keys/{kid}` | `read` |
+| `POST /api/v3/authn/admin/jwks/keys/{kid}/retire` | `retire` |
+| `POST /api/v3/authn/admin/jwks/keys/{kid}/force-retire` | `force_retire` |
+| `POST /api/v3/authn/admin/jwks/keys/cleanup` | `cleanup` |
+| `GET /api/v3/authn/admin/jwks/keys/publishable` | `list_publishable` |
 
-授权先检查当前 Tenant，再检查平台域中相同 Resource/Action。实现不读取 `super_admin` 等角色名来跳过 PermissionGrant。
-`POST /api/v2/authn/admin/jwks/keys` 返回 `201 KeyResponse`。
+授权先检查当前授权域，再检查平台域中相同 Resource/Action。实现不读取 `super_admin` 等角色名来跳过 PermissionGrant。
+`POST /api/v3/authn/admin/jwks/keys` 返回 `201 KeyResponse`。
 
 ## 7. 运行、备份和紧急退役
 
@@ -141,7 +141,7 @@ Action：
 | 原子数据库转换 | `internal/apiserver/infra/mysql/jwks` |
 | Scheduler/启动校验 | `internal/apiserver/infra/scheduler`、`internal/apiserver/container/authn` |
 | 单 active 迁移 | `internal/pkg/migration/migrations/000016_jwks_single_active_guard.*.sql` |
-| REST 契约 | `api/rest/authn.v2.yaml` |
+| REST 契约 | `api/rest/authn.v3.yaml` |
 
 ```bash
 go test -race ./internal/apiserver/domain/authn/signingkey/... \

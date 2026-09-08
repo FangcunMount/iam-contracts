@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // TokenType 表示 IAM 令牌的领域用途。
@@ -16,26 +16,15 @@ const (
 	TokenTypeRefresh TokenType = "refresh"
 )
 
-// Token 是 AuthN 令牌概念族的共同契约。
-// 具体不变量由 AccessToken 和 RefreshToken 分别表达。
-type Token interface {
-	Kind() TokenType
-	Metadata() TokenMetadata
-}
-
 // TokenMetadata 是两类令牌共享的身份与生命周期信息。
 type TokenMetadata struct {
 	// —— 身份信息 —— //
-	ID    string // 令牌ID
-	Value string // 令牌值
+	ID string // 令牌ID
 
 	// —— 生命周期信息 —— //
 	IssuedAt  time.Time // 令牌颁发时间
 	ExpiresAt time.Time // 令牌过期时间
 }
-
-// Metadata 返回令牌元数据的值副本。
-func (m TokenMetadata) Metadata() TokenMetadata { return m }
 
 // IsExpiredAt 返回令牌在指定时刻是否已过期。
 func (m TokenMetadata) IsExpiredAt(now time.Time) bool {
@@ -63,42 +52,38 @@ func (m TokenMetadata) RemainingDuration() time.Duration {
 // AccessToken 表示绑定用户认证上下文与 Session 的短期访问凭证。
 type AccessToken struct {
 	TokenMetadata
-
-	// —— 主体信息 —— //
-	Subject string // 令牌主题
+	Value string // 已颁发的凭证值，不属于元数据。
 
 	// —— 会话信息 —— //
 	SessionID       string  // 会话ID
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-	TenantID        meta.ID // 租户ID
 
 }
+
+// Subject 从用户身份派生，避免保存第二套可变主体事实。
+func (t *AccessToken) Subject() string { return t.UserID.String() }
 
 func (*AccessToken) Kind() TokenType { return TokenTypeAccess }
 
 // NewAccessToken 创建访问令牌。
-func NewAccessToken(id, value, sessionID string, userID, loginIdentityID, tenantID meta.ID, expiresIn time.Duration) *AccessToken {
-	now := time.Now()
+func NewAccessToken(id, value, sessionID string, userID, loginIdentityID meta.ID, issuedAt, expiresAt time.Time) *AccessToken {
 	return &AccessToken{
-		TokenMetadata:   TokenMetadata{ID: id, Value: value, IssuedAt: now, ExpiresAt: now.Add(expiresIn)},
-		Subject:         userID.String(),
-		SessionID:       sessionID,
-		UserID:          userID,
-		LoginIdentityID: loginIdentityID,
-		TenantID:        tenantID,
+		TokenMetadata: TokenMetadata{ID: id, IssuedAt: issuedAt, ExpiresAt: expiresAt},
+		Value:         value, SessionID: sessionID,
+		UserID: userID, LoginIdentityID: loginIdentityID,
 	}
 }
 
 // RefreshToken 表示与认证 Session 绑定、可单次轮换的续期凭证。
 type RefreshToken struct {
 	TokenMetadata
+	Value string // 已颁发的凭证值，不属于元数据。
 
 	// —— 会话信息 —— //
 	SessionID       string  // 会话ID
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-	TenantID        meta.ID // 租户ID
 
 	// —— 认证信息 —— //
 	// Deprecated: 以下字段只用于读取迁移前 Redis refresh JSON；新签发不再写入。
@@ -110,27 +95,31 @@ type RefreshToken struct {
 
 func (*RefreshToken) Kind() TokenType { return TokenTypeRefresh }
 
-// NewRefreshToken 创建相对当前时间过期的刷新令牌。
-func NewRefreshToken(id, value, sessionID string, userID, loginIdentityID, tenantID meta.ID, amr []string, sessionClaims map[string]string, expiresIn time.Duration) *RefreshToken {
-	now := time.Now()
-	return newRefreshToken(id, value, sessionID, userID, loginIdentityID, tenantID, amr, sessionClaims, now, now.Add(expiresIn))
-}
-
-// NewRefreshTokenWithExpiry 创建指定过期时间的刷新令牌。
-func NewRefreshTokenWithExpiry(id, value, sessionID string, userID, loginIdentityID, tenantID meta.ID, amr []string, sessionClaims map[string]string, expiresAt time.Time) *RefreshToken {
-	return newRefreshToken(id, value, sessionID, userID, loginIdentityID, tenantID, amr, sessionClaims, time.Now(), expiresAt)
-}
-
-func newRefreshToken(id, value, sessionID string, userID, loginIdentityID, tenantID meta.ID, amr []string, sessionClaims map[string]string, issuedAt, expiresAt time.Time) *RefreshToken {
+// NewRefreshToken creates a new refresh credential with explicit lifetime facts.
+func NewRefreshToken(id, value, sessionID string, userID, loginIdentityID meta.ID, issuedAt, expiresAt time.Time) *RefreshToken {
 	return &RefreshToken{
-		TokenMetadata:   TokenMetadata{ID: id, Value: value, IssuedAt: issuedAt, ExpiresAt: expiresAt},
-		SessionID:       sessionID,
-		UserID:          userID,
-		LoginIdentityID: loginIdentityID,
-		TenantID:        tenantID,
-		AMR:             cloneStrings(amr),
-		SessionClaims:   cloneStringMap(sessionClaims),
+		TokenMetadata: TokenMetadata{ID: id, IssuedAt: issuedAt, ExpiresAt: expiresAt}, Value: value,
+		SessionID: sessionID, UserID: userID, LoginIdentityID: loginIdentityID,
 	}
+}
+
+// LegacyRefreshContext is read-only migration input from historical Redis records.
+type LegacyRefreshContext struct {
+	AuthMethod    string
+	Realm         string
+	AMR           []string
+	SessionClaims map[string]string
+}
+
+// RestoreRefreshToken reads old storage without inventing a persisted issued_at.
+// Redis did not store IssuedAt; the previous read-time timestamp is retained for compatibility.
+func RestoreRefreshToken(id, value, sessionID string, userID, loginIdentityID meta.ID, expiresAt time.Time, legacy LegacyRefreshContext) *RefreshToken {
+	token := NewRefreshToken(id, value, sessionID, userID, loginIdentityID, time.Now(), expiresAt)
+	token.AuthMethod = legacy.AuthMethod
+	token.Realm = legacy.Realm
+	token.AMR = cloneStrings(legacy.AMR)
+	token.SessionClaims = cloneStringMap(legacy.SessionClaims)
+	return token
 }
 
 // UserTokenSet 表示一次用户认证状态建立或续期产生的访问/刷新令牌集合。
@@ -150,9 +139,9 @@ type ConsumedRefreshToken struct {
 	UserID    meta.ID
 }
 
-// VerifiedTokenClaims 是验签、标准时间校验和 canonical issuer 校验后得到的领域事实。
+// AccessTokenClaims 表达访问令牌声明；类型本身不保证已验签或已通过在线验证。
 // 它不是 JWT wire model，也不包含 JWT Header/Signature。
-type VerifiedTokenClaims struct {
+type AccessTokenClaims struct {
 	// —— 令牌元数据 —— //
 	TokenID   string    // 令牌ID
 	TokenType TokenType // 令牌类型
@@ -162,8 +151,8 @@ type VerifiedTokenClaims struct {
 	// —— 令牌主体 —— //
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-	TenantDomain    string  // 租户域
-	OrgID           meta.ID // 组织ID
+	// 租户域
+	OrgID meta.ID // 组织ID
 
 	// —— 令牌认证 —— //
 	Issuer          string    // 令牌颁发者
@@ -180,9 +169,11 @@ type VerifiedTokenClaims struct {
 	ExpiresAt time.Time // 令牌过期时间
 }
 
-// NewVerifiedUserTokenClaims 构造并校验用户访问令牌事实。
-func NewVerifiedUserTokenClaims(claims VerifiedTokenClaims) (*VerifiedTokenClaims, error) {
-	claims.TokenType = TokenTypeAccess
+// NewAccessTokenClaims 仅规范化并校验声明不变量，不执行验签。
+func NewAccessTokenClaims(claims AccessTokenClaims) (*AccessTokenClaims, error) {
+	if claims.TokenType == "" {
+		claims.TokenType = TokenTypeAccess
+	}
 	claims.normalize()
 	if err := claims.Validate(); err != nil {
 		return nil, err
@@ -190,10 +181,10 @@ func NewVerifiedUserTokenClaims(claims VerifiedTokenClaims) (*VerifiedTokenClaim
 	return &claims, nil
 }
 
-// Validate 校验验签后仍需满足的类型相关领域不变量。
-func (c *VerifiedTokenClaims) Validate() error {
+// Validate 仅校验声明的领域不变量，不执行密码学或在线验证。
+func (c *AccessTokenClaims) Validate() error {
 	if c == nil {
-		return fmt.Errorf("verified token claims are required")
+		return fmt.Errorf("access token claims are required")
 	}
 	if strings.TrimSpace(c.TokenID) == "" || strings.TrimSpace(c.Subject) == "" || strings.TrimSpace(c.Issuer) == "" {
 		return fmt.Errorf("jti, sub and iss are required")
@@ -221,12 +212,11 @@ func (c *VerifiedTokenClaims) Validate() error {
 	return nil
 }
 
-func (c *VerifiedTokenClaims) normalize() {
+func (c *AccessTokenClaims) normalize() {
 	c.TokenID = strings.TrimSpace(c.TokenID)
 	c.Subject = strings.TrimSpace(c.Subject)
 	c.SessionID = strings.TrimSpace(c.SessionID)
 	c.Issuer = strings.TrimSpace(c.Issuer)
-	c.TenantDomain = strings.TrimSpace(c.TenantDomain)
 	c.Audience = cloneStrings(c.Audience)
 	c.Attributes = cloneStringMap(c.Attributes)
 	c.AMR = cloneStrings(c.AMR)
@@ -239,14 +229,14 @@ func (c *VerifiedTokenClaims) normalize() {
 }
 
 // IsExpiredAt 返回声明在指定时刻是否已过期。
-func (c *VerifiedTokenClaims) IsExpiredAt(now time.Time) bool {
+func (c *AccessTokenClaims) IsExpiredAt(now time.Time) bool {
 	return c == nil || now.After(c.ExpiresAt)
 }
 
 // IsExpired 返回声明当前是否已过期。
-func (c *VerifiedTokenClaims) IsExpired() bool { return c.IsExpiredAt(time.Now()) }
+func (c *AccessTokenClaims) IsExpired() bool { return c.IsExpiredAt(time.Now()) }
 
-func (c *VerifiedTokenClaims) IsNotYetValidAt(now time.Time) bool {
+func (c *AccessTokenClaims) IsNotYetValidAt(now time.Time) bool {
 	return c == nil || (!c.NotBefore.IsZero() && now.Before(c.NotBefore))
 }
 

@@ -4,17 +4,18 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	base "github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	base "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 
 // RolePO 角色持久化对象
 type RolePO struct {
 	base.AuditFields
-	Name        string `gorm:"column:name;type:varchar(64);not null;uniqueIndex:uk_tenant_name,priority:2"`
-	DisplayName string `gorm:"column:display_name;type:varchar(128)"`
-	TenantID    string `gorm:"column:tenant_id;type:varchar(64);not null;uniqueIndex:uk_tenant_name,priority:1;index"`
+	ManagementProtection string `gorm:"column:management_protection;type:varchar(16);not null;default:standard"`
+	Name                 string `gorm:"column:name;type:varchar(64);not null;uniqueIndex:uk_role_name"`
+	DisplayName          string `gorm:"column:display_name;type:varchar(128)"`
+
 	IsSystem    uint8  `gorm:"column:is_system;type:tinyint;not null;default:0;comment:系统内置角色标识"`
 	Description string `gorm:"column:description;type:varchar(512)"`
 }

@@ -55,8 +55,8 @@
 package main
 
 import (
-	"github.com/FangcunMount/iam/v4/internal/apiserver"
-	_ "github.com/FangcunMount/iam/v4/internal/apiserver/docs"
+	"github.com/FangcunMount/iam/v5/internal/apiserver"
+	_ "github.com/FangcunMount/iam/v5/internal/apiserver/docs"
 )
 
 func main() {

@@ -5,14 +5,13 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 type Inheritance struct {
-	ID              meta.ID
-	TenantID        tenant.ID
+	ID meta.ID
+
 	RoleID          meta.ID
 	InheritedRoleID meta.ID
 	GrantedBy       string
@@ -21,32 +20,25 @@ type Inheritance struct {
 	Version         uint32
 }
 
-func New(roleID, inheritedRoleID meta.ID, tenantID, grantedBy string) (Inheritance, error) {
+func New(roleID, inheritedRoleID meta.ID, grantedBy string) (Inheritance, error) {
 	if roleID.IsZero() || inheritedRoleID.IsZero() {
 		return Inheritance{}, perrors.WithCode(code.ErrInvalidArgument, "role ids are required")
 	}
 	if roleID == inheritedRoleID {
 		return Inheritance{}, perrors.WithCode(code.ErrInvalidArgument, "role cannot inherit itself")
 	}
-	tenantIDValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return Inheritance{}, err
-	}
 	grantedBy = strings.TrimSpace(grantedBy)
 	if grantedBy == "" {
 		return Inheritance{}, perrors.WithCode(code.ErrInvalidArgument, "granted by is required")
 	}
 	return Inheritance{
-		TenantID:        tenantIDValue,
+
 		RoleID:          roleID,
 		InheritedRoleID: inheritedRoleID,
 		GrantedBy:       grantedBy,
 		Version:         1,
 	}, nil
 }
-
-func (i Inheritance) TenantIDString() string { return i.TenantID.String() }
-func (i Inheritance) IsActive() bool         { return i.RevokedAt == nil }
 
 func (i *Inheritance) Revoke(at time.Time) error {
 	if i == nil {
@@ -69,8 +61,8 @@ type RestoreOptions struct {
 	Version   uint32
 }
 
-func Restore(roleID, inheritedRoleID meta.ID, tenantID, grantedBy string, options RestoreOptions) (Inheritance, error) {
-	inheritance, err := New(roleID, inheritedRoleID, tenantID, grantedBy)
+func Restore(roleID, inheritedRoleID meta.ID, grantedBy string, options RestoreOptions) (Inheritance, error) {
+	inheritance, err := New(roleID, inheritedRoleID, grantedBy)
 	if err != nil {
 		return Inheritance{}, err
 	}
@@ -82,3 +74,5 @@ func Restore(roleID, inheritedRoleID meta.ID, tenantID, grantedBy string, option
 	}
 	return inheritance, nil
 }
+
+func (i Inheritance) IsActive() bool { return i.RevokedAt == nil }

@@ -3,15 +3,15 @@ package roleinheritance
 import (
 	"context"
 
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 type Repository interface {
-	// CreateChecked locks the tenant graph and validates references, cycles and depth atomically.
+	// CreateChecked locks the role graph and validates references, cycles and depth atomically.
 	CreateChecked(ctx context.Context, inheritance *Inheritance) error
-	AtomicRevoke(ctx context.Context, id meta.ID, tenantID string) (RevokeOutcome, error)
+	AtomicRevoke(ctx context.Context, id meta.ID) (RevokeOutcome, error)
 	FindByID(ctx context.Context, id meta.ID) (*Inheritance, error)
-	ListActiveByTenant(ctx context.Context, tenantID string) ([]*Inheritance, error)
+	ListActive(ctx context.Context) ([]*Inheritance, error)
 }
 
 func WouldCreateCycle(existing []*Inheritance, roleID, inheritedRoleID meta.ID) bool {

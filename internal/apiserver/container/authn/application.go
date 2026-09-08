@@ -5,22 +5,22 @@ import (
 	"strings"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	challengeApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/challenge"
-	credentialApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/credential"
-	jwksApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/jwks"
-	linkingApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/session"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/proof"
-	signingkeyApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signingkey"
-	signupApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signup"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	credentialDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/credential"
-	smsInfra "github.com/FangcunMount/iam/v4/internal/apiserver/infra/sms"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/token/keyset"
-	apiserveroptions "github.com/FangcunMount/iam/v4/internal/apiserver/options"
+	challengeApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/challenge"
+	credentialApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/credential"
+	jwksApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/jwks"
+	linkingApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/linking"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/proof"
+	signingkeyApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signingkey"
+	signupApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signup"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	credentialDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/credential"
+	smsInfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/sms"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/token/keyset"
+	apiserveroptions "github.com/FangcunMount/iam/v5/internal/apiserver/options"
 )
 
 func (m *AuthnModule) initializeApplication(
@@ -31,6 +31,7 @@ func (m *AuthnModule) initializeApplication(
 	wechatOpenOptions apiserveroptions.WechatOpenOptions,
 	smsOptions apiserveroptions.SMSOptions,
 ) error {
+	m.resourceAudience = authOptions.ResourceAudience
 	m.signupService = signupApp.NewSignupService(
 		infra.unitOfWork,
 		hasher,
@@ -63,16 +64,16 @@ func (m *AuthnModule) initializeApplication(
 	})
 
 	tokenCapabilities := token.NewCapabilities(token.Dependencies{
-		BearerTokenCodec:      infra.signedJWTCodec,
+		Encoder:               infra.signedJWTCodec,
+		SignatureVerifier:     infra.signedJWTCodec,
 		TokenStore:            infra.tokenStore,
-		SessionCreator:        domain.sessionCreator,
 		SessionLoader:         domain.sessionLoader,
 		SessionRevoker:        domain.sessionRevoker,
 		SessionExtender:       domain.sessionExtender,
 		SessionRefreshExpirer: domain.sessionRefreshExpirer,
 		AdmissionPolicy:       infra.admissionPolicy,
 		LegacyContextDecoder:  token.NewLegacyAuthenticationContextSnapshotDecoder(),
-		AccessTTL:             domain.accessTTL,
+		Issuance:              token.IssuanceConfig{Issuer: authOptions.JWTIssuer, Audience: authOptions.AccessTokenAudience, AccessTTL: domain.accessTTL},
 	})
 
 	authenticator := authentication.NewAuthenticator(
@@ -93,9 +94,12 @@ func (m *AuthnModule) initializeApplication(
 	}
 
 	signIn := signin.New(signin.Dependencies{
-		AuthenticationGrantIssuer: tokenCapabilities.AuthenticationGrantIssuer,
-		Authenticator:             authenticator,
-		MethodRegistry:            method.DefaultSelector(),
+		TokenIssuer:     tokenCapabilities.InitialTokenIssuer,
+		AdmissionPolicy: infra.admissionPolicy,
+		SessionCreator:  domain.sessionCreator,
+		SessionRevoker:  domain.sessionRevoker,
+		Authenticator:   authenticator,
+		MethodRegistry:  method.DefaultSelector(),
 		CredentialRecorder: credentialApp.NewRecorder(credentialApp.Dependencies{
 			Credentials: infra.credentialRepo,
 			LockoutPolicy: credentialDomain.LockoutPolicy{

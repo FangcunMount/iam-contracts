@@ -3,7 +3,7 @@ package authentication
 import (
 	"context"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
 )
 
 // legacyWechatIdentityRepository 微信开放平台身份仓储接口

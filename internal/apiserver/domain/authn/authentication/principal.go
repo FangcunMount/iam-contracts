@@ -1,40 +1,18 @@
 package authentication
 
-import "github.com/FangcunMount/iam/v4/internal/pkg/meta"
+import "github.com/FangcunMount/iam/v5/internal/pkg/meta"
 
-// Principal 是认证成功后的运行时主体表达，是 Login 的领域终点。
+// Principal 是身份核验成功后确认的运行时主体。
+// 它不代表已通过登录准入，也不代表已完成会话建立或令牌颁发。
 type Principal struct {
 	UserID          meta.ID
 	LoginIdentityID meta.ID
 
-	TenantID  meta.ID
-	SessionID string
-
 	// AuthContext 是认证上下文的权威表达。
 	AuthContext AuthenticationContext
-	// TokenContext 是允许进入 Session/JWT 的最小强类型投影。
-	TokenContext TokenContext
 }
 
-// TokenContext 表达认证结果中允许进入在线会话和访问令牌的业务上下文。
-type TokenContext struct {
-	TenantDomain string
-	OrgID        meta.ID
-	Attributes   map[string]string
-}
-
-func (c TokenContext) Clone() TokenContext {
-	out := c
-	if len(c.Attributes) > 0 {
-		out.Attributes = make(map[string]string, len(c.Attributes))
-		for key, value := range c.Attributes {
-			out.Attributes[key] = value
-		}
-	}
-	return out
-}
-
-// ApplyAuthContext 将认证上下文写入 Principal，并同步兼容字段。
+// ApplyAuthContext 将认证上下文的副本写入 Principal。
 func (p *Principal) ApplyAuthContext(ctx AuthenticationContext) {
 	if p == nil {
 		return

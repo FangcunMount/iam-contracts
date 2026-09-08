@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/pkg/event"
-	"github.com/FangcunMount/iam/v4/pkg/eventcatalog"
-	"github.com/FangcunMount/iam/v4/pkg/outboxcore"
+	"github.com/FangcunMount/iam/v5/pkg/event"
+	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
+	"github.com/FangcunMount/iam/v5/pkg/outboxcore"
 	"github.com/stretchr/testify/require"
 )
 

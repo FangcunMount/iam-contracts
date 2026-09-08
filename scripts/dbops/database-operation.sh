@@ -327,7 +327,7 @@ database_status() {
     fail "database schema inventory query failed"
     return 1
   fi
-  if ! schema_guard_state="$($MYSQL_BIN --defaults-extra-file="$MYSQL_DEFAULTS" --batch --skip-column-names "$MYSQL_DBNAME" -e "/* iam_schema_guard */ SELECT COALESCE(SUM(TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME IN ('auth_credentials', 'auth_login_identities', 'authz_assignments', 'authz_permission_grants', 'authz_policy_versions', 'authz_resources', 'authz_role_inheritances', 'authz_roles', 'domain_event_outbox', 'identity_session_revocation_outbox', 'idp_wechat_apps', 'jwks_keys', 'profile_links', 'profiles', 'schema_migrations', 'users')), 0), COUNT(*), COALESCE(SUM(NOT (TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME IN ('auth_credentials', 'auth_login_identities', 'authz_assignments', 'authz_permission_grants', 'authz_policy_versions', 'authz_resources', 'authz_role_inheritances', 'authz_roles', 'domain_event_outbox', 'identity_session_revocation_outbox', 'idp_wechat_apps', 'jwks_keys', 'profile_links', 'profiles', 'schema_migrations', 'users'))), 0) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE();" 2>"$ERROR_PATH")"; then
+  if ! schema_guard_state="$($MYSQL_BIN --defaults-extra-file="$MYSQL_DEFAULTS" --batch --skip-column-names "$MYSQL_DBNAME" -e "/* iam_schema_guard */ SELECT COALESCE(SUM(TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME IN ('auth_credentials', 'auth_login_identities', 'authz_assignments', 'authz_permission_grants', 'authz_policy_versions', 'authz_resources', 'authz_role_inheritances', 'authz_roles', 'domain_event_outbox', 'identity_session_revocation_outbox', 'idp_wechat_apps', 'jwks_keys', 'profile_links', 'profiles', 'schema_migrations', 'users')), 0), COUNT(*), COALESCE(SUM(NOT (TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME IN ('iam_authorization_retirement_audit', 'auth_credentials', 'auth_login_identities', 'authz_assignments', 'authz_permission_grants', 'authz_policy_versions', 'authz_resources', 'authz_role_inheritances', 'authz_roles', 'domain_event_outbox', 'identity_session_revocation_outbox', 'idp_wechat_apps', 'jwks_keys', 'profile_links', 'profiles', 'schema_migrations', 'users'))), 0) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE();" 2>"$ERROR_PATH")"; then
     fail "database schema guard query failed"
     return 1
   fi
@@ -354,12 +354,12 @@ database_status() {
   printf 'schema objects:\n%s\n' "$schema_objects"
   echo "migration status: schema_migrations=$migration_state retired_tables_present=$retired_table_state retired_table_privileges=$retired_table_privilege_state"
   echo "migration lock: owner_state=$migration_lock_state"
-  if [ "$migration_state" != $'29\t0\t1' ]; then
-    fail "migration status is not version 29 clean"
+  if [ "$migration_state" != $'32\t0\t1' ]; then
+    fail "migration status is not version 32 clean"
     return 1
   fi
-  if [ "$schema_guard_state" != $'16\t16\t0' ]; then
-    fail "database schema differs from the 16-table allowlist"
+  if [ "$schema_guard_state" != $'16\t16\t0' ] && [ "$schema_guard_state" != $'16\t17\t0' ]; then
+    fail "database schema differs from the runtime and optional retirement-audit allowlist"
     return 1
   fi
   if [ "$retired_table_state" != "0" ]; then
@@ -370,8 +370,8 @@ database_status() {
     fail "retired table privileges are present"
     return 1
   fi
-  echo "schema guard: result=success required_base_tables=16 schema_objects=16 unexpected_objects=0"
-  echo "retirement guard: result=success expected_version=29 retired_tables_present=0 retired_table_privileges=0"
+  echo "schema guard: result=success required_base_tables=16 schema_objects=$(cut -f2 <<<"$schema_guard_state") unexpected_objects=0"
+  echo "retirement guard: result=success expected_version=32 retired_tables_present=0 retired_table_privileges=0"
 }
 
 mysql_scalar() {
@@ -396,8 +396,8 @@ global_identifier_guard_preflight() {
     return 1
   fi
   IFS=$'\t' read -r version dirty row_count <<<"$migration_state"
-  if { [ "$version" -lt "27" ] || [ "$version" -gt "29" ]; } || [ "$dirty" != "0" ] || [ "$row_count" != "1" ]; then
-    fail "global identifier guard preflight requires clean migration version 27 through 29"
+  if { [ "$version" -lt "27" ] || [ "$version" -gt "32" ]; } || [ "$dirty" != "0" ] || [ "$row_count" != "1" ]; then
+    fail "global identifier guard preflight requires clean migration version 27 through 32"
     return 1
   fi
 
@@ -428,7 +428,7 @@ global_identifier_guard_preflight() {
     return 1
   fi
   case "$version:$index_count" in
-    27:0|28:1|29:1) ;;
+    27:0|28:1|29:1|30:1|31:1|32:1) ;;
     *)
       fail "global identifier guard schema is inconsistent with migration version"
       return 1
@@ -444,7 +444,7 @@ rolebinding_guard_preflight() {
   prepare_defaults_file
   ERROR_PATH="$BACKUP_DIR/.iam_rolebinding_guard_preflight.error"
 
-  local migration_state duplicate_state guard_state version dirty row_count
+  local migration_state duplicate_state guard_state version dirty row_count assignment_columns
   if ! migration_state="$(mysql_scalar 'SELECT COALESCE(MAX(version), -1), COALESCE(MAX(dirty + 0), -1), COUNT(*) FROM schema_migrations;')"; then
     fail "migration state query failed"
     return 1
@@ -454,12 +454,17 @@ rolebinding_guard_preflight() {
     return 1
   fi
   IFS=$'\t' read -r version dirty row_count <<<"$migration_state"
-  if { [ "$version" -lt "24" ] || [ "$version" -gt "29" ]; } || [ "$dirty" != "0" ] || [ "$row_count" != "1" ]; then
-    fail "RoleBinding guard preflight requires clean migration version 24 through 29"
+  if { [ "$version" -lt "24" ] || [ "$version" -gt "32" ]; } || [ "$dirty" != "0" ] || [ "$row_count" != "1" ]; then
+    fail "RoleBinding guard preflight requires clean migration version 24 through 32"
     return 1
   fi
 
-  if ! duplicate_state="$(mysql_scalar "SELECT COUNT(*), COALESCE(SUM(duplicate_count - 1), 0), COALESCE(MAX(duplicate_count), 0) FROM (SELECT COUNT(*) AS duplicate_count FROM authz_assignments WHERE deleted_at IS NULL GROUP BY subject_type, subject_id, role_id, tenant_id HAVING COUNT(*) > 1) AS duplicate_groups;")"; then
+  assignment_columns='subject_type, subject_id, role_id'
+  # 仅历史迁移的只读预检使用旧列；32 起按全局角色 ID 检查。
+  if [ "$version" -lt "32" ]; then
+    assignment_columns+=', tenant_id'
+  fi
+  if ! duplicate_state="$(mysql_scalar "SELECT COUNT(*), COALESCE(SUM(duplicate_count - 1), 0), COALESCE(MAX(duplicate_count), 0) FROM (SELECT COUNT(*) AS duplicate_count FROM authz_assignments WHERE deleted_at IS NULL GROUP BY $assignment_columns HAVING COUNT(*) > 1) AS duplicate_groups;")"; then
     fail "active RoleBinding duplicate query failed"
     return 1
   fi
@@ -474,7 +479,7 @@ rolebinding_guard_preflight() {
     return 1
   fi
   case "$version:$guard_state" in
-    24:$'0\t0'|25:$'1\t1'|26:$'1\t1'|27:$'1\t1'|28:$'1\t1'|29:$'1\t1') ;;
+    24:$'0\t0'|25:$'1\t1'|26:$'1\t1'|27:$'1\t1'|28:$'1\t1'|29:$'1\t1'|30:$'1\t1'|31:$'1\t1'|32:$'1\t1') ;;
     *)
       fail "RoleBinding guard schema is inconsistent with migration version"
       return 1

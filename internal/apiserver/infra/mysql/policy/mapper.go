@@ -1,8 +1,8 @@
 package policy
 
 import (
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/policy"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // Mapper PolicyVersion BO 和 PO 转换器
@@ -20,7 +20,7 @@ func (m *Mapper) ToBO(po *PolicyVersionPO) *policy.PolicyVersion {
 	}
 
 	value := policy.NewPolicyVersion(
-		po.TenantID,
+
 		po.PolicyVersion,
 		policy.WithID(policy.PolicyVersionID(po.ID)),
 		policy.WithChangedBy(po.ChangedBy),
@@ -37,7 +37,7 @@ func (m *Mapper) ToPO(bo *policy.PolicyVersion) *PolicyVersionPO {
 	}
 
 	po := &PolicyVersionPO{
-		TenantID:      bo.TenantIDString(),
+
 		PolicyVersion: bo.Version,
 		ChangedBy:     bo.ChangedBy,
 		Reason:        bo.Reason,

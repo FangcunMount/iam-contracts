@@ -4,15 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // ================== Session Role Interfaces ==================
 
 // Creator 负责创建会话并应用初始生命周期规则。
 type Creator interface {
-	Create(ctx context.Context, principal *authentication.Principal) (*Session, error)
+	Create(ctx context.Context, principal *authentication.Principal, tokenContext TokenContext) (*Session, error)
 }
 
 // Loader 负责读取会话，并统一判断会话是否仍然有效。

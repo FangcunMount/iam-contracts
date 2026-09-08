@@ -1,11 +1,12 @@
 package keyset
 
 import (
+	pkgauth "github.com/FangcunMount/iam/v5/pkg/auth"
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	signingkeydomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/signingkey"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	signingkeydomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/signingkey"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 type KeyStatus = signingkeydomain.Status
@@ -32,30 +33,22 @@ type PublicJWK struct {
 	Y   *string `json:"y,omitempty"`
 }
 
-func (p *PublicJWK) Validate() error {
-	if p.Kid == "" {
-		return errors.WithCode(code.ErrInvalidKid, "kid cannot be empty")
-	}
-	if p.Kty == "" {
+// ValidateStructure checks the supported public representation, not IAM signing eligibility.
+func (p *PublicJWK) ValidateStructure() error {
+	if p == nil || p.Kty == "" {
 		return errors.WithCode(code.ErrInvalidJWK, "kty cannot be empty")
-	}
-	if p.Use != "sig" {
-		return errors.WithCode(code.ErrInvalidJWKUse, "use must be 'sig'")
-	}
-	if p.Alg == "" {
-		return errors.WithCode(code.ErrInvalidJWKAlg, "alg cannot be empty")
 	}
 	switch p.Kty {
 	case "RSA":
-		if p.N == nil || p.E == nil {
+		if p.N == nil || p.E == nil || *p.N == "" || *p.E == "" {
 			return errors.WithCode(code.ErrMissingRSAParams, "n and e are required for RSA")
 		}
 	case "EC":
-		if p.Crv == nil || p.X == nil || p.Y == nil {
+		if p.Crv == nil || p.X == nil || p.Y == nil || *p.Crv == "" || *p.X == "" || *p.Y == "" {
 			return errors.WithCode(code.ErrMissingECParams, "crv, x, y are required for EC")
 		}
 	case "OKP":
-		if p.Crv == nil || p.X == nil {
+		if p.Crv == nil || p.X == nil || *p.Crv == "" || *p.X == "" {
 			return errors.WithCode(code.ErrMissingOKPParams, "crv, x are required for OKP")
 		}
 	default:
@@ -64,16 +57,33 @@ func (p *PublicJWK) Validate() error {
 	return nil
 }
 
+// ValidateSigningProfile applies IAM's RS256 signing-key requirements.
+func (p *PublicJWK) ValidateSigningProfile() error {
+	if err := p.ValidateStructure(); err != nil {
+		return err
+	}
+	if p.Kid == "" {
+		return errors.WithCode(code.ErrInvalidKid, "kid cannot be empty")
+	}
+	if p.Use != "sig" {
+		return errors.WithCode(code.ErrInvalidJWKUse, "use must be sig")
+	}
+	if p.Kty != "RSA" || p.Alg != pkgauth.TokenProfileAlgorithm {
+		return errors.WithCode(code.ErrInvalidJWKAlg, "IAM signing keys require RSA and RS256")
+	}
+	return nil
+}
+
 type JWKS struct {
 	Keys []PublicJWK `json:"keys"`
 }
 
-func (j *JWKS) Validate() error {
-	if len(j.Keys) == 0 {
-		return errors.WithCode(code.ErrEmptyJWKS, "JWKS cannot be empty")
+func (j *JWKS) ValidateStructure() error {
+	if j == nil {
+		return errors.WithCode(code.ErrInvalidJWK, "JWKS is required")
 	}
 	for i, key := range j.Keys {
-		if err := key.Validate(); err != nil {
+		if err := key.ValidateStructure(); err != nil {
 			return errors.Wrapf(err, "JWKS validation failed at index %d", i)
 		}
 	}
@@ -150,7 +160,7 @@ func (k *Key) Validate() error {
 	if err := k.Key.Validate(); err != nil {
 		return err
 	}
-	if err := k.JWK.Validate(); err != nil {
+	if err := k.JWK.ValidateSigningProfile(); err != nil {
 		return err
 	}
 	if k.JWK.Kid != k.Kid {

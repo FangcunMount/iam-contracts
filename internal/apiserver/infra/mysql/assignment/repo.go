@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -64,18 +64,18 @@ func (r *Repository) FindByID(ctx context.Context, id domain.AssignmentID) (*dom
 }
 
 // ListBySubject 根据主体列出赋权
-func (r *Repository) ListBySubject(ctx context.Context, subjectType domain.SubjectType, subjectID meta.ID, tenantID string) ([]*domain.Assignment, error) {
-	return r.listBySubject(ctx, subjectType, subjectID, tenantID, false)
+func (r *Repository) ListBySubject(ctx context.Context, subjectType domain.SubjectType, subjectID meta.ID) ([]*domain.Assignment, error) {
+	return r.listBySubject(ctx, subjectType, subjectID, false)
 }
 
-func (r *Repository) ListBySubjectForUpdate(ctx context.Context, subjectType domain.SubjectType, subjectID meta.ID, tenantID string) ([]*domain.Assignment, error) {
-	return r.listBySubject(ctx, subjectType, subjectID, tenantID, true)
+func (r *Repository) ListBySubjectForUpdate(ctx context.Context, subjectType domain.SubjectType, subjectID meta.ID) ([]*domain.Assignment, error) {
+	return r.listBySubject(ctx, subjectType, subjectID, true)
 }
 
-func (r *Repository) listBySubject(ctx context.Context, subjectType domain.SubjectType, subjectID meta.ID, tenantID string, lock bool) ([]*domain.Assignment, error) {
+func (r *Repository) listBySubject(ctx context.Context, subjectType domain.SubjectType, subjectID meta.ID, lock bool) ([]*domain.Assignment, error) {
 	var pos []*AssignmentPO
 
-	query := r.WithContext(ctx).Where("tenant_id = ? AND subject_type = ? AND subject_id = ?", tenantID, string(subjectType), subjectID.String())
+	query := r.WithContext(ctx).Where("subject_type = ? AND subject_id = ?", string(subjectType), subjectID.String())
 	if lock && r.db != nil && r.db.Dialector != nil && r.db.Dialector.Name() != "sqlite" {
 		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
 	}
@@ -93,10 +93,10 @@ func (r *Repository) listBySubject(ctx context.Context, subjectType domain.Subje
 }
 
 // ListByRole 根据角色列出赋权
-func (r *Repository) ListByRole(ctx context.Context, roleID meta.ID, tenantID string) ([]*domain.Assignment, error) {
+func (r *Repository) ListByRole(ctx context.Context, roleID meta.ID) ([]*domain.Assignment, error) {
 	var pos []*AssignmentPO
 
-	err := r.WithContext(ctx).Where("tenant_id = ? AND role_id = ?", tenantID, roleID.Uint64()).
+	err := r.WithContext(ctx).Where("role_id = ?", roleID.Uint64()).
 		Find(&pos).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to list domains by role: %w", err)
@@ -121,9 +121,9 @@ func (r *Repository) Delete(ctx context.Context, id domain.AssignmentID) error {
 }
 
 // DeleteBySubjectAndRole 删除指定主体和角色的分配
-func (r *Repository) DeleteBySubjectAndRole(ctx context.Context, subjectType domain.SubjectType, subjectID meta.ID, roleID meta.ID, tenantID string) error {
-	err := r.WithContext(ctx).Where("tenant_id = ? AND subject_type = ? AND subject_id = ? AND role_id = ?",
-		tenantID, string(subjectType), subjectID.String(), roleID.Uint64()).
+func (r *Repository) DeleteBySubjectAndRole(ctx context.Context, subjectType domain.SubjectType, subjectID meta.ID, roleID meta.ID) error {
+	err := r.WithContext(ctx).Where("subject_type = ? AND subject_id = ? AND role_id = ?",
+		string(subjectType), subjectID.String(), roleID.Uint64()).
 		Delete(&AssignmentPO{}).Error
 	if err != nil {
 		return fmt.Errorf("failed to delete domain: %w", err)

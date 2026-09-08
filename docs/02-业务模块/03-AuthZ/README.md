@@ -2,7 +2,7 @@
 
 > 状态：已实现 · 本目录以当前仓库代码为准。历史生产切换证据只证明当时指定 SHA 与数据库状态，不自动证明当前 HEAD 已发布或通过生产验收。
 
-AuthZ 回答一个问题：可信 Subject 在某个 Tenant 中，是否可以对 Resource 执行 Action；对象级动作还可以根据业务服务提交的受信对象属性求值。业务归属关系仍由拥有事实的业务模块判断。
+AuthZ 回答一个问题：可信 Subject 是否可以对 Resource 执行 Action；对象级动作还可以根据业务服务提交的受信对象属性求值。业务归属关系仍由拥有事实的业务模块判断。
 
 ## 30 秒结论
 
@@ -32,7 +32,7 @@ AuthZ 回答一个问题：可信 Subject 在某个 Tenant 中，是否可以对
 
 ### 二、领域模型设计
 
-2. [领域模型设计](01-领域模型设计.md)：深入 Subject、Tenant、Role、Assignment、RoleInheritance、PermissionGrant、Resource、
+2. [领域模型设计](01-领域模型设计.md)：深入 Subject、Role、Assignment、RoleInheritance、PermissionGrant、Resource、
    ConstraintSet 和 ObjectAttributes 的责任与不变量。
 
 ### 三、关键链路分析
@@ -54,7 +54,7 @@ AuthZ 回答一个问题：可信 Subject 在某个 Tenant 中，是否可以对
 
 | 问题 | 当前答案 | 深入位置 |
 | --- | --- | --- |
-| 权限事实由谁拥有 | MySQL 中的 AuthZ v3 表；业务对象事实留在业务模块 | 00、01 |
+| 权限事实由谁拥有 | MySQL 中的 AuthZ v4 表；业务对象事实留在业务模块 | 00、01 |
 | Subject 为什么能得到某个 Role | 直接 Assignment，加 RoleInheritance 闭包 | 01、02 |
 | Role 为什么能执行动作 | 命中 PermissionGrant 的 Resource/Action，且条件满足 | 01、02 |
 | 对象属性为什么可信 | gRPC transport 按调用服务与资源白名单接收，业务服务负责加载对象 | 00、02、06、07 |
@@ -102,7 +102,7 @@ REST v3 / Assignment gRPC
 | 四段 Resource | 跨应用命名稳定，通配规则可审计 | 资源命名必须前置治理 |
 | 类型化 ConstraintSet v1 | 条件可校验、可版本化、可解释 | 当前只有 `eq`、`all_of` 和最多 8 个谓词 |
 | 不可变全量快照 | 请求期无锁读，失败不发布半快照 | reload 成本与多实例滞后需要运维治理 |
-| 自有不可变角色图 | 类型化表达继承闭包，权限语义和运行时实现均归 IAM | 需要自行保护深度边界、去重与 Tenant 隔离 |
+| 自有不可变角色图 | 类型化表达继承闭包，权限语义和运行时实现均归 IAM | 需要自行保护深度边界、去重与 角色管理保护 |
 | durable version event | 数据提交与通知记录同事务 | 不是跨实例同步 barrier，仍是最终一致 |
 | 受管 Assignment 替换 | 一个服务只能覆盖自己的角色集合 | constraints 配置和并发语义更复杂 |
 
@@ -112,7 +112,7 @@ REST v3 / Assignment gRPC
 
 ```text
 默认拒绝；
-Tenant 隔离；
+角色管理保护；
 Assignment 与 RoleInheritance 不混淆；
 继承图无环；
 direct roles 与 effective roles 不混淆；
@@ -148,7 +148,7 @@ REST 管理与 gRPC Check 边界不倒置。
 ## 当前必须保留的边界
 
 - MySQL 是权限事实源；不可变角色图、Grant 索引和完整快照都是可重建投影。
-- `RequirePermissionOrGlobal` 先检查当前 Tenant，再检查平台域；“平台域只有通配 Grant 才能全局放行”是当前数据基线，不是代码强制不变量。
+- `RequirePermission` 统一检查资源与动作；应用服务额外落实管理保护与服务委托范围。
 - `ReplaceManagedAssignments` 的返回值当前是目标受管角色子集，不等同于持久化后的全部直接角色。
 - MySQL `REPEATABLE READ` 下使用锁定当前读重算 Subject Assignment；专门并发测试需要 `MYSQL_HOST`，被跳过时不能声明已有 MySQL 运行证明。
 - Assignment 约束授权器缺失时，增量 Grant/Revoke 与批量 Replace 的失败行为并不对称，部署配置必须显式提供实现。
@@ -173,4 +173,4 @@ python3 scripts/check-openapi-contracts.py
 
 ## 安全边界与发布验收
 
-当前实现包含租户限定角色详情、platform 专属目录写入、逐租户防倒退的独占快照、60 秒新鲜度门禁、数据库版本补偿、32 节点继承上限和显式可信属性配置。维护命令与逐项验证见 [安全加固与发布验收](09-安全加固与发布验收.md)。
+当前实现包含受保护角色可见性、敏感目录写入权限、全局版本防倒退的独占快照、60 秒新鲜度门禁、数据库版本补偿、32 节点继承上限和显式可信属性配置。维护命令与逐项验证见 [安全加固与发布验收](09-安全加固与发布验收.md)。

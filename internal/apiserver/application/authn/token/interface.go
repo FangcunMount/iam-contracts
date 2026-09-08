@@ -3,13 +3,13 @@ package token
 import (
 	"context"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
 )
 
-// AuthenticationGrantIssuer 在认证成功后颁发完整在线认证结果。
-// 调用方无需感知 Session、access token 与 refresh token 的内部装配过程。
-type AuthenticationGrantIssuer interface {
-	IssueAuthentication(ctx context.Context, principal *authentication.Principal) (*TokenPair, error)
+// InitialTokenIssuer 在既有 Session 上签发初始令牌，并保存 RefreshToken。
+// 不执行准入、创建会话或撤销会话；失败补偿属于调用用例。
+type InitialTokenIssuer interface {
+	IssueInitialTokens(ctx context.Context, sess *sessiondomain.Session) (*TokenPair, error)
 }
 
 // Refresher 通过 refresh token 轮换在线会话令牌。
@@ -24,7 +24,7 @@ type Revoker interface {
 	RevokeRefreshToken(ctx context.Context, refreshToken string) error
 }
 
-// Verifier 在线验证访问令牌及其可选 issuer / audience 约束。
+// Verifier 在线验证访问令牌、必填 audience 和可选额外 issuer 约束。
 type Verifier interface {
 	VerifyToken(ctx context.Context, req VerifyTokenRequest) (*TokenVerifyResult, error)
 }
@@ -32,18 +32,13 @@ type Verifier interface {
 // Capabilities 是组合根输出的令牌用例能力集合。
 // 它只承载窄接口，不是供业务代码依赖的统一门面。
 type Capabilities struct {
-	AuthenticationGrantIssuer AuthenticationGrantIssuer
-	Refresher                 Refresher
-	Revoker                   Revoker
-	Verifier                  Verifier
+	InitialTokenIssuer InitialTokenIssuer
+	Refresher          Refresher
+	Revoker            Revoker
+	Verifier           Verifier
 }
 
 // ================== DTOs ==================
-
-// TokenIssueResult 令牌签发结果 DTO。
-type TokenIssueResult struct {
-	TokenPair *TokenPair // 令牌对
-}
 
 // TokenRefreshResult 令牌刷新结果 DTO。
 type TokenRefreshResult struct {
@@ -54,7 +49,7 @@ type TokenRefreshResult struct {
 type VerifyTokenRequest struct {
 	AccessToken        string      // 访问令牌
 	ExpectedIssuer     string      // 预期签发者
-	ExpectedAudience   []string    // 预期受众
+	ExpectedAudience   []string    // 必填预期受众，任一匹配
 	AcceptedTokenTypes []TokenType // 场景允许的令牌类型；为空时安全默认只接受 access
 }
 

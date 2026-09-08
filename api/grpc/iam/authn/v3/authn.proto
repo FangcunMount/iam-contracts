@@ -1,0 +1,261 @@
+syntax = "proto3";
+
+package iam.authn.v3;
+
+option go_package = "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3;authnv3";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+// ============= 枚举 =============
+
+enum TokenStatus {
+  TOKEN_STATUS_UNSPECIFIED = 0;
+  TOKEN_STATUS_VALID = 1;
+  TOKEN_STATUS_REVOKED = 2;
+  TOKEN_STATUS_EXPIRED = 3;
+}
+
+enum TokenType {
+  TOKEN_TYPE_UNSPECIFIED = 0;
+  TOKEN_TYPE_ACCESS = 1;
+  TOKEN_TYPE_REFRESH = 2;
+  reserved 3;
+  reserved "TOKEN_TYPE_SERVICE";
+}
+
+// ============= 通用消息 =============
+
+message OperatorContext {
+  string operator_id = 1;
+  string operator_name = 2;
+  string channel = 3;
+  string reason = 4;
+  map<string, string> extra = 10;
+}
+
+message TokenClaims {
+  string token_id = 1;
+  string subject = 2;
+  string user_id = 3;
+  string login_identity_id = 4;
+  string issuer = 5;
+  repeated string audience = 6;
+  reserved 7;
+  reserved "tenant_id";
+  string session_id = 8;
+  TokenType token_type = 9;
+  google.protobuf.Timestamp issued_at = 10;
+  google.protobuf.Timestamp expires_at = 11;
+  google.protobuf.Timestamp authenticated_at = 12;
+  google.protobuf.Timestamp not_before = 13;
+  map<string, string> attributes = 20;
+  repeated string amr = 21;
+  string org_id = 22;
+  reserved 23;
+  reserved "tenant_domain";
+}
+
+message TokenPair {
+  string token_type = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+  google.protobuf.Duration expires_in = 4;
+}
+
+message TokenMetadata {
+  TokenType token_type = 1;
+  TokenStatus status = 2;
+  google.protobuf.Timestamp issued_at = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+// ============= AuthService =============
+
+message LoginRequest {
+  string auth_method = 1;
+  google.protobuf.Struct method_payload = 2;
+  string device_id = 3;
+}
+
+message LoginResponse {
+  TokenPair token_pair = 1;
+}
+
+message VerifyTokenRequest {
+  string access_token = 1;
+  bool force_remote = 2;
+  bool include_metadata = 3;
+  string expected_issuer = 4;
+  // Required recipient constraint. Non-empty entries; any matching audience is accepted.
+  repeated string expected_audience = 5;
+  repeated TokenType accepted_token_types = 6;
+}
+
+message VerifyTokenResponse {
+  bool valid = 1;
+  TokenStatus status = 2;
+  TokenClaims claims = 3;
+  TokenMetadata metadata = 4;
+  string failure_reason = 5;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+  map<string, string> context = 2;
+}
+message RefreshTokenResponse {
+  TokenPair token_pair = 1;
+}
+
+message RevokeTokenRequest {
+  string access_token = 1;
+  OperatorContext operator = 10;
+}
+message RevokeTokenResponse {}
+
+message RevokeRefreshTokenRequest {
+  string refresh_token = 1;
+  OperatorContext operator = 10;
+}
+message RevokeRefreshTokenResponse {}
+
+
+service AuthService {
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
+  rpc RevokeRefreshToken(RevokeRefreshTokenRequest) returns (RevokeRefreshTokenResponse);
+}
+
+// ============= AuthSignupService =============
+
+message SignupCredential {
+  string id = 1;
+  string type = 2;
+}
+
+message SignUpWithWechatMiniProgramRequest {
+  string name = 1;
+  string phone = 2;
+  string email = 3;
+  string app_id = 4;
+  string js_code = 5;
+  string nickname = 6;
+  string avatar = 7;
+  map<string, string> meta = 20;
+}
+
+message SignupResult {
+  string user_id = 1;
+  string user_name = 2;
+  string phone = 3;
+  string email = 4;
+  string login_identity_id = 5;
+  SignupCredential credential = 6;
+  bool is_new_user = 7;
+  bool is_new_identity = 8;
+}
+
+service AuthSignupService {
+  rpc SignUpWithWechatMiniProgram(SignUpWithWechatMiniProgramRequest) returns (SignupResult);
+}
+
+// ============= AuthChallengeService =============
+
+message SendLoginPhoneOTPRequest {
+  string phone = 1;
+}
+
+message MessageResponse {
+  string message = 1;
+}
+
+service AuthChallengeService {
+  rpc SendLoginPhoneOTP(SendLoginPhoneOTPRequest) returns (MessageResponse);
+}
+
+// ============= LoginIdentityService =============
+
+message AuthenticatedUserContext {
+  string user_id = 1;
+  string current_login_identity_id = 2;
+  google.protobuf.Timestamp authenticated_at = 3;
+}
+
+message LoginIdentity {
+  string id = 1;
+  string user_id = 2;
+  string provider = 3;
+  string realm = 4;
+  string identifier = 5;
+  string global_identifier = 6;
+  string status = 7;
+  google.protobuf.Timestamp verified_at = 8;
+  google.protobuf.Timestamp linked_at = 9;
+}
+
+message ListLoginIdentitiesRequest {
+  AuthenticatedUserContext actor = 1;
+}
+
+message ListLoginIdentitiesResponse {
+  repeated LoginIdentity items = 1;
+}
+
+message SendPhoneLinkChallengeRequest {
+  AuthenticatedUserContext actor = 1;
+  string phone = 2;
+}
+
+message LinkPhoneRequest {
+  AuthenticatedUserContext actor = 1;
+  string phone = 2;
+  string otp_code = 3;
+}
+
+message LinkWechatMiniProgramRequest {
+  AuthenticatedUserContext actor = 1;
+  string app_id = 2;
+  string code = 3;
+}
+
+message LinkWecomRequest {
+  AuthenticatedUserContext actor = 1;
+  string corp_id = 2;
+  string code = 3;
+}
+
+message UnlinkLoginIdentityRequest {
+  AuthenticatedUserContext actor = 1;
+  string login_identity_id = 2;
+}
+
+message LinkLoginIdentityResponse {
+  LoginIdentity login_identity = 1;
+  bool reused = 2;
+}
+
+service LoginIdentityService {
+  rpc ListLoginIdentities(ListLoginIdentitiesRequest) returns (ListLoginIdentitiesResponse);
+  rpc SendPhoneLinkChallenge(SendPhoneLinkChallengeRequest) returns (MessageResponse);
+  rpc LinkPhone(LinkPhoneRequest) returns (LinkLoginIdentityResponse);
+  rpc LinkWechatMiniProgram(LinkWechatMiniProgramRequest) returns (LinkLoginIdentityResponse);
+  rpc LinkWecom(LinkWecomRequest) returns (LinkLoginIdentityResponse);
+  rpc UnlinkLoginIdentity(UnlinkLoginIdentityRequest) returns (MessageResponse);
+}
+
+// ============= JWKSService =============
+
+message GetJWKSRequest {}
+message GetJWKSResponse {
+  bytes jwks = 1;
+  string etag = 2;
+  google.protobuf.Timestamp last_modified = 3;
+}
+
+service JWKSService {
+  rpc GetJWKS(GetJWKSRequest) returns (GetJWKSResponse);
+}

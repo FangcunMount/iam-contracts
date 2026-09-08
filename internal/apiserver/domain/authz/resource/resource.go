@@ -5,8 +5,8 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/attribute"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/attribute"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // Resource 域对象资源目录（聚合根）

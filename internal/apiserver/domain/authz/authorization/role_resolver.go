@@ -1,14 +1,12 @@
 package authorization
 
 import (
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-// RoleResolver defines the authorization-domain capability for resolving a
-// subject's direct and inherited roles inside one tenant boundary.
+// RoleResolver 根据稳定角色 ID 解析主体的直接角色及继承角色。
 type RoleResolver interface {
-	DirectRoles(subject.Ref, tenant.ID) ([]role.Name, error)
-	EffectiveRoles(subject.Ref, tenant.ID) ([]role.Name, error)
+	DirectRoles(subject.Ref) ([]meta.ID, error)
+	EffectiveRoles(subject.Ref) ([]meta.ID, error)
 }

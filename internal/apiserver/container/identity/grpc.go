@@ -1,8 +1,8 @@
 package identity
 
 import (
-	grpctransport "github.com/FangcunMount/iam/v4/internal/apiserver/transport/grpc"
-	identitygrpc "github.com/FangcunMount/iam/v4/internal/apiserver/transport/grpc/service/identity"
+	grpctransport "github.com/FangcunMount/iam/v5/internal/apiserver/transport/grpc"
+	identitygrpc "github.com/FangcunMount/iam/v5/internal/apiserver/transport/grpc/service/identity"
 )
 
 // CollectGRPC appends identity gRPC registration when the module is available.

@@ -9,7 +9,7 @@ import (
 	"github.com/robfig/cron/v3"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signingkey"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signingkey"
 )
 
 // KeyRotationCronScheduler 基于 Cron 表达式的密钥轮换调度器

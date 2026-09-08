@@ -5,19 +5,19 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/FangcunMount/iam/v4/pkg/sdk"
-	authchallenge "github.com/FangcunMount/iam/v4/pkg/sdk/auth/challenge"
-	authclient "github.com/FangcunMount/iam/v4/pkg/sdk/auth/client"
-	authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
-	authloginidentity "github.com/FangcunMount/iam/v4/pkg/sdk/auth/loginidentity"
-	authloginv2 "github.com/FangcunMount/iam/v4/pkg/sdk/auth/loginv2"
-	authsignup "github.com/FangcunMount/iam/v4/pkg/sdk/auth/signup"
-	authverifier "github.com/FangcunMount/iam/v4/pkg/sdk/auth/verifier"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/authz"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
-	sdkerrors "github.com/FangcunMount/iam/v4/pkg/sdk/errors"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/identity"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/idp"
+	sdk "github.com/FangcunMount/iam/v5/pkg/sdk"
+	authchallenge "github.com/FangcunMount/iam/v5/pkg/sdk/auth/challenge"
+	authclient "github.com/FangcunMount/iam/v5/pkg/sdk/auth/client"
+	authjwks "github.com/FangcunMount/iam/v5/pkg/sdk/auth/jwks"
+	authloginidentity "github.com/FangcunMount/iam/v5/pkg/sdk/auth/loginidentity"
+	authloginv3 "github.com/FangcunMount/iam/v5/pkg/sdk/auth/loginv3"
+	authsignup "github.com/FangcunMount/iam/v5/pkg/sdk/auth/signup"
+	authverifier "github.com/FangcunMount/iam/v5/pkg/sdk/auth/verifier"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/authz"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/config"
+	sdkerrors "github.com/FangcunMount/iam/v5/pkg/sdk/errors"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/identity"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/idp"
 )
 
 type compileMetrics struct{}
@@ -80,24 +80,24 @@ func TestPublicAPISurfaceCompiles(t *testing.T) {
 	var _ = authchallenge.WechatOpenAuthorizeRequest{}
 	var _ = authchallenge.WechatOpenAuthorizeResponse{}
 	var _ = authchallenge.MessageResponse{}
-	var _ *authloginv2.Client
-	var _ = authloginv2.NewClient
-	var _ = (*authloginv2.Client).Login
-	var _ = authloginv2.WithHTTPClient
-	var _ = authloginv2.WithHeader
-	var _ authloginv2.AuthMethod = authloginv2.AuthMethodPassword
-	var _ authloginv2.AuthMethod = authloginv2.AuthMethodPhoneOTP
-	var _ authloginv2.AuthMethod = authloginv2.AuthMethodWechat
-	var _ authloginv2.AuthMethod = authloginv2.AuthMethodWechatScan
-	var _ authloginv2.AuthMethod = authloginv2.AuthMethodWecom
-	var loginReq authloginv2.LoginRequest
+	var _ *authloginv3.Client
+	var _ = authloginv3.NewClient
+	var _ = (*authloginv3.Client).Login
+	var _ = authloginv3.WithHTTPClient
+	var _ = authloginv3.WithHeader
+	var _ authloginv3.AuthMethod = authloginv3.AuthMethodPassword
+	var _ authloginv3.AuthMethod = authloginv3.AuthMethodPhoneOTP
+	var _ authloginv3.AuthMethod = authloginv3.AuthMethodWechat
+	var _ authloginv3.AuthMethod = authloginv3.AuthMethodWechatScan
+	var _ authloginv3.AuthMethod = authloginv3.AuthMethodWecom
+	var loginReq authloginv3.LoginRequest
 	var _ = loginReq.Validate
-	var _ = authloginv2.PasswordPayload{}
-	var _ = authloginv2.PhoneOTPPayload{}
-	var _ = authloginv2.WechatPayload{}
-	var _ = authloginv2.WechatScanPayload{}
-	var _ = authloginv2.WecomPayload{}
-	var _ = authloginv2.TokenPair{}
+	var _ = authloginv3.PasswordPayload{}
+	var _ = authloginv3.PhoneOTPPayload{}
+	var _ = authloginv3.WechatPayload{}
+	var _ = authloginv3.WechatScanPayload{}
+	var _ = authloginv3.WecomPayload{}
+	var _ = authloginv3.TokenPair{}
 	var _ *authsignup.Client
 	var _ = authsignup.NewClient
 	var _ = (*authsignup.Client).SignUpWithWechatMiniProgram
@@ -131,7 +131,6 @@ func TestPublicAPISurfaceCompiles(t *testing.T) {
 	var _ = authloginidentity.LinkWecomRequest{}
 	var _ = authjwks.NewJWKSManager
 	var _ = authverifier.NewTokenVerifier
-	var _ = (*authverifier.TokenClaims).AuthorizationDomain
 	var _ = (*authverifier.TokenClaims).BusinessOrgID
 
 	var _ *authz.Client

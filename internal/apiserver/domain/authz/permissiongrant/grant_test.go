@@ -4,12 +4,12 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/permissiongrant"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	authzfixture "github.com/FangcunMount/iam/v4/internal/apiserver/testfixtures/authzschema"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/authzschema"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,7 +18,7 @@ func TestManagedGrantUsesStableCanonicalKey(t *testing.T) {
 	require.NoError(t, err)
 	grant, err := permissiongrant.New(
 		meta.FromUint64(10),
-		"tenant-a",
+
 		resource.NewResourceID(20),
 		"example:catalog:collection:documents",
 		"retry",
@@ -30,7 +30,7 @@ func TestManagedGrantUsesStableCanonicalKey(t *testing.T) {
 	require.Len(t, grant.GrantKey, 64)
 
 	second, err := permissiongrant.New(
-		meta.FromUint64(10), "tenant-a", resource.NewResourceID(20),
+		meta.FromUint64(10), resource.NewResourceID(20),
 		"example:catalog:collection:documents", "retry", constraints, "operator-2",
 	)
 	require.NoError(t, err)
@@ -39,13 +39,13 @@ func TestManagedGrantUsesStableCanonicalKey(t *testing.T) {
 
 func TestManagedGrantRequiresCatalogResourceAndConcreteAction(t *testing.T) {
 	_, err := permissiongrant.New(
-		meta.FromUint64(10), "tenant-a", resource.ResourceID{},
+		meta.FromUint64(10), resource.ResourceID{},
 		"example:*:*:*", "retry", constraint.Empty(), "operator-1",
 	)
 	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 
 	_, err = permissiongrant.New(
-		meta.FromUint64(10), "tenant-a", resource.NewResourceID(20),
+		meta.FromUint64(10), resource.NewResourceID(20),
 		"example:catalog:collection:documents", "*", constraint.Empty(), "operator-1",
 	)
 	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
@@ -55,13 +55,13 @@ func TestSystemWildcardGrantMustBeUnconditional(t *testing.T) {
 	conditional, err := constraint.New(constraint.Equal(authzfixture.AttributeKey, constraint.StringValue("active")))
 	require.NoError(t, err)
 	_, err = permissiongrant.NewSystem(
-		meta.FromUint64(10), "tenant-a", resource.ResourceID{},
+		meta.FromUint64(10), resource.ResourceID{},
 		"*:*:*:*", permissiongrant.WildcardAction, conditional, "bootstrap",
 	)
 	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 
 	grant, err := permissiongrant.NewSystem(
-		meta.FromUint64(10), "tenant-a", resource.ResourceID{},
+		meta.FromUint64(10), resource.ResourceID{},
 		"*:*:*:*", permissiongrant.WildcardAction, constraint.Empty(), "bootstrap",
 	)
 	require.NoError(t, err)
@@ -74,7 +74,7 @@ func TestManagedGrantValidatesAgainstResourceSchema(t *testing.T) {
 	constraints, err := constraint.New(constraint.Equal(authzfixture.AttributeKey, constraint.StringValue("active")))
 	require.NoError(t, err)
 	grant, err := permissiongrant.New(
-		meta.FromUint64(10), "tenant-a", resource.NewResourceID(20),
+		meta.FromUint64(10), resource.NewResourceID(20),
 		"example:catalog:collection:documents", "retry", constraints, "operator-1",
 	)
 	require.NoError(t, err)
@@ -89,7 +89,7 @@ func TestManagedGrantValidatesAgainstResourceSchema(t *testing.T) {
 	require.NoError(t, grant.ValidateAgainst(catalogResource))
 
 	invalid, err := permissiongrant.New(
-		meta.FromUint64(10), "tenant-a", resource.NewResourceID(20),
+		meta.FromUint64(10), resource.NewResourceID(20),
 		"example:catalog:collection:documents", "retry",
 		constraint.Empty(), "operator-1",
 	)
@@ -109,7 +109,7 @@ func TestConditionalGrantCannotAuthorizeCollectionOrBatchActions(t *testing.T) {
 	require.NoError(t, err)
 	for _, action := range []string{"list", "search", "batch_evaluate"} {
 		_, err := permissiongrant.New(
-			meta.FromUint64(10), "tenant-a", resource.NewResourceID(20),
+			meta.FromUint64(10), resource.NewResourceID(20),
 			"example:catalog:collection:documents", action, constraints, "operator-1",
 		)
 		require.True(t, perrors.IsCode(err, code.ErrInvalidArgument), action)

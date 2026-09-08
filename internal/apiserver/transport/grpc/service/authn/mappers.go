@@ -5,22 +5,22 @@ import (
 	"strings"
 	"time"
 
-	authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-	linkingApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
-	signupApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signup"
-	tokenApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	credDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/credential"
-	iamgrpc "github.com/FangcunMount/iam/v4/internal/pkg/grpc"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+	linkingApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/linking"
+	signupApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signup"
+	tokenApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	credDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/credential"
+	iamgrpc "github.com/FangcunMount/iam/v5/internal/pkg/grpc"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func toProtoTokenPair(pair *tokenApp.TokenPair) *authnv2.TokenPair {
+func toProtoTokenPair(pair *tokenApp.TokenPair) *authnv3.TokenPair {
 	if pair == nil || pair.AccessToken == nil {
 		return nil
 	}
-	resp := &authnv2.TokenPair{
+	resp := &authnv3.TokenPair{
 		TokenType:    "Bearer",
 		AccessToken:  pair.AccessToken.Value,
 		RefreshToken: "",
@@ -32,11 +32,11 @@ func toProtoTokenPair(pair *tokenApp.TokenPair) *authnv2.TokenPair {
 	return resp
 }
 
-func toProtoTokenClaims(claims *tokenApp.TokenClaims) *authnv2.TokenClaims {
+func toProtoTokenClaims(claims *tokenApp.TokenClaims) *authnv3.TokenClaims {
 	if claims == nil {
 		return nil
 	}
-	resp := &authnv2.TokenClaims{
+	resp := &authnv3.TokenClaims{
 		TokenId:    claims.TokenID,
 		Subject:    claims.Subject,
 		Issuer:     claims.Issuer,
@@ -62,34 +62,30 @@ func toProtoTokenClaims(claims *tokenApp.TokenClaims) *authnv2.TokenClaims {
 	if !claims.LoginIdentityID.IsZero() {
 		resp.LoginIdentityId = claims.LoginIdentityID.String()
 	}
-	if domain := claims.TenantDomain; domain != "" {
-		resp.TenantId = domain
-		resp.TenantDomain = domain
-	}
 	if !claims.OrgID.IsZero() {
 		resp.OrgId = claims.OrgID.String()
 	}
 	return resp
 }
 
-func tokenTypeToProto(tokenType tokenApp.TokenType) authnv2.TokenType {
+func tokenTypeToProto(tokenType tokenApp.TokenType) authnv3.TokenType {
 	switch tokenType {
 	case tokenApp.TokenTypeRefresh:
-		return authnv2.TokenType_TOKEN_TYPE_REFRESH
+		return authnv3.TokenType_TOKEN_TYPE_REFRESH
 	case tokenApp.TokenTypeAccess:
-		return authnv2.TokenType_TOKEN_TYPE_ACCESS
+		return authnv3.TokenType_TOKEN_TYPE_ACCESS
 	default:
-		return authnv2.TokenType_TOKEN_TYPE_UNSPECIFIED
+		return authnv3.TokenType_TOKEN_TYPE_UNSPECIFIED
 	}
 }
 
-func buildTokenMetadata(claims *tokenApp.TokenClaims) *authnv2.TokenMetadata {
+func buildTokenMetadata(claims *tokenApp.TokenClaims) *authnv3.TokenMetadata {
 	if claims == nil {
 		return nil
 	}
-	return &authnv2.TokenMetadata{
+	return &authnv3.TokenMetadata{
 		TokenType: tokenTypeToProto(claims.TokenType),
-		Status:    authnv2.TokenStatus_TOKEN_STATUS_VALID,
+		Status:    authnv3.TokenStatus_TOKEN_STATUS_VALID,
 		IssuedAt:  timestamppb.New(claims.IssuedAt),
 		ExpiresAt: timestamppb.New(claims.ExpiresAt),
 	}
@@ -125,7 +121,7 @@ func parseRequiredMetaID(text, field string) (meta.ID, error) {
 	return id, nil
 }
 
-func parseAuthenticatedUserContext(actor *authnv2.AuthenticatedUserContext) (meta.ID, meta.ID, *time.Time, error) {
+func parseAuthenticatedUserContext(actor *authnv3.AuthenticatedUserContext) (meta.ID, meta.ID, *time.Time, error) {
 	if actor == nil {
 		return meta.ZeroID, meta.ZeroID, nil, fmt.Errorf("actor is required")
 	}
@@ -145,11 +141,11 @@ func parseAuthenticatedUserContext(actor *authnv2.AuthenticatedUserContext) (met
 	return userID, currentID, authenticatedAt, nil
 }
 
-func toProtoSignupResult(result *signupApp.SignupResult) *authnv2.SignupResult {
+func toProtoSignupResult(result *signupApp.SignupResult) *authnv3.SignupResult {
 	if result == nil {
-		return &authnv2.SignupResult{}
+		return &authnv3.SignupResult{}
 	}
-	return &authnv2.SignupResult{
+	return &authnv3.SignupResult{
 		UserId:          result.UserID.String(),
 		UserName:        result.UserName,
 		Phone:           result.Phone.String(),
@@ -161,18 +157,18 @@ func toProtoSignupResult(result *signupApp.SignupResult) *authnv2.SignupResult {
 	}
 }
 
-func toProtoSignupCredential(credential *signupApp.SignupCredential) *authnv2.SignupCredential {
+func toProtoSignupCredential(credential *signupApp.SignupCredential) *authnv3.SignupCredential {
 	if credential == nil {
 		return nil
 	}
-	return &authnv2.SignupCredential{
+	return &authnv3.SignupCredential{
 		Id:   credential.ID.String(),
 		Type: credentialTypeString(credential.Type),
 	}
 }
 
-func toProtoLoginIdentityView(identity linkingApp.LoginIdentityView) *authnv2.LoginIdentity {
-	return &authnv2.LoginIdentity{
+func toProtoLoginIdentityView(identity linkingApp.LoginIdentityView) *authnv3.LoginIdentity {
+	return &authnv3.LoginIdentity{
 		Id:               identity.ID.String(),
 		UserId:           identity.UserID.String(),
 		Provider:         string(identity.Provider),
@@ -185,11 +181,11 @@ func toProtoLoginIdentityView(identity linkingApp.LoginIdentityView) *authnv2.Lo
 	}
 }
 
-func toProtoLinkResult(result *linkingApp.LinkResult) *authnv2.LinkLoginIdentityResponse {
+func toProtoLinkResult(result *linkingApp.LinkResult) *authnv3.LinkLoginIdentityResponse {
 	if result == nil || result.Identity == nil {
-		return &authnv2.LinkLoginIdentityResponse{}
+		return &authnv3.LinkLoginIdentityResponse{}
 	}
-	return &authnv2.LinkLoginIdentityResponse{
+	return &authnv3.LinkLoginIdentityResponse{
 		LoginIdentity: toProtoLoginIdentityView(linkingApp.LoginIdentityView{
 			ID:               result.Identity.ID,
 			UserID:           result.Identity.UserID,

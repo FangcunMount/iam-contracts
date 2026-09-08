@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	assignmentDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/assignment"
-	roleDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	assignmentDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	roleDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -89,7 +89,7 @@ func TestReplacementPolicyRejectsDuplicateAndUnmanagedTargets(t *testing.T) {
 
 	_, err = assignmentDomain.ReplacementPolicy{}.Plan(
 		assignmentDomain.ReplacementRequest{
-			TargetRoleNames:  []string{"tenant_admin"},
+			TargetRoleNames:  []string{"iam_admin"},
 			ManagedRoleNames: []string{"example:staff"},
 		},
 		managed,
@@ -135,7 +135,7 @@ func mustAssignment(t *testing.T, assignmentID uint64, roleID uint64) *assignmen
 		assignmentDomain.SubjectTypeUser,
 		meta.FromUint64(100),
 		meta.FromUint64(roleID),
-		"fangcun",
+
 		assignmentDomain.WithID(assignmentDomain.NewAssignmentID(assignmentID)),
 		assignmentDomain.WithGrantedBy("operator"),
 	)

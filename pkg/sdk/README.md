@@ -1,6 +1,6 @@
 # IAM SDK for Go
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/FangcunMount/iam/v4/pkg/sdk.svg)](https://pkg.go.dev/github.com/FangcunMount/iam/v4/pkg/sdk)
+[![Go Reference](https://pkg.go.dev/badge/github.com/FangcunMount/iam/v5/pkg/sdk.svg)](https://pkg.go.dev/github.com/FangcunMount/iam/v5/pkg/sdk)
 [![Go Version](https://img.shields.io/badge/go-%3E%3D1.21-blue.svg)](https://golang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -12,7 +12,7 @@
 - `pkg/sdk/auth/challenge`
 - `pkg/sdk/auth/jwks`
 - `pkg/sdk/auth/loginidentity`
-- `pkg/sdk/auth/loginv2`
+- `pkg/sdk/auth/loginv3`
 - `pkg/sdk/auth/verifier`
 - `pkg/sdk/auth/signup`
 - `pkg/sdk/authz`
@@ -25,7 +25,7 @@
 当前 Go module major 为 v3：
 
 ```bash
-go get github.com/FangcunMount/iam/v4@v3.0.0
+go get github.com/FangcunMount/iam/v5@v3.0.0
 ```
 
 REST/OpenAPI 和 gRPC proto package 仍为 v2；升级 SDK import path 时不要修改 wire 路径或 `iam.*.v2` package。
@@ -51,7 +51,7 @@ pkg/sdk/
 │   ├── client/
 │   ├── jwks/
 │   ├── loginidentity/
-│   ├── loginv2/
+│   ├── loginv3/
 │   ├── signup/
 │   ├── verifier/
 ├── authz/                     # 授权判定 client
@@ -71,8 +71,8 @@ import (
     "context"
     "log"
 
-    authnv2 "github.com/FangcunMount/iam/v4/api/grpc/iam/authn/v2"
-    sdk "github.com/FangcunMount/iam/v4/pkg/sdk"
+    authnv3 "github.com/FangcunMount/iam/v5/api/grpc/iam/authn/v3"
+    sdk "github.com/FangcunMount/iam/v5/pkg/sdk"
 )
 
 func main() {
@@ -86,7 +86,7 @@ func main() {
     }
     defer client.Close()
 
-    resp, err := client.Auth().VerifyToken(ctx, &authnv2.VerifyTokenRequest{
+    resp, err := client.Auth().VerifyToken(ctx, &authnv3.VerifyTokenRequest{
         AccessToken: "jwt-token",
     })
     if err != nil {
@@ -113,7 +113,7 @@ client, err := sdk.NewClient(ctx, cfg)
 ```go
 import (
     "github.com/spf13/viper"
-    "github.com/FangcunMount/iam/v4/pkg/sdk/config"
+    "github.com/FangcunMount/iam/v5/pkg/sdk/config"
 )
 
 v := viper.New()
@@ -134,18 +134,18 @@ if err != nil {
 
 ```go
 import (
-    authclient "github.com/FangcunMount/iam/v4/pkg/sdk/auth/client"
-    authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
-    authloginidentity "github.com/FangcunMount/iam/v4/pkg/sdk/auth/loginidentity"
-    authloginv2 "github.com/FangcunMount/iam/v4/pkg/sdk/auth/loginv2"
-    authsignup "github.com/FangcunMount/iam/v4/pkg/sdk/auth/signup"
-    authverifier "github.com/FangcunMount/iam/v4/pkg/sdk/auth/verifier"
+    authclient "github.com/FangcunMount/iam/v5/pkg/sdk/auth/client"
+    authjwks "github.com/FangcunMount/iam/v5/pkg/sdk/auth/jwks"
+    authloginidentity "github.com/FangcunMount/iam/v5/pkg/sdk/auth/loginidentity"
+    authloginv3 "github.com/FangcunMount/iam/v5/pkg/sdk/auth/loginv3"
+    authsignup "github.com/FangcunMount/iam/v5/pkg/sdk/auth/signup"
+    authverifier "github.com/FangcunMount/iam/v5/pkg/sdk/auth/verifier"
 )
 
 _ = authclient.NewClient
 _ = authjwks.NewJWKSManager
 _ = authloginidentity.NewClient
-_ = authloginv2.NewClient
+_ = authloginv3.NewClient
 _ = authsignup.NewClient
 _ = authverifier.NewTokenVerifier
 ```
@@ -154,9 +154,9 @@ _ = authverifier.NewTokenVerifier
 
 ```go
 import (
-    sdk "github.com/FangcunMount/iam/v4/pkg/sdk"
-    authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
-    authverifier "github.com/FangcunMount/iam/v4/pkg/sdk/auth/verifier"
+    sdk "github.com/FangcunMount/iam/v5/pkg/sdk"
+    authjwks "github.com/FangcunMount/iam/v5/pkg/sdk/auth/jwks"
+    authverifier "github.com/FangcunMount/iam/v5/pkg/sdk/auth/verifier"
 )
 
 jwksManager, err := authjwks.NewJWKSManager(
@@ -237,7 +237,7 @@ profileClient := identity.NewProfileClient(
 ## 错误处理
 
 ```go
-import sdkerrors "github.com/FangcunMount/iam/v4/pkg/sdk/errors"
+import sdkerrors "github.com/FangcunMount/iam/v5/pkg/sdk/errors"
 
 resp, err := client.Identity().GetUser(ctx, "user-123")
 if err != nil {
@@ -262,7 +262,7 @@ _ = resp
 如果需要拿到结构化错误：
 
 ```go
-import sdkerrors "github.com/FangcunMount/iam/v4/pkg/sdk/errors"
+import sdkerrors "github.com/FangcunMount/iam/v5/pkg/sdk/errors"
 
 if iamErr, ok := sdkerrors.AsIAMError(err); ok {
     log.Printf("code=%s grpc=%s msg=%s", iamErr.Code, iamErr.GRPCCode, iamErr.Message)
@@ -280,7 +280,7 @@ import (
     "context"
     "time"
 
-    sdk "github.com/FangcunMount/iam/v4/pkg/sdk"
+    sdk "github.com/FangcunMount/iam/v5/pkg/sdk"
 )
 
 type myMetrics struct{}
@@ -307,7 +307,7 @@ client, err := sdk.NewClient(ctx, &sdk.Config{
 | 模块 | 设计重点 | 说明 |
 | ---- | ---- | ---- |
 | `pkg/sdk` | 统一接入入口 | `sdk.Client` 负责装配连接与子客户端 |
-| `auth/loginv2` | REST v2 显式登录 | 覆盖 `/api/v2/authn/login`；gRPC 登录走 `auth/client` |
+| `auth/loginv3` | REST v2 显式登录 | 覆盖 `/api/v3/authn/login`；gRPC 登录走 `auth/client` |
 | `auth/jwks` | Chain of Responsibility | Cache → HTTP → gRPC → Seed |
 | `auth/verifier` | Strategy | Local / Remote / Fallback / Cache |
 | `identity` | 拆分式 Identity SDK | `Client` 负责 User / IdentityRead / IdentityLifecycle；`ProfileClient` 负责 ProfileCommand；`ProfileLinkClient` 负责 ProfileLink query/command |
@@ -321,7 +321,7 @@ client, err := sdk.NewClient(ctx, &sdk.Config{
 - 历史 v2 import `github.com/FangcunMount/iam/v2/pkg/sdk/transport` 已删除
 - 历史 v2 import `github.com/FangcunMount/iam/v2/pkg/sdk/observability` 已删除
 - `pkg/sdk/errors` 的高级分析 / matcher / handler API 已收回内部
-- `pkg/sdk/auth/loginv2` 是 REST AuthN v2 显式登录入口；`pkg/sdk/auth/client` 已对齐 gRPC v2 Login/token/JWKS/onboarding 契约
+- `pkg/sdk/auth/loginv3` 是 REST AuthN v2 显式登录入口；`pkg/sdk/auth/client` 已对齐 gRPC v2 Login/token/JWKS/onboarding 契约
 - `pkg/sdk/idp` 已对齐 v2 WeChat app 查询与 access token 获取/刷新契约
 - `pkg/sdk/identity` 保持拆分式客户端：`Client`、`ProfileClient`、`ProfileLinkClient`；ProfileLink 查询支持 `include_revoked`
 

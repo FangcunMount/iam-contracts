@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	jwks "github.com/FangcunMount/iam/v4/internal/apiserver/infra/token/keyset"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	jwks "github.com/FangcunMount/iam/v5/internal/apiserver/infra/token/keyset"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // Mapper 负责 Domain Entity 和 PO 之间的转换

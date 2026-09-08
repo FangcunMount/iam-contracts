@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/FangcunMount/component-base/pkg/logger"
-	authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
-	"github.com/FangcunMount/iam/v4/pkg/sdk/config"
+	authjwks "github.com/FangcunMount/iam/v5/pkg/sdk/auth/jwks"
+	"github.com/FangcunMount/iam/v5/pkg/sdk/config"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
 
@@ -46,6 +46,10 @@ func (s *LocalVerifyStrategy) Verify(ctx context.Context, tokenString string, op
 	if opts == nil {
 		opts = &VerifyOptions{}
 	}
+	policy := newVerificationPolicy(s.config, opts)
+	if policy.configurationErr != nil {
+		return nil, invalidTokenError("invalid verifier configuration: %v", policy.configurationErr)
+	}
 	logger.L(ctx).Debugw("LocalVerifyStrategy verify start", "strategy", s.Name(), "has_jwks_manager", s.jwksManager != nil)
 	if s.jwksManager == nil {
 		logger.L(ctx).Errorw("LocalVerifyStrategy jwks manager not configured", "strategy", s.Name())
@@ -61,7 +65,6 @@ func (s *LocalVerifyStrategy) Verify(ctx context.Context, tokenString string, op
 		return nil, allowRemoteFallback(fmt.Errorf("local-strategy: jwks key set is empty"))
 	}
 
-	policy := newVerificationPolicy(s.config, opts)
 	if err := policy.validateAlgorithm(tokenString); err != nil {
 		return nil, err
 	}
@@ -73,6 +76,9 @@ func (s *LocalVerifyStrategy) Verify(ctx context.Context, tokenString string, op
 	}
 
 	if err := policy.validateParsedTokenType(token); err != nil {
+		return nil, err
+	}
+	if err := policy.validateAudience(token.Audience()); err != nil {
 		return nil, err
 	}
 	claims := extractClaims(token)

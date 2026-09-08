@@ -21,14 +21,14 @@ JWT 负责可验证声明，Redis 负责在线撤销和续期状态，MySQL 负�
 | 概念 | 当前代码中的含义与归属 |
 | --- | --- |
 | JWT Claims Set | `infra/token/jwt.jwtPayloadClaims`，只表示 Payload 的 wire model；不是完整令牌 |
-| JWS | `JWSCompactTokenCodec` 使用 RS256 对 Claims Set 签名，输出 `Header.Payload.Signature` 三段式紧凑序列化 |
+| JWS | `SignedJWTCodec` 使用 RS256 对 Claims Set 签名，输出 `Header.Payload.Signature` 三段式紧凑序列化 |
 | Signed JWT | 当前 Access/Service bearer token 的实际 wire form：以 JWS 保护的 JWT；不是另一个独立领域实体 |
 | JWE | 当前未实现；JWT Payload 仅 Base64URL 编码、可被读取，不提供机密性 |
 | Signing Key | `domain/authn/signingkey.Key`，表达非敏感身份、算法、状态、有效期和签名/验签资格 |
 | JWK | `infra/token/keyset.PublicJWK`，一把公钥的 JOSE 线格式；不是 Signing Key 领域实体本身 |
 | JWKS | `infra/token/keyset.JWKS` 及 `application/authn/jwks`，发布多把可验签公钥的集合与缓存契约 |
 
-因此代码中的 `BearerTokenCodec` 是领域端口，`JWSCompactTokenCodec` 是具体 wire adapter；`VerifiedTokenClaims` 是完成验签、标准时间和 issuer 校验后的领域事实，不能反向当作 JWT Header、原始 Payload 或 Signature。
+因此代码中的 `AccessTokenEncoder / AccessTokenSignatureVerifier` 是领域端口，`SignedJWTCodec` 是具体 wire adapter；`AccessTokenClaims` 是声明数据模型，构造函数只检查不变量，验证保证由调用流程提供，不能反向当作 JWT Header、原始 Payload 或 Signature。
 
 详细执行顺序、错误分支和补偿由 [Token 生命周期链路](05-关键链路-Token签发刷新吊销.md) 维护；本文负责对象、上下文权威、寿命、兼容门禁和验证语义。
 
@@ -37,22 +37,22 @@ JWT 负责可验证声明，Redis 负责在线撤销和续期状态，MySQL 负�
 `grant.Issuer.Issue` 的实际步骤是：
 
 1. 通过 `AdmissionPolicy` 确认 User 与 LoginIdentity 允许建立认证状态；
-2. 用 Principal 创建 Session；
+2. 用 Principal 和独立 TokenContext 创建 Session，并校验主体与会话的一致性；
 3. 由 `TokenSetMinter` 在 Session 上 mint `UserTokenSet`；
 4. 把 RefreshToken 保存到 Redis；
-5. 返回 `AuthenticationGrant = Session + UserTokenSet`。
+5. 返回 `登录结果 = Principal + TokenPair`。
 
-Access token 由当前 active RS256 key 签名，payload 是类型化投影（含 `user_id`/`login_identity_id`/`sid`/`tenant_id`/`amr`/`auth_time` 等）。
+Access token 由当前 active RS256 key 签名，payload 是类型化投影（含 `user_id`/`login_identity_id`/`sid`/`amr`/`auth_time` 等）。
 JWT 可读但不保证机密；敏感字段默认不进入 access JWT。Refresh token 是不透明随机值，服务端只保存轮换/重放检测与 Session 关联；
 认证上下文与允许续期的投影以 Session 为权威来源。
 
 这里有四个不同对象，不能都叫“JWT Claims”：infra 的 `jwtPayloadClaims` 只负责 Payload 序列化；domain 的
-`VerifiedTokenClaims` 表达验签后的可信事实；gRPC/REST Claims 是传输 DTO；SDK `TokenClaims` 是公开兼容投影。
+`AccessTokenClaims` 表达声明事实，类型自身不承诺已经完成验签或在线检查；gRPC/REST Claims 是传输 DTO；SDK `TokenClaims` 是公开兼容投影。
 JWT Header 中的 `kid/alg/typ` 不进入领域 Claims，Signature 也不是 Claims。
 
 ### 当前失败窗口
 
-Session 创建成功后，若 mint 返回错误或不完整的 TokenSet，或 `SaveRefreshToken` 失败，GrantIssuer 会以
+Session 创建成功后，若 mint 返回错误或不完整的 TokenSet，或 `SaveRefreshToken` 失败，SignIn 会以
 `authentication_grant_failed` 为原因撤销该 Session，并返回原始签发错误。撤销使用独立的 5 秒超时，客户端取消请求不会取消补偿。
 即使 RefreshToken 保存结果不确定，Session 撤销成功后它也不能继续在线认证或刷新。
 
@@ -74,7 +74,7 @@ Session 创建成功后，若 mint 返回错误或不完整的 TokenSet，或 `S
 Session 在 Redis 中除主记录外，还维护按 User 和 LoginIdentity 的索引，以支持“退出全部设备”、禁用身份和封禁用户后的批量撤销。多键更新使用 WATCH 重试，失败必须显式返回，不能假装部分索引已经一致。
 
 新 Session 只保存强类型 `AuthContext` 与 `TokenContext`：前者持有 Method/Realm/AMR/AuthenticatedAt，后者只持有
-TenantDomain、OrgID 和准入后的 Attributes。Redis `schema_version=2` 不再写 `AuthMethod/Realm/AMR/SessionClaims`
+OrgID 和准入后的 Attributes。Redis `schema_version=2` 不再写 `AuthMethod/Realm/AMR/SessionClaims`
 副本；读取历史 v1 JSON 时由 Redis adapter 映射为新模型，手机号和 provider 标识不会进入新的 TokenContext。
 
 ## 4. Refresh Token Rotation
@@ -92,7 +92,7 @@ sequenceDiagram
     T->>S: load active session
     T->>T: check User/LoginIdentity status
     T->>T: check refresh expiry
-    T->>T: rebuild Principal from Session and mint new pair
+    T->>T: restore legacy context in Session copy and mint new pair
     T->>S: extend to new refresh expiry
     T->>R: CAS rotate old -> new
     R-->>T: rotated / conflict
@@ -161,7 +161,7 @@ Identity 的 deactivate/block 会在同一 MySQL 事务中写 session-revocation
 | `POST /api/v2/admin/login-identities/{loginIdentityId}/sessions/revoke` | `revoke_by_login_identity` |
 | `POST /api/v2/admin/users/{userId}/sessions/revoke` | `revoke_by_user` |
 
-三条路由都先检查当前 Tenant，再检查平台域；不按管理员角色名称旁路。它们是管理操作，不改变退出、refresh 撤销与 Identity 状态事件的既有链路。
+三条路由都先检查当前授权域，再检查平台域；不按管理员角色名称旁路。它们是管理操作，不改变退出、refresh 撤销与 Identity 状态事件的既有链路。
 
 ## 6. 三层验证语义
 
@@ -172,12 +172,11 @@ Identity 的 deactivate/block 会在同一 MySQL 事务中写 session-revocation
 
 ### Application verification policy
 
-在 codec 结果上约束 accepted token type 与 expected audience（集合至少一个交集）。未显式指定 token type 时安全默认只接受 `access`；
-service-only 路径必须显式接受 `service`，不再以空列表表示通用 introspection。
+入口要求 ExpectedAudience 非空且元素非空，规范化后传给领域在线验证；多个受众任一匹配即可。ExpectedIssuer 是 canonical issuer 之外的可选额外约束；未指定 token type 时默认只接受 `access`，不支持 service token。
 
 ### Domain verifier
 
-在密码学验证后，AccessToken 检查 bearer-token revocation marker、active Session 与 Admission。服务身份由 mTLS 建立。
+在密码学验证后先检查预期 audience，再检查 bearer-token revocation marker、active Session 与 Admission。服务身份由 mTLS 建立。
 
 SDK `LocalVerifyStrategy` 只覆盖 codec + 本地 policy（RS256、必填 issuer/audience、clock skew）。它无法仅凭 JWKS 知道：
 
@@ -226,7 +225,7 @@ SDK `LocalVerifyStrategy` 只覆盖 codec + 本地 policy（RS256、必填 issue
 
 ## 10. 事实来源与验证
 
-- 认证结果与初始颁发：`internal/apiserver/domain/authn/grant`
+- 认证结果与初始颁发：`internal/apiserver/application/authn/signin`
 - Token 模型、mint、刷新、验证与撤销：`internal/apiserver/domain/authn/token`
 - Token 应用 DTO 与门面：`internal/apiserver/application/authn/token`
 - Session 领域：`internal/apiserver/domain/authn/session`
@@ -235,12 +234,12 @@ SDK `LocalVerifyStrategy` 只覆盖 codec + 本地 policy（RS256、必填 issue
 - 签名密钥管理应用：`internal/apiserver/application/authn/signingkey`
 - JWKS 公钥发布应用：`internal/apiserver/application/authn/jwks`
 - SDK：`pkg/sdk/auth/jwks`、`pkg/sdk/auth/verifier`
-- 重点测试：`token/refresher_atomic_test.go`、`token/principal_session_test.go`、`session/lifetime_policy_test.go`、
+- 重点测试：`token/refresher_atomic_test.go`、`token/session_subject_test.go`、`session/lifetime_policy_test.go`、
   `pkg/sdk/auth/jwks/jwks_test.go`
 
 ```bash
 go test \
-  ./internal/apiserver/domain/authn/grant \
+  ./internal/apiserver/application/authn/signin \
   ./internal/apiserver/domain/authn/token \
   ./internal/apiserver/application/authn/token \
   ./internal/apiserver/domain/authn/session \
@@ -249,3 +248,19 @@ go test \
   ./internal/apiserver/application/authn/jwks \
   ./pkg/sdk/auth/jwks ./pkg/sdk/auth/verifier
 ```
+
+## JWT 重构后的输出与校验契约
+
+`TokenSetMinter` 从 IssuanceConfig 获取 issuer、audience、AccessTTL；每次 mint 只读取一次时钟，JWT 与 AccessToken/DTO 共享同一 ID 和秒级 iat/nbf/exp。RefreshToken 的到期规则仍由 Session LifetimePolicy 决定。
+
+`AccessTokenClaims` 是数据值对象，`NewAccessTokenClaims` 只规范化与校验不变量。`SignedJWTCodec` 实现独立的 AccessTokenEncoder 与 AccessTokenSignatureVerifier，前者只编码并签名，后者负责验签、时间、canonical issuer 和声明不变量。`TokenVerifyResult.Valid=true` 才表示该次在线调用通过受众、撤销、Session 和 Admission 检查；仍不是资源授权结果。
+
+REST/gRPC VerifyToken 及直接应用调用均要求 ExpectedAudience：缺失、空数组或空元素返回参数错误（HTTP 400 / gRPC InvalidArgument），合法但不匹配返回 Valid=false 且不返回 Claims。多个期望受众任一匹配即可。SDK 单独构造的本地/远程策略也必须具备有效 issuer/audience 配置或明确选项，不从 Token 自行推导接收方。
+
+IAM 中间件使用 `auth.resource_audience`（默认 iam-api），启动时要求该值存在于签发列表。默认新令牌包含 iam-api、qs-api、collection-api。按一次切换发布：旧令牌缺少 iam-api 时不能访问 IAM 受保护资源，可用有效 RefreshToken 换取新令牌，否则重新登录；不添加跳过受众校验的开关。
+
+JWT 仅映射身份、会话、OrgID、受众与时间事实。NewRefreshToken 接收明确期限与令牌信息；RestoreRefreshToken 保留仍有用途的旧 Redis 兼容数据，不恢复授权隔离快照。旧存储缺少 issued_at，其读取时间不能作为历史签发时间证据。
+
+PublicJWK.ValidateStructure 与 JWKS.ValidateStructure 检查公开结构，允许空 JWKS；ValidateSigningProfile 要求 IAM 的 RSA/RS256、sig 与 kid。密钥生命周期继续决定可签名、验签和发布状态。JWKSPublisher 负责公开投影与发布缓存，空集合与非空集合统一更新 ETag 和快照，结构有效不代表当前可提供验签密钥。
+
+发布验收应分别记录服务端测试、SDK 本地/远程测试、qs-server 接入契约测试与实际环境验证。`iam_token_audience_failure_total` 使用 missing_or_invalid、mismatch、configuration_error 有界分类，不记录动态 audience 或令牌。出现回归时整体回滚版本与配置，不通过取消 audience 校验回避问题。

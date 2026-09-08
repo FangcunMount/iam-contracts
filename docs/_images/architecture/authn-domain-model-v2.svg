@@ -142,7 +142,7 @@
   <text x="2715" y="874" text-anchor="middle" class="model">Principal</text>
   <line x1="2495" y1="893" x2="2935" y2="893" class="divider"/>
   <text x="2715" y="920" text-anchor="middle" class="field-strong">UserID · LoginIdentityID</text>
-  <text x="2715" y="946" text-anchor="middle" class="field">TenantID · SessionID</text>
+  <text x="2715" y="946" text-anchor="middle" class="field">AuthContext</text>
   <text x="2715" y="972" text-anchor="middle" class="field">AuthMethod · Realm · AMR</text>
   <text x="2715" y="998" text-anchor="middle" class="field">Claims</text>
   <text x="2715" y="1024" text-anchor="middle" class="small">认证成功后的请求级主体</text>
@@ -175,7 +175,7 @@
   <text x="902" y="1366" text-anchor="middle" class="model">Session</text>
   <line x1="705" y1="1383" x2="1100" y2="1383" class="divider"/>
   <text x="902" y="1408" text-anchor="middle" class="field-strong">SessionID</text>
-  <text x="902" y="1432" text-anchor="middle" class="field">UserID · LoginIdentityID · TenantID</text>
+  <text x="902" y="1432" text-anchor="middle" class="field">UserID · LoginIdentityID</text>
   <text x="902" y="1456" text-anchor="middle" class="field">AuthMethod · Realm · AMR</text>
   <text x="902" y="1480" text-anchor="middle" class="field">Status · ExpiresAt · RevokedAt</text>
 
@@ -192,7 +192,7 @@
   <text x="1795" y="1366" text-anchor="middle" class="model">AccessToken</text>
   <line x1="1610" y1="1383" x2="1980" y2="1383" class="divider"/>
   <text x="1795" y="1408" text-anchor="middle" class="field-strong">ID · Subject · SessionID</text>
-  <text x="1795" y="1432" text-anchor="middle" class="field">TenantID · Audience · AMR</text>
+  <text x="1795" y="1432" text-anchor="middle" class="field">Audience · AMR</text>
   <text x="1795" y="1456" text-anchor="middle" class="field">IssuedAt · ExpiresAt</text>
   <text x="1795" y="1480" text-anchor="middle" class="small">认证结果快照 · JWT</text>
 
@@ -201,7 +201,7 @@
   <text x="2270" y="1366" text-anchor="middle" class="model">RefreshToken</text>
   <line x1="2085" y1="1383" x2="2455" y2="1383" class="divider"/>
   <text x="2270" y="1408" text-anchor="middle" class="field-strong">ID · SessionID · UserID</text>
-  <text x="2270" y="1432" text-anchor="middle" class="field">TenantID · AMR</text>
+  <text x="2270" y="1432" text-anchor="middle" class="field">SessionID · 期限</text>
   <text x="2270" y="1456" text-anchor="middle" class="field">IssuedAt · ExpiresAt</text>
   <text x="2270" y="1480" text-anchor="middle" class="small">与 Session 生命周期绑定</text>
 

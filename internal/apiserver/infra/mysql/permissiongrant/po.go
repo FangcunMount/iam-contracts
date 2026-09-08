@@ -4,15 +4,15 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	base "github.com/FangcunMount/iam/v4/internal/pkg/database/mysql"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	base "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 )
 
 type GrantPO struct {
 	base.AuditFields
-	TenantID        string     `gorm:"column:tenant_id;type:varchar(64);not null;index:idx_authz_permission_grants_tenant_role,priority:1"`
-	RoleID          uint64     `gorm:"column:role_id;type:bigint unsigned;not null;index:idx_authz_permission_grants_tenant_role,priority:2"`
+
+	RoleID          uint64     `gorm:"column:role_id;type:bigint unsigned;not null;index:idx_authz_permission_grants_role"`
 	ResourceID      *uint64    `gorm:"column:resource_id;type:bigint unsigned;index"`
 	ResourcePattern string     `gorm:"column:resource_pattern;type:varchar(128);not null"`
 	Action          string     `gorm:"column:action;type:varchar(64);not null"`

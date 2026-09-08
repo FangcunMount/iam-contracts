@@ -4,15 +4,14 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/pkg/tenant"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // RequireCatalogWrite checks the authenticated actor in the platform domain.
 func (s *DecisionService) RequireCatalogWrite(ctx context.Context, actor subject.Ref, action string) error {
-	request, err := domain.NewRequest(actor, tenant.PlatformID, ResourceResources, action, domain.ObjectContext{})
+	request, err := domain.NewRequest(actor, ResourceResources, action, domain.ObjectContext{})
 	if err != nil {
 		return err
 	}

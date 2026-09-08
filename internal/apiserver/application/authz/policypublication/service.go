@@ -8,17 +8,17 @@ import (
 	"fmt"
 	"time"
 
-	policychange "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/policychange"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/policy"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/eventing"
+	policychange "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/eventing"
 )
 
 const (
-	Topic = "iam.authz.version"
+	Topic = "iam.authz.version.v2"
 )
 
 type PolicyVersionEventRecorder interface {
-	RecordPolicyVersionEvent(tenantID string, version int64, eventAt time.Time)
+	RecordPolicyVersionEvent(version int64, eventAt time.Time)
 }
 
 type Service struct {
@@ -45,15 +45,15 @@ func (s *Service) Handle(ctx context.Context, payload []byte, eventType string) 
 	if err := json.Unmarshal(payload, &versionEvent); err != nil {
 		return fmt.Errorf("decode authz policy version event: %w", err)
 	}
-	if versionEvent.TenantID == "" || versionEvent.Version <= 0 {
+	if versionEvent.Version <= 0 {
 		return fmt.Errorf("invalid authz policy version event payload")
 	}
 
 	now := time.Now()
 	if s.recorder != nil {
-		s.recorder.RecordPolicyVersionEvent(versionEvent.TenantID, versionEvent.Version, now)
+		s.recorder.RecordPolicyVersionEvent(versionEvent.Version, now)
 	}
-	if loaded, ok := s.reloader.(interface{ PolicyVersionLoaded(string, int64) bool }); ok && loaded.PolicyVersionLoaded(versionEvent.TenantID, versionEvent.Version) {
+	if loaded, ok := s.reloader.(interface{ PolicyVersionLoaded(int64) bool }); ok && loaded.PolicyVersionLoaded(versionEvent.Version) {
 		return nil
 	}
 	return policychange.ReloadRuntimePolicyWithError(ctx, s.reloader, "version_changed_event")

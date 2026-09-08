@@ -3,7 +3,7 @@ package credential
 import (
 	"time"
 
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // Credential 凭据实体
@@ -54,13 +54,13 @@ func (c *Credential) IsPasswordType() bool {
 
 // ==================== 行为方法 ====================
 
-// RecordSuccess 记录认证成功
+// RecordSuccess 记录身份核验成功
 func (c *Credential) RecordSuccess(now time.Time) {
 	c.LastSuccessAt = &now
 	c.FailedAttempts = 0 // 重置失败计数
 }
 
-// RecordFailure 记录认证失败，返回当前失败次数
+// RecordFailure 记录身份核验失败，返回当前失败次数
 func (c *Credential) RecordFailure(now time.Time) int {
 	c.LastFailureAt = &now
 	c.FailedAttempts++

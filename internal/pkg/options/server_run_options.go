@@ -3,7 +3,7 @@ package options
 import (
 	"errors"
 
-	"github.com/FangcunMount/iam/v4/internal/pkg/server"
+	"github.com/FangcunMount/iam/v5/internal/pkg/server"
 	"github.com/spf13/pflag"
 )
 

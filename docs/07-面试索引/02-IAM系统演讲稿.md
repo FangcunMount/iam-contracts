@@ -235,13 +235,13 @@ Principal  = AuthN 对本次认证结果的表达
 Subject    = AuthZ 用于赋权和判定的主体引用
 ```
 
-AuthN 不会把 `Principal` 领域对象直接交给 AuthZ。资源服务在认证完成后从可信请求上下文取得 `UserID / TenantID`，再以 Identity User 为锚点构造 AuthZ Subject。
+AuthN 不会把 `Principal` 领域对象直接交给 AuthZ。资源服务在认证完成后从可信请求上下文取得 `UserID / OrgID`，再以 Identity User 为锚点构造 AuthZ Subject。
 因此 AuthN 和 AuthZ 不直接关联彼此的领域模型，二者都以 Identity User 为稳定桥梁。
 
 两个关键不变量已经落到实现：
 
 - RefreshToken 只有在曾经有效且已被原子换新后再次出现，才会被判定为重放并撤销对应 Session；任意未签发令牌不会触发会话撤销。
-- 同一 `subject_type + subject_id + role_id + tenant_id` 的 active Assignment 由数据库唯一索引保护，并发写入不依赖应用层“先查后写”。
+- 同一 `subject_type + subject_id + role_id` 的 active Assignment 由数据库唯一索引保护，并发写入不依赖应用层“先查后写”。
 - Assignment 只产生 direct roles，RoleInheritance 才产生继承的 effective roles；编辑 Assignment 不能把两者混用。
 - REST v3 只管理 AuthZ 事实，授权 `Check` 由 gRPC v3 提供；服务间 Assignment 写入还需方法 ACL 与内容级 constraints。
 
@@ -286,7 +286,7 @@ Application / Domain
 - Infra 实现这些端口；
 - Container 在运行时把端口和适配器连接起来。
 
-例如，AuthN 依赖的是 `BearerTokenCodec`，而不是具体 JWT 库；Suggest 查询用例依赖 `CandidateRecaller`，而不是具体 TST 或 Hash 实现。
+例如，AuthN 依赖的是 `AccessTokenEncoder` 和 `AccessTokenSignatureVerifier`，而不是具体 JWT 库；Suggest 查询用例依赖 `CandidateRecaller`，而不是具体 TST 或 Hash 实现。
 
 > Ports & Adapters 不是为了多画一层接口，而是让业务代码不知道外部技术的具体实现。
 
@@ -316,7 +316,7 @@ Application / Domain
 AuthN 和 AuthZ 也不需要建立领域模型直连：
 
 ```text
-AuthN 验证 Token，向请求上下文写入可信 UserID / TenantID
+AuthN 验证 Token，向请求上下文写入可信 UserID / OrgID
   -> 资源服务理解当前资源和业务动作
   -> 资源服务以 Identity User 为锚点构造 AuthZ Subject
   -> AuthZ 对 Subject / Resource / Action / trusted ObjectAttributes 给出 Decision
@@ -436,7 +436,7 @@ IAM 面向多个拥有不同业务身份和业务对象的系统，提供统一�
 | IAM 的定位和业务边界 | [IAM 系统定位](../00-概览/01-IAM系统定位.md)、[模块划分与协作关系](../00-概览/02-模块划分与协作关系.md) |
 | User、Profile 与 ProfileLink | [Identity 领域模型](../02-业务模块/01-Identity/01-领域模型-User-Profile-ProfileLink.md) |
 | Identity、AuthN、AuthZ 三核心领域模型 | [Canonical V8 核心领域模型图](../_images/architecture/core-domain-model-v8.png) |
-| 领域模型、领域服务与应用边界综合讲解 | [V7 综合图](../_images/architecture/core-domain-model-v7.png) |
+| 领域模型、领域服务与应用边界综合讲解 | [核心聚合图](../_images/architecture/core-domain-model-v8.png) |
 | AuthN 与 AuthZ 边界 | [身份认证与授权边界](../06-专题设计/01-身份认证与授权边界.md) |
 | AuthZ 模块、领域模型与关键链路 | [AuthZ canonical 文档](../02-业务模块/03-AuthZ/README.md) |
 | 分层、端口和依赖方向 | [架构风格与设计原则](../00-概览/05-架构风格与设计原则.md) |

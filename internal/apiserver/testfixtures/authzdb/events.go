@@ -3,8 +3,8 @@ package authzdb
 import (
 	"testing"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/mysql/eventoutbox"
-	"github.com/FangcunMount/iam/v4/pkg/eventcatalog"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/eventoutbox"
+	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
@@ -14,9 +14,9 @@ func Stager(t *testing.T, db *gorm.DB) *eventoutbox.Store {
 	cfg, err := eventcatalog.Parse([]byte(`version: "1"
 topics:
   version:
-    name: iam.authz.version
+    name: iam.authz.version.v2
 events:
-  iam.authz.version_changed:
+  iam.authz.version_changed.v2:
     topic: version
     delivery: durable_outbox
     aggregate: PolicyVersion

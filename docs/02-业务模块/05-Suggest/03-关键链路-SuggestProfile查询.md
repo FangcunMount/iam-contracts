@@ -104,11 +104,10 @@ handler 从 request context 构造最小快照：
 | 字段 | 来源 |
 | --- | --- |
 | `OperatorID` | 已认证 UserID |
-| `TenantDomain` | tenant claim 解析出的 AuthZ domain |
 | `OrgID` | business org claim（若存在） |
 | `OrgIDs` | REST 当前未填充，保留给其他入口/未来扩展 |
 
-空 tenant 映射为默认 domain；平台 domain 保持不变；历史纯数字 tenant 标识映射为默认 domain。`TenantDomain` 只用于 AuthZ 判定，`OrgID` 只用于数据可见性。
+请求不携带授权分区。`OrgID` 仅用于业务数据可见性，不能替代权限判断。
 
 ## 5. REST 限流
 
@@ -259,7 +258,7 @@ Candidate[]
 ## 12. 日志与指标
 
 相对 Suggest 自身的派生状态，原始手机号只存在于进程内索引，不写入文件或日志；Identity MySQL 仍是它的权威事实源。这里的“日志”指 Suggest 专用业务日志：手机号形态查询只记录 OperatorID、
-TenantDomain、是否允许和关键词 rune 长度，不记录原始关键词。仍应单独确认通用 access log 是否包含完整 query string。
+是否允许和关键词 rune 长度，不记录原始关键词。仍应单独确认通用 access log 是否包含完整 query string。
 
 | 指标 | 含义 |
 | --- | --- |

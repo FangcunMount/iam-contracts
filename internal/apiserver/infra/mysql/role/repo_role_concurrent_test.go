@@ -9,13 +9,13 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	domain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/role"
-	testhelpers "github.com/FangcunMount/iam/v4/internal/apiserver/testhelpers"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
+	testhelpers "github.com/FangcunMount/iam/v5/internal/apiserver/testhelpers"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 )
 
-// 并发创建相同的 role（相同 tenant_id+name），期望只有 1 条记录被写入，
+// 并发创建相同的 role（相同 name），期望只有 1 条记录被写入，
 // 其余并发请求因唯一约束被 translator 映射为业务错误 code.ErrRoleAlreadyExists。
 func TestRoleRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 	db := testhelpers.SetupTempSQLiteDB(t)
@@ -37,7 +37,7 @@ func TestRoleRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 			defer wg.Done()
 			// add tiny random delay to reduce SQLITE table-lock contention
 			time.Sleep(time.Millisecond * time.Duration(d))
-			r, err := domain.NewRole("role-dup", "Role Dup", "tenant-1")
+			r, err := domain.NewRole("role-dup", "Role Dup")
 			require.NoError(t, err)
 			if err := testhelpers.RetryOnDBLocked(func() error { return repo.Create(ctx, &r) }); err != nil {
 				errs <- err
@@ -78,7 +78,7 @@ func TestRoleRepository_Create_ConcurrentDuplicateDetection(t *testing.T) {
 
 	var cnt int64
 	require.NoError(t, db.Model(&RolePO{}).
-		Where("tenant_id = ? AND name = ?", "tenant-1", "role-dup").
+		Where("name = ?", "role-dup").
 		Count(&cnt).Error)
 	require.Equal(t, int64(1), cnt)
 }

@@ -1,6 +1,6 @@
 package loginidentity
 
-import "github.com/FangcunMount/iam/v4/internal/pkg/meta"
+import "github.com/FangcunMount/iam/v5/internal/pkg/meta"
 
 // BindingDecision 描述 ProviderKey 绑定或复用决策。
 type BindingDecision int

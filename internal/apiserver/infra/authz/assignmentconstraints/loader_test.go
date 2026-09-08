@@ -35,13 +35,13 @@ services:
   - service_name: qs-apiserver.svc
     enabled: true
     allowed_methods:
-      - /iam.authz.v3.AuthorizationService/GrantAssignment
-      - /iam.authz.v3.AuthorizationService/RevokeAssignment
-      - /iam.authz.v3.AuthorizationService/ReplaceManagedAssignments
+      - /iam.authz.v4.AuthorizationService/GrantAssignment
+      - /iam.authz.v4.AuthorizationService/RevokeAssignment
+      - /iam.authz.v4.AuthorizationService/ReplaceManagedAssignments
   - service_name: admin
     enabled: true
     allowed_methods:
-      - /iam.authz.v3.AuthorizationService/*
+      - /iam.authz.v4.AuthorizationService/*
 `,
 		},
 		{
@@ -57,10 +57,10 @@ default_policy: deny
 services:
   - service_name: admin
     enabled: true
-    allowed_methods: [/iam.authz.v3.AuthorizationService/*]
+    allowed_methods: [/iam.authz.v4.AuthorizationService/*]
   - service_name: unbounded.svc
     enabled: true
-    allowed_methods: [/iam.authz.v3.AuthorizationService/GrantAssignment]
+    allowed_methods: [/iam.authz.v4.AuthorizationService/GrantAssignment]
 `,
 			wantErr: "has no request constraint",
 		},
@@ -77,10 +77,10 @@ default_policy: deny
 services:
   - service_name: admin
     enabled: true
-    allowed_methods: [/iam.authz.v3.AuthorizationService/*]
+    allowed_methods: [/iam.authz.v4.AuthorizationService/*]
   - service_name: unbounded.svc
     enabled: true
-    allowed_methods: [/iam.authz.v3.AuthorizationService/ReplaceManagedAssignments]
+    allowed_methods: [/iam.authz.v4.AuthorizationService/ReplaceManagedAssignments]
 `,
 			wantErr: "has no request constraint",
 		},
@@ -99,7 +99,7 @@ default_policy: deny
 services:
   - service_name: qs-apiserver.svc
     enabled: true
-    allowed_methods: [/iam.authz.v3.AuthorizationService/Check]
+    allowed_methods: [/iam.authz.v4.AuthorizationService/Check]
 `,
 			wantErr: "is not allowed to mutate assignments",
 		},

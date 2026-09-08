@@ -4,12 +4,12 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authnexternal "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	idpresolver "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	idpidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	authnexternal "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	idpresolver "github.com/FangcunMount/iam/v5/internal/apiserver/application/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	idpidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // wechatBuilder 微信小程序登录方式构造器
@@ -28,7 +28,7 @@ func (*wechatBuilder) CredentialKind() method.CredentialKind {
 }
 
 // Build 构建微信小程序登录方式
-func (b *wechatBuilder) Build(ctx context.Context, payload method.Payload, common method.CommonPayload) (authentication.AuthCredential, error) {
+func (b *wechatBuilder) Build(ctx context.Context, payload method.Payload, common method.CommonPayload) (authentication.IdentityProof, error) {
 	// 验证微信小程序登录方式凭证是否有效
 	wechatMiniPayload, ok := payload.(method.WechatMiniPayload)
 	if !ok {
@@ -56,13 +56,10 @@ func (b *wechatBuilder) Build(ctx context.Context, payload method.Payload, commo
 		return nil, perrors.WithCode(code.ErrProofBuildFailed, "failed to map wechat external identity: %v", err)
 	}
 
-	return authentication.NewWechatMiniCredential(authentication.WechatMiniProofSpec{
-		TenantID:  common.TenantID,
-		RemoteIP:  common.RemoteIP,
-		UserAgent: common.UserAgent,
-		AppID:     wechatIdentity.Realm,
-		OpenID:    wechatIdentity.OpenID,
-		UnionID:   wechatIdentity.UnionID,
+	return authentication.NewWechatMiniProof(authentication.WechatMiniProofSpec{
+		AppID:   wechatIdentity.Realm,
+		OpenID:  wechatIdentity.OpenID,
+		UnionID: wechatIdentity.UnionID,
 	})
 }
 
@@ -82,7 +79,7 @@ func (*wecomBuilder) CredentialKind() method.CredentialKind {
 }
 
 // Build 构建企业微信登录方式
-func (b *wecomBuilder) Build(ctx context.Context, payload method.Payload, common method.CommonPayload) (authentication.AuthCredential, error) {
+func (b *wecomBuilder) Build(ctx context.Context, payload method.Payload, common method.CommonPayload) (authentication.IdentityProof, error) {
 	wecomPayload, ok := payload.(method.WecomPayload)
 	if !ok {
 		return nil, perrors.WithCode(code.ErrProofBuildFailed, "invalid wecom payload")
@@ -104,12 +101,9 @@ func (b *wecomBuilder) Build(ctx context.Context, payload method.Payload, common
 		return nil, perrors.WithCode(code.ErrProofBuildFailed, "failed to map wecom external identity: %v", err)
 	}
 
-	return authentication.NewWecomCredential(authentication.WecomProofSpec{
-		TenantID:   common.TenantID,
-		RemoteIP:   common.RemoteIP,
-		UserAgent:  common.UserAgent,
-		CorpID:     identity.Realm,
-		UserID:     identity.UserID,
-		OpenUserID: identity.OpenUserID,
+	return authentication.NewWecomProof(authentication.WecomProofSpec{
+		CorpID:         identity.Realm,
+		ProviderUserID: identity.UserID,
+		OpenUserID:     identity.OpenUserID,
 	})
 }

@@ -4,10 +4,9 @@ import (
 	"context"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/useraccess"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/useraccess"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 type UserSubjectResolver struct {
@@ -22,7 +21,7 @@ func (r *UserSubjectResolver) Supports(subjectType subject.Type) bool {
 	return subjectType == subject.TypeUser
 }
 
-func (r *UserSubjectResolver) Resolve(ctx context.Context, sub subject.Ref, _ tenant.ID) error {
+func (r *UserSubjectResolver) Resolve(ctx context.Context, sub subject.Ref) error {
 	if r == nil || r.users == nil {
 		return errors.WithCode(code.ErrInternalServerError, "Identity UserResolver 未配置")
 	}

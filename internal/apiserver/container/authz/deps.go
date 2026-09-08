@@ -1,9 +1,9 @@
 package authz
 
 import (
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/identity/useraccess"
-	authzruntime "github.com/FangcunMount/iam/v4/internal/apiserver/infra/authz/runtime"
-	"github.com/FangcunMount/iam/v4/pkg/event"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/useraccess"
+	authzruntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 	"gorm.io/gorm"
 )
 

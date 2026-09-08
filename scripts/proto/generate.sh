@@ -52,7 +52,7 @@ protoc \
     --go_opt=paths=source_relative \
     --go-grpc_out=${PROTO_PATH} \
     --go-grpc_opt=paths=source_relative \
-    iam/authn/v2/authn.proto
+    iam/authn/v3/authn.proto
 
 # 生成 identity proto
 echo "🔄 生成 identity 服务..."
@@ -82,7 +82,7 @@ protoc \
     --go_opt=paths=source_relative \
     --go-grpc_out=${PROTO_PATH} \
     --go-grpc_opt=paths=source_relative \
-    iam/authz/v3/authz.proto
+    iam/authz/v4/authz.proto
 
 echo "✅ Proto文件生成完成！"
 echo ""

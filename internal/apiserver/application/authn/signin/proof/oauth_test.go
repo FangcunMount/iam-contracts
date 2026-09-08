@@ -6,13 +6,13 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	idpresolver "github.com/FangcunMount/iam/v4/internal/apiserver/application/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
-	idpidentity "github.com/FangcunMount/iam/v4/internal/apiserver/domain/idp/externalidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	idpresolver "github.com/FangcunMount/iam/v5/internal/apiserver/application/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
+	idpidentity "github.com/FangcunMount/iam/v5/internal/apiserver/domain/idp/externalidentity"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,20 +22,19 @@ func TestMethodProofPreparersMapPayloads(t *testing.T) {
 	passwordProof, err := NewPasswordBuilder().Build(context.Background(), method.PasswordPayload{
 		Username: "alice",
 		Password: "secret",
-	}, method.CommonPayload{TenantID: meta.FromUint64(42)})
+	}, method.CommonPayload{})
 	require.NoError(t, err)
-	password, ok := passwordProof.(*authentication.PasswordCredential)
+	password, ok := passwordProof.(*authentication.PasswordProof)
 	require.True(t, ok)
 	require.Equal(t, authentication.CredentialKindPassword, password.CredentialKind())
-	require.Equal(t, uint64(42), password.TenantID.Uint64())
 	require.Equal(t, "alice", password.Username)
 
 	phoneProof, err := NewPhoneOTPBuilder().Build(context.Background(), method.PhoneOTPPayload{
 		PhoneE164: "+8613800138000",
 		OTP:       "123456",
-	}, method.CommonPayload{TenantID: meta.FromUint64(7)})
+	}, method.CommonPayload{})
 	require.NoError(t, err)
-	phone, ok := phoneProof.(*authentication.PhoneOTPCredential)
+	phone, ok := phoneProof.(*authentication.PhoneOTPProof)
 	require.True(t, ok)
 	require.Equal(t, authentication.CredentialKindPhoneOTP, phone.CredentialKind())
 	require.Equal(t, "+8613800138000", phone.PhoneE164)
@@ -112,7 +111,7 @@ func TestWecomMethodUsesResolvedIdentityAndAuthenticates(t *testing.T) {
 	require.True(t, decision.OK)
 	require.Equal(t, loginIdentityID, decision.Principal.LoginIdentityID)
 	require.Equal(t, userID, decision.Principal.UserID)
-	require.True(t, decision.CredentialID.IsZero())
+	require.Nil(t, decision.CredentialUpdate)
 	require.Equal(t, 1, resolver.calls)
 	require.Equal(t, idpidentity.ProviderWecom, resolver.request.Provider)
 	require.Equal(t, "corp-id", resolver.request.Realm)
@@ -125,7 +124,7 @@ func TestWecomMethodUsesResolvedIdentityAndAuthenticates(t *testing.T) {
 func wecomSelection() method.LoginMethodSelection {
 	return method.LoginMethodSelection{
 		CredentialKind: method.CredentialKindWecom,
-		Common:         method.CommonPayload{TenantID: meta.FromUint64(1)},
+		Common:         method.CommonPayload{},
 		Payload: method.WecomPayload{
 			CorpID: "corp-id",
 			Code:   "auth-code",
@@ -169,7 +168,7 @@ type wecomLoginIdentityRepoStub struct {
 	identifier string
 }
 
-func (s *wecomLoginIdentityRepoStub) FindUsernameIdentity(context.Context, meta.ID, string) (*authentication.LoginIdentityLookup, error) {
+func (s *wecomLoginIdentityRepoStub) FindUsernameIdentity(context.Context, string) (*authentication.LoginIdentityLookup, error) {
 	return nil, nil
 }
 

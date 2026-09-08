@@ -4,12 +4,11 @@ import (
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/attribute"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/constraint"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/resource"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/subject"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/tenant"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/attribute"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 type ObjectContext struct {
@@ -37,20 +36,16 @@ func NewObjectContext(objectID string, attributes constraint.Attributes) (Object
 }
 
 type Request struct {
-	Subject     subject.Ref
-	TenantID    tenant.ID
+	Subject subject.Ref
+
 	ResourceKey resource.Pattern
 	Action      resource.Action
 	Object      ObjectContext
 }
 
-func NewRequest(sub subject.Ref, tenantID, resourceKey, action string, object ObjectContext) (Request, error) {
+func NewRequest(sub subject.Ref, resourceKey, action string, object ObjectContext) (Request, error) {
 	if sub.IsZero() {
 		return Request{}, perrors.WithCode(code.ErrInvalidArgument, "subject is required")
-	}
-	tenantValue, err := tenant.NewID(tenantID)
-	if err != nil {
-		return Request{}, err
 	}
 	resourceKeyValue, err := resource.NewKey(resourceKey)
 	if err != nil {
@@ -65,10 +60,8 @@ func NewRequest(sub subject.Ref, tenantID, resourceKey, action string, object Ob
 	if err != nil {
 		return Request{}, err
 	}
-	return Request{Subject: sub, TenantID: tenantValue, ResourceKey: resourceValue, Action: actionValue, Object: object}, nil
+	return Request{Subject: sub, ResourceKey: resourceValue, Action: actionValue, Object: object}, nil
 }
-
-func (r Request) TenantIDString() string { return r.TenantID.String() }
 
 func ValidateAttributes(schema attribute.Schema, attributes constraint.Attributes) error {
 	normalized, err := schema.Normalize()

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/FangcunMount/iam/v4/internal/apiserver/infra/token/keyset"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/token/keyset"
 )
 
 func TestPEMPrivateKeyStorage_SaveAndExists(t *testing.T) {

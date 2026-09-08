@@ -6,77 +6,68 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	admissionapp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/admission"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	grantdomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/grant"
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	admissionapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/admission"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // application 组合令牌用例协作者，并分别实现对外窄能力。
 type application struct {
-	grantIssuer grantdomain.Issuer
-	refresher   tokendomain.Refresher
-	verifier    tokendomain.Verifier
-	revoker     tokendomain.Revoker
+	initialIssuer InitialTokenIssuer
+	refresher     tokendomain.Refresher
+	verifier      tokendomain.Verifier
+	revoker       tokendomain.Revoker
 }
 
 // Dependencies 是令牌用例能力的装配依赖。
 type Dependencies struct {
-	BearerTokenCodec      BearerTokenCodec                           // 令牌编码器
+	Encoder               AccessTokenEncoder
+	SignatureVerifier     AccessTokenSignatureVerifier               // 令牌编码器
 	TokenStore            Store                                      // 令牌存储
-	SessionCreator        SessionCreator                             // 会话创建器
 	SessionLoader         SessionLoader                              // 会话加载器
 	SessionRevoker        SessionRevoker                             // 会话撤销器
 	SessionExtender       SessionExtender                            // 会话延期器
 	SessionRefreshExpirer SessionRefreshExpirer                      // refresh token 过期时间计算器
-	AdmissionPolicy       AdmissionPolicy                            // 认证准入策略
+	AdmissionPolicy       AdmissionPolicy                            // 登录准入策略
 	LegacyContextDecoder  LegacyAuthenticationContextSnapshotDecoder // 历史 refresh 认证上下文快照解码器
-	AccessTTL             time.Duration                              // 令牌有效期
+	Issuance              IssuanceConfig
+	Now                   func() time.Time // 令牌有效期
 }
 
 var (
-	_ AuthenticationGrantIssuer = (*application)(nil)
-	_ Refresher                 = (*application)(nil)
-	_ Revoker                   = (*application)(nil)
-	_ Verifier                  = (*application)(nil)
+	_ InitialTokenIssuer = (*application)(nil)
+	_ Refresher          = (*application)(nil)
+	_ Revoker            = (*application)(nil)
+	_ Verifier           = (*application)(nil)
 )
 
 // NewCapabilities 装配并返回相互独立的令牌用例能力。
 func NewCapabilities(deps Dependencies) Capabilities {
 	domainCapabilities := tokendomain.NewCapabilities(tokendomain.Dependencies{
-		BearerTokenCodec: deps.BearerTokenCodec, TokenStore: deps.TokenStore,
+		Encoder: deps.Encoder, SignatureVerifier: deps.SignatureVerifier, TokenStore: deps.TokenStore,
 		SessionLoader:  deps.SessionLoader,
 		SessionRevoker: deps.SessionRevoker, SessionExtender: deps.SessionExtender,
 		SessionRefreshExpirer: deps.SessionRefreshExpirer, AdmissionPolicy: deps.AdmissionPolicy,
-		LegacyContextDecoder: deps.LegacyContextDecoder, AccessTTL: deps.AccessTTL,
-	})
-	grantIssuer := grantdomain.NewIssuer(grantdomain.Dependencies{
-		AdmissionPolicy: deps.AdmissionPolicy, SessionCreator: deps.SessionCreator,
-		SessionRevoker: deps.SessionRevoker,
-		TokenSetMinter: domainCapabilities.TokenSetMinter, RefreshTokenSaver: deps.TokenStore,
+		LegacyContextDecoder: deps.LegacyContextDecoder, Issuance: deps.Issuance, Now: deps.Now,
 	})
 	app := &application{
-		grantIssuer: grantIssuer,
-		refresher:   domainCapabilities.Refresher,
-		verifier:    domainCapabilities.Verifier,
-		revoker:     domainCapabilities.Revoker,
+		initialIssuer: NewInitialTokenIssuer(domainCapabilities.TokenSetMinter, deps.TokenStore),
+		refresher:     domainCapabilities.Refresher,
+		verifier:      domainCapabilities.Verifier,
+		revoker:       domainCapabilities.Revoker,
 	}
 	return Capabilities{
-		AuthenticationGrantIssuer: app,
-		Refresher:                 app,
-		Revoker:                   app,
-		Verifier:                  app,
+		InitialTokenIssuer: app,
+		Refresher:          app,
+		Revoker:            app,
+		Verifier:           app,
 	}
 }
 
-// IssueAuthentication 在认证完成后颁发 Session + TokenSet，并返回应用层 token pair。
-func (s *application) IssueAuthentication(ctx context.Context, principal *authentication.Principal) (*TokenPair, error) {
-	grant, err := s.grantIssuer.Issue(ctx, principal)
-	if err != nil {
-		return nil, admissionapp.MapError(err)
-	}
-	return tokenPairFromDomain(grant.TokenSet), nil
+// IssueInitialTokens 只在既有 Session 上签发并保存初始令牌。
+func (s *application) IssueInitialTokens(ctx context.Context, sess *sessiondomain.Session) (*TokenPair, error) {
+	return s.initialIssuer.IssueInitialTokens(ctx, sess)
 }
 
 // RefreshToken 使用 refresh token 轮换出新的 access/refresh token pair。
@@ -115,7 +106,11 @@ func (s *application) RevokeRefreshToken(ctx context.Context, refreshToken strin
 // VerifyToken 在线验证令牌，并检查场景级 issuer/audience/token type 约束。
 // 密码学与 canonical issuer 由 codec 负责；撤销、Session、Admission 由 domain verifier 负责。
 func (s *application) VerifyToken(ctx context.Context, req VerifyTokenRequest) (*TokenVerifyResult, error) {
-	claims, err := s.verifier.VerifyToken(ctx, req.AccessToken)
+	audience, err := tokendomain.NormalizeExpectedAudience(req.ExpectedAudience)
+	if err != nil {
+		return nil, err
+	}
+	claims, err := s.verifier.VerifyToken(ctx, req.AccessToken, audience)
 	if err != nil {
 		err = admissionapp.MapError(err)
 		failureCode := tokenVerificationFailureCode(err)
@@ -133,10 +128,6 @@ func (s *application) VerifyToken(ctx context.Context, req VerifyTokenRequest) (
 		return &TokenVerifyResult{Valid: false, Claims: nil}, nil
 	}
 
-	if len(req.ExpectedAudience) > 0 && !containsAnyAudience(claims.Audience, req.ExpectedAudience) {
-		return &TokenVerifyResult{Valid: false, Claims: nil}, nil
-	}
-
 	acceptedTokenTypes := req.AcceptedTokenTypes
 	if len(acceptedTokenTypes) == 0 {
 		acceptedTokenTypes = []TokenType{TokenTypeAccess}
@@ -149,26 +140,6 @@ func (s *application) VerifyToken(ctx context.Context, req VerifyTokenRequest) (
 		Valid:  true,
 		Claims: claims,
 	}, nil
-}
-
-// containsAnyAudience 检查实际受众是否包含预期受众
-func containsAnyAudience(actual []string, expected []string) bool {
-	if len(actual) == 0 || len(expected) == 0 {
-		return false
-	}
-
-	actualSet := make(map[string]struct{}, len(actual))
-	for _, aud := range actual {
-		actualSet[aud] = struct{}{}
-	}
-
-	for _, aud := range expected {
-		if _, ok := actualSet[aud]; ok {
-			return true
-		}
-	}
-
-	return false
 }
 
 func containsTokenType(accepted []TokenType, actual TokenType) bool {

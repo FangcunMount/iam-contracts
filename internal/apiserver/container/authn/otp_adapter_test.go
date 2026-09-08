@@ -4,21 +4,23 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/testhelpers"
 	"testing"
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	challengeApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/challenge"
-	linkingApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/linking"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/method"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin/proof"
-	tokenApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/authentication"
-	challengeDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/challenge"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/loginidentity"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	challengeApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/challenge"
+	linkingApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/linking"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/proof"
+	tokenApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
+	challengeDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/challenge"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/loginidentity"
+	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,12 +51,13 @@ func TestPhoneOTPLoginConsumesChallengeThroughExplicitAdapter(t *testing.T) {
 	authenticator := authentication.NewAuthenticator(
 		newPhoneOTPAuthStrategy(identityRepo, challengeService),
 	)
-	grantIssuer := &authnAuthenticationGrantIssuerStub{}
+	initialTokenIssuer := &authnInitialTokenIssuerStub{}
 	signIn := signin.New(signin.Dependencies{
-		AuthenticationGrantIssuer: grantIssuer,
-		Authenticator:             authenticator,
-		MethodRegistry:            method.DefaultSelector(),
-		ProofFactory:              proof.DefaultFactory(nil, nil),
+		TokenIssuer:     initialTokenIssuer,
+		AdmissionPolicy: testhelpers.AuthnFlow{}, SessionCreator: testhelpers.AuthnFlow{}, SessionRevoker: testhelpers.AuthnFlow{},
+		Authenticator:  authenticator,
+		MethodRegistry: method.DefaultSelector(),
+		ProofFactory:   proof.DefaultFactory(nil, nil),
 	})
 
 	result, err := signIn.Execute(ctx, method.LoginRequest{
@@ -214,7 +217,7 @@ type authnLoginIdentityRepoStub struct {
 	lookup *authentication.LoginIdentityLookup
 }
 
-func (s *authnLoginIdentityRepoStub) FindUsernameIdentity(context.Context, meta.ID, string) (*authentication.LoginIdentityLookup, error) {
+func (s *authnLoginIdentityRepoStub) FindUsernameIdentity(context.Context, string) (*authentication.LoginIdentityLookup, error) {
 	return nil, nil
 }
 
@@ -290,29 +293,11 @@ func authnLinkingProviderKey(provider loginidentity.Provider, realm, identifier 
 	return string(provider) + "|" + realm + "|" + identifier
 }
 
-type authnAuthenticationGrantIssuerStub struct{}
+type authnInitialTokenIssuerStub struct{}
 
-func (s *authnAuthenticationGrantIssuerStub) IssueAuthentication(_ context.Context, principal *authentication.Principal) (*tokenApp.TokenPair, error) {
-	access := tokenApp.NewAccessToken(
-		"access-id",
-		"access-token",
-		principal.SessionID,
-		principal.UserID,
-		principal.LoginIdentityID,
-		principal.TenantID,
-		time.Minute,
-	)
-	refresh := tokenApp.NewRefreshToken(
-		"refresh-id",
-		"refresh-token",
-		principal.SessionID,
-		principal.UserID,
-		principal.LoginIdentityID,
-		principal.TenantID,
-		principal.AuthContext.AMRStrings(),
-		nil,
-		time.Hour,
-	)
+func (s *authnInitialTokenIssuerStub) IssueInitialTokens(_ context.Context, principal *sessiondomain.Session) (*tokenApp.TokenPair, error) {
+	access := tokenApp.NewAccessToken("access-id", "access-token", "session-id", principal.UserID, principal.LoginIdentityID, time.Now(), time.Now().Add(time.Minute))
+	refresh := tokenApp.NewRefreshToken("refresh-id", "refresh-token", "session-id", principal.UserID, principal.LoginIdentityID, time.Now(), time.Now().Add(time.Hour))
 	return tokenApp.NewTokenPair(access, refresh), nil
 }
 
@@ -325,9 +310,10 @@ func TestPhoneOTPInfrastructureErrorsSurviveLoginAndLinkAdapters(t *testing.T) {
 	repo.consumeErr = failure
 	require.NoError(t, challenges.SendLoginPhoneOTP(ctx, "13800138000"))
 	signIn := signin.New(signin.Dependencies{
-		AuthenticationGrantIssuer: &authnAuthenticationGrantIssuerStub{},
-		Authenticator:             authentication.NewAuthenticator(newPhoneOTPAuthStrategy(nil, challenges)),
-		MethodRegistry:            method.DefaultSelector(), ProofFactory: proof.DefaultFactory(nil, nil),
+		TokenIssuer:     &authnInitialTokenIssuerStub{},
+		AdmissionPolicy: testhelpers.AuthnFlow{}, SessionCreator: testhelpers.AuthnFlow{}, SessionRevoker: testhelpers.AuthnFlow{},
+		Authenticator:  authentication.NewAuthenticator(newPhoneOTPAuthStrategy(nil, challenges)),
+		MethodRegistry: method.DefaultSelector(), ProofFactory: proof.DefaultFactory(nil, nil),
 	})
 	result, err := signIn.Execute(ctx, method.LoginRequest{AuthMethod: method.AuthMethodPhoneOTP, Payload: method.PhoneOTPPayload{PhoneE164: "13800138000", OTP: sms.code}})
 	require.Nil(t, result)

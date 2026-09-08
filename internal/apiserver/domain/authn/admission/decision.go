@@ -1,6 +1,6 @@
 package admission
 
-// Outcome 表示认证准入的最终结果。
+// Outcome 表示登录准入的最终结果。
 type Outcome string
 
 const (
@@ -8,7 +8,7 @@ const (
 	OutcomeDenied   Outcome = "denied"
 )
 
-// DenialReason 表示认证主体被拒绝建立或维持认证状态的领域原因。
+// DenialReason 表示认证主体被拒绝建立或维持登录态的领域原因。
 type DenialReason string
 
 const (
@@ -27,17 +27,17 @@ type Decision struct {
 	Reason  DenialReason
 }
 
-// Admit 构造允许建立或维持认证状态的判定。
+// Admit 构造允许建立或维持登录态的判定。
 func Admit(subject Subject) Decision {
 	return Decision{Subject: subject, Outcome: OutcomeAdmitted}
 }
 
-// Deny 构造拒绝建立或维持认证状态的判定。
+// Deny 构造拒绝建立或维持登录态的判定。
 func Deny(subject Subject, reason DenialReason) Decision {
 	return Decision{Subject: subject, Outcome: OutcomeDenied, Reason: reason}
 }
 
-// IsAdmitted 返回当前认证主体身份组合是否允许建立或维持认证状态。
+// IsAdmitted 返回当前认证主体身份组合是否允许建立或维持登录态。
 func (d Decision) IsAdmitted() bool {
 	return d.Outcome == OutcomeAdmitted
 }

@@ -49,8 +49,6 @@ cors:
   allowed-headers:
     - "Content-Type"
     - "Authorization"
-    - "tenant_id"
-    - "tenant-id"
 
 # ----------------------------------------------------------------------------
 # 2.2 gRPC 服务配置（生产环境 - 安全模式）
@@ -105,8 +103,10 @@ grpc:
 # 2.3 Token 配置
 # ============================================================================
 auth:
+  resource_audience: "iam-api"
   jwt_issuer: "https://iam.fangcunmount.cn"
   access_token_audience:
+    - "iam-api"
     - "qs-api"
     - "collection-api"
   access_token_ttl: 60m

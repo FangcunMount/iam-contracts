@@ -10,10 +10,10 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/FangcunMount/component-base/pkg/log"
-	cachegovernance "github.com/FangcunMount/iam/v4/internal/apiserver/application/cachegovernance"
-	cachemodel "github.com/FangcunMount/iam/v4/internal/apiserver/cache"
-	tokendomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authn/token"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	cachegovernance "github.com/FangcunMount/iam/v5/internal/apiserver/application/cachegovernance"
+	cachemodel "github.com/FangcunMount/iam/v5/internal/apiserver/cache"
+	tokendomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/token"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
 // RedisStore Redis 令牌存储实现
@@ -71,7 +71,6 @@ type refreshTokenData struct {
 	SessionID       string            `json:"session_id"`
 	UserID          uint64            `json:"user_id"`
 	LoginIdentityID uint64            `json:"login_identity_id"`
-	TenantID        uint64            `json:"tenant_id"`
 	AuthMethod      string            `json:"auth_method,omitempty"`
 	Realm           string            `json:"realm,omitempty"`
 	Amr             []string          `json:"amr,omitempty"`
@@ -123,8 +122,8 @@ func refreshTokenDataFromToken(token *tokendomain.RefreshToken) refreshTokenData
 		SessionID:       token.SessionID,
 		UserID:          token.UserID.Uint64(),
 		LoginIdentityID: token.LoginIdentityID.Uint64(),
-		TenantID:        token.TenantID.Uint64(),
-		ExpiresAt:       token.ExpiresAt,
+
+		ExpiresAt: token.ExpiresAt,
 	}
 }
 
@@ -202,20 +201,15 @@ func (s *RedisStore) GetRefreshToken(ctx context.Context, tokenValue string) (*t
 	// 构造 Token 对象
 	userID := meta.FromUint64(data.UserID)
 	loginIdentityID := meta.FromUint64(data.LoginIdentityID)
-	tenantID := meta.FromUint64(data.TenantID)
-	token := tokendomain.NewRefreshTokenWithExpiry(
+	token := tokendomain.RestoreRefreshToken(
 		data.TokenID,
 		tokenValue,
 		data.SessionID,
 		userID,
 		loginIdentityID,
-		tenantID,
-		data.Amr,
-		data.SessionClaims,
 		data.ExpiresAt,
+		tokendomain.LegacyRefreshContext{AuthMethod: data.AuthMethod, Realm: data.Realm, AMR: data.Amr, SessionClaims: data.SessionClaims},
 	)
-	token.AuthMethod = data.AuthMethod
-	token.Realm = data.Realm
 
 	// Redis Hook 已经记录了 GET 命令成功，这里不需要再记录 cache hit
 	return token, nil

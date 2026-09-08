@@ -140,7 +140,7 @@ if result.Valid {
 
 - 签名正确
 - `exp` / `nbf` / `iss` / `aud` 等本地可判定声明正确
-- JWT 内自带 claims 可直接读取，例如 `user_id`、`tenant_id`（IAM 授权域，如 `fangcun`）、`org_id`（业务组织透传）、`sid`
+- JWT 内自带 claims 可直接读取，例如 `user_id`、`org_id`（业务组织透传）、`sid`
 
 但它**不能保证**这些状态的即时生效：
 
@@ -191,9 +191,9 @@ JWKSManager (Chain of Responsibility 模式)
 
 ```go
 import (
-    sdk "github.com/FangcunMount/iam/v4/pkg/sdk"
-    authjwks "github.com/FangcunMount/iam/v4/pkg/sdk/auth/jwks"
-    authverifier "github.com/FangcunMount/iam/v4/pkg/sdk/auth/verifier"
+    sdk "github.com/FangcunMount/iam/v5/pkg/sdk"
+    authjwks "github.com/FangcunMount/iam/v5/pkg/sdk/auth/jwks"
+    authverifier "github.com/FangcunMount/iam/v5/pkg/sdk/auth/verifier"
 )
 ```
 
@@ -358,7 +358,6 @@ type TokenClaims struct {
     SessionID       string
     UserID          string
     LoginIdentityID string
-    TenantDomain    string // IAM 授权域（JWT tenant_id）
     OrgID           string // 业务组织（JWT org_id 透传）
     Issuer          string
     Audience        []string
@@ -372,7 +371,6 @@ type TokenClaims struct {
     Extra           map[string]interface{}
 }
 
-// AuthorizationDomain() 返回 IAM 授权域
 // BusinessOrgID() (uint64, bool) 读取业务 org_id；无 claim 时 ok=false
 ```
 
@@ -385,9 +383,8 @@ if err != nil {
     return
 }
 
-domain := result.Claims.AuthorizationDomain()
 if orgID, ok := result.Claims.BusinessOrgID(); ok {
-    log.Printf("org_id=%d domain=%s", orgID, domain)
+    log.Printf("org_id=%d", orgID)
 }
 
 // 角色和权限不进入 AuthN JWT；请调用 AuthZ 能力完成授权判断。
@@ -653,3 +650,9 @@ A: 本地验证通常在 1ms 以内。若需要缓存验证结果，需要自行
 - [服务间认证](./05-service-auth.md)
 - [授权判定（PDP）](./06-authz.md)
 - [示例索引](../_examples/README.md)
+
+## 必填受众与一次切换
+
+本地和远程验证必须具备预期 issuer 与非空 audience。多个预期受众采用任一匹配语义；空元素或显式空列表不是关闭校验的方式。直接调用 Auth().VerifyToken 时也必须提交 ExpectedAudience；缺失返回 InvalidArgument。资源服务从自己的配置取得期望值，不能使用未验证 Token 的 aud 作为期望值。
+
+IAM 自身使用 iam-api，QS API 使用 qs-api，Collection API 使用 collection-api。新令牌包含这三个受众；旧令牌缺少 iam-api 时需刷新或重新登录。本地 JWKS 验证仍不具备在线撤销与准入的即时语义。

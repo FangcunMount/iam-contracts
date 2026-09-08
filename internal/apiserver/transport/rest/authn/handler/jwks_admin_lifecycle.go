@@ -4,10 +4,10 @@ import (
 	"github.com/gin-gonic/gin"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	jwksApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/jwks"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/response"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
-	"github.com/FangcunMount/iam/v4/pkg/core"
+	jwksApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/jwks"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/response"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/pkg/core"
 )
 
 var _ = core.ErrResponse{}
@@ -25,7 +25,7 @@ var _ = core.ErrResponse{}
 // @Failure 403 {object} core.ErrResponse "无权限"
 // @Failure 404 {object} core.ErrResponse "密钥不存在"
 // @Failure 500 {object} core.ErrResponse "服务器错误"
-// @Router /v2/authn/admin/jwks/keys/{kid}/retire [post]
+// @Router /v3/authn/admin/jwks/keys/{kid}/retire [post]
 func (h *JWKSHandler) RetireKey(c *gin.Context) {
 	ctx := c.Request.Context()
 	kid := c.Param("kid")
@@ -56,7 +56,7 @@ func (h *JWKSHandler) RetireKey(c *gin.Context) {
 // @Failure 403 {object} core.ErrResponse "无权限"
 // @Failure 404 {object} core.ErrResponse "密钥不存在"
 // @Failure 500 {object} core.ErrResponse "服务器错误"
-// @Router /v2/authn/admin/jwks/keys/{kid}/force-retire [post]
+// @Router /v3/authn/admin/jwks/keys/{kid}/force-retire [post]
 func (h *JWKSHandler) ForceRetireKey(c *gin.Context) {
 	ctx := c.Request.Context()
 	kid := c.Param("kid")
@@ -84,7 +84,7 @@ func (h *JWKSHandler) ForceRetireKey(c *gin.Context) {
 // @Failure 401 {object} core.ErrResponse "未认证"
 // @Failure 403 {object} core.ErrResponse "无权限"
 // @Failure 500 {object} core.ErrResponse "服务器错误"
-// @Router /v2/authn/admin/jwks/keys/cleanup [post]
+// @Router /v3/authn/admin/jwks/keys/cleanup [post]
 func (h *JWKSHandler) CleanupExpiredKeys(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -107,7 +107,7 @@ func (h *JWKSHandler) CleanupExpiredKeys(c *gin.Context) {
 // @Failure 401 {object} core.ErrResponse "未认证"
 // @Failure 403 {object} core.ErrResponse "无权限"
 // @Failure 500 {object} core.ErrResponse "服务器错误"
-// @Router /v2/authn/admin/jwks/keys/publishable [get]
+// @Router /v3/authn/admin/jwks/keys/publishable [get]
 func (h *JWKSHandler) GetPublishableKeys(c *gin.Context) {
 	ctx := c.Request.Context()
 

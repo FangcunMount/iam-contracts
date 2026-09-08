@@ -7,10 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/application/authn/signin"
-	req "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/request"
-	resp "github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authn/response"
-	"github.com/FangcunMount/iam/v4/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin"
+	req "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/request"
+	resp "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authn/response"
+	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // WechatOpenLoginAuthorizeHandler 暴露微信开放平台扫码登录的公开授权端点。
@@ -41,7 +41,7 @@ func NewWechatOpenLoginAuthorizeHandler(authorize *signin.StartWechatOpenAuthori
 // @Produce json
 // @Param request body req.WechatOpenLoginAuthorizeRequest false "可选 nonce"
 // @Success 200 {object} resp.WechatOpenAuthorizeResponse "授权地址与 state"
-// @Router /v2/authn/wechat-open/authorize [post]
+// @Router /v3/authn/wechat-open/authorize [post]
 func (h *WechatOpenLoginAuthorizeHandler) StartAuthorize(c *gin.Context) {
 	if h.authorize == nil {
 		h.Error(c, perrors.WithCode(code.ErrInvalidArgument, "wechat open login is not configured"))

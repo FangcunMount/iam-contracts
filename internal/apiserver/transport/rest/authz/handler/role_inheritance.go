@@ -3,17 +3,17 @@ package handler
 import (
 	"context"
 
-	roleInheritanceApp "github.com/FangcunMount/iam/v4/internal/apiserver/application/authz/roleinheritance"
-	roleInheritanceDomain "github.com/FangcunMount/iam/v4/internal/apiserver/domain/authz/roleinheritance"
-	"github.com/FangcunMount/iam/v4/internal/apiserver/transport/rest/authz/dto"
-	"github.com/FangcunMount/iam/v4/internal/pkg/meta"
+	roleInheritanceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/roleinheritance"
+	roleInheritanceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/roleinheritance"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authz/dto"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/gin-gonic/gin"
 )
 
 type roleInheritanceService interface {
 	Create(context.Context, roleInheritanceApp.CreateCommand) (*roleInheritanceDomain.Inheritance, error)
 	Revoke(context.Context, roleInheritanceApp.RevokeCommand) error
-	List(context.Context, string, meta.ID) ([]*roleInheritanceDomain.Inheritance, error)
+	List(context.Context, meta.ID) ([]*roleInheritanceDomain.Inheritance, error)
 }
 
 type RoleInheritanceHandler struct{ service roleInheritanceService }
@@ -32,15 +32,10 @@ func NewRoleInheritanceHandler(service roleInheritanceService) *RoleInheritanceH
 // @Param request body dto.CreateRoleInheritanceRequest true "Role inheritance"
 // @Success 200 {object} dto.Response{data=dto.RoleInheritanceResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/role-inheritances [post]
+// @Router /v4/authz/role-inheritances [post]
 func (h *RoleInheritanceHandler) Create(c *gin.Context) {
 	var request dto.CreateRoleInheritanceRequest
 	if !bindJSON(c, &request) {
-		return
-	}
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
 		return
 	}
 	userID, err := getUserID(c)
@@ -49,7 +44,7 @@ func (h *RoleInheritanceHandler) Create(c *gin.Context) {
 		return
 	}
 	inheritance, err := h.service.Create(c.Request.Context(), roleInheritanceApp.CreateCommand{
-		TenantID: tenantID, RoleID: request.RoleID, InheritedRoleID: request.InheritedRoleID, GrantedBy: userID.String(),
+		RoleID: request.RoleID, InheritedRoleID: request.InheritedRoleID, GrantedBy: userID.String(),
 	})
 	if err != nil {
 		handleError(c, err)
@@ -69,7 +64,7 @@ func (h *RoleInheritanceHandler) Create(c *gin.Context) {
 // @Param request body dto.RevokeRoleInheritanceRequest false "Revoke"
 // @Success 200 {object} dto.Response
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/role-inheritances/{id} [delete]
+// @Router /v4/authz/role-inheritances/{id} [delete]
 func (h *RoleInheritanceHandler) Revoke(c *gin.Context) {
 	id, ok := parseIDParam(c, "id", "角色继承 ID 格式错误")
 	if !ok {
@@ -79,18 +74,13 @@ func (h *RoleInheritanceHandler) Revoke(c *gin.Context) {
 	if c.Request.ContentLength > 0 && !bindJSON(c, &request) {
 		return
 	}
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
 	userID, err := getUserID(c)
 	if err != nil {
 		handleError(c, err)
 		return
 	}
 	if err := h.service.Revoke(c.Request.Context(), roleInheritanceApp.RevokeCommand{
-		TenantID: tenantID, ID: id, RevokedBy: userID.String(), Reason: request.Reason,
+		ID: id, RevokedBy: userID.String(), Reason: request.Reason,
 	}); err != nil {
 		handleError(c, err)
 		return
@@ -98,7 +88,7 @@ func (h *RoleInheritanceHandler) Revoke(c *gin.Context) {
 	successNoContent(c)
 }
 
-// List lists active inheritance edges in the tenant.
+// List lists visible active inheritance edges.
 // @Summary 查询角色继承
 // @Description 查询当前租户中的有效角色继承，可按获得能力的角色过滤
 // @ID listRoleInheritances
@@ -107,18 +97,13 @@ func (h *RoleInheritanceHandler) Revoke(c *gin.Context) {
 // @Param role_id query string false "Receiving role ID"
 // @Success 200 {object} dto.Response{data=[]dto.RoleInheritanceResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
-// @Router /v3/authz/role-inheritances [get]
+// @Router /v4/authz/role-inheritances [get]
 func (h *RoleInheritanceHandler) List(c *gin.Context) {
 	var query dto.ListRoleInheritanceQuery
 	if !bindQuery(c, &query) {
 		return
 	}
-	tenantID, err := getTenantID(c)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
-	items, err := h.service.List(c.Request.Context(), tenantID, query.RoleID)
+	items, err := h.service.List(c.Request.Context(), query.RoleID)
 	if err != nil {
 		handleError(c, err)
 		return
@@ -135,7 +120,7 @@ func toRoleInheritanceResponse(inheritance *roleInheritanceDomain.Inheritance) d
 		return dto.RoleInheritanceResponse{}
 	}
 	return dto.RoleInheritanceResponse{
-		ID: inheritance.ID, TenantID: inheritance.TenantIDString(), RoleID: inheritance.RoleID,
+		ID: inheritance.ID, RoleID: inheritance.RoleID,
 		InheritedRoleID: inheritance.InheritedRoleID, GrantedBy: inheritance.GrantedBy,
 		GrantedAt: inheritance.GrantedAt, Active: inheritance.IsActive(),
 	}
