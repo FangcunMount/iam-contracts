@@ -92,9 +92,9 @@ infra 管外部资源。
 
 三个核心模块的事实所有权与协作边界见下图：
 
-![IAM 三核心模块领域模型 V7](docs/_images/architecture/core-domain-model-v7.png)
+![IAM 三核心模块领域模型 V7](docs/_images/architecture/core-domain-model-v8.png)
 
-[SVG 图源](docs/_images/architecture/core-domain-model-v7.svg)
+[SVG 图源](docs/_images/architecture/core-domain-model-v8.svg)
 
 ## 快速开始
 
@@ -177,8 +177,8 @@ REST API 适合 Web、App、管理后台、登录、HTTP 调试和 Suggest Profi
 契约入口：
 
 - [api/rest/README.md](api/rest/README.md)
-- [api/rest/authn.v2.yaml](api/rest/authn.v2.yaml)
-- [api/rest/authz.v3.yaml](api/rest/authz.v3.yaml)
+- [api/rest/authn.v3.yaml](api/rest/authn.v3.yaml)
+- [api/rest/authz.v4.yaml](api/rest/authz.v4.yaml)
 - [api/rest/identity.v2.yaml](api/rest/identity.v2.yaml)
 - [api/rest/idp.v2.yaml](api/rest/idp.v2.yaml)
 - [api/rest/suggest.v2.yaml](api/rest/suggest.v2.yaml)

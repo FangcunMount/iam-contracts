@@ -25,7 +25,7 @@ type Snapshot struct {
 	verifiedAt   time.Time // proof belongs to this immutable publication
 	roles        authorizationdomain.RoleResolver
 	roleNames    map[meta.ID]role.Name
-	grantsByRole map[role.Name][]*permissiongrant.Grant
+	grantsByRole map[meta.ID][]*permissiongrant.Grant
 	resources    map[string]*resource.Resource
 	version      int64
 	loadedAt     time.Time
@@ -96,7 +96,7 @@ func BuildSnapshot(dataset Dataset, loadedAt time.Time, providers ...objectattri
 	}
 	roleResolver := roleGraphBuilder.build(maxRoleHierarchyLevel)
 
-	grantsByRole := make(map[role.Name][]*permissiongrant.Grant)
+	grantsByRole := make(map[meta.ID][]*permissiongrant.Grant)
 	for _, grant := range dataset.Grants {
 		if grant == nil || !grant.IsActive() {
 			continue
@@ -122,11 +122,7 @@ func BuildSnapshot(dataset Dataset, loadedAt time.Time, providers ...objectattri
 		}
 		owned := grant.Clone()
 		grant = &owned
-		roleName, err := role.NewName(roleRecord.Name)
-		if err != nil {
-			return nil, err
-		}
-		grantsByRole[roleName] = append(grantsByRole[roleName], grant)
+		grantsByRole[grant.RoleID] = append(grantsByRole[grant.RoleID], grant)
 	}
 	for name := range grantsByRole {
 		sort.Slice(grantsByRole[name], func(i, j int) bool { return grantsByRole[name][i].ID < grantsByRole[name][j].ID })
@@ -156,7 +152,8 @@ func (s *Snapshot) evaluationContext(request authorizationdomain.Request) (autho
 	}
 
 	return authorizationdomain.EvaluationContext{
-		EffectiveRoles: s.names(roles),
+		EffectiveRoles: roles,
+		RoleNames:      s.roleNames,
 		GrantsByRole:   s.grantsByRole,
 		Resource:       s.resources[request.ResourceKey.String()],
 		PolicyVersion:  s.version,
@@ -174,7 +171,7 @@ func (s *Snapshot) SubjectSnapshot(sub subject.Ref, appName string) (authorizati
 	}
 	modeByPermission := make(map[string]authorizationapp.AuthorizationMode)
 	for _, roleName := range effectiveRoles {
-		for _, grant := range s.grantsByRole[s.roleNames[roleName]] {
+		for _, grant := range s.grantsByRole[roleName] {
 			resourceApp, ok := resource.AppNameFromKey(grant.ResourcePatternString())
 			if !ok || resourceApp != appName {
 				continue

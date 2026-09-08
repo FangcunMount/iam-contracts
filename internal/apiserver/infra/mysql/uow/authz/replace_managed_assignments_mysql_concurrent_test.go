@@ -2,7 +2,6 @@ package authz_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sort"
 	"sync"
@@ -48,14 +47,14 @@ func TestReplaceManagedAssignmentsMySQLConcurrentLinearization(t *testing.T) {
 	ctx := management.WithAuthenticatedService(context.Background(), "admin")
 	roles := roleRepo.NewRoleRepository(db)
 	assignments := assignmentRepo.NewRepository(db)
-	roleByName := seedRoles(t, ctx, roles, "qs:staff", "qs:evaluator")
+	roleByName := seedConcurrentRoles(t, ctx, roles, "qs:staff", "qs:evaluator")
 	t.Cleanup(func() {
 		ids := []meta.ID{roleByName["qs:staff"].ID, roleByName["qs:evaluator"].ID}
 		require.NoError(t, db.Unscoped().Where("subject_id = ? AND role_id IN ?", userID, ids).Delete(&assignmentRepo.AssignmentPO{}).Error)
 		require.NoError(t, db.Unscoped().Where("id IN ?", ids).Delete(&roleRepo.RolePO{}).Error)
 	})
-	seedAssignment(t, ctx, assignments, userID, roleByName["qs:staff"].ID)
-	seedAssignment(t, ctx, assignments, userID, roleByName["qs:evaluator"].ID)
+	seedConcurrentAssignment(t, ctx, assignments, userID, roleByName["qs:staff"].ID)
+	seedConcurrentAssignment(t, ctx, assignments, userID, roleByName["qs:evaluator"].ID)
 
 	sub, err := subject.NewUserRef(userID)
 	require.NoError(t, err)
@@ -118,7 +117,7 @@ func TestReplaceManagedAssignmentsMySQLConcurrentLinearization(t *testing.T) {
 		require.True(t, result.result.Changed)
 	}
 
-	final := assignedRoleNames(t, ctx, assignments, roles, userID)
+	final := assignedConcurrentRoleNames(t, ctx, assignments, roles, userID)
 	validTargets := [][]string{{"qs:staff"}, {"qs:evaluator"}}
 	require.Contains(t, validTargets, final, "concurrent replace must end in one complete managed target set")
 
@@ -195,7 +194,7 @@ func mysqlDSN(host string) string {
 	return user + ":" + password + "@tcp(" + host + ":" + port + ")/" + database + "?charset=utf8mb4&parseTime=True&loc=Local"
 }
 
-func seedRoles(t *testing.T, ctx context.Context, repo roleDomain.Repository, names ...string) map[string]*roleDomain.Role {
+func seedConcurrentRoles(t *testing.T, ctx context.Context, repo roleDomain.Repository, names ...string) map[string]*roleDomain.Role {
 	t.Helper()
 	result := make(map[string]*roleDomain.Role, len(names))
 	for _, name := range names {
@@ -208,7 +207,7 @@ func seedRoles(t *testing.T, ctx context.Context, repo roleDomain.Repository, na
 	return result
 }
 
-func seedAssignment(t *testing.T, ctx context.Context, repo assignmentDomain.Repository, subjectID, roleID meta.ID) {
+func seedConcurrentAssignment(t *testing.T, ctx context.Context, repo assignmentDomain.Repository, subjectID, roleID meta.ID) {
 	t.Helper()
 	assignment, err := assignmentDomain.NewAssignment(
 		assignmentDomain.SubjectTypeUser, subjectID, roleID, assignmentDomain.WithGrantedBy("seed"),
@@ -217,7 +216,7 @@ func seedAssignment(t *testing.T, ctx context.Context, repo assignmentDomain.Rep
 	require.NoError(t, repo.Create(ctx, &assignment))
 }
 
-func assignedRoleNames(
+func assignedConcurrentRoleNames(
 	t *testing.T,
 	ctx context.Context,
 	assignments assignmentDomain.Repository,

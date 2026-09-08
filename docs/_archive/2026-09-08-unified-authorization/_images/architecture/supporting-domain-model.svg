@@ -173,7 +173,7 @@
 
   <path d="M2185 330 V370 H1780 V518" class="input"/>
   <rect x="1580" y="520" width="400" height="56" rx="12" fill="#eef4ff" stroke="#9bb3df"/>
-  <text x="1780" y="556" text-anchor="middle" class="relation">可信 UserID / OrgID</text>
+  <text x="1780" y="556" text-anchor="middle" class="relation">可信 Principal / Tenant / Org</text>
   <path d="M1780 578 H1590 V800 H1760 V868" class="input"/>
 
   <path d="M2610 330 V518" class="input"/>

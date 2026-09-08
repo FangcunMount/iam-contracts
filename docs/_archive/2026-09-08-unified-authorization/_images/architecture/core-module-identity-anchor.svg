@@ -61,7 +61,7 @@
 
   <rect x="200" y="555" width="620" height="118" rx="16" fill="#ffffff" stroke="#4a9b61" stroke-width="2.2"/>
   <text x="510" y="584" text-anchor="middle" class="object-strong">Principal</text>
-  <text x="510" y="614" text-anchor="middle" class="object mono">UserID · LoginIdentityID</text>
+  <text x="510" y="614" text-anchor="middle" class="object mono">UserID · LoginIdentityID · TenantID</text>
   <text x="510" y="640" text-anchor="middle" class="object mono">SessionID · AuthMethod · AMR</text>
   <text x="510" y="664" text-anchor="middle" class="small">认证成功后的请求级主体表达，不是 User 实体，也不是 AuthZ Subject</text>
 
@@ -153,7 +153,7 @@
 
   <rect x="1020" y="1060" width="470" height="192" rx="22" fill="#f5f7fa" stroke="#8795a8" stroke-width="2.5" filter="url(#shadow)"/>
   <text x="1255" y="1103" text-anchor="middle" class="flow-title">可信请求数据</text>
-  <text x="1255" y="1142" text-anchor="middle" class="object mono">user_id · org_id · session_id</text>
+  <text x="1255" y="1142" text-anchor="middle" class="object mono">user_id · tenant_id · session_id</text>
   <text x="1255" y="1178" text-anchor="middle" class="flow-sub">由 Transport / Application 在本次请求中传递</text>
   <rect x="1110" y="1198" width="290" height="35" rx="10" fill="#ffffff" stroke="#94a3b8"/>
   <text x="1255" y="1222" text-anchor="middle" class="small">请求级数据，不是新的业务模块</text>

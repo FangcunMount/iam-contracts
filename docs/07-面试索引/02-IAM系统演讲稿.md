@@ -436,7 +436,7 @@ IAM 面向多个拥有不同业务身份和业务对象的系统，提供统一�
 | IAM 的定位和业务边界 | [IAM 系统定位](../00-概览/01-IAM系统定位.md)、[模块划分与协作关系](../00-概览/02-模块划分与协作关系.md) |
 | User、Profile 与 ProfileLink | [Identity 领域模型](../02-业务模块/01-Identity/01-领域模型-User-Profile-ProfileLink.md) |
 | Identity、AuthN、AuthZ 三核心领域模型 | [Canonical V8 核心领域模型图](../_images/architecture/core-domain-model-v8.png) |
-| 领域模型、领域服务与应用边界综合讲解 | [V7 综合图](../_images/architecture/core-domain-model-v7.png) |
+| 领域模型、领域服务与应用边界综合讲解 | [核心聚合图](../_images/architecture/core-domain-model-v8.png) |
 | AuthN 与 AuthZ 边界 | [身份认证与授权边界](../06-专题设计/01-身份认证与授权边界.md) |
 | AuthZ 模块、领域模型与关键链路 | [AuthZ canonical 文档](../02-业务模块/03-AuthZ/README.md) |
 | 分层、端口和依赖方向 | [架构风格与设计原则](../00-概览/05-架构风格与设计原则.md) |

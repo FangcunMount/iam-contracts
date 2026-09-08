@@ -43,6 +43,10 @@ func run(args []string, output io.Writer) error {
 	switch args[0] {
 	case "purge-login-state":
 		return runPurgeLoginState(args[1:], output)
+	case "authorization-verify":
+		return runAuthorizationVerify(args[1:], output)
+	case "authorization-migrate":
+		return runAuthorizationMigration(args[1:], output)
 	case "tenant-retirement":
 		return runTenantRetirement(args[1:], output)
 	case "purge-refresh-tokens":

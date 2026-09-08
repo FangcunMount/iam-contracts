@@ -3,6 +3,7 @@
 package authorization
 
 import (
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
@@ -15,8 +16,9 @@ import (
 // EvaluationContext contains the immutable authorization facts selected for a
 // single request. It is a derived value, not a persisted authorization fact.
 type EvaluationContext struct {
-	EffectiveRoles []role.Name
-	GrantsByRole   map[role.Name][]*permissiongrant.Grant
+	EffectiveRoles []meta.ID
+	RoleNames      map[meta.ID]role.Name
+	GrantsByRole   map[meta.ID][]*permissiongrant.Grant
 	Resource       *resource.Resource
 	PolicyVersion  int64
 }
@@ -44,8 +46,8 @@ func (Evaluator) Evaluate(
 	}
 
 	missing := make([]string, 0)
-	for _, roleName := range context.EffectiveRoles {
-		for _, grant := range context.GrantsByRole[roleName] {
+	for _, roleID := range context.EffectiveRoles {
+		for _, grant := range context.GrantsByRole[roleID] {
 			if grant == nil {
 				return Decision{}, perrors.WithCode(
 					code.ErrInvalidArgument,
@@ -60,7 +62,7 @@ func (Evaluator) Evaluate(
 				return Decision{}, err
 			}
 			if evaluation.Matched {
-				return Allow(grant.ID, roleName.String(), context.PolicyVersion, evaluatedAt), nil
+				return Allow(grant.ID, context.RoleNames[roleID].String(), context.PolicyVersion, evaluatedAt), nil
 			}
 			missing = append(missing, evaluation.MissingAttributeKeys...)
 		}

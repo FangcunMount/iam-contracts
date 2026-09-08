@@ -58,7 +58,7 @@ func TestReplaceManagedAssignmentsIsAtomicAndPreservesUnmanagedRoles(t *testing.
 	require.True(t, result.Changed)
 	require.EqualValues(t, 2, result.PolicyVersion)
 	require.Equal(t, []string{"qs:content_manager", "qs:staff"}, result.DirectRoles)
-	require.Equal(t, []string{"qs:content_manager", "qs:staff", "iam_admin"}, assignedRoleNames(t, ctx, assignments, roles, userID))
+	require.Equal(t, []string{"iam_admin", "qs:content_manager", "qs:staff"}, assignedRoleNames(t, ctx, assignments, roles, userID))
 	require.Equal(t, 1, stager.Count())
 	require.True(t, uow.usedLockingRead, "replacement must read current assignments with a transaction lock")
 
@@ -76,7 +76,7 @@ func TestReplaceManagedAssignmentsIsAtomicAndPreservesUnmanagedRoles(t *testing.
 	require.NoError(t, err)
 	_, err = service.ReplaceManagedAssignments(ctx, rollbackCmd)
 	require.ErrorContains(t, err, "outbox unavailable")
-	require.Equal(t, []string{"qs:content_manager", "qs:staff", "iam_admin"}, assignedRoleNames(t, ctx, assignments, roles, userID))
+	require.Equal(t, []string{"iam_admin", "qs:content_manager", "qs:staff"}, assignedRoleNames(t, ctx, assignments, roles, userID))
 	current, err := policyRepo.NewPolicyVersionRepository(db).GetCurrent(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, current)

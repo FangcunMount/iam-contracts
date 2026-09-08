@@ -16,7 +16,7 @@
 
   <rect x="70" y="155" width="2460" height="850" class="factBand" filter="url(#shadow)"/>
   <text x="105" y="205" class="section">01｜建权与赋权：长期授权事实</text>
-  <text x="105" y="237" class="sectionSub">统一角色空间：Subject 通过 Assignment 获得直接角色；角色通过继承获得父角色能力；Grant 把角色连接到资源能力。</text>
+  <text x="105" y="237" class="sectionSub">同一 Tenant 内：Subject 通过 Assignment 获得直接角色；角色通过继承获得父角色能力；Grant 把角色连接到资源能力。</text>
 
   <rect x="105" y="280" width="300" height="180" class="external"/>
   <text x="255" y="320" text-anchor="middle" class="stereo">IDENTITY · EXTERNAL</text>
@@ -38,14 +38,14 @@
   <text x="1095" y="391" text-anchor="middle" class="note">code: assignment.Assignment</text>
   <line x1="945" y1="408" x2="1245" y2="408" class="divider"/>
   <text x="1095" y="438" text-anchor="middle" class="field">SubjectType · SubjectID</text>
-  <text x="1095" y="464" text-anchor="middle" class="field">RoleID · GrantedBy</text>
+  <text x="1095" y="464" text-anchor="middle" class="field">RoleID · TenantID · GrantedBy</text>
   <text x="1095" y="490" text-anchor="middle" class="note">Subject → Direct Role；active tuple 唯一</text>
 
   <rect x="1380" y="280" width="330" height="230" class="card"/>
   <text x="1545" y="320" text-anchor="middle" class="stereo">AGGREGATE ROOT</text>
   <text x="1545" y="364" text-anchor="middle" class="boxTitle">Role</text>
   <line x1="1410" y1="382" x2="1680" y2="382" class="divider"/>
-  <text x="1545" y="414" text-anchor="middle" class="field">ID · Name · ManagementProtection</text>
+  <text x="1545" y="414" text-anchor="middle" class="field">ID · TenantID · Name</text>
   <text x="1545" y="440" text-anchor="middle" class="field">DisplayName · Description</text>
   <text x="1545" y="474" text-anchor="middle" class="note">角色名不是 allow 条件</text>
 
@@ -54,8 +54,8 @@
   <text x="2000" y="364" text-anchor="middle" class="boxTitle">RoleInheritance</text>
   <line x1="1840" y1="382" x2="2160" y2="382" class="divider"/>
   <text x="2000" y="414" text-anchor="middle" class="field">ChildRoleID → ParentRoleID</text>
-  <text x="2000" y="440" text-anchor="middle" class="field">RevokedAt · Version</text>
-  <text x="2000" y="474" text-anchor="middle" class="note">管理保护 · 无自环 · DAG</text>
+  <text x="2000" y="440" text-anchor="middle" class="field">TenantID · RevokedAt · Version</text>
+  <text x="2000" y="474" text-anchor="middle" class="note">同 Tenant · 无自环 · DAG</text>
 
   <path d="M405 370 L485 370" class="dashed"/>
   <text x="445" y="350" text-anchor="middle" class="edgeLabel">UserID</text>
@@ -82,7 +82,7 @@
   <text x="1360" y="684" text-anchor="middle" class="boxTitle">PermissionGrant</text>
   <text x="1360" y="711" text-anchor="middle" class="note">code: permissiongrant.Grant</text>
   <line x1="1115" y1="730" x2="1605" y2="730" class="divider"/>
-  <text x="1360" y="762" text-anchor="middle" class="field">RoleID · ResourceID</text>
+  <text x="1360" y="762" text-anchor="middle" class="field">TenantID · RoleID · ResourceID</text>
   <text x="1360" y="790" text-anchor="middle" class="field">ResourcePattern · ActionPattern</text>
   <text x="1360" y="818" text-anchor="middle" class="field">ConstraintSet · GrantKey · RevokedAt</text>
   <text x="1360" y="856" text-anchor="middle" class="note">managed：catalog resource + concrete action</text>
@@ -120,7 +120,7 @@
   <text x="760" y="1210" text-anchor="middle" class="stereo">POLICY PUBLICATION SERVICE</text>
   <text x="760" y="1252" text-anchor="middle" class="boxTitle">PolicyPublication / BuildSnapshot</text>
   <line x1="615" y1="1270" x2="905" y2="1270" class="divider"/>
-  <text x="760" y="1302" text-anchor="middle" class="field">交叉引用 · 管理保护 · DAG</text>
+  <text x="760" y="1302" text-anchor="middle" class="field">交叉引用 · Tenant · DAG</text>
   <text x="760" y="1330" text-anchor="middle" class="field">Resource/schema/Grant 全量校验</text>
   <text x="760" y="1358" text-anchor="middle" class="note">发布到 atomic.Pointer</text>
 
@@ -137,7 +137,7 @@
   <text x="1755" y="1190" text-anchor="middle" class="stereo">SNAPSHOT COMPONENT</text>
   <text x="1755" y="1232" text-anchor="middle" class="boxTitle">Snapshot Grant Index</text>
   <line x1="1575" y1="1250" x2="1935" y2="1250" class="divider"/>
-  <text x="1755" y="1282" text-anchor="middle" class="field">grantsByRole[RoleID]</text>
+  <text x="1755" y="1282" text-anchor="middle" class="field">grantsByRole[tenant + role]</text>
   <text x="1755" y="1310" text-anchor="middle" class="field">Resource schema · PolicyVersion</text>
   <text x="1755" y="1344" text-anchor="middle" class="note">缩小候选集，不拥有判定语义</text>
   <text x="1755" y="1370" text-anchor="middle" class="note">可重建运行时投影，不是授权事实</text>
@@ -151,7 +151,7 @@
   <text x="545" y="1520" text-anchor="middle" class="stereo">REQUEST VALUE</text>
   <text x="545" y="1560" text-anchor="middle" class="boxTitle">Authorization Request</text>
   <line x1="255" y1="1578" x2="835" y2="1578" class="divider"/>
-  <text x="545" y="1610" text-anchor="middle" class="field">Subject · Resource · Action · ObjectContext</text>
+  <text x="545" y="1610" text-anchor="middle" class="field">Subject · Tenant · Resource · Action · ObjectContext</text>
   <text x="545" y="1636" text-anchor="middle" class="note">ObjectID + trusted ObjectAttributes</text>
 
   <rect x="1050" y="1460" width="480" height="205" class="runtimeCard"/>
