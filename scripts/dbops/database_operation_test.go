@@ -368,12 +368,12 @@ esac
 		guardOutput, guardErr := runScript(t, bin, map[string]string{
 			"IAM_DB_OPS_OPERATION":     "rolebinding-guard-preflight",
 			"IAM_DB_OPS_BACKUP_DIR":    backupDir,
-			"IAM_FAKE_MIGRATION_STATE": "30\t0\t1",
+			"IAM_FAKE_MIGRATION_STATE": "32\t0\t1",
 			"IAM_FAKE_GUARD_STATE":     "1\t1",
 			"IAM_FAKE_DUPLICATE_STATE": "0\t0\t0",
 		})
 		requireNoError(t, guardErr)
-		for _, want := range []string{"result=success", "migration_version=30", "guard_state=1\t1"} {
+		for _, want := range []string{"result=success", "migration_version=32", "guard_state=1\t1"} {
 			if !strings.Contains(guardOutput, want) {
 				t.Fatalf("final-schema preflight output missing %q: %s", want, guardOutput)
 			}
@@ -448,11 +448,11 @@ esac
 		guardOutput, guardErr := runScript(t, bin, map[string]string{
 			"IAM_DB_OPS_OPERATION":     "global-identifier-guard-preflight",
 			"IAM_DB_OPS_BACKUP_DIR":    backupDir,
-			"IAM_FAKE_MIGRATION_STATE": "30\t0\t1",
+			"IAM_FAKE_MIGRATION_STATE": "32\t0\t1",
 			"IAM_FAKE_INDEX_COUNT":     "1",
 		})
 		requireNoError(t, guardErr)
-		for _, want := range []string{"result=success", "migration_version=30", "index_count=1"} {
+		for _, want := range []string{"result=success", "migration_version=32", "index_count=1"} {
 			if !strings.Contains(guardOutput, want) {
 				t.Fatalf("post-migration preflight output missing %q: %s", want, guardOutput)
 			}
