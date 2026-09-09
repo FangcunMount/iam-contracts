@@ -8,6 +8,8 @@ services:
     roles:
       - qs:admin
       - qs:content_manager
+      - qs:assessment_operator
+      - qs:result_reviewer
       - qs:evaluator
       - qs:evaluation_plan_manager
       - qs:staff
