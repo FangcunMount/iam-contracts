@@ -381,7 +381,7 @@ paths:
       tags:
       - Authentication-Auth
       summary: 显式登录
-      description: 使用 auth_method 明确选择认证方式，method_payload 按认证方式解析。v2 只开放 password、phone_otp、wechat、wechat_scan、wecom。
+      description: 使用 auth_method 明确选择身份核验方式，method_payload 按身份核验方式解析。v3 只开放 password、phone_otp、wechat、wechat_scan、wecom。
       requestBody:
         required: true
         content:
@@ -395,7 +395,6 @@ paths:
                   method_payload:
                     username: admin@example.com
                     password: Admin@123
-                    tenant_id: 1
               phone_otp:
                 value:
                   auth_method: phone_otp

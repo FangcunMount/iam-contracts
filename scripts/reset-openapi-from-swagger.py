@@ -260,7 +260,6 @@ def add_authn_login_examples(spec: Dict[str, Any]) -> None:
                 "method_payload": {
                     "username": "admin@example.com",
                     "password": "Admin@123",
-                    "tenant_id": 1,
                 },
             }
         },
