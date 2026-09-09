@@ -14,8 +14,8 @@ const (
 
 // BindingRequest 是 ProviderKey 绑定策略的确定性输入。
 type BindingRequest struct {
-	RequestUserID meta.ID
-	Existing      *LoginIdentity
+	RequestUserID meta.ID        // 申请绑定登录身份的用户 ID
+	Existing      *LoginIdentity // 已找到的登录身份；为空表示尚未绑定
 }
 
 // AssessBinding 根据已存在的登录身份判断绑定动作。
@@ -74,9 +74,9 @@ func AssessCanonicalClaim(requestUserID meta.ID, existing *LoginIdentity) Canoni
 
 // CanonicalReplacement 描述解绑时 canonical 全局标识符的转移计划。
 type CanonicalReplacement struct {
-	TargetID         meta.ID
-	ReplacementID    meta.ID
-	GlobalIdentifier string
+	TargetID         meta.ID // 将被解绑的登录身份 ID
+	ReplacementID    meta.ID // 接收全局标识的替代登录身份 ID
+	GlobalIdentifier string  // 需要转移的全局标识
 }
 
 // SelectCanonicalReplacement 从同一用户已加锁身份中选择 canonical 接替者。

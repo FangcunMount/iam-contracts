@@ -8,24 +8,28 @@ import (
 
 // LoginIdentity 绑定 IAM 用户到具体的登录标识
 type LoginIdentity struct {
-	// —— 基础信息 —— //
+	// ---- 身份标识与归属 ----
 	ID     meta.ID // 登录身份ID
-	UserID meta.ID // 用户ID
+	UserID meta.ID // 归属的 IAM 用户 ID
 
-	// —— 身份信息 —— //
-	Provider         Provider // 提供者
-	Realm            string   // 域
-	Identifier       string   // 标识
-	GlobalIdentifier string   // 全局标识
+	// ---- 提供者身份定位 ----
+	Provider         Provider // 登录身份提供者
+	Realm            string   // Provider 内的身份命名空间，如 app_id、corp_id
+	Identifier       string   // Realm 内的登录标识，与 Provider、Realm 共同组成唯一键
+	GlobalIdentifier string   // 可选的跨 Realm 标识，如微信 unionid
 
-	// —— 状态信息 —— //
-	Status     Status            // 状态
-	VerifiedAt *time.Time        // 验证时间
-	LinkedAt   time.Time         // 绑定时间
-	Profile    map[string]string // 资料
-	Meta       map[string]string // 元数据
-	CreatedAt  time.Time         // 创建时间
-	UpdatedAt  time.Time         // 更新时间
+	// ---- 状态与绑定记录 ----
+	Status     Status     // 状态
+	VerifiedAt *time.Time // 登录身份的验证时间，不是每次登录的认证时间
+	LinkedAt   time.Time  // 绑定时间
+
+	// ---- 附加资料 ----
+	Profile map[string]string // 登录身份附带的资料
+	Meta    map[string]string // 登录身份扩展元数据
+
+	// ---- 记录时间 ----
+	CreatedAt time.Time // 创建时间
+	UpdatedAt time.Time // 更新时间
 }
 
 // UniqueKey 唯一键

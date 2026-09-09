@@ -20,7 +20,7 @@ func (Mapper) ToPO(grant *domain.Grant) (*GrantPO, error) {
 	po := &GrantPO{
 
 		RoleID:          grant.RoleID.Uint64(),
-		ResourcePattern: grant.ResourcePatternString(),
+		ResourcePattern: grant.ResourceKeyString(),
 		Action:          grant.ActionString(),
 		ConstraintSet:   string(encoded),
 		GrantKey:        grant.GrantKey,

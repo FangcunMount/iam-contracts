@@ -10,15 +10,20 @@ import (
 
 // Role 角色领域对象（聚合根）
 type Role struct {
-	ID                   meta.ID
-	ManagementProtection ManagementProtection
-	Name                 Name   // 角色名称
-	DisplayName          string // 显示名称
+	ID meta.ID // 角色实体标识
 
-	Description string // 描述
+	// ---- 管理保护 ----
+	ManagementProtection ManagementProtection // 角色管理保护属性
+
+	// ---- 业务标识 ----
+	Name Name // 角色稳定业务标识，如 qs:admin
+
+	// ---- 展示信息 ----
+	DisplayName string // 显示名称
+	Description string // 角色描述
 }
 
-// NewRole 创建新角色。
+// NewRole 创建新角色
 func NewRole(name, displayName string, opts ...RoleOption) (Role, error) {
 	roleName, err := NewName(name)
 	if err != nil {

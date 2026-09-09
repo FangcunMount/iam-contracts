@@ -28,9 +28,12 @@ const (
 // Method 表示 IAM 实际策略；Realm 表示 provider 身份命名空间；
 // AMR 是可对外表达的认证手段；AuthenticatedAt 是原始认证时间。
 type AuthenticationContext struct {
-	Method          Method    // 认证方法，表示 IAM 实际策略
-	Realm           string    // 登录身份命名空间，表示 provider 身份命名空间
-	AMR             []AMR     // 认证方法引用，表示可对外表达的认证手段
+	// ---- 认证方式与命名空间 ----
+	Method Method // 认证方法，表示 IAM 实际策略
+	Realm  string // 登录身份命名空间，表示 provider 身份命名空间
+	AMR    []AMR  // 认证方法引用，表示可对外表达的认证手段
+
+	// ---- 原始认证时间 ----
 	AuthenticatedAt time.Time // 认证时间，表示原始认证时间
 }
 

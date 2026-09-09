@@ -10,22 +10,22 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-// Assignment 表达主体持有某个角色的赋权事实（聚合根）。
+// Assignment 角色分配实体，表达主体直接持有某个角色的事实。
 type Assignment struct {
-	ID AssignmentID
+	ID AssignmentID // 角色分配 ID
 
-	//---- 赋权主体 ----
-	SubjectType SubjectType // user/group/service
-	SubjectID   meta.ID     // 用户或组ID
+	// ---- 分配主体 ----
+	SubjectType SubjectType // 主体类型：user/group/service
+	SubjectID   meta.ID     // 对应主体类型下的主体 ID
 
-	//---- 赋权事实 ----
+	// ---- 分配角色 ----
 	RoleID meta.ID // 角色ID
 
-	//---- 赋权来源 ----
-	GrantedBy string // 授权人
+	// ---- 分配来源 ----
+	GrantedBy string // 分配者标识
 }
 
-// NewAssignment 创建新赋权。
+// NewAssignment 创建角色分配实体。
 func NewAssignment(subjectType SubjectType, subjectID meta.ID, roleID meta.ID, opts ...Option) (Assignment, error) {
 	subjectType = SubjectType(strings.TrimSpace(string(subjectType)))
 	a := Assignment{
@@ -84,7 +84,7 @@ func (a Assignment) SubjectTypeString() string {
 	return string(a.SubjectType)
 }
 
-// Fact states that a subject holds a role in the unified role space.
+// Fact 使用角色稳定名称表达主体持有角色的事实投影，不是另一份持久化角色分配实体。
 type Fact struct {
 	Subject  subject.Ref
 	RoleName role.Name

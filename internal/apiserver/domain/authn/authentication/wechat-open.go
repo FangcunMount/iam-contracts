@@ -13,17 +13,17 @@ import (
 
 // WechatOpenProofSpec 微信开放平台身份核验证明规格
 type WechatOpenProofSpec struct {
-	AppID   string
-	OpenID  string
-	UnionID string
+	AppID   string // 微信开放平台应用 ID，作为身份命名空间
+	OpenID  string // 该应用内的用户标识
+	UnionID string // 可选的微信跨应用关联标识
 }
 
 // WechatOpenProof 微信开放平台身份核验证明
 // 此输入仅由已完成 IDP 核验的外部身份映射构造；构造函数不执行外部验真。
 type WechatOpenProof struct {
-	AppID   string
-	OpenID  string
-	UnionID string
+	AppID   string // 微信开放平台应用 ID，作为身份命名空间
+	OpenID  string // 该应用内的用户标识
+	UnionID string // 可选的微信跨应用关联标识
 }
 
 // 确保 WechatOpenProof 实现了 IdentityProof 接口

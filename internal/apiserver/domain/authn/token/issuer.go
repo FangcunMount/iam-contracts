@@ -14,9 +14,9 @@ import (
 
 // IssuanceConfig is the authoritative access-token issuance policy.
 type IssuanceConfig struct {
-	Issuer    string
-	Audience  []string
-	AccessTTL time.Duration
+	Issuer    string        // 访问令牌签发者标识
+	Audience  []string      // 访问令牌的预期受众
+	AccessTTL time.Duration // 访问令牌有效时长
 }
 
 func (c IssuanceConfig) Validate() error {

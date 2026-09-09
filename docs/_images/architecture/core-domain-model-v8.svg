@@ -477,16 +477,16 @@
     <text x="3597" y="1516" text-anchor="middle" class="root-title">PermissionGrant｜权限授予</text>
     <line x1="3270" y1="1539" x2="3925" y2="1539" class="divider"/>
     <text x="3295" y="1575" class="field">ID · RoleID · ResourceID</text>
-    <text x="3295" y="1609" class="field">ResourcePattern · ActionPattern · ConstraintSet</text>
+    <text x="3295" y="1609" class="field">ResourceKey · Action · ConstraintSet</text>
     <text x="3295" y="1643" class="field">GrantKey · GrantedBy · GrantedAt · RevokedAt</text>
     <text x="3295" y="1681" class="small">一条 allow-only 授权事实；支持幂等撤销</text>
   </g>
   <rect x="3960" y="1443" width="340" height="110" rx="13" class="vo"/>
-  <text x="4130" y="1477" text-anchor="middle" class="vo-title">Resource.Pattern</text>
+  <text x="4130" y="1477" text-anchor="middle" class="vo-title">Resource.Key</text>
   <text x="4130" y="1508" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt; 可覆盖资源键</text>
-  <text x="4130" y="1536" text-anchor="middle" class="vo-body">受 Resource.Key 目录约束</text>
+  <text x="4130" y="1536" text-anchor="middle" class="vo-body">普通授权须与目录资源键一致</text>
   <rect x="4330" y="1443" width="340" height="110" rx="13" class="vo"/>
-  <text x="4500" y="1477" text-anchor="middle" class="vo-title">Action.Pattern</text>
+  <text x="4500" y="1477" text-anchor="middle" class="vo-title">Action</text>
   <text x="4500" y="1508" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt; 动作匹配</text>
   <text x="4500" y="1536" text-anchor="middle" class="vo-body">托管授权必须是目录动作</text>
   <rect x="3960" y="1583" width="710" height="130" rx="13" class="vo"/>

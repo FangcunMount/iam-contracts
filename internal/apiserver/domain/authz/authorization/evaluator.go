@@ -3,8 +3,9 @@
 package authorization
 
 import (
-	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"time"
+
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
@@ -13,22 +14,23 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
-// EvaluationContext contains the immutable authorization facts selected for a
-// single request. It is a derived value, not a persisted authorization fact.
+// EvaluationContext 是为一次鉴权准备的授权事实投影，不持久化。
+// 调用方提供已验证、未撤销且按所属角色分组的候选授权，求值期间按只读方式使用。
 type EvaluationContext struct {
-	EffectiveRoles []meta.ID
-	RoleNames      map[meta.ID]role.Name
-	GrantsByRole   map[meta.ID][]*permissiongrant.Grant
-	Resource       *resource.Resource
-	PolicyVersion  int64
+	EffectiveRoles []meta.ID                            // 主体直接及继承获得的有效角色 ID
+	RoleNames      map[meta.ID]role.Name                // 角色 ID 到稳定业务名称的映射
+	GrantsByRole   map[meta.ID][]*permissiongrant.Grant // 按角色 ID 分组的有效候选授权
+	Resource       *resource.Resource                   // 请求对应的资源定义，未注册时可为空
+	PolicyVersion  int64                                // 本次判定使用的授权事实版本
 }
 
-// Evaluator applies PermissionGrant and ConstraintSet domain rules to an
-// authorization request. It has no persistence or runtime-snapshot concerns.
+// Evaluator 匹配权限授予与条件并生成授权决策，不负责持久化或快照管理。
 type Evaluator struct{}
 
+// NewEvaluator 创建评估器
 func NewEvaluator() Evaluator { return Evaluator{} }
 
+// Evaluate 求值访问请求；未匹配是正常拒绝，属性契约不合法时返回错误。
 func (Evaluator) Evaluate(
 	request Request,
 	context EvaluationContext,

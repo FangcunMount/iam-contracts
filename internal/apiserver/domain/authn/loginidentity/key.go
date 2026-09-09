@@ -8,14 +8,17 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-// ProviderKey 唯一键，用于解析登录身份
-// 用于唯一标识一个登录身份，包括提供者、域、标识和全局标识。
+// ProviderKey 用于解析登录身份的提供者键。
+// Provider、Realm、Identifier 定位登录身份；GlobalIdentifier 提供可选的跨 Realm 关联。
 // 例如：username:default:username、phone:global:+1234567890、wechat_minip:appid:openid:unionid、wecom:corp_id:userid。
 type ProviderKey struct {
-	provider         Provider // 提供者
-	realm            string   // 域
-	identifier       string   // 标识
-	globalIdentifier string   // 全局标识
+	// ---- 身份唯一定位 ----
+	provider   Provider // 登录身份提供者
+	realm      string   // Provider 内的身份命名空间
+	identifier string   // Realm 内的登录标识
+
+	// ---- 跨命名空间关联 ----
+	globalIdentifier string // 可选的跨 Realm 标识
 }
 
 // newProviderKey 创建已经完成规范化和完整性校验的提供者键。

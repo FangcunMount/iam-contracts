@@ -4,13 +4,12 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-// PolicyVersion 策略版本（用于缓存失效通知）
+// PolicyVersion 全局授权事实版本，用于变更发布及运行时同步。
 type PolicyVersion struct {
-	ID PolicyVersionID
-	// 租户ID
-	Version   int64  // 版本号
-	ChangedBy string // 变更人
-	Reason    string // 变更原因
+	ID        PolicyVersionID // 版本记录标识
+	Version   int64           // 全局授权事实版本号
+	ChangedBy string          // 变更者标识
+	Reason    string          // 变更原因
 }
 
 // NewPolicyVersion 创建新版本

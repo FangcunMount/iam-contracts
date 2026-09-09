@@ -8,21 +8,26 @@ import (
 
 // Credential 凭据实体
 type Credential struct {
+	// ---- 凭据标识与归属 ----
 	ID              meta.ID        // 凭据ID
 	LoginIdentityID meta.ID        // 归属的登录身份ID
 	Type            CredentialType // 凭据类型
 
-	// —— 长期认证材料 —— //
-	Material   []byte  // password hash；未来可承载 passkey public key / encrypted secret
-	Algo       *string // 算法，例如 argon2id / bcrypt / es256 等
-	ParamsJSON []byte  // 低频参数或元数据，例如 hash params / authenticator metadata
+	// ---- 长期认证材料 ----
+	Material   []byte  // 长期认证材料；密码凭据保存密码哈希，不保存明文密码
+	Algo       *string // 材料算法标识，如 argon2id、bcrypt
+	ParamsJSON []byte  // 认证材料的附加参数或元数据
 
-	// —— 认证材料状态 —— //
-	Status         CredentialStatus // 凭据状态
-	FailedAttempts int              // 失败尝试次数
-	LockedUntil    *time.Time       // 锁定截止时间
-	LastSuccessAt  *time.Time       // 最近成功时间
-	LastFailureAt  *time.Time       // 最近失败时间
+	// ---- 可用状态 ----
+	Status CredentialStatus // 凭据启用或禁用状态
+
+	// ---- 失败计数与锁定 ----
+	FailedAttempts int        // 当前累计失败次数，成功或解锁时重置
+	LockedUntil    *time.Time // 锁定截止时间
+
+	// ---- 核验记录 ----
+	LastSuccessAt *time.Time // 最近成功时间
+	LastFailureAt *time.Time // 最近失败时间
 }
 
 // ==================== 状态查询方法 ====================

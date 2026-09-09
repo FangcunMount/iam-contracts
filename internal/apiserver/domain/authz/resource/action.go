@@ -8,54 +8,48 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
-var concreteActionPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+var concreteActionSyntax = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
-// Action identifies an operation in an authorization request or policy fact.
+// Action 表达具体动作或全部动作；资源、请求和普通赋权须校验为具体动作。
 type Action string
 
+// WildcardAction 表达全部动作，仅可信系统赋权允许使用。
+const WildcardAction Action = "*"
+
+// NewAction 规范化动作，接受具体动作或 *，不支持正则或前缀表达式。
 func NewAction(value string) (Action, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return "", perrors.WithCode(code.ErrInvalidArgument, "action is required")
+	a := Action(strings.TrimSpace(value))
+	if a.IsWildcard() {
+		return a, nil
 	}
-	if !concreteActionPattern.MatchString(value) {
-		return "", perrors.WithCode(code.ErrInvalidArgument, "action must be a concrete operation")
-	}
-	return Action(value), nil
-}
-
-func (a Action) String() string {
-	return string(a)
-}
-
-// ActionPattern identifies an operation expression stored in authorization facts.
-type ActionPattern string
-
-func NewActionPattern(value string) (ActionPattern, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return "", perrors.WithCode(code.ErrInvalidArgument, "action pattern is required")
-	}
-	if value == "*" {
-		return ActionPattern(value), nil
-	}
-	concrete, err := NewAction(value)
-	if err != nil {
+	if err := a.ValidateConcrete(); err != nil {
 		return "", err
 	}
-	return ActionPattern(concrete), nil
+	return a, nil
 }
 
-func (p ActionPattern) String() string {
-	return string(p)
+func (a Action) String() string { return string(a) }
+
+// IsWildcard 判断是否为全部动作。
+func (a Action) IsWildcard() bool { return a == WildcardAction }
+
+// ValidateConcrete 校验具体动作的完整格式，包括直接类型转换产生的值。
+func (a Action) ValidateConcrete() error {
+	if a == "" {
+		return perrors.WithCode(code.ErrInvalidArgument, "action is required")
+	}
+	if !concreteActionSyntax.MatchString(a.String()) {
+		return perrors.WithCode(code.ErrInvalidArgument, "action must be a concrete operation")
+	}
+	return nil
 }
 
-// Matches reports whether this policy action pattern covers the concrete action.
-func (p ActionPattern) Matches(action Action) bool {
-	pattern := strings.TrimSpace(p.String())
-	concrete := strings.TrimSpace(action.String())
-	if pattern == "" || concrete == "" {
+// Matches 判断授予动作是否覆盖请求动作；请求的具体动作约束由入口校验。
+func (a Action) Matches(requested Action) bool {
+	granted := strings.TrimSpace(a.String())
+	concrete := strings.TrimSpace(requested.String())
+	if granted == "" || concrete == "" {
 		return false
 	}
-	return pattern == "*" || pattern == concrete
+	return granted == WildcardAction.String() || granted == concrete
 }

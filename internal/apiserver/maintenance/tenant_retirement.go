@@ -236,7 +236,7 @@ func analyzeRetirement(s retirementState) *TenantRetirementReport {
 		if g.GrantKey != legacyKey && g.GrantKey != grant.GrantKey {
 			issue("invalid_grant_key", g.ID, "canonical key mismatch")
 		}
-		if err := (role.Role{ManagementProtection: protection[meta.ID(g.RoleID)]}).ValidateGrant(grant.ResourcePattern, grant.Action); err != nil {
+		if err := (role.Role{ManagementProtection: protection[meta.ID(g.RoleID)]}).ValidateGrant(grant.ResourceKey, grant.Action); err != nil {
 			issue("sensitive_standard_grant", g.ID, fmt.Sprintf("role_id=%d role=%s resource=%s action=%s active=%t deleted=%t revoked=%t", g.RoleID, roles[meta.ID(g.RoleID)].Name, g.ResourcePattern, g.Action, active, g.DeletedAt != nil, g.RevokedAt != nil))
 		}
 		r.grantKeys[g.ID] = grant.GrantKey
@@ -283,7 +283,7 @@ func analyzeRetirement(s retirementState) *TenantRetirementReport {
 					}
 				}
 				added := []string{}
-				if g.LegacyDomain == "platform" && resource.Pattern(g.ResourcePattern).Covers(resource.Pattern("iam:identity:collection:profiles")) {
+				if g.LegacyDomain == "platform" && resource.Key(g.ResourcePattern).Covers(resource.Key("iam:identity:collection:profiles")) {
 					switch g.Action {
 					case "list":
 						added = append(added, "list_all")

@@ -11,13 +11,20 @@ import (
 // Key 密钥实体，表示一个非敏感的密钥身份和生命周期。
 // 加密材料和 JWK/JWKS 表示属于适配层。
 type Key struct {
-	Kid       string     // 密钥 ID，唯一标识一个密钥。
-	Algorithm string     // 密钥算法，如 RSA、ECDSA、Ed25519 等。
-	Status    Status     // 密钥状态，如 Active、Grace、Retired 等。
-	NotBefore *time.Time // 密钥生效时间。
-	NotAfter  *time.Time // 密钥失效时间。
-	CreatedAt time.Time  // 密钥创建时间。
-	UpdatedAt time.Time  // 密钥更新时间。
+	// ---- 密钥标识与算法 ----
+	Kid       string // 密钥 ID，唯一标识一个密钥。
+	Algorithm string // 签名算法标识，具体取值由密钥适配层提供
+
+	// ---- 生命周期状态 ----
+	Status Status // 密钥状态，如 Active、Grace、Retired 等。
+
+	// ---- 有效窗口 ----
+	NotBefore *time.Time // 有效窗口起点，未设置时不限制起点
+	NotAfter  *time.Time // 有效窗口终点，未设置时不限制终点
+
+	// ---- 记录时间 ----
+	CreatedAt time.Time // 密钥创建时间。
+	UpdatedAt time.Time // 密钥更新时间。
 }
 
 // KeyOption 密钥选项，用于配置密钥。

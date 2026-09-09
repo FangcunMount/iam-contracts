@@ -15,17 +15,17 @@ import (
 
 // WecomProofSpec 企业微信身份核验证明规格，用于构造 WecomProof 实例
 type WecomProofSpec struct {
-	CorpID         string
-	ProviderUserID string
-	OpenUserID     string
+	CorpID         string // 企业微信企业 ID，作为身份命名空间
+	ProviderUserID string // 企业内的用户标识
+	OpenUserID     string // 企业微信返回的开放用户标识
 }
 
 // WecomProof 企业微信身份核验证明
 // 此输入仅由已完成 IDP 核验的外部身份映射构造；构造函数不执行外部验真。
 type WecomProof struct {
-	CorpID         string
-	ProviderUserID string
-	OpenUserID     string
+	CorpID         string // 企业微信企业 ID，作为身份命名空间
+	ProviderUserID string // 企业内的用户标识
+	OpenUserID     string // 企业微信返回的开放用户标识
 }
 
 // 确保 WecomProof 实现了 IdentityProof 接口

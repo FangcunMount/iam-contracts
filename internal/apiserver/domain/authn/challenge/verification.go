@@ -14,5 +14,5 @@ const (
 
 // VerificationResult 挑战校验结果。
 type VerificationResult struct {
-	Outcome VerificationOutcome
+	Outcome VerificationOutcome // 挑战验证及消费的结果
 }

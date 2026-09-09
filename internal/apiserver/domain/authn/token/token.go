@@ -51,14 +51,16 @@ func (m TokenMetadata) RemainingDuration() time.Duration {
 
 // AccessToken 表示绑定用户认证上下文与 Session 的短期访问凭证。
 type AccessToken struct {
+	// ---- 令牌标识与有效期 ----
 	TokenMetadata
+
+	// ---- 凭证值 ----
 	Value string // 已颁发的凭证值，不属于元数据。
 
 	// —— 会话信息 —— //
 	SessionID       string  // 会话ID
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-
 }
 
 // Subject 从用户身份派生，避免保存第二套可变主体事实。
@@ -77,7 +79,10 @@ func NewAccessToken(id, value, sessionID string, userID, loginIdentityID meta.ID
 
 // RefreshToken 表示与认证 Session 绑定、可单次轮换的续期凭证。
 type RefreshToken struct {
+	// ---- 令牌标识与有效期 ----
 	TokenMetadata
+
+	// ---- 凭证值 ----
 	Value string // 已颁发的凭证值，不属于元数据。
 
 	// —— 会话信息 —— //
@@ -85,7 +90,7 @@ type RefreshToken struct {
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
 
-	// —— 认证信息 —— //
+	// ---- 历史兼容输入 ----
 	// Deprecated: 以下字段只用于读取迁移前 Redis refresh JSON；新签发不再写入。
 	AuthMethod    string            // 认证方法
 	Realm         string            // 认证域
@@ -105,10 +110,10 @@ func NewRefreshToken(id, value, sessionID string, userID, loginIdentityID meta.I
 
 // LegacyRefreshContext is read-only migration input from historical Redis records.
 type LegacyRefreshContext struct {
-	AuthMethod    string
-	Realm         string
-	AMR           []string
-	SessionClaims map[string]string
+	AuthMethod    string            // 历史记录中的认证方法
+	Realm         string            // 历史登录身份命名空间
+	AMR           []string          // 历史认证手段
+	SessionClaims map[string]string // 历史会话声明，仅供兼容恢复
 }
 
 // RestoreRefreshToken reads old storage without inventing a persisted issued_at.
@@ -124,8 +129,8 @@ func RestoreRefreshToken(id, value, sessionID string, userID, loginIdentityID me
 
 // UserTokenSet 表示一次用户认证状态建立或续期产生的访问/刷新令牌集合。
 type UserTokenSet struct {
-	AccessToken  *AccessToken
-	RefreshToken *RefreshToken
+	AccessToken  *AccessToken  // 本次交付的访问令牌
+	RefreshToken *RefreshToken // 本次交付的刷新令牌
 }
 
 // NewUserTokenSet 创建用户令牌集合。
@@ -135,34 +140,42 @@ func NewUserTokenSet(accessToken *AccessToken, refreshToken *RefreshToken) *User
 
 // ConsumedRefreshToken 是旧刷新令牌成功轮换后留下的最小重放检测事实。
 type ConsumedRefreshToken struct {
-	SessionID string
-	UserID    meta.ID
+	SessionID string  // 已消费刷新令牌所属会话，用于重放时定位撤销目标
+	UserID    meta.ID // 该会话所属用户 ID
 }
 
 // AccessTokenClaims 表达访问令牌声明；类型本身不保证已验签或已通过在线验证。
 // 它不是 JWT wire model，也不包含 JWT Header/Signature。
 type AccessTokenClaims struct {
-	// —— 令牌元数据 —— //
+	// ---- 令牌标识与用途 ----
 	TokenID   string    // 令牌ID
 	TokenType TokenType // 令牌类型
-	SessionID string    // 会话ID
-	Subject   string    // 令牌主题
 
-	// —— 令牌主体 —— //
+	// ---- 会话与主体声明 ----
+	SessionID string // 会话ID
+	Subject   string // 用户主体声明，必须等于 UserID 的字符串表示
+
+	// ---- 身份与业务归属 ----
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-	OrgID           meta.ID // 组织ID
+	OrgID           meta.ID // 会话业务快照中的组织 ID
 
-	// —— 令牌认证 —— //
-	Issuer          string    // 令牌颁发者
-	AuthenticatedAt time.Time // 令牌认证时间
+	// ---- 签发来源 ----
+	Issuer string // 令牌颁发者
 
-	// —— 令牌属性 —— //
-	Audience   []string          // 受众，令牌预期给谁使用
+	// ---- 原始认证时间 ----
+	AuthenticatedAt time.Time // 原始身份核验时间，刷新不应提升为新的认证时间
+
+	// ---- 预期受众 ----
+	Audience []string // 受众，令牌预期给谁使用
+
+	// ---- 附加声明 ----
 	Attributes map[string]string // 属性，令牌携带的额外信息
-	AMR        []string          // 认证方法引用
 
-	// —— 令牌时间 —— //
+	// ---- 认证手段 ----
+	AMR []string // 本次认证使用的手段声明
+
+	// ---- 令牌有效期 ----
 	IssuedAt  time.Time // 令牌颁发时间
 	NotBefore time.Time // 令牌生效时间
 	ExpiresAt time.Time // 令牌过期时间

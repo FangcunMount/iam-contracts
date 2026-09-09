@@ -20,17 +20,22 @@ const (
 
 // AuthDecision 身份核验决策。
 type AuthDecision struct {
-	OK bool
+	// ---- 核验结果 ----
+	OK bool // 身份核验是否成功，不代表登录流程已全部完成
 
 	// Code 表示身份核验未通过的业务原因；只有 OK=false 时有效。
 	Code int
 
+	// ---- 成功主体 ----
 	// Principal 表示身份核验成功后的主体；只有 OK=true 时有效。
 	Principal *Principal
 
+	// ---- 失败身份定位 ----
 	// RejectedLoginIdentityID 仅定位核验失败时的登录身份；成功时从 Principal 读取。
 	RejectedLoginIdentityID meta.ID
-	CredentialUpdate        *CredentialUpdate
+
+	// ---- 凭据更新意图 ----
+	CredentialUpdate *CredentialUpdate // 待执行的凭据记录意图；决策本身不写入凭据
 }
 
 // loginIdentityStatusFailureDecision 检查登录身份状态是否为失败
@@ -52,9 +57,9 @@ func loginIdentityStatusFailureDecision(ctx context.Context, identityRepo LoginI
 
 // CredentialUpdate 聚合长期凭据记录意图；Rotation 仅在核验成功时存在。
 type CredentialUpdate struct {
-	CredentialID meta.ID
-	Effect       CredentialEffect
-	Rotation     *credDomain.MaterialRotation
+	CredentialID meta.ID                      // 需要记录核验结果的凭据 ID
+	Effect       CredentialEffect             // 凭据记录动作，与核验成功或失败结果一致
+	Rotation     *credDomain.MaterialRotation // 成功核验时可附带的新材料，未设置则不轮换
 }
 
 // Validate 检查凭据更新意图是否与身份核验结果一致。

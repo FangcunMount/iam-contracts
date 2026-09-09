@@ -14,18 +14,21 @@ type SMSOTP struct{}
 
 // SMSOTPSpec 短信验证码挑战规格。
 type SMSOTPSpec struct {
-	Scene     string
-	PhoneE164 string
-	OTP       string
-	TTL       time.Duration
-	CodeLen   int
-	Now       time.Time
+	// ---- 使用场景与目标 ----
+	Scene     string // 验证码使用场景
+	PhoneE164 string // 接收验证码的 E.164 手机号
+
+	// ---- 验证码与有效期 ----
+	OTP     string        // 待签发验证码，为空时生成
+	TTL     time.Duration // 挑战有效时长
+	CodeLen int           // 生成验证码时的位数
+	Now     time.Time     // 签发时间依据
 }
 
 // SMSOTPIssueResult 短信验证码签发结果。
 type SMSOTPIssueResult struct {
-	Challenge *AuthChallenge
-	PlainOTP  string
+	Challenge *AuthChallenge // 待保存的挑战及其校验材料
+	PlainOTP  string         // 供发送使用的明文验证码
 }
 
 // Issue 创建短信验证码挑战实体。
@@ -81,10 +84,10 @@ func IssueSMSOTP(spec SMSOTPSpec) (*SMSOTPIssueResult, error) {
 
 // VerifySMSOTPInput 短信验证码校验输入。
 type VerifySMSOTPInput struct {
-	Scene     string
-	PhoneE164 string
-	OTP       string
-	Now       time.Time
+	Scene     string    // 待核验场景
+	PhoneE164 string    // 待核验手机号
+	OTP       string    // 用户提供的验证码
+	Now       time.Time // 核验时间依据
 }
 
 // SMSOTPVerifier 短信验证码校验器。

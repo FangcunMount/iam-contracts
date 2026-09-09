@@ -80,13 +80,13 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Grant,
 		if err != nil {
 			return err
 		}
-		if err := role.ValidateGrant(grant.ResourcePattern, grant.Action); err != nil {
+		if err := role.ValidateGrant(grant.ResourceKey, grant.Action); err != nil {
 			return err
 		}
 		if err := grant.ValidateAgainst(*catalogResource); err != nil {
 			return err
 		}
-		if err := objectattributeadmission.RequireCoverage(s.providers, grant.ResourcePatternString(), grant.Constraints); err != nil {
+		if err := objectattributeadmission.RequireCoverage(s.providers, grant.ResourceKeyString(), grant.Constraints); err != nil {
 			return perrors.WithCode(code.ErrInvalidArgument, "%s", err.Error())
 		}
 		if err := tx.PermissionGrants.Create(txCtx, &grant); err != nil {

@@ -35,7 +35,7 @@ func (s CredentialStatus) Validate() bool {
 
 // LockoutPolicy 锁定策略
 type LockoutPolicy struct {
-	Enabled      bool
-	Threshold    int
-	LockDuration time.Duration
+	Enabled      bool          // 是否启用失败锁定
+	Threshold    int           // 触发锁定的失败次数阈值
+	LockDuration time.Duration // 每次锁定持续时长
 }

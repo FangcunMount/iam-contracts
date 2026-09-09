@@ -22,9 +22,9 @@ const (
 
 // Decision 表示 AdmissionPolicy 对认证主体身份组合作出的领域判定。
 type Decision struct {
-	Subject Subject
-	Outcome Outcome
-	Reason  DenialReason
+	Subject Subject      // 本次准入检查的用户与登录身份组合
+	Outcome Outcome      // 是否允许建立或维持认证状态
+	Reason  DenialReason // 拒绝准入的业务原因，允许时为空
 }
 
 // Admit 构造允许建立或维持登录态的判定。

@@ -9,24 +9,33 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
-// Resource 域对象资源目录（聚合根）
-// V1：仅域对象类型，格式：<app>:<domain>:<type>:* 例如 scale:form:template:*
+// Resource 授权资源定义（聚合根），声明资源支持的动作和对象属性契约。
+// Key 使用 <app>:<domain>:<type>:<name-or-pattern> 格式。
 type Resource struct {
-	ID              ResourceID
-	Key             Key      // 资源键，如 scale:form:template:*
-	DisplayName     string   // 显示名称
-	AppName         string   // 应用名称
-	Domain          string   // 业务域
-	Type            string   // 对象类型
-	Actions         []Action // 允许的动作列表
-	AttributeSchema attribute.Schema
-	Description     string // 描述
+	ID ResourceID // 资源实体标识
+
+	// ---- 资源标识与归属 ----
+	Key     Key    // 授权资源键
+	AppName string // 所属应用，与 Key 的应用段一致
+	Domain  string // 所属业务域，与 Key 的业务域段一致
+	Type    string // 资源类型，与 Key 的类型段一致
+
+	// ---- 展示信息 ----
+	DisplayName string // 显示名称
+	Description string // 描述信息
+
+	// ---- 授权契约 ----
+	Actions         []Action         // 资源支持的动作
+	AttributeSchema attribute.Schema // 对象属性定义，用于校验授权条件与鉴权输入
 }
 
-// NewResource 创建新资源。
+// NewResource 创建资源
 func NewResource(key string, actions []string, opts ...ResourceOption) (Resource, error) {
 	resourceKey, err := NewKey(key)
 	if err != nil {
+		return Resource{}, err
+	}
+	if err := resourceKey.ValidateTarget(); err != nil {
 		return Resource{}, err
 	}
 	normalizedActions, err := NormalizeActions(actions)
@@ -69,10 +78,14 @@ func NewResource(key string, actions []string, opts ...ResourceOption) (Resource
 	return r, nil
 }
 
-// RestoreResource rehydrates a persisted resource without enforcing create-time metadata rules.
+// RestoreResource 从持久化数据恢复资源，校验资源键、动作与属性契约，
+// 但不强制要求创建时的非空显示名称。
 func RestoreResource(key string, actions []string, opts ...ResourceOption) (Resource, error) {
 	resourceKey, err := NewKey(key)
 	if err != nil {
+		return Resource{}, err
+	}
+	if err := resourceKey.ValidateTarget(); err != nil {
 		return Resource{}, err
 	}
 	normalizedActions, err := NormalizeActions(actions)
@@ -114,6 +127,7 @@ func RestoreResource(key string, actions []string, opts ...ResourceOption) (Reso
 	return r, nil
 }
 
+// normalizeDisplayName 规范化显示名称
 func normalizeDisplayName(displayName string) (string, error) {
 	displayName = strings.TrimSpace(displayName)
 	if displayName == "" {
@@ -122,7 +136,7 @@ func normalizeDisplayName(displayName string) (string, error) {
 	return displayName, nil
 }
 
-// Rename updates the resource display name after trim and non-empty validation.
+// Rename 修改资源显示名称，不改变资源键。
 func (r *Resource) Rename(displayName string) error {
 	normalized, err := normalizeDisplayName(displayName)
 	if err != nil {
@@ -132,12 +146,12 @@ func (r *Resource) Rename(displayName string) error {
 	return nil
 }
 
-// ChangeDescription updates the resource description.
+// ChangeDescription 更新资源描述
 func (r *Resource) ChangeDescription(description string) {
 	r.Description = strings.TrimSpace(description)
 }
 
-// ResourceOption 资源选项
+// ResourceOption 资源配置/创建选项
 type ResourceOption func(*Resource)
 
 func WithID(id ResourceID) ResourceOption        { return func(r *Resource) { r.ID = id } }
@@ -150,10 +164,12 @@ func WithAttributeSchema(schema attribute.Schema) ResourceOption {
 	return func(r *Resource) { r.AttributeSchema = schema }
 }
 
+// KeyString 返回资源键字符串
 func (r Resource) KeyString() string {
 	return r.Key.String()
 }
 
+// ActionStrings 返回资源支持的动作列表
 func (r Resource) ActionStrings() []string {
 	if len(r.Actions) == 0 {
 		return nil
@@ -168,7 +184,7 @@ func (r Resource) ActionStrings() []string {
 // HasAction 检查资源是否包含指定动作
 func (r *Resource) HasAction(action string) bool {
 	target, err := NewAction(action)
-	if err != nil {
+	if err != nil || target.ValidateConcrete() != nil {
 		return false
 	}
 	for _, a := range r.Actions {
@@ -179,6 +195,7 @@ func (r *Resource) HasAction(action string) bool {
 	return false
 }
 
+// ChangeAttributeSchema 更新资源属性模式
 func (r *Resource) ChangeAttributeSchema(schema attribute.Schema) error {
 	normalized, err := schema.Normalize()
 	if err != nil {
@@ -188,8 +205,8 @@ func (r *Resource) ChangeAttributeSchema(schema attribute.Schema) error {
 	return nil
 }
 
-// ChangeCatalog updates only future authorization-write validation metadata.
-// Existing permission facts are not reconciled, removed, or reloaded by this method.
+// ChangeCatalog 更新资源支持的动作列表。
+// 本方法不检查已有授权依赖，也不保存或发布变更；这些操作由应用用例协调。
 func (r *Resource) ChangeCatalog(actions []string) error {
 	normalizedActions, err := NormalizeActions(actions)
 	if err != nil {
@@ -199,6 +216,7 @@ func (r *Resource) ChangeCatalog(actions []string) error {
 	return nil
 }
 
+// NormalizeActions 规范化动作列表
 func NormalizeActions(actions []string) ([]Action, error) {
 	seen := make(map[string]struct{}, len(actions))
 	normalized := make([]Action, 0, len(actions))
@@ -208,6 +226,9 @@ func NormalizeActions(actions []string) ([]Action, error) {
 			if strings.TrimSpace(action) == "" {
 				continue
 			}
+			return nil, err
+		}
+		if err := actionValue.ValidateConcrete(); err != nil {
 			return nil, err
 		}
 		actionKey := actionValue.String()

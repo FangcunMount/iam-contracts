@@ -11,22 +11,23 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-const MaxHierarchyDepth = 32
+const MaxHierarchyDepth = 32 // 最大继承路径节点数，包含直接分配的角色
 
 type RoleNode struct {
-	ManagementProtection role.ManagementProtection
-	ID                   meta.ID
+	ManagementProtection role.ManagementProtection // 管理保护属性
+	ID                   meta.ID                   // 角色ID
 }
 
-// ValidateGraph is shared by atomic writes, runtime compilation and preflight.
-// Depth counts role nodes, including the directly assigned role.
+// ValidateGraph 校验角色引用、管理保护、环和继承深度。
+// 深度按角色节点数计算，包含直接分配的角色；供原子写入、快照构建及预检复用。
+// roles 为角色节点，edges 为继承关系。
 func ValidateGraph(roles []RoleNode, edges []*Inheritance) error {
-	protections := make(map[meta.ID]role.ManagementProtection, len(roles))
-	identities := make(map[meta.ID]struct{}, len(roles))
-	indegree := make(map[meta.ID]int, len(roles))
-	depth := make(map[meta.ID]int, len(roles))
-	previous := make(map[meta.ID]meta.ID)
-	graph := make(map[meta.ID][]meta.ID)
+	protections := make(map[meta.ID]role.ManagementProtection, len(roles)) // 管理保护属性映射
+	identities := make(map[meta.ID]struct{}, len(roles))                   // 角色ID映射
+	indegree := make(map[meta.ID]int, len(roles))                          // 入度映射
+	depth := make(map[meta.ID]int, len(roles))                             // 深度映射
+	previous := make(map[meta.ID]meta.ID)                                  // 前一个角色ID映射
+	graph := make(map[meta.ID][]meta.ID)                                   // 角色继承图
 	for _, node := range roles {
 		if node.ID.IsZero() {
 			return invalidGraph("invalid role node %s", node.ID)

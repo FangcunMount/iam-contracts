@@ -9,15 +9,15 @@ import (
 
 // AuthenticationState 是一次原子认证状态更新后的结果。
 type AuthenticationState struct {
-	FailedAttempts int
-	LockedUntil    *time.Time
-	NewlyLocked    bool
+	FailedAttempts int        // 迁移后的失败次数
+	LockedUntil    *time.Time // 迁移后的锁定截止时间
+	NewlyLocked    bool       // 本次迁移是否新触发锁定
 }
 
 // MaterialRotation 描述身份核验成功时可选的凭据材料轮换。
 type MaterialRotation struct {
-	Material []byte
-	Algo     *string
+	Material []byte  // 待替换的长期认证材料
+	Algo     *string // 新的算法标识；为空时保留当前算法
 }
 
 // ==================== Driven Ports (被驱动端口) ====================

@@ -8,38 +8,58 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
+// keySegmentCount 资源键段数
 const keySegmentCount = 4
 
+// resourceSegmentPattern 资源键各段的具体名称格式。
 var resourceSegmentPattern = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
 
-// Key identifies a protected resource in the catalog.
+// Key 表达授权资源键或通配资源范围；目录和请求须通过 ValidateTarget 校验。
 type Key string
 
-// Pattern identifies a resource object or resource family in authorization facts.
-type Pattern string
-
+// NewKey 规范化四段资源键，允许各段使用完整通配符 *。
 func NewKey(value string) (Key, error) {
 	value = strings.TrimSpace(value)
-	parts, err := parseFourSegmentResource(value, "resource key")
-	if err != nil {
+	if _, err := parseFourSegmentResource(value, "resource key"); err != nil {
 		return "", err
-	}
-	for i := 0; i < keySegmentCount-1; i++ {
-		if parts[i] == "*" {
-			return "", perrors.WithCode(code.ErrInvalidArgument, "resource key wildcard is only allowed in name segment")
-		}
 	}
 	return Key(value), nil
 }
 
-func NewPattern(value string) (Pattern, error) {
-	value = strings.TrimSpace(value)
-	if _, err := parseFourSegmentResource(value, "resource pattern"); err != nil {
-		return "", err
+// ValidateTarget 校验目录或请求的资源键：前三段必须具体，末段允许 *。
+// 同时校验完整格式，避免直接类型转换绕过构造规则。
+func (k Key) ValidateTarget() error {
+	parts, err := parseFourSegmentResource(k.String(), "resource key")
+	if err != nil {
+		return err
 	}
-	return Pattern(value), nil
+	for i := 0; i < keySegmentCount-1; i++ {
+		if parts[i] == "*" {
+			return perrors.WithCode(code.ErrInvalidArgument, "resource key wildcard is only allowed in name segment")
+		}
+	}
+	return nil
 }
 
+// Covers 判断授予资源键是否覆盖目标资源；按四段逐段匹配，* 覆盖该段任意值。
+func (k Key) Covers(candidate Key) bool {
+	granted, err := parseFourSegmentResource(k.String(), "resource key")
+	if err != nil {
+		return false
+	}
+	target, err := parseFourSegmentResource(candidate.String(), "resource")
+	if err != nil {
+		return false
+	}
+	for i := range granted {
+		if granted[i] != "*" && granted[i] != target[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// parseFourSegmentResource 解析四段资源。
 func parseFourSegmentResource(value, label string) ([]string, error) {
 	if value == "" {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "%s is required", label)
@@ -64,70 +84,42 @@ func parseFourSegmentResource(value, label string) ([]string, error) {
 	return parts, nil
 }
 
+// String 返回资源键字符串。
 func (k Key) String() string {
 	return string(k)
 }
 
+// App 返回资源所属应用。
 func (k Key) App() string {
 	return appSegment(string(k))
 }
 
+// Domain 返回资源所属业务域。
 func (k Key) Domain() string {
 	return segment(string(k), 1)
 }
 
+// Type 返回资源类型。
 func (k Key) Type() string {
 	return segment(string(k), 2)
 }
 
-func (p Pattern) String() string {
-	return string(p)
-}
-
-func (p Pattern) App() string {
-	return appSegment(string(p))
-}
-
-// Covers reports whether this policy pattern covers the candidate resource.
-// Both values must use the canonical four-segment resource shape.
-func (p Pattern) Covers(candidate Pattern) bool {
-	policyParts, err := parseFourSegmentResource(p.String(), "resource pattern")
-	if err != nil {
-		return false
-	}
-	candidateParts, err := parseFourSegmentResource(candidate.String(), "resource")
-	if err != nil {
-		return false
-	}
-	for index := range policyParts {
-		if policyParts[index] == "*" {
-			continue
-		}
-		if policyParts[index] != candidateParts[index] {
-			return false
-		}
-	}
-	return true
-}
-
+// AppNameFromKey 从资源键获取应用名称。
 func AppNameFromKey(value string) (string, bool) {
 	key, err := NewKey(value)
 	if err != nil {
-		pattern, patternErr := NewPattern(value)
-		if patternErr != nil {
-			return "", false
-		}
-		app := pattern.App()
-		return app, app != "" && app != "*"
+		return "", false
 	}
 	app := key.App()
 	return app, app != "" && app != "*"
 }
 
+// appSegment 返回应用段。
 func appSegment(value string) string {
 	return segment(value, 0)
 }
 
+// segment 返回指定索引的段。
 func segment(value string, index int) string {
 	parts := strings.Split(value, ":")
 	if len(parts) != keySegmentCount {

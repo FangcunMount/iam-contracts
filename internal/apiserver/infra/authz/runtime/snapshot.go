@@ -105,7 +105,7 @@ func BuildSnapshot(dataset Dataset, loadedAt time.Time, providers ...objectattri
 		if !ok {
 			return nil, perrors.WithCode(code.ErrInvalidArgument, "权限授予引用了不存在的角色")
 		}
-		if err := (role.Role{ManagementProtection: roleRecord.ManagementProtection}).ValidateGrant(grant.ResourcePattern, grant.Action); err != nil {
+		if err := (role.Role{ManagementProtection: roleRecord.ManagementProtection}).ValidateGrant(grant.ResourceKey, grant.Action); err != nil {
 			return nil, err
 		}
 		if grant.ResourceID.Uint64() != 0 {
@@ -117,7 +117,7 @@ func BuildSnapshot(dataset Dataset, loadedAt time.Time, providers ...objectattri
 				return nil, err
 			}
 		}
-		if err := objectattributeadmission.RequireCoverage(coverage, grant.ResourcePatternString(), grant.Constraints); err != nil {
+		if err := objectattributeadmission.RequireCoverage(coverage, grant.ResourceKeyString(), grant.Constraints); err != nil {
 			return nil, fmt.Errorf("grant %s: %w", grant.ID, err)
 		}
 		owned := grant.Clone()
@@ -172,11 +172,11 @@ func (s *Snapshot) SubjectSnapshot(sub subject.Ref, appName string) (authorizati
 	modeByPermission := make(map[string]authorizationapp.AuthorizationMode)
 	for _, roleName := range effectiveRoles {
 		for _, grant := range s.grantsByRole[roleName] {
-			resourceApp, ok := resource.AppNameFromKey(grant.ResourcePatternString())
+			resourceApp, ok := resource.AppNameFromKey(grant.ResourceKeyString())
 			if !ok || resourceApp != appName {
 				continue
 			}
-			key := grant.ResourcePatternString() + "\x00" + grant.ActionString()
+			key := grant.ResourceKeyString() + "\x00" + grant.ActionString()
 			mode := authorizationapp.ModeObjectCheckRequired
 			if !grant.IsConditional() {
 				mode = authorizationapp.ModeUnconditional
