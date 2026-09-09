@@ -21,22 +21,27 @@ type OAuthState struct{}
 
 // OAuthStateSpec OAuth state 挑战规格。
 type OAuthStateSpec struct {
-	Scene       string
-	AppID       string
-	RedirectURI string
-	UserID      string
-	Nonce       string
-	State       string
-	TTL         time.Duration
-	Now         time.Time
+	// ---- 流程绑定 ----
+	Scene       string // OAuth 挑战使用场景
+	AppID       string // 发起 OAuth 流程的应用 ID
+	RedirectURI string // 流程绑定的回调地址
+	UserID      string // 可选的发起用户标识，供绑定流程恢复
+
+	// ---- 流程校验值 ----
+	Nonce string // 流程随机值，为空时生成
+	State string // 回调校验值，为空时生成
+
+	// ---- 生命周期参数 ----
+	TTL time.Duration // 挑战有效时长
+	Now time.Time     // 签发时间依据
 }
 
 // OAuthStateIssueResult OAuth state 签发结果。
 type OAuthStateIssueResult struct {
-	Challenge *AuthChallenge
-	State     string
-	Nonce     string
-	ExpiresAt time.Time
+	Challenge *AuthChallenge // 待保存的 OAuth 挑战
+	State     string         // 交付 OAuth 流程的 state 值
+	Nonce     string         // 随流程保存的随机值
+	ExpiresAt time.Time      // 挑战失效时间
 }
 
 // Issue 创建 OAuth state 挑战实体。
@@ -112,23 +117,23 @@ func IssueOAuthState(spec OAuthStateSpec) (*OAuthStateIssueResult, error) {
 
 // OAuthStateContext OAuth state 消费后恢复的上下文。
 type OAuthStateContext struct {
-	AppID       string
-	RedirectURI string
-	Nonce       string
-	UserID      string
+	AppID       string // 挑战绑定的应用 ID
+	RedirectURI string // 挑战绑定的回调地址
+	Nonce       string // 挑战保存的随机值
+	UserID      string // 挑战保存的可选发起用户标识
 }
 
 // VerifyOAuthStateInput OAuth state 校验输入。
 type VerifyOAuthStateInput struct {
-	Scene string
-	State string
-	Now   time.Time
+	Scene string    // 需要匹配的使用场景
+	State string    // 回调携带的 state 值
+	Now   time.Time // 核验时间依据
 }
 
 // OAuthStateVerification OAuth state 校验输出。
 type OAuthStateVerification struct {
-	Context OAuthStateContext
-	Result  VerificationResult
+	Context OAuthStateContext  // 验证成功后恢复的流程上下文
+	Result  VerificationResult // 挑战验证及消费结果
 }
 
 // OAuthStateVerifier OAuth state 校验器。

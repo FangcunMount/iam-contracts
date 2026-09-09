@@ -114,7 +114,7 @@ func prepareProfileCapabilities(tx *gorm.DB, state retirementState) error {
 		}
 	}
 	for _, g := range state.Grants {
-		if g.LegacyDomain != "platform" || g.DeletedAt != nil || g.RevokedAt != nil || !resource.Pattern(g.ResourcePattern).Covers(resource.Pattern(profileKey)) {
+		if g.LegacyDomain != "platform" || g.DeletedAt != nil || g.RevokedAt != nil || !resource.Key(g.ResourcePattern).Covers(resource.Key(profileKey)) {
 			continue
 		}
 		action := ""

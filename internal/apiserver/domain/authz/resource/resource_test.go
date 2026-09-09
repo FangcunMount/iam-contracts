@@ -54,23 +54,28 @@ func TestResourceChangeDescriptionTrimsWhitespace(t *testing.T) {
 	require.Equal(t, "notes", resource.Description)
 }
 
-func TestResourceSeparatesExactKeysFromTrustedPatterns(t *testing.T) {
+func TestResourceSeparatesTargetKeysFromWildcardRanges(t *testing.T) {
 	key, err := NewKey("scale:form:template:*")
 	require.NoError(t, err)
 	require.Equal(t, "scale:form:template:*", key.String())
-	_, err = NewKey("example:*:*:*")
+	rangeKey, err := NewKey("example:*:*:*")
+	require.NoError(t, err)
+	err = rangeKey.ValidateTarget()
 	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 
-	pattern, err := NewPattern("example:*:*:*")
+	pattern, err := NewKey("example:*:*:*")
 	require.NoError(t, err)
-	assessment, err := NewPattern("example:catalog:collection:documents")
+	assessment, err := NewKey("example:catalog:collection:documents")
 	require.NoError(t, err)
 	require.True(t, pattern.Covers(assessment))
 }
 
 func TestConcreteActionRejectsLegacyExpressions(t *testing.T) {
 	for _, value := range []string{"read|list", ".*", "*"} {
-		_, err := NewAction(value)
+		action, err := NewAction(value)
+		if err == nil {
+			err = action.ValidateConcrete()
+		}
 		require.True(t, perrors.IsCode(err, code.ErrInvalidArgument), value)
 	}
 }

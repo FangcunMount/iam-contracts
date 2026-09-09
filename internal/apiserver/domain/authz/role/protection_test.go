@@ -26,14 +26,14 @@ func TestStandardRoleCannotAcquireSensitiveCapabilities(t *testing.T) {
 		t.Run(tc.pattern+"/"+tc.action, func(t *testing.T) {
 			r, err := NewRole("operator", "操作员")
 			require.NoError(t, err)
-			err = r.ValidateGrant(resource.Pattern(tc.pattern), resource.ActionPattern(tc.action))
+			err = r.ValidateGrant(resource.Key(tc.pattern), resource.Action(tc.action))
 			if tc.sensitive {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 			}
 			r.ManagementProtection = ManagementProtected
-			require.NoError(t, r.ValidateGrant(resource.Pattern(tc.pattern), resource.ActionPattern(tc.action)))
+			require.NoError(t, r.ValidateGrant(resource.Key(tc.pattern), resource.Action(tc.action)))
 		})
 	}
 }

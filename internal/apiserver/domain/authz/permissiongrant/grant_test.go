@@ -56,13 +56,13 @@ func TestSystemWildcardGrantMustBeUnconditional(t *testing.T) {
 	require.NoError(t, err)
 	_, err = permissiongrant.NewSystem(
 		meta.FromUint64(10), resource.ResourceID{},
-		"*:*:*:*", permissiongrant.WildcardAction, conditional, "bootstrap",
+		"*:*:*:*", resource.WildcardAction.String(), conditional, "bootstrap",
 	)
 	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 
 	grant, err := permissiongrant.NewSystem(
 		meta.FromUint64(10), resource.ResourceID{},
-		"*:*:*:*", permissiongrant.WildcardAction, constraint.Empty(), "bootstrap",
+		"*:*:*:*", resource.WildcardAction.String(), constraint.Empty(), "bootstrap",
 	)
 	require.NoError(t, err)
 	action, err := resource.NewAction("retry")
@@ -114,4 +114,16 @@ func TestConditionalGrantCannotAuthorizeCollectionOrBatchActions(t *testing.T) {
 		)
 		require.True(t, perrors.IsCode(err, code.ErrInvalidArgument), action)
 	}
+}
+
+func TestGrantResourceKeyKeepsCatalogAndSystemBoundaries(t *testing.T) {
+	catalog, err := resource.NewResource("example:catalog:collection:documents", []string{"read"}, resource.WithID(resource.NewResourceID(20)), resource.WithDisplayName("Documents"))
+	require.NoError(t, err)
+	grant, err := permissiongrant.New(meta.FromUint64(10), catalog.ID, "example:*:*:*", "read", constraint.Empty(), "operator")
+	require.NoError(t, err) // Creation and catalog binding remain separate checks.
+	require.Error(t, grant.ValidateAgainst(catalog))
+	grant, err = permissiongrant.NewSystem(meta.FromUint64(10), resource.ResourceID{}, "example:*:*:*", "*", constraint.Empty(), "bootstrap")
+	require.NoError(t, err)
+	require.True(t, grant.CoversResource(catalog.Key))
+	require.False(t, grant.CoversResource(resource.Key("other:catalog:collection:documents")))
 }

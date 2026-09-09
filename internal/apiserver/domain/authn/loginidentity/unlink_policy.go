@@ -22,16 +22,16 @@ const (
 
 // UnlinkReauthRequest 是解绑近期身份核验策略的确定性输入。
 type UnlinkReauthRequest struct {
-	Identity               *LoginIdentity
-	CurrentLoginIdentityID meta.ID
-	AuthenticatedAt        *time.Time
-	Now                    time.Time
+	Identity               *LoginIdentity // 待解绑的登录身份
+	CurrentLoginIdentityID meta.ID        // 当前会话使用的登录身份 ID
+	AuthenticatedAt        *time.Time     // 最近一次身份核验的时间依据
+	Now                    time.Time      // 评估解绑准入的当前时间
 }
 
 // UnlinkPolicy 封装解绑安全策略。
 type UnlinkPolicy struct {
-	RecentAuthWindow time.Duration
-	FutureClockSkew  time.Duration
+	RecentAuthWindow time.Duration // 允许使用近期认证的时间窗口
+	FutureClockSkew  time.Duration // 允许认证时间领先当前时间的最大偏差
 }
 
 // DefaultUnlinkPolicy 返回默认解绑策略。

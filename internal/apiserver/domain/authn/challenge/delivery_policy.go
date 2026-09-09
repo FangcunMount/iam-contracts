@@ -4,20 +4,30 @@ import "time"
 
 // SMSOTPDeliveryConfig 是发送策略解析的原始配置输入。
 type SMSOTPDeliveryConfig struct {
-	TTL         time.Duration // 过期时间
-	Cooldown    time.Duration // 冷却时间
-	CodeLen     int           // 验证码长度
-	HourlyLimit int           // 小时限制
-	DailyLimit  int           // 每日限制
+	// ---- 有效期与冷却 ----
+	TTL      time.Duration // 验证码有效时长
+	Cooldown time.Duration // 再次发送的冷却时长
+
+	// ---- 验证码规格 ----
+	CodeLen int // 验证码位数
+
+	// ---- 发送频率限制 ----
+	HourlyLimit int // 每小时发送次数上限
+	DailyLimit  int // 每日发送次数上限
 }
 
 // SMSOTPDeliveryPolicy 描述短信 OTP 发送治理策略。
 type SMSOTPDeliveryPolicy struct {
-	TTL         time.Duration // 过期时间
-	Cooldown    time.Duration // 冷却时间
-	CodeLen     int           // 验证码长度
-	HourlyLimit int           // 小时限制
-	DailyLimit  int           // 每日限制
+	// ---- 有效期与冷却 ----
+	TTL      time.Duration // 验证码有效时长
+	Cooldown time.Duration // 再次发送的冷却时长
+
+	// ---- 验证码规格 ----
+	CodeLen int // 验证码位数
+
+	// ---- 发送频率限制 ----
+	HourlyLimit int // 每小时发送次数上限
+	DailyLimit  int // 每日发送次数上限
 }
 
 const (

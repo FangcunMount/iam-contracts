@@ -15,14 +15,14 @@ import (
 
 // PasswordProofSpec 密码身份核验证明规格，用于构造 PasswordProof 实例
 type PasswordProofSpec struct {
-	Username string
-	Password string
+	Username string // 待核验的用户名
+	Password string // 本次核验提供的明文密码，不作为长期凭据保存
 }
 
 // PasswordProof 用户名+密码身份核验证明
 type PasswordProof struct {
-	Username string
-	Password string
+	Username string // 待核验的用户名
+	Password string // 本次核验提供的明文密码，不作为长期凭据保存
 }
 
 // 确保 PasswordProof 实现了 IdentityProof 接口

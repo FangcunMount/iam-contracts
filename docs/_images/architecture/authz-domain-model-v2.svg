@@ -75,7 +75,7 @@
   <text x="700" y="764" text-anchor="middle" class="field">ID · Key = app:domain:type:name</text>
   <text x="700" y="794" text-anchor="middle" class="field">Actions[] · ObjectAttributeSchema[]</text>
   <text x="700" y="832" text-anchor="middle" class="note">定义能力合同，不保存业务对象实例</text>
-  <text x="700" y="858" text-anchor="middle" class="note">请求 Resource 必须具体；Grant Pattern 可逐段通配</text>
+  <text x="700" y="858" text-anchor="middle" class="note">请求键前三段具体；系统授予键可逐段通配</text>
 
   <rect x="1080" y="600" width="560" height="320" class="card"/>
   <text x="1360" y="640" text-anchor="middle" class="stereo">AUTHORIZATION FACT · AGGREGATE ROOT</text>
@@ -83,7 +83,7 @@
   <text x="1360" y="711" text-anchor="middle" class="note">code: permissiongrant.Grant</text>
   <line x1="1115" y1="730" x2="1605" y2="730" class="divider"/>
   <text x="1360" y="762" text-anchor="middle" class="field">RoleID · ResourceID</text>
-  <text x="1360" y="790" text-anchor="middle" class="field">ResourcePattern · ActionPattern</text>
+  <text x="1360" y="790" text-anchor="middle" class="field">ResourceKey · Action</text>
   <text x="1360" y="818" text-anchor="middle" class="field">ConstraintSet · GrantKey · RevokedAt</text>
   <text x="1360" y="856" text-anchor="middle" class="note">managed：catalog resource + concrete action</text>
   <text x="1360" y="882" text-anchor="middle" class="note">system：仅可信 bootstrap，可无条件 wildcard</text>

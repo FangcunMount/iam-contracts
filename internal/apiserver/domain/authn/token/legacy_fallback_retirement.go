@@ -19,8 +19,8 @@ type LegacyFallbackRetirementPolicy struct {
 // AllFallbackMetricsZeroSince must be reset whenever any governed fallback
 // counter increases.
 type LegacyFallbackObservation struct {
-	AllInstancesCurrentSince    time.Time
-	AllFallbackMetricsZeroSince time.Time
+	AllInstancesCurrentSince    time.Time // 所有实例均运行当前实现的起始时间
+	AllFallbackMetricsZeroSince time.Time // 所有兼容回退指标持续为零的起始时间
 }
 
 func NewLegacyFallbackRetirementPolicy(

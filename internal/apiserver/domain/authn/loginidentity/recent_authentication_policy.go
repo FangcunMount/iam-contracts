@@ -5,8 +5,8 @@ import "time"
 // RecentAuthenticationPolicy 判断原始认证时间是否足够新，供绑定与敏感解绑共用。
 // 调用方只能传入可信认证上下文中的时间，不能使用请求时间或令牌刷新时间。
 type RecentAuthenticationPolicy struct {
-	Window          time.Duration
-	FutureClockSkew time.Duration
+	Window          time.Duration // 近期认证有效窗口
+	FutureClockSkew time.Duration // 允许的未来时钟偏差
 }
 
 // Allows 要求认证时间存在、在窗口内，且不超出允许的未来时钟偏差。

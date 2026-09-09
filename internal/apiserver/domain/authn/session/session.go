@@ -21,25 +21,30 @@ const (
 
 // Session 会话，表示一次登录会话。
 type Session struct {
+	// ---- 会话标识 ----
 	SessionID string // 会话ID
 
-	// —— 身份信息 —— //
+	// ---- 主体与登录身份 ----
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
 
-	// —— 认证信息 —— //
+	// ---- 原始认证事实 ----
 	AuthContext authentication.AuthenticationContext // 原始认证事实，刷新时保留认证方式与认证时间
 
-	// —— 业务信息 —— //
+	// ---- 业务快照 ----
 	BusinessContext BusinessContext // 会话业务快照，当前新登录为空
 
-	// —— 状态信息 —— //
-	Status       Status     // 状态
-	CreatedAt    time.Time  // 创建时间
-	ExpiresAt    time.Time  // 过期时间
+	// ---- 生命周期状态 ----
+	Status Status // 会话生命周期状态，实际可用性还需检查 ExpiresAt
+
+	// ---- 生命周期时间 ----
+	CreatedAt time.Time // 创建时间
+	ExpiresAt time.Time // 过期时间
+
+	// ---- 撤销记录 ----
 	RevokedAt    *time.Time // 撤销时间
 	RevokeReason string     // 撤销原因
-	RevokedBy    string     // 撤销者
+	RevokedBy    string     // 撤销者标识
 }
 
 // NewWithContexts 创建包含认证事实与业务快照的会话，并复制可变字段。

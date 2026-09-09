@@ -17,11 +17,11 @@ const (
 
 // AuthenticationTransition 描述一次身份核验状态迁移意图。
 type AuthenticationTransition struct {
-	CredentialID  meta.ID
-	Kind          AuthenticationTransitionKind
-	Now           time.Time
-	LockoutPolicy LockoutPolicy
-	Rotation      *MaterialRotation
+	CredentialID  meta.ID                      // 目标凭据 ID
+	Kind          AuthenticationTransitionKind // 需要执行的认证状态迁移动作
+	Now           time.Time                    // 本次迁移使用的时间
+	LockoutPolicy LockoutPolicy                // 记录失败时使用的锁定策略
+	Rotation      *MaterialRotation            // 记录成功时可附带的材料轮换
 }
 
 // ApplyAuthenticationTransition 将迁移意图应用到实体，返回迁移后的认证状态摘要。

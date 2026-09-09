@@ -33,19 +33,19 @@ type LoginIdentityCredentialRepository interface {
 
 // PasswordCredentialLookup 是密码认证所需的长期凭据读模型
 type PasswordCredentialLookup struct {
-	CredentialID meta.ID
-	PasswordHash string
-	Status       credDomain.CredentialStatus
-	LockedUntil  *time.Time
+	CredentialID meta.ID                     // 供核验及结果记录使用的凭据 ID
+	PasswordHash string                      // 密码哈希，不是明文密码
+	Status       credDomain.CredentialStatus // 凭据启用状态
+	LockedUntil  *time.Time                  // 凭据锁定截止时间
 }
 
 // LoginIdentityLookup 是登录身份的读模型
 type LoginIdentityLookup struct {
-	LoginIdentityID  meta.ID
-	UserID           meta.ID
-	Provider         loginidentity.Provider
-	Realm            string
-	Identifier       string
-	GlobalIdentifier string
-	Status           loginidentity.Status
+	LoginIdentityID  meta.ID                // 登录身份 ID
+	UserID           meta.ID                // 归属的 IAM 用户 ID
+	Provider         loginidentity.Provider // 登录身份提供者
+	Realm            string                 // 提供者内的身份命名空间
+	Identifier       string                 // 命名空间内的登录标识
+	GlobalIdentifier string                 // 可选的跨命名空间标识
+	Status           loginidentity.Status   // 登录身份当前状态
 }

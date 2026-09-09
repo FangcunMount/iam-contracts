@@ -124,7 +124,7 @@ func toPermissionGrantResponse(grant *permissionGrantDomain.Grant) dto.Permissio
 	}
 	return dto.PermissionGrantResponse{
 		ID: grant.ID, RoleID: grant.RoleID,
-		ResourceID: meta.FromUint64(grant.ResourceID.Uint64()), ResourcePattern: grant.ResourcePatternString(),
+		ResourceID: meta.FromUint64(grant.ResourceID.Uint64()), ResourcePattern: grant.ResourceKeyString(),
 		Action: grant.ActionString(), ConstraintSet: grant.Constraints,
 		GrantKey: grant.GrantKey, GrantedBy: grant.GrantedBy, Active: grant.IsActive(),
 	}

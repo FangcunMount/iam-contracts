@@ -8,21 +8,22 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-// Type identifies the kind of principal that can receive authorization.
+// Type 主体类型
 type Type string
 
 const (
-	TypeUser    Type = "user"
-	TypeGroup   Type = "group"
-	TypeService Type = "service"
+	TypeUser    Type = "user"    // 用户
+	TypeGroup   Type = "group"   // 组
+	TypeService Type = "service" // 服务
 )
 
-// Ref is the business principal being authorized.
+// Ref 引用被分配角色或接受鉴权的主体，不表达身份已验证或主体确实存在。
 type Ref struct {
-	Type Type
-	ID   meta.ID
+	Type Type    // 主体类型
+	ID   meta.ID // 对应主体类型下的主体 ID
 }
 
+// NewRef 创建主体引用
 func NewRef(subjectType Type, id meta.ID) (Ref, error) {
 	subjectType = Type(strings.TrimSpace(string(subjectType)))
 	if subjectType == "" {
@@ -39,11 +40,12 @@ func NewRef(subjectType Type, id meta.ID) (Ref, error) {
 	return Ref{Type: subjectType, ID: id}, nil
 }
 
+// NewUserRef 创建用户引用
 func NewUserRef(id meta.ID) (Ref, error) {
 	return NewRef(TypeUser, id)
 }
 
-// ParseRef parses the canonical <type>:<id> representation of a subject.
+// ParseRef 解析 <type>:<id> 形式的主体引用。
 func ParseRef(value string) (Ref, error) {
 	parts := strings.SplitN(strings.TrimSpace(value), ":", 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
@@ -56,10 +58,12 @@ func ParseRef(value string) (Ref, error) {
 	return NewRef(Type(parts[0]), id)
 }
 
+// IsZero 判断主体引用是否为空
 func (r Ref) IsZero() bool {
 	return r.Type == "" || r.ID.IsZero()
 }
 
+// String 返回主体引用字符串表示
 func (r Ref) String() string {
 	if r.IsZero() {
 		return ""

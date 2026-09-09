@@ -8,29 +8,34 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
+// Type 属性类型
 type Type string
 
 const (
-	TypeString Type = "string"
-	TypeInt64  Type = "int64"
-	TypeBool   Type = "bool"
+	TypeString Type = "string" // 字符串
+	TypeInt64  Type = "int64"  // 整数
+	TypeBool   Type = "bool"   // 布尔值
 )
 
+// Definition 属性定义
 type Definition struct {
-	Key                 string   `json:"key"`
-	Type                Type     `json:"type"`
-	AllowedStringValues []string `json:"allowed_string_values,omitempty"`
+	Key                 string   `json:"key"`                             // 对象属性键，使用 object.<name>
+	Type                Type     `json:"type"`                            // 属性值类型
+	AllowedStringValues []string `json:"allowed_string_values,omitempty"` // 字符串允许值；空列表表示不限制枚举值
 }
 
+// Schema 对象属性定义契约，声明鉴权属性的类型及允许值。
 type Schema struct {
-	Version    uint32       `json:"version"`
-	Attributes []Definition `json:"attributes"`
+	Version    uint32       `json:"version"`    // 属性定义格式版本
+	Attributes []Definition `json:"attributes"` // 属性定义列表
 }
 
+// EmptySchema 空属性模式
 func EmptySchema() Schema {
 	return Schema{Version: 1, Attributes: []Definition{}}
 }
 
+// NewSchema 创建属性模式
 func NewSchema(definitions []Definition) (Schema, error) {
 	if len(definitions) > 32 {
 		return Schema{}, perrors.WithCode(code.ErrInvalidArgument, "attribute schema supports at most 32 attributes")
@@ -53,6 +58,7 @@ func NewSchema(definitions []Definition) (Schema, error) {
 	return Schema{Version: 1, Attributes: normalized}, nil
 }
 
+// Normalize 规范化属性模式
 func (s Schema) Normalize() (Schema, error) {
 	if s.Version != 0 && s.Version != 1 {
 		return Schema{}, perrors.WithCode(code.ErrInvalidArgument, "unsupported attribute schema version: %d", s.Version)
@@ -60,6 +66,7 @@ func (s Schema) Normalize() (Schema, error) {
 	return NewSchema(s.Attributes)
 }
 
+// Find 查找属性定义
 func (s Schema) Find(key string) (Definition, bool) {
 	key = strings.TrimSpace(key)
 	for _, definition := range s.Attributes {
@@ -70,6 +77,7 @@ func (s Schema) Find(key string) (Definition, bool) {
 	return Definition{}, false
 }
 
+// normalizeDefinition 规范化属性定义
 func normalizeDefinition(definition Definition) (Definition, error) {
 	definition.Key = strings.TrimSpace(definition.Key)
 	if !strings.HasPrefix(definition.Key, "object.") || len(definition.Key) == len("object.") {
@@ -102,7 +110,7 @@ func normalizeDefinition(definition Definition) (Definition, error) {
 	return definition, nil
 }
 
-// Clone returns an independent attribute contract.
+// Clone 深复制属性定义及允许值列表，返回独立的属性契约。
 func (s Schema) Clone() Schema {
 	out := s
 	if s.Attributes != nil {

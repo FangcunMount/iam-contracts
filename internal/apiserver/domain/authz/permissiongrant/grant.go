@@ -14,28 +14,34 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-const WildcardAction = "*"
-
+// Grant 权限授予实体
 type Grant struct {
-	ID meta.ID
+	ID meta.ID // 授予事实ID
 
-	RoleID          meta.ID
-	ResourceID      resource.ResourceID
-	ResourcePattern resource.Pattern
-	Action          resource.ActionPattern
-	Constraints     constraint.Set
-	GrantKey        string
-	GrantedBy       string
-	GrantedAt       time.Time
-	RevokedAt       *time.Time
-	Version         uint32
+	// ---- 授予内容 ----
+	RoleID      meta.ID             // 角色ID
+	ResourceID  resource.ResourceID // 资源ID
+	ResourceKey resource.Key        // 授予的资源键或通配范围；目录关联规则由 ValidateAgainst 校验
+	Action      resource.Action     // 授予动作；普通赋权仅允许具体动作，系统赋权可用 *
+	Constraints constraint.Set      // 约束集合
+
+	// ---- 内容标识 ----
+	GrantKey string // 根据授予内容计算的规范化唯一键
+
+	// ---- 授予来源 ----
+	GrantedBy string    // 授予者标识，可来自用户或内部引导过程
+	GrantedAt time.Time // 授权时间
+
+	// ---- 撤销状态与记录版本 ----
+	RevokedAt *time.Time // 撤销时间
+	Version   uint32     // 授予记录版本，非全局授权事实版本
 }
 
 func New(
 	roleID meta.ID,
 
 	resourceID resource.ResourceID,
-	resourcePattern string,
+	resourceKey string,
 	action string,
 	constraints constraint.Set,
 	grantedBy string,
@@ -47,29 +53,31 @@ func New(
 	if err != nil {
 		return Grant{}, err
 	}
-	return newGrant(roleID, resourceID, resourcePattern, concreteAction.String(), constraints, grantedBy, false)
+	if err := concreteAction.ValidateConcrete(); err != nil {
+		return Grant{}, err
+	}
+	return newGrant(roleID, resourceID, resourceKey, concreteAction.String(), constraints, grantedBy, false)
 }
 
-// NewSystem creates a trusted bootstrap/migration grant. It is the only path
-// that accepts a resource pattern without a catalog resource ID or wildcard
-// action, and it never accepts conditional constraints.
+// NewSystem 创建可信引导或迁移使用的无条件权限授予。
+// 新建授权时，只有此入口允许资源 ID 为空或动作使用通配符；不接受条件约束。
 func NewSystem(
 	roleID meta.ID,
 
 	resourceID resource.ResourceID,
-	resourcePattern string,
+	resourceKey string,
 	action string,
 	constraints constraint.Set,
 	grantedBy string,
 ) (Grant, error) {
-	return newGrant(roleID, resourceID, resourcePattern, action, constraints, grantedBy, true)
+	return newGrant(roleID, resourceID, resourceKey, action, constraints, grantedBy, true)
 }
 
+// newGrant 创建权限授予实体
 func newGrant(
 	roleID meta.ID,
-
 	resourceID resource.ResourceID,
-	resourcePattern string,
+	resourceKey string,
 	action string,
 	constraints constraint.Set,
 	grantedBy string,
@@ -78,7 +86,7 @@ func newGrant(
 	if roleID.IsZero() {
 		return Grant{}, perrors.WithCode(code.ErrInvalidArgument, "role id is required")
 	}
-	pattern, err := resource.NewPattern(resourcePattern)
+	key, err := resource.NewKey(resourceKey)
 	if err != nil {
 		return Grant{}, err
 	}
@@ -91,10 +99,13 @@ func newGrant(
 		if !constraints.IsUnconditional() {
 			return Grant{}, perrors.WithCode(code.ErrInvalidArgument, "system wildcard grants must be unconditional")
 		}
-		if action != WildcardAction {
+		if action != resource.WildcardAction.String() {
 			concrete, concreteErr := resource.NewAction(action)
 			if concreteErr != nil {
 				return Grant{}, concreteErr
+			}
+			if err := concrete.ValidateConcrete(); err != nil {
+				return Grant{}, err
 			}
 			action = concrete.String()
 		}
@@ -106,12 +117,15 @@ func newGrant(
 		if concreteErr != nil {
 			return Grant{}, concreteErr
 		}
+		if err := concrete.ValidateConcrete(); err != nil {
+			return Grant{}, err
+		}
 		action = concrete.String()
 	}
 	if !constraints.IsUnconditional() && isBulkAction(action) {
 		return Grant{}, perrors.WithCode(code.ErrInvalidArgument, "conditional grants cannot authorize list, search, or batch actions")
 	}
-	actionPattern, err := resource.NewActionPattern(action)
+	actionValue, err := resource.NewAction(action)
 	if err != nil {
 		return Grant{}, err
 	}
@@ -120,14 +134,13 @@ func newGrant(
 		return Grant{}, perrors.WithCode(code.ErrInvalidArgument, "granted by is required")
 	}
 	grant := Grant{
-
-		RoleID:          roleID,
-		ResourceID:      resourceID,
-		ResourcePattern: pattern,
-		Action:          actionPattern,
-		Constraints:     constraints,
-		GrantedBy:       grantedBy,
-		Version:         1,
+		RoleID:      roleID,
+		ResourceID:  resourceID,
+		ResourceKey: key,
+		Action:      actionValue,
+		Constraints: constraints,
+		GrantedBy:   grantedBy,
+		Version:     1,
 	}
 	grant.GrantKey, err = grant.computeKey()
 	if err != nil {
@@ -157,7 +170,7 @@ func (g Grant) ValidateAgainst(catalogResource resource.Resource) error {
 	if catalogResource.ID.Uint64() != g.ResourceID.Uint64() {
 		return perrors.WithCode(code.ErrInvalidArgument, "permission grant resource does not match catalog resource")
 	}
-	if catalogResource.KeyString() != g.ResourcePatternString() {
+	if catalogResource.KeyString() != g.ResourceKeyString() {
 		return perrors.WithCode(code.ErrInvalidArgument, "permission grant resource pattern must equal catalog resource key")
 	}
 	if !catalogResource.HasAction(g.ActionString()) {
@@ -171,11 +184,11 @@ func (g Grant) Evaluate(attributes constraint.Attributes) (constraint.Evaluation
 }
 
 func (g Grant) MatchesAction(action resource.Action) bool {
-	return g.Action.String() == WildcardAction || g.Action.Matches(action)
+	return g.Action.String() == resource.WildcardAction.String() || g.Action.Matches(action)
 }
 
-func (g Grant) CoversResource(candidate resource.Pattern) bool {
-	return g.ResourcePattern.Covers(candidate)
+func (g Grant) CoversResource(candidate resource.Key) bool {
+	return g.ResourceKey.Covers(candidate)
 }
 
 func (g *Grant) Revoke(at time.Time) error {
@@ -192,7 +205,7 @@ func (g *Grant) Revoke(at time.Time) error {
 	return nil
 }
 
-func (g Grant) ResourcePatternString() string { return g.ResourcePattern.String() }
+func (g Grant) ResourceKeyString() string { return g.ResourceKey.String() }
 
 func (g Grant) ActionString() string { return g.Action.String() }
 
@@ -208,7 +221,7 @@ func (g Grant) computeKey() (string, error) {
 	payload := fmt.Sprintf("v2\x00%d\x00%d\x00%s\x00%s\x00%s",
 		g.RoleID.Uint64(),
 		g.ResourceID.Uint64(),
-		g.ResourcePatternString(),
+		g.ResourceKeyString(),
 		g.ActionString(),
 		constraints,
 	)
@@ -228,14 +241,14 @@ func Restore(
 	roleID meta.ID,
 
 	resourceID resource.ResourceID,
-	resourcePattern string,
+	resourceKey string,
 	action string,
 	constraints constraint.Set,
 	grantedBy string,
 	options RestoreOptions,
 ) (Grant, error) {
-	system := resourceID.Uint64() == 0 || action == WildcardAction
-	grant, err := newGrant(roleID, resourceID, resourcePattern, action, constraints, grantedBy, system)
+	system := resourceID.Uint64() == 0 || action == resource.WildcardAction.String()
+	grant, err := newGrant(roleID, resourceID, resourceKey, action, constraints, grantedBy, system)
 	if err != nil {
 		return Grant{}, err
 	}

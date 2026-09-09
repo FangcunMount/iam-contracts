@@ -15,14 +15,14 @@ import (
 
 // PhoneOTPProofSpec 手机号验证码身份核验证明规格
 type PhoneOTPProofSpec struct {
-	PhoneE164 string // 手机号
-	OTP       string // 验证码
+	PhoneE164 string // E.164 格式手机号
+	OTP       string // 本次核验提供的短信验证码
 }
 
 // PhoneOTPProof 身份核验证明（手机号+验证码）
 type PhoneOTPProof struct {
-	PhoneE164 string // 手机号
-	OTP       string // 验证码
+	PhoneE164 string // E.164 格式手机号
+	OTP       string // 本次核验提供的短信验证码
 }
 
 // 确保 PhoneOTPProof 实现了 IdentityProof 接口

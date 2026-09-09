@@ -16,6 +16,7 @@ type Operator string
 
 const OperatorEQ Operator = "eq"
 
+// Value 带类型的属性值，必须且只能设置一个与 Type 对应的值字段。
 type Value struct {
 	Type   attribute.Type `json:"type"`
 	String *string        `json:"string,omitempty"`
@@ -37,6 +38,7 @@ func BoolValue(value bool) Value {
 
 func (v Value) Validate() error { return validateValue(v) }
 
+// Predicate 针对一个对象属性的条件，当前只支持等值比较。
 type Predicate struct {
 	Key      string   `json:"key"`
 	Operator Operator `json:"operator"`
@@ -47,9 +49,10 @@ func Equal(key string, value Value) Predicate {
 	return Predicate{Key: key, Operator: OperatorEQ, Value: value}
 }
 
+// Set 授权条件集合；所有条件均满足时匹配，空集合表示无条件。
 type Set struct {
-	Version uint32      `json:"version"`
-	AllOf   []Predicate `json:"all_of"`
+	Version uint32      `json:"version"` // 条件表达格式版本
+	AllOf   []Predicate `json:"all_of"`  // 必须同时满足的条件
 }
 
 // Attributes is the normalized internal representation of trusted, typed

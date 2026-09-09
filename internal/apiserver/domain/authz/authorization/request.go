@@ -11,11 +11,14 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
+// ObjectContext 本次鉴权的对象标识及对象事实；属性由拥有对象的业务服务可信提供。
 type ObjectContext struct {
-	ObjectID   string
-	Attributes constraint.Attributes
+	// ---- 对象事实 ----
+	ObjectID   string                // 业务对象标识；提供属性时必填
+	Attributes constraint.Attributes // 可信的带类型对象属性
 }
 
+// NewObjectContext 创建对象上下文
 func NewObjectContext(objectID string, attributes constraint.Attributes) (ObjectContext, error) {
 	objectID = strings.TrimSpace(objectID)
 	if len(attributes) > 0 && objectID == "" {
@@ -35,14 +38,16 @@ func NewObjectContext(objectID string, attributes constraint.Attributes) (Object
 	return ObjectContext{ObjectID: objectID, Attributes: copyAttributes}, nil
 }
 
+// Request 一次访问的授权判定请求。
 type Request struct {
-	Subject subject.Ref
+	Subject subject.Ref // 接受本次鉴权的主体引用，不是身份证明
 
-	ResourceKey resource.Pattern
-	Action      resource.Action
-	Object      ObjectContext
+	ResourceKey resource.Key    // 资源键
+	Action      resource.Action // 本次请求执行的动作
+	Object      ObjectContext   // 对象上下文
 }
 
+// NewRequest 创建请求
 func NewRequest(sub subject.Ref, resourceKey, action string, object ObjectContext) (Request, error) {
 	if sub.IsZero() {
 		return Request{}, perrors.WithCode(code.ErrInvalidArgument, "subject is required")
@@ -51,18 +56,24 @@ func NewRequest(sub subject.Ref, resourceKey, action string, object ObjectContex
 	if err != nil {
 		return Request{}, err
 	}
-	resourceValue := resource.Pattern(resourceKeyValue)
+	if err := resourceKeyValue.ValidateTarget(); err != nil {
+		return Request{}, err
+	}
 	actionValue, err := resource.NewAction(action)
 	if err != nil {
+		return Request{}, err
+	}
+	if err := actionValue.ValidateConcrete(); err != nil {
 		return Request{}, err
 	}
 	object, err = NewObjectContext(object.ObjectID, object.Attributes)
 	if err != nil {
 		return Request{}, err
 	}
-	return Request{Subject: sub, ResourceKey: resourceValue, Action: actionValue, Object: object}, nil
+	return Request{Subject: sub, ResourceKey: resourceKeyValue, Action: actionValue, Object: object}, nil
 }
 
+// ValidateAttributes 验证属性
 func ValidateAttributes(schema attribute.Schema, attributes constraint.Attributes) error {
 	normalized, err := schema.Normalize()
 	if err != nil {
