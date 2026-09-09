@@ -199,6 +199,8 @@ import (
 
 ### 1. 最简配置
 
+`AllowedIssuer` 必须来自可信部署配置，表示权威颁发者。调用级 `ExpectedIssuer` 是可选的额外约束，不能覆盖它；两者不一致时，本地和远程策略都会拒绝验证，且不会请求 JWKS 或远程验证服务。`ExpectedAudience` 可以按当前资源选择，但必须非空。
+
 ```go
 jwksManager, err := authjwks.NewJWKSManager(
     &sdk.JWKSConfig{
