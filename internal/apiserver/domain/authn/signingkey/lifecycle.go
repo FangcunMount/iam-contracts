@@ -9,13 +9,14 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
-// Status is the IAM lifecycle state of a signing key; it is not a public key-set field.
+// Status 密钥状态，表示一个密钥的生命周期状态。
+// 它不是公共密钥集字段。
 type Status uint8
 
 const (
-	StatusActive Status = iota + 1
-	StatusGrace
-	StatusRetired
+	StatusActive  Status = iota + 1 // 密钥处于 Active 状态，表示密钥处于活动状态，可以签名和验证。
+	StatusGrace                     // 密钥处于 Grace 状态，表示密钥处于过渡期，可以验证但不能签名。
+	StatusRetired                   // 密钥处于 Retired 状态，表示密钥已退役，不能再使用。
 )
 
 func (s Status) String() string {
@@ -31,14 +32,17 @@ func (s Status) String() string {
 	}
 }
 
+// CanSign 判断是否可以签名
 func (s Status) CanSign() bool {
 	return s == StatusActive
 }
 
+// CanVerify 判断是否可以验证
 func (s Status) CanVerify() bool {
 	return s == StatusActive || s == StatusGrace
 }
 
+// EnterGrace 进入 Grace 状态
 func (s Status) EnterGrace() (Status, error) {
 	if s != StatusActive {
 		return s, errors.WithCode(code.ErrInvalidStateTransition, "can only enter grace period from active state")
@@ -46,6 +50,7 @@ func (s Status) EnterGrace() (Status, error) {
 	return StatusGrace, nil
 }
 
+// Retire 退役一个密钥
 func (s Status) Retire() (Status, error) {
 	if s != StatusGrace {
 		return s, errors.WithCode(code.ErrInvalidStateTransition, "can only retire from grace period")
@@ -53,13 +58,15 @@ func (s Status) Retire() (Status, error) {
 	return StatusRetired, nil
 }
 
-// RotationPolicy constrains automatic signing-key rotation and public overlap.
+// RotationPolicy 旋转策略，约束自动密钥旋转和公共重叠。
 type RotationPolicy struct {
-	RotationInterval   time.Duration
-	GracePeriod        time.Duration
-	MaxPublishableKeys int
+	RotationInterval   time.Duration // 旋转间隔
+	GracePeriod        time.Duration // 宽容期
+	MaxPublishableKeys int           // 最大可发布密钥数
 }
 
+// DefaultRotationPolicy 默认旋转策略
+// 默认旋转间隔为 30 天，宽容期为 7 天，最大可发布密钥数为 3。
 func DefaultRotationPolicy() RotationPolicy {
 	return RotationPolicy{
 		RotationInterval:   30 * 24 * time.Hour,
@@ -68,6 +75,7 @@ func DefaultRotationPolicy() RotationPolicy {
 	}
 }
 
+// Validate 验证旋转策略
 func (p RotationPolicy) Validate() error {
 	if p.RotationInterval <= 0 {
 		return errors.WithCode(code.ErrInvalidRotationInterval, "rotation interval must be positive")

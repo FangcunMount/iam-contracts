@@ -8,13 +8,13 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
-// loader 用于加载会话。
+// loader 会话加载器，用于加载会话。
 type loader struct {
-	store    Store
-	lifetime LifetimePolicy
+	store    Store          // 会话存储
+	lifetime LifetimePolicy // 会话生命周期策略
 }
 
-// newLoader 创建 loader。
+// newLoader 创建会话加载器。
 func newLoader(store Store, lifetime LifetimePolicy) *loader {
 	return &loader{store: store, lifetime: lifetime}
 }
@@ -24,12 +24,12 @@ func NewLoader(store Store, lifetime LifetimePolicy) Loader {
 	return newLoader(store, lifetime)
 }
 
-// Get 获取会话。
+// Get 获取会话
 func (l *loader) Get(ctx context.Context, sessionID string) (*Session, error) {
 	return l.store.Get(ctx, sessionID)
 }
 
-// GetActive 获取活跃会话。
+// GetActive 获取活跃会话
 func (l *loader) GetActive(ctx context.Context, sessionID string) (*Session, error) {
 	session, err := l.Get(ctx, sessionID)
 	if err != nil {

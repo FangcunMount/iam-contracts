@@ -59,11 +59,13 @@ func TestCreatorCreateCapsInitialExpiryBySessionMaxTTL(t *testing.T) {
 		UserID:          meta.FromUint64(1),
 		LoginIdentityID: meta.FromUint64(2),
 		AuthContext:     authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, now),
-	}, TokenContext{})
+	})
 
 	require.NoError(t, err)
 	require.NotNil(t, session)
 	require.Same(t, session, store.session)
+	require.Equal(t, BusinessContext{}, session.BusinessContext)
+	require.Equal(t, []string{"pwd"}, session.AuthContext.AMRStrings())
 	require.WithinDuration(t, now.Add(24*time.Hour), session.ExpiresAt, time.Second)
 }
 
@@ -147,15 +149,12 @@ func TestExtenderExtendToRefreshExpiryCapsBySessionBoundary(t *testing.T) {
 	require.WithinDuration(t, session.CreatedAt.Add(24*time.Hour), store.extendedExpiresAt, time.Second)
 }
 
-func TestCreatorPreservesIndependentTokenContextSnapshot(t *testing.T) {
-	store := &lifecycleStoreStub{}
-	creator := NewCreator(store, NewLifetimePolicy(time.Hour, 24*time.Hour))
+func TestNewWithContextsPreservesIndependentBusinessContextSnapshot(t *testing.T) {
 	principal := &authentication.Principal{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2)}
-	tokenContext := TokenContext{OrgID: meta.FromUint64(3), Attributes: map[string]string{"key": "value"}}
-	sess, err := creator.Create(context.Background(), principal, tokenContext)
-	require.NoError(t, err)
-	require.Equal(t, tokenContext, sess.TokenContext)
-	tokenContext.Attributes["key"] = "changed"
-	require.Equal(t, "value", sess.TokenContext.Attributes["key"])
+	businessContext := BusinessContext{OrgID: meta.FromUint64(3), Attributes: map[string]string{"key": "value"}}
+	sess := NewWithContexts("sid", principal.UserID, principal.LoginIdentityID, principal.AuthContext, businessContext, time.Now().Add(time.Hour))
+	require.Equal(t, businessContext, sess.BusinessContext)
+	businessContext.Attributes["key"] = "changed"
+	require.Equal(t, "value", sess.BusinessContext.Attributes["key"])
 	require.Equal(t, principal.UserID, sess.UserID)
 }

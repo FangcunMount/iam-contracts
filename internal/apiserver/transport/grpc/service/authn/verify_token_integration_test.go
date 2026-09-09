@@ -164,7 +164,7 @@ func TestIntegration_LoginIssueToken_VerifyToken_GRPC_REST_TenantConsistent(t *t
 	}
 
 	// 与登录成功后的签发路径一致：IssueToken → access_token JWT
-	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{OrgID: meta.FromUint64(9001)})
+	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.BusinessContext{OrgID: meta.FromUint64(9001)})
 	require.NoError(t, err)
 	require.NotNil(t, pair)
 	require.NotNil(t, pair.AccessToken)
@@ -247,7 +247,7 @@ func TestIntegration_VerifyToken_RejectsIssuerOrAudienceMismatch(t *testing.T) {
 		UserID:          meta.FromUint64(7),
 		LoginIdentityID: meta.FromUint64(8),
 	}
-	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{})
+	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.BusinessContext{})
 	require.NoError(t, err)
 
 	grpcSrv := &authServiceServer{tokenVerifier: tokens.Verifier}
@@ -276,7 +276,7 @@ func TestIntegration_VerifyToken_GRPC_IncludeMetadata(t *testing.T) {
 		UserID:          meta.FromUint64(42),
 		LoginIdentityID: meta.FromUint64(43),
 	}
-	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{})
+	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.BusinessContext{})
 	require.NoError(t, err)
 
 	grpcSrv := &authServiceServer{tokenVerifier: tokens.Verifier}
@@ -289,12 +289,14 @@ func TestIntegration_VerifyToken_GRPC_IncludeMetadata(t *testing.T) {
 	require.NotNil(t, gresp.Metadata)
 }
 
-func issueForTest(t *testing.T, ctx context.Context, tokens testTokenStack, p *authentication.Principal, c sessiondomain.TokenContext) (*tokenapp.TokenPair, error) {
+func issueForTest(t *testing.T, ctx context.Context, tokens testTokenStack, p *authentication.Principal, c sessiondomain.BusinessContext) (*tokenapp.TokenPair, error) {
 	t.Helper()
-	sess, err := tokens.creator.Create(ctx, p, c)
+	sess, err := tokens.creator.Create(ctx, p)
 	if err != nil {
 		return nil, err
 	}
+	// 模拟已加载的历史会话业务快照；当前登录创建器不生成业务上下文。
+	sess.BusinessContext = c.Clone()
 	return tokens.InitialTokenIssuer.IssueInitialTokens(ctx, sess)
 }
 
@@ -303,7 +305,7 @@ func TestIntegrationIssuanceFactsMatchSignedJWTAndDTO(t *testing.T) {
 	calls := 0
 	tokens, codec := newTestTokenStack(t, func() time.Time { calls++; return now })
 	principal := &authentication.Principal{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2)}
-	pair, err := issueForTest(t, context.Background(), tokens, principal, sessiondomain.TokenContext{})
+	pair, err := issueForTest(t, context.Background(), tokens, principal, sessiondomain.BusinessContext{})
 	require.NoError(t, err)
 	require.Equal(t, 1, calls)
 	claims, err := codec.VerifySignatureAndClaims(context.Background(), pair.AccessToken.Value)
@@ -327,7 +329,7 @@ func TestIntegrationOldAudienceRefreshAndRevoke(t *testing.T) {
 	ctx := context.Background()
 	tokens, codec := newTestTokenStack(t)
 	principal := &authentication.Principal{UserID: meta.FromUint64(1), LoginIdentityID: meta.FromUint64(2), AuthContext: authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, time.Now())}
-	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.TokenContext{})
+	pair, err := issueForTest(t, ctx, tokens, principal, sessiondomain.BusinessContext{})
 	require.NoError(t, err)
 	legacyClaims, err := codec.VerifySignatureAndClaims(ctx, pair.AccessToken.Value)
 	require.NoError(t, err)

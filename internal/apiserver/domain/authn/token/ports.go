@@ -38,7 +38,7 @@ type AccessTokenSignatureVerifier interface {
 }
 
 // LegacyAuthenticationContextSnapshotDecoder 只负责读取迁移前 RefreshToken 中的认证上下文快照。
-// 新写入以 Session.AuthContext/TokenContext 为权威来源，不再生成该快照。
+// 新写入以 Session.AuthContext/BusinessContext 为权威来源，不再生成该快照。
 type LegacyAuthenticationContextSnapshotDecoder interface {
 	Decode(map[string]string) map[string]any
 }

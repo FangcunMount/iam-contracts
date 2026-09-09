@@ -33,7 +33,7 @@ func TestSignInCompletionRequiresAdmissionBeforeCreatingAuthenticationState(t *t
 		AdmissionPolicy: policy, SessionCreator: creator, SessionRevoker: &recordingSessionRevoker{}, TokenSetMinter: minter, RefreshTokenSaver: saver,
 	})
 
-	result, err := establisher.completeLogin(context.Background(), principal, sessiondomain.TokenContext{})
+	result, err := establisher.completeLogin(context.Background(), principal)
 
 	require.Nil(t, result)
 	require.Equal(t, code.ErrUserBlocked, perrors.ParseCoder(err).Code())
@@ -52,7 +52,7 @@ func TestSignInCompletionDoesNotCreateAuthenticationStateWhenAdmissionCannotBeEv
 		SessionCreator:  creator,
 	})
 
-	result, err := establisher.completeLogin(context.Background(), principal, sessiondomain.TokenContext{})
+	result, err := establisher.completeLogin(context.Background(), principal)
 
 	require.Nil(t, result)
 	var evaluation *admissiondomain.EvaluationError
@@ -80,11 +80,9 @@ func TestSignInCompletionCreatesResultAndPersistsInitialRefreshToken(t *testing.
 		SessionCreator: creator, SessionRevoker: &recordingSessionRevoker{}, TokenSetMinter: minter, RefreshTokenSaver: saver,
 	})
 
-	tokenContext := sessiondomain.TokenContext{OrgID: meta.FromUint64(42)}
-	result, err := establisher.completeLogin(context.Background(), principal, tokenContext)
+	result, err := establisher.completeLogin(context.Background(), principal)
 
 	require.NoError(t, err)
-	require.Equal(t, tokenContext, creator.tokenContext)
 	require.Equal(t, principal.UserID, result.UserID)
 	require.Equal(t, set.AccessToken.Value, result.TokenPair.AccessToken.Value)
 	require.Same(t, sess, minter.session)
@@ -101,14 +99,12 @@ func (s admissionPolicyStub) Evaluate(context.Context, admissiondomain.Subject) 
 }
 
 type recordingSessionCreator struct {
-	tokenContext sessiondomain.TokenContext
-	session      *sessiondomain.Session
-	called       bool
+	session *sessiondomain.Session
+	called  bool
 }
 
-func (s *recordingSessionCreator) Create(_ context.Context, _ *authentication.Principal, tokenContext sessiondomain.TokenContext) (*sessiondomain.Session, error) {
+func (s *recordingSessionCreator) Create(_ context.Context, _ *authentication.Principal) (*sessiondomain.Session, error) {
 	s.called = true
-	s.tokenContext = tokenContext.Clone()
 	return s.session, nil
 }
 
@@ -147,7 +143,7 @@ func testPrincipal() *authentication.Principal {
 func testSession(principal *authentication.Principal) *sessiondomain.Session {
 	return sessiondomain.NewWithContexts(
 		"session-id", principal.UserID, principal.LoginIdentityID,
-		principal.AuthContext, sessiondomain.TokenContext{}, time.Now().Add(time.Hour),
+		principal.AuthContext, sessiondomain.BusinessContext{}, time.Now().Add(time.Hour),
 	)
 }
 
@@ -195,7 +191,7 @@ func TestSignInCompletionCompensatesFailedEstablishmentEvenAfterRequestCancellat
 				})
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
-				result, err := establisher.completeLogin(ctx, principal, sessiondomain.TokenContext{})
+				result, err := establisher.completeLogin(ctx, principal)
 				require.Nil(t, result)
 				require.Error(t, err)
 				if stage != "incomplete" {
@@ -219,7 +215,7 @@ func TestSignInCompletionRequiresCompensationBeforeCreatingSession(t *testing.T)
 		AdmissionPolicy: admissionPolicyStub{decision: admissiondomain.Admit(admissiondomain.Subject{})},
 		SessionCreator:  creator, TokenSetMinter: &recordingTokenSetMinter{}, RefreshTokenSaver: &recordingRefreshTokenSaver{},
 	})
-	_, err := establisher.completeLogin(context.Background(), testPrincipal(), sessiondomain.TokenContext{})
+	_, err := establisher.completeLogin(context.Background(), testPrincipal())
 	require.Error(t, err)
 	require.False(t, creator.called)
 }
@@ -236,7 +232,7 @@ func TestSignInCompletionRejectsMismatchedSessionBeforeMintingAndCompensates(t *
 		SessionCreator:  &recordingSessionCreator{session: sess}, SessionRevoker: revoker,
 		TokenSetMinter: minter, RefreshTokenSaver: saver,
 	})
-	result, err := establisher.completeLogin(context.Background(), principal, sessiondomain.TokenContext{})
+	result, err := establisher.completeLogin(context.Background(), principal)
 	require.Error(t, err)
 	require.Nil(t, result)
 	require.False(t, minter.called)

@@ -72,7 +72,7 @@ type VerifyOptions struct {
 	ForceRemote       bool
 	IncludeMetadata   bool
 	ExpectedAudience  []string
-	ExpectedIssuer    string
+	ExpectedIssuer    string // 可选的额外颁发者约束，不能覆盖配置中的 AllowedIssuer。
 	AllowedTokenTypes []authnv3.TokenType
 }
 

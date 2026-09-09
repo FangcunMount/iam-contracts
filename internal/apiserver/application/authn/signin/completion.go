@@ -10,12 +10,11 @@ import (
 	admissionapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/admission"
 	admissiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/admission"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 // completeLogin 编排登录准入、会话建立和令牌颁发，并负责失败补偿。
-func (s *SignIn) completeLogin(ctx context.Context, principal *authentication.Principal, tokenContext sessiondomain.TokenContext) (*Result, error) {
+func (s *SignIn) completeLogin(ctx context.Context, principal *authentication.Principal) (*Result, error) {
 	// 参数校验
 	if principal == nil {
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "principal is required")
@@ -45,7 +44,7 @@ func (s *SignIn) completeLogin(ctx context.Context, principal *authentication.Pr
 	}
 
 	// 会话建立
-	sess, err := s.deps.SessionCreator.Create(ctx, principal, tokenContext)
+	sess, err := s.deps.SessionCreator.Create(ctx, principal)
 	if err != nil {
 		if perrors.IsCode(err, code.ErrInvalidArgument) {
 			return nil, err

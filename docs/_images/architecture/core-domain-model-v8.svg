@@ -267,7 +267,7 @@
     <text x="2490" y="1166" text-anchor="middle" class="root-title">Session｜认证会话</text>
     <line x1="2240" y1="1189" x2="2740" y2="1189" class="divider"/>
     <text x="2265" y="1225" class="field">SessionID · UserID · LoginIdentityID</text>
-    <text x="2265" y="1259" class="field">AuthContext · TokenContext</text>
+    <text x="2265" y="1259" class="field">AuthContext · BusinessContext</text>
     <text x="2265" y="1293" class="field">Status · CreatedAt · ExpiresAt</text>
   </g>
   <rect x="2770" y="1093" width="320" height="105" rx="13" class="vo"/>
@@ -275,8 +275,8 @@
   <text x="2930" y="1158" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt;</text>
   <text x="2930" y="1185" text-anchor="middle" class="vo-body">active · revoked · expired</text>
   <rect x="2770" y="1223" width="320" height="95" rx="13" class="vo"/>
-  <text x="2930" y="1257" text-anchor="middle" class="vo-title">AuthContext / TokenContext</text>
-  <text x="2930" y="1288" text-anchor="middle" class="vo-body">认证上下文 · 令牌投影权威事实</text>
+  <text x="2930" y="1257" text-anchor="middle" class="vo-title">会话上下文</text>
+  <text x="2930" y="1288" text-anchor="middle" class="vo-body">认证事实 · 业务快照</text>
 
   <!-- AuthN aggregate 08 RefreshToken -->
   <rect x="1300" y="1430" width="870" height="365" rx="22" class="aggregate-boundary boundary-authn"/>

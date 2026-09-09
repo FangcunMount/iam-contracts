@@ -10,31 +10,31 @@ import (
 
 // ================== Session Role Interfaces ==================
 
-// Creator 负责创建会话并应用初始生命周期规则。
+// Creator 会话创建器，负责创建会话并应用初始生命周期规则。
 type Creator interface {
-	Create(ctx context.Context, principal *authentication.Principal, tokenContext TokenContext) (*Session, error)
+	Create(ctx context.Context, principal *authentication.Principal) (*Session, error)
 }
 
-// Loader 负责读取会话，并统一判断会话是否仍然有效。
+// Loader 会话加载器，负责读取会话，并统一判断会话是否仍然有效。
 type Loader interface {
 	Get(ctx context.Context, sessionID string) (*Session, error)
 	GetActive(ctx context.Context, sessionID string) (*Session, error)
 }
 
-// Revoker 负责撤销单个或批量会话。
+// Revoker 会话撤销器，负责撤销单个或批量会话。
 type Revoker interface {
 	Revoke(ctx context.Context, sessionID string, reason string, revokedBy string) error
 	RevokeByUser(ctx context.Context, userID meta.ID, reason string, revokedBy string) error
 	RevokeByLoginIdentity(ctx context.Context, loginIdentityID meta.ID, reason string, revokedBy string) error
 }
 
-// Extender 负责会话延期，并应用会话最大生命周期上限。
+// Extender 会话延期器，负责会话延期，并应用会话最大生命周期上限。
 type Extender interface {
 	Extend(ctx context.Context, sessionID string, expiresAt time.Time) error
 	ExtendToRefreshExpiry(ctx context.Context, session *Session, refreshExpiresAt time.Time) error
 }
 
-// RefreshExpirer 负责计算下一次 refresh token 的领域过期时间。
+// RefreshExpirer 刷新过期时间计算器，负责计算下一次 refresh token 的领域过期时间。
 type RefreshExpirer interface {
 	NextRefreshExpiresAt(now time.Time, session *Session) (time.Time, error)
 }

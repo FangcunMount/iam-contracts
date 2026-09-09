@@ -37,7 +37,7 @@ JWT 负责可验证声明，Redis 负责在线撤销和续期状态，MySQL 负�
 `grant.Issuer.Issue` 的实际步骤是：
 
 1. 通过 `AdmissionPolicy` 确认 User 与 LoginIdentity 允许建立认证状态；
-2. 用 Principal 和独立 TokenContext 创建 Session，并校验主体与会话的一致性；
+2. 用 Principal 创建 Session（业务上下文为空），并校验主体与会话的一致性；
 3. 由 `TokenSetMinter` 在 Session 上 mint `UserTokenSet`；
 4. 把 RefreshToken 保存到 Redis；
 5. 返回 `登录结果 = Principal + TokenPair`。
@@ -73,9 +73,11 @@ Session 创建成功后，若 mint 返回错误或不完整的 TokenSet，或 `S
 
 Session 在 Redis 中除主记录外，还维护按 User 和 LoginIdentity 的索引，以支持“退出全部设备”、禁用身份和封禁用户后的批量撤销。多键更新使用 WATCH 重试，失败必须显式返回，不能假装部分索引已经一致。
 
-新 Session 只保存强类型 `AuthContext` 与 `TokenContext`：前者持有 Method/Realm/AMR/AuthenticatedAt，后者只持有
-OrgID 和准入后的 Attributes。Redis `schema_version=2` 不再写 `AuthMethod/Realm/AMR/SessionClaims`
-副本；读取历史 v1 JSON 时由 Redis adapter 映射为新模型，手机号和 provider 标识不会进入新的 TokenContext。
+Session 保存强类型 `AuthContext` 与 `BusinessContext`：前者持有 Method/Realm/AMR/AuthenticatedAt，后者持有 OrgID 和 Attributes 业务快照，供初次签发和刷新投影 Claims。BusinessContext 不是 Token 生成结果，不保存 TokenID、签发时间、过期时间或签名。
+
+当前登录没有非空业务上下文来源，`SessionCreator.Create(ctx, principal)` 创建的 BusinessContext 为空。保留该快照用于延续历史会话的组织及附加属性，不代表登录已查询组织或准入策略已生成这些属性；快照也不代表实时业务状态。
+
+Redis `schema_version=2` 继续使用原有 `token_context` JSON 字段映射 BusinessContext，以兼容已存储数据及旧版本读取，不引入存储迁移。新写入不再包含 `AuthMethod/Realm/AMR/SessionClaims` 副本；读取历史 v1 JSON 时由 Redis adapter 映射为新模型，手机号和 provider 标识不会进入新的业务快照。
 
 ## 4. Refresh Token Rotation
 

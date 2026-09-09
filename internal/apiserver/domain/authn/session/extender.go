@@ -8,13 +8,13 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
-// extender 用于延长会话过期时间。
+// extender 会话延期器，用于延长会话过期时间。
 type extender struct {
-	store    Store
-	lifetime LifetimePolicy
+	store    Store          // 会话存储
+	lifetime LifetimePolicy // 会话生命周期策略
 }
 
-// newExtender 创建 extender。
+// newExtender 创建会话延期器。
 func newExtender(store Store, lifetime LifetimePolicy) *extender {
 	return &extender{store: store, lifetime: lifetime}
 }
@@ -24,12 +24,12 @@ func NewExtender(store Store, lifetime LifetimePolicy) Extender {
 	return newExtender(store, lifetime)
 }
 
-// Extend 延长会话过期时间。
+// Extend 延长会话过期时间
 func (e *extender) Extend(ctx context.Context, sessionID string, expiresAt time.Time) error {
 	return e.store.Extend(ctx, sessionID, expiresAt)
 }
 
-// ExtendToRefreshExpiry 延长会话到 refresh token 过期时间。
+// ExtendToRefreshExpiry 延长会话到 refresh token 过期时间
 func (e *extender) ExtendToRefreshExpiry(ctx context.Context, session *Session, refreshExpiresAt time.Time) error {
 	if session == nil {
 		return perrors.WithCode(code.ErrInvalidArgument, "session is required")

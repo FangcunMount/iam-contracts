@@ -16,7 +16,7 @@ func TestSessionForRefreshPrefersSessionContext(t *testing.T) {
 	sess := sessiondomain.NewWithContexts(
 		"sid", meta.FromUint64(1), meta.FromUint64(2),
 		authentication.RestoreAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, authenticatedAt),
-		sessiondomain.TokenContext{}, time.Now().Add(time.Hour),
+		sessiondomain.BusinessContext{}, time.Now().Add(time.Hour),
 	)
 
 	refresh := RestoreRefreshToken("rid", "rval", "sid", meta.FromUint64(1), meta.FromUint64(2), time.Now().Add(time.Hour), LegacyRefreshContext{AMR: []string{"otp"}, SessionClaims: map[string]string{"tenant_domain": "legacy"}})
@@ -28,6 +28,24 @@ func TestSessionForRefreshPrefersSessionContext(t *testing.T) {
 	require.Equal(t, "global", restored.AuthContext.Realm)
 	require.Equal(t, []string{"pwd"}, restored.AuthContext.AMRStrings())
 	require.Equal(t, authenticatedAt, restored.AuthContext.AuthenticatedAt)
+}
+
+func TestSessionForRefreshPreservesBusinessClaimsOverLegacySnapshot(t *testing.T) {
+	s := &refresher{legacyContextDecoder: normalizeLegacyContextDecoder(nil)}
+	authenticatedAt := time.Unix(1700000100, 0).UTC()
+	sess := sessiondomain.NewWithContexts("sid", meta.FromUint64(1), meta.FromUint64(2),
+		authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, authenticatedAt),
+		sessiondomain.BusinessContext{OrgID: meta.FromUint64(42), Attributes: map[string]string{"tenant_domain": "current"}}, time.Now().Add(time.Hour))
+	refresh := RestoreRefreshToken("rid", "value", "sid", sess.UserID, sess.LoginIdentityID, time.Now().Add(time.Hour),
+		LegacyRefreshContext{SessionClaims: map[string]string{"org_id": "99", "tenant_domain": "legacy"}})
+
+	restored := s.sessionForRefresh(sess, refresh)
+	claims := accessTokenClaimsFromSession(restored)
+	require.Equal(t, meta.FromUint64(42), claims.OrgID)
+	require.Equal(t, "current", claims.Attributes["tenant_domain"])
+	require.Equal(t, authenticatedAt, claims.AuthenticatedAt)
+	restored.BusinessContext.Attributes["tenant_domain"] = "changed"
+	require.Equal(t, "current", sess.BusinessContext.Attributes["tenant_domain"])
 }
 
 func TestSessionForRefreshFallsBackToRefreshToken(t *testing.T) {
@@ -65,9 +83,9 @@ func TestAccessTokenClaimsProjectionKeepsAuthContextAuthenticatedAt(t *testing.T
 	authenticatedAt := time.Unix(1700000200, 0).UTC()
 	sess := &sessiondomain.Session{
 		SessionID: "sid-1", UserID: meta.FromUint64(10), LoginIdentityID: meta.FromUint64(20),
-		TokenContext: sessiondomain.TokenContext{},
-		AuthContext:  authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, authenticatedAt),
-		CreatedAt:    time.Unix(1, 0).UTC(),
+		BusinessContext: sessiondomain.BusinessContext{},
+		AuthContext:     authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, authenticatedAt),
+		CreatedAt:       time.Unix(1, 0).UTC(),
 	}
 	got := accessTokenClaimsFromSession(sess)
 	require.Equal(t, authenticatedAt, got.AuthenticatedAt)

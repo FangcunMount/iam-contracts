@@ -7,7 +7,7 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-// Store 负责持久化认证会话与批量索引。
+// Store 会话存储，负责持久化认证会话与批量索引。
 type Store interface {
 	// —— 保存会话 —— //
 	Save(ctx context.Context, session *Session) error

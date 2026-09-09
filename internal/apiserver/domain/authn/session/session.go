@@ -19,17 +19,19 @@ const (
 	StatusExpired Status = "expired"
 )
 
-// Session 表示一次登录会话。
+// Session 会话，表示一次登录会话。
 type Session struct {
-	SessionID string
+	SessionID string // 会话ID
 
 	// —— 身份信息 —— //
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
 
 	// —— 认证信息 —— //
-	AuthContext  authentication.AuthenticationContext
-	TokenContext TokenContext
+	AuthContext authentication.AuthenticationContext // 原始认证事实，刷新时保留认证方式与认证时间
+
+	// —— 业务信息 —— //
+	BusinessContext BusinessContext // 会话业务快照，当前新登录为空
 
 	// —— 状态信息 —— //
 	Status       Status     // 状态
@@ -40,12 +42,12 @@ type Session struct {
 	RevokedBy    string     // 撤销者
 }
 
-// NewWithContexts 创建以强类型认证上下文和令牌上下文为权威来源的会话。
-func NewWithContexts(sessionID string, userID, loginIdentityID meta.ID, authContext authentication.AuthenticationContext, tokenContext TokenContext, expiresAt time.Time) *Session {
+// NewWithContexts 创建包含认证事实与业务快照的会话，并复制可变字段。
+func NewWithContexts(sessionID string, userID, loginIdentityID meta.ID, authContext authentication.AuthenticationContext, businessContext BusinessContext, expiresAt time.Time) *Session {
 	now := time.Now()
 	return &Session{
 		SessionID: sessionID, UserID: userID, LoginIdentityID: loginIdentityID,
-		AuthContext: authContext.Clone(), TokenContext: tokenContext.Clone(),
+		AuthContext: authContext.Clone(), BusinessContext: businessContext.Clone(),
 		Status: StatusActive, CreatedAt: now, ExpiresAt: expiresAt,
 	}
 }

@@ -28,7 +28,7 @@ func TestSessionStoreWritesTypedV2ContextWithoutLegacyClaims(t *testing.T) {
 	sess := session.NewWithContexts(
 		"sid-v2", meta.FromUint64(1), meta.FromUint64(2),
 		authentication.RestoreAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, authenticatedAt),
-		sessiondomain.TokenContext{OrgID: meta.FromUint64(9), Attributes: map[string]string{"auth_time": authenticatedAt.Format(time.RFC3339)}},
+		sessiondomain.BusinessContext{OrgID: meta.FromUint64(9), Attributes: map[string]string{"auth_time": authenticatedAt.Format(time.RFC3339)}},
 		time.Now().Add(time.Hour),
 	)
 	require.NoError(t, store.Save(context.Background(), sess))
@@ -45,7 +45,22 @@ func TestSessionStoreWritesTypedV2ContextWithoutLegacyClaims(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, authentication.MethodPassword, loaded.AuthContext.Method)
 	require.Equal(t, authenticatedAt, loaded.AuthContext.AuthenticatedAt)
-	require.Equal(t, meta.FromUint64(9), loaded.TokenContext.OrgID)
+	require.Equal(t, meta.FromUint64(9), loaded.BusinessContext.OrgID)
+}
+
+func TestSessionPayloadPreservesExistingV2BusinessClaims(t *testing.T) {
+	payload := []byte(`{"schema_version":2,"SessionID":"sid-v2","UserID":1,"LoginIdentityID":2,"auth_context":{"method":"password","realm":"global","amr":["pwd"],"authenticated_at":"2026-01-02T03:04:05Z"},"token_context":{"org_id":42,"attributes":{"tenant_domain":"example"}},"Status":"active"}`)
+	sess, err := decodeSessionPayload(payload)
+	require.NoError(t, err)
+	require.Equal(t, meta.FromUint64(42), sess.BusinessContext.OrgID)
+	require.Equal(t, "example", sess.BusinessContext.Attributes["tenant_domain"])
+
+	encoded, err := encodeSessionPayload(sess)
+	require.NoError(t, err)
+	var wire map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(encoded, &wire))
+	require.JSONEq(t, `{"org_id":42,"attributes":{"tenant_domain":"example"}}`, string(wire["token_context"]))
+	require.NotContains(t, wire, "business_context")
 }
 
 func TestSessionStoreReadsHistoricalDomainJSONIntoTypedContexts(t *testing.T) {
@@ -70,8 +85,8 @@ func TestSessionStoreReadsHistoricalDomainJSONIntoTypedContexts(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, authentication.MethodPassword, loaded.AuthContext.Method)
 	require.Equal(t, authenticatedAt, loaded.AuthContext.AuthenticatedAt)
-	require.Equal(t, meta.FromUint64(9), loaded.TokenContext.OrgID)
-	require.NotContains(t, loaded.TokenContext.Attributes, "phone_number")
+	require.Equal(t, meta.FromUint64(9), loaded.BusinessContext.OrgID)
+	require.NotContains(t, loaded.BusinessContext.Attributes, "phone_number")
 }
 
 func TestSessionStoreSaveAndRevokeAreIndexConsistent(t *testing.T) {
@@ -173,7 +188,7 @@ func newRedisTestSession(id string) *session.Session {
 		meta.FromUint64(1001),
 		meta.FromUint64(2001),
 		authentication.NewAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, time.Now().UTC()),
-		sessiondomain.TokenContext{},
+		sessiondomain.BusinessContext{},
 		time.Now().Add(time.Hour),
 	)
 }

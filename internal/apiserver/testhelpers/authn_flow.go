@@ -15,7 +15,7 @@ type AuthnFlow struct{}
 func (AuthnFlow) Evaluate(_ context.Context, s admission.Subject) (admission.Decision, error) {
 	return admission.Admit(s), nil
 }
-func (AuthnFlow) Create(_ context.Context, p *authentication.Principal, c session.TokenContext) (*session.Session, error) {
-	return session.NewWithContexts("session-id", p.UserID, p.LoginIdentityID, p.AuthContext, c, time.Now().Add(time.Hour)), nil
+func (AuthnFlow) Create(_ context.Context, p *authentication.Principal) (*session.Session, error) {
+	return session.NewWithContexts("session-id", p.UserID, p.LoginIdentityID, p.AuthContext, session.BusinessContext{}, time.Now().Add(time.Hour)), nil
 }
 func (AuthnFlow) Revoke(context.Context, string, string, string) error { return nil }

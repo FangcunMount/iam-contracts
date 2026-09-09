@@ -33,7 +33,7 @@ sequenceDiagram
     break denied or evaluation failed
         S-->>S: map error; no Session
     end
-    S->>SC: Create(Principal, TokenContext)
+    S->>SC: Create(Principal)
     SC-->>S: Session or error
     break creation failed or missing Session
         S-->>S: return error

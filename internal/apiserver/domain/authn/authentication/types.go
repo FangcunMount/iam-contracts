@@ -24,17 +24,17 @@ const (
 	AMRWecom    AMR = "wecom"       // 企业微信认证（企业微信扫码登录）
 )
 
-// AuthenticationContext 是一次身份核验成功后的领域上下文集中表达。
+// AuthenticationContext 认证上下文，是一次身份核验成功后的领域上下文集中表达。
 // Method 表示 IAM 实际策略；Realm 表示 provider 身份命名空间；
 // AMR 是可对外表达的认证手段；AuthenticatedAt 是原始认证时间。
 type AuthenticationContext struct {
-	Method          Method    // 认证方法
-	Realm           string    // 登录身份命名空间
-	AMR             []AMR     // 认证方法引用
-	AuthenticatedAt time.Time // 认证时间
+	Method          Method    // 认证方法，表示 IAM 实际策略
+	Realm           string    // 登录身份命名空间，表示 provider 身份命名空间
+	AMR             []AMR     // 认证方法引用，表示可对外表达的认证手段
+	AuthenticatedAt time.Time // 认证时间，表示原始认证时间
 }
 
-// Clone 返回防御性副本。
+// Clone 返回防御性副本
 func (c AuthenticationContext) Clone() AuthenticationContext {
 	out := c
 	if len(c.AMR) > 0 {
@@ -43,7 +43,7 @@ func (c AuthenticationContext) Clone() AuthenticationContext {
 	return out
 }
 
-// AMRStrings 返回 AMR 的字符串切片副本。
+// AMRStrings 返回 AMR 的字符串切片副本
 func (c AuthenticationContext) AMRStrings() []string {
 	if len(c.AMR) == 0 {
 		return nil
@@ -55,7 +55,7 @@ func (c AuthenticationContext) AMRStrings() []string {
 	return out
 }
 
-// NewAuthenticationContext 构造一次刚刚成功的认证上下文。
+// NewAuthenticationContext 构造一次刚刚成功的认证上下文
 // 新认证若未显式传入时间，则使用当前时间；恢复历史状态应使用
 // RestoreAuthenticationContext，避免把未知的历史认证时间误写为现在。
 func NewAuthenticationContext(method Method, realm string, amr []AMR, authenticatedAt time.Time) AuthenticationContext {
@@ -72,7 +72,7 @@ func NewAuthenticationContext(method Method, realm string, amr []AMR, authentica
 	}
 }
 
-// RestoreAuthenticationContext 从持久化事实恢复认证上下文。
+// RestoreAuthenticationContext 从持久化事实恢复认证上下文
 // authenticatedAt 为零表示历史认证时间未知，不能被提升为当前时间。
 func RestoreAuthenticationContext(method Method, realm string, amr []AMR, authenticatedAt time.Time) AuthenticationContext {
 	if !authenticatedAt.IsZero() {

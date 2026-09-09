@@ -157,7 +157,7 @@ func (s *refresher) ensureRefreshTokenUsable(ctx context.Context, value string, 
 // sessionForRefresh 在会话副本上恢复历史上下文，不修改加载的会话。
 func (s *refresher) sessionForRefresh(sess *sessiondomain.Session, refreshToken *RefreshToken) *sessiondomain.Session {
 	authContext := sess.AuthContext.Clone()
-	tokenContext := sess.TokenContext.Clone()
+	businessContext := sess.BusinessContext.Clone()
 	authMethod := strings.TrimSpace(string(authContext.Method))
 	realm := strings.TrimSpace(authContext.Realm)
 	amr := authContext.AMRStrings()
@@ -174,7 +174,7 @@ func (s *refresher) sessionForRefresh(sess *sessiondomain.Session, refreshToken 
 		amr = append([]string(nil), refreshToken.AMR...)
 		legacyClaims = s.legacyContextDecoder.Decode(refreshToken.SessionClaims)
 		if len(legacyClaims) > 0 {
-			tokenContext = tokenContextFromClaims(legacyClaims)
+			businessContext = businessContextFromClaims(legacyClaims)
 		}
 	}
 
@@ -186,7 +186,7 @@ func (s *refresher) sessionForRefresh(sess *sessiondomain.Session, refreshToken 
 	}
 
 	restored := *sess
-	restored.TokenContext = tokenContext
+	restored.BusinessContext = businessContext
 	restored.AuthContext = authContext
 	if authMethod != "" || realm != "" || len(amr) > 0 || !authenticatedAt.IsZero() {
 		restored.AuthContext = authentication.RestoreAuthenticationContext(

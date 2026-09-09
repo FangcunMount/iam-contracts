@@ -39,8 +39,9 @@ func newVerificationPolicy(cfg *config.TokenVerifyConfig, opts *VerifyOptions) v
 		}
 	}
 	if opts != nil {
-		if opts.ExpectedIssuer != "" {
-			policy.issuer = opts.ExpectedIssuer
+		// ExpectedIssuer 是额外约束，不能替换部署配置中的权威颁发者。
+		if opts.ExpectedIssuer != "" && opts.ExpectedIssuer != policy.issuer {
+			policy.configurationErr = fmt.Errorf("expected issuer conflicts with configured issuer")
 		}
 		if opts.ExpectedAudience != nil {
 			policy.audience = append([]string(nil), opts.ExpectedAudience...)

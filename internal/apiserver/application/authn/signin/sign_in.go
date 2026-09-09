@@ -8,7 +8,6 @@ import (
 	authnexternal "github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/externalidentity"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authn/signin/method"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/authentication"
-	sessiondomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authn/session"
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
@@ -62,7 +61,7 @@ func (s *SignIn) Execute(ctx context.Context, cmd method.LoginRequest) (*Result,
 	}
 
 	// 身份核验成功后继续登录准入、会话建立与令牌颁发；全部完成才算登录成功。
-	result, err := s.completeLogin(ctx, decision.Principal, sessiondomain.TokenContext{})
+	result, err := s.completeLogin(ctx, decision.Principal)
 	if err != nil {
 		return nil, wrapStageError(err, code.ErrAuthenticationFailed, "failed to issue authentication grant")
 	}

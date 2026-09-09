@@ -13,8 +13,8 @@ import (
 func TestAccessTokenClaimsProjectionUsesSessionContext(t *testing.T) {
 	sess := &sessiondomain.Session{
 		SessionID: "sid-1", UserID: meta.FromUint64(10), LoginIdentityID: meta.FromUint64(20),
-		AuthContext:  authentication.RestoreAuthenticationContext(authentication.MethodPassword, "wx-app", []authentication.AMR{authentication.AMRPassword}, time.Time{}),
-		TokenContext: sessiondomain.TokenContext{OrgID: meta.FromUint64(42), Attributes: map[string]string{"key": "value"}},
+		AuthContext:     authentication.RestoreAuthenticationContext(authentication.MethodPassword, "wx-app", []authentication.AMR{authentication.AMRPassword}, time.Time{}),
+		BusinessContext: sessiondomain.BusinessContext{OrgID: meta.FromUint64(42), Attributes: map[string]string{"key": "value"}},
 	}
 	got := accessTokenClaimsFromSession(sess)
 	require.Equal(t, "sid-1", got.SessionID)
@@ -23,7 +23,7 @@ func TestAccessTokenClaimsProjectionUsesSessionContext(t *testing.T) {
 	require.Equal(t, meta.FromUint64(42), got.OrgID)
 	require.Equal(t, []string{"pwd"}, got.AMR)
 	got.Attributes["key"] = "changed"
-	require.Equal(t, "value", sess.TokenContext.Attributes["key"])
+	require.Equal(t, "value", sess.BusinessContext.Attributes["key"])
 }
 func TestAccessTokenClaimsProjectionDoesNotUseRealmAsOrg(t *testing.T) {
 	sess := &sessiondomain.Session{

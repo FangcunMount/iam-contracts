@@ -48,20 +48,21 @@ type sessionAuthenticationContextData struct {
 	AuthenticatedAt time.Time `json:"authenticated_at,omitempty"`
 }
 
-type sessionTokenContextData struct {
+type sessionBusinessContextData struct {
 	OrgID      uint64            `json:"org_id,omitempty"`
 	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
 // sessionData 是 Redis wire model。PascalCase 字段用于兼容既有 JSON；
 // schema_version/auth_context/token_context 是新写入的强类型扩展。
+// BusinessContext 沿用 token_context JSON 名称，以兼容已存储的 v2 会话及旧版本读取。
 type sessionData struct {
 	SchemaVersion   int                               `json:"schema_version,omitempty"`
 	SessionID       string                            `json:"SessionID"`
 	UserID          uint64                            `json:"UserID"`
 	LoginIdentityID uint64                            `json:"LoginIdentityID"`
 	AuthContext     *sessionAuthenticationContextData `json:"auth_context,omitempty"`
-	TokenContext    *sessionTokenContextData          `json:"token_context,omitempty"`
+	BusinessContext *sessionBusinessContextData       `json:"token_context,omitempty"`
 	Status          sessiondomain.Status              `json:"Status"`
 	CreatedAt       time.Time                         `json:"CreatedAt"`
 	ExpiresAt       time.Time                         `json:"ExpiresAt"`
@@ -255,7 +256,7 @@ func encodeSessionPayload(sess *sessiondomain.Session) ([]byte, error) {
 		return nil, fmt.Errorf("session is nil")
 	}
 	authContext := sess.AuthContext.Clone()
-	tokenContext := sess.TokenContext.Clone()
+	businessContext := sess.BusinessContext.Clone()
 	data := sessionData{
 		SchemaVersion: currentSessionSchemaVersion,
 		SessionID:     sess.SessionID, UserID: sess.UserID.Uint64(), LoginIdentityID: sess.LoginIdentityID.Uint64(),
@@ -263,8 +264,8 @@ func encodeSessionPayload(sess *sessiondomain.Session) ([]byte, error) {
 			Method: string(authContext.Method), Realm: authContext.Realm,
 			AMR: authContext.AMRStrings(), AuthenticatedAt: authContext.AuthenticatedAt,
 		},
-		TokenContext: &sessionTokenContextData{
-			OrgID: tokenContext.OrgID.Uint64(), Attributes: tokenContext.Attributes,
+		BusinessContext: &sessionBusinessContextData{
+			OrgID: businessContext.OrgID.Uint64(), Attributes: businessContext.Attributes,
 		},
 		Status: sess.Status, CreatedAt: sess.CreatedAt, ExpiresAt: sess.ExpiresAt,
 		RevokedAt: sess.RevokedAt, RevokeReason: sess.RevokeReason, RevokedBy: sess.RevokedBy,
@@ -286,25 +287,25 @@ func decodeSessionPayload(payload []byte) (*sessiondomain.Session, error) {
 			amrValues(data.AuthContext.AMR), data.AuthContext.AuthenticatedAt,
 		)
 	}
-	tokenContext := sessiondomain.TokenContext{}
-	if data.TokenContext != nil {
-		tokenContext = sessiondomain.TokenContext{
+	businessContext := sessiondomain.BusinessContext{}
+	if data.BusinessContext != nil {
+		businessContext = sessiondomain.BusinessContext{
 
-			OrgID:      meta.FromUint64(data.TokenContext.OrgID),
-			Attributes: cloneStringValues(data.TokenContext.Attributes),
+			OrgID:      meta.FromUint64(data.BusinessContext.OrgID),
+			Attributes: cloneStringValues(data.BusinessContext.Attributes),
 		}
 	} else if len(data.SessionClaims) > 0 {
 		legacy := authnclaims.DecodeSnapshot(data.SessionClaims)
 		if raw, ok := legacy["org_id"].(string); ok {
 			if id, err := meta.ParseID(raw); err == nil {
-				tokenContext.OrgID = id
+				businessContext.OrgID = id
 			}
 		}
-		tokenContext.Attributes = authnclaims.EncodeJWTAttributes(legacy)
+		businessContext.Attributes = authnclaims.EncodeJWTAttributes(legacy)
 	}
 	sess := &sessiondomain.Session{
 		SessionID: data.SessionID, UserID: meta.FromUint64(data.UserID), LoginIdentityID: meta.FromUint64(data.LoginIdentityID),
-		AuthContext: authContext, TokenContext: tokenContext,
+		AuthContext: authContext, BusinessContext: businessContext,
 		Status: data.Status, CreatedAt: data.CreatedAt, ExpiresAt: data.ExpiresAt,
 		RevokedAt: data.RevokedAt, RevokeReason: data.RevokeReason, RevokedBy: data.RevokedBy,
 	}

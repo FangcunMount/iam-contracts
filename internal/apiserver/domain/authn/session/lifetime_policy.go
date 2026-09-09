@@ -7,16 +7,16 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
-// LifetimePolicy 用于管理会话的生命周期。
+// LifetimePolicy 会话生命周期策略，用于管理会话的生命周期。
 type LifetimePolicy struct {
-	refreshTTL    time.Duration
-	sessionMaxTTL time.Duration
+	refreshTTL    time.Duration // 刷新令牌窗口
+	sessionMaxTTL time.Duration // 会话最大生命周期
 }
 
-// NewLifetimePolicy 创建会话生命周期策略。
+// NewLifetimePolicy 创建会话生命周期策略
 //
-// refreshTTL 控制正常刷新令牌窗口。
-// sessionMaxTTL 是登录会话的绝对生命周期；非正数表示没有超过当前会话过期时间的绝对上限。
+// refreshTTL 控制正常刷新令牌窗口
+// sessionMaxTTL 是登录会话的绝对生命周期；非正数表示没有超过当前会话过期时间的绝对上限
 func NewLifetimePolicy(refreshTTL, sessionMaxTTL time.Duration) LifetimePolicy {
 	return LifetimePolicy{
 		refreshTTL:    refreshTTL,
@@ -24,7 +24,7 @@ func NewLifetimePolicy(refreshTTL, sessionMaxTTL time.Duration) LifetimePolicy {
 	}
 }
 
-// InitialExpiresAt 返回创建会话时的过期时间。
+// InitialExpiresAt 返回创建会话时的过期时间
 func (p LifetimePolicy) InitialExpiresAt(now time.Time) (time.Time, error) {
 	if p.refreshTTL <= 0 {
 		return time.Time{}, perrors.WithCode(code.ErrInvalidArgument, "refresh token ttl must be positive")
@@ -39,7 +39,7 @@ func (p LifetimePolicy) InitialExpiresAt(now time.Time) (time.Time, error) {
 	return expiresAt, nil
 }
 
-// RefreshTokenExpiresAt 返回新旋转的刷新令牌的过期时间。
+// RefreshTokenExpiresAt 返回新旋转的刷新令牌的过期时间
 func (p LifetimePolicy) RefreshTokenExpiresAt(now time.Time, sess *Session) (time.Time, error) {
 	if p.refreshTTL <= 0 {
 		return time.Time{}, perrors.WithCode(code.ErrInvalidArgument, "refresh token ttl must be positive")
@@ -54,7 +54,7 @@ func (p LifetimePolicy) RefreshTokenExpiresAt(now time.Time, sess *Session) (tim
 	return expiresAt, nil
 }
 
-// ExtensionExpiresAt 返回请求的会话延期的过期时间。
+// ExtensionExpiresAt 返回请求的会话延期的过期时间
 func (p LifetimePolicy) ExtensionExpiresAt(now time.Time, sess *Session, requestedExpiresAt time.Time) (time.Time, error) {
 	if requestedExpiresAt.IsZero() {
 		return time.Time{}, perrors.WithCode(code.ErrInvalidArgument, "session extension expires_at is required")
@@ -69,7 +69,7 @@ func (p LifetimePolicy) ExtensionExpiresAt(now time.Time, sess *Session, request
 	return expiresAt, nil
 }
 
-// EnsureActiveWithinLifetime 返回 ErrSessionInactive 当会话已超过其绝对生命周期边界时。
+// EnsureActiveWithinLifetime 返回 ErrSessionInactive 当会话已超过其绝对生命周期边界时
 // crossed its absolute lifetime boundary.
 func (p LifetimePolicy) EnsureActiveWithinLifetime(now time.Time, sess *Session) error {
 	limit, ok := p.ExpiryLimit(sess)
@@ -80,7 +80,7 @@ func (p LifetimePolicy) EnsureActiveWithinLifetime(now time.Time, sess *Session)
 }
 
 // ExpiryLimit 返回绝对生命周期上限。当前 ExpiresAt 是可滑动的有效期，
-// 仅在缺少绝对上限信息时保留它作为历史会话的保守边界。
+// 仅在缺少绝对上限信息时保留它作为历史会话的保守边界
 func (p LifetimePolicy) ExpiryLimit(sess *Session) (time.Time, bool) {
 	if sess == nil {
 		return time.Time{}, false
@@ -95,6 +95,7 @@ func (p LifetimePolicy) ExpiryLimit(sess *Session) (time.Time, bool) {
 	return limit, true
 }
 
+// minTime 返回两个时间中的较小值
 func minTime(a, b time.Time) time.Time {
 	if a.Before(b) {
 		return a

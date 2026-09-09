@@ -1113,6 +1113,24 @@ def check_active_docs() -> None:
             fail(f"Suggest query documentation is missing current privacy fact: {required}")
 
 
+def check_authn_current_terminology() -> None:
+    # 仅检查当前接入契约，不扫描历史迁移、审计材料及 Proto reserved 声明。
+    paths = (
+        "api/rest/authn.v3.yaml",
+        "internal/apiserver/transport/rest/authn/handler/auth_login.go",
+        "internal/apiserver/docs/swagger.yaml",
+        "internal/apiserver/docs/swagger.json",
+        "internal/apiserver/docs/docs.go",
+        "scripts/reset-openapi-from-swagger.py",
+        "configs/nginx/conf.d/iam.fangcunmount.cn.conf",
+    )
+    for relative in paths:
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        for retired in ("tenant_id", "tenant_domain", "tenant-id", "v2 只开放"):
+            if retired in text:
+                fail(f"current authentication contract contains retired terminology {retired}: {relative}")
+
+
 def run_contract_check(script: str) -> None:
     subprocess.run(
         [sys.executable, str(ROOT / "scripts" / script)],
@@ -1135,6 +1153,7 @@ def main() -> int:
         check_compatibility_retirement_evidence,
         check_active_docs,
         check_generated_document_facts,
+        check_authn_current_terminology,
     )
     try:
         for check in checks:

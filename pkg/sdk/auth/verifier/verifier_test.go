@@ -141,11 +141,11 @@ func TestRemoteVerifyStrategyPassesConfiguredIssuerAndAudience(t *testing.T) {
 	require.Equal(t, []authnv3.TokenType{authnv3.TokenType_TOKEN_TYPE_ACCESS}, stub.verifyReq.AcceptedTokenTypes)
 }
 
-func TestRemoteVerifyStrategyOptionsOverrideConfig(t *testing.T) {
+func TestRemoteVerifyStrategyOptionsSelectAudience(t *testing.T) {
 	privateKey, _ := newRS256Fixture(t)
 	token := signRS256Token(t, privateKey, map[string]interface{}{
 		jwt.SubjectKey:    "user:1",
-		jwt.IssuerKey:     "https://issuer.override",
+		jwt.IssuerKey:     "https://iam.fangcunmount.cn",
 		jwt.AudienceKey:   []string{"collection-api"},
 		jwt.ExpirationKey: time.Now().Add(time.Minute),
 	})
@@ -158,7 +158,7 @@ func TestRemoteVerifyStrategyOptionsOverrideConfig(t *testing.T) {
 				SessionId:       "sid-override",
 				UserId:          "1",
 				LoginIdentityId: "2",
-				Issuer:          "https://issuer.override",
+				Issuer:          "https://iam.fangcunmount.cn",
 				Audience:        []string{"collection-api"},
 				Amr:             []string{"pwd"},
 				IssuedAt:        timestamppb.New(time.Now()),
@@ -175,12 +175,12 @@ func TestRemoteVerifyStrategyOptionsOverrideConfig(t *testing.T) {
 	_, err := strategy.Verify(context.Background(), token, &VerifyOptions{
 		ForceRemote:      true,
 		IncludeMetadata:  true,
-		ExpectedIssuer:   "https://issuer.override",
+		ExpectedIssuer:   "https://iam.fangcunmount.cn",
 		ExpectedAudience: []string{"collection-api"},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, stub.verifyReq)
-	require.Equal(t, "https://issuer.override", stub.verifyReq.ExpectedIssuer)
+	require.Equal(t, "https://iam.fangcunmount.cn", stub.verifyReq.ExpectedIssuer)
 	require.Equal(t, []string{"collection-api"}, stub.verifyReq.ExpectedAudience)
 	require.True(t, stub.verifyReq.ForceRemote)
 	require.True(t, stub.verifyReq.IncludeMetadata)
@@ -342,16 +342,16 @@ func TestLocalVerifyStrategyAcceptsSingleAllowedAlgorithm(t *testing.T) {
 	strategy := NewLocalVerifyStrategy(manager, WithLocalConfig(&config.TokenVerifyConfig{
 		AllowedIssuer:   "https://iam.fangcunmount.cn",
 		AllowedAudience: []string{"qs-api"},
-		RequiredClaims:  []string{"sub", "exp", "user_id", "tenant_id"},
+		RequiredClaims:  []string{"sub", "exp", "user_id", "login_identity_id"},
 		Algorithms:      []string{"RS256"},
 	}))
 	token := signRS256Token(t, privateKey, map[string]interface{}{
-		jwt.SubjectKey:    "user:1",
-		jwt.ExpirationKey: time.Now().Add(time.Minute),
-		jwt.IssuerKey:     "https://iam.fangcunmount.cn",
-		jwt.AudienceKey:   []string{"qs-api"},
-		"user_id":         "1",
-		"tenant_id":       "fangcun",
+		jwt.SubjectKey:      "user:1",
+		jwt.ExpirationKey:   time.Now().Add(time.Minute),
+		jwt.IssuerKey:       "https://iam.fangcunmount.cn",
+		jwt.AudienceKey:     []string{"qs-api"},
+		"user_id":           "1",
+		"login_identity_id": "2",
 	})
 
 	result, err := strategy.Verify(context.Background(), token, nil)
@@ -491,14 +491,18 @@ func TestFallbackVerifyStrategyFallsBackForJWKSInfrastructureError(t *testing.T)
 func TestRemoteVerifyStrategyEnforcesRequiredClaims(t *testing.T) {
 	privateKey, _ := newRS256Fixture(t)
 	token := signRS256Token(t, privateKey, map[string]interface{}{
-		jwt.SubjectKey:    "user:1",
+		jwt.SubjectKey:    "1",
+		jwt.IssuerKey:     "https://iam.fangcunmount.cn",
+		jwt.AudienceKey:   []string{"qs-api"},
 		jwt.ExpirationKey: time.Now().Add(time.Minute),
 		"user_id":         "1",
 	})
 	stub := &verifyTokenClientStub{verifyResp: validRemoteVerifyResponse()}
 	strategy := NewRemoteVerifyStrategy(stub, &config.TokenVerifyConfig{
-		RequiredClaims: []string{"sub", "exp", "user_id", "tenant_id"},
-		Algorithms:     []string{"RS256"},
+		AllowedIssuer:   "https://iam.fangcunmount.cn",
+		AllowedAudience: []string{"qs-api"},
+		RequiredClaims:  []string{"sub", "exp", "user_id", "login_identity_id"},
+		Algorithms:      []string{"RS256"},
 	})
 
 	result, err := strategy.Verify(context.Background(), token, nil)
@@ -539,4 +543,50 @@ func validRemoteVerifyResponse() *authnv3.VerifyTokenResponse {
 
 func testRecipientConfig() *config.TokenVerifyConfig {
 	return &config.TokenVerifyConfig{AllowedIssuer: "https://iam.fangcunmount.cn", AllowedAudience: []string{"qs-api"}}
+}
+
+// 调用级约束不能替换权威颁发者；本地和远程入口必须作出相同决定。
+func TestStrategiesEnforceCanonicalAndExpectedIssuer(t *testing.T) {
+	privateKey, manager := newRS256Fixture(t)
+	const canonical = "https://iam.fangcunmount.cn"
+	const alternate = "https://alternate.invalid"
+	for _, tc := range []struct {
+		name, configured, actual, expected string
+		valid                              bool
+	}{
+		{"canonical", canonical, canonical, "", true},
+		{"additional_match", canonical, canonical, canonical, true},
+		{"wrong_canonical", canonical, alternate, "", false},
+		{"override_cannot_admit_alternate", canonical, alternate, alternate, false},
+		{"additional_mismatch", canonical, canonical, alternate, false},
+		{"missing_canonical", "", alternate, alternate, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			token := signRS256Token(t, privateKey, map[string]interface{}{
+				jwt.SubjectKey: "1", jwt.IssuerKey: tc.actual,
+				jwt.AudienceKey: []string{"qs-api"}, jwt.ExpirationKey: time.Now().Add(time.Minute),
+				"user_id": "1", "login_identity_id": "2", "sid": "sid-issuer",
+			})
+			cfg := &config.TokenVerifyConfig{AllowedIssuer: tc.configured, AllowedAudience: []string{"qs-api"}}
+			opts := &VerifyOptions{ExpectedIssuer: tc.expected}
+			remote := &verifyTokenClientStub{verifyResp: &authnv3.VerifyTokenResponse{
+				Valid: true, Claims: &authnv3.TokenClaims{Subject: "1", UserId: "1", Issuer: tc.actual, Audience: []string{"qs-api"}},
+			}}
+			localResult, localErr := NewLocalVerifyStrategy(manager, WithLocalConfig(cfg)).Verify(context.Background(), token, opts)
+			remoteResult, remoteErr := NewRemoteVerifyStrategy(remote, cfg).Verify(context.Background(), token, opts)
+			if tc.valid {
+				require.NoError(t, localErr)
+				require.NoError(t, remoteErr)
+				require.True(t, localResult.Valid)
+				require.True(t, remoteResult.Valid)
+				require.Equal(t, canonical, remote.verifyReq.ExpectedIssuer)
+			} else {
+				require.ErrorIs(t, localErr, iamerrors.ErrTokenInvalid)
+				require.ErrorIs(t, remoteErr, iamerrors.ErrTokenInvalid)
+				require.Nil(t, localResult)
+				require.Nil(t, remoteResult)
+				require.Zero(t, remote.callCount, "拒绝后不得访问远程验证服务")
+			}
+		})
+	}
 }

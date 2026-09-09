@@ -313,7 +313,7 @@ func testActiveSession() *sessiondomain.Session {
 		meta.FromUint64(1),
 		meta.FromUint64(2),
 		authentication.RestoreAuthenticationContext(authentication.MethodPassword, "global", []authentication.AMR{authentication.AMRPassword}, time.Now().Add(-time.Hour).UTC()),
-		sessiondomain.TokenContext{},
+		sessiondomain.BusinessContext{},
 		time.Now().Add(time.Hour),
 	)
 }

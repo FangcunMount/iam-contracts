@@ -151,8 +151,7 @@ type AccessTokenClaims struct {
 	// —— 令牌主体 —— //
 	UserID          meta.ID // 用户ID
 	LoginIdentityID meta.ID // 登录身份ID
-	// 租户域
-	OrgID meta.ID // 组织ID
+	OrgID           meta.ID // 组织ID
 
 	// —— 令牌认证 —— //
 	Issuer          string    // 令牌颁发者

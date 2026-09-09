@@ -12,20 +12,20 @@ import (
 
 // accessTokenClaimsFromSession 投影会话中已确定的身份、认证和签发上下文。
 func accessTokenClaimsFromSession(sess *sessiondomain.Session) AccessTokenClaims {
-	tokenContext := sess.TokenContext.Clone()
+	businessContext := sess.BusinessContext.Clone()
 	authenticatedAt := sess.AuthContext.AuthenticatedAt
 	if authenticatedAt.IsZero() {
 		authenticatedAt = sess.CreatedAt
 	}
 	return AccessTokenClaims{
 		UserID: sess.UserID, LoginIdentityID: sess.LoginIdentityID, SessionID: sess.SessionID,
-		Subject: sess.UserID.String(), OrgID: tokenContext.OrgID,
-		AMR: sess.AuthContext.AMRStrings(), AuthenticatedAt: authenticatedAt, Attributes: tokenContext.Attributes,
+		Subject: sess.UserID.String(), OrgID: businessContext.OrgID,
+		AMR: sess.AuthContext.AMRStrings(), AuthenticatedAt: authenticatedAt, Attributes: businessContext.Attributes,
 	}
 }
 
-func tokenContextFromClaims(claims map[string]any) sessiondomain.TokenContext {
-	context := sessiondomain.TokenContext{
+func businessContextFromClaims(claims map[string]any) sessiondomain.BusinessContext {
+	context := sessiondomain.BusinessContext{
 
 		Attributes: authnclaims.EncodeJWTAttributes(claims),
 	}
