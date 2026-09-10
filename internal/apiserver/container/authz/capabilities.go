@@ -11,7 +11,6 @@ import (
 	permissionGrantApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/permissiongrant"
 	resourceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/resource"
 	roleApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/role"
-	roleInheritanceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/roleinheritance"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 )
 
@@ -35,7 +34,6 @@ type ApplicationCapabilities struct {
 	RoleCatalog                    roleApp.Catalog
 	RoleDirectory                  roleApp.Directory
 	PermissionGrantService         *permissionGrantApp.Service
-	RoleInheritanceService         *roleInheritanceApp.Service
 	AssignmentCommands             assignmentApp.Commands
 	AssignmentDirectory            assignmentApp.Directory
 	RoutePermissionChecker         authorizationApp.RoutePermissionChecker

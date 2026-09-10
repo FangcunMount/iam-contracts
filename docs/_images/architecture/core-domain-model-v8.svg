@@ -384,7 +384,7 @@
   <rect x="3240" y="370" width="1460" height="170" rx="18" class="knowledge"/>
   <text x="3270" y="405" class="knowledge-title">领域知识｜授权事实不是一张万能规则表</text>
   <text x="3270" y="443" class="knowledge-text">• Role 负责命名能力集合；能力本身来自独立的 PermissionGrant</text>
-  <text x="3270" y="477" class="knowledge-text">• Assignment、RoleInheritance、PermissionGrant 分别表达赋权、复用与许可，不互相替代</text>
+  <text x="3270" y="477" class="knowledge-text">• Assignment、DirectRoles、PermissionGrant 分别表达赋权、多角色并集与许可，不互相替代</text>
   <text x="3270" y="511" class="knowledge-text">• ManagementProtection 保护敏感管理能力；Resource 是可授权能力目录，不是业务对象实例</text>
 
   <!-- AuthZ aggregate 09 Role -->
@@ -447,13 +447,13 @@
   <path d="M3472 1046 V937" class="reference"/>
   <text x="3492" y="965" class="small">RoleID → Role.ID</text>
 
-  <!-- AuthZ aggregate 12 RoleInheritance -->
+  <!-- AuthZ aggregate 12 DirectRoles -->
   <rect x="3990" y="980" width="710" height="350" rx="22" class="aggregate-boundary boundary-authz"/>
   <text x="4018" y="1011" class="aggregate-label" fill="#6941a5">AGGREGATE 12｜ROLE INHERITANCE</text>
   <g filter="url(#shadow)">
     <rect x="4020" y="1048" width="405" height="215" rx="17" class="root-authz"/>
     <text x="4045" y="1080" class="aggregate-label" fill="#6941a5">&lt;&lt;aggregate root&gt;&gt;</text>
-    <text x="4222" y="1121" text-anchor="middle" class="root-title">RoleInheritance｜角色继承</text>
+    <text x="4222" y="1121" text-anchor="middle" class="root-title">DirectRoles｜直接角色</text>
     <line x1="4020" y1="1144" x2="4425" y2="1144" class="divider"/>
     <text x="4045" y="1180" class="field">ID · RoleID · InheritedRoleID</text>
     <text x="4045" y="1214" class="field">GrantedBy · RevokedAt</text>
@@ -525,7 +525,7 @@
   <text x="3270" y="2314" class="knowledge-text">角色与赋权</text>
   <text x="3300" y="2350" class="knowledge-text">• Role.Name 全局唯一；活跃 Assignment 业务键唯一</text>
   <text x="3300" y="2384" class="knowledge-text">• Role 删除前不得仍被赋权、继承或权限授予引用</text>
-  <text x="3270" y="2432" class="knowledge-text">角色继承</text>
+  <text x="3270" y="2432" class="knowledge-text">直接角色</text>
   <text x="3300" y="2468" class="knowledge-text">• 普通角色不得继承受保护角色；不能自继承；整个角色图不能成环</text>
   <text x="3270" y="2516" class="knowledge-text">资源与权限授予</text>
   <text x="3300" y="2552" class="knowledge-text">• PermissionGrant 必须通过 Resource 的动作与属性 Schema 校验</text>

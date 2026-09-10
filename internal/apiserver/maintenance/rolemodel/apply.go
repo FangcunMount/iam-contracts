@@ -291,7 +291,7 @@ func Verify(ctx context.Context, db *gorm.DB) (*Receipt, error) {
 	if r.Status != "applied" {
 		return &r, fmt.Errorf("migration is not applied")
 	}
-	s, err := LoadState(ctx, db)
+	s, err := loadStateForVerification(ctx, db)
 	if err != nil {
 		return &r, err
 	}

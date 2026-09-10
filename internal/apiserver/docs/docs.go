@@ -24,6 +24,70 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/v4/authz/role-inheritances": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AuthZ"
+                ],
+                "summary": "角色继承已退役",
+                "responses": {
+                    "410": {
+                        "description": "角色继承已退役，请直接分配多个角色",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AuthZ"
+                ],
+                "summary": "角色继承已退役",
+                "responses": {
+                    "410": {
+                        "description": "角色继承已退役，请直接分配多个角色",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v4/authz/role-inheritances/{id}": {
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AuthZ"
+                ],
+                "summary": "角色继承已退役",
+                "responses": {
+                    "410": {
+                        "description": "角色继承已退役，请直接分配多个角色",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v2/.well-known/jwks.json": {
             "get": {
                 "description": "获取 JSON Web Key Set，用于验证 JWT 签名",
@@ -2614,154 +2678,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/v4/authz/role-inheritances": {
-            "get": {
-                "description": "查询当前租户中的有效角色继承，可按获得能力的角色过滤",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authorization-Role-Inheritances"
-                ],
-                "summary": "查询角色继承",
-                "operationId": "listRoleInheritances",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Receiving role ID",
-                        "name": "role_id",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RoleInheritanceResponse"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "503": {
-                        "description": "Authorization policy unavailable (103002)",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "当前角色继承目标角色的全部有效能力；循环关系会被拒绝",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authorization-Role-Inheritances"
-                ],
-                "summary": "创建角色继承",
-                "operationId": "createRoleInheritance",
-                "parameters": [
-                    {
-                        "description": "Role inheritance",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.CreateRoleInheritanceRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RoleInheritanceResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "503": {
-                        "description": "Authorization policy unavailable (103002)",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v4/authz/role-inheritances/{id}": {
-            "delete": {
-                "description": "按继承关系 ID 撤销当前租户中的有效角色继承",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authorization-Role-Inheritances"
-                ],
-                "summary": "撤销角色继承",
-                "operationId": "revokeRoleInheritance",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Role inheritance ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Revoke",
-                        "name": "request",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RevokeRoleInheritanceRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response"
-                        }
-                    },
-                    "503": {
-                        "description": "Authorization policy unavailable (103002)",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/v4/authz/roles": {
             "get": {
                 "produces": [
@@ -3111,16 +3027,23 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "allowed_string_values": {
+                    "description": "字符串允许值；空列表表示不限制枚举值",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "key": {
+                    "description": "对象属性键，使用 object.\u003cname\u003e",
                     "type": "string"
                 },
                 "type": {
-                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Type"
+                    "description": "属性值类型",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Type"
+                        }
+                    ]
                 }
             }
         },
@@ -3128,12 +3051,14 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "attributes": {
+                    "description": "属性定义列表",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Definition"
                     }
                 },
                 "version": {
+                    "description": "属性定义格式版本",
                     "type": "integer"
                 }
             }
@@ -3145,6 +3070,11 @@ const docTemplate = `{
                 "int64",
                 "bool"
             ],
+            "x-enum-comments": {
+                "TypeBool": "布尔值",
+                "TypeInt64": "整数",
+                "TypeString": "字符串"
+            },
             "x-enum-varnames": [
                 "TypeString",
                 "TypeInt64",
@@ -3178,12 +3108,14 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "all_of": {
+                    "description": "必须同时满足的条件",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Predicate"
                     }
                 },
                 "version": {
+                    "description": "条件表达格式版本",
                     "type": "integer"
                 }
             }
@@ -3937,21 +3869,6 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.CreateRoleInheritanceRequest": {
-            "type": "object",
-            "required": [
-                "inherited_role_id",
-                "role_id"
-            ],
-            "properties": {
-                "inherited_role_id": {
-                    "type": "string"
-                },
-                "role_id": {
-                    "type": "string"
-                }
-            }
-        },
         "github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.CreateRoleRequest": {
             "type": "object",
             "required": [
@@ -4149,37 +4066,6 @@ const docTemplate = `{
                     "enum": [
                         "user"
                     ]
-                }
-            }
-        },
-        "github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RevokeRoleInheritanceRequest": {
-            "type": "object",
-            "properties": {
-                "reason": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RoleInheritanceResponse": {
-            "type": "object",
-            "properties": {
-                "active": {
-                    "type": "boolean"
-                },
-                "granted_at": {
-                    "type": "string"
-                },
-                "granted_by": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "inherited_role_id": {
-                    "type": "string"
-                },
-                "role_id": {
-                    "type": "string"
                 }
             }
         },

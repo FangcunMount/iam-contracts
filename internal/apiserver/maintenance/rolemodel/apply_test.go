@@ -2,6 +2,7 @@ package rolemodel
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	drivermysql "github.com/go-sql-driver/mysql"
 	gormmysql "gorm.io/driver/mysql"
@@ -218,4 +219,30 @@ func TestPersistedPlanVerificationDetectsMissingGrant(t *testing.T) {
 		}
 	}
 	require.ErrorContains(t, verifyPlan(s, p), "permission mismatch")
+}
+
+func TestApplyArchiveSurvivesTableRetirementMySQL(t *testing.T) {
+	if os.Getenv("ROLE_MODEL_MYSQL_DSN") == "" {
+		t.Skip("real MySQL required")
+	}
+	db, qs := migrationDB(t)
+	ctx := context.Background()
+	p, err := Preflight(ctx, db, qs)
+	require.NoError(t, err)
+	_, err = Apply(ctx, db, qs, &recordingStager{}, p.Fingerprint, true)
+	require.NoError(t, err)
+	archive, err := ArchiveInheritance(ctx, db, p.Fingerprint, true)
+	require.NoError(t, err)
+	require.Contains(t, archive.SchemaSQL, "CREATE TABLE")
+	require.NoError(t, db.Exec("DROP TABLE authz_role_inheritances").Error)
+	_, err = Verify(ctx, db)
+	require.NoError(t, err)
+	// Restoration starts with the original DDL and exact after-image; rollback
+	// then restores pre-migration facts and advances the policy version.
+	require.NoError(t, db.Exec(archive.SchemaSQL).Error)
+	var rows []LegacyEdge
+	require.NoError(t, json.Unmarshal([]byte(archive.RowsJSON), &rows))
+	require.NoError(t, db.Create(&rows).Error)
+	_, err = Rollback(ctx, db, &recordingStager{}, p.Fingerprint, true)
+	require.NoError(t, err)
 }

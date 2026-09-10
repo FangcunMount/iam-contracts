@@ -50,7 +50,7 @@
   <rect x="1645" y="915" width="620" height="280" class="card" fill="#f3effd" stroke="#7652c8" filter="url(#shadow)"/>
   <text x="1955" y="975" text-anchor="middle" class="module">AuthZ</text>
   <text x="1955" y="1013" text-anchor="middle" class="question">谁能对哪个资源执行什么动作？</text>
-  <text x="1955" y="1065" text-anchor="middle" class="facts">Subject · Role · Assignment · RoleInheritance</text>
+  <text x="1955" y="1065" text-anchor="middle" class="facts">Subject · Role · Assignment · DirectRoles</text>
   <text x="1955" y="1100" text-anchor="middle" class="facts">PermissionGrant · Resource · ConstraintSet</text>
   <text x="1955" y="1142" text-anchor="middle" class="note">不可变 Snapshot 返回可解释 Decision</text>
 

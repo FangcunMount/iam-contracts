@@ -14,7 +14,6 @@ import (
 	policyrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
 	resourcerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
 	rolerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
-	roleinheritancerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/roleinheritance"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 )
@@ -67,18 +66,6 @@ func loadDataset(db *gorm.DB) (Dataset, error) {
 		})
 	}
 
-	var inheritanceRows []*roleinheritancerepo.InheritancePO
-	if err := db.Where("deleted_at IS NULL AND revoked_at IS NULL").Order("id ASC").Find(&inheritanceRows).Error; err != nil {
-		return Dataset{}, err
-	}
-	inheritances := make([]InheritanceRecord, 0, len(inheritanceRows))
-	for _, row := range inheritanceRows {
-		inheritances = append(inheritances, InheritanceRecord{
-			RoleID:          meta.FromUint64(row.RoleID),
-			InheritedRoleID: meta.FromUint64(row.InheritedRoleID),
-		})
-	}
-
 	var grantRows []*permissiongrantrepo.GrantPO
 	if err := db.Where("deleted_at IS NULL AND revoked_at IS NULL").Order("id ASC").Find(&grantRows).Error; err != nil {
 		return Dataset{}, err
@@ -113,7 +100,7 @@ func loadDataset(db *gorm.DB) (Dataset, error) {
 	}
 
 	return Dataset{
-		Roles: roles, Assignments: assignments, Inheritances: inheritances,
+		Roles: roles, Assignments: assignments,
 		Grants: grants, Resources: resources, Version: version,
 	}, nil
 }

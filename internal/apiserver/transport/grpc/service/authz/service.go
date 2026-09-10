@@ -116,8 +116,10 @@ func (s *authorizationServer) GetAuthorizationSnapshot(ctx context.Context, req 
 	if err != nil {
 		return nil, iamgrpc.ToStatusError(err)
 	}
+	// Field numbers stay stable: roles and direct_roles both expose the app-
+	// filtered direct assignment set after inheritance retirement.
 	return &authzv4.GetAuthorizationSnapshotResponse{
-		Roles: snapshot.EffectiveRoles, DirectRoles: snapshot.DirectRoles,
+		Roles: snapshot.DirectRoles, DirectRoles: snapshot.DirectRoles,
 		Permissions:   toProtoPermissions(snapshot.Permissions),
 		PolicyVersion: snapshot.PolicyVersion,
 	}, nil

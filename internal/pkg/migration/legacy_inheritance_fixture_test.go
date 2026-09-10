@@ -1,4 +1,4 @@
-package roleinheritance
+package migration
 
 import (
 	"time"
@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type InheritancePO struct {
+type legacyInheritancePO struct {
 	base.AuditFields
 
 	RoleID          uint64     `gorm:"column:role_id;type:bigint unsigned;not null;uniqueIndex:uk_authz_role_inheritances_active,priority:2"`
@@ -20,9 +20,9 @@ type InheritancePO struct {
 	ActiveGuard     *uint8     `gorm:"column:active_guard;type:tinyint GENERATED ALWAYS AS (CASE WHEN revoked_at IS NULL AND deleted_at IS NULL THEN 1 ELSE NULL END) STORED;->;uniqueIndex:uk_authz_role_inheritances_active,priority:4"`
 }
 
-func (InheritancePO) TableName() string { return "authz_role_inheritances" }
+func (legacyInheritancePO) TableName() string { return "authz_role_inheritances" }
 
-func (p *InheritancePO) BeforeCreate(tx *gorm.DB) error {
+func (p *legacyInheritancePO) BeforeCreate(tx *gorm.DB) error {
 	now := time.Now()
 	p.ID = meta.FromUint64(idutil.GetIntID())
 	p.CreatedAt = now

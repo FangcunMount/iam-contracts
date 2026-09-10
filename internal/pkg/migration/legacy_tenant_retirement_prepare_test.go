@@ -1,4 +1,5 @@
-package maintenance
+// Historical schema 32 preparation fixture; never linked into a service.
+package migration
 
 import (
 	"context"

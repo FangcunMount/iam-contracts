@@ -25,7 +25,7 @@ func runRoleModelMigration(args []string, output io.Writer) error {
 		return errors.New("role-model-migrate requires preflight, apply, verify, or rollback")
 	}
 	mode := args[0]
-	if mode != "preflight" && mode != "apply" && mode != "verify" && mode != "rollback" {
+	if mode != "preflight" && mode != "apply" && mode != "verify" && mode != "rollback" && mode != "archive-inheritance" {
 		return errors.New("invalid role migration operation")
 	}
 	f := flag.NewFlagSet("role-model-migrate", flag.ContinueOnError)
@@ -40,7 +40,7 @@ func runRoleModelMigration(args []string, output io.Writer) error {
 	if f.NArg() != 0 || *timeout <= 0 {
 		return errors.New("invalid role migration arguments")
 	}
-	if (mode == "apply" || mode == "rollback") && (!*stopped || len(*fingerprint) != 64) {
+	if (mode == "apply" || mode == "rollback" || mode == "archive-inheritance") && (!*stopped || len(*fingerprint) != 64) {
 		return errors.New("role migration mutation requires --writes-stopped and --fingerprint")
 	}
 	iam, err := roleDatabase("")
@@ -76,6 +76,12 @@ func runRoleModelMigration(args []string, output io.Writer) error {
 			return err
 		}
 		return p.Validate()
+	case "archive-inheritance":
+		a, err := rolemodel.ArchiveInheritance(ctx, iam, *fingerprint, *stopped)
+		if err != nil {
+			return err
+		}
+		return writeJSON(output, a)
 	case "verify":
 		r, err := rolemodel.Verify(ctx, iam)
 		if err != nil {

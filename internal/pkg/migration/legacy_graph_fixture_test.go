@@ -1,4 +1,5 @@
-package roleinheritance
+// Historical migration fixture only. Runtime roles never use this graph.
+package migration
 
 import (
 	"fmt"
@@ -11,17 +12,17 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
-const MaxHierarchyDepth = 32 // 最大继承路径节点数，包含直接分配的角色
+const legacyMaxHierarchyDepth = 32 // 最大继承路径节点数，包含直接分配的角色
 
-type RoleNode struct {
+type legacyRoleNode struct {
 	ManagementProtection role.ManagementProtection // 管理保护属性
 	ID                   meta.ID                   // 角色ID
 }
 
-// ValidateGraph 校验角色引用、管理保护、环和继承深度。
+// validateLegacyGraph 校验角色引用、管理保护、环和继承深度。
 // 深度按角色节点数计算，包含直接分配的角色；供原子写入、快照构建及预检复用。
 // roles 为角色节点，edges 为继承关系。
-func ValidateGraph(roles []RoleNode, edges []*Inheritance) error {
+func validateLegacyGraph(roles []legacyRoleNode, edges []*legacyInheritance) error {
 	protections := make(map[meta.ID]role.ManagementProtection, len(roles)) // 管理保护属性映射
 	identities := make(map[meta.ID]struct{}, len(roles))                   // 角色ID映射
 	indegree := make(map[meta.ID]int, len(roles))                          // 入度映射
@@ -72,7 +73,7 @@ func ValidateGraph(roles []RoleNode, edges []*Inheritance) error {
 				depth[parent] = depth[child] + 1
 				previous[parent] = child
 			}
-			if depth[parent] > MaxHierarchyDepth {
+			if depth[parent] > legacyMaxHierarchyDepth {
 				path := []meta.ID{parent}
 				for n := previous[parent]; !n.IsZero(); n = previous[n] {
 					path = append(path, n)
@@ -80,7 +81,7 @@ func ValidateGraph(roles []RoleNode, edges []*Inheritance) error {
 				for i, j := 0, len(path)-1; i < j; i, j = i+1, j-1 {
 					path[i], path[j] = path[j], path[i]
 				}
-				return invalidGraph("role inheritance exceeds %d nodes: %v", MaxHierarchyDepth, path)
+				return invalidGraph("role inheritance exceeds %d nodes: %v", legacyMaxHierarchyDepth, path)
 			}
 			indegree[parent]--
 			if indegree[parent] == 0 {
@@ -103,3 +104,7 @@ func ValidateGraph(roles []RoleNode, edges []*Inheritance) error {
 func invalidGraph(format string, args ...any) error {
 	return perrors.WithCode(code.ErrInvalidArgument, "%s", fmt.Sprintf(format, args...))
 }
+
+type legacyInheritance struct{ RoleID, InheritedRoleID meta.ID }
+
+func (*legacyInheritance) IsActive() bool { return true }

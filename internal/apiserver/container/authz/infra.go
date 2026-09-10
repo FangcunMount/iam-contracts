@@ -10,7 +10,6 @@ import (
 	policyDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	resourceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	roleDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
-	roleInheritanceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/roleinheritance"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/identity/useraccess"
 	authzRuntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
 	assignmentInfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/assignment"
@@ -18,7 +17,6 @@ import (
 	policyInfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
 	resourceInfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
 	roleInfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
-	roleInheritanceInfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/roleinheritance"
 	mysqlAuthzUow "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/uow/authz"
 	"github.com/FangcunMount/iam/v5/pkg/event"
 )
@@ -33,7 +31,6 @@ type authzInfrastructureComponents struct {
 	resourceRepository        resourceDomain.Repository
 	policyVersionRepository   policyDomain.Repository
 	permissionGrantRepository permissionGrantDomain.Repository
-	roleInheritanceRepository roleInheritanceDomain.Repository
 	unitOfWork                authzuow.UnitOfWork
 }
 
@@ -51,7 +48,6 @@ func (m *AuthzModule) initializeInfrastructure(
 		resourceRepository:        resourceInfra.NewResourceRepository(db),
 		policyVersionRepository:   policyInfra.NewPolicyVersionRepository(db),
 		permissionGrantRepository: permissionGrantInfra.NewRepository(db),
-		roleInheritanceRepository: roleInheritanceInfra.NewRepository(db),
 		unitOfWork:                mysqlAuthzUow.NewUnitOfWork(db, resolver, eventStager),
 	}
 }

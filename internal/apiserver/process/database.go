@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/eventoutbox"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/rolemodel"
+	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
 	"time"
 
 	redis "github.com/redis/go-redis/v9"
@@ -121,6 +124,16 @@ func (dm *DatabaseManager) runMigrations() error {
 	migrator := migration.NewMigrator(sqlDB, &migration.Config{
 		Enabled:  dm.config.MigrationOptions.Enabled,
 		Database: dm.config.MigrationOptions.Database,
+		FreshStages: []migration.FreshStage{
+			{Version: 31, Prepare: func() error { return rolemodel.PrepareBootstrapTenant(context.Background(), gormDB) }},
+			{Version: 33, Prepare: func() error {
+				catalog, err := eventcatalog.Load(dm.config.Options.Events.CatalogPath)
+				if err != nil {
+					return err
+				}
+				return rolemodel.BootstrapIndependentRoles(context.Background(), gormDB, eventoutbox.NewStore(gormDB, eventcatalog.NewCatalog(catalog)))
+			}},
+		},
 	})
 
 	// 执行迁移

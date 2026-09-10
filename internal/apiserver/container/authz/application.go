@@ -7,7 +7,6 @@ import (
 	permissionGrantApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/permissiongrant"
 	resourceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/resource"
 	roleApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/role"
-	roleInheritanceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/roleinheritance"
 )
 
 func (m *AuthzModule) initializeApplication(
@@ -26,11 +25,6 @@ func (m *AuthzModule) initializeApplication(
 		infra.unitOfWork,
 		infra.permissionGrantRepository,
 		infra.authorizationRuntime, guard, m.attributeProviders,
-	)
-	m.roleInheritanceService = roleInheritanceApp.NewService(
-		infra.unitOfWork,
-		infra.roleInheritanceRepository,
-		infra.authorizationRuntime, guard,
 	)
 
 	m.assignmentCommands = assignmentApp.NewCommandService(

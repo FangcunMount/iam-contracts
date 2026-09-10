@@ -41,6 +41,6 @@ func runAuthorizationVerify(args []string, output io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(output, "authorization snapshot verified: version=%d roles=%d assignments=%d grants=%d inheritances=%d\n", snapshot.Version(), len(dataset.Roles), len(dataset.Assignments), len(dataset.Grants), len(dataset.Inheritances))
+	_, err = fmt.Fprintf(output, "authorization snapshot verified: version=%d roles=%d assignments=%d grants=%d\n", snapshot.Version(), len(dataset.Roles), len(dataset.Assignments), len(dataset.Grants))
 	return err
 }

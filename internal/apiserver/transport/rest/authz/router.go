@@ -12,7 +12,6 @@ type Dependencies struct {
 	RoleHandler            *handler.RoleHandler
 	AssignmentHandler      *handler.AssignmentHandler
 	PermissionGrantHandler *handler.PermissionGrantHandler
-	RoleInheritanceHandler *handler.RoleInheritanceHandler
 	ResourceHandler        *handler.ResourceHandler
 	AuthMiddleware         gin.HandlerFunc
 	Permission             func(resource, action string) gin.HandlerFunc
@@ -26,6 +25,11 @@ func Register(engine *gin.Engine, deps Dependencies) {
 	authzGroup.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "module": "authz"})
 	})
+	// A tombstone route deliberately has no authentication, authorization or
+	// database dependency: the capability no longer exists.
+	authzGroup.GET("/role-inheritances", retiredInheritance)
+	authzGroup.POST("/role-inheritances", retiredInheritance)
+	authzGroup.DELETE("/role-inheritances/:id", retiredInheritance)
 	if deps.RoleHandler == nil || deps.AuthMiddleware == nil || deps.Permission == nil {
 		return
 	}
@@ -46,12 +50,6 @@ func Register(engine *gin.Engine, deps Dependencies) {
 		g.POST("/grants", deps.Permission(authzapp.ResourcePermissionGrants, authzapp.ActionCreate), deps.PermissionGrantHandler.CreateGrant)
 		g.DELETE("/grants/:id", deps.Permission(authzapp.ResourcePermissionGrants, authzapp.ActionRevoke), deps.PermissionGrantHandler.RevokeGrant)
 	}
-	if deps.RoleInheritanceHandler != nil {
-		inheritances := g.Group("/role-inheritances")
-		inheritances.POST("", deps.Permission(authzapp.ResourceRoleInheritances, authzapp.ActionGrant), deps.RoleInheritanceHandler.Create)
-		inheritances.GET("", deps.Permission(authzapp.ResourceRoleInheritances, authzapp.ActionList), deps.RoleInheritanceHandler.List)
-		inheritances.DELETE("/:id", deps.Permission(authzapp.ResourceRoleInheritances, authzapp.ActionRevoke), deps.RoleInheritanceHandler.Revoke)
-	}
 
 	if deps.AssignmentHandler != nil {
 		assignments := g.Group("/assignments")
@@ -71,4 +69,16 @@ func Register(engine *gin.Engine, deps Dependencies) {
 		resources.GET("", deps.Permission(authzapp.ResourceResources, authzapp.ActionList), deps.ResourceHandler.ListResources)
 		resources.POST("/validate-action", deps.Permission(authzapp.ResourceResources, authzapp.ActionValidateAction), deps.ResourceHandler.ValidateAction)
 	}
+}
+
+// retiredInheritance reports the retired capability without database access.
+// @Summary 角色继承已退役
+// @Tags AuthZ
+// @Produce json
+// @Failure 410 {object} map[string]string "角色继承已退役，请直接分配多个角色"
+// @Router /v4/authz/role-inheritances [get]
+// @Router /v4/authz/role-inheritances [post]
+// @Router /v4/authz/role-inheritances/{id} [delete]
+func retiredInheritance(c *gin.Context) {
+	c.JSON(http.StatusGone, gin.H{"code": "role_inheritance_retired", "message": "角色继承已退役，请直接分配多个角色"})
 }
