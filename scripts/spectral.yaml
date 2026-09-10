@@ -2,3 +2,11 @@ extends: "spectral:oas"
 formats:
   - oas3_1
   - oas3
+# Retired role-inheritance routes intentionally return only 410 Gone.
+overrides:
+  - files:
+      - "**#/paths/~1authz~1role-inheritances/get"
+      - "**#/paths/~1authz~1role-inheritances/post"
+      - "**#/paths/~1authz~1role-inheritances~1%7Bid%7D/delete"
+    rules:
+      operation-success-response: "off"
