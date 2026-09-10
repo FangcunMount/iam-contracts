@@ -12,6 +12,7 @@
 | `cd.yml` | 保留 | `CI` 在 `main` 成功后自动；手动 | 发布镜像、生成部署包、部署 `iam-apiserver` 到 serverB |
 | `concurrency-tests.yml` | 保留 | 手动；相关 MySQL/测试路径变更时 push/PR 到 `main` | MySQL-backed 并发仓储测试 |
 | `db-ops.yml` | 保留，已移除通用 `migrate` | 每天 17:00 UTC；手动数据库操作 | 数据库备份、恢复、状态检查及受控遗留表退役 |
+| `role-model-migrate.yml` | 保留 | 手动 | 独立业务角色 preflight / cutover（apply+verify+archive）；不跑 000034 |
 | `server-check.yml` | 保留 | 每 30 分钟；手动 | 生产容器、内部健康检查、依赖连通性 |
 | `test-ssh.yml` | 保留 | 手动 | 生产主机 SSH 和基础环境诊断 |
 
@@ -177,6 +178,22 @@ go test ./internal/pkg/migration -run "TestFullMigrationChainAndBootstrapMySQL" 
 - `mysqldump`/`mysql` 的原始 stderr 不进入工作流输出，避免 SQL、地址或凭据泄露。
 MySQL 8 workflow 使用同一脚本执行合成 backup → drop database → restore → data assertion → status guard；迁移 job 继续覆盖 000019–000024 单版语义和空库完整升级，不接触生产数据，也不上传备份 artifact。
 
+## role-model-migrate.yml
+
+受控维护窗口执行 `iam-maintenance role-model-migrate`。Runner 编译当前 commit 的 linux/amd64 二进制，SCP 到生产机后经 SSH 跑 [`scripts/dbops/role-model-migrate.sh`](../../scripts/dbops/role-model-migrate.sh)。与 `db-ops` 的 RoleBinding apply 共用 concurrency 组 `iam-production-controlled-database-operation`。
+
+模式：
+
+- `preflight`：只读生成计划；`ready=false` 时失败。
+- `cutover`：要求 `confirm=ROLE_MODEL_MIGRATE` 且勾选 `writes_stopped`；自动 `preflight → apply → verify → archive-inheritance`。
+
+约束：
+
+- IAM 用既有 `MYSQL_*`；QS 复用同一 HOST/PORT/USERNAME/PASSWORD，另需 Secret `QS_MYSQL_DBNAME`。
+- 完整 JSON 落主机 `/opt/backups/iam/role-model/`（`0700`），工作流日志只含摘要（fingerprint/checksum/result），不上传人员明细 artifact。
+- **不**重启 apiserver，**不**执行 migration `000034`；archive 成功后再走 Production Deploy 升到 34 删表。
+- 建议 cutover 前先跑 `Database Operations` → `backup`，并冻结授权写入与 QS 人员身份变更。
+
 ## server-check.yml
 
 生产健康检查每 30 分钟运行一次，也可手动触发。它运行在 GitHub-hosted Runner 上，目标主机优先使用 `SVRB_PUBLIC_HOST`；只有公网入口未配置时才回退到 `SVRB_HOST` / `SVRA_HOST`。
@@ -216,11 +233,12 @@ MySQL 8 workflow 使用同一脚本执行合成 backup → drop database → res
 | `SVRB_SSH_KEY` | 回退 | serverB SSH 私钥；缺省用 `SVRA_SSH_KEY` |
 | `SVRB_SUDO_PASSWORD` | 可选 | serverB sudo 密码；缺省用 `SVRA_SUDO_PASSWORD` |
 | `SVRA_SSH_KEY` | 推荐 | fallback SSH 私钥 |
-| `MYSQL_HOST` | 必需 | MySQL 主机 |
+| `MYSQL_HOST` | 必需 | MySQL 主机（IAM；role-model QS 连接复用） |
 | `MYSQL_PORT` | 可选 | MySQL 端口，默认 3306 |
-| `MYSQL_USERNAME` | 必需 | MySQL 用户 |
-| `MYSQL_PASSWORD` | 必需 | MySQL 密码 |
-| `MYSQL_DBNAME` | 必需 | MySQL 数据库 |
+| `MYSQL_USERNAME` | 必需 | MySQL 用户（IAM；role-model QS 连接复用） |
+| `MYSQL_PASSWORD` | 必需 | MySQL 密码（IAM；role-model QS 连接复用） |
+| `MYSQL_DBNAME` | 必需 | IAM MySQL 数据库 |
+| `QS_MYSQL_DBNAME` | role-model-migrate 必需 | QS MySQL 数据库名（只读 staff/clinician 身份） |
 | `REDIS_HOST` | 必需 | Redis 主机 |
 | `REDIS_PORT` | 可选 | Redis 端口，默认 6379 |
 | `REDIS_DB` | 可选 | Redis DB，默认 0 |
@@ -268,6 +286,15 @@ Actions -> Production Health Check -> Run workflow
 
 ```text
 Actions -> Database Operations -> Run workflow -> backup
+```
+
+独立业务角色数据维护：
+
+```text
+Actions -> Role Model Migrate -> Run workflow -> mode=preflight
+Actions -> Role Model Migrate -> Run workflow -> mode=cutover
+  confirm = ROLE_MODEL_MIGRATE
+  writes_stopped = true
 ```
 
 数据库恢复：

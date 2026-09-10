@@ -1,0 +1,94 @@
+name: Role Model Migrate
+
+# Controlled IAM role-model data maintenance on the production host.
+# Does not restart apiserver and does not run migration 000034.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: preflight (read-only) or cutover (apply+verify+archive)
+        required: true
+        type: choice
+        options:
+          - preflight
+          - cutover
+      confirm:
+        description: For cutover must be ROLE_MODEL_MIGRATE
+        required: false
+        type: string
+        default: ""
+      writes_stopped:
+        description: Authorization and QS identity writers are stopped
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  role-model-migrate:
+    name: Role Model Migrate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+    concurrency:
+      group: iam-production-controlled-database-operation
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Build linux amd64 iam-maintenance
+        run: |
+          set -euo pipefail
+          mkdir -p payload
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o payload/iam-maintenance ./cmd/iam-maintenance
+          cp configs/events.yaml payload/events.yaml
+          chmod 0700 payload/iam-maintenance
+          chmod 0600 payload/events.yaml
+
+      - name: Upload maintenance payload
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SVRB_PUBLIC_HOST || secrets.SVRB_PUBLIC_HOST || vars.SVRB_HOST || vars.SVRA_HOST }}
+          username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
+          key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
+          port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
+          source: payload/iam-maintenance,payload/events.yaml
+          target: /tmp/iam-role-model-migrate-${{ github.run_id }}
+          strip_components: 1
+
+      - name: Run role-model-migrate
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          IAM_ROLE_MODEL_MODE: ${{ github.event.inputs.mode }}
+          IAM_ROLE_MODEL_CONFIRM: ${{ github.event.inputs.confirm }}
+          IAM_ROLE_MODEL_WRITES_STOPPED: ${{ github.event.inputs.writes_stopped }}
+          IAM_ROLE_MODEL_BIN: /tmp/iam-role-model-migrate-${{ github.run_id }}/iam-maintenance
+          IAM_ROLE_MODEL_CATALOG: /tmp/iam-role-model-migrate-${{ github.run_id }}/events.yaml
+          IAM_ROLE_MODEL_REPORT_DIR: /opt/backups/iam/role-model
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
+          MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
+          QS_MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          QS_MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
+          QS_MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
+          QS_MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          QS_MYSQL_DBNAME: ${{ secrets.QS_MYSQL_DBNAME }}
+        with:
+          host: ${{ vars.SVRB_PUBLIC_HOST || secrets.SVRB_PUBLIC_HOST || vars.SVRB_HOST || vars.SVRA_HOST }}
+          username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
+          key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
+          port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
+          envs: IAM_ROLE_MODEL_MODE,IAM_ROLE_MODEL_CONFIRM,IAM_ROLE_MODEL_WRITES_STOPPED,IAM_ROLE_MODEL_BIN,IAM_ROLE_MODEL_CATALOG,IAM_ROLE_MODEL_REPORT_DIR,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,QS_MYSQL_HOST,QS_MYSQL_PORT,QS_MYSQL_USERNAME,QS_MYSQL_PASSWORD,QS_MYSQL_DBNAME
+          script_path: scripts/dbops/role-model-migrate.sh
