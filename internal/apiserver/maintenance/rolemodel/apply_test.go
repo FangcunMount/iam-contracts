@@ -229,7 +229,18 @@ func TestApplyArchiveSurvivesTableRetirementMySQL(t *testing.T) {
 		t.Skip("real MySQL required")
 	}
 	db, qs := migrationDB(t)
+	// Production's historical audit columns reject NULL. AutoMigrate alone
+	// does not reproduce these constraints, and nullable JSON is read as "".
+	for _, table := range []string{"authz_roles", "authz_resources", "authz_assignments", "authz_permission_grants"} {
+		for _, column := range []string{"created_by", "updated_by", "deleted_by"} {
+			require.NoError(t, db.Exec("UPDATE "+table+" SET "+column+"=0 WHERE "+column+" IS NULL").Error)
+			require.NoError(t, db.Exec("ALTER TABLE "+table+" MODIFY "+column+" BIGINT UNSIGNED NOT NULL DEFAULT 0").Error)
+		}
+	}
+	require.NoError(t, db.Exec("UPDATE authz_resources SET attribute_schema=NULL WHERE `key`<>?", Assessment).Error)
 	ctx := context.Background()
+	before, err := LoadState(ctx, db)
+	require.NoError(t, err)
 	p, err := Preflight(ctx, db, qs)
 	require.NoError(t, err)
 	_, err = Apply(ctx, db, qs, &recordingStager{}, p.Fingerprint, true)
@@ -255,4 +266,9 @@ func TestApplyArchiveSurvivesTableRetirementMySQL(t *testing.T) {
 	require.NoError(t, db.Create(&rows).Error)
 	_, err = Rollback(ctx, db, &recordingStager{}, p.Fingerprint, true)
 	require.NoError(t, err)
+	restored, err := LoadState(ctx, db)
+	require.NoError(t, err)
+	require.Greater(t, restored.PolicyVersion, before.PolicyVersion)
+	restored.PolicyVersion = before.PolicyVersion
+	require.Equal(t, before.Hash(), restored.Hash())
 }

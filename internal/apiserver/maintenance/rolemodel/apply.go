@@ -404,6 +404,17 @@ func restoreRows[T any](tx *gorm.DB, table string, before, current []T) error {
 				continue
 			}
 			v, _ := f.ValueOf(context.Background(), reflectValue(&before[i]))
+			// Historical system audit actors are numeric zero. meta.ID's
+			// normal Valuer maps zero to NULL, which violates legacy NOT NULL
+			// audit columns when restoring through a map.
+			if id, ok := v.(meta.ID); ok && id.IsZero() {
+				v = int64(0)
+			}
+			// A nullable JSON column is read into the PO string as empty.
+			// MySQL rejects an empty document; restore its SQL NULL instead.
+			if f.DataType == "json" && v == "" {
+				v = nil
+			}
 			values[f.DBName] = v
 		}
 		ids[values["id"]] = true
