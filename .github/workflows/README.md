@@ -190,7 +190,7 @@ MySQL 8 workflow 使用同一脚本执行合成 backup → drop database → res
 约束：
 
 - IAM 用既有 `MYSQL_*`；QS 复用同一 HOST/PORT/USERNAME/PASSWORD，另需 Secret `QS_MYSQL_DBNAME`。
-- 完整 JSON 落主机 `/opt/backups/iam/role-model/`（`0700`），工作流日志只含摘要（fingerprint/checksum/result），不上传人员明细 artifact。
+- 完整 JSON 落主机 `/opt/backups/iam/database/role-model/`（`0700`），工作流日志只含摘要（fingerprint/checksum/result），不上传人员明细 artifact。
 - **不**重启 apiserver，**不**执行 migration `000034`；archive 成功后再走 Production Deploy 升到 34 删表。
 - 建议 cutover 前先跑 `Database Operations` → `backup`，并冻结授权写入与 QS 人员身份变更。
 
