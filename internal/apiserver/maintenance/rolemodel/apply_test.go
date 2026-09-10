@@ -223,6 +223,9 @@ func TestPersistedPlanVerificationDetectsMissingGrant(t *testing.T) {
 
 func TestApplyArchiveSurvivesTableRetirementMySQL(t *testing.T) {
 	if os.Getenv("ROLE_MODEL_MYSQL_DSN") == "" {
+		if os.Getenv("ROLE_MODEL_REQUIRE_MYSQL") == "true" {
+			t.Fatal("ROLE_MODEL_MYSQL_DSN is required by this CI gate")
+		}
 		t.Skip("real MySQL required")
 	}
 	db, qs := migrationDB(t)
@@ -238,6 +241,13 @@ func TestApplyArchiveSurvivesTableRetirementMySQL(t *testing.T) {
 	_, err = Verify(ctx, db)
 	require.NoError(t, err)
 	// Restoration starts with the original DDL and exact after-image; rollback
+	_, err = Preflight(ctx, db, nil)
+	require.NoError(t, err)
+	_, err = Apply(ctx, db, nil, &recordingStager{fail: true}, p.Fingerprint, true)
+	require.NoError(t, err)
+	again, err := ArchiveInheritance(ctx, db, p.Fingerprint, true)
+	require.NoError(t, err)
+	require.Equal(t, archive.Checksum, again.Checksum)
 	// then restores pre-migration facts and advances the policy version.
 	require.NoError(t, db.Exec(archive.SchemaSQL).Error)
 	var rows []LegacyEdge
