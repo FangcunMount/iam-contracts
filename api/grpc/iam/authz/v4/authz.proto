@@ -72,7 +72,7 @@ message GetAuthorizationSnapshotRequest {
 }
 
 message GetAuthorizationSnapshotResponse {
-  // roles contains the effective roles for app_name, including inherited roles.
+  // roles contains the directly assigned roles for app_name, identical to direct_roles.
   repeated string roles = 1;
   repeated PermissionEntry permissions = 2;
   int64 policy_version = 3;

@@ -12,7 +12,6 @@ import (
 	policyrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
 	resourcerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
 	rolerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
-	roleinheritancerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/roleinheritance"
 	dbmysql "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam/v5/pkg/event"
 )
@@ -53,7 +52,6 @@ func (u *unitOfWork) WithinTx(ctx context.Context, fn func(txCtx context.Context
 			PolicyVersions:   policyrepo.NewPolicyVersionRepository(tx),
 			SubjectResolver:  u.subjectResolver,
 			PermissionGrants: permissiongrantrepo.NewRepository(tx),
-			RoleInheritances: roleinheritancerepo.NewRepository(tx),
 			Events:           u.events,
 		}
 		return fn(txCtx, repos)

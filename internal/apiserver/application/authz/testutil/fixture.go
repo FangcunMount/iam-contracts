@@ -9,13 +9,11 @@ import (
 	permissionGrantDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	resourceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	roleDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
-	roleInheritanceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/roleinheritance"
 	assignmentRepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/assignment"
 	permissionGrantRepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
 	policyRepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
 	resourceRepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
 	roleRepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
-	roleInheritanceRepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/roleinheritance"
 	mysqlAuthzUOW "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/uow/authz"
 	"github.com/FangcunMount/iam/v5/pkg/event"
 	"github.com/stretchr/testify/require"
@@ -28,7 +26,6 @@ type Fixture struct {
 	Roles            roleDomain.Repository
 	Resources        resourceDomain.Repository
 	PermissionGrants permissionGrantDomain.Repository
-	RoleInheritances roleInheritanceDomain.Repository
 	UnitOfWork       authzuow.UnitOfWork
 	db               *gorm.DB
 }
@@ -52,13 +49,12 @@ func NewFixture(t *testing.T, stager event.Stager) *Fixture {
 	}
 	require.NoError(t, db.AutoMigrate(
 		&roleRepo.RolePO{}, &assignmentRepo.AssignmentPO{}, &resourceRepo.ResourcePO{},
-		&permissionGrantRepo.GrantPO{}, &roleInheritanceRepo.InheritancePO{}, &policyRepo.PolicyVersionPO{},
+		&permissionGrantRepo.GrantPO{}, &policyRepo.PolicyVersionPO{},
 	))
 	return &Fixture{
 		Roles:            roleRepo.NewRoleRepository(db),
 		Resources:        resourceRepo.NewResourceRepository(db),
 		PermissionGrants: permissionGrantRepo.NewRepository(db),
-		RoleInheritances: roleInheritanceRepo.NewRepository(db),
 		UnitOfWork:       mysqlAuthzUOW.NewUnitOfWork(db, nil, stager),
 		db:               db,
 	}
@@ -67,11 +63,6 @@ func NewFixture(t *testing.T, stager event.Stager) *Fixture {
 func (f *Fixture) PolicyVersionCount(t *testing.T) int64 {
 	t.Helper()
 	return f.count(t, &policyRepo.PolicyVersionPO{})
-}
-
-func (f *Fixture) RoleInheritanceCount(t *testing.T) int64 {
-	t.Helper()
-	return f.count(t, &roleInheritanceRepo.InheritancePO{})
 }
 
 func (f *Fixture) count(t *testing.T, model any) int64 {

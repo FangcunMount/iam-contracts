@@ -1,4 +1,5 @@
-package maintenance
+// Historical schema 32 preparation fixture; never linked into a service.
+package migration
 
 import (
 	"context"
@@ -13,12 +14,10 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/roleinheritance"
 	assignmentrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/assignment"
 	grantrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
 	resourcerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
 	rolerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
-	inheritancerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/roleinheritance"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -34,7 +33,7 @@ type retirementAssignment struct {
 	LegacyDomain string `gorm:"column:tenant_id"`
 }
 type retirementInheritance struct {
-	inheritancerepo.InheritancePO
+	legacyInheritancePO
 	LegacyDomain string `gorm:"column:tenant_id"`
 }
 type retirementGrant struct {
@@ -150,7 +149,7 @@ func analyzeRetirement(s retirementState) *TenantRetirementReport {
 	roles := map[meta.ID]retirementRole{}
 	names := map[string]meta.ID{}
 	protection := map[meta.ID]role.ManagementProtection{}
-	nodes := []roleinheritance.RoleNode{}
+	nodes := []legacyRoleNode{}
 	for _, row := range s.Roles {
 		known(row.LegacyDomain, row.ID)
 		name := row.Name
@@ -175,7 +174,7 @@ func analyzeRetirement(s retirementState) *TenantRetirementReport {
 		protection[row.ID] = p
 		r.Roles = append(r.Roles, RetirementRoleChange{row.ID, row.Name, name, p})
 		if row.DeletedAt == nil {
-			nodes = append(nodes, roleinheritance.RoleNode{ID: row.ID, ManagementProtection: p})
+			nodes = append(nodes, legacyRoleNode{ID: row.ID, ManagementProtection: p})
 		}
 	}
 	reference := func(id meta.ID, roleID uint64, domain string, active bool) bool {
@@ -190,16 +189,16 @@ func analyzeRetirement(s retirementState) *TenantRetirementReport {
 	for _, a := range s.Assignments {
 		reference(a.ID, a.RoleID, a.LegacyDomain, a.DeletedAt == nil)
 	}
-	edges := []*roleinheritance.Inheritance{}
+	edges := []*legacyInheritance{}
 	for _, e := range s.Inheritances {
 		active := e.DeletedAt == nil && e.RevokedAt == nil
 		reference(e.ID, e.RoleID, e.LegacyDomain, active)
 		reference(e.ID, e.InheritedRoleID, e.LegacyDomain, active)
 		if active {
-			edges = append(edges, &roleinheritance.Inheritance{RoleID: meta.ID(e.RoleID), InheritedRoleID: meta.ID(e.InheritedRoleID)})
+			edges = append(edges, &legacyInheritance{RoleID: meta.ID(e.RoleID), InheritedRoleID: meta.ID(e.InheritedRoleID)})
 		}
 	}
-	if err := roleinheritance.ValidateGraph(nodes, edges); err != nil {
+	if err := validateLegacyGraph(nodes, edges); err != nil {
 		issue("invalid_role_graph", 0, err.Error())
 	}
 	resources := map[uint64]resourcerepo.ResourcePO{}

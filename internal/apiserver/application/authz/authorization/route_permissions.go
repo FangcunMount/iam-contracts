@@ -4,7 +4,6 @@ const (
 	ResourceRoles            = "iam:authz:collection:roles"
 	ResourceAssignments      = "iam:authz:collection:assignments"
 	ResourcePermissionGrants = "iam:authz:collection:permission_grants"
-	ResourceRoleInheritances = "iam:authz:collection:role_inheritances"
 	ResourceResources        = "iam:authz:collection:resources"
 	ResourceSessions         = "iam:authn:collection:sessions"
 	ResourceJWKS             = "iam:authn:collection:jwks"

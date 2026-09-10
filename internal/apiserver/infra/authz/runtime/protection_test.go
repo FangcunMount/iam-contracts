@@ -25,11 +25,3 @@ func TestSnapshotRejectsSensitiveGrantForStandardRole(t *testing.T) {
 	_, err = authzruntime.BuildSnapshot(dataset, time.Now())
 	require.NoError(t, err)
 }
-
-func TestSnapshotRejectsInheritanceIntoProtectedRole(t *testing.T) {
-	dataset := assessmentDataset(t)
-	dataset.Grants = nil
-	dataset.Roles[3].ManagementProtection = role.ManagementProtected
-	_, err := authzruntime.BuildSnapshot(dataset, time.Now())
-	require.Error(t, err)
-}

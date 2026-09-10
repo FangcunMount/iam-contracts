@@ -16,7 +16,7 @@ REST 路由统一挂在 `/api/v4/authz`：
 | Role | `/api/v4/authz/roles` | 创建、查询、更新、删除角色 |
 | Assignment | `/api/v4/authz/assignments` | 增量授予、撤销与查询直接关系 |
 | PermissionGrant | `/api/v4/authz/grants` | 管理角色能力 |
-| RoleInheritance | `/api/v4/authz/role-inheritances` | 管理角色继承边 |
+| RoleInheritance（已退役） | `/api/v4/authz/role-inheritances` | 旧路径固定返回 `410 Gone`，无数据库依赖 |
 | Resource | `/api/v4/authz/resources` | 管理资源和对象属性 schema |
 
 完整 method/path 以 `api/rest/authz.v4.yaml` 为准。REST 不提供 `/api/v4/authz/check`；需要判定的可信服务调用 gRPC。
@@ -41,9 +41,9 @@ REST 是控制面，不是请求期权限决策面。若业务服务为了判定
 | `POST /api/v4/authz/grants` | `iam:authz:collection:permission_grants` | `create` | 创建 managed PermissionGrant |
 | `DELETE /api/v4/authz/grants/:id` | 同上 | `revoke` | 撤销 Grant |
 | `GET /api/v4/authz/roles/:id/grants` | 同上 | `list` | 列角色的 Grant |
-| `POST /api/v4/authz/role-inheritances` | `iam:authz:collection:role_inheritances` | `grant` | 增加 child→parent 边 |
-| `GET /api/v4/authz/role-inheritances` | 同上 | `list` | 列继承边 |
-| `DELETE /api/v4/authz/role-inheritances/:id` | 同上 | `revoke` | 撤销继承边 |
+| `POST /api/v4/authz/role-inheritances` | （无） | （无） | 已退役，返回 410 |
+| `GET /api/v4/authz/role-inheritances` | （无） | （无） | 已退役，返回 410 |
+| `DELETE /api/v4/authz/role-inheritances/:id` | （无） | （无） | 已退役，返回 410 |
 | `POST /api/v4/authz/resources` | `iam:authz:collection:resources` | `create` | 注册 Resource catalog |
 | `GET /api/v4/authz/resources` | 同上 | `list` | 列 Resource |
 | `GET /api/v4/authz/resources/:id` | 同上 | `read` | 按 ID 读 Resource |
@@ -85,13 +85,13 @@ REST 路由上的 Principal 来自 AuthN token verifier 返回的已验证 claim
 
 所有管理路由统一检查 Resource/Action。允许则进入 handler；拒绝返回 403；运行时不可用返回 503，其他内部错误返回 500。每次请求只进行一个授权空间内的判断。
 
-角色、Grant、Assignment 和继承关系的应用服务还校验原始操作权限与管理保护。受保护角色需要额外的 `roles/manage_protected`，普通角色不能继承受保护角色，也不能承载敏感能力。用户权限通过当前策略判断；服务身份只能来自可信传输上下文，受管 Assignment 还按部署配置重新检查管理集合。
+角色、Grant 和 Assignment 的应用服务还校验原始操作权限与管理保护。受保护角色需要额外的 `roles/manage_protected`，普通角色也不能承载敏感能力。用户权限通过当前策略判断；服务身份只能来自可信传输上下文，受管 Assignment 还按部署配置重新检查管理集合。
 
 Resource 目录写入只接受具备对应操作权限的 actor。角色名和 `IsSystem` 不构成放行依据。普通管理保留 read/list/validate_action。
 
 ## AuthZ 管理路由
 
-Role、Assignment、Grant、RoleInheritance 和 Resource 路由分别绑定各自 Resource/Action。新增 handler 时必须同时更新：
+Role、Assignment、Grant 和 Resource 路由分别绑定各自 Resource/Action；继承路由已退役为 410。新增 handler 时必须同时更新：
 
 - route registry；
 - permission catalog；
@@ -102,7 +102,7 @@ Role、Assignment、Grant、RoleInheritance 和 Resource 路由分别绑定各�
 不能用“已经登录”替代管理权限，也不能通过角色名称直接绕过 Grant。
 
 REST handler 主要做四件事：绑定 DTO，从 URL/query/context 获取 ID 与 Tenant，构造 application command/query，将领域错误映射为 HTTP 响应。
-它不应在 handler 内手工复制继承环、Grant schema 或事务版本校验。
+它不应在 handler 内手工复制 Grant schema 或事务版本校验。
 
 用户端 REST 使用数据库 ID 定位 Role/Resource/Grant/Inheritance；服务间 Assignment gRPC 为降低对 IAM 内部 ID 的耦合使用 stable role name。
 两条传输路径最终仍必须进入同一 application/domain/UoW 不变量。
@@ -192,7 +192,7 @@ docs-facts 现在会抽取 README 中带 HTTP method 的 URL，并与 OpenAPI �
 4. gRPC 服务 ACL 和 Assignment constraints；
 5. OpenAPI/proto/SDK；
 6. bootstrap、维护校验与多实例 reload；
-7. 拒绝路径、条件 Grant 和继承角色测试。
+7. 拒绝路径、条件 Grant 与多角色并集测试；旧继承路径返回 410。
 
 8. README 中带 HTTP method 的请求 URL，以及退役的 v2 AuthZ 前缀或 REST `check` 引用。
 
@@ -206,6 +206,6 @@ docs-facts 现在会抽取 README 中带 HTTP method 的 URL，并与 OpenAPI �
 
 ## 角色详情与不可用错误
 
-Handler 从认证上下文提取操作者，应用查询按 RoleID 加载角色并检查可见性。无 manage_protected 时受保护角色返回 404；关联 Assignment、Grant 和继承事实同样过滤。
+Handler 从认证上下文提取操作者，应用查询按 RoleID 加载角色并检查可见性。无 manage_protected 时受保护角色返回 404；关联 Assignment 与 Grant 同样过滤。
 
 任一首次检查返回 `ErrAuthorizationPolicyUnavailable` 时，中间件立即保留错误并返回 503。它不作为普通 DENY，也不继续寻找平台授权旁路。新鲜度合同见 [多实例策略收敛](04-关键链路-多实例策略收敛.md)。

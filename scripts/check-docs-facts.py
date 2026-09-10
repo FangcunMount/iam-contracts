@@ -236,11 +236,11 @@ def check_generated_document_facts() -> None:
     canonical_diagrams = {
         "docs/_images/architecture/authz-domain-model-v2.svg": (
             "Assignment",
-            "RoleInheritance",
+            "DirectRoles",
             "PermissionGrant",
             "ConstraintSet",
             "ObjectAttributes",
-            "Immutable Role Graph",
+            "Direct Role Index",
             "Snapshot Grant Index",
             "DecisionService.Check",
             "AuthorizationEvaluator.Evaluate",
@@ -276,7 +276,7 @@ def check_generated_document_facts() -> None:
             "ManagementProtection",
             "Role",
             "Assignment",
-            "RoleInheritance",
+            "DirectRoles",
             "PermissionGrant",
             "Resource",
             "ConstraintSet",
@@ -518,8 +518,8 @@ def check_migrations() -> None:
     }
     if up != down:
         fail(f"migration up/down numbers differ: up-only={sorted(up-down)} down-only={sorted(down-up)}")
-    if not up or max(up) != 32:
-        fail(f"documented latest migration is 32, repository has {max(up) if up else 'none'}")
+    if not up or max(up) != 34:
+        fail(f"documented latest migration is 34, repository has {max(up) if up else 'none'}")
     migration = (directory / "000016_jwks_single_active_guard.up.sql").read_text(encoding="utf-8")
     for token in ("active_guard", "uk_jwks_keys_single_active"):
         if token not in migration:
@@ -911,7 +911,7 @@ def check_database_operations_facts() -> None:
         "IAM_DB_OPS_ALLOW_DOCKER_CLIENT",
         "mysql:8.0",
         "retired_tables_present=",
-        "expected_version=32",
+        "expected_version=34",
         "performance schema capability:",
         "sys_table_statistics_select=",
         "rds_table_statistics_enabled=",

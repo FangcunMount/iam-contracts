@@ -78,7 +78,6 @@ func (r *Router) registerAuthzRoutes(engine *gin.Engine, deps AuthzDeps, authMid
 			RoleHandler:            deps.RoleHandler,
 			AssignmentHandler:      deps.AssignmentHandler,
 			PermissionGrantHandler: deps.PermissionGrantHandler,
-			RoleInheritanceHandler: deps.RoleInheritanceHandler,
 			ResourceHandler:        deps.ResourceHandler,
 			AuthMiddleware:         authMiddleware.AuthRequired(),
 			Permission:             authorizationMiddleware.RequirePermission,
@@ -159,8 +158,7 @@ func authnRoutesAvailable(deps AuthnDeps) bool {
 
 // authzRoutesAvailable 授权路由是否可用
 func authzRoutesAvailable(deps AuthzDeps) bool {
-	return deps.RoleHandler != nil || deps.AssignmentHandler != nil || deps.PermissionGrantHandler != nil ||
-		deps.RoleInheritanceHandler != nil || deps.ResourceHandler != nil
+	return deps.RoleHandler != nil || deps.AssignmentHandler != nil || deps.PermissionGrantHandler != nil || deps.ResourceHandler != nil
 }
 
 // userRoutesAvailable 用户路由是否可用

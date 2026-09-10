@@ -1,7 +1,6 @@
 package migration
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"os"
@@ -12,7 +11,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance"
 	gormmysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
@@ -31,30 +29,16 @@ func TestFullMigrationChainAndBootstrapMySQL(t *testing.T) {
 		t.Fatalf("full-chain migration test requires an empty dedicated database, found %d tables", existingTables)
 	}
 
-	_, _, err := NewMigrator(migrationDB, &Config{Enabled: true, Database: database}).RunTo(31)
-	if err != nil {
-		t.Fatal(err)
-	}
 	preparationDB, err := gorm.Open(gormmysql.New(gormmysql.Config{Conn: openMigrationMySQL(t)}), &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	report, err := maintenance.AnalyzeTenantRetirement(context.Background(), preparationDB)
+	version, migrated, err := NewMigrator(migrationDB, &Config{Enabled: true, Database: database, FreshStages: freshStagesForTest(t, preparationDB)}).Run()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !report.Ready {
-		t.Fatalf("preflight issues: %+v", report.Issues)
-	}
-	if _, err := maintenance.PrepareTenantRetirement(context.Background(), preparationDB, report.Fingerprint); err != nil {
-		t.Fatal(err)
-	}
-	version, migrated, err := NewMigrator(openMigrationMySQL(t), &Config{Enabled: true, Database: database}).Run()
-	if err != nil {
-		t.Fatalf("run full migration chain: %v", err)
-	}
-	if !migrated || version != 32 {
-		t.Fatalf("full migration result = version %d migrated=%v, want version 32 migrated=true", version, migrated)
+	if !migrated || version != 34 {
+		t.Fatalf("migration version=%d changed=%v", version, migrated)
 	}
 	db := openMigrationMySQL(t)
 	assertJWKSGraceActionRetired(t, db)
@@ -123,12 +107,11 @@ WHERE `+"`key`"+` = 'iam:authn:collection:jwks'`).Scan(
 func assertNativeAuthzBootstrap(t *testing.T, db *sql.DB) {
 	t.Helper()
 	for label, query := range map[string]string{
-		"active roles":        "SELECT COUNT(*) FROM authz_roles WHERE deleted_at IS NULL",
-		"active resources":    "SELECT COUNT(*) FROM authz_resources WHERE deleted_at IS NULL",
-		"active inheritances": "SELECT COUNT(*) FROM authz_role_inheritances WHERE revoked_at IS NULL AND deleted_at IS NULL",
-		"active grants":       "SELECT COUNT(*) FROM authz_permission_grants WHERE revoked_at IS NULL AND deleted_at IS NULL",
+		"active roles":     "SELECT COUNT(*) FROM authz_roles WHERE deleted_at IS NULL",
+		"active resources": "SELECT COUNT(*) FROM authz_resources WHERE deleted_at IS NULL",
+		"active grants":    "SELECT COUNT(*) FROM authz_permission_grants WHERE revoked_at IS NULL AND deleted_at IS NULL",
 	} {
-		want := map[string]int{"active roles": 11, "active resources": 27, "active inheritances": 8, "active grants": 97}[label]
+		want := map[string]int{"active roles": 8, "active resources": 26, "active grants": 104}[label]
 		var got int
 		if err := db.QueryRow(query).Scan(&got); err != nil {
 			t.Fatalf("query %s: %v", label, err)
@@ -163,11 +146,11 @@ WHERE r.management_protection = 'standard'
   AND g.resource_pattern = 'iam:authz:collection:resources'
   AND g.action IN ('create', 'update', 'delete', '*')
   AND g.revoked_at IS NULL AND g.deleted_at IS NULL`, 0)
-	assertGrantCount("evaluator adhoc retry", `
+	assertGrantCount("operator adhoc retry", `
 SELECT COUNT(*)
 FROM authz_permission_grants g
 JOIN authz_roles r ON r.id = g.role_id AND r.deleted_at IS NULL
-WHERE r.name = 'qs:evaluator'
+WHERE r.name = 'qs:assessment_operator'
   AND g.resource_pattern = 'qs:evaluation:collection:assessments'
   AND g.action = 'retry'
   AND JSON_UNQUOTE(JSON_EXTRACT(g.constraint_set, '$.all_of[0].value.string')) = 'adhoc'
@@ -208,19 +191,12 @@ WHERE r.name <> 'qs:admin'
 SELECT COUNT(*) FROM authz_roles
 WHERE management_protection = 'protected'
   AND name IN ('platform:admin', 'iam:admin')
-  AND deleted_at IS NULL`, 2)
+  AND deleted_at IS NULL`, 0)
 	assertGrantCount("retired resource names", `
 SELECT COUNT(*) FROM authz_resources
 WHERE `+"`key`"+` IN ('iam:authz:collection:policies', 'iam:authz:action:check')
   AND deleted_at IS NULL`, 0)
-	assertGrantCount("fangcun super admin inheritance", `
-SELECT COUNT(*)
-FROM authz_role_inheritances i
-JOIN authz_roles child ON child.id = i.role_id AND child.deleted_at IS NULL
-JOIN authz_roles parent ON parent.id = i.inherited_role_id AND parent.deleted_at IS NULL
-WHERE child.name = 'super_admin'
-  AND parent.name IN ('iam_admin', 'qs:admin')
-  AND i.revoked_at IS NULL AND i.deleted_at IS NULL`, 2)
+	assertTableExists(t, db, "authz_role_inheritances", false)
 }
 
 func assertMigratedRoleBindingGuardUnderConcurrency(t *testing.T, db *sql.DB) {
@@ -315,7 +291,8 @@ ORDER BY TABLE_NAME`, database)
 		"authz_policy_versions",
 		"authz_permission_grants",
 		"authz_resources",
-		"authz_role_inheritances",
+		"iam_role_inheritance_archives",
+		"iam_role_model_migrations",
 		"authz_roles",
 		"domain_event_outbox",
 		"identity_session_revocation_outbox",

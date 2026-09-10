@@ -17,8 +17,8 @@
 INSERT INTO `users` (`id`, `name`, `nickname`, `phone`, `email`, `status`, `created_at`, `updated_at`,
                      `deleted_at`, `created_by`, `updated_by`, `deleted_by`, `version`)
 VALUES (10001, '系统用户', '', NULL, 'system@fangcunmount.com', 1, NOW(), NOW(), NULL, 0, 0, 0, 1),
-       (110001, 'IAM 管理员', '', NULL, 'admin@fangcunmount.com', 1, NOW(), NOW(), NULL, 0, 0, 0, 1),
-       (110002, '内容管理员', '', NULL, 'content_manager@fangcunmount.com', 1, NOW(), NOW(), NULL, 0, 0, 0, 1)
+       (110001, '身份与授权管理员', '', NULL, 'admin@fangcunmount.com', 1, NOW(), NOW(), NULL, 0, 0, 0, 1),
+       (110002, '测评内容管理员', '', NULL, 'content_manager@fangcunmount.com', 1, NOW(), NOW(), NULL, 0, 0, 0, 1)
 ON DUPLICATE KEY UPDATE `name`       = VALUES(`name`),
                         `nickname`   = VALUES(`nickname`),
                         `phone`      = VALUES(`phone`),
@@ -106,14 +106,13 @@ ON DUPLICATE KEY UPDATE `name`       = VALUES(`name`),
 -- ----------------------------------------------------------------------------
 INSERT INTO `authz_roles` (`management_protection`, `id`, `name`, `display_name`, `is_system`, `description`, `created_at`,
                            `updated_at`, `created_by`, `updated_by`, `deleted_by`, `version`)
-VALUES ('protected', 900000001, 'platform_admin', '平台超级管理员', 1, '平台控制面的根角色', NOW(), NOW(), 0, 0, 0, 1),
-       ('standard', 1, 'super_admin', '超级管理员', 1, '普通管理角色', NOW(), NOW(), 0, 0, 0, 1),
-       ('standard', 2, 'iam_admin', 'IAM 管理员', 1, '管理获授权的 IAM 资源', NOW(), NOW(), 0, 0, 0, 1),
+VALUES ('protected', 900000001, 'platform_admin', '平台根管理员', 1, '平台控制面的根角色', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 2, 'iam_admin', '身份与授权管理员', 1, '管理获授权的 IAM 资源', NOW(), NOW(), 0, 0, 0, 1),
        ('standard', 3, 'user', '普通用户', 1, '普通用户权限', NOW(), NOW(), 0, 0, 0, 1),
-       ('standard', 900000101, 'qs:admin', 'QS管理员', 1, 'QS服务所有资源的管理权限', NOW(), NOW(), 0, 0, 0, 1),
-       ('standard', 900000102, 'qs:content_manager', '内容管理员', 1, '问卷、量表和常模表的管理权限', NOW(), NOW(), 0, 0, 0, 1),
-       ('standard', 900000103, 'qs:evaluator', '评估员', 1, '测评执行、批量评估及仅 adhoc 测评重试', NOW(), NOW(), 0, 0, 0, 1),
-       ('standard', 900000104, 'qs:staff', '普通员工', 1, '基本查看权限', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000101, 'qs:admin', 'QS 应用管理员', 1, 'QS服务所有资源的管理权限', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000102, 'qs:content_manager', '测评内容管理员', 1, '问卷、量表和常模表的管理权限', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000106, 'qs:assessment_operator', '测评运营员', 1, '测评执行、批量评估及仅 adhoc 测评重试', NOW(), NOW(), 0, 0, 0, 1),
+       ('standard', 900000107, 'qs:result_reviewer', '测评结果评估员', 1, '查看授权范围内的专业结果', NOW(), NOW(), 0, 0, 0, 1),
        ('standard', 900000105, 'qs:evaluation_plan_manager', '测评计划管理员', 1, '测评计划的管理权限', NOW(), NOW(), 0, 0, 0,
         1)
 ON DUPLICATE KEY UPDATE `display_name` = VALUES(`display_name`),
@@ -168,7 +167,7 @@ VALUES (901000001, 'iam:identity:instance:profile', '个人资料', 'iam', 'iden
         JSON_ARRAY('read', 'list', 'statistics', 'admin_submit'), '答卷查询、统计与管理员提交', NOW(), NOW(), 0, 0, 0,
         1),
        (901000016, 'qs:evaluation:collection:assessments', '测评执行', 'qs', 'evaluation', 'collection',
-        JSON_ARRAY('read', 'list', 'retry', 'force_retry', 'batch_evaluate', 'statistics'), '测评任务、结果重试与批量执行', NOW(), NOW(),
+        JSON_ARRAY('read_progress','list_progress','read', 'list', 'retry', 'force_retry', 'batch_evaluate', 'statistics'), '测评任务、结果重试与批量执行', NOW(), NOW(),
         0, 0, 0, 1),
        (901000017, 'qs:evaluation:collection:reports', '测评报告', 'qs', 'evaluation', 'collection', JSON_ARRAY('read', 'list', 'audit'),
         '测评报告查询', NOW(), NOW(), 0, 0, 0, 1),
@@ -192,8 +191,6 @@ VALUES (901000001, 'iam:identity:instance:profile', '个人资料', 'iam', 'iden
         0, 0, 0, 1),
        (901000025, 'qs:modelcatalog:collection:norm_tables', '常模表管理', 'qs', 'modelcatalog', 'collection',
         JSON_ARRAY('read', 'list', 'import'), '版本化常模表的查询、详情读取与幂等导入', NOW(), NOW(), 0, 0, 0, 1),
-       (901000026, 'iam:authz:collection:role_inheritances', '角色继承', 'iam', 'authz', 'collection',
-        JSON_ARRAY('list', 'grant', 'revoke'), '角色继承关系管理', NOW(), NOW(), 0, 0, 0, 1),
        (901000027, 'iam:authn:collection:sessions', '会话管理', 'iam', 'authn', 'collection',
         JSON_ARRAY('revoke', 'revoke_by_login_identity', 'revoke_by_user'), '认证会话撤销管理', NOW(), NOW(), 0, 0, 0, 1),
        (901000028, 'iam:ops:collection:cache_governance', '缓存治理', 'iam', 'ops', 'collection',
@@ -263,36 +260,6 @@ SET `attribute_schema` = JSON_OBJECT(
 WHERE `key` = 'qs:evaluation:collection:assessments'
   AND `deleted_at` IS NULL;
 
-INSERT INTO `authz_role_inheritances`
-    (`id`, `role_id`, `inherited_role_id`, `granted_by`, `granted_at`,
-     `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_by`, `version`)
-SELECT `seed`.`id`, `child`.`id`, `parent`.`id`, 'bootstrap', NOW(),
-       NOW(), NOW(), 0, 0, 0, 1
-FROM (
-    SELECT 905000001 AS `id`, 'iam_admin' AS `child_role`, 'user' AS `parent_role`
-    UNION ALL SELECT 905000002, 'qs:admin', 'qs:content_manager'
-    UNION ALL SELECT 905000003, 'qs:admin', 'qs:evaluator'
-    UNION ALL SELECT 905000004, 'qs:admin', 'qs:evaluation_plan_manager'
-    UNION ALL SELECT 905000005, 'qs:evaluator', 'qs:staff'
-    UNION ALL SELECT 905000006, 'qs:evaluation_plan_manager', 'qs:staff'
-    UNION ALL SELECT 905000007, 'super_admin', 'iam_admin'
-    UNION ALL SELECT 905000008, 'super_admin', 'qs:admin'
-) AS `seed`
-JOIN `authz_roles` AS `child`
-  ON `child`.`name` = `seed`.`child_role`
- AND `child`.`deleted_at` IS NULL
-JOIN `authz_roles` AS `parent`
-  ON `parent`.`name` = `seed`.`parent_role`
- AND `parent`.`deleted_at` IS NULL
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM `authz_role_inheritances` AS `existing`
-    WHERE `existing`.`role_id` = `child`.`id`
-      AND `existing`.`inherited_role_id` = `parent`.`id`
-      AND `existing`.`revoked_at` IS NULL
-      AND `existing`.`deleted_at` IS NULL
-);
-
 INSERT INTO `authz_permission_grants`
     (`id`, `role_id`, `resource_id`, `resource_pattern`, `action`, `constraint_set`,
      `grant_key`, `granted_by`, `granted_at`, `created_at`, `updated_at`, `created_by`, `updated_by`,
@@ -327,12 +294,12 @@ FROM (
                    JSON_ARRAY('list','grant','revoke'), '{"version":1,"all_of":[]}'
             UNION ALL SELECT 'iam_admin', 'iam:authz:collection:permission_grants',
                    JSON_ARRAY('list','create','revoke'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'iam_admin', 'iam:authz:collection:role_inheritances',
-                   JSON_ARRAY('list','grant','revoke'), '{"version":1,"all_of":[]}'
             UNION ALL SELECT 'iam_admin', 'iam:authz:collection:resources',
                    JSON_ARRAY('read','list','validate_action'), '{"version":1,"all_of":[]}'
             UNION ALL SELECT 'iam_admin', 'iam:authn:collection:login_identities',
                    JSON_ARRAY('read','update','enable','disable'), '{"version":1,"all_of":[]}'
+            UNION ALL SELECT 'iam_admin', 'iam:identity:instance:profile',
+                   JSON_ARRAY('read','update'), '{"version":1,"all_of":[]}'
             UNION ALL SELECT 'user', 'iam:identity:instance:profile',
                    JSON_ARRAY('read','update'), '{"version":1,"all_of":[]}'
             UNION ALL SELECT 'qs:admin', 'qs:*:*:*',
@@ -343,18 +310,24 @@ FROM (
                    JSON_ARRAY('create','read','list','update','delete','publish','unpublish','archive'), '{"version":1,"all_of":[]}'
             UNION ALL SELECT 'qs:content_manager', 'qs:modelcatalog:collection:norm_tables',
                    JSON_ARRAY('read','list','import'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'qs:evaluator', 'qs:answersheet:collection:answersheets',
+            UNION ALL SELECT 'qs:result_reviewer', 'qs:answersheet:collection:answersheets',
                    JSON_ARRAY('read','list','statistics'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'qs:evaluator', 'qs:evaluation:collection:assessments',
-                   JSON_ARRAY('read','list','batch_evaluate','statistics'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'qs:evaluator', 'qs:evaluation:collection:assessments',
+            UNION ALL SELECT 'qs:result_reviewer', 'qs:evaluation:collection:assessments',
+                   JSON_ARRAY('read','list','statistics'), '{"version":1,"all_of":[]}'
+            UNION ALL SELECT 'qs:assessment_operator', 'qs:evaluation:collection:assessments',
                    JSON_ARRAY('retry'), '{"version":1,"all_of":[{"key":"object.origin_type","operator":"eq","value":{"type":"string","string":"adhoc"}}]}'
-            UNION ALL SELECT 'qs:evaluator', 'qs:evaluation:collection:reports',
+            UNION ALL SELECT 'qs:result_reviewer', 'qs:evaluation:collection:reports',
                    JSON_ARRAY('read','list'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'qs:evaluator', 'qs:actor:collection:testees',
-                   JSON_ARRAY('analyze','statistics'), '{"version":1,"all_of":[]}'
-            UNION ALL SELECT 'qs:staff', 'qs:actor:collection:testees',
+            UNION ALL SELECT 'qs:result_reviewer', 'qs:actor:collection:testees',
+                   JSON_ARRAY('read','list','analyze','statistics'), '{"version":1,"all_of":[]}'
+            UNION ALL SELECT 'qs:assessment_operator', 'qs:actor:collection:testees',
                    JSON_ARRAY('read','list'), '{"version":1,"all_of":[]}'
+            UNION ALL SELECT 'qs:assessment_operator', 'qs:evaluation:collection:assessments',
+                   JSON_ARRAY('read_progress','list_progress','batch_evaluate'), '{"version":1,"all_of":[]}'
+            UNION ALL SELECT 'qs:evaluation_plan_manager', 'qs:actor:collection:testees',
+                   JSON_ARRAY('read','list'), '{"version":1,"all_of":[]}'
+            UNION ALL SELECT 'qs:evaluation_plan_manager', 'qs:evaluation:collection:assessments',
+                   JSON_ARRAY('read_progress','list_progress'), '{"version":1,"all_of":[]}'
             UNION ALL SELECT 'qs:evaluation_plan_manager', 'qs:plan:collection:evaluation_plans',
                    JSON_ARRAY('create','read','list','update','pause','resume','cancel','enroll','terminate','statistics'), '{"version":1,"all_of":[]}'
             UNION ALL SELECT 'qs:evaluation_plan_manager', 'qs:plan_task:collection:evaluation_plan_tasks',

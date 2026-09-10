@@ -8,7 +8,6 @@ import (
 	policyDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	resourceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	roleDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
-	roleInheritanceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/roleinheritance"
 	"github.com/FangcunMount/iam/v5/pkg/event"
 )
 
@@ -19,7 +18,6 @@ type TxRepositories struct {
 	PolicyVersions   policyDomain.Repository
 	SubjectResolver  assignmentDomain.SubjectResolver
 	PermissionGrants permissionGrantDomain.Repository
-	RoleInheritances roleInheritanceDomain.Repository
 	Events           event.Stager
 }
 

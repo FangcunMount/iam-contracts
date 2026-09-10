@@ -5,9 +5,7 @@ import (
 	"errors"
 	"sync"
 	"testing"
-	"time"
 
-	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	authorizationapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
@@ -16,7 +14,6 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 	authzruntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
 	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/assessment"
-	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
@@ -73,7 +70,7 @@ func TestRuntimeSnapshotPreservesConditionalMode(t *testing.T) {
 	snapshot, err := runtime.GetAuthorizationSnapshot(context.Background(), sub, "qs")
 	require.NoError(t, err)
 	require.Equal(t, []string{"qs:evaluator"}, snapshot.DirectRoles)
-	require.Equal(t, []string{"qs:evaluator", "qs:staff"}, snapshot.EffectiveRoles)
+	require.Equal(t, []string{"qs:evaluator"}, snapshot.EffectiveRoles)
 	require.Contains(t, snapshot.Permissions, authorizationapp.PermissionEntry{
 		Resource: assessmentResource, Action: "retry", Mode: authorizationapp.ModeObjectCheckRequired,
 	})
@@ -120,16 +117,6 @@ func TestRuntimeFailedReloadKeepsPreviousSnapshot(t *testing.T) {
 	ready, reloadErr, _ := runtime.ReloadHealth()
 	require.True(t, ready, "transient reload failure is within freshness budget")
 	require.ErrorContains(t, reloadErr, "database unavailable")
-}
-
-func TestBuildSnapshotRejectsInheritanceCycle(t *testing.T) {
-	dataset := assessmentDataset(t)
-	dataset.Inheritances = []authzruntime.InheritanceRecord{
-		{RoleID: meta.FromUint64(12), InheritedRoleID: meta.FromUint64(13)},
-		{RoleID: meta.FromUint64(13), InheritedRoleID: meta.FromUint64(12)},
-	}
-	_, err := authzruntime.BuildSnapshot(dataset, time.Time{})
-	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 }
 
 type mutableSource struct {
@@ -194,10 +181,6 @@ func assessmentDataset(t testing.TB) authzruntime.Dataset {
 			{SubjectKey: "user:2", RoleID: meta.FromUint64(12)},
 			{SubjectKey: "user:3", RoleID: meta.FromUint64(13)},
 			{SubjectKey: "user:4", RoleID: meta.FromUint64(14)},
-		},
-		Inheritances: []authzruntime.InheritanceRecord{
-			{RoleID: meta.FromUint64(12), InheritedRoleID: meta.FromUint64(14)},
-			{RoleID: meta.FromUint64(13), InheritedRoleID: meta.FromUint64(14)},
 		},
 		Grants:    []*permissiongrant.Grant{&admin, &evaluatorRetry, &evaluatorBatch, &planRetry},
 		Resources: []*resource.Resource{&assessment},

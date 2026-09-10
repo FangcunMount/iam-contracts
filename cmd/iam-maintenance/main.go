@@ -49,6 +49,8 @@ func run(args []string, output io.Writer) error {
 		return runAuthorizationVerify(args[1:], output)
 	case "authorization-migrate":
 		return runAuthorizationMigration(args[1:], output)
+	case "role-model-migrate":
+		return runRoleModelMigration(args[1:], output)
 	case "tenant-retirement":
 		return runTenantRetirement(args[1:], output)
 	case "purge-refresh-tokens":
