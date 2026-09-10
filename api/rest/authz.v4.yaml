@@ -449,6 +449,7 @@ paths:
       summary: 角色继承已退役
       description: 角色继承能力已退役；请直接分配多个角色。旧路径保留无数据库依赖的 410 响应。
       operationId: listRoleInheritances
+      deprecated: true
       responses:
         '410':
           description: 角色继承已退役，请直接分配多个角色
@@ -464,6 +465,7 @@ paths:
       summary: 角色继承已退役
       description: 角色继承能力已退役；请直接分配多个角色。旧路径保留无数据库依赖的 410 响应。
       operationId: createRoleInheritance
+      deprecated: true
       responses:
         '410':
           description: 角色继承已退役，请直接分配多个角色
@@ -480,6 +482,7 @@ paths:
       summary: 角色继承已退役
       description: 角色继承能力已退役；请直接分配多个角色。旧路径保留无数据库依赖的 410 响应。
       operationId: revokeRoleInheritance
+      deprecated: true
       parameters:
       - name: id
         in: path
