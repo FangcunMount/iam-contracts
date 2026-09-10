@@ -173,7 +173,7 @@ allowed, err := client.Authz().Allow(
 | `Check` | 你需要直接对齐 proto | `*CheckResponse` | 最接近 gRPC 合同 |
 | `CheckObject` | 已加载对象并需要属性条件判定 | `*CheckResponse` | 携带对象 ID 与类型化属性 |
 | `Allow` | 只判断无条件 Grant | `bool` | 不提交对象属性，条件 Grant 会 fail-closed |
-| `GetAuthorizationSnapshot` | 读取当前授权视图 | `*GetAuthorizationSnapshotResponse` | `roles` 是有效角色，`direct_roles` 是直接 Assignment |
+| `GetAuthorizationSnapshot` | 读取当前授权视图 | `*GetAuthorizationSnapshotResponse` | 继承退役后 `roles` 与 `direct_roles` 均为应用范围内的直接 Assignment |
 | `GrantAssignment` | 增量授予直接角色 | `*GrantAssignmentResponse` | 受服务 ACL 与 Assignment constraints 约束 |
 | `RevokeAssignment` | 增量撤销直接角色 | `*RevokeAssignmentResponse` | 受服务 ACL 与 Assignment constraints 约束 |
 | `ReplaceManagedAssignments` | 替换受管角色子集 | `*ReplaceManagedAssignmentsResponse` | 保留非受管 Assignment；响应是目标受管子集 |

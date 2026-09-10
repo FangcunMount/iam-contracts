@@ -109,7 +109,6 @@ func routeMatrixDeps() Deps {
 		RoleHandler:            authzhandler.NewRoleHandler(nil, nil),
 		AssignmentHandler:      authzhandler.NewAssignmentHandler(nil, nil),
 		PermissionGrantHandler: authzhandler.NewPermissionGrantHandler(nil),
-		RoleInheritanceHandler: authzhandler.NewRoleInheritanceHandler(nil),
 		ResourceHandler:        authzhandler.NewResourceHandler(nil, nil),
 		RoutePermissionChecker: routeAuthorizationStub{},
 	}

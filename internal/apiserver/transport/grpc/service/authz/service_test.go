@@ -118,8 +118,8 @@ func TestAuthorizationServerUsesInjectedObjectAttributeAdmissionPolicy(t *testin
 
 func TestAuthorizationServerSnapshotPreservesAuthorizationMode(t *testing.T) {
 	reader := &snapshotReaderFake{snapshot: authzapp.SubjectSnapshot{
-		DirectRoles:    []string{"qs:evaluator"},
-		EffectiveRoles: []string{"qs:evaluator", "qs:staff"}, PolicyVersion: 7,
+		DirectRoles:    []string{"qs:assessment_operator"},
+		EffectiveRoles: []string{"qs:assessment_operator", "stale-inherited"}, PolicyVersion: 7,
 		Permissions: []authzapp.PermissionEntry{{
 			Resource: assessmentResource, Action: "retry", Mode: authzapp.ModeObjectCheckRequired,
 		}},
@@ -130,8 +130,8 @@ func TestAuthorizationServerSnapshotPreservesAuthorizationMode(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.EqualValues(t, 7, resp.PolicyVersion)
-	require.Equal(t, []string{"qs:evaluator", "qs:staff"}, resp.Roles)
-	require.Equal(t, []string{"qs:evaluator"}, resp.DirectRoles)
+	require.Equal(t, []string{"qs:assessment_operator"}, resp.Roles)
+	require.Equal(t, []string{"qs:assessment_operator"}, resp.DirectRoles)
 	require.Equal(t, authzv4.AuthorizationMode_OBJECT_CHECK_REQUIRED, resp.Permissions[0].Mode)
 }
 

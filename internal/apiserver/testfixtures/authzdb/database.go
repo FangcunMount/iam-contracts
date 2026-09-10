@@ -14,7 +14,6 @@ import (
 	policyrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
 	resourcerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
 	rolerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
-	inheritancerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/roleinheritance"
 	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	gormmysql "gorm.io/driver/mysql"
@@ -59,7 +58,7 @@ func Open(t *testing.T, mysqlRequired bool) *gorm.DB {
 	if !mysqlRequired {
 		sqlDB.SetMaxOpenConns(1)
 	}
-	require.NoError(t, db.AutoMigrate(&rolerepo.RolePO{}, &resourcerepo.ResourcePO{}, &assignmentrepo.AssignmentPO{}, &inheritancerepo.InheritancePO{}, &grantrepo.GrantPO{}, &policyrepo.PolicyVersionPO{}, &eventoutbox.OutboxPO{}))
+	require.NoError(t, db.AutoMigrate(&rolerepo.RolePO{}, &resourcerepo.ResourcePO{}, &assignmentrepo.AssignmentPO{}, &grantrepo.GrantPO{}, &policyrepo.PolicyVersionPO{}, &eventoutbox.OutboxPO{}))
 	require.NoError(t, db.Exec("CREATE TABLE users (id BIGINT PRIMARY KEY, status INT NOT NULL, deleted_at DATETIME NULL)").Error)
 	require.NoError(t, db.Create(&policyrepo.PolicyVersionPO{PolicyVersion: 1}).Error)
 	return db

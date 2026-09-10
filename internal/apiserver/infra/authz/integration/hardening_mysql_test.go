@@ -2,7 +2,6 @@ package integration_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -14,13 +13,11 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/roleinheritance"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 	authzruntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
 	grantrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
 	resourcerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
 	rolerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
-	inheritancerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/roleinheritance"
 	authzuow "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/uow/authz"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/authzdb"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
@@ -44,33 +41,6 @@ func concurrent(t *testing.T, a, b func() error) {
 	close(start)
 	first, second := <-results, <-results
 	require.True(t, (first == nil) != (second == nil), "exactly one conflicting operation must succeed: %v, %v", first, second)
-}
-func TestMySQLInheritanceAtomicGraphValidation(t *testing.T) {
-	db := authzdb.Open(t, true)
-	repo := inheritancerepo.NewRepository(db)
-	ctx := management.WithAuthenticatedService(context.Background(), "admin")
-	a, b := seedRole(t, db, "a"), seedRole(t, db, "b")
-	ab, err := roleinheritance.New(a.ID, b.ID, "seed")
-	require.NoError(t, err)
-	ba, err := roleinheritance.New(b.ID, a.ID, "seed")
-	require.NoError(t, err)
-	concurrent(t, func() error { return repo.CreateChecked(ctx, &ab) }, func() error { return repo.CreateChecked(ctx, &ba) })
-	data, err := authzruntime.NewMySQLSource(db).Load(ctx)
-	require.NoError(t, err)
-	_, err = authzruntime.BuildSnapshot(data, time.Time{})
-	require.NoError(t, err)
-	roles := make([]role.Role, 33)
-	for i := range roles {
-		roles[i] = seedRole(t, db, fmt.Sprintf("depth%d", i))
-	}
-	for i := 0; i < 31; i++ {
-		edge, err := roleinheritance.New(roles[i].ID, roles[i+1].ID, "seed")
-		require.NoError(t, err)
-		require.NoError(t, repo.CreateChecked(ctx, &edge))
-	}
-	edge, err := roleinheritance.New(roles[31].ID, roles[32].ID, "seed")
-	require.NoError(t, err)
-	require.Error(t, repo.CreateChecked(ctx, &edge))
 }
 func TestMySQLRoleDeletionAndGrantSerialize(t *testing.T) {
 	db := authzdb.Open(t, true)

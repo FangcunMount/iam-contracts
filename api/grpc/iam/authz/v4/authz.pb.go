@@ -554,7 +554,7 @@ func (x *GetAuthorizationSnapshotRequest) GetAppName() string {
 
 type GetAuthorizationSnapshotResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// roles contains the effective roles for app_name, including inherited roles.
+	// roles contains the directly assigned roles for app_name, identical to direct_roles.
 	Roles         []string           `protobuf:"bytes,1,rep,name=roles,proto3" json:"roles,omitempty"`
 	Permissions   []*PermissionEntry `protobuf:"bytes,2,rep,name=permissions,proto3" json:"permissions,omitempty"`
 	PolicyVersion int64              `protobuf:"varint,3,opt,name=policy_version,json=policyVersion,proto3" json:"policy_version,omitempty"`

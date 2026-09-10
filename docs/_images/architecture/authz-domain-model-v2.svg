@@ -51,7 +51,7 @@
 
   <rect x="1810" y="280" width="380" height="230" class="card"/>
   <text x="2000" y="320" text-anchor="middle" class="stereo">RELATION ENTITY</text>
-  <text x="2000" y="364" text-anchor="middle" class="boxTitle">RoleInheritance</text>
+  <text x="2000" y="364" text-anchor="middle" class="boxTitle">DirectRoles</text>
   <line x1="1840" y1="382" x2="2160" y2="382" class="divider"/>
   <text x="2000" y="414" text-anchor="middle" class="field">ChildRoleID → ParentRoleID</text>
   <text x="2000" y="440" text-anchor="middle" class="field">RevokedAt · Version</text>
@@ -126,7 +126,7 @@
 
   <rect x="1040" y="1150" width="430" height="245" class="runtimeCard"/>
   <text x="1255" y="1190" text-anchor="middle" class="stereo">SNAPSHOT COMPONENT</text>
-  <text x="1255" y="1232" text-anchor="middle" class="boxTitle">Immutable Role Graph</text>
+  <text x="1255" y="1232" text-anchor="middle" class="boxTitle">Direct Role Index</text>
   <line x1="1075" y1="1250" x2="1435" y2="1250" class="divider"/>
   <text x="1255" y="1282" text-anchor="middle" class="field">Subject → Direct Role</text>
   <text x="1255" y="1310" text-anchor="middle" class="field">Child Role → Parent Role</text>

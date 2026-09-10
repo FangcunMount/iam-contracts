@@ -22,18 +22,12 @@ type AssignmentRecord struct {
 	RoleID     meta.ID
 }
 
-type InheritanceRecord struct {
-	RoleID          meta.ID
-	InheritedRoleID meta.ID
-}
-
 type Dataset struct {
-	Roles        []RoleRecord
-	Assignments  []AssignmentRecord
-	Inheritances []InheritanceRecord
-	Grants       []*permissiongrant.Grant
-	Resources    []*resource.Resource
-	Version      int64
+	Roles       []RoleRecord
+	Assignments []AssignmentRecord
+	Grants      []*permissiongrant.Grant
+	Resources   []*resource.Resource
+	Version     int64
 }
 
 type Source interface {

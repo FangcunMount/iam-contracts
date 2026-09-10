@@ -17,7 +17,16 @@ import (
 var migrations embed.FS
 
 // Config 迁移配置
+type FreshStage struct {
+	Version uint
+	Prepare func() error
+}
+
 type Config struct {
+	// FreshStages run only after proving that no application table existed before
+	// this migration invocation. Existing installations never execute these hooks.
+	FreshStages []FreshStage
+
 	Enabled  bool   // 是否启用自动迁移
 	Database string // 数据库名称
 }
@@ -73,6 +82,27 @@ func (m *Migrator) Run() (uint, bool, error) {
 
 	if dirty {
 		return versionBefore, false, fmt.Errorf("database is in dirty state at version %d, please fix manually", versionBefore)
+	}
+
+	if versionBefore == 0 && len(m.config.FreshStages) > 0 {
+		var tables int
+		if err := m.db.QueryRow("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME <> 'schema_migrations'").Scan(&tables); err != nil {
+			return 0, false, err
+		}
+		if tables != 0 {
+			return 0, false, fmt.Errorf("fresh bootstrap requires an empty database")
+		}
+		for _, stage := range m.config.FreshStages {
+			if err := instance.Migrate(stage.Version); err != nil && err != migrate.ErrNoChange {
+				return 0, false, err
+			}
+			if stage.Prepare == nil {
+				return stage.Version, true, fmt.Errorf("fresh migration preparation missing")
+			}
+			if err := stage.Prepare(); err != nil {
+				return stage.Version, true, fmt.Errorf("fresh migration preparation at %d: %w", stage.Version, err)
+			}
+		}
 	}
 
 	// 执行迁移

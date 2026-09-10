@@ -130,11 +130,7 @@ func (s *RoleCatalog) DeleteRole(ctx context.Context, cmd DeleteRoleCommand) err
 		if err != nil {
 			return err
 		}
-		inheritances, err := tx.RoleInheritances.ListActive(txCtx)
-		if err != nil {
-			return err
-		}
-		if err := s.roleRemovalPolicy.EnsureUnused(cmd.ID, assignments, grants, inheritances); err != nil {
+		if err := s.roleRemovalPolicy.EnsureUnused(assignments, grants); err != nil {
 			return err
 		}
 		if err := tx.Roles.Delete(txCtx, cmd.ID); err != nil {

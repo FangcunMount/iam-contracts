@@ -13,13 +13,10 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/roleinheritance"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
-
-const maxRoleHierarchyLevel = roleinheritance.MaxHierarchyDepth
 
 type Snapshot struct {
 	verifiedAt   time.Time // proof belongs to this immutable publication
@@ -76,7 +73,7 @@ func BuildSnapshot(dataset Dataset, loadedAt time.Time, providers ...objectattri
 		resourcesByID[catalogResource.ID.Uint64()] = catalogResource
 	}
 
-	roleGraphBuilder := newRoleGraphBuilder()
+	directRoleBuilder := newDirectRoleBuilder()
 	for _, assignment := range dataset.Assignments {
 		_, ok := roleByID[assignment.RoleID]
 		if !ok {
@@ -86,15 +83,9 @@ func BuildSnapshot(dataset Dataset, loadedAt time.Time, providers ...objectattri
 		if err != nil {
 			return nil, err
 		}
-		roleGraphBuilder.addAssignment(sub, assignment.RoleID)
+		directRoleBuilder.addAssignment(sub, assignment.RoleID)
 	}
-	if err := validateInheritanceGraph(dataset.Inheritances, roleByID); err != nil {
-		return nil, err
-	}
-	for _, inheritance := range dataset.Inheritances {
-		roleGraphBuilder.addInheritance(inheritance.RoleID, inheritance.InheritedRoleID)
-	}
-	roleResolver := roleGraphBuilder.build(maxRoleHierarchyLevel)
+	roleResolver := directRoleBuilder.build()
 
 	grantsByRole := make(map[meta.ID][]*permissiongrant.Grant)
 	for _, grant := range dataset.Grants {
@@ -244,18 +235,6 @@ func uniqueSortedStrings(values []string) []string {
 func (s *Snapshot) LoadedAt() time.Time { return s.loadedAt }
 
 func (s *Snapshot) Version() int64 { return s.version }
-
-func validateInheritanceGraph(records []InheritanceRecord, roles map[meta.ID]RoleRecord) error {
-	nodes := make([]roleinheritance.RoleNode, 0, len(roles))
-	for _, r := range roles {
-		nodes = append(nodes, roleinheritance.RoleNode{ID: r.ID, ManagementProtection: r.ManagementProtection})
-	}
-	edges := make([]*roleinheritance.Inheritance, 0, len(records))
-	for _, r := range records {
-		edges = append(edges, &roleinheritance.Inheritance{RoleID: r.RoleID, InheritedRoleID: r.InheritedRoleID})
-	}
-	return roleinheritance.ValidateGraph(nodes, edges)
-}
 
 func (s *Snapshot) names(ids []meta.ID) []role.Name {
 	out := make([]role.Name, 0, len(ids))

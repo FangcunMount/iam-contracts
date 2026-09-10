@@ -446,98 +446,56 @@ paths:
     get:
       tags:
       - Authorization-Role-Inheritances
-      summary: 查询角色继承
-      description: 查询当前租户中的有效角色继承，可按获得能力的角色过滤
+      summary: 角色继承已退役
+      description: 角色继承能力已退役；请直接分配多个角色。旧路径保留无数据库依赖的 410 响应。
       operationId: listRoleInheritances
-      parameters:
-      - name: role_id
-        in: query
-        description: Receiving role ID
-        schema:
-          type: string
       responses:
-        '200':
-          description: OK
+        '410':
+          description: 角色继承已退役，请直接分配多个角色
           content:
             application/json:
               schema:
-                allOf:
-                - $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response'
-                - properties:
-                    data:
-                      items:
-                        $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RoleInheritanceResponse'
-                      type: array
-                  type: object
-        '503':
-          description: Authorization policy unavailable (103002)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse'
+                type: object
+                additionalProperties:
+                  type: string
     post:
       tags:
       - Authorization-Role-Inheritances
-      summary: 创建角色继承
-      description: 当前角色继承目标角色的全部有效能力；循环关系会被拒绝
+      summary: 角色继承已退役
+      description: 角色继承能力已退役；请直接分配多个角色。旧路径保留无数据库依赖的 410 响应。
       operationId: createRoleInheritance
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.CreateRoleInheritanceRequest'
       responses:
-        '200':
-          description: OK
+        '410':
+          description: 角色继承已退役，请直接分配多个角色
           content:
             application/json:
               schema:
-                allOf:
-                - $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response'
-                - properties:
-                    data:
-                      $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RoleInheritanceResponse'
-                  type: object
-        '503':
-          description: Authorization policy unavailable (103002)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse'
+                type: object
+                additionalProperties:
+                  type: string
   /authz/role-inheritances/{id}:
     delete:
       tags:
       - Authorization-Role-Inheritances
-      summary: 撤销角色继承
-      description: 按继承关系 ID 撤销当前租户中的有效角色继承
+      summary: 角色继承已退役
+      description: 角色继承能力已退役；请直接分配多个角色。旧路径保留无数据库依赖的 410 响应。
       operationId: revokeRoleInheritance
       parameters:
       - name: id
         in: path
-        description: Role inheritance ID
+        description: Retired role inheritance ID
         required: true
         schema:
           type: string
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RevokeRoleInheritanceRequest'
       responses:
-        '200':
-          description: OK
+        '410':
+          description: 角色继承已退役，请直接分配多个角色
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response'
-        '503':
-          description: Authorization policy unavailable (103002)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse'
+                type: object
+                additionalProperties:
+                  type: string
   /authz/roles:
     get:
       tags:
@@ -890,16 +848,6 @@ components:
       - key
       - type
       type: object
-    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.CreateRoleInheritanceRequest:
-      properties:
-        inherited_role_id:
-          type: string
-        role_id:
-          type: string
-      required:
-      - inherited_role_id
-      - role_id
-      type: object
     github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.CreateRoleRequest:
       properties:
         description:
@@ -1035,26 +983,6 @@ components:
       - role_id
       - subject_id
       - subject_type
-      type: object
-    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RevokeRoleInheritanceRequest:
-      properties:
-        reason:
-          type: string
-      type: object
-    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RoleInheritanceResponse:
-      properties:
-        active:
-          type: boolean
-        granted_at:
-          type: string
-        granted_by:
-          type: string
-        id:
-          type: string
-        inherited_role_id:
-          type: string
-        role_id:
-          type: string
       type: object
     github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RoleResponse:
       properties:
