@@ -52,8 +52,8 @@ jobs:
           mkdir -p payload
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o payload/iam-maintenance ./cmd/iam-maintenance
           cp configs/events.yaml payload/events.yaml
-          chmod 0700 payload/iam-maintenance
-          chmod 0600 payload/events.yaml
+          chmod 0755 payload/iam-maintenance
+          chmod 0644 payload/events.yaml
 
       - name: Upload maintenance payload
         uses: appleboy/scp-action@v0.1.7
