@@ -7,10 +7,11 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: preflight (read-only) or cutover (apply+verify+archive)
+        description: status/preflight (read-only) or cutover (apply+verify+archive)
         required: true
         type: choice
         options:
+          - status
           - preflight
           - cutover
       confirm:

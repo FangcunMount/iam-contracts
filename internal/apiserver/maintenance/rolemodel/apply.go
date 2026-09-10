@@ -63,11 +63,11 @@ func Apply(ctx context.Context, iam, qs *gorm.DB, stager event.Stager, fingerpri
 			if receipt.Fingerprint != fingerprint || receipt.Status != "applied" {
 				return fmt.Errorf("migration receipt conflicts; inspect or roll back before retrying")
 			}
-			current, err := LoadState(txCtx, tx)
+			status, err := Status(txCtx, tx)
 			if err != nil {
 				return err
 			}
-			if current.Hash() != receipt.AfterHash {
+			if status.State != "applied_unchanged" {
 				return fmt.Errorf("applied migration facts changed")
 			}
 			return nil
@@ -284,6 +284,13 @@ func sortedGrantRoles(m map[string][]Permission) []string {
 }
 
 func Verify(ctx context.Context, db *gorm.DB) (*Receipt, error) {
+	status, err := Status(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	if status.State != "applied_unchanged" {
+		return nil, fmt.Errorf("migration %s: %s", status.State, status.NextAction)
+	}
 	var r Receipt
 	if err := db.WithContext(ctx).First(&r, "migration_id = ?", MigrationID).Error; err != nil {
 		return nil, err
@@ -336,6 +343,9 @@ func Rollback(ctx context.Context, db *gorm.DB, stager event.Stager, fingerprint
 		}
 		if r.Status != "applied" {
 			return fmt.Errorf("unexpected migration status")
+		}
+		if !tx.Migrator().HasTable(&LegacyEdge{}) {
+			return fmt.Errorf("restore archived inheritance table schema and rows before rollback")
 		}
 		current, err := LoadState(txCtx, tx)
 		if err != nil {

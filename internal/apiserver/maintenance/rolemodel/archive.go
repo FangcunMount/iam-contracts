@@ -40,6 +40,11 @@ func ArchiveInheritance(ctx context.Context, db *gorm.DB, fingerprint string, st
 	if receipt.Fingerprint != fingerprint {
 		return nil, fmt.Errorf("archive fingerprint mismatch")
 	}
+	if !db.Migrator().HasTable(&LegacyEdge{}) {
+		var existing InheritanceArchive
+		err := db.WithContext(ctx).First(&existing, "migration_id = ?", MigrationID).Error
+		return &existing, err
+	}
 	if db.Dialector.Name() != "mysql" {
 		return nil, fmt.Errorf("inheritance DDL archival requires MySQL")
 	}

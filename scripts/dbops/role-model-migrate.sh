@@ -58,9 +58,8 @@ normalize_mysql_aliases() {
 }
 
 extract_fingerprint() {
-  local path="$1"
   local fingerprint
-  fingerprint="$(grep -oE '"fingerprint"[[:space:]]*:[[:space:]]*"[0-9a-f]{64}"' "$path" | head -n 1 | grep -oE '[0-9a-f]{64}' || true)"
+  fingerprint="$(json_field "$1" fingerprint)"
   if ! [[ "$fingerprint" =~ ^[0-9a-f]{64}$ ]]; then
     fail "fingerprint missing from report"
   fi
@@ -68,14 +67,24 @@ extract_fingerprint() {
 }
 
 extract_checksum() {
-  local path="$1"
   local checksum
-  checksum="$(grep -oE '"checksum"[[:space:]]*:[[:space:]]*"[0-9a-f]{64}"' "$path" | head -n 1 | grep -oE '[0-9a-f]{64}' || true)"
+  checksum="$(json_field "$1" checksum)"
   if ! [[ "$checksum" =~ ^[0-9a-f]{64}$ ]]; then
     printf ''
     return 0
   fi
   printf '%s' "$checksum"
+}
+
+json_field() {
+  python3 - "$1" "$2" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as report:
+    value = json.load(report).get(sys.argv[2], "")
+if not isinstance(value, str):
+    raise SystemExit("invalid report field")
+print(value)
+PY
 }
 
 run_tool() {
@@ -88,7 +97,7 @@ main() {
   umask 077
 
   case "$MODE" in
-    preflight|cutover) ;;
+    status|preflight|cutover) ;;
     *) fail "unsupported mode" ;;
   esac
 
@@ -98,19 +107,19 @@ main() {
   require_value MYSQL_USERNAME "${MYSQL_USERNAME:-}"
   require_value MYSQL_PASSWORD "${MYSQL_PASSWORD:-}"
   require_value MYSQL_DBNAME "${MYSQL_DBNAME:-}"
-  require_value QS_MYSQL_DBNAME "${QS_MYSQL_DBNAME:-}"
+  command -v python3 >/dev/null || fail "python3 is required to parse reports"
 
   if [ ! -f "$BIN" ]; then
     fail "maintenance binary is missing"
   fi
-  chmod 0700 -- "$BIN" || fail "maintenance binary is not executable"
+  chmod -- 0700 "$BIN" || fail "maintenance binary is not executable"
   if [ ! -x "$BIN" ]; then
     fail "maintenance binary is not executable"
   fi
   if [ ! -f "$CATALOG" ]; then
     fail "event catalog is missing"
   fi
-  chmod 0600 -- "$CATALOG" || true
+  chmod -- 0600 "$CATALOG" || true
   if [[ "$REPORT_DIR" != /* ]] || [ -L "$REPORT_DIR" ]; then
     fail "report directory is invalid"
   fi
@@ -128,13 +137,30 @@ main() {
   normalize_mysql_aliases
   require_value MYSQL_USER "${MYSQL_USER:-}"
   require_value MYSQL_DATABASE "${MYSQL_DATABASE:-}"
-  require_value QS_MYSQL_HOST "${QS_MYSQL_HOST:-}"
-  require_value QS_MYSQL_USER "${QS_MYSQL_USER:-}"
-  require_value QS_MYSQL_PASSWORD "${QS_MYSQL_PASSWORD:-}"
-  require_value QS_MYSQL_DATABASE "${QS_MYSQL_DATABASE:-}"
 
   mkdir -p -- "$REPORT_DIR"
-  chmod 0700 -- "$REPORT_DIR"
+  chmod -- 0700 "$REPORT_DIR"
+
+  local status_path state
+  status_path="$REPORT_DIR/status_${TIMESTAMP}.json"
+  run_tool status >"$status_path" || fail "status"
+  state="$(json_field "$status_path" state)"
+  echo "role-model-migrate: mode=$MODE state=$state report=$(basename "$status_path")"
+  if [ "$MODE" = "status" ]; then exit 0; fi
+  case "$state" in
+    applied_unchanged)
+      if [ "$MODE" = "cutover" ]; then
+        run_tool archive-inheritance --writes-stopped \
+          --fingerprint="$(extract_fingerprint "$status_path")" >"$REPORT_DIR/archive_${TIMESTAMP}.json" || fail "archive-inheritance"
+        run_tool status >"$status_path" || fail "status after archive"
+      fi
+      echo "role-model-migrate: result=success state=applied_unchanged next=$(json_field "$status_path" next_action)"
+      exit 0
+      ;;
+    pending) ;;
+    *) fail "migration requires reconciliation: $state" ;;
+  esac
+  require_value QS_MYSQL_DATABASE "${QS_MYSQL_DATABASE:-}"
 
   local preflight_path apply_path verify_path archive_path fingerprint checksum
   preflight_path="$REPORT_DIR/preflight_${TIMESTAMP}.json"
@@ -145,7 +171,7 @@ main() {
   if ! run_tool preflight >"$preflight_path"; then
     fail "preflight"
   fi
-  chmod 0600 -- "$preflight_path"
+  chmod -- 0600 "$preflight_path"
   fingerprint="$(extract_fingerprint "$preflight_path")"
   echo "role-model-migrate: mode=$MODE step=preflight result=success fingerprint=$fingerprint report=$(basename "$preflight_path")"
 
@@ -160,13 +186,13 @@ main() {
     --event-catalog="$CATALOG" >"$apply_path"; then
     fail "apply"
   fi
-  chmod 0600 -- "$apply_path"
+  chmod -- 0600 "$apply_path"
   echo "role-model-migrate: mode=$MODE step=apply result=success fingerprint=$fingerprint report=$(basename "$apply_path")"
 
   if ! run_tool verify >"$verify_path"; then
     fail "verify"
   fi
-  chmod 0600 -- "$verify_path"
+  chmod -- 0600 "$verify_path"
   echo "role-model-migrate: mode=$MODE step=verify result=success fingerprint=$fingerprint report=$(basename "$verify_path")"
 
   if ! run_tool archive-inheritance \
@@ -174,7 +200,7 @@ main() {
     --fingerprint="$fingerprint" >"$archive_path"; then
     fail "archive-inheritance"
   fi
-  chmod 0600 -- "$archive_path"
+  chmod -- 0600 "$archive_path"
   checksum="$(extract_checksum "$archive_path")"
   if [ -n "$checksum" ]; then
     echo "role-model-migrate: mode=$MODE step=archive result=success fingerprint=$fingerprint checksum=$checksum report=$(basename "$archive_path")"

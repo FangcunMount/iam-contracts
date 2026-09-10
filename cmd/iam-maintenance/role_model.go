@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"io"
@@ -22,10 +23,10 @@ import (
 
 func runRoleModelMigration(args []string, output io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("role-model-migrate requires preflight, apply, verify, or rollback")
+		return errors.New("role-model-migrate requires status, preflight, apply, verify, rollback, or archive-inheritance")
 	}
 	mode := args[0]
-	if mode != "preflight" && mode != "apply" && mode != "verify" && mode != "rollback" && mode != "archive-inheritance" {
+	if mode != "status" && mode != "preflight" && mode != "apply" && mode != "verify" && mode != "rollback" && mode != "archive-inheritance" {
 		return errors.New("invalid role migration operation")
 	}
 	f := flag.NewFlagSet("role-model-migrate", flag.ContinueOnError)
@@ -52,8 +53,17 @@ func runRoleModelMigration(args []string, output io.Writer) error {
 		return err
 	}
 	defer pool.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+	defer cancel()
+	status, err := rolemodel.Status(ctx, iam)
+	if mode == "status" || err != nil {
+		if outputErr := writeJSON(output, status); outputErr != nil {
+			return outputErr
+		}
+		return err
+	}
 	var qs *gorm.DB
-	if mode == "preflight" || mode == "apply" {
+	if (mode == "preflight" || mode == "apply") && status.State == "pending" {
 		qs, err = roleDatabase("QS_")
 		if err != nil {
 			return err
@@ -64,15 +74,23 @@ func runRoleModelMigration(args []string, output io.Writer) error {
 		}
 		defer qpool.Close()
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
-	defer cancel()
 	switch mode {
 	case "preflight":
+		if status.State != "pending" && status.State != "applied_unchanged" {
+			if err := writeJSON(output, status); err != nil {
+				return err
+			}
+			return errors.New("migration is not executable: " + status.State)
+		}
 		p, err := rolemodel.Preflight(ctx, iam, qs)
 		if err != nil {
 			return err
 		}
-		if err = writeJSON(output, p); err != nil {
+		if status.State == "pending" {
+			status.Fingerprint = p.Fingerprint
+			status.NextAction = "apply"
+		}
+		if err = writeRoleReport(output, p, status); err != nil {
 			return err
 		}
 		return p.Validate()
@@ -81,13 +99,13 @@ func runRoleModelMigration(args []string, output io.Writer) error {
 		if err != nil {
 			return err
 		}
-		return writeJSON(output, a)
+		return writeRoleReport(output, a, status)
 	case "verify":
 		r, err := rolemodel.Verify(ctx, iam)
 		if err != nil {
 			return err
 		}
-		return writeJSON(output, r)
+		return writeRoleReport(output, r, status)
 	default:
 		cfg, err := eventcatalog.Load(*catalogPath)
 		if err != nil {
@@ -103,8 +121,38 @@ func runRoleModelMigration(args []string, output io.Writer) error {
 		if err != nil {
 			return err
 		}
-		return writeJSON(output, receipt)
+		status, err = rolemodel.Status(ctx, iam)
+		if err != nil {
+			return err
+		}
+		return writeRoleReport(output, receipt, status)
 	}
+}
+
+func writeRoleReport(output io.Writer, value any, status rolemodel.StatusReport) error {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+	var result map[string]any
+	if err = json.Unmarshal(data, &result); err != nil {
+		return err
+	}
+	data, err = json.Marshal(status)
+	if err != nil {
+		return err
+	}
+	var fields map[string]any
+	if err = json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	for k, v := range fields {
+		result[k] = v
+	}
+	if status.State == "applied_unchanged" {
+		result["ready"] = false
+	}
+	return writeJSON(output, result)
 }
 
 // Credentials remain in process environment. Driver Config escapes special

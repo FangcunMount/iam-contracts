@@ -217,7 +217,24 @@ func ReadPeople(ctx context.Context, iam, qs *gorm.DB, s State) ([]Person, error
 
 func Preflight(ctx context.Context, iam, qs *gorm.DB) (Plan, error) {
 	var p Plan
-	err := iam.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	status, err := Status(ctx, iam)
+	if err != nil {
+		return p, err
+	}
+	if status.State != "pending" {
+		if status.State != "applied_unchanged" {
+			return p, fmt.Errorf("migration %s: %s", status.State, status.NextAction)
+		}
+		var receipt Receipt
+		if err := iam.WithContext(ctx).First(&receipt, "migration_id = ?", MigrationID).Error; err != nil {
+			return p, err
+		}
+		if err := json.Unmarshal([]byte(receipt.PlanJSON), &p); err != nil {
+			return p, err
+		}
+		return p, nil
+	}
+	err = iam.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		s, err := LoadState(ctx, tx)
 		if err != nil {
 			return err

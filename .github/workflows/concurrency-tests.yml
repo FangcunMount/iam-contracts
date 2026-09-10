@@ -205,6 +205,12 @@ jobs:
             IAM_DB_OPS_OPERATION=rolebinding-guard-preflight \
             scripts/dbops/database-operation.sh
 
+      - name: Verify role model replay, archival and rollback with MySQL 8
+        env:
+          ROLE_MODEL_REQUIRE_MYSQL: 'true'
+          ROLE_MODEL_MYSQL_DSN: root:${{ secrets.CI_MYSQL_ROOT_PASSWORD || 'root' }}@tcp(127.0.0.1:3306)/?parseTime=true
+        run: go test ./internal/apiserver/maintenance/rolemodel -count=1 -v
+
       - name: Verify database backup, restore, and status with MySQL 8
         env:
           MYSQL_HOST: 127.0.0.1
