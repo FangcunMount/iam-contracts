@@ -3,6 +3,8 @@ package handler
 import (
 	"context"
 
+	"github.com/FangcunMount/iam/v5/internal/pkg/authzcompat"
+
 	permissionGrantApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/permissiongrant"
 	permissionGrantDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
@@ -25,7 +27,7 @@ func NewPermissionGrantHandler(service permissionGrantService) *PermissionGrantH
 
 // CreateGrant creates an immutable typed permission grant.
 // @Summary 创建 PermissionGrant
-// @Description 为指定角色创建不可变的精确资源、单一动作及可选对象属性约束授权
+// @Description 为指定角色创建不可变的精确资源及单一动作授权；条件授权已退役
 // @ID createPermissionGrant
 // @Tags Authorization-Grants
 // @Accept json
@@ -47,7 +49,7 @@ func (h *PermissionGrantHandler) CreateGrant(c *gin.Context) {
 	grant, err := h.service.Create(c.Request.Context(), permissionGrantApp.CreateCommand{
 		RoleID:     req.RoleID,
 		ResourceID: resource.NewResourceID(req.ResourceID.Uint64()), Action: req.Action,
-		Constraints: req.ConstraintSet, GrantedBy: userID.String(),
+		GrantedBy: userID.String(),
 	})
 	if err != nil {
 		handleError(c, err)
@@ -125,7 +127,7 @@ func toPermissionGrantResponse(grant *permissionGrantDomain.Grant) dto.Permissio
 	return dto.PermissionGrantResponse{
 		ID: grant.ID, RoleID: grant.RoleID,
 		ResourceID: meta.FromUint64(grant.ResourceID.Uint64()), ResourcePattern: grant.ResourceKeyString(),
-		Action: grant.ActionString(), ConstraintSet: grant.Constraints,
+		Action: grant.ActionString(), ConstraintSet: authzcompat.Constraints{},
 		GrantKey: grant.GrantKey, GrantedBy: grant.GrantedBy, Active: grant.IsActive(),
 	}
 }

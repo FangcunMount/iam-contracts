@@ -11,11 +11,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
+	legacygrant "github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/grant"
+
 	assignmentpo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/assignment"
 	grantpo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
 	resourcepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
 	rolepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/constraint"
 	"gorm.io/gorm"
 )
 
@@ -109,7 +111,7 @@ func (s State) Input(people []Person) (Input, error) {
 		if g.DeletedAt != nil || g.RevokedAt != nil {
 			continue
 		}
-		bo, err := (grantpo.Mapper{}).ToBO(&g)
+		bo, err := (legacygrant.Mapper{}).ToBO(&g)
 		if err != nil {
 			return in, fmt.Errorf("grant %s: %w", g.ID, err)
 		}

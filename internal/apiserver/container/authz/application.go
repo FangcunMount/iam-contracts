@@ -24,7 +24,7 @@ func (m *AuthzModule) initializeApplication(
 	m.permissionGrantService = permissionGrantApp.NewService(
 		infra.unitOfWork,
 		infra.permissionGrantRepository,
-		infra.authorizationRuntime, guard, m.attributeProviders,
+		infra.authorizationRuntime, guard,
 	)
 
 	m.assignmentCommands = assignmentApp.NewCommandService(

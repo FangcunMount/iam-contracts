@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/attribute"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/attribute"
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
@@ -53,16 +53,6 @@ func Equal(key string, value Value) Predicate {
 type Set struct {
 	Version uint32      `json:"version"` // 条件表达格式版本
 	AllOf   []Predicate `json:"all_of"`  // 必须同时满足的条件
-}
-
-// Attributes is the normalized internal representation of trusted, typed
-// object attributes supplied by the business service that owns the object.
-type Attributes map[string]Value
-
-// Evaluation is the fail-closed result of evaluating one all_of set.
-type Evaluation struct {
-	Matched              bool
-	MissingAttributeKeys []string
 }
 
 func Empty() Set {
@@ -142,42 +132,6 @@ func (s Set) ValidateAgainst(schema attribute.Schema) error {
 	return nil
 }
 
-// Evaluate applies all predicates to trusted, typed object attributes.
-// Missing keys are a normal deny result; malformed or type-incompatible
-// values are contract errors.
-func (s Set) Evaluate(attributes Attributes) (Evaluation, error) {
-	normalized, err := s.normalize(false)
-	if err != nil {
-		return Evaluation{}, err
-	}
-	if len(normalized.AllOf) == 0 {
-		return Evaluation{Matched: true}, nil
-	}
-
-	missing := make([]string, 0)
-	for _, predicate := range normalized.AllOf {
-		actual, ok := attributes[predicate.Key]
-		if !ok {
-			missing = append(missing, predicate.Key)
-			continue
-		}
-		if err := validateValue(actual); err != nil {
-			return Evaluation{}, perrors.WithCode(code.ErrInvalidArgument, "invalid object attribute %s: %v", predicate.Key, err)
-		}
-		if actual.Type != predicate.Value.Type {
-			return Evaluation{}, perrors.WithCode(code.ErrInvalidArgument, "object attribute type mismatch: %s", predicate.Key)
-		}
-		if !valuesEqual(actual, predicate.Value) {
-			return Evaluation{Matched: false}, nil
-		}
-	}
-	if len(missing) > 0 {
-		sort.Strings(missing)
-		return Evaluation{Matched: false, MissingAttributeKeys: missing}, nil
-	}
-	return Evaluation{Matched: true}, nil
-}
-
 func (s Set) CanonicalJSON() ([]byte, error) {
 	normalized, err := s.normalize(false)
 	if err != nil {
@@ -242,22 +196,6 @@ func validateValue(value Value) error {
 		return perrors.WithCode(code.ErrInvalidArgument, "unsupported constraint value type: %s", value.Type)
 	}
 	return nil
-}
-
-func valuesEqual(left, right Value) bool {
-	if left.Type != right.Type {
-		return false
-	}
-	switch left.Type {
-	case attribute.TypeString:
-		return left.String != nil && right.String != nil && *left.String == *right.String
-	case attribute.TypeInt64:
-		return left.Int64 != nil && right.Int64 != nil && *left.Int64 == *right.Int64
-	case attribute.TypeBool:
-		return left.Bool != nil && right.Bool != nil && *left.Bool == *right.Bool
-	default:
-		return false
-	}
 }
 
 func (v Value) Clone() Value {

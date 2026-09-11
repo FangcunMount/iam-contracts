@@ -60,7 +60,7 @@
   <text id="core-domain-model-v8" x="2400" y="76" text-anchor="middle" class="page-title">IAM 核心领域模型 V8｜聚合边界与领域知识</text>
   <text x="2400" y="121" text-anchor="middle" class="page-subtitle">整体介绍回答“谁拥有什么业务事实、哪些事实必须一致”；流程、领域服务与应用服务进入模块详图</text>
   <rect x="1580" y="145" width="1640" height="42" rx="21" fill="#f1f5f9" stroke="#cbd5e1"/>
-  <text x="2400" y="172" text-anchor="middle" class="small">当前模型：3 个限界上下文 · 13 个小聚合 · 以稳定 ID 跨聚合协作</text>
+  <text x="2400" y="172" text-anchor="middle" class="small">当前模型：3 个限界上下文 · 12 个小聚合 · 以稳定 ID 跨聚合协作</text>
 
   <!-- Identity bounded context -->
   <rect x="60" y="220" width="1160" height="2700" rx="30" class="context-identity" filter="url(#shadow)"/>
@@ -375,7 +375,7 @@
   <rect x="3200" y="220" width="1540" height="112" rx="30" class="head-authz"/>
   <path d="M3200 298 H4740" stroke="#7653b5" stroke-width="2"/>
   <text x="3970" y="265" text-anchor="middle" class="context-title">AuthZ｜授权上下文</text>
-  <text x="3970" y="296" text-anchor="middle" class="context-subtitle">拥有角色、资源目录、赋权事实、继承事实与权限授予事实</text>
+  <text x="3970" y="296" text-anchor="middle" class="context-subtitle">拥有角色、资源目录、直接分配与权限授予事实</text>
   <a href="../../02-业务模块/03-AuthZ/00-模块总览.md">
     <rect x="4540" y="244" width="160" height="42" rx="21" fill="#ffffff" fill-opacity="0.75" stroke="#7653b5"/>
     <text x="4620" y="271" text-anchor="middle" class="small">模块详解 →</text>
@@ -416,15 +416,15 @@
     <line x1="4020" y1="749" x2="4425" y2="749" class="divider"/>
     <text x="4045" y="785" class="field">ID · Key · Actions</text>
     <text x="4045" y="819" class="field">App · Domain · Type</text>
-    <text x="4045" y="851" class="field">AttributeSchema</text>
+    <text x="4045" y="851" class="field">DisplayName · Description</text>
   </g>
   <rect x="4450" y="653" width="220" height="95" rx="13" class="vo"/>
   <text x="4560" y="686" text-anchor="middle" class="vo-title">Resource.Key</text>
   <text x="4560" y="717" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt;</text>
   <rect x="4450" y="773" width="220" height="95" rx="13" class="vo"/>
-  <text x="4560" y="803" text-anchor="middle" class="vo-title">Action / Schema</text>
+  <text x="4560" y="803" text-anchor="middle" class="vo-title">Action</text>
   <text x="4560" y="832" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt;</text>
-  <text x="4560" y="858" text-anchor="middle" class="vo-body">允许动作与属性契约</text>
+  <text x="4560" y="858" text-anchor="middle" class="vo-body">允许的具体动作</text>
 
   <!-- AuthZ aggregate 11 Assignment -->
   <rect x="3240" y="980" width="710" height="350" rx="22" class="aggregate-boundary boundary-authz"/>
@@ -436,7 +436,7 @@
     <line x1="3270" y1="1144" x2="3675" y2="1144" class="divider"/>
     <text x="3295" y="1180" class="field">ID · SubjectType · SubjectID</text>
     <text x="3295" y="1214" class="field">RoleID · GrantedBy</text>
-    <text x="3295" y="1246" class="small">表达当前 direct role 事实</text>
+    <text x="3295" y="1246" class="small">DirectRoles 来自直接分配事实</text>
   </g>
   <rect x="3700" y="1048" width="220" height="95" rx="13" class="vo"/>
   <text x="3810" y="1081" text-anchor="middle" class="vo-title">Subject.Ref</text>
@@ -447,37 +447,16 @@
   <path d="M3472 1046 V937" class="reference"/>
   <text x="3492" y="965" class="small">RoleID → Role.ID</text>
 
-  <!-- AuthZ aggregate 12 DirectRoles -->
-  <rect x="3990" y="980" width="710" height="350" rx="22" class="aggregate-boundary boundary-authz"/>
-  <text x="4018" y="1011" class="aggregate-label" fill="#6941a5">AGGREGATE 12｜ROLE INHERITANCE</text>
-  <g filter="url(#shadow)">
-    <rect x="4020" y="1048" width="405" height="215" rx="17" class="root-authz"/>
-    <text x="4045" y="1080" class="aggregate-label" fill="#6941a5">&lt;&lt;aggregate root&gt;&gt;</text>
-    <text x="4222" y="1121" text-anchor="middle" class="root-title">DirectRoles｜直接角色</text>
-    <line x1="4020" y1="1144" x2="4425" y2="1144" class="divider"/>
-    <text x="4045" y="1180" class="field">ID · RoleID · InheritedRoleID</text>
-    <text x="4045" y="1214" class="field">GrantedBy · RevokedAt</text>
-    <text x="4045" y="1246" class="small">一条有生命周期的 DAG 边</text>
-  </g>
-  <rect x="4450" y="1048" width="220" height="95" rx="13" class="vo"/>
-  <text x="4560" y="1081" text-anchor="middle" class="vo-title">Role Ref Pair</text>
-  <text x="4560" y="1112" text-anchor="middle" class="vo-body">子角色 / 被继承角色</text>
-  <rect x="4450" y="1168" width="220" height="95" rx="13" class="vo"/>
-  <text x="4560" y="1201" text-anchor="middle" class="vo-title">RevokeOutcome</text>
-  <text x="4560" y="1232" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt;</text>
-  <path d="M4222 1046 V960 H3810 V870" class="reference"/>
-  <text x="4025" y="952" class="small">RoleID / InheritedRoleID → Role.ID</text>
-
-  <!-- AuthZ aggregate 13 PermissionGrant -->
+  <!-- AuthZ aggregate 12 PermissionGrant -->
   <rect x="3240" y="1375" width="1460" height="405" rx="22" class="aggregate-boundary boundary-authz"/>
-  <text x="3268" y="1406" class="aggregate-label" fill="#6941a5">AGGREGATE 13｜PERMISSION GRANT</text>
+  <text x="3268" y="1406" class="aggregate-label" fill="#6941a5">AGGREGATE 12｜PERMISSION GRANT</text>
   <g filter="url(#shadow)">
     <rect x="3270" y="1443" width="655" height="270" rx="17" class="root-authz"/>
     <text x="3295" y="1475" class="aggregate-label" fill="#6941a5">&lt;&lt;aggregate root&gt;&gt;</text>
     <text x="3597" y="1516" text-anchor="middle" class="root-title">PermissionGrant｜权限授予</text>
     <line x1="3270" y1="1539" x2="3925" y2="1539" class="divider"/>
     <text x="3295" y="1575" class="field">ID · RoleID · ResourceID</text>
-    <text x="3295" y="1609" class="field">ResourceKey · Action · ConstraintSet</text>
+    <text x="3295" y="1609" class="field">ResourceKey · Action</text>
     <text x="3295" y="1643" class="field">GrantKey · GrantedBy · GrantedAt · RevokedAt</text>
     <text x="3295" y="1681" class="small">一条 allow-only 授权事实；支持幂等撤销</text>
   </g>
@@ -489,10 +468,6 @@
   <text x="4500" y="1477" text-anchor="middle" class="vo-title">Action</text>
   <text x="4500" y="1508" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt; 动作匹配</text>
   <text x="4500" y="1536" text-anchor="middle" class="vo-body">托管授权必须是目录动作</text>
-  <rect x="3960" y="1583" width="710" height="130" rx="13" class="vo"/>
-  <text x="4315" y="1619" text-anchor="middle" class="vo-title">ConstraintSet｜条件集合</text>
-  <text x="4315" y="1650" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt; Version · AllOf(Predicates)</text>
-  <text x="4315" y="1680" text-anchor="middle" class="vo-body">只使用 Resource.AttributeSchema 声明的 typed object attributes</text>
   <path d="M3597 1441 V1360 H3472 V1332" class="reference"/>
   <path d="M3927 1478 H3970 V955 H4222 V937" class="reference"/>
   <text x="3865" y="1352" class="small">RoleID / ResourceID 稳定引用</text>
@@ -505,34 +480,28 @@
   <text x="3490" y="1957" text-anchor="middle" class="vo-title">AuthorizationRequest｜授权请求</text>
   <text x="3490" y="1991" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt;</text>
   <text x="3490" y="2023" text-anchor="middle" class="vo-body">Subject.Ref</text>
-  <text x="3490" y="2055" text-anchor="middle" class="vo-body">Resource.Key · Action · ObjectContext</text>
+  <text x="3490" y="2055" text-anchor="middle" class="vo-body">Resource.Key · Action</text>
   <text x="3490" y="2087" text-anchor="middle" class="vo-body">不接受客户端自报角色</text>
-  <rect x="3740" y="1920" width="430" height="205" rx="15" class="vo"/>
-  <text x="3955" y="1957" text-anchor="middle" class="vo-title">ObjectContext｜对象上下文</text>
-  <text x="3955" y="1991" text-anchor="middle" class="vo-body">&lt;&lt;value object&gt;&gt;</text>
-  <text x="3955" y="2023" text-anchor="middle" class="vo-body">ObjectID · ObjectAttributes</text>
-  <text x="3955" y="2055" text-anchor="middle" class="vo-body">属性由业务事实拥有者提供</text>
-  <text x="3955" y="2087" text-anchor="middle" class="vo-body">且必须满足 AttributeSchema</text>
   <rect x="4200" y="1920" width="470" height="205" rx="15" class="domain-result"/>
   <text x="4435" y="1957" text-anchor="middle" class="vo-title">Decision｜授权判定</text>
   <text x="4435" y="1991" text-anchor="middle" class="vo-body">&lt;&lt;domain result&gt;&gt;</text>
   <text x="4435" y="2023" text-anchor="middle" class="vo-body">Allowed · Reason · DenyCode</text>
   <text x="4435" y="2055" text-anchor="middle" class="vo-body">MatchedRole · MatchedGrantID</text>
-  <text x="4435" y="2087" text-anchor="middle" class="vo-body">MissingAttributeKeys · EvaluatedAt</text>
+  <text x="4435" y="2087" text-anchor="middle" class="vo-body">EvaluatedAt</text>
 
   <rect x="3240" y="2230" width="1460" height="480" rx="20" class="knowledge"/>
   <text x="3270" y="2270" class="knowledge-title">领域不变量｜授权事实必须可解释、可约束、可拒绝</text>
   <text x="3270" y="2314" class="knowledge-text">角色与赋权</text>
   <text x="3300" y="2350" class="knowledge-text">• Role.Name 全局唯一；活跃 Assignment 业务键唯一</text>
-  <text x="3300" y="2384" class="knowledge-text">• Role 删除前不得仍被赋权、继承或权限授予引用</text>
+  <text x="3300" y="2384" class="knowledge-text">• Role 删除前不得仍被赋权或权限授予引用</text>
   <text x="3270" y="2432" class="knowledge-text">直接角色</text>
-  <text x="3300" y="2468" class="knowledge-text">• 普通角色不得继承受保护角色；不能自继承；整个角色图不能成环</text>
+  <text x="3300" y="2468" class="knowledge-text">• 角色通过直接分配组合职责；保留敏感授权保护</text>
   <text x="3270" y="2516" class="knowledge-text">资源与权限授予</text>
-  <text x="3300" y="2552" class="knowledge-text">• PermissionGrant 必须通过 Resource 的动作与属性 Schema 校验</text>
-  <text x="3300" y="2586" class="knowledge-text">• 条件授权不得覆盖 list / search / batch；活跃 GrantKey 唯一</text>
+  <text x="3300" y="2552" class="knowledge-text">• PermissionGrant 必须通过 Resource 的动作校验</text>
+  <text x="3300" y="2586" class="knowledge-text">• 多角色权限取并集；活跃 GrantKey 唯一</text>
   <text x="3300" y="2620" class="knowledge-text">• Resource 更新不得使现有活跃 PermissionGrant 失效</text>
   <line x1="3270" y1="2650" x2="4670" y2="2650" stroke="#e3a566"/>
-  <text x="3970" y="2688" text-anchor="middle" class="knowledge-title">判定原则：默认拒绝；规则不匹配或条件属性缺失时均 fail closed。</text>
+  <text x="3970" y="2688" text-anchor="middle" class="knowledge-title">判定原则：默认拒绝；资源或动作不匹配时拒绝。</text>
 
   <!-- Cross-context stable references -->
   <path d="M1330 795 H1235 Q1200 795 1200 818 H630" class="reference"/>

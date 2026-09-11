@@ -4,15 +4,11 @@ import (
 	"testing"
 	"time"
 
-	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
-	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/authzschema"
-	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
@@ -35,37 +31,6 @@ func TestEvaluatorAllowsMatchingCandidateAndPreservesEvidence(t *testing.T) {
 	require.Equal(t, "example:evaluator", decision.MatchedRole)
 	require.EqualValues(t, 9, decision.PolicyVersion)
 	require.Equal(t, at, decision.EvaluatedAt)
-}
-
-func TestEvaluatorDeniesMissingAttributesWithDeterministicEvidence(t *testing.T) {
-	t.Parallel()
-
-	request, catalogResource, roles, grantsByRole := evaluationFixture(t, "")
-	object, err := authorization.NewObjectContext("assessment-1", nil)
-	require.NoError(t, err)
-	request.Object = object
-
-	decision, err := authorization.NewEvaluator().Evaluate(request, authorization.EvaluationContext{
-		EffectiveRoles: roles, RoleNames: map[meta.ID]role.Name{12: "example:evaluator"}, GrantsByRole: grantsByRole, Resource: catalogResource, PolicyVersion: 9,
-	}, time.Time{})
-
-	require.NoError(t, err)
-	require.False(t, decision.Allowed)
-	require.Equal(t, authorization.ReasonAttributeMissing, decision.Reason)
-	require.Equal(t, []string{authzfixture.AttributeKey}, decision.MissingAttributeKeys)
-}
-
-func TestEvaluatorReturnsContractErrorForUnregisteredAttributes(t *testing.T) {
-	t.Parallel()
-
-	request, _, roles, grantsByRole := evaluationFixture(t, "active")
-
-	decision, err := authorization.NewEvaluator().Evaluate(request, authorization.EvaluationContext{
-		EffectiveRoles: roles, RoleNames: map[meta.ID]role.Name{12: "example:evaluator"}, GrantsByRole: grantsByRole, PolicyVersion: 9,
-	}, time.Time{})
-
-	require.False(t, decision.Allowed)
-	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 }
 
 func TestEvaluatorUsesCandidateOrderForMatchedEvidence(t *testing.T) {
@@ -96,32 +61,18 @@ func evaluationFixture(
 		[]string{"retry"},
 		resource.WithID(resource.NewResourceID(20)),
 		resource.WithDisplayName("Assessments"),
-		resource.WithAttributeSchema(authzfixture.Schema()),
 	)
-	require.NoError(t, err)
-	conditions, err := constraint.New(constraint.Equal(
-		authzfixture.AttributeKey,
-		constraint.StringValue("active"),
-	))
 	require.NoError(t, err)
 	grant, err := permissiongrant.New(
 		meta.FromUint64(12), catalogResource.ID,
-		catalogResource.KeyString(), "retry", conditions, "bootstrap",
+		catalogResource.KeyString(), "retry", "bootstrap",
 	)
 	require.NoError(t, err)
 	grant.ID = meta.FromUint64(102)
 
 	sub, err := subject.NewUserRef(meta.FromUint64(2))
 	require.NoError(t, err)
-	attributes := constraint.Attributes(nil)
-	if statusValue != "" {
-		attributes = constraint.Attributes{
-			authzfixture.AttributeKey: constraint.StringValue(statusValue),
-		}
-	}
-	object, err := authorization.NewObjectContext("assessment-1", attributes)
-	require.NoError(t, err)
-	request, err := authorization.NewRequest(sub, documentResource, "retry", object)
+	request, err := authorization.NewRequest(sub, documentResource, "retry")
 	require.NoError(t, err)
 
 	return request, &catalogResource, []meta.ID{12}, map[meta.ID][]*permissiongrant.Grant{

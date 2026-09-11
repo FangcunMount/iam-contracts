@@ -50,7 +50,7 @@ func (s *ResourceCatalog) CreateResource(ctx context.Context, cmd CreateResource
 		cmd.Key, cmd.Actions,
 		resourceDomain.WithDisplayName(cmd.DisplayName), resourceDomain.WithAppName(cmd.AppName),
 		resourceDomain.WithDomain(cmd.Domain), resourceDomain.WithType(cmd.Type),
-		resourceDomain.WithAttributeSchema(cmd.AttributeSchema), resourceDomain.WithDescription(cmd.Description),
+		resourceDomain.WithDescription(cmd.Description),
 	)
 	if err != nil {
 		return nil, err
@@ -96,11 +96,7 @@ func (s *ResourceCatalog) UpdateResource(ctx context.Context, cmd UpdateResource
 				return err
 			}
 		}
-		if cmd.AttributeSchema != nil {
-			if err := updated.ChangeAttributeSchema(*cmd.AttributeSchema); err != nil {
-				return err
-			}
-		}
+
 		if cmd.Description != nil {
 			updated.ChangeDescription(*cmd.Description)
 		}

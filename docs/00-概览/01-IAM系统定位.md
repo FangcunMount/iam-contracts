@@ -53,7 +53,7 @@ flowchart TD
 
     Identity["Identity\n用户是谁\nUser / Profile / ProfileLink"]
     AuthN["AuthN\n如何证明身份\nLoginIdentity / Credential / Challenge / Principal / Session / Token"]
-    AuthZ["AuthZ\n能访问什么\nSubject / Role / Assignment / PermissionGrant / ConstraintSet"]
+    AuthZ["AuthZ\n能访问什么\nSubject / Role / Assignment / PermissionGrant"]
     IDP["IDP\n外部身份来源\nWechatApp / Credentials / AppToken / ExternalIdentity"]
     Suggest["Suggest\n可见 Profile 联想搜索\nSuggestibleProfile / Candidate / Scope"]
 
@@ -171,7 +171,7 @@ RefreshToken；
 JWKS。
 ```
 
-AuthN 不负责 Role、Assignment、RoleInheritance 或 PermissionGrant，不负责 ProfileLink 关系治理，也不拥有外部身份源配置。
+AuthN 不负责 Role、Assignment 或 PermissionGrant，不负责 ProfileLink 关系治理，也不拥有外部身份源配置。
 
 详细文档见 [AuthN](../02-业务模块/02-AuthN/README.md)。
 
@@ -187,7 +187,7 @@ AuthZ 是授权域。
 某个 Subject，
 在某个授权域下，
 能不能对某个 Resource 执行某个 Action，
-并让受信 ObjectAttributes 满足 PermissionGrant 的 ConstraintSet？
+业务系统随后检查对象关系、机构范围和状态。
 ```
 
 AuthZ 的核心对象是：
@@ -196,13 +196,11 @@ AuthZ 的核心对象是：
 Subject；
 Resource；
 Action；
-ObjectAttribute；
 Role；
 Assignment；
 DirectRole / EffectiveRole；
-RoleInheritance；
 PermissionGrant；
-ConstraintSet；
+直接角色与资源动作匹配；
 AuthorizationDecision；
 PolicyVersion。
 ```
@@ -280,7 +278,7 @@ IAM 的核心不是“维护用户表”，而是围绕身份与访问管理组�
 ```text
 Identity 维护 User/Profile/ProfileLink；
 AuthN 维护 LoginIdentity/Credential/Session/Token；
-AuthZ 维护 Subject/Role/Assignment/RoleInheritance/PermissionGrant，并区分直接角色与继承后的有效角色；
+AuthZ 维护 Subject/Role/Assignment/PermissionGrant，并区分直接角色与继承后的有效角色；
 IDP 适配外部身份源；
 Suggest 构建 Profile 联想搜索读模型。
 ```
@@ -317,11 +315,11 @@ IAM 的 AuthZ 需要解决：
 ```text
 授权主体如何表达；
 资源如何建模；
-Action 和受信 ObjectAttributes 如何参与判定；
+Resource 与 Action 如何参与判定；
 Role 如何聚合 PermissionGrant；
 Assignment 如何表达 Subject 持有 Role；
 RoleInheritance 如何复用角色能力；
-ConstraintSet 如何限制对象级 Grant；
+业务系统如何独立检查数据范围；
 Check 如何在运行时快速判定；
 PolicyVersion 和 Outbox 如何传播授权事实变化。
 ```

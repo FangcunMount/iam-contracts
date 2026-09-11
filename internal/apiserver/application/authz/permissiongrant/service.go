@@ -8,10 +8,8 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 
-	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/objectattributeadmission"
 	policychange "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	authzuow "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
@@ -19,11 +17,10 @@ import (
 )
 
 type CreateCommand struct {
-	RoleID      meta.ID
-	ResourceID  resource.ResourceID
-	Action      string
-	Constraints constraint.Set
-	GrantedBy   string
+	RoleID     meta.ID
+	ResourceID resource.ResourceID
+	Action     string
+	GrantedBy  string
 }
 
 type RevokeCommand struct {
@@ -33,19 +30,14 @@ type RevokeCommand struct {
 }
 
 type Service struct {
-	guard     management.Guard
-	providers objectattributeadmission.Coverage
-	uow       authzuow.UnitOfWork
-	repo      domain.Repository
-	reloader  policychange.RuntimePolicyReloader
+	guard    management.Guard
+	uow      authzuow.UnitOfWork
+	repo     domain.Repository
+	reloader policychange.RuntimePolicyReloader
 }
 
-func NewService(uow authzuow.UnitOfWork, repo domain.Repository, reloader policychange.RuntimePolicyReloader, guard management.Guard, providers ...objectattributeadmission.Coverage) *Service {
-	var coverage objectattributeadmission.Coverage
-	if len(providers) > 0 {
-		coverage = providers[0]
-	}
-	return &Service{uow: uow, repo: repo, reloader: reloader, guard: guard, providers: coverage}
+func NewService(uow authzuow.UnitOfWork, repo domain.Repository, reloader policychange.RuntimePolicyReloader, guard management.Guard) *Service {
+	return &Service{uow: uow, repo: repo, reloader: reloader, guard: guard}
 }
 
 func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Grant, error) {
@@ -75,7 +67,7 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Grant,
 		}
 		grant, err := domain.New(
 			cmd.RoleID, cmd.ResourceID, catalogResource.KeyString(),
-			cmd.Action, cmd.Constraints, cmd.GrantedBy,
+			cmd.Action, cmd.GrantedBy,
 		)
 		if err != nil {
 			return err
@@ -86,9 +78,7 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Grant,
 		if err := grant.ValidateAgainst(*catalogResource); err != nil {
 			return err
 		}
-		if err := objectattributeadmission.RequireCoverage(s.providers, grant.ResourceKeyString(), grant.Constraints); err != nil {
-			return perrors.WithCode(code.ErrInvalidArgument, "%s", err.Error())
-		}
+
 		if err := tx.PermissionGrants.Create(txCtx, &grant); err != nil {
 			return err
 		}

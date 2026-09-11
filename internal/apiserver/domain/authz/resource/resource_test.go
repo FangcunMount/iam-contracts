@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/authzschema"
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 )
@@ -28,19 +27,15 @@ func TestRestoreResourceAllowsHistoricalEmptyDisplayName(t *testing.T) {
 	require.Empty(t, resource.DisplayName)
 }
 
-func TestResourceOwnsActionsAndVersionedAttributeSchema(t *testing.T) {
+func TestResourceOwnsActions(t *testing.T) {
 	resource, err := NewResource(
 		"example:catalog:collection:documents",
 		[]string{"read", "retry", "force_retry"},
 		WithDisplayName("Assessments"),
-		WithAttributeSchema(authzfixture.Schema()),
 	)
 	require.NoError(t, err)
 	require.True(t, resource.HasAction("retry"))
 	require.False(t, resource.HasAction("delete"))
-	definition, ok := resource.AttributeSchema.Find(authzfixture.AttributeKey)
-	require.True(t, ok)
-	require.Equal(t, []string{"active", "paused"}, definition.AllowedStringValues)
 
 	require.NoError(t, resource.ChangeCatalog([]string{"read", "retry"}))
 	require.False(t, resource.HasAction("force_retry"))

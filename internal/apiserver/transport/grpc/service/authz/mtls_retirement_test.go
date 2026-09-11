@@ -8,7 +8,6 @@ import (
 
 	authzv4 "github.com/FangcunMount/iam/v5/api/grpc/iam/authz/v4"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
-	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/assessment"
 	servergrpc "github.com/FangcunMount/iam/v5/internal/pkg/grpc"
 	"github.com/FangcunMount/iam/v5/internal/testutil/tlsfixture"
 	"github.com/stretchr/testify/require"
@@ -36,7 +35,7 @@ func TestMTLSAuthorizationWithoutServiceToken(t *testing.T) {
 	srv, err := servergrpc.NewServer(cfg)
 	require.NoError(t, err)
 	t.Cleanup(srv.Server.Stop)
-	authzv4.RegisterAuthorizationServiceServer(srv.Server, &authorizationServer{checker: &checkerFake{decision: authorization.Decision{Allowed: true, Reason: authorization.ReasonAllowed}}, objectAttributeAdmission: authzfixture.Policy()})
+	authzv4.RegisterAuthorizationServiceServer(srv.Server, &authorizationServer{checker: &checkerFake{decision: authorization.Decision{Allowed: true, Reason: authorization.ReasonAllowed}}})
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = lis.Close() })

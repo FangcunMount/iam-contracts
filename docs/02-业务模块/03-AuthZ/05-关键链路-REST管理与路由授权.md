@@ -17,11 +17,11 @@ REST 路由统一挂在 `/api/v4/authz`：
 | Assignment | `/api/v4/authz/assignments` | 增量授予、撤销与查询直接关系 |
 | PermissionGrant | `/api/v4/authz/grants` | 管理角色能力 |
 | RoleInheritance（已退役） | `/api/v4/authz/role-inheritances` | 旧路径固定返回 `410 Gone`，无数据库依赖 |
-| Resource | `/api/v4/authz/resources` | 管理资源和对象属性 schema |
+| Resource | `/api/v4/authz/resources` | 管理资源与动作；弃用 attribute_schema 仅接受合法空值 |
 
 完整 method/path 以 `api/rest/authz.v4.yaml` 为准。REST 不提供 `/api/v4/authz/check`；需要判定的可信服务调用 gRPC。
 
-REST 是控制面，不是请求期权限决策面。若业务服务为了判定而调用 Role/Grant 列表并在本地重新实现 matcher，就会绕过快照、ConstraintSet 和 Decision 语义。
+REST 是控制面，不是请求期权限决策面。若业务服务为了判定而调用 Role/Grant 列表并在本地重新实现 matcher，就会绕过快照与 Decision 语义。
 服务间正确路径见 [gRPC 服务间授权与 SDK](06-关键链路-gRPC服务间授权与SDK.md)。
 
 ## AuthZ REST 路由与 Permission 矩阵
@@ -192,7 +192,7 @@ docs-facts 现在会抽取 README 中带 HTTP method 的 URL，并与 OpenAPI �
 4. gRPC 服务 ACL 和 Assignment constraints；
 5. OpenAPI/proto/SDK；
 6. bootstrap、维护校验与多实例 reload；
-7. 拒绝路径、条件 Grant 与多角色并集测试；旧继承路径返回 410。
+7. 拒绝路径、非空条件兼容拒绝与多角色并集测试；旧继承路径返回 410。
 
 8. README 中带 HTTP method 的请求 URL，以及退役的 v2 AuthZ 前缀或 REST `check` 引用。
 

@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/constraint"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 )
@@ -135,7 +135,7 @@ func prepareProfileCapabilities(tx *gorm.DB, state retirementState) error {
 		if err != nil {
 			return err
 		}
-		grant, err := permissiongrant.Restore(meta.ID(g.RoleID), resource.NewResourceID(profileID), profileKey, action, c, g.GrantedBy, permissiongrant.RestoreOptions{})
+		grant, err := permissiongrant.Restore(meta.ID(g.RoleID), resource.NewResourceID(profileID), profileKey, action, g.GrantedBy, permissiongrant.RestoreOptions{})
 		if err != nil {
 			return err
 		}

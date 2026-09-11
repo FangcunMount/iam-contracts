@@ -16,7 +16,6 @@ func CollectGRPC(available bool, mod *AuthzModule, registrations *[]grpctranspor
 		caps.AuthorizationSnapshotReader,
 		caps.AssignmentCommands,
 		caps.AssignmentAdmissionPolicy,
-		caps.ObjectAttributeAdmissionPolicy,
 	)
 	*registrations = append(*registrations, grpctransport.Registration{
 		Module:      "authz",

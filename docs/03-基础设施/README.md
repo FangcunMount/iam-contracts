@@ -70,7 +70,7 @@ Redis 运行时权威状态或派生缓存
 
 - 使用 Redis 不自动意味着操作是原子的；要继续看 Lua、WATCH 或事务管道；
 - 使用 Outbox 不自动意味着 exactly-once；当前保证是“提交不丢 + 至少一次发布倾向”，消费者仍需幂等；
-- 使用内存角色图不意味着它是业务真相源；数据库中的 Assignment、RoleInheritance 和 PermissionGrant 才是；
+- 使用内存角色图不意味着它是业务真相源；数据库中的 Assignment 和 PermissionGrant 才是；
 - 使用 JWT 不意味着请求完全无状态；在线验证还会检查 Session、撤销标记和当前主体状态。
 
 ## 5. 与业务模块的关系

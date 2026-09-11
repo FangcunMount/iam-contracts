@@ -85,7 +85,7 @@ func (r *Repository) FindByID(ctx context.Context, id meta.ID) (*domain.Grant, e
 }
 
 func (r *Repository) ListByRole(ctx context.Context, roleID meta.ID) ([]*domain.Grant, error) {
-	return r.list(ctx, "role_id = ?", roleID.Uint64())
+	return r.list(ctx, "role_id = ? AND revoked_at IS NULL", roleID.Uint64())
 }
 
 func (r *Repository) ListActive(ctx context.Context) ([]*domain.Grant, error) {

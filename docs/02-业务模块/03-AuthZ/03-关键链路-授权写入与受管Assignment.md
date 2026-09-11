@@ -48,7 +48,7 @@ reload 需要重读完整 AuthZ 数据集并构建快照。将它放在写事务
 | Create/Update/Delete Role | 角色保护边界、被引用关系与版本一致性 |
 | Grant/Revoke Assignment | Subject→Role 直接关系；约束授权器决定可管理范围 |
 | ReplaceManagedAssignments | 只替换约束策略定义的受管角色集合 |
-| Grant/Revoke Permission | Resource/Action/ConstraintSet 合法 |
+| Grant/Revoke Permission | Resource/Action 合法 |
 | Grant/Revoke Inheritance | 引用完整性、禁止自继承与成环 |
 | Register/Update Resource | attribute schema 可校验、可供运行时求值 |
 

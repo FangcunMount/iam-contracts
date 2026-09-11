@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
@@ -18,6 +17,7 @@ import (
 	grantrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
 	resourcerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
 	rolerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/constraint"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -224,7 +224,7 @@ func analyzeRetirement(s retirementState) *TenantRetirementReport {
 		if g.ResourceID != nil {
 			resourceID = resource.NewResourceID(*g.ResourceID)
 		}
-		grant, err := permissiongrant.Restore(meta.ID(g.RoleID), resourceID, g.ResourcePattern, g.Action, c, g.GrantedBy, permissiongrant.RestoreOptions{})
+		grant, err := permissiongrant.Restore(meta.ID(g.RoleID), resourceID, g.ResourcePattern, g.Action, g.GrantedBy, permissiongrant.RestoreOptions{})
 		if err != nil {
 			issue("invalid_grant", g.ID, err.Error())
 			continue

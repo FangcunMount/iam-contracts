@@ -3,8 +3,6 @@ package runtime
 import (
 	"fmt"
 	"time"
-
-	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/objectattributeadmission"
 )
 
 type Config struct {
@@ -27,7 +25,3 @@ func WithConfig(c Config) Option { return func(r *Runtime) { r.config = c } }
 
 // WithClock allows deterministic freshness tests without sleeping.
 func WithClock(now func() time.Time) Option { return func(r *Runtime) { r.now = now } }
-
-func WithAttributeProviders(p objectattributeadmission.Coverage) Option {
-	return func(r *Runtime) { r.providers = p }
-}

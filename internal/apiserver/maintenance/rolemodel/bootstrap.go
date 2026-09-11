@@ -4,10 +4,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	mysqlseed "github.com/FangcunMount/iam/v5/configs/mysql"
-	dbmysql "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 	"strings"
 	"time"
+
+	mysqlseed "github.com/FangcunMount/iam/v5/configs/mysql"
+	legacygrant "github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/grant"
+	dbmysql "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 
 	grantpo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
 	"github.com/FangcunMount/iam/v5/pkg/event"
@@ -43,7 +45,7 @@ func PrepareBootstrapTenant(ctx context.Context, db *gorm.DB) error {
 			return err
 		}
 		for _, row := range grants {
-			grant, err := (grantpo.Mapper{}).ToBO(&row)
+			grant, err := (legacygrant.Mapper{}).ToBO(&row)
 			if err != nil {
 				return err
 			}

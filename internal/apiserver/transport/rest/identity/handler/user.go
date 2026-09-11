@@ -4,6 +4,8 @@ import (
 	"context"
 	"strings"
 
+	authzapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+
 	"github.com/gin-gonic/gin"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
@@ -11,6 +13,7 @@ import (
 	appuser "github.com/FangcunMount/iam/v5/internal/apiserver/application/identity/user"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 	requestdto "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/identity/request"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/identity/response"
 	responsedto "github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/identity/response"
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
@@ -73,7 +76,26 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 		return
 	}
 
-	h.Success(c, newUserResponse(u, h.resolveRoles(c, userID)))
+	result := newUserResponse(u, h.resolveRoles(c, userID))
+	result.Permissions = []response.PermissionResponse{}
+	if reader, ok := h.effectiveRoles.(interface {
+		PermissionEntriesForSubject(context.Context, subject.Ref) ([]authzapp.PermissionEntry, error)
+	}); ok {
+		sub, err := subject.NewUserRef(userID)
+		if err != nil {
+			h.Error(c, err)
+			return
+		}
+		entries, err := reader.PermissionEntriesForSubject(c.Request.Context(), sub)
+		if err != nil {
+			h.Error(c, err)
+			return
+		}
+		for _, p := range entries {
+			result.Permissions = append(result.Permissions, response.PermissionResponse{Resource: p.Resource, Action: p.Action, Mode: string(p.Mode)})
+		}
+	}
+	h.Success(c, result)
 }
 
 // PatchUser 更新用户信息（昵称 / 联系方式）
@@ -127,7 +149,26 @@ func (h *UserHandler) PatchUser(c *gin.Context) {
 		return
 	}
 
-	h.Success(c, newUserResponse(u, h.resolveRoles(c, userID)))
+	result := newUserResponse(u, h.resolveRoles(c, userID))
+	result.Permissions = []response.PermissionResponse{}
+	if reader, ok := h.effectiveRoles.(interface {
+		PermissionEntriesForSubject(context.Context, subject.Ref) ([]authzapp.PermissionEntry, error)
+	}); ok {
+		sub, err := subject.NewUserRef(userID)
+		if err != nil {
+			h.Error(c, err)
+			return
+		}
+		entries, err := reader.PermissionEntriesForSubject(c.Request.Context(), sub)
+		if err != nil {
+			h.Error(c, err)
+			return
+		}
+		for _, p := range entries {
+			result.Permissions = append(result.Permissions, response.PermissionResponse{Resource: p.Resource, Action: p.Action, Mode: string(p.Mode)})
+		}
+	}
+	h.Success(c, result)
 }
 
 func extractContactValues(contacts []requestdto.UserContactUpsert) (phone string, email string) {

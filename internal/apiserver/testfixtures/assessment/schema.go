@@ -2,8 +2,7 @@
 package assessment
 
 import (
-	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/objectattributeadmission"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/attribute"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/attribute"
 )
 
 const AttributeKey = "object.origin_type"
@@ -16,11 +15,4 @@ func Schema() attribute.Schema {
 		panic(err)
 	}
 	return s
-}
-func Policy() *objectattributeadmission.Registry {
-	p, err := objectattributeadmission.New([]objectattributeadmission.Provider{{Service: Service, Resource: Resource, Attributes: []string{AttributeKey}}})
-	if err != nil {
-		panic(err)
-	}
-	return p
 }

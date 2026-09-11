@@ -9,7 +9,6 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	roleApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/role"
 	authztestutil "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/testutil"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	permissiongrantDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	roleDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
@@ -25,7 +24,7 @@ func TestDeleteRoleRejectsRoleWithActiveGrant(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, roles.Create(management.WithAuthenticatedService(context.Background(), "admin"), &role))
 	grant, err := permissiongrantDomain.New(
-		role.ID, resource.NewResourceID(91), "qs:evaluation:collection:assessments", "retry", constraint.Empty(), "operator",
+		role.ID, resource.NewResourceID(91), "qs:evaluation:collection:assessments", "retry", "operator",
 	)
 	require.NoError(t, err)
 	require.NoError(t, grants.Create(management.WithAuthenticatedService(context.Background(), "admin"), &grant))

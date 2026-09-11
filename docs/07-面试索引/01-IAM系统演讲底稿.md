@@ -96,7 +96,7 @@
 > AuthN 回答“怎样证明当前是他”。它拥有 LoginIdentity、Credential、Challenge、Principal、Session 和 Token。LoginIdentity 解决一个用户可以通过用户名、手机号、
 > 微信或企微等不同入口进入同一个 User 的问题。Principal 是一次认证成功的运行时结果，Session 和 Token 把这次认证延续成可撤销、可刷新的登录状态。
 >
-> AuthZ 回答“能对资源做什么”。它不是只检查一个 `role == admin`，而是把 Subject、Resource、Action 和受信对象属性一起放入授权请求中，再返回允许或拒绝的 Decision。
+> AuthZ 回答“能对资源做什么”。它不是只检查一个 `role == admin`，而是把 Subject、Resource、Action一起放入授权请求中，再返回允许或拒绝的 Decision。
 >
 > 两个辅助模块是 IDP 和 Suggest。IDP 隔离微信、企微等 provider 的应用配置、凭据、AppToken 和协议差异，并把一次 provider proof 解析成请求级、
 > 已验证的 `ExternalIdentity`；它仍然不拥有 IAM User、LoginIdentity 或登录态。Suggest 从 Identity 事实派生联想搜索索引，但它不能回写 Profile，也不能成为通用授权引擎。
@@ -155,12 +155,12 @@
 > 所以 AuthN 和 AuthZ 会在一次请求中前后衔接，但不需要让 AuthN 领域模块直接把 Principal 转成 AuthZ 的 Subject。Identity User 是它们共同的稳定身份锚点。
 >
 > AuthZ 采用 RBAC 加对象属性条件。Assignment 只表达 Subject 直接获得的 Role，RoleInheritance 计算继承角色，
-> PermissionGrant 表达 Role 对 Resource 的 Action，ConstraintSet 限定对象属性。所以快照中 direct roles 与包含继承结果的 effective roles 不能混用；
+> PermissionGrant 表达 Role 对 Resource 的 Action；direct roles 与兼容的 effective roles 均只包含直接角色；
 > 组织归属等关系仍由拥有事实的业务模块判断。
 >
-> 授权系统还有一个一致性问题。为了低延迟判定，每个 IAM 实例都有原生不可变授权快照。MySQL 中的 Assignment、RoleInheritance、PermissionGrant、
+> 授权系统还有一个一致性问题。为了低延迟判定，每个 IAM 实例都有原生不可变授权快照。MySQL 中的 Assignment、PermissionGrant、
 > Resource Schema 和 PolicyVersion 是权威事实；自有不可变角色图在快照内计算 Subject→Role 与 Role→ParentRole 两类角色边，
-> Resource/Action 匹配和 ConstraintSet 求值由 IAM 领域 runtime 完成。
+> Resource/Action 匹配由 IAM 领域 runtime 完成。
 >
 > 对外接口也按控制面与执行面分开：REST v3 管理 Role、Assignment、Grant、Inheritance 和 Resource，不提供 Check；可信业务服务通过 gRPC v3 `Check` 做判定。
 > Assignment gRPC 写入还要同时通过方法 ACL 与内容级 constraints。`ReplaceManagedAssignments` 只替换调用服务受管的角色子集，保留其他 Assignment，不是覆盖用户全部角色。
@@ -277,12 +277,12 @@
 | Session | 本次登录是否仍然有效、可撤销 | 一段登录期 | 不等于资源授权策略 |
 | Access Token | 请求携带哪些签名声明 | 短期 | 本地验签不自动获得即时撤销语义 |
 | Subject | AuthZ 中哪类主体请求授权 | 每次授权请求的主体引用 | 不等于 Principal 的全部认证细节 |
-| Decision | 对当前 Resource/Action/ObjectAttributes 是否允许 | 单次判定 | 不能永久代表之后的策略 |
+| Decision | 对当前 Resource/Action 是否允许 | 单次判定 | 不能永久代表之后的策略 |
 
 最简串联句：
 
 > provider proof 先由 IDP 解析成请求级 ExternalIdentity，AuthN 再用它查找 LoginIdentity，LoginIdentity 指向稳定 User；
-> 一次成功认证产生 Principal 和 Session，Token 携带可验证声明；资源服务再以 User 为锚点构造 Subject，请求 AuthZ 对当前 Resource、Action 和受信对象属性做 Decision。
+> 一次成功认证产生 Principal 和 Session，Token 携带可验证声明；资源服务再以 User 为锚点构造 Subject，请求 AuthZ 对当前 Resource、Action做 Decision。
 
 ## 6. 理解卡：哪些是事实，哪些是投影
 
@@ -321,7 +321,7 @@
 ### 8.2 AuthN 和 AuthZ 到底是什么关系？
 
 > 它们在请求链路上前后衔接，但不需要领域模块直接依赖。AuthN 验证请求者并产生可信 UserID/OrgID 上下文；资源服务以 Identity User 为锚点构造 AuthZ Subject，再对当前 Resource、
-> Action 和受信对象属性做决策。它们通过稳定身份引用对齐，不互相拥有对方模型。
+> Action 做决策。它们通过稳定身份引用对齐，不互相拥有对方模型。
 
 ### 8.3 为什么不只用 JWT？
 
@@ -335,7 +335,7 @@
 
 ### 8.5 为什么最终从 Casbin 迁移到自有角色图？
 
-> 最终授权不仅要解析角色，还要校验 Resource Schema、执行类型化 ConstraintSet、返回 matched Grant 和实际加载版本。MySQL 因此保存 Assignment、RoleInheritance、
+> 最终授权不仅要解析角色，还要匹配资源与动作、返回 matched Grant 和实际加载版本。MySQL 因此保存 Assignment、
 > PermissionGrant 等管理事实由 IAM 领域表达，Evaluator 执行权限判定；自有不可变角色图计算 角色管理保护的角色继承闭包。事件也只是让快照 reload 的协调信号，不是策略真相。
 
 ### 8.6 有了 MQ，为什么还需要 Outbox？

@@ -5,15 +5,17 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/conditionretire"
+
+	"time"
+
 	authzruntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/eventoutbox"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/rolemodel"
-	fixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/assessment"
 	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
 	"github.com/stretchr/testify/require"
 	gormmysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"time"
 )
 
 func TestFreshDatabaseMigratesToIndependentRolesMySQL(t *testing.T) {
@@ -29,13 +31,13 @@ func TestFreshDatabaseMigratesToIndependentRolesMySQL(t *testing.T) {
 	version, changed, err := NewMigrator(pool, &Config{Enabled: true, Database: database, FreshStages: stages}).Run()
 	require.NoError(t, err)
 	require.True(t, changed)
-	require.EqualValues(t, 34, version)
+	require.EqualValues(t, 35, version)
 	require.False(t, db.Migrator().HasTable("authz_role_inheritances"))
-	_, err = rolemodel.Verify(ctx, db)
+	_, err = conditionretire.Verify(ctx, db)
 	require.NoError(t, err)
 	dataset, err := authzruntime.NewMySQLSource(db).Load(ctx)
 	require.NoError(t, err)
-	_, err = authzruntime.BuildSnapshot(dataset, time.Now(), fixture.Policy())
+	_, err = authzruntime.BuildSnapshot(dataset, time.Now())
 	require.NoError(t, err)
 	require.Len(t, dataset.Roles, 8) // seven managed roles and retained user self-service
 }
@@ -49,6 +51,9 @@ func freshStagesForTest(t *testing.T, db *gorm.DB) []FreshStage {
 		{Version: 31, Prepare: func() error { return rolemodel.PrepareBootstrapTenant(ctx, db) }},
 		{Version: 33, Prepare: func() error {
 			return rolemodel.BootstrapIndependentRoles(ctx, db, eventoutbox.NewStore(db, eventcatalog.NewCatalog(catalog)))
+		}},
+		{Version: 35, Prepare: func() error {
+			return conditionretire.Bootstrap(ctx, db, eventoutbox.NewStore(db, eventcatalog.NewCatalog(catalog)))
 		}},
 	}
 }

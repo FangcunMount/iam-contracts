@@ -12,9 +12,7 @@ import (
 	assignmentApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
 	assignmentadmission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
 	authzapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
-	objectattributeadmission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/objectattributeadmission"
 	authorizationdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 	iamgrpc "github.com/FangcunMount/iam/v5/internal/pkg/grpc"
@@ -39,12 +37,10 @@ func NewService(
 	snapshotReader authorizationSnapshotReader,
 	assignments assignmentApp.NamedCommands,
 	assignmentPolicy assignmentadmission.Policy,
-	objectAttributePolicy objectattributeadmission.Policy,
 ) *Service {
 	return &Service{srv: authorizationServer{
 		checker: checker, snapshotReader: snapshotReader,
 		assignments: assignments, assignmentAdmission: assignmentPolicy,
-		objectAttributeAdmission: objectAttributePolicy,
 	}}
 }
 
@@ -57,15 +53,14 @@ func (s *Service) Register(server *grpc.Server) {
 
 type authorizationServer struct {
 	authzv4.UnimplementedAuthorizationServiceServer
-	checker                  authorizationChecker
-	snapshotReader           authorizationSnapshotReader
-	assignments              assignmentApp.NamedCommands
-	assignmentAdmission      assignmentadmission.Policy
-	objectAttributeAdmission objectattributeadmission.Policy
+	checker             authorizationChecker
+	snapshotReader      authorizationSnapshotReader
+	assignments         assignmentApp.NamedCommands
+	assignmentAdmission assignmentadmission.Policy
 }
 
 func (s *authorizationServer) Check(ctx context.Context, req *authzv4.CheckRequest) (*authzv4.CheckResponse, error) {
-	callerService, err := requireServiceIdentity(ctx)
+	_, err := requireServiceIdentity(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -79,11 +74,10 @@ func (s *authorizationServer) Check(ctx context.Context, req *authzv4.CheckReque
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	object, err := parseObjectContext(callerService, req.Resource, req.ObjectContext, s.objectAttributeAdmission)
-	if err != nil {
-		return nil, err
+	if req.ObjectContext != nil && (req.ObjectContext.ObjectId != "" || len(req.ObjectContext.Attributes) != 0 || len(req.ObjectContext.ProtoReflect().GetUnknown()) != 0) {
+		return nil, status.Error(codes.InvalidArgument, "conditional authorization has been retired")
 	}
-	request, err := authorizationdomain.NewRequest(sub, req.Resource, req.Action, object)
+	request, err := authorizationdomain.NewRequest(sub, req.Resource, req.Action)
 	if err != nil {
 		return nil, iamgrpc.ToStatusError(err)
 	}
@@ -94,7 +88,7 @@ func (s *authorizationServer) Check(ctx context.Context, req *authzv4.CheckReque
 	return &authzv4.CheckResponse{
 		Allowed: decision.Allowed, Reason: toProtoReason(decision.Reason), DenyCode: decision.DenyCode,
 		MatchedGrantId: decision.MatchedGrantID.String(), MatchedRole: decision.MatchedRole,
-		PolicyVersion: decision.PolicyVersion, MissingAttributeKeys: decision.MissingAttributeKeys,
+		PolicyVersion: decision.PolicyVersion,
 	}, nil
 }
 
@@ -231,54 +225,6 @@ func (s *authorizationServer) ReplaceManagedAssignments(ctx context.Context, req
 	}, nil
 }
 
-func parseObjectContext(callerService, resourceKey string, input *authzv4.ObjectContext, admission objectattributeadmission.Policy) (authorizationdomain.ObjectContext, error) {
-	if input == nil {
-		return authorizationdomain.NewObjectContext("", nil)
-	}
-	if admission == nil {
-		return authorizationdomain.ObjectContext{}, status.Error(codes.Internal, "object attribute admission policy is unavailable")
-	}
-	attributes := make(constraint.Attributes, len(input.Attributes))
-	for _, item := range input.Attributes {
-		if item == nil || strings.TrimSpace(item.Key) == "" || item.Value == nil {
-			return authorizationdomain.ObjectContext{}, status.Error(codes.InvalidArgument, "each object attribute requires a key and typed value")
-		}
-		key := strings.TrimSpace(item.Key)
-		if _, exists := attributes[key]; exists {
-			return authorizationdomain.ObjectContext{}, status.Errorf(codes.InvalidArgument, "duplicate object attribute: %s", key)
-		}
-		if err := admission.AuthorizeAttribute(objectattributeadmission.Request{
-			CallerService: callerService,
-			ResourceKey:   resourceKey,
-			AttributeKey:  key,
-		}); err != nil {
-			switch err.(type) {
-			case objectattributeadmission.ErrUnsupportedAttribute:
-				return authorizationdomain.ObjectContext{}, status.Errorf(codes.InvalidArgument, "%s", err.Error())
-			case objectattributeadmission.ErrUntrustedCaller:
-				return authorizationdomain.ObjectContext{}, status.Error(codes.PermissionDenied, err.Error())
-			default:
-				return authorizationdomain.ObjectContext{}, status.Error(codes.Internal, "object attribute authorization failed")
-			}
-		}
-		switch value := item.Value.(type) {
-		case *authzv4.ObjectAttribute_StringValue:
-			attributes[key] = constraint.StringValue(value.StringValue)
-		case *authzv4.ObjectAttribute_Int64Value:
-			attributes[key] = constraint.Int64Value(value.Int64Value)
-		case *authzv4.ObjectAttribute_BoolValue:
-			attributes[key] = constraint.BoolValue(value.BoolValue)
-		default:
-			return authorizationdomain.ObjectContext{}, status.Error(codes.InvalidArgument, "unsupported object attribute value")
-		}
-	}
-	object, err := authorizationdomain.NewObjectContext(input.ObjectId, attributes)
-	if err != nil {
-		return authorizationdomain.ObjectContext{}, iamgrpc.ToStatusError(err)
-	}
-	return object, nil
-}
-
 func requireServiceIdentity(ctx context.Context) (string, error) {
 	identity, ok := interceptors.ServiceIdentityFromContext(ctx)
 	if !ok || identity == nil || strings.TrimSpace(identity.ServiceName) == "" {
@@ -398,10 +344,7 @@ func parseSubjectKey(value string) (subject.Ref, error) {
 func toProtoPermissions(entries []authzapp.PermissionEntry) []*authzv4.PermissionEntry {
 	permissions := make([]*authzv4.PermissionEntry, 0, len(entries))
 	for _, entry := range entries {
-		mode := authzv4.AuthorizationMode_OBJECT_CHECK_REQUIRED
-		if entry.Mode == authzapp.ModeUnconditional {
-			mode = authzv4.AuthorizationMode_UNCONDITIONAL
-		}
+		mode := authzv4.AuthorizationMode_UNCONDITIONAL
 		permissions = append(permissions, &authzv4.PermissionEntry{Resource: entry.Resource, Action: entry.Action, Mode: mode})
 	}
 	return permissions
@@ -411,8 +354,6 @@ func toProtoReason(reason authorizationdomain.Reason) authzv4.DecisionReason {
 	switch reason {
 	case authorizationdomain.ReasonAllowed:
 		return authzv4.DecisionReason_ALLOWED
-	case authorizationdomain.ReasonAttributeMissing:
-		return authzv4.DecisionReason_ATTRIBUTE_MISSING
 	case authorizationdomain.ReasonNotMatched:
 		return authzv4.DecisionReason_NOT_MATCHED
 	default:

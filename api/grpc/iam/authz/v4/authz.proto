@@ -15,17 +15,18 @@ service AuthorizationService {
 enum AuthorizationMode {
   AUTHORIZATION_MODE_UNSPECIFIED = 0;
   UNCONDITIONAL = 1;
-  OBJECT_CHECK_REQUIRED = 2;
+  OBJECT_CHECK_REQUIRED = 2 [deprecated = true];
 }
 
 enum DecisionReason {
   DECISION_REASON_UNSPECIFIED = 0;
   ALLOWED = 1;
   NOT_MATCHED = 2;
-  ATTRIBUTE_MISSING = 3;
+  ATTRIBUTE_MISSING = 3 [deprecated = true];
 }
 
 message ObjectAttribute {
+  option deprecated = true;
   string key = 1;
   oneof value {
     string string_value = 2;
@@ -35,6 +36,7 @@ message ObjectAttribute {
 }
 
 message ObjectContext {
+  option deprecated = true;
   string object_id = 1;
   repeated ObjectAttribute attributes = 2;
 }
@@ -45,7 +47,7 @@ message CheckRequest {
   reserved "domain";
   string resource = 3;
   string action = 4;
-  ObjectContext object_context = 5;
+  ObjectContext object_context = 5 [deprecated = true];
 }
 
 message CheckResponse {
@@ -55,7 +57,7 @@ message CheckResponse {
   string matched_grant_id = 4;
   string matched_role = 5;
   int64 policy_version = 6;
-  repeated string missing_attribute_keys = 7;
+  repeated string missing_attribute_keys = 7 [deprecated = true];
 }
 
 message PermissionEntry {

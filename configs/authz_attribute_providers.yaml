@@ -1,7 +1,0 @@
-# Exact caller/resource/attribute trust. Types and allowed values live in Resource schema.
-# Deploy this file before starting IAM. Changes require a restart.
-providers:
-  - service: qs-apiserver.svc
-    resource: qs:evaluation:collection:assessments
-    attributes:
-      - object.origin_type

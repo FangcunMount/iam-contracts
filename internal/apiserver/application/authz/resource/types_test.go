@@ -11,13 +11,13 @@ import (
 )
 
 func TestNewUpdateResourceCommandOmitsDisplayNameWhenPointerNil(t *testing.T) {
-	cmd, err := resourceApp.NewUpdateResourceCommand(resourceDomain.NewResourceID(1), nil, []string{"read"}, nil, nil)
+	cmd, err := resourceApp.NewUpdateResourceCommand(resourceDomain.NewResourceID(1), nil, []string{"read"}, nil)
 	require.NoError(t, err)
 	require.Nil(t, cmd.DisplayName)
 }
 
 func TestNewUpdateResourceCommandRejectsExplicitEmptyDisplayName(t *testing.T) {
 	empty := "   "
-	_, err := resourceApp.NewUpdateResourceCommand(resourceDomain.NewResourceID(1), &empty, []string{"read"}, nil, nil)
+	_, err := resourceApp.NewUpdateResourceCommand(resourceDomain.NewResourceID(1), &empty, []string{"read"}, nil)
 	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
 }

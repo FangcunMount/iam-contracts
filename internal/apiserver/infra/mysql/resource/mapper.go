@@ -3,8 +3,8 @@ package resource
 import (
 	"encoding/json"
 
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/attribute"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/pkg/authzcompat"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
@@ -27,8 +27,7 @@ func (m *Mapper) ToBO(po *ResourcePO) (*resource.Resource, error) {
 	if err != nil {
 		return nil, err
 	}
-	attributeSchema, err := m.parseAttributeSchema(po.AttributeSchema)
-	if err != nil {
+	if err := authzcompat.ValidateEmpty([]byte(po.AttributeSchema), "attributes"); err != nil {
 		return nil, err
 	}
 
@@ -40,7 +39,6 @@ func (m *Mapper) ToBO(po *ResourcePO) (*resource.Resource, error) {
 		resource.WithAppName(po.AppName),
 		resource.WithDomain(po.Domain),
 		resource.WithType(po.Type),
-		resource.WithAttributeSchema(attributeSchema),
 		resource.WithDescription(po.Description),
 	)
 	if err != nil {
@@ -57,7 +55,7 @@ func (m *Mapper) ToPO(bo *resource.Resource) *ResourcePO {
 
 	// 序列化 Actions 为 JSON
 	actionsJSON, _ := m.serializeActions(bo.ActionStrings())
-	attributeSchemaJSON, _ := m.serializeAttributeSchema(bo.AttributeSchema)
+	attributeSchemaJSON := authzcompat.EmptySchema
 
 	po := &ResourcePO{
 		Key:             bo.KeyString(),
@@ -119,27 +117,4 @@ func (m *Mapper) parseActions(jsonStr string) ([]string, error) {
 		return []string{}, err
 	}
 	return actions, nil
-}
-
-func (m *Mapper) serializeAttributeSchema(schema attribute.Schema) (string, error) {
-	normalized, err := schema.Normalize()
-	if err != nil {
-		return "", err
-	}
-	data, err := json.Marshal(normalized)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}
-
-func (m *Mapper) parseAttributeSchema(jsonStr string) (attribute.Schema, error) {
-	if jsonStr == "" || jsonStr == "null" {
-		return attribute.EmptySchema(), nil
-	}
-	var schema attribute.Schema
-	if err := json.Unmarshal([]byte(jsonStr), &schema); err != nil {
-		return attribute.Schema{}, err
-	}
-	return schema.Normalize()
 }

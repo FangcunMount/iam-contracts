@@ -8,16 +8,17 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
-	grantdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	legacygrant "github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/grant"
+
 	policydomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	resourcedomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	roledomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
 	assignmentpo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/assignment"
-	grantpo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
 	policypo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
 	resourcepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
 	rolepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/constraint"
+	grantdomain "github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/grant"
 	dbmysql "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/FangcunMount/iam/v5/pkg/event"
@@ -201,11 +202,11 @@ func applyPlan(ctx context.Context, tx *gorm.DB, before State, p Plan) error {
 			}
 			if rid.Uint64() != 0 {
 				catalog := resources[permission.Resource]
-				bo, err := resourcepo.NewMapper().ToBO(&catalog)
+				bo, err := legacygrant.ResourceFromPO(&catalog)
 				if err != nil {
 					return err
 				}
-				if err = g.ValidateAgainst(*bo); err != nil {
+				if err = g.ValidateAgainst(*bo, catalog.AttributeSchema); err != nil {
 					return err
 				}
 			}
@@ -218,7 +219,7 @@ func applyPlan(ctx context.Context, tx *gorm.DB, before State, p Plan) error {
 				}
 			}
 			if !exists {
-				po, err := (grantpo.Mapper{}).ToPO(&g)
+				po, err := (legacygrant.Mapper{}).ToPO(&g)
 				if err != nil {
 					return err
 				}

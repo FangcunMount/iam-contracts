@@ -74,7 +74,7 @@ JWT middleware 可以把 UserID、tenant domain、org、AMR 等放进请求上�
 
 ### 为什么 role snapshot 不等于授权
 
-当前 AuthN Token 不携带完整 Assignment / PermissionGrant / ConstraintSet。即使下游自行缓存 role/permission snapshot，也可能在签发或缓存后过期；
+当前 AuthN Token 不携带完整 Assignment / PermissionGrant。即使下游自行缓存 role/permission snapshot，也可能在签发或缓存后过期；
 撤权不会修改已经签名的 JWT。这类派生信息可用于界面导航，但不能替代需要最新策略的服务端判定。
 
 ### 最近认证不是授权

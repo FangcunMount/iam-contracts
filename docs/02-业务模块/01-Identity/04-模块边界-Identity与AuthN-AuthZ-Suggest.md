@@ -225,7 +225,7 @@ Suggest 尚未通过 event/outbox 获取变化，而是在 infra Loader 中直�
 | Identity | AuthZ |
 | --- | --- |
 | User | Subject Ref |
-| Profile | Resource 或 ObjectAttributes 可能引用的 ID |
+| Profile | 业务系统管理关系所引用的 ID |
 | ProfileLink | 可供业务服务构造受信对象上下文，但不是 Assignment、PermissionGrant 或 AuthorizationDecision |
 
 User 不是 Subject 对象本身；AuthZ 可以用 UserID 构造 `subject.Ref`。ProfileLink 不是 PermissionGrant，也不会自动变成 Assignment 或角色继承边。
@@ -240,7 +240,7 @@ User 不是 Subject 对象本身；AuthZ 可以用 UserID 构造 `subject.Ref`�
 ### 8.3 局部 ProfileLink 前置不等于通用 AuthZ
 
 Identity REST 在访问 Profile 详情/修改时，检查当前 User 是否与 Profile 存在 active link。这条规则只回答当前自助 Profile 用例的前置，
-没有 Resource/Action/ConstraintSet 输入，不能代替通用授权。
+没有 Resource/Action 输入，不能代替通用授权。
 
 无作用域的 REST `/identity/profiles/search` 已下线。需要候选搜索时使用 `/suggest/profile`，由 Suggest 的 scope provider 和手机号权限控制可见范围与脱敏。
 

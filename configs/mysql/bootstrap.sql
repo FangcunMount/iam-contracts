@@ -248,14 +248,7 @@ WHERE NOT EXISTS(SELECT 1
 -- Native authorization baseline
 -- ----------------------------------------------------------------------------
 UPDATE `authz_resources`
-SET `attribute_schema` = JSON_OBJECT(
-        'version', 1,
-        'attributes', JSON_ARRAY(JSON_OBJECT(
-            'key', 'object.origin_type',
-            'type', 'string',
-            'allowed_string_values', JSON_ARRAY('adhoc', 'plan')
-        ))
-    ),
+SET `attribute_schema` = JSON_OBJECT('version', 1, 'attributes', JSON_ARRAY()),
     `updated_at` = NOW()
 WHERE `key` = 'qs:evaluation:collection:assessments'
   AND `deleted_at` IS NULL;
@@ -315,7 +308,7 @@ FROM (
             UNION ALL SELECT 'qs:result_reviewer', 'qs:evaluation:collection:assessments',
                    JSON_ARRAY('read','list','statistics'), '{"version":1,"all_of":[]}'
             UNION ALL SELECT 'qs:assessment_operator', 'qs:evaluation:collection:assessments',
-                   JSON_ARRAY('retry'), '{"version":1,"all_of":[{"key":"object.origin_type","operator":"eq","value":{"type":"string","string":"adhoc"}}]}'
+                   JSON_ARRAY('retry'), '{"version":1,"all_of":[]}'
             UNION ALL SELECT 'qs:result_reviewer', 'qs:evaluation:collection:reports',
                    JSON_ARRAY('read','list'), '{"version":1,"all_of":[]}'
             UNION ALL SELECT 'qs:result_reviewer', 'qs:actor:collection:testees',
@@ -333,7 +326,7 @@ FROM (
             UNION ALL SELECT 'qs:evaluation_plan_manager', 'qs:plan_task:collection:evaluation_plan_tasks',
                    JSON_ARRAY('schedule','read','list','open','complete','expire','cancel'), '{"version":1,"all_of":[]}'
             UNION ALL SELECT 'qs:evaluation_plan_manager', 'qs:evaluation:collection:assessments',
-                   JSON_ARRAY('retry'), '{"version":1,"all_of":[{"key":"object.origin_type","operator":"eq","value":{"type":"string","string":"plan"}}]}'
+                   JSON_ARRAY('retry'), '{"version":1,"all_of":[]}'
         ) AS `raw`
         JOIN JSON_TABLE(`raw`.`actions`, '$[*]' COLUMNS (`action` VARCHAR(64) PATH '$')) AS `action_rows`
     ) AS `expanded`

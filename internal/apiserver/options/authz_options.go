@@ -3,10 +3,9 @@ package options
 import authzruntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
 
 type AuthzOptions struct {
-	PolicySync             authzruntime.Config `mapstructure:"policy-sync" json:"policy_sync"`
-	AttributeProvidersFile string              `mapstructure:"attribute-providers-file" json:"attribute_providers_file"`
+	PolicySync authzruntime.Config `mapstructure:"policy-sync" json:"policy_sync"`
 }
 
 func NewAuthzOptions() *AuthzOptions {
-	return &AuthzOptions{PolicySync: authzruntime.DefaultConfig(), AttributeProvidersFile: "configs/authz_attribute_providers.yaml"}
+	return &AuthzOptions{PolicySync: authzruntime.DefaultConfig()}
 }

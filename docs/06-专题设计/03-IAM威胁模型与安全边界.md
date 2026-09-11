@@ -10,7 +10,7 @@ IAM 至少保护：
 - password/OTP/OAuth proof；
 - Session、access/refresh token；
 - JWT 私钥和 IDP AppSecret；
-- Role/Assignment/RoleInheritance/PermissionGrant/ConstraintSet；
+- Role/Assignment/PermissionGrant；
 - 审计/运行日志中的身份元数据；
 - 管理接口与数据库备份。
 

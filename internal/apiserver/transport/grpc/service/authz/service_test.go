@@ -13,9 +13,7 @@ import (
 	assignmentApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
 	assignmentadmission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
 	authzapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
-	objectattributeadmission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/objectattributeadmission"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
@@ -35,8 +33,7 @@ const assessmentResource = authzfixture.Resource
 
 func TestAuthorizationServerRequiresServiceIdentity(t *testing.T) {
 	srv := &authorizationServer{
-		checker:                  &checkerFake{},
-		objectAttributeAdmission: authzfixture.Policy(),
+		checker: &checkerFake{},
 	}
 	_, err := srv.Check(context.Background(), &authzv4.CheckRequest{
 		Subject: "user:1", Resource: assessmentResource, Action: "retry",
@@ -44,84 +41,12 @@ func TestAuthorizationServerRequiresServiceIdentity(t *testing.T) {
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
 }
 
-func TestAuthorizationServerCheckMapsTypedObjectContext(t *testing.T) {
-	checker := &checkerFake{decision: authorization.Decision{
-		Allowed: true, Reason: authorization.ReasonAllowed,
-		MatchedGrantID: meta.FromUint64(100), MatchedRole: "qs:evaluator", PolicyVersion: 12,
-	}}
-	srv := &authorizationServer{
-		checker:                  checker,
-		objectAttributeAdmission: authzfixture.Policy(),
-	}
-	ctx := serviceContext("qs-apiserver.svc")
-	resp, err := srv.Check(ctx, &authzv4.CheckRequest{
-		Subject: "user:1", Resource: assessmentResource, Action: "retry",
-		ObjectContext: &authzv4.ObjectContext{
-			ObjectId: "assessment-1",
-			Attributes: []*authzv4.ObjectAttribute{{
-				Key:   authzfixture.AttributeKey,
-				Value: &authzv4.ObjectAttribute_StringValue{StringValue: "adhoc"},
-			}},
-		},
-	})
-	require.NoError(t, err)
-	require.True(t, resp.Allowed)
-	require.Equal(t, authzv4.DecisionReason_ALLOWED, resp.Reason)
-	require.Equal(t, "100", resp.MatchedGrantId)
-	require.Equal(t, "qs:evaluator", resp.MatchedRole)
-	require.Len(t, checker.calls, 1)
-	require.Equal(t, "assessment-1", checker.calls[0].Object.ObjectID)
-	require.Equal(t, "adhoc", *checker.calls[0].Object.Attributes[authzfixture.AttributeKey].String)
-}
-
-func TestAuthorizationServerRejectsDuplicateAndUntrustedAttributes(t *testing.T) {
-	srv := &authorizationServer{
-		checker:                  &checkerFake{},
-		objectAttributeAdmission: authzfixture.Policy(),
-	}
-	duplicate := []*authzv4.ObjectAttribute{
-		{Key: authzfixture.AttributeKey, Value: &authzv4.ObjectAttribute_StringValue{StringValue: "adhoc"}},
-		{Key: authzfixture.AttributeKey, Value: &authzv4.ObjectAttribute_StringValue{StringValue: "plan"}},
-	}
-	_, err := srv.Check(serviceContext("qs-apiserver.svc"), &authzv4.CheckRequest{
-		Subject: "user:1", Resource: assessmentResource, Action: "retry",
-		ObjectContext: &authzv4.ObjectContext{ObjectId: "assessment-1", Attributes: duplicate},
-	})
-	require.Equal(t, codes.InvalidArgument, status.Code(err))
-
-	_, err = srv.Check(serviceContext("admin"), &authzv4.CheckRequest{
-		Subject: "user:1", Resource: assessmentResource, Action: "retry",
-		ObjectContext: &authzv4.ObjectContext{ObjectId: "assessment-1", Attributes: duplicate[:1]},
-	})
-	require.Equal(t, codes.PermissionDenied, status.Code(err))
-}
-
-func TestAuthorizationServerUsesInjectedObjectAttributeAdmissionPolicy(t *testing.T) {
-	checker := &checkerFake{decision: authorization.Decision{Allowed: true, Reason: authorization.ReasonAllowed}}
-	policy := &recordingObjectAttributePolicy{}
-	srv := &authorizationServer{checker: checker, objectAttributeAdmission: policy}
-
-	_, err := srv.Check(serviceContext("custom-caller.svc"), &authzv4.CheckRequest{
-		Subject: "user:1", Resource: "custom:domain:collection:objects", Action: "read",
-		ObjectContext: &authzv4.ObjectContext{ObjectId: "object-1", Attributes: []*authzv4.ObjectAttribute{{
-			Key:   "object.custom",
-			Value: &authzv4.ObjectAttribute_StringValue{StringValue: "trusted"},
-		}}},
-	})
-	require.NoError(t, err)
-	require.Equal(t, []objectattributeadmission.Request{{
-		CallerService: "custom-caller.svc",
-		ResourceKey:   "custom:domain:collection:objects",
-		AttributeKey:  "object.custom",
-	}}, policy.requests)
-}
-
 func TestAuthorizationServerSnapshotPreservesAuthorizationMode(t *testing.T) {
 	reader := &snapshotReaderFake{snapshot: authzapp.SubjectSnapshot{
 		DirectRoles:    []string{"qs:assessment_operator"},
 		EffectiveRoles: []string{"qs:assessment_operator", "stale-inherited"}, PolicyVersion: 7,
 		Permissions: []authzapp.PermissionEntry{{
-			Resource: assessmentResource, Action: "retry", Mode: authzapp.ModeObjectCheckRequired,
+			Resource: assessmentResource, Action: "retry", Mode: authzapp.ModeUnconditional,
 		}},
 	}}
 	srv := &authorizationServer{snapshotReader: reader}
@@ -132,7 +57,7 @@ func TestAuthorizationServerSnapshotPreservesAuthorizationMode(t *testing.T) {
 	require.EqualValues(t, 7, resp.PolicyVersion)
 	require.Equal(t, []string{"qs:assessment_operator"}, resp.Roles)
 	require.Equal(t, []string{"qs:assessment_operator"}, resp.DirectRoles)
-	require.Equal(t, authzv4.AuthorizationMode_OBJECT_CHECK_REQUIRED, resp.Permissions[0].Mode)
+	require.Equal(t, authzv4.AuthorizationMode_UNCONDITIONAL, resp.Permissions[0].Mode)
 }
 
 func TestAuthorizationServerAssignmentsUseV3AndConstraints(t *testing.T) {
@@ -208,8 +133,8 @@ func TestAuthorizationV3GRPCAssessmentRetryMatrix(t *testing.T) {
 		{name: "admin adhoc", subject: "user:1", originType: "adhoc", allowed: true},
 		{name: "admin plan", subject: "user:1", originType: "plan", allowed: true},
 		{name: "evaluator adhoc", subject: "user:2", originType: "adhoc", allowed: true},
-		{name: "evaluator plan", subject: "user:2", originType: "plan", allowed: false},
-		{name: "plan manager adhoc", subject: "user:3", originType: "adhoc", allowed: false},
+		{name: "evaluator plan", subject: "user:2", originType: "plan", allowed: true},
+		{name: "plan manager adhoc", subject: "user:3", originType: "adhoc", allowed: true},
 		{name: "plan manager plan", subject: "user:3", originType: "plan", allowed: true},
 		{name: "other", subject: "user:4", originType: "adhoc", allowed: false},
 	}
@@ -260,19 +185,7 @@ func TestAuthorizationV3GRPCLatencyBudget(t *testing.T) {
 }
 
 func assessmentCheckRequest(subjectKey, originType string) *authzv4.CheckRequest {
-	return &authzv4.CheckRequest{
-		Subject: subjectKey, Resource: assessmentResource, Action: "retry",
-		ObjectContext: &authzv4.ObjectContext{ObjectId: "assessment-1", Attributes: []*authzv4.ObjectAttribute{{
-			Key:   authzfixture.AttributeKey,
-			Value: &authzv4.ObjectAttribute_StringValue{StringValue: originType},
-		}}},
-	}
-}
-
-type staticRuntimeSource struct{ dataset authzruntime.Dataset }
-
-func (s staticRuntimeSource) Load(context.Context) (authzruntime.Dataset, error) {
-	return s.dataset, nil
+	return &authzv4.CheckRequest{Subject: subjectKey, Resource: "qs:evaluation:collection:assessments", Action: "retry"}
 }
 
 func newMatrixRuntime(t *testing.T) *authzruntime.Runtime {
@@ -282,23 +195,18 @@ func newMatrixRuntime(t *testing.T) *authzruntime.Runtime {
 		[]string{"retry", "force_retry", "batch_evaluate"},
 		resource.WithID(resource.NewResourceID(20)),
 		resource.WithDisplayName("Assessments"),
-		resource.WithAttributeSchema(authzfixture.Schema()),
 	)
 	require.NoError(t, err)
-	adhoc, err := constraint.New(constraint.Equal(authzfixture.AttributeKey, constraint.StringValue("adhoc")))
-	require.NoError(t, err)
-	plan, err := constraint.New(constraint.Equal(authzfixture.AttributeKey, constraint.StringValue("plan")))
-	require.NoError(t, err)
 	admin, err := permissiongrant.NewSystem(
-		meta.FromUint64(11), resource.ResourceID{}, "qs:*:*:*", "*", constraint.Empty(), "contract-test",
+		meta.FromUint64(11), resource.ResourceID{}, "qs:*:*:*", "*", "contract-test",
 	)
 	require.NoError(t, err)
 	evaluator, err := permissiongrant.New(
-		meta.FromUint64(12), assessment.ID, assessment.KeyString(), "retry", adhoc, "contract-test",
+		meta.FromUint64(12), assessment.ID, assessment.KeyString(), "retry", "contract-test",
 	)
 	require.NoError(t, err)
 	planManager, err := permissiongrant.New(
-		meta.FromUint64(13), assessment.ID, assessment.KeyString(), "retry", plan, "contract-test",
+		meta.FromUint64(13), assessment.ID, assessment.KeyString(), "retry", "contract-test",
 	)
 	require.NoError(t, err)
 	admin.ID, evaluator.ID, planManager.ID = meta.FromUint64(100), meta.FromUint64(102), meta.FromUint64(103)
@@ -319,7 +227,7 @@ func newMatrixRuntime(t *testing.T) *authzruntime.Runtime {
 		Grants:    []*permissiongrant.Grant{&admin, &evaluator, &planManager},
 		Resources: []*resource.Resource{&assessment},
 		Version:   41,
-	}}, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(authzfixture.Policy()))
+	}}, authorization.NewEvaluator())
 	require.NoError(t, err)
 	return runtime
 }
@@ -335,8 +243,7 @@ func newAuthorizationTestClient(t *testing.T, checker authorizationChecker) (aut
 		}), req)
 	}))
 	authzv4.RegisterAuthorizationServiceServer(server, &authorizationServer{
-		checker:                  checker,
-		objectAttributeAdmission: authzfixture.Policy(),
+		checker: checker,
 	})
 	go func() { _ = server.Serve(listener) }()
 	connection, err := grpc.NewClient(
@@ -357,23 +264,6 @@ type checkerFake struct {
 	decision authorization.Decision
 	err      error
 	calls    []authorization.Request
-}
-
-type recordingObjectAttributePolicy struct {
-	requests []objectattributeadmission.Request
-}
-
-func (p *recordingObjectAttributePolicy) AuthorizeAttribute(request objectattributeadmission.Request) error {
-	p.requests = append(p.requests, request)
-	return nil
-}
-
-func (f *checkerFake) Check(_ context.Context, request authorization.Request) (authorization.Decision, error) {
-	f.calls = append(f.calls, request)
-	if f.err != nil {
-		return authorization.Decision{}, f.err
-	}
-	return f.decision, nil
 }
 
 type snapshotReaderFake struct {
@@ -421,4 +311,24 @@ func TestAuthorizationUnavailableRemainsGRPCUnavailable(t *testing.T) {
 	defer closeClient()
 	_, err := client.Check(context.Background(), assessmentCheckRequest("user:2", "adhoc"))
 	require.Equal(t, codes.Unavailable, status.Code(err))
+}
+
+type staticRuntimeSource struct{ dataset authzruntime.Dataset }
+
+func (s staticRuntimeSource) Load(context.Context) (authzruntime.Dataset, error) {
+	return s.dataset, nil
+}
+
+func TestRetiredObjectContextRejectedBeforeChecking(t *testing.T) {
+	checker := &checkerFake{decision: authorization.Decision{Allowed: true}}
+	server := &authorizationServer{checker: checker}
+	for _, object := range []*authzv4.ObjectContext{{ObjectId: "1"}, {Attributes: []*authzv4.ObjectAttribute{{Key: "object.origin_type"}}}} {
+		_, err := server.Check(serviceContext("qs-apiserver.svc"), &authzv4.CheckRequest{Subject: "user:1", Resource: assessmentResource, Action: "retry", ObjectContext: object})
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+	}
+	require.Empty(t, checker.calls)
+}
+func (f *checkerFake) Check(_ context.Context, r authorization.Request) (authorization.Decision, error) {
+	f.calls = append(f.calls, r)
+	return f.decision, f.err
 }
