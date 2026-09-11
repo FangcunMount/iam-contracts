@@ -1,9 +1,9 @@
 package permissiongrant
 
 import (
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/pkg/authzcompat"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
@@ -13,16 +13,12 @@ func (Mapper) ToPO(grant *domain.Grant) (*GrantPO, error) {
 	if grant == nil {
 		return nil, nil
 	}
-	encoded, err := grant.CanonicalConstraintJSON()
-	if err != nil {
-		return nil, err
-	}
 	po := &GrantPO{
 
 		RoleID:          grant.RoleID.Uint64(),
 		ResourcePattern: grant.ResourceKeyString(),
 		Action:          grant.ActionString(),
-		ConstraintSet:   string(encoded),
+		ConstraintSet:   authzcompat.EmptyConstraints,
 		GrantKey:        grant.GrantKey,
 		GrantedBy:       grant.GrantedBy,
 		GrantedAt:       grant.GrantedAt,
@@ -41,8 +37,7 @@ func (Mapper) ToBO(po *GrantPO) (*domain.Grant, error) {
 	if po == nil {
 		return nil, nil
 	}
-	constraints, err := constraint.ParseJSON([]byte(po.ConstraintSet))
-	if err != nil {
+	if err := authzcompat.ValidateEmpty([]byte(po.ConstraintSet), "all_of"); err != nil {
 		return nil, err
 	}
 	resourceID := resource.NewResourceID(0)
@@ -55,7 +50,6 @@ func (Mapper) ToBO(po *GrantPO) (*domain.Grant, error) {
 		resourceID,
 		po.ResourcePattern,
 		po.Action,
-		constraints,
 		po.GrantedBy,
 		domain.RestoreOptions{
 			ID:        po.ID,

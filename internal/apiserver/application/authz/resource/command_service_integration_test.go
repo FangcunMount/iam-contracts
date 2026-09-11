@@ -7,11 +7,9 @@ import (
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	resourceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/resource"
 	authztestutil "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/testutil"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	permissiongrantDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	resourceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
-	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/assessment"
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/FangcunMount/iam/v5/pkg/event"
@@ -23,7 +21,7 @@ func TestUpdateResourceRejectsCandidateThatInvalidatesActiveGrant(t *testing.T) 
 	resource := seedAssessmentResource(t, resources)
 	seedGrant(t, grants, resource)
 
-	cmd, err := resourceApp.NewUpdateResourceCommand(resource.ID, nil, []string{"read"}, nil, nil)
+	cmd, err := resourceApp.NewUpdateResourceCommand(resource.ID, nil, []string{"read"}, nil)
 	require.NoError(t, err)
 	cmd.ChangedBy = "operator"
 	cmd.Actor, err = subject.NewUserRef(meta.FromUint64(1))
@@ -44,7 +42,7 @@ func TestUpdateResourceAdvancesOneGlobalVersion(t *testing.T) {
 	resource := seedAssessmentResource(t, resources)
 	seedGrant(t, grants, resource)
 
-	cmd, err := resourceApp.NewUpdateResourceCommand(resource.ID, nil, []string{"retry", "read"}, nil, nil)
+	cmd, err := resourceApp.NewUpdateResourceCommand(resource.ID, nil, []string{"retry", "read"}, nil)
 	require.NoError(t, err)
 	cmd.ChangedBy = "operator"
 	cmd.Actor, err = subject.NewUserRef(meta.FromUint64(1))
@@ -69,7 +67,6 @@ func seedAssessmentResource(t *testing.T, repository resourceDomain.Repository) 
 		"qs:evaluation:collection:assessments",
 		[]string{"retry"},
 		resourceDomain.WithDisplayName("Assessments"),
-		resourceDomain.WithAttributeSchema(authzfixture.Schema()),
 	)
 	require.NoError(t, err)
 	require.NoError(t, repository.Create(context.Background(), &resource))
@@ -79,7 +76,7 @@ func seedAssessmentResource(t *testing.T, repository resourceDomain.Repository) 
 func seedGrant(t *testing.T, repository permissiongrantDomain.Repository, resource resourceDomain.Resource) {
 	t.Helper()
 	grant, err := permissiongrantDomain.New(
-		meta.FromUint64(17), resource.ID, resource.KeyString(), "retry", constraint.Empty(), "operator",
+		meta.FromUint64(17), resource.ID, resource.KeyString(), "retry", "operator",
 	)
 	require.NoError(t, err)
 	require.NoError(t, repository.Create(context.Background(), &grant))

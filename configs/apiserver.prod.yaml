@@ -338,4 +338,3 @@ authz:
     check-interval: 10s
     sync-timeout: 10s
     max-unconfirmed: 60s
-  attribute-providers-file: /app/configs/authz_attribute_providers.yaml

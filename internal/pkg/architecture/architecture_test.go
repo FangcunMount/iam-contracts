@@ -1021,7 +1021,7 @@ func TestRetiredAuthzRuntimeAndV2ContractsDoNotRegress(t *testing.T) {
 	assertFileContains(t, root, "internal/apiserver/infra/authz/runtime/snapshot.go", "BuildSnapshot")
 	assertFileContains(t, root, "internal/apiserver/infra/authz/runtime/direct_roles.go", "type directRoles struct")
 	assertFileLacks(t, root, "go.mod", "github.com/casbin/")
-	assertFileContains(t, root, "internal/apiserver/domain/authz/permissiongrant/grant.go", "Constraint")
+	assertFileLacks(t, root, "internal/apiserver/domain/authz/permissiongrant/grant.go", "Constraints")
 	assertFileLacks(t, root, "internal/apiserver/domain/authz/resource/action.go", "type Scope")
 	assertFileLacks(t, root, "internal/apiserver/domain/authz/resource/action.go", "ScopeAll")
 	assertFileContains(t, root, "web/swagger-ui/swagger-ui-dist/swagger-initializer.js", "/openapi/authz.v4.yaml")

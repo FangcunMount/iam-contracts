@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	repo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
@@ -25,13 +24,13 @@ func TestUnifiedValuesPreserveStoredGrants(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// Fixed keys capture the pre-refactor canonical wire representation.
-			grant, err := domain.Restore(meta.FromUint64(10), resource.NewResourceID(tc.resourceID), tc.pattern, tc.action, constraint.Empty(), "bootstrap", domain.RestoreOptions{GrantKey: tc.key, Version: 1})
+			grant, err := domain.Restore(meta.FromUint64(10), resource.NewResourceID(tc.resourceID), tc.pattern, tc.action, "bootstrap", domain.RestoreOptions{GrantKey: tc.key, Version: 1})
 			require.NoError(t, err)
 			var created domain.Grant
 			if tc.resourceID == 0 {
-				created, err = domain.NewSystem(grant.RoleID, grant.ResourceID, tc.pattern, tc.action, constraint.Empty(), "bootstrap")
+				created, err = domain.NewSystem(grant.RoleID, grant.ResourceID, tc.pattern, tc.action, "bootstrap")
 			} else {
-				created, err = domain.New(grant.RoleID, grant.ResourceID, tc.pattern, tc.action, constraint.Empty(), "bootstrap")
+				created, err = domain.New(grant.RoleID, grant.ResourceID, tc.pattern, tc.action, "bootstrap")
 			}
 			require.NoError(t, err)
 			require.Equal(t, tc.key, created.GrantKey)

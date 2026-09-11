@@ -7,19 +7,13 @@ import (
 	"io"
 	"time"
 
-	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/attributeproviders"
 	authzruntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
 )
 
 func runAuthorizationVerify(args []string, output io.Writer) error {
 	flags := flag.NewFlagSet("authorization-verify", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	providers := flags.String("attribute-providers", "configs/authz_attribute_providers.yaml", "trusted attribute provider configuration")
 	if err := flags.Parse(args); err != nil {
-		return err
-	}
-	coverage, err := attributeproviders.Load(*providers)
-	if err != nil {
 		return err
 	}
 	db, err := authzConvergeDatabaseFromEnvironment()
@@ -37,7 +31,7 @@ func runAuthorizationVerify(args []string, output io.Writer) error {
 	if err != nil {
 		return err
 	}
-	snapshot, err := authzruntime.BuildSnapshot(dataset, time.Now().UTC(), coverage)
+	snapshot, err := authzruntime.BuildSnapshot(dataset, time.Now().UTC())
 	if err != nil {
 		return err
 	}

@@ -12,7 +12,6 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policypublication"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
 	authzruntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
-	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/assessment"
 	"github.com/nsqio/go-nsq"
 	"github.com/stretchr/testify/require"
 )
@@ -56,7 +55,7 @@ func TestRealNSQTwoRuntimesRevokeLossAndReconnect(t *testing.T) {
 	require.NoError(t, producer.Ping())
 	runtimes := make([]*authzruntime.Runtime, 2)
 	for i := range runtimes {
-		runtimes[i], err = authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(authzfixture.Policy()))
+		runtimes[i], err = authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator())
 		require.NoError(t, err)
 	}
 	topic := fmt.Sprintf("iam_authz_test_%d", time.Now().UnixNano())

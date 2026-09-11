@@ -3,8 +3,7 @@ package authorization
 type AuthorizationMode string
 
 const (
-	ModeUnconditional       AuthorizationMode = "UNCONDITIONAL"
-	ModeObjectCheckRequired AuthorizationMode = "OBJECT_CHECK_REQUIRED"
+	ModeUnconditional AuthorizationMode = "UNCONDITIONAL"
 )
 
 type PermissionEntry struct {

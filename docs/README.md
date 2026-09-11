@@ -33,7 +33,7 @@ flowchart LR
     Provider["Wechat / WeCom"] --> IDP["IDP\nExternalIdentity / 应用凭据"]
     IDP --> AuthN["AuthN\nLoginIdentity / Principal\nSession / Token"]
     Identity["Identity\nUser / Profile / ProfileLink"] <--> AuthN
-    AuthN --> AuthZ["AuthZ\nAssignment / RoleInheritance\nPermissionGrant / ObjectAttributes"]
+    AuthN --> AuthZ["AuthZ\nAssignment / Role\nPermissionGrant / Resource / Action"]
     Identity --> Suggest["Suggest\nProfile 派生读模型"]
     AuthZ --> Suggest
 
@@ -50,7 +50,7 @@ flowchart LR
 | --- | --- | --- |
 | Identity | 内部 User、Profile 与业务关系事实 | 凭据验证、Token、Permission |
 | AuthN | 如何证明请求者、维持 Session、签发/验证 Token | Profile 主数据、资源授权 |
-| AuthZ | Subject 能对 Resource/Action 做什么，并按受信对象属性求值 | 登录凭据、外部 provider、搜索索引和业务关系事实 |
+| AuthZ | Subject 能对 Resource/Action 做什么；业务范围由业务系统校验 | 登录凭据、外部 provider、搜索索引和业务关系事实 |
 | IDP | provider app/secret/token 与外部声明验证 | IAM User、Session、资源授权 |
 | Suggest | 从 Identity 派生可见、脱敏的联想候选 | 主数据写入、通用授权结论 |
 
@@ -111,7 +111,7 @@ docs/
 
 - [Identity](02-业务模块/01-Identity/README.md)：User/Profile/ProfileLink、不变量、创建与关系链路；
 - [AuthN](02-业务模块/02-AuthN/README.md)：认证模型、登录绑定、Session/Token/JWKS；
-- [AuthZ](02-业务模块/03-AuthZ/README.md)：RBAC、对象属性条件、原生不可变快照、写入与多实例一致性；
+- [AuthZ](02-业务模块/03-AuthZ/README.md)：直接角色 RBAC、原生不可变快照、写入与多实例一致性；
 - [IDP](02-业务模块/04-IDP/README.md)：外部信任、应用密钥、AppToken 与 provider 边界；
 - [Suggest](02-业务模块/05-Suggest/README.md)：读模型、Full/Delta、授权过滤和敏感数据。
 

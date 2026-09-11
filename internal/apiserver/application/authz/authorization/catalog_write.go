@@ -11,7 +11,7 @@ import (
 
 // RequireCatalogWrite 检查当前操作人是否具有资源目录写入权限。
 func (s *DecisionService) RequireCatalogWrite(ctx context.Context, actor subject.Ref, action string) error {
-	request, err := domain.NewRequest(actor, ResourceResources, action, domain.ObjectContext{})
+	request, err := domain.NewRequest(actor, ResourceResources, action)
 	if err != nil {
 		return err
 	}

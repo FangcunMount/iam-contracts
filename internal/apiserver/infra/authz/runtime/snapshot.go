@@ -1,14 +1,12 @@
 package runtime
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	authorizationapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/objectattributeadmission"
 	authorizationdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
@@ -28,11 +26,7 @@ type Snapshot struct {
 	loadedAt     time.Time
 }
 
-func BuildSnapshot(dataset Dataset, loadedAt time.Time, providers ...objectattributeadmission.Coverage) (*Snapshot, error) {
-	var coverage objectattributeadmission.Coverage
-	if len(providers) > 0 {
-		coverage = providers[0]
-	}
+func BuildSnapshot(dataset Dataset, loadedAt time.Time) (*Snapshot, error) {
 	if loadedAt.IsZero() {
 		loadedAt = time.Now()
 	}
@@ -108,9 +102,7 @@ func BuildSnapshot(dataset Dataset, loadedAt time.Time, providers ...objectattri
 				return nil, err
 			}
 		}
-		if err := objectattributeadmission.RequireCoverage(coverage, grant.ResourceKeyString(), grant.Constraints); err != nil {
-			return nil, fmt.Errorf("grant %s: %w", grant.ID, err)
-		}
+
 		owned := grant.Clone()
 		grant = &owned
 		grantsByRole[grant.RoleID] = append(grantsByRole[grant.RoleID], grant)
@@ -168,13 +160,7 @@ func (s *Snapshot) SubjectSnapshot(sub subject.Ref, appName string) (authorizati
 				continue
 			}
 			key := grant.ResourceKeyString() + "\x00" + grant.ActionString()
-			mode := authorizationapp.ModeObjectCheckRequired
-			if !grant.IsConditional() {
-				mode = authorizationapp.ModeUnconditional
-			}
-			if current, exists := modeByPermission[key]; !exists || current == authorizationapp.ModeObjectCheckRequired && mode == authorizationapp.ModeUnconditional {
-				modeByPermission[key] = mode
-			}
+			modeByPermission[key] = authorizationapp.ModeUnconditional
 		}
 	}
 	permissions := make([]authorizationapp.PermissionEntry, 0, len(modeByPermission))

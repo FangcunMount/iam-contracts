@@ -8,12 +8,10 @@ import (
 
 	authorizationapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 	authzruntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
-	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/assessment"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
@@ -31,8 +29,8 @@ func TestRuntimeAssessmentRetryMatrix(t *testing.T) {
 		{name: "admin adhoc", userID: 1, originType: "adhoc", allowed: true},
 		{name: "admin plan", userID: 1, originType: "plan", allowed: true},
 		{name: "evaluator adhoc", userID: 2, originType: "adhoc", allowed: true},
-		{name: "evaluator plan", userID: 2, originType: "plan", allowed: false},
-		{name: "plan manager adhoc", userID: 3, originType: "adhoc", allowed: false},
+		{name: "evaluator plan", userID: 2, originType: "plan", allowed: true},
+		{name: "plan manager adhoc", userID: 3, originType: "adhoc", allowed: true},
 		{name: "plan manager plan", userID: 3, originType: "plan", allowed: true},
 		{name: "other", userID: 4, originType: "adhoc", allowed: false},
 	}
@@ -46,23 +44,7 @@ func TestRuntimeAssessmentRetryMatrix(t *testing.T) {
 	}
 }
 
-func TestRuntimeMissingAttributeDeniesWithReason(t *testing.T) {
-	runtime := newAssessmentRuntime(t)
-	sub, err := subject.NewUserRef(meta.FromUint64(2))
-	require.NoError(t, err)
-	object, err := authorization.NewObjectContext("assessment-1", nil)
-	require.NoError(t, err)
-	request, err := authorization.NewRequest(sub, assessmentResource, "retry", object)
-	require.NoError(t, err)
-
-	decision, err := runtime.Check(context.Background(), request)
-	require.NoError(t, err)
-	require.False(t, decision.Allowed)
-	require.Equal(t, authorization.ReasonAttributeMissing, decision.Reason)
-	require.Equal(t, []string{authzfixture.AttributeKey}, decision.MissingAttributeKeys)
-}
-
-func TestRuntimeSnapshotPreservesConditionalMode(t *testing.T) {
+func TestRuntimeSnapshotContainsOnlyUnconditionalPermissions(t *testing.T) {
 	runtime := newAssessmentRuntime(t)
 	sub, err := subject.NewUserRef(meta.FromUint64(2))
 	require.NoError(t, err)
@@ -72,7 +54,7 @@ func TestRuntimeSnapshotPreservesConditionalMode(t *testing.T) {
 	require.Equal(t, []string{"qs:evaluator"}, snapshot.DirectRoles)
 	require.Equal(t, []string{"qs:evaluator"}, snapshot.EffectiveRoles)
 	require.Contains(t, snapshot.Permissions, authorizationapp.PermissionEntry{
-		Resource: assessmentResource, Action: "retry", Mode: authorizationapp.ModeObjectCheckRequired,
+		Resource: assessmentResource, Action: "retry", Mode: authorizationapp.ModeUnconditional,
 	})
 	require.Contains(t, snapshot.Permissions, authorizationapp.PermissionEntry{
 		Resource: assessmentResource, Action: "batch_evaluate", Mode: authorizationapp.ModeUnconditional,
@@ -81,7 +63,7 @@ func TestRuntimeSnapshotPreservesConditionalMode(t *testing.T) {
 	routeDecisions := authorizationapp.NewRouteDecisionService(authorizationapp.NewDecisionService(runtime))
 	allowed, err := routeDecisions.CheckRoutePermission(context.Background(), sub.String(), assessmentResource, "retry")
 	require.NoError(t, err)
-	require.False(t, allowed, "generic route authorization must not accept conditional grants")
+	require.True(t, allowed)
 	allowed, err = routeDecisions.CheckRoutePermission(context.Background(), sub.String(), assessmentResource, "batch_evaluate")
 	require.NoError(t, err)
 	require.True(t, allowed)
@@ -103,7 +85,7 @@ func TestRuntimeSnapshotIncludesQSAdminWildcardAsUnconditionalCandidate(t *testi
 
 func TestRuntimeFailedReloadKeepsPreviousSnapshot(t *testing.T) {
 	source := &mutableSource{dataset: assessmentDataset(t)}
-	runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(authzfixture.Policy()))
+	runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator())
 	require.NoError(t, err)
 
 	source.mu.Lock()
@@ -136,7 +118,7 @@ func newAssessmentRuntime(t testing.TB) *authzruntime.Runtime {
 	runtime, err := authzruntime.NewRuntime(
 		context.Background(),
 		&mutableSource{dataset: assessmentDataset(t)},
-		authorization.NewEvaluator(), authzruntime.WithAttributeProviders(authzfixture.Policy()),
+		authorization.NewEvaluator(),
 	)
 	require.NoError(t, err)
 	return runtime
@@ -149,20 +131,15 @@ func assessmentDataset(t testing.TB) authzruntime.Dataset {
 		[]string{"retry", "force_retry", "batch_evaluate"},
 		resource.WithID(resource.NewResourceID(20)),
 		resource.WithDisplayName("Assessments"),
-		resource.WithAttributeSchema(authzfixture.Schema()),
 	)
 	require.NoError(t, err)
-	adhoc, err := constraint.New(constraint.Equal(authzfixture.AttributeKey, constraint.StringValue("adhoc")))
+	admin, err := permissiongrant.NewSystem(meta.FromUint64(11), resource.ResourceID{}, "qs:*:*:*", "*", "bootstrap")
 	require.NoError(t, err)
-	plan, err := constraint.New(constraint.Equal(authzfixture.AttributeKey, constraint.StringValue("plan")))
+	evaluatorRetry, err := permissiongrant.New(meta.FromUint64(12), assessment.ID, assessment.KeyString(), "retry", "bootstrap")
 	require.NoError(t, err)
-	admin, err := permissiongrant.NewSystem(meta.FromUint64(11), resource.ResourceID{}, "qs:*:*:*", "*", constraint.Empty(), "bootstrap")
+	evaluatorBatch, err := permissiongrant.New(meta.FromUint64(12), assessment.ID, assessment.KeyString(), "batch_evaluate", "bootstrap")
 	require.NoError(t, err)
-	evaluatorRetry, err := permissiongrant.New(meta.FromUint64(12), assessment.ID, assessment.KeyString(), "retry", adhoc, "bootstrap")
-	require.NoError(t, err)
-	evaluatorBatch, err := permissiongrant.New(meta.FromUint64(12), assessment.ID, assessment.KeyString(), "batch_evaluate", constraint.Empty(), "bootstrap")
-	require.NoError(t, err)
-	planRetry, err := permissiongrant.New(meta.FromUint64(13), assessment.ID, assessment.KeyString(), "retry", plan, "bootstrap")
+	planRetry, err := permissiongrant.New(meta.FromUint64(13), assessment.ID, assessment.KeyString(), "retry", "bootstrap")
 	require.NoError(t, err)
 	admin.ID = meta.FromUint64(101)
 	evaluatorRetry.ID = meta.FromUint64(102)
@@ -192,11 +169,7 @@ func checkRequest(t testing.TB, userID uint64, action, originType string) author
 	t.Helper()
 	sub, err := subject.NewUserRef(meta.FromUint64(userID))
 	require.NoError(t, err)
-	object, err := authorization.NewObjectContext("assessment-1", constraint.Attributes{
-		authzfixture.AttributeKey: constraint.StringValue(originType),
-	})
-	require.NoError(t, err)
-	request, err := authorization.NewRequest(sub, assessmentResource, action, object)
+	request, err := authorization.NewRequest(sub, assessmentResource, action)
 	require.NoError(t, err)
 	return request
 }

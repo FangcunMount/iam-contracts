@@ -3,8 +3,9 @@ package management
 
 import (
 	"context"
-	admission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
 	"slices"
+
+	admission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
@@ -57,7 +58,7 @@ func (g Guard) CanManageProtected(ctx context.Context) (bool, error) {
 	if a.user.ID.IsZero() || g.checker == nil {
 		return false, nil
 	}
-	request, err := authorization.NewRequest(a.user, role.ManageProtectedResource, role.ManageProtectedAction, authorization.ObjectContext{})
+	request, err := authorization.NewRequest(a.user, role.ManageProtectedResource, role.ManageProtectedAction)
 	if err != nil {
 		return false, err
 	}
@@ -120,7 +121,7 @@ func (g Guard) RequireOperation(ctx context.Context, resource, action string) er
 	if !ok || a.service != "" || a.user.IsZero() || g.checker == nil {
 		return deniedOperation()
 	}
-	request, err := authorization.NewRequest(a.user, resource, action, authorization.ObjectContext{})
+	request, err := authorization.NewRequest(a.user, resource, action)
 	if err != nil {
 		return err
 	}

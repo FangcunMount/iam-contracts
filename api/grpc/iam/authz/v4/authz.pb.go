@@ -7,11 +7,12 @@
 package authzv4
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -26,7 +27,8 @@ type AuthorizationMode int32
 const (
 	AuthorizationMode_AUTHORIZATION_MODE_UNSPECIFIED AuthorizationMode = 0
 	AuthorizationMode_UNCONDITIONAL                  AuthorizationMode = 1
-	AuthorizationMode_OBJECT_CHECK_REQUIRED          AuthorizationMode = 2
+	// Deprecated: Marked as deprecated in iam/authz/v4/authz.proto.
+	AuthorizationMode_OBJECT_CHECK_REQUIRED AuthorizationMode = 2
 )
 
 // Enum value maps for AuthorizationMode.
@@ -76,7 +78,8 @@ const (
 	DecisionReason_DECISION_REASON_UNSPECIFIED DecisionReason = 0
 	DecisionReason_ALLOWED                     DecisionReason = 1
 	DecisionReason_NOT_MATCHED                 DecisionReason = 2
-	DecisionReason_ATTRIBUTE_MISSING           DecisionReason = 3
+	// Deprecated: Marked as deprecated in iam/authz/v4/authz.proto.
+	DecisionReason_ATTRIBUTE_MISSING DecisionReason = 3
 )
 
 // Enum value maps for DecisionReason.
@@ -122,6 +125,7 @@ func (DecisionReason) EnumDescriptor() ([]byte, []int) {
 	return file_iam_authz_v4_authz_proto_rawDescGZIP(), []int{1}
 }
 
+// Deprecated: Marked as deprecated in iam/authz/v4/authz.proto.
 type ObjectAttribute struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Key   string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -228,6 +232,7 @@ func (*ObjectAttribute_Int64Value) isObjectAttribute_Value() {}
 
 func (*ObjectAttribute_BoolValue) isObjectAttribute_Value() {}
 
+// Deprecated: Marked as deprecated in iam/authz/v4/authz.proto.
 type ObjectContext struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ObjectId      string                 `protobuf:"bytes,1,opt,name=object_id,json=objectId,proto3" json:"object_id,omitempty"`
@@ -281,11 +286,12 @@ func (x *ObjectContext) GetAttributes() []*ObjectAttribute {
 }
 
 type CheckRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Subject       string                 `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
-	Resource      string                 `protobuf:"bytes,3,opt,name=resource,proto3" json:"resource,omitempty"`
-	Action        string                 `protobuf:"bytes,4,opt,name=action,proto3" json:"action,omitempty"`
-	ObjectContext *ObjectContext         `protobuf:"bytes,5,opt,name=object_context,json=objectContext,proto3" json:"object_context,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Subject  string                 `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
+	Resource string                 `protobuf:"bytes,3,opt,name=resource,proto3" json:"resource,omitempty"`
+	Action   string                 `protobuf:"bytes,4,opt,name=action,proto3" json:"action,omitempty"`
+	// Deprecated: Marked as deprecated in iam/authz/v4/authz.proto.
+	ObjectContext *ObjectContext `protobuf:"bytes,5,opt,name=object_context,json=objectContext,proto3" json:"object_context,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -341,6 +347,7 @@ func (x *CheckRequest) GetAction() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in iam/authz/v4/authz.proto.
 func (x *CheckRequest) GetObjectContext() *ObjectContext {
 	if x != nil {
 		return x.ObjectContext
@@ -349,14 +356,15 @@ func (x *CheckRequest) GetObjectContext() *ObjectContext {
 }
 
 type CheckResponse struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	Allowed              bool                   `protobuf:"varint,1,opt,name=allowed,proto3" json:"allowed,omitempty"`
-	Reason               DecisionReason         `protobuf:"varint,2,opt,name=reason,proto3,enum=iam.authz.v4.DecisionReason" json:"reason,omitempty"`
-	DenyCode             string                 `protobuf:"bytes,3,opt,name=deny_code,json=denyCode,proto3" json:"deny_code,omitempty"`
-	MatchedGrantId       string                 `protobuf:"bytes,4,opt,name=matched_grant_id,json=matchedGrantId,proto3" json:"matched_grant_id,omitempty"`
-	MatchedRole          string                 `protobuf:"bytes,5,opt,name=matched_role,json=matchedRole,proto3" json:"matched_role,omitempty"`
-	PolicyVersion        int64                  `protobuf:"varint,6,opt,name=policy_version,json=policyVersion,proto3" json:"policy_version,omitempty"`
-	MissingAttributeKeys []string               `protobuf:"bytes,7,rep,name=missing_attribute_keys,json=missingAttributeKeys,proto3" json:"missing_attribute_keys,omitempty"`
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Allowed        bool                   `protobuf:"varint,1,opt,name=allowed,proto3" json:"allowed,omitempty"`
+	Reason         DecisionReason         `protobuf:"varint,2,opt,name=reason,proto3,enum=iam.authz.v4.DecisionReason" json:"reason,omitempty"`
+	DenyCode       string                 `protobuf:"bytes,3,opt,name=deny_code,json=denyCode,proto3" json:"deny_code,omitempty"`
+	MatchedGrantId string                 `protobuf:"bytes,4,opt,name=matched_grant_id,json=matchedGrantId,proto3" json:"matched_grant_id,omitempty"`
+	MatchedRole    string                 `protobuf:"bytes,5,opt,name=matched_role,json=matchedRole,proto3" json:"matched_role,omitempty"`
+	PolicyVersion  int64                  `protobuf:"varint,6,opt,name=policy_version,json=policyVersion,proto3" json:"policy_version,omitempty"`
+	// Deprecated: Marked as deprecated in iam/authz/v4/authz.proto.
+	MissingAttributeKeys []string `protobuf:"bytes,7,rep,name=missing_attribute_keys,json=missingAttributeKeys,proto3" json:"missing_attribute_keys,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -433,6 +441,7 @@ func (x *CheckResponse) GetPolicyVersion() int64 {
 	return 0
 }
 
+// Deprecated: Marked as deprecated in iam/authz/v4/authz.proto.
 func (x *CheckResponse) GetMissingAttributeKeys() []string {
 	if x != nil {
 		return x.MissingAttributeKeys
@@ -970,33 +979,33 @@ var File_iam_authz_v4_authz_proto protoreflect.FileDescriptor
 
 const file_iam_authz_v4_authz_proto_rawDesc = "" +
 	"\n" +
-	"\x18iam/authz/v4/authz.proto\x12\fiam.authz.v4\"\x95\x01\n" +
+	"\x18iam/authz/v4/authz.proto\x12\fiam.authz.v4\"\x99\x01\n" +
 	"\x0fObjectAttribute\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12#\n" +
 	"\fstring_value\x18\x02 \x01(\tH\x00R\vstringValue\x12!\n" +
 	"\vint64_value\x18\x03 \x01(\x03H\x00R\n" +
 	"int64Value\x12\x1f\n" +
 	"\n" +
-	"bool_value\x18\x04 \x01(\bH\x00R\tboolValueB\a\n" +
-	"\x05value\"k\n" +
+	"bool_value\x18\x04 \x01(\bH\x00R\tboolValue:\x02\x18\x01B\a\n" +
+	"\x05value\"o\n" +
 	"\rObjectContext\x12\x1b\n" +
 	"\tobject_id\x18\x01 \x01(\tR\bobjectId\x12=\n" +
 	"\n" +
 	"attributes\x18\x02 \x03(\v2\x1d.iam.authz.v4.ObjectAttributeR\n" +
-	"attributes\"\xae\x01\n" +
+	"attributes:\x02\x18\x01\"\xb2\x01\n" +
 	"\fCheckRequest\x12\x18\n" +
 	"\asubject\x18\x01 \x01(\tR\asubject\x12\x1a\n" +
 	"\bresource\x18\x03 \x01(\tR\bresource\x12\x16\n" +
-	"\x06action\x18\x04 \x01(\tR\x06action\x12B\n" +
-	"\x0eobject_context\x18\x05 \x01(\v2\x1b.iam.authz.v4.ObjectContextR\robjectContextJ\x04\b\x02\x10\x03R\x06domain\"\xa6\x02\n" +
+	"\x06action\x18\x04 \x01(\tR\x06action\x12F\n" +
+	"\x0eobject_context\x18\x05 \x01(\v2\x1b.iam.authz.v4.ObjectContextB\x02\x18\x01R\robjectContextJ\x04\b\x02\x10\x03R\x06domain\"\xaa\x02\n" +
 	"\rCheckResponse\x12\x18\n" +
 	"\aallowed\x18\x01 \x01(\bR\aallowed\x124\n" +
 	"\x06reason\x18\x02 \x01(\x0e2\x1c.iam.authz.v4.DecisionReasonR\x06reason\x12\x1b\n" +
 	"\tdeny_code\x18\x03 \x01(\tR\bdenyCode\x12(\n" +
 	"\x10matched_grant_id\x18\x04 \x01(\tR\x0ematchedGrantId\x12!\n" +
 	"\fmatched_role\x18\x05 \x01(\tR\vmatchedRole\x12%\n" +
-	"\x0epolicy_version\x18\x06 \x01(\x03R\rpolicyVersion\x124\n" +
-	"\x16missing_attribute_keys\x18\a \x03(\tR\x14missingAttributeKeys\"z\n" +
+	"\x0epolicy_version\x18\x06 \x01(\x03R\rpolicyVersion\x128\n" +
+	"\x16missing_attribute_keys\x18\a \x03(\tB\x02\x18\x01R\x14missingAttributeKeys\"z\n" +
 	"\x0fPermissionEntry\x12\x1a\n" +
 	"\bresource\x18\x01 \x01(\tR\bresource\x12\x16\n" +
 	"\x06action\x18\x02 \x01(\tR\x06action\x123\n" +
@@ -1034,16 +1043,16 @@ const file_iam_authz_v4_authz_proto_rawDesc = "" +
 	"!ReplaceManagedAssignmentsResponse\x12!\n" +
 	"\fdirect_roles\x18\x01 \x03(\tR\vdirectRoles\x12%\n" +
 	"\x0epolicy_version\x18\x02 \x01(\x03R\rpolicyVersion\x12\x18\n" +
-	"\achanged\x18\x03 \x01(\bR\achanged*e\n" +
+	"\achanged\x18\x03 \x01(\bR\achanged*i\n" +
 	"\x11AuthorizationMode\x12\"\n" +
 	"\x1eAUTHORIZATION_MODE_UNSPECIFIED\x10\x00\x12\x11\n" +
-	"\rUNCONDITIONAL\x10\x01\x12\x19\n" +
-	"\x15OBJECT_CHECK_REQUIRED\x10\x02*f\n" +
+	"\rUNCONDITIONAL\x10\x01\x12\x1d\n" +
+	"\x15OBJECT_CHECK_REQUIRED\x10\x02\x1a\x02\b\x01*j\n" +
 	"\x0eDecisionReason\x12\x1f\n" +
 	"\x1bDECISION_REASON_UNSPECIFIED\x10\x00\x12\v\n" +
 	"\aALLOWED\x10\x01\x12\x0f\n" +
-	"\vNOT_MATCHED\x10\x02\x12\x15\n" +
-	"\x11ATTRIBUTE_MISSING\x10\x032\x94\x04\n" +
+	"\vNOT_MATCHED\x10\x02\x12\x19\n" +
+	"\x11ATTRIBUTE_MISSING\x10\x03\x1a\x02\b\x012\x94\x04\n" +
 	"\x14AuthorizationService\x12@\n" +
 	"\x05Check\x12\x1a.iam.authz.v4.CheckRequest\x1a\x1b.iam.authz.v4.CheckResponse\x12y\n" +
 	"\x18GetAuthorizationSnapshot\x12-.iam.authz.v4.GetAuthorizationSnapshotRequest\x1a..iam.authz.v4.GetAuthorizationSnapshotResponse\x12^\n" +

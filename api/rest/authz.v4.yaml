@@ -133,7 +133,7 @@ paths:
       tags:
       - Authorization-Grants
       summary: 创建 PermissionGrant
-      description: 为指定角色创建不可变的精确资源、单一动作及可选对象属性约束授权
+      description: 为指定角色创建不可变的精确资源及单一动作授权；条件授权已退役
       operationId: createPermissionGrant
       requestBody:
         required: true
@@ -445,48 +445,45 @@ paths:
   /authz/role-inheritances:
     get:
       tags:
-      - Authorization-Role-Inheritances
+      - AuthZ
       summary: 角色继承已退役
-      description: 角色继承能力已退役；请直接分配多个角色。旧路径保留无数据库依赖的 410 响应。
-      operationId: listRoleInheritances
-      deprecated: true
+      description: 角色继承已退役；此路由固定返回 410，不访问数据库。
+      operationId: retiredRoleInheritanceList
       responses:
         '410':
           description: 角色继承已退役，请直接分配多个角色
           content:
             application/json:
               schema:
-                type: object
                 additionalProperties:
                   type: string
+                type: object
     post:
       tags:
-      - Authorization-Role-Inheritances
+      - AuthZ
       summary: 角色继承已退役
-      description: 角色继承能力已退役；请直接分配多个角色。旧路径保留无数据库依赖的 410 响应。
-      operationId: createRoleInheritance
-      deprecated: true
+      description: 角色继承已退役；此路由固定返回 410，不访问数据库。
+      operationId: retiredRoleInheritanceCreate
       responses:
         '410':
           description: 角色继承已退役，请直接分配多个角色
           content:
             application/json:
               schema:
-                type: object
                 additionalProperties:
                   type: string
+                type: object
   /authz/role-inheritances/{id}:
     delete:
       tags:
-      - Authorization-Role-Inheritances
+      - AuthZ
       summary: 角色继承已退役
-      description: 角色继承能力已退役；请直接分配多个角色。旧路径保留无数据库依赖的 410 响应。
-      operationId: revokeRoleInheritance
-      deprecated: true
+      description: 角色继承已退役；此路由固定返回 410，不访问数据库。
+      operationId: retiredRoleInheritanceDelete
       parameters:
       - name: id
         in: path
-        description: Retired role inheritance ID
+        description: Historical inheritance ID
         required: true
         schema:
           type: string
@@ -496,9 +493,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
                 additionalProperties:
                   type: string
+                type: object
   /authz/roles:
     get:
       tags:
@@ -729,71 +726,6 @@ paths:
                 $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse'
 components:
   schemas:
-    github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Definition:
-      properties:
-        allowed_string_values:
-          items:
-            type: string
-          type: array
-        key:
-          type: string
-        type:
-          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Type'
-      type: object
-    github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Schema:
-      properties:
-        attributes:
-          items:
-            $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Definition'
-          type: array
-        version:
-          type: integer
-      type: object
-    github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Type:
-      enum:
-      - string
-      - int64
-      - bool
-      type: string
-      x-enum-varnames:
-      - TypeString
-      - TypeInt64
-      - TypeBool
-    github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Operator:
-      enum:
-      - eq
-      type: string
-      x-enum-varnames:
-      - OperatorEQ
-    github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Predicate:
-      properties:
-        key:
-          type: string
-        operator:
-          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Operator'
-        value:
-          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Value'
-      type: object
-    github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Set:
-      properties:
-        all_of:
-          items:
-            $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Predicate'
-          type: array
-        version:
-          type: integer
-      type: object
-    github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Value:
-      properties:
-        bool:
-          type: boolean
-        int64:
-          type: integer
-        string:
-          type: string
-        type:
-          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Type'
-      type: object
     github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.AssignmentResponse:
       properties:
         granted_by:
@@ -812,7 +744,7 @@ components:
         action:
           type: string
         constraint_set:
-          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Set'
+          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Constraints'
         resource_id:
           type: string
         role_id:
@@ -832,7 +764,7 @@ components:
         app_name:
           type: string
         attribute_schema:
-          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Schema'
+          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Schema'
         description:
           type: string
         display_name:
@@ -920,7 +852,7 @@ components:
         active:
           type: boolean
         constraint_set:
-          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Set'
+          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Constraints'
         grant_key:
           type: string
         granted_by:
@@ -943,7 +875,7 @@ components:
         app_name:
           type: string
         attribute_schema:
-          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Schema'
+          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Schema'
         description:
           type: string
         display_name:
@@ -1008,7 +940,7 @@ components:
           minItems: 1
           type: array
         attribute_schema:
-          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Schema'
+          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Schema'
         description:
           type: string
         display_name:
@@ -1036,9 +968,37 @@ components:
         valid:
           type: boolean
       type: object
+    github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Constraints:
+      properties:
+        all_of:
+          items:
+            additionalProperties: {}
+            type: object
+          type: array
+        version:
+          default: 1
+          enum:
+          - 1
+          type: integer
+      type: object
+    github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Schema:
+      properties:
+        attributes:
+          items:
+            additionalProperties: {}
+            type: object
+          type: array
+        version:
+          default: 1
+          enum:
+          - 1
+          type: integer
+      type: object
 tags:
 - name: Authorization-Assignments
 - name: Authorization-Grants
 - name: Authorization-Resources
 - name: Authorization-Roles
 - name: Authorization-Role-Inheritances
+- name: AuthZ
+- name: Authorization-Inheritance

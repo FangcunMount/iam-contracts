@@ -36,11 +36,7 @@ func (s *RouteDecisionService) CheckRoutePermission(
 	if err != nil {
 		return false, err
 	}
-	object, err := authorizationdomain.NewObjectContext("", nil)
-	if err != nil {
-		return false, err
-	}
-	request, err := authorizationdomain.NewRequest(sub, resourceKey, action, object)
+	request, err := authorizationdomain.NewRequest(sub, resourceKey, action)
 	if err != nil {
 		return false, err
 	}

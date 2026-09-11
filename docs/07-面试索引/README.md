@@ -7,7 +7,7 @@
 ## 1. 90 秒项目介绍
 
 IAM 是一套面向业务系统接入的身份与访问管理服务，核心回答三个问题：用户是谁、怎样证明身份、能够访问什么资源。项目按变化原因拆成五个模块：Identity 管理 User、Profile 和 ProfileLink；
-AuthN 管理 LoginIdentity、Principal、Session、Token 与 JWKS；AuthZ 管理 Subject、Role、Assignment、RoleInheritance、PermissionGrant、
+AuthN 管理 LoginIdentity、Principal、Session、Token 与 JWKS；AuthZ 管理 Subject、Role、Assignment、PermissionGrant、
 Resource Schema 和授权决策；IDP 隔离微信、企微等外部身份提供方；Suggest 从 Identity 与 AuthZ 事实派生脱敏搜索读模型。运行时由 process、
 container 和 transport 分别负责生命周期、依赖装配与 REST/gRPC 暴露。工程重点不是接口数量，而是事务、Redis 原子操作、Transactional Outbox、
 AuthZ/JWKS/Suggest 进程内投影，以及 readiness、迁移和生产证据共同构成的一致性与安全边界。详细定位见 [IAM 系统定位](../00-概览/01-IAM系统定位.md) 和
@@ -18,7 +18,7 @@ AuthZ/JWKS/Suggest 进程内投影，以及 readiness、迁移和生产证据共
 | 案例 | 可讲主线 | Canonical 证据 |
 | --- | --- | --- |
 | 外部身份如何安全进入 IAM | IDP Resolver 把 provider code 解析成请求级 `ExternalIdentity`；AuthN 的 SignIn、SignUp、Linking 再按各自语义映射为认证输入或 LoginIdentity ProviderKey。该对象不持久化，也不拥有 User、LoginIdentity 或 Session | [注册登录与身份绑定](../02-业务模块/02-AuthN/02-注册登录与身份绑定.md)、[外部身份解析与 AuthN 协作](../02-业务模块/04-IDP/02-外部身份解析与AuthN协作.md) |
-| 授权事实与多实例运行时怎样一致 | MySQL 保存 Assignment/RoleInheritance/PermissionGrant 等管理事实，IAM 原生不可变快照执行判定，自有角色图计算有效角色。写入提交后通过 PolicyVersion、Outbox 和事件通知其他实例 reload，并显式保留无请求级全实例 barrier 的边界 | [授权判定与不可变快照](../02-业务模块/03-AuthZ/02-关键链路-授权判定与不可变快照.md)、[授权写入与受管 Assignment](../02-业务模块/03-AuthZ/03-关键链路-授权写入与受管Assignment.md)、[多实例策略收敛](../02-业务模块/03-AuthZ/04-关键链路-多实例策略收敛.md) |
+| 授权事实与多实例运行时怎样一致 | MySQL 保存 Assignment/PermissionGrant 等管理事实，IAM 原生不可变快照执行判定，自有角色图计算有效角色。写入提交后通过 PolicyVersion、Outbox 和事件通知其他实例 reload，并显式保留无请求级全实例 barrier 的边界 | [授权判定与不可变快照](../02-业务模块/03-AuthZ/02-关键链路-授权判定与不可变快照.md)、[授权写入与受管 Assignment](../02-业务模块/03-AuthZ/03-关键链路-授权写入与受管Assignment.md)、[多实例策略收敛](../02-业务模块/03-AuthZ/04-关键链路-多实例策略收敛.md) |
 | Suggest 为什么是派生读模型 | Identity 保存 Profile 主数据，Suggest 通过 Full/Delta 构建进程内索引，按 `visibility.Scope` 过滤并返回脱敏候选；搜索可见不等于详情授权 | [Suggest 为什么是读模型](../06-专题设计/05-Suggest为什么是读模型.md)、[Suggest 模块](../02-业务模块/05-Suggest/README.md) |
 
 ## 3. 高频问题到 canonical 文档

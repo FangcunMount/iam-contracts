@@ -72,7 +72,7 @@ IAM 集中回答三个核心问题：
 | --- | --- | --- |
 | 用户是谁，自然人档案是什么 | Identity | User、Profile、ProfileLink |
 | 如何证明当前请求者的身份 | AuthN | LoginIdentity、Credential、Principal、Session、Token |
-| 当前用户能访问什么资源 | AuthZ | Subject、Role、Assignment、RoleInheritance、PermissionGrant、ConstraintSet、Resource、ObjectAttributes、Decision |
+| 当前用户能访问什么资源 | AuthZ | Subject、Role、Assignment、PermissionGrant、Resource、Decision |
 
 在三个核心能力之外，IAM 还提供两个辅助能力：
 
@@ -225,7 +225,7 @@ V8 不展示服务编排、运行时投影和基础设施。
 | --- | --- | --- |
 | Identity | `User`、`Profile`、`ProfileLink` 及 User 状态 | 对外提供 `UserStatusReader`、`UserResolver` |
 | AuthN | `LoginIdentity`、`Credential`、`Challenge`、`Principal`、`Session`、Token | 通过 `UserStatusReader` 检查 User 是否允许建立或继续会话 |
-| AuthZ | `Subject`、`Role`、`Assignment`、`RoleInheritance`、`PermissionGrant`、`ConstraintSet`、`Resource`、`ObjectAttributes`、`Decision` | 通过 `UserResolver` 确认 `user` Subject 对应的 User 存在 |
+| AuthZ | `Subject`、`Role`、`Assignment`、`RoleInheritance`、`PermissionGrant`、`Resource`、`Decision` | 通过 `UserResolver` 确认 `user` Subject 对应的 User 存在 |
 
 这里有三个不能混同的概念：
 
@@ -319,7 +319,7 @@ AuthN 和 AuthZ 也不需要建立领域模型直连：
 AuthN 验证 Token，向请求上下文写入可信 UserID / OrgID
   -> 资源服务理解当前资源和业务动作
   -> 资源服务以 Identity User 为锚点构造 AuthZ Subject
-  -> AuthZ 对 Subject / Resource / Action / trusted ObjectAttributes 给出 Decision
+  -> AuthZ 对 Subject / Resource / Action 给出 Decision
 ```
 
 模块协作由 Container 中的 module graph 集中表达，REST、gRPC 和运行时任务通过 capability collectors 获取能力，而不是随意穿透模块内部。

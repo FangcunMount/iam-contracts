@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
+
 	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/eventoutbox"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/conditionretire"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/rolemodel"
 	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
-	"time"
 
 	redis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -132,6 +134,13 @@ func (dm *DatabaseManager) runMigrations() error {
 					return err
 				}
 				return rolemodel.BootstrapIndependentRoles(context.Background(), gormDB, eventoutbox.NewStore(gormDB, eventcatalog.NewCatalog(catalog)))
+			}},
+			{Version: 35, Prepare: func() error {
+				catalog, err := eventcatalog.Load(dm.config.Options.Events.CatalogPath)
+				if err != nil {
+					return err
+				}
+				return conditionretire.Bootstrap(context.Background(), gormDB, eventoutbox.NewStore(gormDB, eventcatalog.NewCatalog(catalog)))
 			}},
 		},
 	})

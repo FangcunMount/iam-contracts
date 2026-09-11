@@ -387,6 +387,15 @@ components:
         nickname:
           type: string
       type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.PermissionResponse:
+      properties:
+        action:
+          type: string
+        mode:
+          type: string
+        resource:
+          type: string
+      type: object
     github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.ProfileLinkPageResponse:
       properties:
         items:
@@ -461,6 +470,10 @@ components:
           type: string
         nickname:
           type: string
+        permissions:
+          items:
+            $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.PermissionResponse'
+          type: array
         roles:
           items:
             type: string

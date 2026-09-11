@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
@@ -16,7 +15,7 @@ import (
 func TestSnapshotRejectsSensitiveGrantForStandardRole(t *testing.T) {
 	dataset := assessmentDataset(t)
 	dataset.Grants = nil
-	grant, err := permissiongrant.NewSystem(meta.ID(11), resource.ResourceID{}, "iam:*:*:*", "*", constraint.Empty(), "seed")
+	grant, err := permissiongrant.NewSystem(meta.ID(11), resource.ResourceID{}, "iam:*:*:*", "*", "seed")
 	require.NoError(t, err)
 	dataset.Grants = append(dataset.Grants, &grant)
 	_, err = authzruntime.BuildSnapshot(dataset, time.Now())

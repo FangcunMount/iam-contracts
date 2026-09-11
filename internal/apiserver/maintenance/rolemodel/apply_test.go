@@ -4,20 +4,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	drivermysql "github.com/go-sql-driver/mysql"
-	gormmysql "gorm.io/driver/mysql"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
-	grantdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	legacygrant "github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/grant"
+	drivermysql "github.com/go-sql-driver/mysql"
+	gormmysql "gorm.io/driver/mysql"
+
 	resourcedomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	assignmentpo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/assignment"
 	grantpo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
 	policypo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
 	resourcepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
 	rolepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/constraint"
+	grantdomain "github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/grant"
 	"github.com/FangcunMount/iam/v5/pkg/event"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
@@ -81,7 +83,7 @@ func migrationDB(t *testing.T) (*gorm.DB, *gorm.DB) {
 			b, err = grantdomain.New(roles[g.Role].ID, rid, g.Permission.Resource, g.Permission.Action, c, "seed")
 		}
 		require.NoError(t, err)
-		p, err := (grantpo.Mapper{}).ToPO(&b)
+		p, err := (legacygrant.Mapper{}).ToPO(&b)
 		require.NoError(t, err)
 		require.NoError(t, db.Create(p).Error)
 	}

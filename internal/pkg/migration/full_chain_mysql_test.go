@@ -37,7 +37,7 @@ func TestFullMigrationChainAndBootstrapMySQL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !migrated || version != 34 {
+	if !migrated || version != 35 {
 		t.Fatalf("migration version=%d changed=%v", version, migrated)
 	}
 	db := openMigrationMySQL(t)
@@ -153,7 +153,7 @@ JOIN authz_roles r ON r.id = g.role_id AND r.deleted_at IS NULL
 WHERE r.name = 'qs:assessment_operator'
   AND g.resource_pattern = 'qs:evaluation:collection:assessments'
   AND g.action = 'retry'
-  AND JSON_UNQUOTE(JSON_EXTRACT(g.constraint_set, '$.all_of[0].value.string')) = 'adhoc'
+  AND JSON_LENGTH(g.constraint_set, '$.all_of') = 0
   AND g.revoked_at IS NULL AND g.deleted_at IS NULL`, 1)
 	assertGrantCount("plan manager plan retry", `
 SELECT COUNT(*)
@@ -162,7 +162,7 @@ JOIN authz_roles r ON r.id = g.role_id AND r.deleted_at IS NULL
 WHERE r.name = 'qs:evaluation_plan_manager'
   AND g.resource_pattern = 'qs:evaluation:collection:assessments'
   AND g.action = 'retry'
-  AND JSON_UNQUOTE(JSON_EXTRACT(g.constraint_set, '$.all_of[0].value.string')) = 'plan'
+  AND JSON_LENGTH(g.constraint_set, '$.all_of') = 0
   AND g.revoked_at IS NULL AND g.deleted_at IS NULL`, 1)
 	assertGrantCount("admin unconditional wildcard", `
 SELECT COUNT(*)
@@ -293,6 +293,7 @@ ORDER BY TABLE_NAME`, database)
 		"authz_resources",
 		"iam_role_inheritance_archives",
 		"iam_role_model_migrations",
+		"iam_condition_retirement_migrations",
 		"authz_roles",
 		"domain_event_outbox",
 		"identity_session_revocation_outbox",

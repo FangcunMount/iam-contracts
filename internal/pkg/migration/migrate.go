@@ -108,8 +108,12 @@ func (m *Migrator) Run() (uint, bool, error) {
 	// 执行迁移
 	if err := instance.Up(); err != nil {
 		if err == migrate.ErrNoChange {
-			// 数据库已是最新版本
-			return versionBefore, false, nil
+			// Fresh preparation may already have advanced to the latest schema.
+			current, _, versionErr := instance.Version()
+			if versionErr != nil {
+				return versionBefore, false, versionErr
+			}
+			return current, current != versionBefore, nil
 		}
 		return versionBefore, false, fmt.Errorf("migration failed: %w", err)
 	}

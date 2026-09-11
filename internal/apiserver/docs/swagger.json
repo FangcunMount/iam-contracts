@@ -21,70 +21,6 @@
     "host": "iam.fangcunmount.cn",
     "basePath": "/api",
     "paths": {
-        "/v4/authz/role-inheritances": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "AuthZ"
-                ],
-                "summary": "角色继承已退役",
-                "responses": {
-                    "410": {
-                        "description": "角色继承已退役，请直接分配多个角色",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "AuthZ"
-                ],
-                "summary": "角色继承已退役",
-                "responses": {
-                    "410": {
-                        "description": "角色继承已退役，请直接分配多个角色",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v4/authz/role-inheritances/{id}": {
-            "delete": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "AuthZ"
-                ],
-                "summary": "角色继承已退役",
-                "responses": {
-                    "410": {
-                        "description": "角色继承已退役，请直接分配多个角色",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/v2/.well-known/jwks.json": {
             "get": {
                 "description": "获取 JSON Web Key Set，用于验证 JWT 签名",
@@ -2205,7 +2141,7 @@
         },
         "/v4/authz/grants": {
             "post": {
-                "description": "为指定角色创建不可变的精确资源、单一动作及可选对象属性约束授权",
+                "description": "为指定角色创建不可变的精确资源及单一动作授权；条件授权已退役",
                 "consumes": [
                     "application/json"
                 ],
@@ -2675,6 +2611,85 @@
                 }
             }
         },
+        "/v4/authz/role-inheritances": {
+            "get": {
+                "description": "角色继承已退役；此路由固定返回 410，不访问数据库。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AuthZ"
+                ],
+                "summary": "角色继承已退役",
+                "operationId": "retiredRoleInheritanceList",
+                "responses": {
+                    "410": {
+                        "description": "角色继承已退役，请直接分配多个角色",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "角色继承已退役；此路由固定返回 410，不访问数据库。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AuthZ"
+                ],
+                "summary": "角色继承已退役",
+                "operationId": "retiredRoleInheritanceCreate",
+                "responses": {
+                    "410": {
+                        "description": "角色继承已退役，请直接分配多个角色",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v4/authz/role-inheritances/{id}": {
+            "delete": {
+                "description": "角色继承已退役；此路由固定返回 410，不访问数据库。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AuthZ"
+                ],
+                "summary": "角色继承已退役",
+                "operationId": "retiredRoleInheritanceDelete",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Historical inheritance ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "410": {
+                        "description": "角色继承已退役，请直接分配多个角色",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v4/authz/roles": {
             "get": {
                 "produces": [
@@ -3020,120 +3035,6 @@
         }
     },
     "definitions": {
-        "github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Definition": {
-            "type": "object",
-            "properties": {
-                "allowed_string_values": {
-                    "description": "字符串允许值；空列表表示不限制枚举值",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "key": {
-                    "description": "对象属性键，使用 object.\u003cname\u003e",
-                    "type": "string"
-                },
-                "type": {
-                    "description": "属性值类型",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Type"
-                        }
-                    ]
-                }
-            }
-        },
-        "github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Schema": {
-            "type": "object",
-            "properties": {
-                "attributes": {
-                    "description": "属性定义列表",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Definition"
-                    }
-                },
-                "version": {
-                    "description": "属性定义格式版本",
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Type": {
-            "type": "string",
-            "enum": [
-                "string",
-                "int64",
-                "bool"
-            ],
-            "x-enum-comments": {
-                "TypeBool": "布尔值",
-                "TypeInt64": "整数",
-                "TypeString": "字符串"
-            },
-            "x-enum-varnames": [
-                "TypeString",
-                "TypeInt64",
-                "TypeBool"
-            ]
-        },
-        "github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Operator": {
-            "type": "string",
-            "enum": [
-                "eq"
-            ],
-            "x-enum-varnames": [
-                "OperatorEQ"
-            ]
-        },
-        "github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Predicate": {
-            "type": "object",
-            "properties": {
-                "key": {
-                    "type": "string"
-                },
-                "operator": {
-                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Operator"
-                },
-                "value": {
-                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Value"
-                }
-            }
-        },
-        "github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Set": {
-            "type": "object",
-            "properties": {
-                "all_of": {
-                    "description": "必须同时满足的条件",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Predicate"
-                    }
-                },
-                "version": {
-                    "description": "条件表达格式版本",
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Value": {
-            "type": "object",
-            "properties": {
-                "bool": {
-                    "type": "boolean"
-                },
-                "int64": {
-                    "type": "integer"
-                },
-                "string": {
-                    "type": "string"
-                },
-                "type": {
-                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Type"
-                }
-            }
-        },
         "github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.CreateKeyRequest": {
             "type": "object",
             "required": [
@@ -3815,7 +3716,7 @@
                     "type": "string"
                 },
                 "constraint_set": {
-                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Set"
+                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Constraints"
                 },
                 "resource_id": {
                     "type": "string"
@@ -3847,7 +3748,7 @@
                     "type": "string"
                 },
                 "attribute_schema": {
-                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Schema"
+                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Schema"
                 },
                 "description": {
                     "type": "string"
@@ -3964,7 +3865,7 @@
                     "type": "boolean"
                 },
                 "constraint_set": {
-                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Set"
+                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Constraints"
                 },
                 "grant_key": {
                     "type": "string"
@@ -3999,7 +3900,7 @@
                     "type": "string"
                 },
                 "attribute_schema": {
-                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Schema"
+                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Schema"
                 },
                 "description": {
                     "type": "string"
@@ -4097,7 +3998,7 @@
                     }
                 },
                 "attribute_schema": {
-                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Schema"
+                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Schema"
                 },
                 "description": {
                     "type": "string"
@@ -4187,6 +4088,20 @@
                     }
                 },
                 "nickname": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.PermissionResponse": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "resource": {
                     "type": "string"
                 }
             }
@@ -4303,6 +4218,12 @@
                 },
                 "nickname": {
                     "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.PermissionResponse"
+                    }
                 },
                 "roles": {
                     "type": "array",
@@ -4495,6 +4416,44 @@
                 "type": {
                     "description": "应用类型（MiniProgram/MP）",
                     "type": "string"
+                }
+            }
+        },
+        "github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Constraints": {
+            "type": "object",
+            "properties": {
+                "all_of": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": {}
+                    }
+                },
+                "version": {
+                    "type": "integer",
+                    "default": 1,
+                    "enum": [
+                        1
+                    ]
+                }
+            }
+        },
+        "github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Schema": {
+            "type": "object",
+            "properties": {
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": {}
+                    }
+                },
+                "version": {
+                    "type": "integer",
+                    "default": 1,
+                    "enum": [
+                        1
+                    ]
                 }
             }
         },

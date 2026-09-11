@@ -5,11 +5,10 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/attribute"
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
-// Resource 授权资源定义（聚合根），声明资源支持的动作和对象属性契约。
+// Resource 授权资源定义（聚合根），声明资源支持的动作。
 // Key 使用 <app>:<domain>:<type>:<name-or-pattern> 格式。
 type Resource struct {
 	ID ResourceID // 资源实体标识
@@ -25,8 +24,7 @@ type Resource struct {
 	Description string // 描述信息
 
 	// ---- 授权契约 ----
-	Actions         []Action         // 资源支持的动作
-	AttributeSchema attribute.Schema // 对象属性定义，用于校验授权条件与鉴权输入
+	Actions []Action // 资源支持的动作
 }
 
 // NewResource 创建资源
@@ -67,18 +65,14 @@ func NewResource(key string, actions []string, opts ...ResourceOption) (Resource
 	if r.Domain != resourceKey.Domain() || r.Type != resourceKey.Type() {
 		return Resource{}, perrors.WithCode(code.ErrInvalidArgument, "resource domain/type does not match key")
 	}
-	attributeSchema, err := r.AttributeSchema.Normalize()
-	if err != nil {
-		return Resource{}, err
-	}
-	r.AttributeSchema = attributeSchema
+
 	if err := r.Rename(r.DisplayName); err != nil {
 		return Resource{}, err
 	}
 	return r, nil
 }
 
-// RestoreResource 从持久化数据恢复资源，校验资源键、动作与属性契约，
+// RestoreResource 从持久化数据恢复资源，校验资源键、动作契约，
 // 但不强制要求创建时的非空显示名称。
 func RestoreResource(key string, actions []string, opts ...ResourceOption) (Resource, error) {
 	resourceKey, err := NewKey(key)
@@ -119,11 +113,7 @@ func RestoreResource(key string, actions []string, opts ...ResourceOption) (Reso
 	if r.Domain != resourceKey.Domain() || r.Type != resourceKey.Type() {
 		return Resource{}, perrors.WithCode(code.ErrInvalidArgument, "resource domain/type does not match key")
 	}
-	attributeSchema, err := r.AttributeSchema.Normalize()
-	if err != nil {
-		return Resource{}, err
-	}
-	r.AttributeSchema = attributeSchema
+
 	return r, nil
 }
 
@@ -160,9 +150,6 @@ func WithAppName(app string) ResourceOption      { return func(r *Resource) { r.
 func WithDomain(domain string) ResourceOption    { return func(r *Resource) { r.Domain = domain } }
 func WithType(typ string) ResourceOption         { return func(r *Resource) { r.Type = typ } }
 func WithDescription(desc string) ResourceOption { return func(r *Resource) { r.Description = desc } }
-func WithAttributeSchema(schema attribute.Schema) ResourceOption {
-	return func(r *Resource) { r.AttributeSchema = schema }
-}
 
 // KeyString 返回资源键字符串
 func (r Resource) KeyString() string {
@@ -193,16 +180,6 @@ func (r *Resource) HasAction(action string) bool {
 		}
 	}
 	return false
-}
-
-// ChangeAttributeSchema 更新资源属性模式
-func (r *Resource) ChangeAttributeSchema(schema attribute.Schema) error {
-	normalized, err := schema.Normalize()
-	if err != nil {
-		return err
-	}
-	r.AttributeSchema = normalized
-	return nil
 }
 
 // ChangeCatalog 更新资源支持的动作列表。
@@ -264,6 +241,5 @@ func (r Resource) Clone() Resource {
 	if r.Actions != nil {
 		out.Actions = append([]Action{}, r.Actions...)
 	}
-	out.AttributeSchema = r.AttributeSchema.Clone()
 	return out
 }

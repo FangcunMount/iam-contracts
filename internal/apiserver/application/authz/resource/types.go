@@ -7,7 +7,6 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 
 	"github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/attribute"
 	resourceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
@@ -28,18 +27,17 @@ type Directory interface {
 type CreateResourceCommand struct {
 	Actor subject.Ref
 
-	ChangedBy       string
-	Key             string
-	DisplayName     string
-	AppName         string
-	Domain          string
-	Type            string
-	Actions         []string
-	AttributeSchema attribute.Schema
-	Description     string
+	ChangedBy   string
+	Key         string
+	DisplayName string
+	AppName     string
+	Domain      string
+	Type        string
+	Actions     []string
+	Description string
 }
 
-func NewCreateResourceCommand(key, displayName, appName, domain, typ string, actions []string, schema attribute.Schema, description string) (CreateResourceCommand, error) {
+func NewCreateResourceCommand(key, displayName, appName, domain, typ string, actions []string, description string) (CreateResourceCommand, error) {
 	resourceValue, err := resourceDomain.NewResource(
 		key,
 		actions,
@@ -47,33 +45,30 @@ func NewCreateResourceCommand(key, displayName, appName, domain, typ string, act
 		resourceDomain.WithAppName(appName),
 		resourceDomain.WithDomain(domain),
 		resourceDomain.WithType(typ),
-		resourceDomain.WithAttributeSchema(schema),
 		resourceDomain.WithDescription(description),
 	)
 	if err != nil {
 		return CreateResourceCommand{}, err
 	}
 	return CreateResourceCommand{
-		Key:             resourceValue.KeyString(),
-		DisplayName:     displayName,
-		AppName:         resourceValue.AppName,
-		Domain:          resourceValue.Domain,
-		Type:            resourceValue.Type,
-		Actions:         resourceValue.ActionStrings(),
-		AttributeSchema: resourceValue.AttributeSchema,
-		Description:     description,
+		Key:         resourceValue.KeyString(),
+		DisplayName: displayName,
+		AppName:     resourceValue.AppName,
+		Domain:      resourceValue.Domain,
+		Type:        resourceValue.Type,
+		Actions:     resourceValue.ActionStrings(),
+		Description: description,
 	}, nil
 }
 
 type UpdateResourceCommand struct {
 	Actor subject.Ref
 
-	ChangedBy       string
-	ID              resourceDomain.ResourceID
-	DisplayName     *string
-	Actions         []string
-	AttributeSchema *attribute.Schema
-	Description     *string
+	ChangedBy   string
+	ID          resourceDomain.ResourceID
+	DisplayName *string
+	Actions     []string
+	Description *string
 }
 
 type DeleteResourceCommand struct {
@@ -83,7 +78,7 @@ type DeleteResourceCommand struct {
 	ChangedBy string
 }
 
-func NewUpdateResourceCommand(id resourceDomain.ResourceID, displayName *string, actions []string, schema *attribute.Schema, description *string) (UpdateResourceCommand, error) {
+func NewUpdateResourceCommand(id resourceDomain.ResourceID, displayName *string, actions []string, description *string) (UpdateResourceCommand, error) {
 	if id.Uint64() == 0 {
 		return UpdateResourceCommand{}, errors.WithCode(code.ErrInvalidArgument, "资源ID不能为空")
 	}
@@ -101,20 +96,11 @@ func NewUpdateResourceCommand(id resourceDomain.ResourceID, displayName *string,
 			actionStrings = append(actionStrings, action.String())
 		}
 	}
-	var normalizedSchema *attribute.Schema
-	if schema != nil {
-		value, err := schema.Normalize()
-		if err != nil {
-			return UpdateResourceCommand{}, err
-		}
-		normalizedSchema = &value
-	}
 	return UpdateResourceCommand{
-		ID:              id,
-		DisplayName:     displayName,
-		Actions:         actionStrings,
-		AttributeSchema: normalizedSchema,
-		Description:     description,
+		ID:          id,
+		DisplayName: displayName,
+		Actions:     actionStrings,
+		Description: description,
 	}, nil
 }
 

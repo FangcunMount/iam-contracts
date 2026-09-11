@@ -54,7 +54,6 @@ func (h *ResourceHandler) CreateResource(c *gin.Context) {
 		req.Domain,
 		req.Type,
 		req.Actions,
-		req.AttributeSchema,
 		req.Description,
 	)
 	if err != nil {
@@ -109,7 +108,6 @@ func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 		resourceDomain.NewResourceID(resourceID.Uint64()),
 		req.DisplayName,
 		req.Actions,
-		req.AttributeSchema,
 		req.Description,
 	)
 	if err != nil {

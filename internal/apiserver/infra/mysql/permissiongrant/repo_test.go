@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	repo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
@@ -66,7 +65,7 @@ func TestRepositoryHistoricalRevokedGrantMySQLConcurrencyRegression(t *testing.T
 
 	repository := repo.NewRepository(db)
 	_, err = repository.ListByRole(context.Background(), meta.FromUint64(10))
-	require.Error(t, err)
+	require.NoError(t, err)
 	active, err := repository.ListActive(context.Background())
 	require.NoError(t, err)
 	require.Len(t, active, 1)
@@ -159,7 +158,7 @@ func newTestGrant(t *testing.T) domain.Grant {
 	t.Helper()
 	grant, err := domain.New(
 		meta.FromUint64(10), resource.NewResourceID(20),
-		"qs:evaluation:collection:assessments", "retry", constraint.Empty(), "operator-1",
+		"qs:evaluation:collection:assessments", "retry", "operator-1",
 	)
 	require.NoError(t, err)
 	return grant

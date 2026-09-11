@@ -52,7 +52,7 @@ func runRoleModelMigration(args []string, output io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer pool.Close()
+	defer func() { _ = pool.Close() }()
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	status, err := rolemodel.Status(ctx, iam)
@@ -72,7 +72,7 @@ func runRoleModelMigration(args []string, output io.Writer) error {
 		if err != nil {
 			return err
 		}
-		defer qpool.Close()
+		defer func() { _ = qpool.Close() }()
 	}
 	switch mode {
 	case "preflight":

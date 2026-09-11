@@ -3,6 +3,7 @@ package handler
 import (
 	resourceDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/transport/rest/authz/dto"
+	"github.com/FangcunMount/iam/v5/internal/pkg/authzcompat"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 )
 
@@ -16,7 +17,7 @@ func (h *ResourceHandler) toResourceResponse(r *resourceDomain.Resource) dto.Res
 		Domain:          r.Domain,
 		Type:            r.Type,
 		Actions:         r.ActionStrings(),
-		AttributeSchema: r.AttributeSchema,
+		AttributeSchema: authzcompat.Schema{},
 		Description:     r.Description,
 	}
 }

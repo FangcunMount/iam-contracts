@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -49,6 +48,8 @@ func run(args []string, output io.Writer) error {
 		return runAuthorizationVerify(args[1:], output)
 	case "authorization-migrate":
 		return runAuthorizationMigration(args[1:], output)
+	case "condition-authz-retire":
+		return runConditionRetirement(args[1:], output)
 	case "role-model-migrate":
 		return runRoleModelMigration(args[1:], output)
 	case "tenant-retirement":
@@ -95,24 +96,6 @@ func authzConvergeDatabaseFromEnvironment() (*gorm.DB, error) {
 		return nil, errors.New("authorization database connection failed")
 	}
 	return db, nil
-}
-
-func acquireAuthzV3ConvergeLock(ctx context.Context, db *sql.DB, timeout time.Duration) (func(), error) {
-	connection, err := db.Conn(ctx)
-	if err != nil {
-		return nil, errors.New("authorization convergence database lock unavailable")
-	}
-	waitSeconds := int((timeout + time.Second - 1) / time.Second)
-	var acquired int
-	if err := connection.QueryRowContext(ctx, "SELECT GET_LOCK(?, ?)", "iam.authz.tenant-retirement", waitSeconds).Scan(&acquired); err != nil || acquired != 1 {
-		_ = connection.Close()
-		return nil, errors.New("authorization convergence database lock unavailable")
-	}
-	return func() {
-		var released int
-		_ = connection.QueryRowContext(context.Background(), "SELECT RELEASE_LOCK(?)", "iam.authz.tenant-retirement").Scan(&released)
-		_ = connection.Close()
-	}, nil
 }
 
 func firstEnvironment(keys ...string) string {

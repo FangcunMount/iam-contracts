@@ -10,7 +10,6 @@ import (
 	grantapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/permissiongrant"
 	resourceapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/resource"
 	roleapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/role"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
@@ -53,7 +52,7 @@ func TestMySQLRoleDeletionAndGrantSerialize(t *testing.T) {
 	grants := grantapp.NewService(uow, grantrepo.NewRepository(db), nil, management.NewGuard(nil))
 	roles := roleapp.NewRoleCatalog(uow, nil, management.NewGuard(nil))
 	concurrent(t, func() error {
-		_, err := grants.Create(ctx, grantapp.CreateCommand{RoleID: r.ID, ResourceID: res.ID, Action: "read", Constraints: constraint.Empty(), GrantedBy: "seed"})
+		_, err := grants.Create(ctx, grantapp.CreateCommand{RoleID: r.ID, ResourceID: res.ID, Action: "read", GrantedBy: "seed"})
 		return err
 	}, func() error {
 		return roles.DeleteRole(ctx, roleapp.DeleteRoleCommand{ID: r.ID, ChangedBy: "seed"})
@@ -80,7 +79,7 @@ func TestMySQLResourceUpdateAndGrantSerialize(t *testing.T) {
 	grants := grantapp.NewService(uow, grantrepo.NewRepository(db), nil, management.NewGuard(nil))
 	resources := resourceapp.NewResourceCatalog(uow, nil, platformAdmission{})
 	concurrent(t, func() error {
-		_, err := grants.Create(ctx, grantapp.CreateCommand{RoleID: r.ID, ResourceID: res.ID, Action: "use", Constraints: constraint.Empty(), GrantedBy: "seed"})
+		_, err := grants.Create(ctx, grantapp.CreateCommand{RoleID: r.ID, ResourceID: res.ID, Action: "use", GrantedBy: "seed"})
 		return err
 	}, func() error {
 		_, err := resources.UpdateResource(ctx, resourceapp.UpdateResourceCommand{ID: res.ID, ChangedBy: "seed", Actor: actor, Actions: []string{"read"}})

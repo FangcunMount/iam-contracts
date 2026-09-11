@@ -27,9 +27,9 @@ func Register(engine *gin.Engine, deps Dependencies) {
 	})
 	// A tombstone route deliberately has no authentication, authorization or
 	// database dependency: the capability no longer exists.
-	authzGroup.GET("/role-inheritances", retiredInheritance)
-	authzGroup.POST("/role-inheritances", retiredInheritance)
-	authzGroup.DELETE("/role-inheritances/:id", retiredInheritance)
+	authzGroup.GET("/role-inheritances", retiredInheritanceList)
+	authzGroup.POST("/role-inheritances", retiredInheritanceCreate)
+	authzGroup.DELETE("/role-inheritances/:id", retiredInheritanceByID)
 	if deps.RoleHandler == nil || deps.AuthMiddleware == nil || deps.Permission == nil {
 		return
 	}
@@ -71,14 +71,37 @@ func Register(engine *gin.Engine, deps Dependencies) {
 	}
 }
 
-// retiredInheritance reports the retired capability without database access.
+func retiredInheritance(c *gin.Context) {
+	c.JSON(http.StatusGone, gin.H{"code": "role_inheritance_retired", "message": "角色继承已退役，请直接分配多个角色"})
+}
+
+// retiredInheritanceByID preserves the retired route without database dependencies.
 // @Summary 角色继承已退役
+// @ID retiredRoleInheritanceDelete
+// @Description 角色继承已退役；此路由固定返回 410，不访问数据库。
+// @Tags AuthZ
+// @Produce json
+// @Param id path string true "Historical inheritance ID"
+// @Failure 410 {object} map[string]string "角色继承已退役，请直接分配多个角色"
+// @Router /v4/authz/role-inheritances/{id} [delete]
+func retiredInheritanceByID(c *gin.Context) { retiredInheritance(c) }
+
+// retiredInheritanceList reports the retired capability.
+// @Summary 角色继承已退役
+// @ID retiredRoleInheritanceList
+// @Description 角色继承已退役；此路由固定返回 410，不访问数据库。
 // @Tags AuthZ
 // @Produce json
 // @Failure 410 {object} map[string]string "角色继承已退役，请直接分配多个角色"
 // @Router /v4/authz/role-inheritances [get]
+func retiredInheritanceList(c *gin.Context) { retiredInheritance(c) }
+
+// retiredInheritanceCreate reports the retired capability.
+// @Summary 角色继承已退役
+// @ID retiredRoleInheritanceCreate
+// @Description 角色继承已退役；此路由固定返回 410，不访问数据库。
+// @Tags AuthZ
+// @Produce json
+// @Failure 410 {object} map[string]string "角色继承已退役，请直接分配多个角色"
 // @Router /v4/authz/role-inheritances [post]
-// @Router /v4/authz/role-inheritances/{id} [delete]
-func retiredInheritance(c *gin.Context) {
-	c.JSON(http.StatusGone, gin.H{"code": "role_inheritance_retired", "message": "角色继承已退役，请直接分配多个角色"})
-}
+func retiredInheritanceCreate(c *gin.Context) { retiredInheritance(c) }

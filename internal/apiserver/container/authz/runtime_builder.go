@@ -14,7 +14,7 @@ func (m *AuthzModule) initializeRuntime(infra *authzInfrastructureComponents, do
 	runtime, err := authzRuntime.NewRuntime(
 		context.Background(),
 		infra.policySource,
-		domain.authorizationEvaluator, authzRuntime.WithConfig(config), authzRuntime.WithAttributeProviders(m.attributeProviders),
+		domain.authorizationEvaluator, authzRuntime.WithConfig(config),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create authorization snapshot runtime: %w", err)

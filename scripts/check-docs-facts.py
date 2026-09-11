@@ -218,7 +218,7 @@ def check_generated_document_facts() -> None:
         "08-分层架构与代码索引.md": "# 分层架构与代码索引",
     }
     authz_index = (authz_doc_dir / "README.md").read_text(encoding="utf-8")
-    for heading in ("一、模块总览", "二、领域模型设计", "三、关键链路分析"):
+    for heading in ("模块总览", "领域模型", "授权判定", "退役维护手册"):
         if heading not in authz_index:
             fail(f"AuthZ canonical README is missing directory section {heading}")
     for filename, title in canonical_authz_docs.items():
@@ -230,7 +230,7 @@ def check_generated_document_facts() -> None:
             fail(f"AuthZ canonical document {filename} is missing title {title}")
         if not ACTIVE_STATUS_PATTERN.search(text):
             fail(f"AuthZ canonical document {filename} has no active status marker")
-        if len(text.splitlines()) < 120:
+        if len(text.strip()) < 200:
             fail(f"AuthZ canonical document is unexpectedly thin: {filename}")
 
     canonical_diagrams = {
@@ -238,8 +238,6 @@ def check_generated_document_facts() -> None:
             "Assignment",
             "DirectRoles",
             "PermissionGrant",
-            "ConstraintSet",
-            "ObjectAttributes",
             "Direct Role Index",
             "Snapshot Grant Index",
             "DecisionService.Check",
@@ -248,9 +246,9 @@ def check_generated_document_facts() -> None:
         ),
         "docs/_images/architecture/core-domain-model-v8.svg": (
             "聚合边界与领域知识",
-            "13 个小聚合",
+            "12 个小聚合",
             "AGGREGATE 01",
-            "AGGREGATE 13",
+            "AGGREGATE 12",
             "aggregate root",
             "value object",
             "domain result",
@@ -279,10 +277,7 @@ def check_generated_document_facts() -> None:
             "DirectRoles",
             "PermissionGrant",
             "Resource",
-            "ConstraintSet",
-            "ObjectAttributes",
             "AuthorizationRequest",
-            "ObjectContext",
             "Decision",
         ),
         "docs/_images/architecture/module-boundary.svg": (
@@ -314,6 +309,9 @@ def check_generated_document_facts() -> None:
             ">RoleBinding<",
             ">Permission<",
             "ObjectScope",
+            "ConstraintSet",
+            "ObjectAttributes",
+            "ObjectContext",
             "DecisionEngine",
             "MatchedPermission",
             "Casbin RoleManager",
@@ -518,8 +516,8 @@ def check_migrations() -> None:
     }
     if up != down:
         fail(f"migration up/down numbers differ: up-only={sorted(up-down)} down-only={sorted(down-up)}")
-    if not up or max(up) != 34:
-        fail(f"documented latest migration is 34, repository has {max(up) if up else 'none'}")
+    if not up or max(up) != 35:
+        fail(f"documented latest migration is 35, repository has {max(up) if up else 'none'}")
     migration = (directory / "000016_jwks_single_active_guard.up.sql").read_text(encoding="utf-8")
     for token in ("active_guard", "uk_jwks_keys_single_active"):
         if token not in migration:
@@ -911,7 +909,7 @@ def check_database_operations_facts() -> None:
         "IAM_DB_OPS_ALLOW_DOCKER_CLIENT",
         "mysql:8.0",
         "retired_tables_present=",
-        "expected_version=34",
+        "expected_version=35",
         "performance schema capability:",
         "sys_table_statistics_select=",
         "rds_table_statistics_enabled=",

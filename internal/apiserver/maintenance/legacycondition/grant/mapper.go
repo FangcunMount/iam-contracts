@@ -1,0 +1,74 @@
+package grant
+
+import (
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	persistence "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/constraint"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+)
+
+type GrantPO = persistence.GrantPO
+
+type Mapper struct{}
+
+func (Mapper) ToPO(grant *Grant) (*GrantPO, error) {
+	if grant == nil {
+		return nil, nil
+	}
+	encoded, err := grant.CanonicalConstraintJSON()
+	if err != nil {
+		return nil, err
+	}
+	po := &GrantPO{
+
+		RoleID:          grant.RoleID.Uint64(),
+		ResourcePattern: grant.ResourceKeyString(),
+		Action:          grant.ActionString(),
+		ConstraintSet:   string(encoded),
+		GrantKey:        grant.GrantKey,
+		GrantedBy:       grant.GrantedBy,
+		GrantedAt:       grant.GrantedAt,
+		RevokedAt:       grant.RevokedAt,
+	}
+	if grant.ResourceID.Uint64() != 0 {
+		resourceID := grant.ResourceID.Uint64()
+		po.ResourceID = &resourceID
+	}
+	po.ID = grant.ID
+	po.Version = grant.Version
+	return po, nil
+}
+
+func (Mapper) ToBO(po *GrantPO) (*Grant, error) {
+	if po == nil {
+		return nil, nil
+	}
+	constraints, err := constraint.ParseJSON([]byte(po.ConstraintSet))
+	if err != nil {
+		return nil, err
+	}
+	resourceID := resource.NewResourceID(0)
+	if po.ResourceID != nil {
+		resourceID = resource.NewResourceID(*po.ResourceID)
+	}
+	grant, err := Restore(
+		meta.FromUint64(po.RoleID),
+
+		resourceID,
+		po.ResourcePattern,
+		po.Action,
+		constraints,
+		po.GrantedBy,
+		RestoreOptions{
+			ID:        po.ID,
+			GrantKey:  po.GrantKey,
+			GrantedAt: po.GrantedAt,
+			RevokedAt: po.RevokedAt,
+			Version:   po.Version,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &grant, nil
+}

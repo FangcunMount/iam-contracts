@@ -164,7 +164,7 @@ Subscriber channel 包含 hostname + pid + `#ephemeral`，目的是广播到每�
 
 ## 9. AuthZ authorization runtime 与事件的关系
 
-数据库中的 Assignment、RoleInheritance、PermissionGrant 和 Resource Schema 是授权事实源，不可变 runtime snapshot 是进程内判定快照。事件不是授权事实，
+数据库中的 Assignment、PermissionGrant 和 Resource Schema 是授权事实源，不可变 runtime snapshot 是进程内判定快照。事件不是授权事实，
 只是“请重新加载”的协调信号。
 
 这带来两个重要结论：

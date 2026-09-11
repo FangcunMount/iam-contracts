@@ -9,14 +9,12 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	authorizationapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/objectattributeadmission"
 	authorizationdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 )
 
 type Runtime struct {
-	providers  objectattributeadmission.Coverage
 	source     Source
 	evaluator  authorizationdomain.Evaluator
 	current    atomic.Pointer[Snapshot]
@@ -60,7 +58,7 @@ func (r *Runtime) LoadPolicy(ctx context.Context) error {
 	dataset, err := r.source.Load(ctx)
 	if err == nil {
 		var snapshot *Snapshot
-		snapshot, err = BuildSnapshot(dataset, r.now(), r.providers)
+		snapshot, err = BuildSnapshot(dataset, r.now())
 		if err == nil {
 			if previous := r.current.Load(); previous != nil {
 				if snapshot.version < previous.version {

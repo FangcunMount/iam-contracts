@@ -4,37 +4,13 @@ import (
 	"testing"
 	"time"
 
-	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
-	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/authzschema"
-	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"github.com/stretchr/testify/require"
 )
 
-func TestObjectContextRequiresIDForAttributes(t *testing.T) {
-	_, err := authorization.NewObjectContext("", constraint.Attributes{
-		authzfixture.AttributeKey: constraint.StringValue("active"),
-	})
-	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
+func TestDenyReportsPolicyNotMatched(t *testing.T) {
+	d := authorization.Deny(7, time.Time{})
+	require.False(t, d.Allowed)
+	require.Equal(t, authorization.ReasonNotMatched, d.Reason)
+	require.EqualValues(t, 7, d.PolicyVersion)
 }
-
-func TestValidateAttributesUsesResourceSchema(t *testing.T) {
-	require.NoError(t, authorization.ValidateAttributes(authzfixture.Schema(), constraint.Attributes{
-		authzfixture.AttributeKey: constraint.StringValue("active"),
-	}))
-
-	err := authorization.ValidateAttributes(authzfixture.Schema(), constraint.Attributes{
-		authzfixture.AttributeKey: constraint.StringValue("unknown"),
-	})
-	require.True(t, perrors.IsCode(err, code.ErrInvalidArgument))
-}
-
-func TestDenyReportsMissingAttributesDeterministically(t *testing.T) {
-	decision := authorization.Deny(7, []string{"object.z", "object.a", "object.z"}, nilTime())
-	require.Equal(t, authorization.ReasonAttributeMissing, decision.Reason)
-	require.Equal(t, []string{"object.a", "object.z"}, decision.MissingAttributeKeys)
-	require.EqualValues(t, 7, decision.PolicyVersion)
-}
-
-func nilTime() (zeroTime time.Time) { return zeroTime }

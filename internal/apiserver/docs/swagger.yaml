@@ -1,82 +1,5 @@
 basePath: /api
 definitions:
-  github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Definition:
-    properties:
-      allowed_string_values:
-        description: 字符串允许值；空列表表示不限制枚举值
-        items:
-          type: string
-        type: array
-      key:
-        description: 对象属性键，使用 object.<name>
-        type: string
-      type:
-        allOf:
-        - $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Type'
-        description: 属性值类型
-    type: object
-  github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Schema:
-    properties:
-      attributes:
-        description: 属性定义列表
-        items:
-          $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Definition'
-        type: array
-      version:
-        description: 属性定义格式版本
-        type: integer
-    type: object
-  github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Type:
-    enum:
-    - string
-    - int64
-    - bool
-    type: string
-    x-enum-comments:
-      TypeBool: 布尔值
-      TypeInt64: 整数
-      TypeString: 字符串
-    x-enum-varnames:
-    - TypeString
-    - TypeInt64
-    - TypeBool
-  github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Operator:
-    enum:
-    - eq
-    type: string
-    x-enum-varnames:
-    - OperatorEQ
-  github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Predicate:
-    properties:
-      key:
-        type: string
-      operator:
-        $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Operator'
-      value:
-        $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Value'
-    type: object
-  github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Set:
-    properties:
-      all_of:
-        description: 必须同时满足的条件
-        items:
-          $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Predicate'
-        type: array
-      version:
-        description: 条件表达格式版本
-        type: integer
-    type: object
-  github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Value:
-    properties:
-      bool:
-        type: boolean
-      int64:
-        type: integer
-      string:
-        type: string
-      type:
-        $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Type'
-    type: object
   github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.CreateKeyRequest:
     properties:
       algorithm:
@@ -534,7 +457,7 @@ definitions:
       action:
         type: string
       constraint_set:
-        $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Set'
+        $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Constraints'
       resource_id:
         type: string
       role_id:
@@ -554,7 +477,7 @@ definitions:
       app_name:
         type: string
       attribute_schema:
-        $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Schema'
+        $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Schema'
       description:
         type: string
       display_name:
@@ -642,7 +565,7 @@ definitions:
       active:
         type: boolean
       constraint_set:
-        $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_constraint.Set'
+        $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Constraints'
       grant_key:
         type: string
       granted_by:
@@ -665,7 +588,7 @@ definitions:
       app_name:
         type: string
       attribute_schema:
-        $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Schema'
+        $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Schema'
       description:
         type: string
       display_name:
@@ -730,7 +653,7 @@ definitions:
         minItems: 1
         type: array
       attribute_schema:
-        $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_domain_authz_attribute.Schema'
+        $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Schema'
       description:
         type: string
       display_name:
@@ -789,6 +712,15 @@ definitions:
           $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_request.UserContactUpsert'
         type: array
       nickname:
+        type: string
+    type: object
+  github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.PermissionResponse:
+    properties:
+      action:
+        type: string
+      mode:
+        type: string
+      resource:
         type: string
     type: object
   github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.ProfileLinkPageResponse:
@@ -865,6 +797,10 @@ definitions:
         type: string
       nickname:
         type: string
+      permissions:
+        items:
+          $ref: '#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_identity_response.PermissionResponse'
+        type: array
       roles:
         items:
           type: string
@@ -999,6 +935,32 @@ definitions:
         description: 应用类型（MiniProgram/MP）
         type: string
     type: object
+  github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Constraints:
+    properties:
+      all_of:
+        items:
+          additionalProperties: {}
+          type: object
+        type: array
+      version:
+        default: 1
+        enum:
+        - 1
+        type: integer
+    type: object
+  github_com_FangcunMount_iam_v2_internal_pkg_authzcompat.Schema:
+    properties:
+      attributes:
+        items:
+          additionalProperties: {}
+          type: object
+        type: array
+      version:
+        default: 1
+        enum:
+        - 1
+        type: integer
+    type: object
   github_com_FangcunMount_iam_v2_pkg_core.ErrResponse:
     properties:
       code:
@@ -1053,47 +1015,6 @@ info:
   title: IAM API Documentation
   version: 2.0.0
 paths:
-  /v4/authz/role-inheritances:
-    get:
-      produces:
-      - application/json
-      responses:
-        "410":
-          description: 角色继承已退役，请直接分配多个角色
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: 角色继承已退役
-      tags:
-      - AuthZ
-    post:
-      produces:
-      - application/json
-      responses:
-        "410":
-          description: 角色继承已退役，请直接分配多个角色
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: 角色继承已退役
-      tags:
-      - AuthZ
-  /v4/authz/role-inheritances/{id}:
-    delete:
-      produces:
-      - application/json
-      responses:
-        "410":
-          description: 角色继承已退役，请直接分配多个角色
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: 角色继承已退役
-      tags:
-      - AuthZ
   /v2/.well-known/jwks.json:
     get:
       description: 获取 JSON Web Key Set，用于验证 JWT 签名
@@ -2451,7 +2372,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 为指定角色创建不可变的精确资源、单一动作及可选对象属性约束授权
+      description: 为指定角色创建不可变的精确资源及单一动作授权；条件授权已退役
       operationId: createPermissionGrant
       parameters:
       - description: Grant
@@ -2740,6 +2661,59 @@ paths:
       summary: 验证资源动作
       tags:
       - Authorization-Resources
+  /v4/authz/role-inheritances:
+    get:
+      description: 角色继承已退役；此路由固定返回 410，不访问数据库。
+      operationId: retiredRoleInheritanceList
+      produces:
+      - application/json
+      responses:
+        "410":
+          description: 角色继承已退役，请直接分配多个角色
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 角色继承已退役
+      tags:
+      - AuthZ
+    post:
+      description: 角色继承已退役；此路由固定返回 410，不访问数据库。
+      operationId: retiredRoleInheritanceCreate
+      produces:
+      - application/json
+      responses:
+        "410":
+          description: 角色继承已退役，请直接分配多个角色
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 角色继承已退役
+      tags:
+      - AuthZ
+  /v4/authz/role-inheritances/{id}:
+    delete:
+      description: 角色继承已退役；此路由固定返回 410，不访问数据库。
+      operationId: retiredRoleInheritanceDelete
+      parameters:
+      - description: Historical inheritance ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "410":
+          description: 角色继承已退役，请直接分配多个角色
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 角色继承已退役
+      tags:
+      - AuthZ
   /v4/authz/roles:
     get:
       parameters:

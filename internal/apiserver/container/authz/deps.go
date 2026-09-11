@@ -11,7 +11,6 @@ import (
 // authorization module.
 type AuthzModuleDeps struct {
 	SyncConfig                authzruntime.Config
-	AttributeProvidersFile    string
 	DB                        *gorm.DB
 	EventStager               event.Stager
 	GRPCACLEnabled            bool

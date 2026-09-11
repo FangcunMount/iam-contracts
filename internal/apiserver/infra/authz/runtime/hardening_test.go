@@ -9,38 +9,26 @@ import (
 	"time"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	authorizationapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/constraint"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
 	authzruntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
-	authzfixture "github.com/FangcunMount/iam/v5/internal/apiserver/testfixtures/assessment"
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
 func TestReloadRejectsGlobalVersionRegression(t *testing.T) {
 	source := &mutableSource{dataset: assessmentDataset(t)}
-	runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(authzfixture.Policy()))
+	runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator())
 	require.NoError(t, err)
 	source.dataset.Version = 8
 	require.Error(t, runtime.LoadPolicy(context.Background()))
 	decision, err := runtime.Check(context.Background(), checkRequest(t, 2, "retry", "adhoc"))
 	require.NoError(t, err)
 	require.EqualValues(t, 9, decision.PolicyVersion)
-}
-
-func TestRuntimeOwnsGrantConditions(t *testing.T) {
-	dataset := assessmentDataset(t)
-	runtime, err := authzruntime.NewRuntime(context.Background(), &mutableSource{dataset: dataset}, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(authzfixture.Policy()))
-	require.NoError(t, err)
-	request := checkRequest(t, 2, "retry", "plan")
-	before, err := runtime.Check(context.Background(), request)
-	require.NoError(t, err)
-	require.False(t, before.Allowed)
-	*dataset.Grants[1].Constraints.AllOf[0].Value.String = "plan"
-	dataset.Grants[1].Constraints = constraint.Empty()
-	after, err := runtime.Check(context.Background(), request)
-	require.NoError(t, err)
-	require.False(t, after.Allowed, "mutating the source must not change published policy")
 }
 
 // durableSource exposes the independent read-only version port.
@@ -70,7 +58,7 @@ func (s *durableSource) ReadVersion(ctx context.Context) (int64, error) {
 func TestFreshnessBoundaryAndLostEventRecovery(t *testing.T) {
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	source := &durableSource{dataset: assessmentDataset(t), version: 9}
-	runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(authzfixture.Policy()), authzruntime.WithClock(func() time.Time { return now }))
+	runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator(), authzruntime.WithClock(func() time.Time { return now }))
 	require.NoError(t, err)
 	request := checkRequest(t, 2, "retry", "adhoc")
 	for _, delta := range []time.Duration{59 * time.Second, time.Second} {
@@ -101,7 +89,7 @@ func TestSlowVersionReadAndLoadUseReadStartAsProof(t *testing.T) {
 		t.Run(fmt.Sprint(reload), func(t *testing.T) {
 			now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 			source := &durableSource{dataset: assessmentDataset(t), version: 9}
-			runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(authzfixture.Policy()), authzruntime.WithClock(func() time.Time { return now }))
+			runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator(), authzruntime.WithClock(func() time.Time { return now }))
 			require.NoError(t, err)
 			slow := func(context.Context) error { now = now.Add(59 * time.Second); return nil }
 			if reload {
@@ -119,7 +107,7 @@ func TestSlowVersionReadAndLoadUseReadStartAsProof(t *testing.T) {
 }
 func TestConcurrentReloadIsCancellableAndChecksDoNotBlock(t *testing.T) {
 	source := &durableSource{dataset: assessmentDataset(t)}
-	runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(authzfixture.Policy()))
+	runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator())
 	require.NoError(t, err)
 	entered := make(chan struct{})
 	release := make(chan struct{})
@@ -162,7 +150,7 @@ func TestConcurrentReloadIsCancellableAndChecksDoNotBlock(t *testing.T) {
 func TestObservedTargetAndReadFailureNeverRenewProof(t *testing.T) {
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	source := &durableSource{dataset: assessmentDataset(t), version: 9}
-	runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(authzfixture.Policy()), authzruntime.WithClock(func() time.Time { return now }))
+	runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator(), authzruntime.WithClock(func() time.Time { return now }))
 	require.NoError(t, err)
 	now = now.Add(30 * time.Second)
 	runtime.RecordPolicyVersionEvent(10, now)
@@ -175,22 +163,15 @@ func TestObservedTargetAndReadFailureNeverRenewProof(t *testing.T) {
 	require.True(t, perrors.IsCode(err, code.ErrAuthorizationPolicyUnavailable))
 }
 
-func TestConditionalPolicyRequiresConfiguredCoverage(t *testing.T) {
-	source := &mutableSource{dataset: assessmentDataset(t)}
-	_, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator())
-	require.ErrorContains(t, err, "requires trusted attribute providers")
-}
-
 func TestSnapshotOutputOwnershipAndConcurrentPublication(t *testing.T) {
 	source := &synchronizedSource{data: assessmentDataset(t)}
-	runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator(), authzruntime.WithAttributeProviders(authzfixture.Policy()))
+	runtime, err := authzruntime.NewRuntime(context.Background(), source, authorization.NewEvaluator())
 	require.NoError(t, err)
 	request := checkRequest(t, 2, "retry", "adhoc")
 	snapshot, err := runtime.GetAuthorizationSnapshot(context.Background(), request.Subject, "qs")
 	require.NoError(t, err)
 	snapshot.EffectiveRoles[0] = "corrupted"
 	snapshot.Permissions[0].Resource = "corrupted"
-	source.data.Resources[0].AttributeSchema.Attributes[0].AllowedStringValues[0] = "corrupted"
 	source.data.Resources[0].Actions = nil
 	decision, err := runtime.Check(context.Background(), request)
 	require.NoError(t, err)
@@ -216,4 +197,24 @@ func TestSnapshotOutputOwnershipAndConcurrentPublication(t *testing.T) {
 	fresh, err := runtime.GetAuthorizationSnapshot(context.Background(), request.Subject, "qs")
 	require.NoError(t, err)
 	require.NotContains(t, fresh.EffectiveRoles, "corrupted")
+}
+
+func TestSelfPermissionsIncludeProtectedGlobalWildcard(t *testing.T) {
+	data := assessmentDataset(t)
+	global, err := permissiongrant.NewSystem(meta.FromUint64(11), resource.ResourceID{}, "*:*:*:*", "*", "seed")
+	require.NoError(t, err)
+	global.ID = meta.FromUint64(999)
+	data.Grants[0] = &global
+	for i := range data.Roles {
+		if data.Roles[i].ID == meta.FromUint64(11) {
+			data.Roles[i].ManagementProtection = "protected"
+		}
+	}
+	r, err := authzruntime.NewRuntime(context.Background(), &mutableSource{dataset: data}, authorization.NewEvaluator())
+	require.NoError(t, err)
+	sub, err := subject.NewUserRef(meta.FromUint64(1))
+	require.NoError(t, err)
+	permissions, err := r.PermissionEntriesForSubject(context.Background(), sub)
+	require.NoError(t, err)
+	require.Contains(t, permissions, authorizationapp.PermissionEntry{Resource: "*:*:*:*", Action: "*", Mode: authorizationapp.ModeUnconditional})
 }
