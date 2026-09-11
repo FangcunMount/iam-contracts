@@ -13,6 +13,8 @@ type Repository interface {
 	Create(ctx context.Context, grant *Grant) error
 	// AtomicRevoke 原子撤销权限授予实体
 	AtomicRevoke(ctx context.Context, id meta.ID) (RevokeOutcome, error)
+	// FindRoleID reads ownership for guarded revocation, including historical grants.
+	FindRoleID(ctx context.Context, id meta.ID) (meta.ID, error)
 	// FindByID 根据ID查找权限授予实体
 	FindByID(ctx context.Context, id meta.ID) (*Grant, error)
 	// ListByRole 根据角色ID查找权限授予实体列表

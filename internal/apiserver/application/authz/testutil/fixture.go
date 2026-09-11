@@ -71,3 +71,9 @@ func (f *Fixture) count(t *testing.T, model any) int64 {
 	require.NoError(t, f.db.Model(model).Count(&count).Error)
 	return count
 }
+
+// SetHistoricalGrantConditions seeds retained storage data without restoring a condition domain object.
+func (f *Fixture) SetHistoricalGrantConditions(t *testing.T, id uint64, raw string) {
+	t.Helper()
+	require.NoError(t, f.db.Table("authz_permission_grants").Where("id = ?", id).Update("constraint_set", raw).Error)
+}

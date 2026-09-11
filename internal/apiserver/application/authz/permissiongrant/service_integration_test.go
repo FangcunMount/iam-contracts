@@ -2,6 +2,9 @@ package permissiongrant_test
 
 import (
 	"context"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 	"testing"
 
 	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
@@ -29,6 +32,10 @@ func TestPermissionGrantRevokeAlreadyRevokedIsIdempotentWithoutVersionBump(t *te
 	require.Len(t, stager.events, 1)
 	require.EqualValues(t, 1, fixture.PolicyVersionCount(t))
 
+	// Migration revokes the original grant but preserves its condition JSON.
+	fixture.SetHistoricalGrantConditions(t, grant.ID.Uint64(), `{"version":1,"all_of":[{"key":"object.origin_type","operator":"eq","value":{"type":"string","string":"adhoc"}}]}`)
+	_, err := fixture.PermissionGrants.FindByID(context.Background(), grant.ID)
+	require.Error(t, err, "historical conditions must still be rejected by active domain restoration")
 	require.NoError(t, service.Revoke(management.WithAuthenticatedService(context.Background(), "admin"), permissionGrantApp.RevokeCommand{
 		GrantID: grant.ID, RevokedBy: "operator-1",
 	}))
@@ -93,4 +100,37 @@ type recordingReloader struct{ calls int }
 func (r *recordingReloader) LoadPolicy(context.Context) error {
 	r.calls++
 	return nil
+}
+
+type revokeChecker func(context.Context, authorization.Request) (authorization.Decision, error)
+
+func (f revokeChecker) Check(ctx context.Context, r authorization.Request) (authorization.Decision, error) {
+	return f(ctx, r)
+}
+
+func TestHistoricalGrantRevokeStillRequiresProtectedRolePermission(t *testing.T) {
+	fixture, admin, stager := setupPermissionGrantService(t)
+	r, err := roleDomain.NewRole("test:protected", "Protected")
+	require.NoError(t, err)
+	r.ManagementProtection = roleDomain.ManagementProtected
+	require.NoError(t, fixture.Roles.Create(context.Background(), &r))
+	grant := seedGrant(t, fixture.PermissionGrants, r, seedResource(t, fixture.Resources))
+	cmd := permissionGrantApp.RevokeCommand{GrantID: grant.ID, RevokedBy: "test"}
+	require.NoError(t, admin.Revoke(management.WithAuthenticatedService(context.Background(), "admin"), cmd))
+	fixture.SetHistoricalGrantConditions(t, grant.ID.Uint64(), `{"version":1,"all_of":[{}]}`)
+	checkedProtection := false
+	guard := management.NewGuard(revokeChecker(func(_ context.Context, request authorization.Request) (authorization.Decision, error) {
+		if request.ResourceKey.String() == roleDomain.ManageProtectedResource {
+			checkedProtection = true
+			return authorization.Decision{Allowed: false}, nil
+		}
+		return authorization.Decision{Allowed: true}, nil
+	}))
+	service := permissionGrantApp.NewService(fixture.UnitOfWork, fixture.PermissionGrants, nil, guard)
+	sub, err := subject.NewUserRef(meta.ID(42))
+	require.NoError(t, err)
+	require.Error(t, service.Revoke(management.WithAuthenticatedUser(context.Background(), sub), cmd))
+	require.True(t, checkedProtection)
+	require.Len(t, stager.events, 1)
+	require.EqualValues(t, 1, fixture.PolicyVersionCount(t))
 }

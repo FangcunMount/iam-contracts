@@ -112,11 +112,11 @@ func (s *Service) Revoke(ctx context.Context, cmd RevokeCommand) error {
 	}
 	revoked := false
 	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
-		grant, err := tx.PermissionGrants.FindByID(txCtx, cmd.GrantID)
+		roleID, err := tx.PermissionGrants.FindRoleID(txCtx, cmd.GrantID)
 		if err != nil {
 			return err
 		}
-		target, err := tx.Roles.FindByIDForUpdate(txCtx, grant.RoleID)
+		target, err := tx.Roles.FindByIDForUpdate(txCtx, roleID)
 		if err != nil {
 			return err
 		}

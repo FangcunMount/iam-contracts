@@ -76,6 +76,16 @@ func (r *Repository) AtomicRevoke(ctx context.Context, id meta.ID) (domain.Revok
 	return domain.RevokeOutcomeNotFound, nil
 }
 
+// FindRoleID deliberately bypasses domain restoration: revoked legacy conditions
+// remain audit data, while role protection still applies before AtomicRevoke.
+func (r *Repository) FindRoleID(ctx context.Context, id meta.ID) (meta.ID, error) {
+	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
+	if err != nil {
+		return meta.ID(0), err
+	}
+	return meta.FromUint64(po.RoleID), nil
+}
+
 func (r *Repository) FindByID(ctx context.Context, id meta.ID) (*domain.Grant, error) {
 	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
 	if err != nil {
