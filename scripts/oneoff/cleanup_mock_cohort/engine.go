@@ -321,6 +321,24 @@ func (e *engine) restore(ctx context.Context, entries []journalEntry) error {
 	}
 	known := knownPostimages(entries)
 	originals := imageMap(e.archive.Tables)
+	// Reject all existing foreign fixed-PK rows before irreversible session
+	// revocation. Each write transaction still rechecks its locked preimage.
+	for _, im := range e.archive.Tables {
+		for _, rows := range rowChunks(im.Rows) {
+			part := im
+			part.Rows = rows
+			cur, err := currentRows(ctx, e.reader(), part, part.Rows)
+			if err != nil {
+				return err
+			}
+			if err = checkRestoreRows(part, cur, originals, known); err != nil {
+				return err
+			}
+		}
+	}
+	if err := e.validate(ctx); err != nil {
+		return err
+	}
 	// A failure before Redis revocation must not leave a pending old revoke task
 	// able to kill a newly created session after SQL restoration. Finish only the
 	// original cohort's revoke responsibilities first; no historical session is
@@ -343,19 +361,8 @@ func (e *engine) restore(ctx context.Context, entries []journalEntry) error {
 			if err != nil {
 				return err
 			}
-			for _, r := range cur.Rows {
-				k := im.Name + ":" + string(field(im, r, "id").Raw)
-				original := originals[k]
-				if reflect.DeepEqual(r, original) {
-					continue
-				}
-				allowed := false
-				for _, post := range known[k] {
-					allowed = allowed || reflect.DeepEqual(post, r)
-				}
-				if !allowed {
-					return errors.New("restore conflict: row is neither original nor this operation's postimage")
-				}
+			if err = checkRestoreRows(part, cur, originals, known); err != nil {
+				return err
 			}
 			if err = e.restoreChunk(ctx, part, cur); err != nil {
 				return err
@@ -382,6 +389,24 @@ func (e *engine) restore(ctx context.Context, entries []journalEntry) error {
 	}
 	return e.journal.append("restore", tableImage{}, tableImage{}, "complete")
 }
+
+func checkRestoreRows(im, current tableImage, originals map[string]row, known map[string][]row) error {
+	for _, r := range current.Rows {
+		k := im.Name + ":" + string(field(im, r, "id").Raw)
+		if reflect.DeepEqual(r, originals[k]) {
+			continue
+		}
+		allowed := false
+		for _, post := range known[k] {
+			allowed = allowed || reflect.DeepEqual(post, r)
+		}
+		if !allowed {
+			return errors.New("restore conflict: row is neither original nor this operation's postimage")
+		}
+	}
+	return nil
+}
+
 func (e *engine) restoreChunk(ctx context.Context, target, current tableImage) error {
 	// Missing rows need a target-ID preimage, while mutate normally obtains its
 	// selector from Before. Retain absent IDs as the target argument separately.

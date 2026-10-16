@@ -266,6 +266,56 @@ func TestIAMMockCohortNative(t *testing.T) {
 			t.Fatal("foreign row changed")
 		}
 	})
+	t.Run("RestoreConflictPreservesNewForeignSession", func(t *testing.T) {
+		e := fixture(t, 810000501)
+		if er := e.apply(ctx); er != nil {
+			t.Fatal(er)
+		}
+		raw, er := os.ReadFile(e.journal.f.Name())
+		if er != nil {
+			t.Fatal(er)
+		}
+		entries, er := parseJournal(raw, e.journal.operation, e.journal.archiveSHA)
+		if er != nil {
+			t.Fatal(er)
+		}
+		if _, er = conn.ExecContext(ctx, "INSERT INTO users(id,name,email,status) VALUES(810000501,'new foreign user','new-foreign@example.invalid',1)"); er != nil {
+			t.Fatal(er)
+		}
+		if _, er = conn.ExecContext(ctx, "INSERT INTO auth_login_identities(id,user_id,provider,realm,identifier,status,linked_at) VALUES(810000503,810000501,'username','default','new-foreign-login','active',UTC_TIMESTAMP())"); er != nil {
+			t.Fatal(er)
+		}
+		foreignBefore, er := readScope(ctx, conn, e.scope)
+		if er != nil {
+			t.Fatal(er)
+		}
+		store := sessioncache.NewSessionStore(rc)
+		sid := "new-foreign-session"
+		s := &sessiondomain.Session{SessionID: sid, UserID: meta.FromUint64(810000501), LoginIdentityID: meta.FromUint64(810000503), Status: sessiondomain.StatusActive, CreatedAt: time.Now(), ExpiresAt: time.Now().Add(time.Hour)}
+		if er = store.Save(ctx, s); er != nil {
+			t.Fatal(er)
+		}
+		key := keyspace.New("session").Prefix(sid)
+		sessionBefore, er := rc.Get(ctx, key).Result()
+		if er != nil {
+			t.Fatal(er)
+		}
+		if er = e.restore(ctx, entries); er == nil {
+			t.Fatal("foreign SQL replacement admitted restore")
+		}
+		sessionAfter, er := rc.Get(ctx, key).Result()
+		if er != nil || sessionBefore != sessionAfter {
+			t.Fatal("restore conflict changed the new foreign session before rejecting SQL")
+		}
+		active, er := store.Get(ctx, sid)
+		if er != nil || active == nil || !active.IsActive() {
+			t.Fatal("restore conflict revoked the new foreign session")
+		}
+		foreignAfter, er := readScope(ctx, conn, e.scope)
+		if er != nil || !imageRowsEqual(foreignBefore, foreignAfter) {
+			t.Fatal("restore conflict changed foreign SQL facts")
+		}
+	})
 	t.Run("LockingPreimagePreventsConcurrentReplacement", func(t *testing.T) {
 		e := fixture(t, 810000401)
 		im := lookup(e.archive.Tables, "auth_credentials")
