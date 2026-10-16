@@ -259,8 +259,8 @@ func (f *cliNativeFixture) invoke(t *testing.T, args []string) (receipt, int) {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, exe, "-test.run=^TestIAMMockCohortNativeCLIChild$", "-test.v=false", "-test.timeout=40s")
 	cmd.Env = cliNativeEnv(os.Environ(), map[string]string{"IAM_MOCK_COHORT_NATIVE_CLI_CHILD": "1", "IAM_MOCK_COHORT_NATIVE_CLI_ARGS": string(mustMarshal(args)), "IAM_MOCK_CLEANUP_MYSQL_DSN": f.dsn, "IAM_MOCK_CLEANUP_REDIS_URL": f.redisURL})
-	var out cliNativeOutput
-	cmd.Stdout, cmd.Stderr = &out, &out
+	var out, diagnostic cliNativeOutput
+	cmd.Stdout, cmd.Stderr = &out, &diagnostic
 	err = cmd.Run()
 	if err != nil {
 		var exit *exec.ExitError
@@ -268,6 +268,8 @@ func (f *cliNativeFixture) invoke(t *testing.T, args []string) (receipt, int) {
 	}
 	require.NoError(t, ctx.Err(), "CLI deadline is not an ordinary negative receipt")
 	require.False(t, out.overflow)
+	require.False(t, diagnostic.overflow)
+	t.Logf("actual CLI stderr_sha256=%s", rawSHA(diagnostic.Bytes()))
 	var r receipt
 	require.NoError(t, strictJSON(out.Bytes(), &r), "invalid CLI stdout sha=%s", rawSHA(out.Bytes()))
 	require.Equal(t, "mock_cohort_iam_receipt", r.Kind)
