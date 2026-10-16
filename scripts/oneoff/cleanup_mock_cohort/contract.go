@@ -282,6 +282,15 @@ func strictJSON(raw []byte, v any) error {
 	if d.Decode(new(any)) != io.EOF {
 		return errors.New("trailing JSON")
 	}
+	// archive contains only concrete wire fields, with no opaque/custom JSON.
+	// Exact canonical bytes therefore prove literal membership and uniqueness
+	// without retaining two additional interface trees for large captures.
+	if _, ok := v.(*archive); ok {
+		if canonical, err := json.Marshal(v); err == nil && bytes.Equal(bytes.TrimSpace(raw), canonical) {
+			return nil
+		}
+	}
+	// Keep the original validation order for every noncanonical/other document.
 	if e := uniqueJSON(raw); e != nil {
 		return e
 	}
