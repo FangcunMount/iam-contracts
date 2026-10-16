@@ -208,10 +208,10 @@ func (e *engine) apply(ctx context.Context) error {
 			return err
 		}
 	}
-	if _, err = inspectSessions(ctx, e.redis, e.scope, true); err != nil {
+	if _, err = inspectSessions(ctx, e.redis, e.scope, e.archive.Tables, true); err != nil {
 		return err
 	}
-	if _, err = inspectSessions(ctx, e.redis, e.scope, false); err != nil {
+	if _, err = inspectSessions(ctx, e.redis, e.scope, e.archive.Tables, false); err != nil {
 		return err
 	}
 	// Complete only this cohort's durable revocation responsibilities, after
@@ -304,7 +304,7 @@ func (e *engine) verify(ctx context.Context) error {
 			return fmt.Errorf("target rows remain in %s", im.Name)
 		}
 	}
-	s, err := inspectSessions(ctx, e.redis, e.scope, false)
+	s, err := inspectSessions(ctx, e.redis, e.scope, e.archive.Tables, false)
 	if err != nil {
 		return err
 	}
@@ -325,7 +325,7 @@ func (e *engine) restore(ctx context.Context, entries []journalEntry) error {
 	// able to kill a newly created session after SQL restoration. Finish only the
 	// original cohort's revoke responsibilities first; no historical session is
 	// restored, even when the original User status is active.
-	if _, err := inspectSessions(ctx, e.redis, e.scope, true); err != nil {
+	if _, err := inspectSessions(ctx, e.redis, e.scope, e.archive.Tables, true); err != nil {
 		return err
 	}
 	if err := e.completeSessionTasks(ctx); err != nil {
@@ -371,7 +371,7 @@ func (e *engine) restore(ctx context.Context, entries []journalEntry) error {
 	}
 	// Restoring SQL never writes Redis session material, refresh tokens, or old
 	// policy versions. A previously revoked session must remain unusable.
-	s, err := inspectSessions(ctx, e.redis, e.scope, false)
+	s, err := inspectSessions(ctx, e.redis, e.scope, e.archive.Tables, false)
 	if err != nil {
 		return err
 	}

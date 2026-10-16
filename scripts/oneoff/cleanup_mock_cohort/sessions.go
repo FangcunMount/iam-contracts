@@ -48,15 +48,41 @@ func redisIdentityFromInfo(info string, db int) (string, error) {
 	return rawSHA([]byte(runID + "\x00" + strconv.Itoa(db))), nil
 }
 
-func inspectSessions(ctx context.Context, c *redis.Client, scope iamScope, revoke bool) ([]sessionEvidence, error) {
+func inspectSessions(ctx context.Context, c *redis.Client, scope iamScope, images []tableImage, revoke bool) ([]sessionEvidence, error) {
 	store := sessioncache.NewSessionStore(c)
 	revoker := sessionapp.NewRevoker(sessiondomain.NewRevoker(store))
 	// Never bulk-revoke from an index: stale members may belong to retained users.
+	users, logins := idSet(scope.Users), idSet(scope.LoginIdentities)
+	owners := map[string]string{}
+	im := lookup(images, "auth_login_identities")
+	for _, r := range im.Rows {
+		login, user := field(im, r, "id"), field(im, r, "user_id")
+		lid, uid := string(login.Raw), string(user.Raw)
+		if login.Null || user.Null || !logins[lid] || !users[uid] || owners[lid] != "" {
+			return nil, errors.New("captured session login ownership incomplete")
+		}
+		owners[lid] = uid
+	}
+	if len(owners) != len(logins) {
+		return nil, errors.New("captured session login ownership incomplete")
+	}
+	owned := func(sid string, s *sessiondomain.Session) (bool, error) {
+		if s == nil {
+			return false, nil
+		}
+		uid, lid := s.UserID.String(), s.LoginIdentityID.String()
+		if !users[uid] && !logins[lid] {
+			return false, nil
+		}
+		if !users[uid] || !logins[lid] || owners[lid] != uid || s.SessionID != sid {
+			return false, errors.New("session typed ownership conflicts with captured cohort")
+		}
+		return true, nil
+	}
 
 	// Index-only revocation misses a historical unindexed session. SCAN is bounded
-	// and read-only outside the target set; only the existing Store may revoke.
+	// and entirely read-only until every target's two identities have been checked.
 	prefix := keyspace.New("session").Prefix("") + ":"
-	users, logins := idSet(scope.Users), idSet(scope.LoginIdentities)
 	var cursor uint64
 	seen := map[string]bool{}
 	out := []sessionEvidence{}
@@ -80,27 +106,14 @@ func inspectSessions(ctx context.Context, c *redis.Client, scope iamScope, revok
 			if e != nil {
 				return nil, e
 			}
-			if s == nil || !users[s.UserID.String()] && !logins[s.LoginIdentityID.String()] {
+			match, e := owned(sid, s)
+			if e != nil {
+				return nil, e
+			}
+			if !match {
 				continue
 			}
-			expires := s.ExpiresAt
-			if revoke && s.IsActive() {
-				if e = revoker.RevokeSession(ctx, sid, "mock_cohort_cleanup", "system:10001"); e != nil {
-					return nil, e
-				}
-				s, e = store.Get(ctx, sid)
-				if e != nil {
-					return nil, e
-				}
-			}
-			if revoke && s != nil && (s.IsActive() || !s.ExpiresAt.Equal(expires)) {
-				return nil, errors.New("session revocation/TTL readback failed")
-			}
-			status := "expired_absent"
-			if s != nil {
-				status = string(s.Status)
-			}
-			out = append(out, sessionEvidence{sid, safeUser(s), safeLogin(s), expires, status})
+			out = append(out, sessionEvidence{sid, safeUser(s), safeLogin(s), s.ExpiresAt, string(s.Status)})
 		}
 		cursor = next
 		if cursor == 0 {
@@ -108,10 +121,37 @@ func inspectSessions(ctx context.Context, c *redis.Client, scope iamScope, revok
 		}
 	}
 	if revoke {
-		for _, x := range out {
-			if x.Status == string(sessiondomain.StatusActive) {
-				return nil, errors.New("active target session remains")
+		for i, x := range out {
+			s, e := store.Get(ctx, x.ID)
+			if e != nil {
+				return nil, e
 			}
+			if s == nil {
+				out[i].Status = "expired_absent"
+				continue
+			}
+			match, e := owned(x.ID, s)
+			if e != nil || !match || !s.ExpiresAt.Equal(x.Expires) {
+				return nil, errors.New("target session changed after ownership preflight")
+			}
+			if s.IsActive() {
+				if e = revoker.RevokeSession(ctx, x.ID, "mock_cohort_cleanup", "system:10001"); e != nil {
+					return nil, e
+				}
+			}
+			s, e = store.Get(ctx, x.ID)
+			if e != nil {
+				return nil, e
+			}
+			if s == nil {
+				out[i].Status = "expired_absent"
+				continue
+			}
+			match, e = owned(x.ID, s)
+			if e != nil || !match || s.IsActive() || !s.ExpiresAt.Equal(x.Expires) {
+				return nil, errors.New("session revocation/identity/TTL readback failed")
+			}
+			out[i].Status = string(s.Status)
 		}
 	}
 	return out, nil

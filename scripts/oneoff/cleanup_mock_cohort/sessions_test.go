@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"reflect"
 	"testing"
 	"time"
 
@@ -34,6 +35,7 @@ func TestSessionRevocationIncludesUnindexedAndPreservesTTL(t *testing.T) {
 		t.Fatal(e)
 	}
 	scope := iamScope{[]string{"101"}, []string{}, []string{"301"}}
+	images := sessionOwnerImages([2]string{"301", "101"})
 	// A stale target index pointing at a retained user's session must never be
 	// used as ownership evidence for bulk revocation.
 	if e := c.ZAdd(ctx, keyspace.New("user_session_index").Prefix("101"), redis.Z{Score: float64(expires.Unix()), Member: "shared-kept"}).Err(); e != nil {
@@ -42,11 +44,11 @@ func TestSessionRevocationIncludesUnindexedAndPreservesTTL(t *testing.T) {
 	if e := c.ZAdd(ctx, keyspace.New("login_identity_session_index").Prefix("301"), redis.Z{Score: float64(expires.Unix()), Member: "shared-kept"}).Err(); e != nil {
 		t.Fatal(e)
 	}
-	before, e := inspectSessions(ctx, c, scope, false)
+	before, e := inspectSessions(ctx, c, scope, images, false)
 	if e != nil || len(before) != 2 {
 		t.Fatalf("preflight %d %v", len(before), e)
 	}
-	if _, e = inspectSessions(ctx, c, scope, true); e != nil {
+	if _, e = inspectSessions(ctx, c, scope, images, true); e != nil {
 		t.Fatal(e)
 	}
 	for _, sid := range []string{"indexed", "unindexed"} {
@@ -68,7 +70,7 @@ func TestSessionRevocationIncludesUnindexedAndPreservesTTL(t *testing.T) {
 	}
 	// A DB restore has no route to Save/Extend these sessions. Reinspection is
 	// purely read-only and cannot reactivate the retained revoked payloads.
-	if _, e = inspectSessions(ctx, c, scope, false); e != nil {
+	if _, e = inspectSessions(ctx, c, scope, images, false); e != nil {
 		t.Fatal(e)
 	}
 	for _, sid := range []string{"indexed", "unindexed"} {
@@ -92,4 +94,86 @@ func TestRedisIdentityBindsRunAndLogicalDatabase(t *testing.T) {
 			t.Fatal("unknown Redis identity accepted")
 		}
 	}
+}
+
+func TestSessionRevocationRejectsMixedTypedOwnershipBeforeAnyWrite(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		user, login meta.ID
+	}{
+		{"retained-user-selected-login", 999, 301},
+		{"selected-user-retained-login", 101, 999},
+		{"selected-identities-wrong-captured-pair", 101, 302},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := miniredis.RunT(t)
+			c := redis.NewClient(&redis.Options{Addr: m.Addr()})
+			defer func() { _ = c.Close() }()
+			ctx := context.Background()
+			store := sessioncache.NewSessionStore(c)
+			expires := time.Now().UTC().Add(time.Hour)
+			for _, s := range []*sessiondomain.Session{
+				{SessionID: "a-valid-target", UserID: 101, LoginIdentityID: 301, Status: sessiondomain.StatusActive, CreatedAt: time.Now(), ExpiresAt: expires},
+				{SessionID: "z-conflicting-owner", UserID: tc.user, LoginIdentityID: tc.login, Status: sessiondomain.StatusActive, CreatedAt: time.Now(), ExpiresAt: expires},
+			} {
+				if err := store.Save(ctx, s); err != nil {
+					t.Fatal(err)
+				}
+			}
+			before, err := c.MGet(ctx, "session:a-valid-target", "session:z-conflicting-owner").Result()
+			if err != nil {
+				t.Fatal(err)
+			}
+			scope := iamScope{[]string{"101", "102"}, []string{}, []string{"301", "302"}}
+			images := sessionOwnerImages([2]string{"301", "101"}, [2]string{"302", "102"})
+			if _, err = inspectSessions(ctx, c, scope, images, true); err == nil {
+				t.Fatal("mixed typed session ownership was admitted")
+			}
+			after, err := c.MGet(ctx, "session:a-valid-target", "session:z-conflicting-owner").Result()
+			if err != nil || !reflect.DeepEqual(before, after) {
+				t.Fatal("preflight rejection changed a target or retained session")
+			}
+		})
+	}
+}
+
+func TestSessionRevocationRequiresCompleteCapturedLoginOwners(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		owners [][2]string
+	}{
+		{"missing", nil},
+		{"foreign-user", [][2]string{{"301", "999"}}},
+		{"duplicate-login", [][2]string{{"301", "101"}, {"301", "101"}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := miniredis.RunT(t)
+			c := redis.NewClient(&redis.Options{Addr: m.Addr()})
+			defer func() { _ = c.Close() }()
+			ctx := context.Background()
+			store := sessioncache.NewSessionStore(c)
+			s := &sessiondomain.Session{SessionID: "kept-until-ownership-proven", UserID: 101, LoginIdentityID: 301, Status: sessiondomain.StatusActive, CreatedAt: time.Now(), ExpiresAt: time.Now().Add(time.Hour)}
+			if err := store.Save(ctx, s); err != nil {
+				t.Fatal(err)
+			}
+			raw, err := c.Get(ctx, "session:"+s.SessionID).Result()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err = inspectSessions(ctx, c, iamScope{[]string{"101"}, []string{}, []string{"301"}}, sessionOwnerImages(tc.owners...), true); err == nil {
+				t.Fatal("incomplete captured ownership admitted session mutation")
+			}
+			if after, er := c.Get(ctx, "session:"+s.SessionID).Result(); er != nil || raw != after {
+				t.Fatal("session changed without complete captured ownership")
+			}
+		})
+	}
+}
+
+func sessionOwnerImages(pairs ...[2]string) []tableImage {
+	im := tableImage{Name: "auth_login_identities", Columns: []column{{Name: "id"}, {Name: "user_id"}}, Rows: []row{}}
+	for _, pair := range pairs {
+		im.Rows = append(im.Rows, row{Values: []cell{{Raw: []byte(pair[0])}, {Raw: []byte(pair[1])}}})
+	}
+	return []tableImage{im}
 }
