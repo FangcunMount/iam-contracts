@@ -24,6 +24,7 @@ type options struct {
 	action                                                                                      string
 	group, owner, protected, archive, approval, handoff, frozen, catalog, journal, priorJournal inputFile
 	qsCapture, qsApply, qsVerify, messages                                                      inputFile
+	qsClearance, qsClearanceExecution                                                           inputFile
 	deadline                                                                                    time.Duration
 }
 
@@ -68,7 +69,7 @@ func parseArgs(args []string) (options, error) {
 	for _, x := range []struct {
 		name string
 		v    *inputFile
-	}{{"group", &o.group}, {"owner-confirmation", &o.owner}, {"protected", &o.protected}, {"archive", &o.archive}, {"approval", &o.approval}, {"qs-handoff", &o.handoff}, {"frozen", &o.frozen}, {"event-catalog", &o.catalog}, {"journal", &o.journal}, {"prior-journal", &o.priorJournal}, {"qs-capture", &o.qsCapture}, {"qs-apply", &o.qsApply}, {"qs-verify", &o.qsVerify}, {"messages-settled", &o.messages}} {
+	}{{"group", &o.group}, {"owner-confirmation", &o.owner}, {"protected", &o.protected}, {"archive", &o.archive}, {"approval", &o.approval}, {"qs-handoff", &o.handoff}, {"frozen", &o.frozen}, {"event-catalog", &o.catalog}, {"journal", &o.journal}, {"prior-journal", &o.priorJournal}, {"qs-capture", &o.qsCapture}, {"qs-apply", &o.qsApply}, {"qs-verify", &o.qsVerify}, {"qs-clearance", &o.qsClearance}, {"qs-clearance-execution", &o.qsClearanceExecution}, {"messages-settled", &o.messages}} {
 		f.StringVar(&x.v.path, x.name+"-file", "", "private absolute file")
 		f.StringVar(&x.v.sha, x.name+"-sha256", "", "original raw SHA256")
 	}
@@ -85,6 +86,20 @@ func parseArgs(args []string) (options, error) {
 	}
 	if o.deadline <= 0 || o.deadline > 55*time.Minute {
 		return o, errors.New("deadline outside 1ns..55m")
+	}
+	clearanceProvided := false
+	f.Visit(func(v *flag.Flag) {
+		switch v.Name {
+		case "qs-clearance-file", "qs-clearance-sha256", "qs-clearance-execution-file", "qs-clearance-execution-sha256":
+			clearanceProvided = true
+		}
+	})
+	mode, err := qsClearanceMode(o)
+	if err != nil {
+		return o, err
+	}
+	if clearanceProvided && !mode {
+		return o, errors.New("both QS clearance originals and raw SHA required")
 	}
 	return o, nil
 }
@@ -107,6 +122,10 @@ func serve(args []string, out io.Writer, getenv func(string) string) int {
 }
 func load(in inputFile) ([]byte, error) { return readPrivate(in.path, in.sha, maxDocument) }
 func execute(o options, r *receipt, getenv func(string) string) (retErr error) {
+	clearanceMode, err := qsClearanceMode(o)
+	if err != nil {
+		return err
+	}
 	groupRaw, err := load(o.group)
 	if err != nil {
 		return err
@@ -138,6 +157,8 @@ func execute(o options, r *receipt, getenv func(string) string) (retErr error) {
 	p.IAM.Profiles = appendUnique(p.IAM.Profiles, "632367179001508398", "636374014138266158")
 	var a archive
 	var handoff qsHandoff
+	var clearance qsClearanceReceipt
+	var handoffFrozenSHA string
 	var app approval
 	var freeze freezeReceipt
 	var catalogRaw []byte
@@ -170,39 +191,47 @@ func execute(o options, r *receipt, getenv func(string) string) (retErr error) {
 		if er != nil {
 			return er
 		}
-		handoff, er = validateHandoff(hRaw, g, s, r.GroupSHA)
-		if er != nil {
-			return er
-		}
-		materialSHA, qsSource := "", ""
-		for i, x := range []struct {
-			in  inputFile
-			sha string
-		}{{o.qsCapture, handoff.CaptureSHA}, {o.qsApply, handoff.ApplySHA}, {o.qsVerify, handoff.VerifySHA}, {o.messages, handoff.MessagesSHA}} {
-			if x.in.sha != x.sha {
-				return errors.New("QS original evidence SHA differs")
-			}
-			raw, er := load(x.in)
+		if clearanceMode {
+			clearance, handoffFrozenSHA, er = loadQSClearance(o, hRaw, g, s, r.GroupSHA, time.Now())
 			if er != nil {
 				return er
 			}
-			if i < 3 {
-				action := []string{"capture", "apply", "verify"}[i]
-				qr, er := validateQSAction(raw, action, g.Operation, r.GroupSHA)
+		} else {
+			handoff, er = validateHandoff(hRaw, g, s, r.GroupSHA)
+			if er != nil {
+				return er
+			}
+			handoffFrozenSHA = handoff.FrozenSHA
+			materialSHA, qsSource := "", ""
+			for i, x := range []struct {
+				in  inputFile
+				sha string
+			}{{o.qsCapture, handoff.CaptureSHA}, {o.qsApply, handoff.ApplySHA}, {o.qsVerify, handoff.VerifySHA}, {o.messages, handoff.MessagesSHA}} {
+				if x.in.sha != x.sha {
+					return errors.New("QS original evidence SHA differs")
+				}
+				raw, er := load(x.in)
 				if er != nil {
 					return er
 				}
-				if materialSHA == "" {
-					materialSHA = qr.MaterialSHA
-					qsSource = qr.Source
-				}
-				if materialSHA != qr.MaterialSHA || qsSource != qr.Source {
-					return errors.New("QS action material differs")
-				}
-			} else {
-				var doc any
-				if er = json.Unmarshal(raw, &doc); er != nil {
-					return er
+				if i < 3 {
+					action := []string{"capture", "apply", "verify"}[i]
+					qr, er := validateQSAction(raw, action, g.Operation, r.GroupSHA)
+					if er != nil {
+						return er
+					}
+					if materialSHA == "" {
+						materialSHA = qr.MaterialSHA
+						qsSource = qr.Source
+					}
+					if materialSHA != qr.MaterialSHA || qsSource != qr.Source {
+						return errors.New("QS action material differs")
+					}
+				} else {
+					var doc any
+					if er = json.Unmarshal(raw, &doc); er != nil {
+						return er
+					}
 				}
 			}
 		}
@@ -210,7 +239,7 @@ func execute(o options, r *receipt, getenv func(string) string) (retErr error) {
 		if er != nil {
 			return er
 		}
-		if o.frozen.sha != handoff.FrozenSHA {
+		if o.frozen.sha != handoffFrozenSHA {
 			return errors.New("frozen handoff differs")
 		}
 		if er = strictJSON(fRaw, &freeze); er != nil {
@@ -231,6 +260,11 @@ func execute(o options, r *receipt, getenv func(string) string) (retErr error) {
 		}
 		if er = validateApproval(app, o.action, r.Source, g.Operation, r.GroupSHA, r.ArchiveSHA, rawSHA(hRaw), rawSHA(fRaw), a.Identity, time.Now()); er != nil {
 			return er
+		}
+		if clearanceMode {
+			if er = validateQSClearanceApproval(clearance, app, time.Now()); er != nil {
+				return er
+			}
 		}
 		catalogRaw, err = load(o.catalog)
 		if err != nil {
@@ -396,7 +430,18 @@ func execute(o options, r *receipt, getenv func(string) string) (retErr error) {
 		if er := validateApproval(app, o.action, r.Source, g.Operation, r.GroupSHA, r.ArchiveSHA, o.handoff.sha, o.frozen.sha, a.Identity, time.Now()); er != nil {
 			return er
 		}
-		for _, in := range []inputFile{o.group, o.owner, o.protected, o.archive, o.approval, o.handoff, o.frozen, o.catalog, o.messages, o.qsCapture, o.qsApply, o.qsVerify} {
+		if clearanceMode {
+			if er := validateQSClearanceApproval(clearance, app, time.Now()); er != nil {
+				return er
+			}
+		}
+		inputs := []inputFile{o.group, o.owner, o.protected, o.archive, o.approval, o.handoff, o.frozen, o.catalog, o.messages, o.qsCapture, o.qsApply}
+		if clearanceMode {
+			inputs = append(inputs, o.qsClearance, o.qsClearanceExecution)
+		} else {
+			inputs = append(inputs, o.qsVerify)
+		}
+		for _, in := range inputs {
 			if _, er := load(in); er != nil {
 				return er
 			}

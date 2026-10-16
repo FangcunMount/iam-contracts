@@ -210,6 +210,11 @@ func TestIAMMockCohortNativeCLI(t *testing.T) {
 		require.GreaterOrEqual(t, events, 2, "revoke/restore must retain durable policy events")
 		t.Log("true serve/execute subprocess cycle completed; synthetic QS handoff is interface-only, no production or QS whole-cohort qualification")
 	})
+	if !t.Failed() {
+		t.Run("BatchClearanceV2ThroughRealCLI", func(t *testing.T) {
+			cliNativeClearanceCycle(t, ctx, conn, rc, f, scope, retained, catalogRaw)
+		})
+	}
 }
 
 // Only the parent selects this helper. It returns the real CLI exit status and
