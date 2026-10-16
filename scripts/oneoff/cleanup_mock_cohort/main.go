@@ -26,6 +26,20 @@ type options struct {
 	qsCapture, qsApply, qsVerify, messages                                                      inputFile
 	deadline                                                                                    time.Duration
 }
+
+func operationContext(o options, a approval) (context.Context, context.CancelFunc) {
+	deadline := time.Now().Add(o.deadline)
+	if o.action == "apply" || o.action == "restore" {
+		if a.Expires.Before(deadline) {
+			deadline = a.Expires
+		}
+		if a.Deadline.Before(deadline) {
+			deadline = a.Deadline
+		}
+	}
+	return context.WithDeadline(context.Background(), deadline)
+}
+
 type receipt struct {
 	Format       int      `json:"format_version"`
 	Kind         string   `json:"kind"`
@@ -258,7 +272,7 @@ func execute(o options, r *receipt, getenv func(string) string) (retErr error) {
 			r.Complete = false
 		}
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), o.deadline)
+	ctx, cancel := operationContext(o, app)
 	defer cancel()
 	conn, err := db.Conn(ctx)
 	if err != nil {
