@@ -529,5 +529,20 @@ func insertRow(ctx context.Context, tx *gorm.DB, im tableImage, r row) error {
 		}
 		args = append(args, v)
 	}
-	return tx.WithContext(ctx).Exec("INSERT INTO "+quoted(im.Name)+" ("+strings.Join(cols, ",")+") VALUES ("+slots(len(cols))+")", args...).Error
+	// GORM's raw-expression builder expands a slice in the first VALUES(?)
+	// position, including []byte. Bind the captured cells directly through the
+	// same transaction's database/sql connection so NULL, empty and binary cells
+	// remain exactly one driver parameter each.
+	result, err := tx.Statement.ConnPool.ExecContext(ctx, "INSERT INTO "+quoted(im.Name)+" ("+strings.Join(cols, ",")+") VALUES ("+slots(len(cols))+")", args...)
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return errors.New("restore insert count changed")
+	}
+	return nil
 }

@@ -77,6 +77,9 @@ func TestIAMMockCohortNative(t *testing.T) {
 	defer func() { _ = rc.Close() }()
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Minute)
 	defer cancel()
+	if n, er := rc.DBSize(ctx).Result(); er != nil || n != 0 {
+		t.Fatalf("native Redis logical database must be empty: keys=%d err=%v", n, er)
+	}
 	id, err := readIdentity(ctx, conn)
 	if err != nil {
 		t.Fatal(err)
@@ -114,7 +117,8 @@ func TestIAMMockCohortNative(t *testing.T) {
 				t.Fatal(e)
 			}
 		}
-		exec("INSERT INTO users(id,name,email,status) VALUES(?,?,?,1)", u, "dedicated native mock", u+"@example.invalid")
+		// Historical defaults must restore their captured values, not a new NOW().
+		exec("INSERT INTO users(id,name,email,status,created_at,updated_at) VALUES(?,?,?,1,'2019-01-02 03:04:05','2019-02-03 04:05:06')", u, "dedicated native mock", u+"@example.invalid")
 		exec("INSERT INTO profiles(id,name,gender,birthday) VALUES(?,?,0,NULL)", p, "native profile")
 		exec("INSERT INTO profile_links(id,user_id,profile_id,type,relation,established_at) VALUES(?,?,?,'relation','other',UTC_TIMESTAMP())", base+3, u, p)
 		exec("INSERT INTO auth_login_identities(id,user_id,provider,realm,identifier,status,linked_at) VALUES(?,?,'username','default',?,'active',UTC_TIMESTAMP())", l, u, "native-"+u)
