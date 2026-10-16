@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -27,46 +26,6 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
-
-// Test-only SQL API counter. A call is not a wire roundtrip: the driver may
-// internally prepare/execute a statement. No SQL text, arguments or credentials
-// are logged. Both GORM and direct original-row INSERTs use this same wrapper.
-type perfSQL struct {
-	gorm.ConnPool
-	calls *atomic.Int64
-	conn  *sql.Conn
-}
-type perfSQLTx struct {
-	*perfSQL
-	tx *sql.Tx
-}
-
-func (p *perfSQL) ExecContext(c context.Context, q string, a ...any) (sql.Result, error) {
-	p.calls.Add(1)
-	return p.ConnPool.ExecContext(c, q, a...)
-}
-func (p *perfSQL) QueryContext(c context.Context, q string, a ...any) (*sql.Rows, error) {
-	p.calls.Add(1)
-	return p.ConnPool.QueryContext(c, q, a...)
-}
-func (p *perfSQL) QueryRowContext(c context.Context, q string, a ...any) *sql.Row {
-	p.calls.Add(1)
-	return p.ConnPool.QueryRowContext(c, q, a...)
-}
-func (p *perfSQL) PrepareContext(c context.Context, q string) (*sql.Stmt, error) {
-	p.calls.Add(1)
-	return p.ConnPool.PrepareContext(c, q)
-}
-func (p *perfSQL) BeginTx(c context.Context, o *sql.TxOptions) (gorm.ConnPool, error) {
-	p.calls.Add(1)
-	tx, e := p.conn.BeginTx(c, o)
-	if e != nil {
-		return nil, e
-	}
-	return &perfSQLTx{perfSQL: &perfSQL{ConnPool: tx, calls: p.calls}, tx: tx}, nil
-}
-func (p *perfSQLTx) Commit() error   { p.calls.Add(1); return p.tx.Commit() }
-func (p *perfSQLTx) Rollback() error { p.calls.Add(1); return p.tx.Rollback() }
 
 func TestIAMMockCohortNative1000Performance(t *testing.T) {
 	if os.Getenv("IAM_MOCK_COHORT_PERF_REQUIRED") != "1" {
@@ -114,9 +73,7 @@ func TestIAMMockCohortNative1000Performance(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = conn.Close() }()
-	var calls atomic.Int64
-	pool := &perfSQL{ConnPool: conn, calls: &calls, conn: conn}
-	gdb, err := gorm.Open(gormmysql.New(gormmysql.Config{Conn: pool, SkipInitializeWithVersion: true}), &gorm.Config{DisableAutomaticPing: true, Logger: logger.Default.LogMode(logger.Silent)})
+	gdb, err := gorm.Open(gormmysql.New(gormmysql.Config{Conn: conn, SkipInitializeWithVersion: true}), &gorm.Config{DisableAutomaticPing: true, Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,17 +89,16 @@ func TestIAMMockCohortNative1000Performance(t *testing.T) {
 		t.Fatal(err)
 	}
 	type phase struct {
-		Seconds  float64 `json:"seconds"`
-		SQLCalls int64   `json:"sql_client_calls"`
+		Seconds float64 `json:"seconds"`
 	}
 	phases := map[string]phase{}
 	measure := func(name string, fn func() error) {
 		t.Helper()
-		start, n := time.Now(), calls.Load()
+		start := time.Now()
 		if e := fn(); e != nil {
 			t.Fatalf("phase %s: %v", name, e)
 		}
-		phases[name] = phase{time.Since(start).Seconds(), calls.Load() - n}
+		phases[name] = phase{time.Since(start).Seconds()}
 	}
 	scope := iamScope{Users: []string{}, Profiles: []string{}, LoginIdentities: []string{}}
 	// Exactly 1000 dedicated users, each with one profile, identity, binary
@@ -184,7 +140,7 @@ func TestIAMMockCohortNative1000Performance(t *testing.T) {
 					args = append(args, base+3, u, p)
 				}
 			}
-			if _, e := pool.ExecContext(ctx, "INSERT INTO "+quoted(table)+" ("+cols+") VALUES "+strings.Join(rows, ","), args...); e != nil {
+			if _, e := conn.ExecContext(ctx, "INSERT INTO "+quoted(table)+" ("+cols+") VALUES "+strings.Join(rows, ","), args...); e != nil {
 				return e
 			}
 		}
@@ -204,7 +160,7 @@ func TestIAMMockCohortNative1000Performance(t *testing.T) {
 		}
 		return nil
 	})
-	id, err := readIdentity(ctx, pool)
+	id, err := readIdentity(ctx, conn)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,11 +176,10 @@ func TestIAMMockCohortNative1000Performance(t *testing.T) {
 	var a archive
 	var archiveRaw []byte
 	measure("capture", func() error {
-		q, e := pool.BeginTx(ctx, &sql.TxOptions{ReadOnly: true, Isolation: sql.LevelRepeatableRead})
+		tx, e := conn.BeginTx(ctx, &sql.TxOptions{ReadOnly: true, Isolation: sql.LevelRepeatableRead})
 		if e != nil {
 			return e
 		}
-		tx := q.(*perfSQLTx)
 		defer func() { _ = tx.Rollback() }()
 		tables, e := readScope(ctx, tx, scope)
 		if e != nil {
@@ -284,7 +239,7 @@ func TestIAMMockCohortNative1000Performance(t *testing.T) {
 	if err = checkOriginal(); err != nil {
 		t.Fatal(err)
 	}
-	restored, err := readScope(ctx, pool, scope)
+	restored, err := readScope(ctx, conn, scope)
 	if err != nil || !imageRowsEqual(a.Tables, restored) {
 		t.Fatalf("complete original values differ: %v", err)
 	}
@@ -302,6 +257,6 @@ func TestIAMMockCohortNative1000Performance(t *testing.T) {
 		JournalBytes int              `json:"apply_journal_bytes"`
 		Phases       map[string]phase `json:"phases"`
 		Boundary     string           `json:"boundary"`
-	}{"iam_mock_cohort_1000_performance", count, rows, count, len(archiveRaw), archiveSHA, len(applyRaw), phases, "isolated engine-only; SQL API calls are not wire roundtrips; no production 30m/60m/RPO qualification"}
+	}{"iam_mock_cohort_1000_performance", count, rows, count, len(archiveRaw), archiveSHA, len(applyRaw), phases, "isolated engine-only phase timing; no SQL instrumentation; no production 30m/60m/RPO qualification"}
 	t.Log(fmt.Sprintf("IAM_MOCK_COHORT_PERFORMANCE %s", encode(report)))
 }
