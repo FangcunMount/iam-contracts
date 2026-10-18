@@ -13,16 +13,19 @@ import (
 	"github.com/FangcunMount/reliable-messaging/relay"
 	sdkmysql "github.com/FangcunMount/reliable-messaging/storage/mysql"
 	"github.com/FangcunMount/reliable-messaging/transport"
-	nsqtransport "github.com/FangcunMount/reliable-messaging/transport/nsq"
-	"github.com/nsqio/go-nsq"
 )
 
 // managedPolicyTransport lets the IAM Relay use its existing drain contract
 // while the SDK owns and closes the NSQ producer after admitted sends finish.
-type managedPolicyTransport struct{ *nsqtransport.ManagedPublisher }
+type ownedEventTransport interface {
+	transport.Publisher
+	PublishRaw(context.Context, string, []byte) transport.Result
+	Close(context.Context) error
+}
+type managedPolicyTransport struct{ ownedEventTransport }
 
 func (p managedPolicyTransport) Drain(ctx context.Context) error {
-	return p.ManagedPublisher.Close(ctx)
+	return p.ownedEventTransport.Close(ctx)
 }
 
 func initReliableEventing(deps EventingDeps, result *Eventing) error {
@@ -33,7 +36,7 @@ func initReliableEventing(deps EventingDeps, result *Eventing) error {
 	if err := opts.Validate(); err != nil {
 		return err
 	}
-	if !deps.NSQEnabled || deps.NSQAddress == "" {
+	if deps.Messaging.SelectedProvider() == "nsq" && (!deps.NSQEnabled || deps.NSQAddress == "") {
 		return errors.New("reliable messaging requires configured NSQ")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -45,7 +48,6 @@ func initReliableEventing(deps EventingDeps, result *Eventing) error {
 	if err != nil {
 		return err
 	}
-	topic, _ := result.Catalog.GetTopicForEvent(eventing.AuthzVersionChanged)
 	if err := eventoutbox.CheckLegacyDrained(ctx, deps.DB); err != nil {
 		return err
 	}
@@ -59,14 +61,8 @@ func initReliableEventing(deps EventingDeps, result *Eventing) error {
 	}
 	// The SDK owns this dedicated NSQ connection. IAM still owns its policy
 	// transaction, original wire envelope and Relay recovery decisions.
-	cfg := nsq.NewConfig()
-	cfg.DialTimeout = opts.PublishTimeout
-	cfg.ReadTimeout = opts.PublishTimeout
-	cfg.WriteTimeout = opts.PublishTimeout
-	cfg.HeartbeatInterval = min(opts.PublishTimeout/2, 30*time.Second)
-	managed, err := nsqtransport.NewManagedPublisher(nsqtransport.ManagedPublisherConfig{
-		Address: deps.NSQAddress, Driver: cfg, Routes: map[string]string{topic: topic}, MaxInFlight: opts.Concurrency,
-	})
+	managed, err := newEventTransport(deps, result)
+
 	if err != nil {
 		return err
 	}
@@ -75,7 +71,9 @@ func initReliableEventing(deps EventingDeps, result *Eventing) error {
 		if !success {
 			closeCtx, cancel := context.WithTimeout(context.Background(), opts.PublishTimeout)
 			if managed.Close(closeCtx) != nil {
-				managed.Interrupt()
+				if interruptible, ok := managed.(interface{ Interrupt() }); ok {
+					interruptible.Interrupt()
+				}
 				cancel()
 				closeCtx, cancel = context.WithTimeout(context.Background(), opts.PublishTimeout)
 				_ = managed.Close(closeCtx)
@@ -116,7 +114,7 @@ func initReliableEventing(deps EventingDeps, result *Eventing) error {
 	if err != nil {
 		return err
 	}
-	runtime, err := messagingInfra.NewReliableRuntime(runner, publisher, opts.RestartDelay)
+	runtime, err := messagingInfra.NewReliableRuntime(publicationGate{runner: runner, paused: deps.Messaging.SelectedProvider() == "rocketmq" && !deps.Messaging.PublishEnabled}, publisher, opts.RestartDelay)
 	if err != nil {
 		return err
 	}

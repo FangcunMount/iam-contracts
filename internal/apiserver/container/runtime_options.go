@@ -9,6 +9,7 @@ import (
 
 // RuntimeOptions contains typed bootstrap options consumed by the container.
 type RuntimeOptions struct {
+	Messaging                     apiserveroptions.MessagingOptions
 	NSQEnabled                    bool
 	NSQAddress                    string
 	NSQConsumerSDKEnabled         bool
@@ -41,6 +42,7 @@ func RuntimeOptionsFromAPIServerOptions(opts *apiserveroptions.Options, environm
 	}
 
 	runtime := RuntimeOptions{
+		Messaging:                     opts.Messaging,
 		Authz:                         *defaults.Authz,
 		Environment:                   environment,
 		Auth:                          *defaults.Auth,

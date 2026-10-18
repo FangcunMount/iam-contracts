@@ -93,11 +93,17 @@ docker volume create "$keys" >/dev/null
 
 start_app() {
   local image=$1 mode=$2 sdk_consumer=$3 nsqd_address=${4:-nsqd:4150} retry_delay=${5:-10s} check_interval=${6:-10s} container_name=${7:-$app}
+  # This retained proof is specifically the NSQ schema40 compatibility path.
+  # Schema41 installation/audit is proved independently; the new NSQ image must
+  # not migrate this old-image rollback fixture underneath the old process.
+  local migrations=true
+  if [[ "$image" == "$new_image" ]]; then migrations=false; fi
   docker run -d --name "$container_name" --network "$network" \
     --mount "type=volume,source=$keys,target=/app/data/keys" \
     --mount "type=bind,source=$scratch/grpc/ca/ca-chain.crt,target=/etc/iam/grpc/ca/ca-chain.crt,readonly" \
     --mount "type=bind,source=$scratch/grpc/server/iam-apiserver.crt,target=/etc/iam/grpc/server/iam-apiserver.crt,readonly" \
     --mount "type=bind,source=$scratch/grpc/server/iam-apiserver.key,target=/etc/iam/grpc/server/iam-apiserver.key,readonly" \
+    -e IAM_APISERVER_MIGRATION_ENABLED="$migrations" \
     -e IAM_APISERVER_MYSQL_HOST=mysql:3306 \
     -e IAM_APISERVER_MYSQL_USERNAME=root \
     -e IAM_APISERVER_MYSQL_PASSWORD= \

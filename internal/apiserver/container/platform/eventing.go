@@ -16,6 +16,7 @@ import (
 
 // EventingDeps holds inputs required to initialize the event platform.
 type EventingDeps struct {
+	Messaging         options.MessagingOptions
 	ReliableMessaging options.ReliableMessagingOptions
 	NSQEnabled        bool
 	NSQAddress        string

@@ -15,7 +15,7 @@ RUN apk add --no-cache git make
 
 # 设置 Go 环境变量
 ENV GO111MODULE=on \
-    GOPROXY=https://goproxy.cn,direct \
+    GOPROXY=https://proxy.golang.org,direct \
     CGO_ENABLED=0 \
     GOOS=linux \
     GOARCH=amd64

@@ -212,6 +212,14 @@ jobs:
               2>&1 | tee test-artifacts/iam-m6-failure-audit-tests.txt
           test "${PIPESTATUS[0]}" = "0"
 
+          mysql --host="$MYSQL_HOST" --port="$MYSQL_PORT" --user="$MYSQL_USERNAME" \
+            -e 'CREATE DATABASE iam_rocketmq_failure_audit;'
+          IAM_RM_MIGRATION_REQUIRED=1 MYSQL_DATABASE=iam_rocketmq_failure_audit MYSQL_DBNAME=iam_rocketmq_failure_audit \
+            go test ./internal/pkg/migration \
+              -run '^TestIAMRocketMQAuditMigrationPreservesFailuresMySQL$' -v -count=1 \
+              2>&1 | tee test-artifacts/iam-rocketmq-failure-audit-tests.txt
+          test "${PIPESTATUS[0]}" = "0"
+
           MYSQL_DATABASE=iam_full_chain MYSQL_DBNAME=iam_full_chain \
             go test ./internal/pkg/migration \
               -run "TestFullMigrationChainAndBootstrapMySQL" \

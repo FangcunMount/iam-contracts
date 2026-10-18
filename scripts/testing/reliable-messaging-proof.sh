@@ -45,11 +45,12 @@ echo "Historical bootstrap binary source: $legacy_source"
 "${compose[@]}" cp "$repo/internal/pkg/migration/migrations/000038_standard_message_outbox.up.sql" mysql:/tmp/iam-rm-upgrade.sql
 "${compose[@]}" cp "$repo/internal/pkg/migration/migrations/000039_reliable_messaging_failure_state.up.sql" mysql:/tmp/iam-rm-failure-state.sql
 "${compose[@]}" cp "$repo/configs/events.yaml" mysql:/tmp/iam-events.yaml
+"${compose[@]}" cp "$repo/internal/pkg/migration/migrations/000041_message_failure_audit.up.sql" mysql:/tmp/iam-rmq-audit.sql
 # The ID-only late settlement counterexample belongs to the fixed old writer,
 # not the current binary, which no longer contains those execution methods.
 "${compose[@]}" cp "$build_dir/legacy-store-proof" mysql:/tmp/iam-legacy-store-proof
 "${compose[@]}" exec -T -e RM_IAM_EVENTS_CATALOG=/tmp/iam-events.yaml -e RM_IAM_OUTBOX_SCHEMA='/tmp/iam-old-outbox.sql' -e IAM_AUTHZ_TEST_MYSQL_DSN='root@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC' mysql /tmp/iam-legacy-store-proof -test.run '^TestReliableMessagingHistoricalFencing$' -test.v
-"${compose[@]}" exec -T -e RM_IAM_EVENTS_CATALOG=/tmp/iam-events.yaml -e RM_IAM_OUTBOX_UPGRADE='/tmp/iam-rm-upgrade.sql' -e RM_IAM_OUTBOX_FAILURE_UPGRADE='/tmp/iam-rm-failure-state.sql' -e RM_IAM_OUTBOX_SCHEMA='/tmp/iam-old-outbox.sql' -e RM_IAM_NSQ_TCP='nsqd:4150' -e RM_IAM_NSQ_HTTP='http://nsqd:4151' -e IAM_AUTHZ_TEST_MYSQL_DSN='root@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC' mysql /tmp/iam-proof -test.run '^TestReliableMessaging(OriginalUoW|PolicyConsumer|PlatformWiring|StandardPreflight|StandardUoW|MaintenanceStager)$' -test.v
+"${compose[@]}" exec -T -e RM_IAM_EVENTS_CATALOG=/tmp/iam-events.yaml -e RM_IAM_OUTBOX_UPGRADE='/tmp/iam-rm-upgrade.sql' -e RM_IAM_ROCKETMQ_AUDIT_SCHEMA=/tmp/iam-rmq-audit.sql -e RM_IAM_OUTBOX_FAILURE_UPGRADE='/tmp/iam-rm-failure-state.sql' -e RM_IAM_OUTBOX_SCHEMA='/tmp/iam-old-outbox.sql' -e RM_IAM_NSQ_TCP='nsqd:4150' -e RM_IAM_NSQ_HTTP='http://nsqd:4151' -e IAM_AUTHZ_TEST_MYSQL_DSN='root@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC' mysql /tmp/iam-proof -test.run '^TestReliableMessaging(OriginalUoW|PolicyConsumer|PlatformWiring|StandardPreflight|StandardUoW|MaintenanceStager|RocketMQFailureAudit)$' -test.v
 
 # Real production migration files and full fresh bootstrap use separate,
 # disposable databases in this same isolated MySQL container.

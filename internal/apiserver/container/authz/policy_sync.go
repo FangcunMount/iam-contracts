@@ -11,6 +11,7 @@ import (
 	authzruntime "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/runtime"
 	sdktransport "github.com/FangcunMount/reliable-messaging/transport"
 	sdknsq "github.com/FangcunMount/reliable-messaging/transport/nsq"
+	"github.com/FangcunMount/reliable-messaging/transport/rocketmq"
 	"github.com/FangcunMount/reliable-messaging/wire/legacy"
 )
 
@@ -31,6 +32,8 @@ type policyProvisioner interface {
 }
 
 type policySyncSubscriber struct {
+	rocketSubscriber *rocketmq.Subscriber
+	rocketFailed     func(context.Context, sdktransport.Failure) error
 	sdkSubscriber    policySubscriber
 	sdkProvisioner   policyProvisioner
 	sdkFailed        func(context.Context, legacy.FailedHandoff) error
@@ -78,7 +81,7 @@ func (m *AuthzModule) newSDKPolicySyncSubscriber(subscriber policySubscriber, pr
 // Start establishes a managed loop even if the first subscription attempt fails.
 // The failure is reflected in readiness and retried; the lifecycle always owns Stop.
 func (s *policySyncSubscriber) Start(ctx context.Context) error {
-	if s == nil || s.sdkSubscriber == nil || s.handler == nil {
+	if s == nil || (s.sdkSubscriber == nil && s.rocketSubscriber == nil) || s.handler == nil {
 		return fmt.Errorf("policy sync dependencies unavailable")
 	}
 	s.mu.Lock()
@@ -135,7 +138,12 @@ func (s *policySyncSubscriber) step(ctx context.Context) {
 	}
 	if !s.registered {
 		var err error
-		if s.sdkSubscriber != nil {
+		if s.rocketSubscriber != nil {
+			err = s.rocketSubscriber.Subscribe(ctx, policypublication.Topic, s.Channel(), func(deliveryCtx context.Context, delivery sdktransport.Delivery) error {
+				m := delivery.Message()
+				return s.handle(ctx, deliveryCtx, m.Payload, m.Metadata["event_type"])
+			}, s.rocketFailed)
+		} else if s.sdkSubscriber != nil {
 			failureTopic := legacy.FailedHandoffTopicForGroup(policypublication.Topic, ChannelPrefix)
 			err = s.sdkProvisioner.EnsureTopic(ctx, policypublication.Topic)
 			if err == nil {
@@ -154,7 +162,7 @@ func (s *policySyncSubscriber) step(ctx context.Context) {
 		}
 	}
 	if s.runtime != nil {
-		s.runtime.SetSyncState(true, s.registered)
+		s.runtime.SetSyncState(true, s.registered && (s.rocketSubscriber == nil || s.rocketSubscriber.Ready(30*time.Second)))
 		if err := s.runtime.Reconcile(ctx); err != nil {
 			log.Errorw("authz policy version reconciliation failed", "error", err)
 		}
@@ -183,7 +191,7 @@ func (s *policySyncSubscriber) Stop() error {
 // StopWithContext is a retryable resource-close gate for the SDK path. A
 // timeout leaves IAM's MySQL connection open for the next drain attempt.
 func (s *policySyncSubscriber) StopWithContext(ctx context.Context) error {
-	if s == nil || s.sdkSubscriber == nil {
+	if s == nil || (s.sdkSubscriber == nil && s.rocketSubscriber == nil) {
 		return nil
 	}
 	s.sdkStopMu.Lock()
@@ -203,9 +211,30 @@ func (s *policySyncSubscriber) StopWithContext(ctx context.Context) error {
 			return ctx.Err()
 		}
 	}
-	if err := s.sdkSubscriber.Close(ctx); err != nil {
+	if s.rocketSubscriber != nil {
+		if err := s.rocketSubscriber.Close(ctx); err != nil {
+			return err
+		}
+	} else if err := s.sdkSubscriber.Close(ctx); err != nil {
 		return err
 	}
 	s.sdkClosed = true
 	return nil
+}
+
+// RocketMQPolicySyncSubscriber uses a stable per-instance fanout subscription.
+// Topology and ACLs are provisioned by infra, never silently created here.
+func (m *AuthzModule) RocketMQPolicySyncSubscriber(subscriber *rocketmq.Subscriber, failed func(context.Context, sdktransport.Failure) error, channel string) *policySyncSubscriber {
+	if m == nil || subscriber == nil || failed == nil || m.policyReloader == nil || channel == "" {
+		return nil
+	}
+	m.syncOnce.Do(func() {
+		recorder, _ := m.runtimeHealth.(policypublication.PolicyVersionEventRecorder)
+		runtime, _ := m.policyReloader.(policySyncRuntime)
+		if setter, ok := m.runtimeHealth.(interface{ SetPolicySyncChannel(string) }); ok {
+			setter.SetPolicySyncChannel(channel)
+		}
+		m.policySync = &policySyncSubscriber{rocketSubscriber: subscriber, rocketFailed: failed, handler: policypublication.NewService(m.policyReloader, recorder), channel: channel, runtime: runtime}
+	})
+	return m.policySync
 }

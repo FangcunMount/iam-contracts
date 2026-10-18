@@ -10,6 +10,7 @@ import (
 
 // Options 包含所有配置项
 type Options struct {
+	Messaging               MessagingOptions                       `json:"messaging" mapstructure:"messaging"`
 	Authz                   *AuthzOptions                          `json:"authz" mapstructure:"authz"`
 	Log                     *log.Options                           `json:"log"    mapstructure:"log"`
 	RemovedApp              *RemovedAppOptions                     `json:"-" mapstructure:"app"`
@@ -36,6 +37,7 @@ type Options struct {
 // NewOptions 创建一个 Options 对象，包含默认参数
 func NewOptions() *Options {
 	return &Options{
+		Messaging:               MessagingOptions{Provider: "nsq", PublishEnabled: true},
 		Authz:                   NewAuthzOptions(),
 		Log:                     newRuntimeLogOptions(),
 		RemovedApp:              &RemovedAppOptions{},
@@ -70,6 +72,7 @@ func (o *Options) Flags() (fss cliflag.NamedFlagSets) {
 	o.MySQLOptions.AddFlags(fss.FlagSet("mysql"))
 	o.RedisOptions.AddFlags(fss.FlagSet("redis"))
 	o.NSQOptions.AddFlags(fss.FlagSet("nsq"))
+	o.Messaging.AddFlags(fss.FlagSet("messaging"))
 	o.MigrationOptions.AddFlags(fss.FlagSet("migration"))
 
 	return fss

@@ -265,7 +265,7 @@ esac
 	})
 	requireNoError(t, err)
 	assertSafeOutput(t, output)
-	for _, want := range []string{"mysql_client=8.0.36", "connection=success", "size_mb=12.5", "tables=7", "backups=1", "schema objects:", "type=BASE_TABLE name=users", "type=VIEW name=active_users", "schema_migrations=38", "retired_tables_present=0", "retired_table_privileges=0", "owner_state=none\tfree\t-1", "schema guard: result=success", "retirement guard: result=success", "accepted_versions=38,39,40"} {
+	for _, want := range []string{"mysql_client=8.0.36", "connection=success", "size_mb=12.5", "tables=7", "backups=1", "schema objects:", "type=BASE_TABLE name=users", "type=VIEW name=active_users", "schema_migrations=38", "retired_tables_present=0", "retired_table_privileges=0", "owner_state=none\tfree\t-1", "schema guard: result=success", "retirement guard: result=success", "accepted_versions=38,39,40,41"} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("status output missing %q: %s", want, output)
 		}
@@ -288,6 +288,15 @@ esac
 	requireNoError(t, err)
 	if !strings.Contains(output, "required_base_tables=21") {
 		t.Fatalf("version 40 audit table status missing: %s", output)
+	}
+
+	output, err = runScript(t, bin, map[string]string{
+		"IAM_DB_OPS_OPERATION": "status", "IAM_DB_OPS_BACKUP_DIR": backupDir,
+		"IAM_FAKE_MIGRATION_STATE": "41\t0\t1", "IAM_FAKE_SCHEMA_GUARD": "22\t22\t0",
+	})
+	requireNoError(t, err)
+	if !strings.Contains(output, "required_base_tables=22") {
+		t.Fatalf("version41 audit status missing: %s", output)
 	}
 
 	for name, overrides := range map[string]map[string]string{
@@ -314,6 +323,9 @@ esac
 		},
 		"required table missing": {
 			"IAM_FAKE_SCHEMA_GUARD": "16\t16\t0",
+		},
+		"schema 41 audit table missing": {
+			"IAM_FAKE_MIGRATION_STATE": "41\t0\t1", "IAM_FAKE_SCHEMA_GUARD": "21\t21\t0",
 		},
 		"schema 40 audit table missing": {
 			"IAM_FAKE_MIGRATION_STATE": "40\t0\t1",
