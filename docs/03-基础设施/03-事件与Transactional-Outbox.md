@@ -1,6 +1,14 @@
 # 事件、Outbox 交接与投递结果
 
-> 状态：已实现 · 依据 IAM 当前装配及锁定 reliable-messaging v0.3.0-m6.1 / go-nsq v1.1.0；源码条件、离线测试和运行接受分别标明。
+> 状态：已实现 · 依据 IAM 当前装配及锁定 reliable-messaging v0.4.0-rocketmq.1 / go-nsq v1.1.0；源码条件、离线测试和运行接受分别标明。
+
+## RocketMQ 普通消息接入
+
+当前源码新增显式 `messaging.provider=rocketmq` 分支，默认仍为 `nsq`。客户端由 IAM 生命周期启动和关闭，事务、连接池、Outbox、原事件身份与策略版本收敛仍归 IAM。RocketMQ 是普通消息传输；当前实现不包含事务消息，不替换发布型 Outbox。Broker 的确认不等于策略已被所有实例加载。
+
+RocketMQ 配置要求 endpoint、credentials_file、ca_file、routes_file 和稳定 instance_id。可信 version1 路由清单把逻辑 topic/subscription 映射到预先创建的物理 topic/group；IAM 不用收到的元数据创建资源。策略订阅使用 `iam-policy-sync.<instance_id>`，供重启后的同一实例继续消费；其他实例必须使用不同订阅以保持广播语义。
+
+`messaging.publish_enabled=false` 会在 Relay 领取 Outbox 前暂停，也阻止 direct 发布。终态失败必须先提交 `iam_message_failure_audit` 才能 ACK；迁移41新增该表，保留旧 NSQ 审计。重复身份但原文冲突或数据库不可用均不能授权 ACK。配置和源码能力不证明生产启用；Docker、路由与账号由 infra 维护，切换后按固定镜像、有效 provider、回执和业务结果独立验收。
 
 ## 1. 当前设计先保护哪一个窗口
 
@@ -12,8 +20,8 @@ AuthZ 的标准写入把授权事实、PolicyVersion 和待发通知放入 **同
 
 | 链路 | 当前责任与恢复 |
 | --- | --- |
-| AuthZ version 通知 | 标准 rm_outbox → SDK Relay → NSQ → 各实例读取 MySQL / reload；重复通知依版本收敛 |
-| 登录 OTP 的 mq sender | DirectEventPublisher → NSQ；不写 Outbox，没有 durable direct 回执 |
+| AuthZ version 通知 | 标准 rm_outbox → SDK Relay → 显式选择的 Broker → 各实例读取 MySQL / reload；重复通知依版本收敛 |
+| 登录 OTP 的 mq sender | DirectEventPublisher → 显式选择的 Broker；不写 Outbox，没有 durable direct 回执 |
 | Identity 状态到 Session 撤销 | 独立 identity_session_revocation_outbox 与 worker，不由标准消息 Relay 接管；见 [Identity 边界](../02-业务模块/01-Identity/04-模块边界-Identity与AuthN-AuthZ-Suggest.md) |
 
 旧 domain_event_outbox 自有 Store/Relay 不在当前运行装配中；FreshStages 的 BootstrapStager 仍会写旧表，只有插入能力，没有发布/恢复能力。回滚和首次 bootstrap 的交接必须有旧工作拥有者，不能用“旧链退役”省略该边界。

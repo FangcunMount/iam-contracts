@@ -14,6 +14,12 @@ import (
 
 // prepareMessaging rejects retired configuration before creating SDK resources.
 func (s *apiServer) prepareMessaging() error {
+	if s.cfg != nil && s.cfg.Options != nil && s.cfg.Options.Messaging.SelectedProvider() == "rocketmq" {
+		if !s.reliableMessagingEnabled() {
+			return fmt.Errorf("RocketMQ requires standard Outbox")
+		}
+		return s.cfg.Options.Messaging.Validate()
+	}
 	if !s.reliableMessagingEnabled() || s.cfg.NSQOptions == nil || !s.cfg.NSQOptions.ConsumerSDKEnabled {
 		return fmt.Errorf("legacy messaging runtime is retired; enable standard Outbox and SDK policy subscriber")
 	}

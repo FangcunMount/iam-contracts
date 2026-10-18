@@ -1,6 +1,6 @@
 # MySQL 事务与迁移：提交者、连接传播和失败断点
 
-> 状态：已实现 · 按当前组合根、GORM 1.30.0 与 golang-migrate 4.19.1 核对。仓库有 38 对 up/down 脚本，版本区间 000001–000040，缺号 000004/000010；最新版本为 40。目标库的版本、物理结构与执行结果须独立取证。
+> 状态：已实现 · 按当前组合根、GORM 1.30.0 与 golang-migrate 4.19.1 核对。仓库有 39 对 up/down 脚本，版本区间 000001–000041，缺号 000004/000010；最新版本为 41。目标库的版本、物理结构与执行结果须独立取证。
 
 ## 1. 先确定哪一次提交由谁负责
 
@@ -153,7 +153,7 @@ FreshStage 的 prepare 在 `Migrate(stage)`返回并释放该次 advisory lock�
 
 ## 9. 最新版本、维护回执与可逆性分开维护
 
-38对脚本按已有编号排序前进，缺号不需要补空脚本。当前 schema 的演进顺序归嵌入 migration SQL；目标库还需核对 journal、物理结构、约束及维护回执。仅有 version=40 不能证明历史数据已满足全部当前规则。
+39对脚本按已有编号排序前进，缺号不需要补空脚本。当前 schema 的演进顺序归嵌入 migration SQL；目标库还需核对 journal、物理结构、约束及维护回执。仅有 version=41 不能证明历史数据已满足全部当前规则。
 
 | 脚本/入口 | 具体合同 | 恢复含义 |
 | --- | --- | --- |
@@ -162,6 +162,7 @@ FreshStage 的 prepare 在 `Migrate(stage)`返回并释放该次 advisory lock�
 | 000036–000037 Assignment Scope | 加范围列及维护回执，不把旧 binding 自动升级为全门店 | 数据范围转换有独立 fingerprint、停写与补偿合同 |
 | 000038/000039标准 Outbox | Down要求 rm_outbox 全表为空，published行也阻止删除/退列 | 回退应用时保留标准表、恢复所有权及证据 |
 | 000040 NSQ失败审计 | Down要求失败审计表为空 | 不能通过回退丢掉已记录终态失败 |
+| 000041 provider-aware 失败审计 | 新建 iam_message_failure_audit；Down要求新表为空 | 保留历史NSQ表；非空新表阻止回退以保留原始消息和审计事实 |
 | authorization-migrate 的 RunTo | 锁外检查目标低于当前version则拒绝，随后调用可双向Migrate；不执行FreshStages | 顺序调用拒绝倒退；其他runner在检查后推进时仍有窗口，要求单一owner |
 | Database Operations/status | 当前脚本接受 clean38/39/40并核对对应对象 | status是结构检查，workflow已经没有 migrate动作 |
 
@@ -190,7 +191,7 @@ FreshStage 的 prepare 在 `Migrate(stage)`返回并释放该次 advisory lock�
 | 路由/错误分类 | `internal/pkg/database/mysql/base.go`、`translator.go` | 驱动/文本重复分类；不覆盖任意仓储方法与提交错误 |
 | 模块装配 | `internal/apiserver/infra/mysql/uow/{identity,authn,authz}/uow.go` | AuthN注册SQLite、AuthZ集合原子性/跨公司/no-op和stager拒绝回滚；Identity UoW仅nilDB拒绝 |
 | 授权写后动作 | AuthZ四类command/service；`policychange/reloader.go`；runtime `mysql_source.go` | SQLite依赖拒绝/历史或内存stager；测试名不代替版本/标准Outbox实际断言 |
-| 迁移与准备 | `internal/pkg/migration/migrate.go`；`process/database.go`；38对SQL | 21项顶层源码合同测试，包含两子项；不执行真实SQL、journal或锁 |
+| 迁移与准备 | `internal/pkg/migration/migrate.go`；`process/database.go`；39对SQL | 21项顶层源码合同测试，包含两子项；不执行真实SQL、journal或锁 |
 | 外部实现 | go.mod锁定的GORM/migrate/可靠消息SDK | 本篇按对应版本源码核对保存点、journal、advisory lock与原tx借用 |
 
 本篇运行10个既有包的竞态回归，8包完整、2包选择离线用例，共57个pass事件，零skip/fail；移除数据库/消息/维护环境变量并关闭依赖下载。记录见 [逐篇复核台账](../_data/reviews/2026-10-06-docs-refactor.md)。没有新增业务测试或执行真实MySQL迁移、锁竞争、dirty恢复、FreshStage重入、标准Outbox端到端或生产操作。

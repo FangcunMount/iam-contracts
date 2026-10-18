@@ -9,8 +9,10 @@ on:
       - internal/apiserver/container/**
       - internal/apiserver/infra/messaging/**
       - internal/apiserver/infra/authz/integration/reliable_messaging_wiring_test.go
+      - internal/apiserver/infra/authz/integration/rocketmq_audit_proof_test.go
       - internal/apiserver/infra/mysql/messagefailure/**
       - internal/pkg/migration/migrations/000040_iam_nsq_failure_audit.*.sql
+      - internal/pkg/migration/migrations/000041_message_failure_audit.*.sql
       - .github/workflows/reliable-messaging-m6-subscriber.yml
   workflow_dispatch:
 
@@ -77,6 +79,11 @@ jobs:
           set -euo pipefail
           go test -tags reliable_messaging ./internal/apiserver/infra/authz/integration \
             -run '^TestReliableMessagingPlatformWiring$' -count=1 -v
+      - name: Verify RocketMQ terminal audit on real MySQL
+        env:
+          IAM_AUTHZ_TEST_MYSQL_DSN: "root:root@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC"
+          RM_IAM_ROCKETMQ_AUDIT_SCHEMA: ${{ github.workspace }}/internal/pkg/migration/migrations/000041_message_failure_audit.up.sql
+        run: go test -tags reliable_messaging ./internal/apiserver/infra/authz/integration -run '^TestReliableMessagingRocketMQFailureAudit$' -count=1 -v
       - name: Remove disposable NSQ
         if: always()
         run: docker rm -f iam-m6-test-nsqd || true

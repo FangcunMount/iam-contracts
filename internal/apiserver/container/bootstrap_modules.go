@@ -19,6 +19,7 @@ import (
 
 func (c *Container) initEventing() error {
 	eventing, err := platform.InitEventing(platform.EventingDeps{
+		Messaging:         c.runtimeOptions.Messaging,
 		DB:                c.mysqlDB,
 		ReliableMessaging: c.runtimeOptions.Events.ReliableMessaging,
 		NSQEnabled:        c.runtimeOptions.NSQEnabled,
@@ -63,7 +64,7 @@ func (c *Container) initAuthzModule() error {
 		return fmt.Errorf("failed to initialize authz module: %w", err)
 	}
 	c.AuthzModule = authzModule
-	if !c.runtimeOptions.NSQConsumerSDKEnabled {
+	if c.runtimeOptions.Messaging.SelectedProvider() == "nsq" && !c.runtimeOptions.NSQConsumerSDKEnabled {
 		return fmt.Errorf("legacy policy subscriber is retired; enable nsq.consumer-sdk-enabled")
 	}
 	if err := c.initSDKPolicySync(authzModule); err != nil {
@@ -73,6 +74,9 @@ func (c *Container) initAuthzModule() error {
 }
 
 func (c *Container) initSDKPolicySync(module *authz.AuthzModule) error {
+	if c.runtimeOptions.Messaging.SelectedProvider() == "rocketmq" {
+		return c.initRocketMQPolicySync(module)
+	}
 	if !c.runtimeOptions.NSQEnabled || c.mysqlDB == nil {
 		return fmt.Errorf("SDK policy subscriber requires NSQ and IAM MySQL")
 	}

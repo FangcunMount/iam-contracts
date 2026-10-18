@@ -159,6 +159,11 @@ jobs:
 
       - name: Prepare deployment package
         env:
+          MESSAGING_PROVIDER_REQUIRED: 'true'
+          IAM_MESSAGING_PROVIDER: ${{ vars.IAM_MESSAGING_PROVIDER }}
+          ROCKETMQ_ENDPOINT: ${{ vars.ROCKETMQ_ENDPOINT }}
+          ROCKETMQ_INSTANCE_ID: ${{ vars.ROCKETMQ_INSTANCE_ID }}
+          ROCKETMQ_PUBLISH_ENABLED: ${{ vars.ROCKETMQ_PUBLISH_ENABLED || 'true' }}
           IAM_RELIABLE_MESSAGING_ENABLED: ${{ vars.IAM_RELIABLE_MESSAGING_ENABLED || 'false' }}
           IAM_NSQ_CONSUMER_SDK_ENABLED: ${{ vars.IAM_NSQ_CONSUMER_SDK_ENABLED || 'false' }}
           MYSQL_HOST: ${{ secrets.MYSQL_HOST }}

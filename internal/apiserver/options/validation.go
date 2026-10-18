@@ -13,15 +13,18 @@ import (
 // Validate 验证命令行参数
 func (o *Options) Validate() []error {
 	var errs []error
+	if err := o.Messaging.Validate(); err != nil {
+		errs = append(errs, err)
+	}
 	if o.Events != nil {
 		if err := o.Events.ReliableMessaging.Validate(); err != nil {
 			errs = append(errs, err)
 		}
-		if o.Events.ReliableMessaging.Enabled && (o.NSQOptions == nil || !o.NSQOptions.Enabled) {
+		if o.Messaging.SelectedProvider() == "nsq" && o.Events.ReliableMessaging.Enabled && (o.NSQOptions == nil || !o.NSQOptions.Enabled) {
 			errs = append(errs, errors.New("reliable messaging requires nsq.enabled"))
 		}
 	}
-	if o.NSQOptions != nil && o.NSQOptions.ConsumerSDKEnabled {
+	if o.Messaging.SelectedProvider() == "nsq" && o.NSQOptions != nil && o.NSQOptions.ConsumerSDKEnabled {
 		if !o.NSQOptions.Enabled {
 			errs = append(errs, errors.New("nsq.consumer-sdk-enabled requires nsq.enabled"))
 		}

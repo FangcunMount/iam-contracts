@@ -71,6 +71,16 @@ redact_env_file() {
     "$1"
 }
 
+if [ "${MESSAGING_PROVIDER_REQUIRED:-false}" = true ]; then
+  require_env IAM_MESSAGING_PROVIDER
+fi
+IAM_MESSAGING_PROVIDER="${IAM_MESSAGING_PROVIDER:-nsq}"
+case "$IAM_MESSAGING_PROVIDER" in nsq|rocketmq) ;; *) echo 'Unsupported IAM messaging provider' >&2; exit 1 ;; esac
+ROCKETMQ_PUBLISH_ENABLED="${ROCKETMQ_PUBLISH_ENABLED:-true}"
+case "$ROCKETMQ_PUBLISH_ENABLED" in true|false) ;; *) echo 'Invalid publishing gate' >&2; exit 1 ;; esac
+if [ "$IAM_MESSAGING_PROVIDER" = rocketmq ]; then
+  require_env ROCKETMQ_ENDPOINT ROCKETMQ_INSTANCE_ID
+fi
 MYSQL_PORT="${MYSQL_PORT:-3306}"
 NSQ_LOOKUPD_PORT="${NSQ_LOOKUPD_PORT:-4161}"
 NSQ_NSQD_PORT="${NSQ_NSQD_PORT:-4150}"
@@ -102,7 +112,7 @@ if [ -n "${NSQ_LOOKUPD_HOST:-}" ]; then
 else
   NSQ_ENABLED=false
 fi
-if [ "$IAM_NSQ_CONSUMER_SDK_ENABLED" = true ]; then
+if [ "$IAM_MESSAGING_PROVIDER" = nsq ] && [ "$IAM_NSQ_CONSUMER_SDK_ENABLED" = true ]; then
   if [ "$IAM_RELIABLE_MESSAGING_ENABLED" != true ] || [ "$NSQ_ENABLED" != true ] || [ -z "${NSQ_NSQD_HOST:-}" ]; then
     echo 'IAM_NSQ_CONSUMER_SDK_ENABLED requires reliable messaging, lookupd and nsqd' >&2
     exit 1
@@ -116,6 +126,7 @@ if [ "$IAM_NSQ_CONSUMER_SDK_ENABLED" = true ]; then
   fi
 fi
 
+if [ "$IAM_MESSAGING_PROVIDER" = rocketmq ]; then NSQ_ENABLED=false; IAM_NSQ_CONSUMER_SDK_ENABLED=false; fi
 PACKAGE_DIR="${DEPLOY_PACKAGE_DIR:-deploy-package}"
 ENV_FILE="${PACKAGE_DIR}/configs/env/config.prod.env"
 
@@ -158,9 +169,20 @@ IAM_APISERVER_NSQ_CONSUMER_SDK_ENABLED=${IAM_NSQ_CONSUMER_SDK_ENABLED}
 IAM_APISERVER_NSQ_LOOKUPD_ADDRS=${NSQ_LOOKUPD_HOST:-}:${NSQ_LOOKUPD_PORT}
 IAM_APISERVER_NSQ_NSQD_ADDR=${NSQ_NSQD_HOST:-}:${NSQ_NSQD_PORT}
 EOF
-if [ "$IAM_NSQ_CONSUMER_SDK_ENABLED" = true ]; then
+if [ "$IAM_MESSAGING_PROVIDER" = nsq ] && [ "$IAM_NSQ_CONSUMER_SDK_ENABLED" = true ]; then
   printf 'IAM_APISERVER_NSQ_NSQD_HTTP_ADDRS=http://%s:%s\n' \
     "$NSQ_NSQD_HOST" "$NSQ_NSQD_HTTP_PORT" >> "$ENV_FILE"
+fi
+printf 'IAM_APISERVER_MESSAGING_PROVIDER=%s\n' "$IAM_MESSAGING_PROVIDER" >> "$ENV_FILE"
+if [ "$IAM_MESSAGING_PROVIDER" = rocketmq ]; then
+  cat >> "$ENV_FILE" <<EOF
+IAM_APISERVER_MESSAGING_ENDPOINT=${ROCKETMQ_ENDPOINT}
+IAM_APISERVER_MESSAGING_CREDENTIALS_FILE=/app/configs/rocketmq/credentials.json
+IAM_APISERVER_MESSAGING_CA_FILE=/app/configs/rocketmq/ca.crt
+IAM_APISERVER_MESSAGING_ROUTES_FILE=/app/configs/rocketmq/routes.json
+IAM_APISERVER_MESSAGING_INSTANCE_ID=${ROCKETMQ_INSTANCE_ID}
+IAM_APISERVER_MESSAGING_PUBLISH_ENABLED=${ROCKETMQ_PUBLISH_ENABLED}
+EOF
 fi
 chmod 0600 "$ENV_FILE"
 
