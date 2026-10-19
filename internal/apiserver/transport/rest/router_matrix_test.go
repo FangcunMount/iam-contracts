@@ -106,6 +106,7 @@ func routeMatrixDeps() Deps {
 		TokenVerifier:        tokenServiceStub{},
 	}
 	deps.Authz = AuthzDeps{
+		OperationHandler:       authzhandler.NewOperationHandler(nil),
 		RoleHandler:            authzhandler.NewRoleHandler(nil, nil),
 		AssignmentHandler:      authzhandler.NewAssignmentHandler(nil, nil),
 		PermissionGrantHandler: authzhandler.NewPermissionGrantHandler(nil),

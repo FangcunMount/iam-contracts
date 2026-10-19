@@ -35,6 +35,10 @@ func NewRoleHandler(
 // @Param request body dto.CreateRoleRequest true "创建角色请求"
 // @Success 200 {object} dto.Response{data=dto.RoleResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
+// @Param Idempotency-Key header string false "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required."
+// @Header 200 {string} Operation-ID "Server-generated authorization operation ID in transaction mode"
+// @Header 200 {string} Operation-Location "Authorized operation status URL"
+// @Failure 409 {object} map[string]string "Different input for the same key, or an aborted operation"
 // @Router /v4/authz/roles [post]
 func (h *RoleHandler) CreateRole(c *gin.Context) {
 	var req dto.CreateRoleRequest
@@ -75,6 +79,10 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 // @Param request body dto.UpdateRoleRequest true "更新角色请求"
 // @Success 200 {object} dto.Response{data=dto.RoleResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
+// @Param Idempotency-Key header string false "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required."
+// @Header 200 {string} Operation-ID "Server-generated authorization operation ID in transaction mode"
+// @Header 200 {string} Operation-Location "Authorized operation status URL"
+// @Failure 409 {object} map[string]string "Different input for the same key, or an aborted operation"
 // @Router /v4/authz/roles/{id} [put]
 func (h *RoleHandler) UpdateRole(c *gin.Context) {
 	roleID, ok := parseIDParam(c, "id", "角色ID格式错误")
@@ -114,6 +122,10 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 // @Param id path string true "角色ID"
 // @Success 200 {object} dto.Response
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
+// @Param Idempotency-Key header string false "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required."
+// @Header 200 {string} Operation-ID "Server-generated authorization operation ID in transaction mode"
+// @Header 200 {string} Operation-Location "Authorized operation status URL"
+// @Failure 409 {object} map[string]string "Different input for the same key, or an aborted operation"
 // @Router /v4/authz/roles/{id} [delete]
 func (h *RoleHandler) DeleteRole(c *gin.Context) {
 	roleID, ok := parseIDParam(c, "id", "角色ID格式错误")

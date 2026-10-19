@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/operation"
+	journal "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzoperation"
 	"net"
 	"os"
 	"strings"
@@ -99,7 +101,7 @@ func ownedM3BrokerDatabase(t *testing.T) (*sql.DB, *gorm.DB) {
 		t.Fatal("owned migration pool unavailable")
 	}
 	version, _, err := NewMigrator(migrationPool, &Config{Enabled: true, Database: name, FreshStages: freshStagesForTest(t, db)}).Run()
-	if err != nil || version != 43 {
+	if err != nil || version != 44 {
 		t.Fatal("explicit full IAM installation failed")
 	}
 	// These are generated migration seed notifications, in this newly-created
@@ -190,6 +192,11 @@ func TestM3ActualBrokerHost(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx := management.WithAuthenticatedService(t.Context(), "admin")
+	operations, err := journal.New(pool, transaction.Binding{Owner: "iam.mysql", StoreID: binding.StoreID, WriterEpoch: binding.WriterEpoch})
+	if err != nil {
+		t.Fatal("business journal constructor failed")
+	}
+
 	lookup := func(operation, key string, input map[string]string) transaction.Reservation {
 		command, err := change.NewCommandIntent(operation, "service:admin", "global", key, input)
 		if err != nil {
@@ -204,6 +211,15 @@ func TestM3ActualBrokerHost(t *testing.T) {
 	waitMessage := func(r transaction.Reservation) {
 		select {
 		case msg := <-received:
+
+			receipt, err := operations.Read(t.Context(), r.Execution.Plan.Input().OperationID)
+			if err != nil || receipt.State != journal.Committed || len(receipt.Result) == 0 {
+				t.Fatal("consumed host event lacked original business result receipt")
+			}
+			originalPlan, err := receipt.Candidate.Plan()
+			if err != nil || originalPlan.Digest() != r.Execution.Plan.Digest() {
+				t.Fatal("business receipt and consumed frozen plan differ")
+			}
 			branch := r.Execution.Plan.Input().Branches[0]
 			if msg.ID != branch.Message.Input().ID || !bytes.Equal(msg.Wire, branch.Wire) {
 				t.Fatal("actual Broker changed original event identity or first wire")
@@ -225,7 +241,7 @@ func TestM3ActualBrokerHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	request := appuow.WriteRequest{Operation: "native.commit", Scope: "global", ChangedBy: "fixture", Input: map[string]string{"name": "m3:broker_original"}, Preview: func(context.Context, appuow.TxRepositories) (bool, error) { return true, nil }, Freeze: change.AllocateKeys(change.ArtifactKey("role", "m3:broker_original"))}
+	request := appuow.WriteRequest{Result: operation.EmptyResultCodec(), AuthorizeKnown: appuow.ReplayPermissions(management.NewGuard(nil).RequireOperation), Operation: "native.commit", Scope: "global", ChangedBy: "fixture", Input: map[string]string{"name": "m3:broker_original"}, Preview: func(context.Context, appuow.TxRepositories) (bool, error) { return true, nil }, Freeze: change.AllocateKeys(change.ArtifactKey("role", "m3:broker_original"))}
 	go func() {
 		finished <- owner.Writer.WithinPlannedTx(keyCtx, request, func(txCtx context.Context, repos appuow.TxRepositories) error {
 			close(entered)
@@ -297,7 +313,7 @@ func TestM3ActualBrokerHost(t *testing.T) {
 		t.Fatal(err)
 	}
 	failure := errors.New("explicit fixture business rejection")
-	err = owner.Writer.WithinPlannedTx(abortCtx, appuow.WriteRequest{Operation: "native.abort", Scope: "global", ChangedBy: "fixture", Input: map[string]string{"name": "m3:broker_aborted"}, Preview: func(context.Context, appuow.TxRepositories) (bool, error) { return true, nil }, Freeze: change.AllocateKeys(change.ArtifactKey("role", "m3:broker_aborted"))}, func(txCtx context.Context, repos appuow.TxRepositories) error {
+	err = owner.Writer.WithinPlannedTx(abortCtx, appuow.WriteRequest{Result: operation.EmptyResultCodec(), AuthorizeKnown: appuow.ReplayPermissions(management.NewGuard(nil).RequireOperation), Operation: "native.abort", Scope: "global", ChangedBy: "fixture", Input: map[string]string{"name": "m3:broker_aborted"}, Preview: func(context.Context, appuow.TxRepositories) (bool, error) { return true, nil }, Freeze: change.AllocateKeys(change.ArtifactKey("role", "m3:broker_aborted"))}, func(txCtx context.Context, repos appuow.TxRepositories) error {
 		candidate, e := roledomain.NewRole("m3:broker_aborted", "Aborted")
 		if e != nil {
 			return e
@@ -334,5 +350,5 @@ func TestM3ActualBrokerHost(t *testing.T) {
 	if err = db.Table("rm_outbox").Count(&count).Error; err != nil || count != 0 {
 		t.Fatal("actual host transaction used a publishing Outbox")
 	}
-	t.Log(`M3_HOST_RECEIPT {"passed":4,"failed":0,"skipped":0,"half_invisible":true,"commit_wire_and_witness":true,"application_entry":true,"rollback_hidden":true}`)
+	t.Log(`M3_HOST_RECEIPT {"passed":4,"failed":0,"skipped":0,"half_invisible":true,"commit_wire_and_witness":true,"application_entry":true,"rollback_hidden":true,"business_result_atomic":true}`)
 }

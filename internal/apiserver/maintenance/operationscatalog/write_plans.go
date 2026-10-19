@@ -3,6 +3,7 @@ package operationscatalog
 import (
 	"context"
 	"fmt"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/operation"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	grant "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
@@ -27,7 +28,7 @@ func requireActor(tx *gorm.DB, actor string) error {
 func applyRequest(fp, actor string, result *Report) policywrite.Request {
 	var planned Report
 	var state rolemodel.State
-	return policywrite.Request{Operation: "maintenance.operations_catalog.apply", Freeze: func(b *change.ArtifactBuilder) error {
+	return policywrite.Request{Result: operation.ProjectResult("iam.maintenance.operations-catalog/v1", func() (Report, error) { return *result, nil }, func(saved Report) error { *result = saved; return nil }), Operation: "maintenance.operations_catalog.apply", Freeze: func(b *change.ArtifactBuilder) error {
 		id, err := meta.ParseID(planned.ResourceID)
 		if planned.CreateResource {
 			id, err = b.ID(change.ArtifactKey("resource", ResourceKey))

@@ -19,7 +19,7 @@ func mutationRequest(fp string, rollback bool, result **Receipt) policywrite.Req
 		operation = "maintenance.condition_retire.rollback"
 	}
 	var createKeys []string
-	return policywrite.Request{Operation: operation, Freeze: func(b *change.ArtifactBuilder) error { return change.AllocateKeys(createKeys...)(b) }, ChangedBy: MigrationID, Input: map[string]any{"migration_id": MigrationID, "fingerprint": fp}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
+	return policywrite.Request{Result: receiptResultCodec(result), Operation: operation, Freeze: func(b *change.ArtifactBuilder) error { return change.AllocateKeys(createKeys...)(b) }, ChangedBy: MigrationID, Input: map[string]any{"migration_id": MigrationID, "fingerprint": fp}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
 		report, saved, before, err := inspect(ctx, tx)
 		if err != nil {
 			return false, err

@@ -8,6 +8,7 @@ import (
 
 	"github.com/FangcunMount/iam/v5/internal/apiserver/eventing"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/messaging"
+	journal "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzoperation"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/messageprotocol"
 	hostuow "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/uow/authz"
 	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
@@ -27,6 +28,7 @@ type normalTransactionPeer interface {
 type TransactionEventing struct {
 	Writer                   *hostuow.PlannedUnitOfWork
 	runtime                  *TransactionRuntime
+	maintenance              *operationMaintenance
 	normal                   normalTransactionPeer
 	mu                       sync.Mutex
 	started, ready, stopping bool
@@ -64,19 +66,38 @@ func NewTransactionEventing(deps EventingDeps, catalog *eventcatalog.Catalog, ma
 	if len(config.Routes) != 1 {
 		return nil, errors.New("one exact IAM policy transaction route required")
 	}
-	runtime, err := NewTransactionalSender(deps.Messaging, local.Store(), []string{topic})
+	// The owner budget is shared by SDK evidence and business receipts; adding
+	// the journal must not silently double the configured scan allowance.
+	if config.Limits.ReconcileBatch < 2 || config.Limits.ReconcileBatch > 100 {
+		return nil, errors.New("IAM shared maintenance batch must be between2 and100")
+	}
+	journalBatch := config.Limits.ReconcileBatch - config.Limits.ReconcileBatch/2
+	config.Limits.ReconcileBatch /= 2
+	pool, err := deps.DB.DB()
 	if err != nil {
 		return nil, err
 	}
-	owner := &TransactionEventing{runtime: runtime, startDone: make(chan struct{}), cleanupBudget: config.Limits.RPCTimeout, preflight: func(ctx context.Context) error {
+	operations, err := journal.New(pool, local.Store().Binding())
+	if err != nil {
+		return nil, err
+	}
+	driver, err := rocketmq.NewTransactionalSender(config, local.Store())
+	runtime := &TransactionRuntime{sender: driver, admission: deps.Messaging.PublishEnabled}
+	if err != nil {
+		return nil, err
+	}
+	owner := &TransactionEventing{runtime: runtime, startDone: make(chan struct{}), cleanupBudget: config.Limits.RPCTimeout, maintenance: &operationMaintenance{interval: config.Limits.ReconcileInterval, budget: config.Limits.CheckTimeout, batch: journalBatch, abort: operations.AbortExpired}, preflight: func(ctx context.Context) error {
 		check, cancel := context.WithTimeout(ctx, config.Limits.CheckTimeout)
 		defer cancel()
 		if err := messageprotocol.RequireTransaction(check, deps.DB, local.Store().Binding(), "m3-1", false); err != nil {
 			return err
 		}
+		if err := operations.CheckReady(check); err != nil {
+			return err
+		}
 		return checkTransactionHandoff(check, deps.DB, config.Limits.CheckTimeout)
 	}}
-	owner.Writer, err = hostuow.NewPlannedUnitOfWork(local, runtime, hostuow.PlanConfig{LogicalTopic: topic, PhysicalTopic: config.Routes[0].PhysicalTopic, Sends: config.Limits.Sends, ProofBudget: config.Limits.CheckTimeout, Admission: owner.admitted, MaintenancePrincipal: maintenancePrincipal})
+	owner.Writer, err = hostuow.NewPlannedUnitOfWork(local, runtime, hostuow.PlanConfig{LogicalTopic: topic, PhysicalTopic: config.Routes[0].PhysicalTopic, Sends: config.Limits.Sends, ProofBudget: config.Limits.CheckTimeout, Admission: owner.admitted, MaintenancePrincipal: maintenancePrincipal, Journal: operations, OperationLease: config.Limits.Lease})
 	if err != nil {
 		return nil, err
 	}
@@ -129,6 +150,9 @@ func (o *TransactionEventing) Start(ctx context.Context) error {
 	o.mu.Unlock()
 	if err == nil && !interrupted && o.normal != nil {
 		err = o.normal.Start()
+	}
+	if err == nil && !interrupted && o.maintenance != nil {
+		err = o.maintenance.start()
 	}
 	o.mu.Lock()
 	stopped := o.stopping
@@ -191,6 +215,9 @@ func (o *TransactionEventing) Stop(ctx context.Context) error {
 	return o.closeClients(ctx)
 }
 func (o *TransactionEventing) closeClients(ctx context.Context) error {
+	if err := o.maintenance.close(ctx); err != nil {
+		return err
+	}
 	err := o.runtime.Close(ctx)
 	if o.normal != nil {
 		err = errors.Join(err, o.normal.Close(ctx))
@@ -221,4 +248,8 @@ func (o *TransactionEventing) Stats() rocketmq.TransactionStats {
 	stats.Ready = stats.Ready && o.ready && !o.stopping
 	o.mu.Unlock()
 	return stats
+}
+
+func (o *TransactionEventing) OperationStats() OperationMaintenanceStats {
+	return o.maintenance.snapshot()
 }

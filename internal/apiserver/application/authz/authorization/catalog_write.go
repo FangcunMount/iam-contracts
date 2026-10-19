@@ -26,5 +26,6 @@ func (s *DecisionService) RequireCatalogWrite(ctx context.Context, actor subject
 	if !decision.Allowed {
 		return perrors.WithCode(code.ErrPermissionDenied, "resource catalog write permission required")
 	}
+	policychange.RecordPermission(ctx, ResourceResources, action)
 	return nil
 }

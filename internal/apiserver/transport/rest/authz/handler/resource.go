@@ -40,6 +40,10 @@ func NewResourceHandler(
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
 // @Description Catalog writes require a matching platform Grant for the authenticated actor.
 // @Failure 403 {object} dto.ErrorResponse "Platform catalog permission required"
+// @Param Idempotency-Key header string false "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required."
+// @Header 200 {string} Operation-ID "Server-generated authorization operation ID in transaction mode"
+// @Header 200 {string} Operation-Location "Authorized operation status URL"
+// @Failure 409 {object} map[string]string "Different input for the same key, or an aborted operation"
 // @Router /v4/authz/resources [post]
 func (h *ResourceHandler) CreateResource(c *gin.Context) {
 	var req dto.CreateResourceRequest
@@ -92,6 +96,10 @@ func (h *ResourceHandler) CreateResource(c *gin.Context) {
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
 // @Description Catalog writes require a matching platform Grant for the authenticated actor.
 // @Failure 403 {object} dto.ErrorResponse "Platform catalog permission required"
+// @Param Idempotency-Key header string false "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required."
+// @Header 200 {string} Operation-ID "Server-generated authorization operation ID in transaction mode"
+// @Header 200 {string} Operation-Location "Authorized operation status URL"
+// @Failure 409 {object} map[string]string "Different input for the same key, or an aborted operation"
 // @Router /v4/authz/resources/{id} [put]
 func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 	resourceID, ok := parseIDParam(c, "id", "资源ID格式错误")
@@ -143,6 +151,10 @@ func (h *ResourceHandler) UpdateResource(c *gin.Context) {
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
 // @Description Catalog writes require a matching platform Grant for the authenticated actor.
 // @Failure 403 {object} dto.ErrorResponse "Platform catalog permission required"
+// @Param Idempotency-Key header string false "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required."
+// @Header 200 {string} Operation-ID "Server-generated authorization operation ID in transaction mode"
+// @Header 200 {string} Operation-Location "Authorized operation status URL"
+// @Failure 409 {object} map[string]string "Different input for the same key, or an aborted operation"
 // @Router /v4/authz/resources/{id} [delete]
 func (h *ResourceHandler) DeleteResource(c *gin.Context) {
 	resourceID, ok := parseIDParam(c, "id", "资源ID格式错误")

@@ -8,16 +8,20 @@ import (
 	assignmentApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
 	assignmentAdmissionApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
 	authorizationApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/authorization"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/operation"
 	permissionGrantApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/permissiongrant"
 	policychange "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	policyVersionApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policyversion"
 	resourceApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/resource"
 	roleApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/role"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
 	assignmentConstraints "github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/assignmentconstraints"
 )
 
 // AuthzModule 授权模块
 type AuthzModule struct {
+	operations                   *operation.QueryService
 	syncOnce                     sync.Once
 	policySync                   *policySyncSubscriber
 	routeDecisionService         authorizationApp.RoutePermissionChecker
@@ -75,6 +79,18 @@ func (m *AuthzModule) InitializeWithDeps(deps AuthzModuleDeps) error {
 		return err
 	}
 	m.initializeApplication(infra, domain)
+	if factory, ok := infra.unitOfWork.(interface {
+		NewOperationQuery(operation.AccessPolicy) (*operation.QueryService, error)
+	}); ok {
+		reader, ok := infra.unitOfWork.(uow.ReadOnlyPlanner)
+		if !ok {
+			return operation.ErrInvalid
+		}
+		m.operations, err = factory.NewOperationQuery(NewOperationAccessPolicy(reader, management.NewGuard(infra.authorizationRuntime)))
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -83,6 +99,7 @@ func (m *AuthzModule) ApplicationCapabilities() ApplicationCapabilities {
 		return ApplicationCapabilities{}
 	}
 	return ApplicationCapabilities{
+		Operations:                   m.operations,
 		ResourceCatalog:              m.resourceCatalog,
 		ResourceDirectory:            m.resourceDirectory,
 		RoleCatalog:                  m.roleCatalog,

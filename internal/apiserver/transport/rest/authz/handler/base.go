@@ -49,6 +49,9 @@ func handleError(c *gin.Context, err error) {
 	if err == nil {
 		return
 	}
+	if operationError(c, err) {
+		return
+	}
 	// 委托给 BaseHandler 的 Error 方法
 	// 但是使用 authz 特定的错误响应格式
 	core.NewBaseHandler().Error(c, err)

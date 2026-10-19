@@ -1,6 +1,6 @@
 # 事件、Outbox 交接与投递结果
 
-> 状态：已实现 · 依据 IAM 当前装配及锁定 reliable-messaging v0.4.0-rocketmq.1 / go-nsq v1.1.0；源码条件、离线测试和运行接受分别标明。
+> 状态：已实现 · 依据 IAM 当前装配及锁定 reliable-messaging v0.5.0-rocketmq-tx.2 / go-nsq v1.1.0；源码条件、离线测试和运行接受分别标明。
 
 ## RocketMQ 普通消息接入
 
@@ -12,6 +12,8 @@ RocketMQ 配置要求 endpoint、credentials_file、ca_file、routes_file 和稳
 
 ## M3 独立事务模式候选
 
+固定Go修订预发布`v0.5.0-rocketmq-tx.2`修复Broker指标回写与ACK hook并发访问meter的race；公开事务API、wire、schema及原结算语义不变。原事务和HTTP验收必须使用下载的正式模块，源码合并或SDK发布不代表IAM生产切换。
+
 事务模式显式配置 `messaging.transactions.iam.mysql`、version2 路由和 `configs/events-m3.yaml`，关闭标准 Outbox 的 enabled 开关；两种写模式不能同时启用。`events.reliable_messaging.shutdown_timeout` 继续提供宿主退出预算，独立于旧 Outbox 是否开启。SDK、连接池和 Checker 的生命周期由宿主管理，公开幂等 API 与生产切换仍按 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)验收。
 
 迁移43安装 `iam_authz_message_protocol`，默认 `outbox`，不会自动转换 provider。事务选择要求精确 owner/store/epoch/route_revision；原根事务先取得 execution guard，再持有协议行共享锁，最后共同提交业务、精确版本和 witness。标准 Stager 在原根事务中同样校验门禁，拒绝选择事务后的旧 Outbox 写入。缺表仅在有干净且精确单行的旧迁移日志时允许旧模式；新版迁移缺门禁失败关闭。旧二进制没有此门禁，生产仍须停止全部旧写者并验证排空，不能由一行配置代替交接。
@@ -19,6 +21,18 @@ RocketMQ 配置要求 endpoint、credentials_file、ca_file、routes_file 和稳
 只读规划先核验选择，完整冻结 ID、时间和首次 wire 后才准备半消息。全部半消息确认成功后，单次宿主执行器开启原根事务。回调返回 nil 不是提交证明；根提交 ACK 或权威 witness 才可证明本地提交，最终 Broker 确认丢失保留 `LocalCommitted + FinalUnknown`。取消也不证明回滚，不自动重做业务。
 
 进程在事务 owner 启动失败时不降级启动。drain 先封闭新规划及 NORMAL 准入，让真实在途调用在 Checker 存活时结束，再关闭客户端和宿主资源；未完成退出保留 `ShutdownIncomplete`。required readiness 增加 `message_transaction`，不再用空旧 Outbox 证明事务 owner 已就绪。临时写暂停与读取可用性分开，关闭后的实例不能重新开放准入。
+
+### 业务操作凭证与 HTTP 幂等候选
+
+迁移44显式安装独立 `iam_authz_operations`，不复用旧 Outbox 状态。原请求先竞争完整冻结计划，赢家才 Reserve SDK；原 SQL 根事务同时持有 SDK guard 与业务操作 guard，提交授权事实、精确版本、类型化首次结果和 witness。重复请求先读取原结果并重新核对当前权限，不重做业务；同键不同稳定业务输入返回409。无实际修改的操作保存首次结果及版本，不发送半消息，并通过版本行锁校验原只读规划仍有效。
+
+事务模式的 REST 授权写接口接受可选 `Idempotency-Key`，按已验证主体、原作用域和操作类型隔离，长度1–255字节、禁止空白边界和歧义多值；不带键保留旧调用，分配本次操作身份但不承诺跨请求去重。成功正文维持原格式，额外返回 `Operation-ID` 与 `Operation-Location`。旧 Outbox 模式收到键返回503，不能静默接受一个无效承诺。已证实本地提交保留原成功语义；未知结果返回503和原操作引用，已中止返回409，不换键自动重试。
+
+`GET /api/v4/authz/operations/:operation_id` 需要合法登录、原主体、原作用域及当前原操作的全部权限（包含原受保护角色权限）。当前 REST 写接口仅管理全局授权，查询只开放其 `global` 记录；组织 claim 本身不构成组织权限，组织作用域的服务间记录不通过此 REST 入口开放。状态仅含公开业务结果、版本和生产者三阶段分类，不含 wire、凭据、execution token、幂等键或 Broker 身份。数据库错误和权限版本落后均不能沿用旧 ALLOW。这里的提交状态不证明所有订阅者收敛。
+
+维护 CLI 保持受信任 OS 主体和显式预检/停写合同，不新增跨命令幂等键；拒绝注入 HTTP 风格键。其操作记录只保存公开结果投影，完整 before/after 恢复材料留在原私有维护证据中。无论回查或中止维护都不重新执行维护命令。
+
+同 owner 的扫描预算由 SDK 与业务凭证共用（默认各50条/5秒，总计100条），不增加业务 worker 配额。查询、宿主规划和在途数据库维护都计入关闭等待；超时保留未完成责任，Checker 和宿主连接池不能被当作已排空提前关闭。以上为候选源码合同，合并、固定矩阵、真实 Broker 和生产/system 验收分别在 infra 总表记账。
 
 ## 1. 当前设计先保护哪一个窗口
 

@@ -53,7 +53,7 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*domain.Grant,
 		return nil, perrors.WithCode(code.ErrInvalidArgument, "role, resource, and granted by are required")
 	}
 	var created domain.Grant
-	err := authzuow.WithinWrite(ctx, s.uow, s.previewCreate(cmd), func(txCtx context.Context, tx authzuow.TxRepositories) error {
+	err := authzuow.WithinWrite(ctx, s.uow, s.previewCreate(cmd, &created), func(txCtx context.Context, tx authzuow.TxRepositories) error {
 		if _, planned := policychange.ExecutionPlan(txCtx); planned {
 			if err := s.guard.RequireOperation(txCtx, grantOperations, "create"); err != nil {
 				return err

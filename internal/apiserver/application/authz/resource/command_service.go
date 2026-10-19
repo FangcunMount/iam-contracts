@@ -55,7 +55,7 @@ func (s *ResourceCatalog) CreateResource(ctx context.Context, cmd CreateResource
 	if err != nil {
 		return nil, err
 	}
-	err = authzuow.WithinWrite(ctx, s.uow, s.previewCreate(cmd, created), func(txCtx context.Context, tx authzuow.TxRepositories) error {
+	err = authzuow.WithinWrite(ctx, s.uow, s.previewCreate(cmd, &created), func(txCtx context.Context, tx authzuow.TxRepositories) error {
 		if _, planned := policychange.ExecutionPlan(txCtx); planned {
 			if err := s.requireWrite(txCtx, cmd.Actor, "create"); err != nil {
 				return err

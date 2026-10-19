@@ -5,6 +5,7 @@ package policywrite
 import (
 	"context"
 	"errors"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/operation"
 
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	app "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
@@ -19,6 +20,7 @@ import (
 type Request struct {
 	Operation, ChangedBy string
 	Input                any
+	Result               *operation.ResultCodec
 	Preview              func(context.Context, *gorm.DB) (bool, error)
 	Freeze               func(*change.ArtifactBuilder) error
 }
@@ -42,7 +44,7 @@ func Within(ctx context.Context, db *gorm.DB, stager event.Stager, request Reque
 // AuthorizationRequest borrows the root supplied by the host read-only planner;
 // it does not open a replacement connection or a nested transaction.
 func (r Request) AuthorizationRequest() app.WriteRequest {
-	return app.WriteRequest{Freeze: r.Freeze, Operation: r.Operation, Scope: "global", ChangedBy: r.ChangedBy, Input: r.Input, Preview: func(ctx context.Context, _ app.TxRepositories) (bool, error) {
+	return app.WriteRequest{Result: r.Result, AuthorizeKnown: func(context.Context, []operation.Permission) error { return nil }, Freeze: r.Freeze, Operation: r.Operation, Scope: "global", ChangedBy: r.ChangedBy, Input: r.Input, Preview: func(ctx context.Context, _ app.TxRepositories) (bool, error) {
 		tx, err := database.RequireTx(ctx)
 		if err != nil {
 			return false, err

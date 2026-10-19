@@ -9,6 +9,7 @@ import (
 )
 
 type Dependencies struct {
+	OperationHandler       *handler.OperationHandler
 	RoleHandler            *handler.RoleHandler
 	AssignmentHandler      *handler.AssignmentHandler
 	PermissionGrantHandler *handler.PermissionGrantHandler
@@ -35,6 +36,11 @@ func Register(engine *gin.Engine, deps Dependencies) {
 	}
 	g := authzGroup.Group("")
 	g.Use(deps.AuthMiddleware)
+	g.Use(operationContext(deps.OperationHandler != nil))
+	if deps.OperationHandler != nil {
+		// Original permission set is stored per operation and checked by Query.
+		g.GET("/operations/:operation_id", deps.OperationHandler.GetOperation)
+	}
 
 	roles := g.Group("/roles")
 	roles.POST("", deps.Permission(authzapp.ResourceRoles, authzapp.ActionCreate), deps.RoleHandler.CreateRole)

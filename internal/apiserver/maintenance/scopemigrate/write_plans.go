@@ -32,7 +32,7 @@ func readSnapshot(ctx context.Context, tx, qs *gorm.DB) (Snapshot, error) {
 }
 func applyRequest(qs *gorm.DB, id, actor, fp string, input Input, result **Receipt) policywrite.Request {
 	var createKeys []string
-	return policywrite.Request{Operation: "maintenance.scope.apply", Freeze: func(b *change.ArtifactBuilder) error { return change.AllocateKeys(createKeys...)(b) }, ChangedBy: "user:" + actor, Input: map[string]any{"migration_id": id, "actor": actor, "fingerprint": fp, "mapping": input}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
+	return policywrite.Request{Result: receiptResultCodec(result), Operation: "maintenance.scope.apply", Freeze: func(b *change.ArtifactBuilder) error { return change.AllocateKeys(createKeys...)(b) }, ChangedBy: "user:" + actor, Input: map[string]any{"migration_id": id, "actor": actor, "fingerprint": fp, "mapping": input}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
 		before, err := readSnapshot(ctx, tx, qs)
 		if err != nil {
 			return false, err
@@ -72,7 +72,7 @@ func applyRequest(qs *gorm.DB, id, actor, fp string, input Input, result **Recei
 	}}
 }
 func rollbackRequest(qs *gorm.DB, id, actor, fp string, result **Receipt) policywrite.Request {
-	return policywrite.Request{Operation: "maintenance.scope.rollback", ChangedBy: "user:" + actor, Input: map[string]any{"migration_id": id, "actor": actor, "fingerprint": fp}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
+	return policywrite.Request{Result: receiptResultCodec(result), Operation: "maintenance.scope.rollback", ChangedBy: "user:" + actor, Input: map[string]any{"migration_id": id, "actor": actor, "fingerprint": fp}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
 		current, err := readSnapshot(ctx, tx, qs)
 		if err != nil {
 			return false, err

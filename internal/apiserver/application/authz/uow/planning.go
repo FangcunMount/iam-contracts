@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/operation"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	policy "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 )
@@ -18,6 +19,8 @@ type WriteRequest struct {
 	PermissionResource          string
 	PermissionActions           []string
 	Input                       any
+	Result                      *operation.ResultCodec
+	AuthorizeKnown              func(context.Context, []operation.Permission) error
 	Preview                     func(context.Context, TxRepositories) (bool, error)
 	// Freeze runs once after read-only planning and before SDK reservation; it
 	// declares every new row identity. It cannot execute the business mutation.
@@ -87,4 +90,20 @@ func CheckExpectedVersion(current, expected int64) error {
 		return policy.ErrStaleVersion
 	}
 	return nil
+}
+
+// ReplayPermissions rechecks the frozen original permission set without looking
+// up mutable target objects or repeating business preconditions.
+func ReplayPermissions(require func(context.Context, string, string) error) func(context.Context, []operation.Permission) error {
+	return func(ctx context.Context, permissions []operation.Permission) error {
+		if require == nil {
+			return operation.ErrAccessDenied
+		}
+		for _, permission := range permissions {
+			if err := require(ctx, permission.Resource, permission.Action); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }

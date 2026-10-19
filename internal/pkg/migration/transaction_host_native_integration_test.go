@@ -10,6 +10,7 @@ import (
 
 	assignmentapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
+	operation "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/operation"
 	grantapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/permissiongrant"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	resourceapp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/resource"
@@ -17,6 +18,7 @@ import (
 	assignment "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
 	policy "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	journal "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzoperation"
 	grantrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
 	policyrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
 	rolerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
@@ -187,4 +189,146 @@ func testM3PlannedHostEntries(t *testing.T, db *gorm.DB, binding transaction.Bin
 	require.NoError(t, planned.Wait(t.Context()))
 	_, err = roles.CreateRole(ctx, rejected)
 	require.ErrorIs(t, err, hostuow.ErrWriteAdmissionClosed)
+}
+
+// Actual host app entry + released SDK + business journal in one original root.
+// Only Broker I/O is an explicitly stored-half fixture; this is not Broker E2E.
+func testM3JournalHostEntries(t *testing.T, db *gorm.DB, binding transaction.Binding) {
+	local, err := hostuow.NewTransactionUnitOfWork(db, nativeSubjects{}, binding)
+	require.NoError(t, err)
+	pool, err := db.DB()
+	require.NoError(t, err)
+	records, err := journal.New(pool, binding)
+	require.NoError(t, err)
+	sender := &nativeStoredHalfSender{store: local.Store()}
+	topic := "iam.authz.version.v2"
+	physical, err := transport.PhysicalTopicV2(topic, transport.TransactionMessageType, binding.Owner, "m3-1")
+	require.NoError(t, err)
+	writer, err := hostuow.NewPlannedUnitOfWork(local, sender, hostuow.PlanConfig{LogicalTopic: topic, PhysicalTopic: physical, Sends: 8, ProofBudget: 2 * time.Second, Admission: func() bool { return true }, Journal: records, OperationLease: time.Minute})
+	require.NoError(t, err)
+	service := roleapp.NewRoleCatalog(writer, nil, management.NewGuard(nil))
+	ctx := management.WithAuthenticatedService(t.Context(), "admin")
+	var reference string
+	ctx, err = operation.WithReferenceSink(ctx, func(id string) { reference = id })
+	require.NoError(t, err)
+	create, err := roleapp.NewCreateRoleCommand("m3:journal-idempotency", "First result", "")
+	require.NoError(t, err)
+	create.ChangedBy = "native-operator"
+	keyed, err := change.WithRequestKey(ctx, "journal-create-role")
+	require.NoError(t, err)
+	first, err := service.CreateRole(keyed, create)
+	require.NoError(t, err)
+	require.NotEmpty(t, reference)
+	originalID, originalRef := first.ID, reference
+	duplicate, err := service.CreateRole(keyed, create)
+	require.NoError(t, err)
+	require.Equal(t, originalID, duplicate.ID)
+	require.Equal(t, originalRef, reference)
+	require.Equal(t, 1, sender.calls)
+	conflict := create
+	conflict.DisplayName = "different input"
+	_, err = service.CreateRole(keyed, conflict)
+	require.ErrorIs(t, err, operation.ErrConflict)
+	require.Equal(t, 1, sender.calls)
+	original, err := records.Read(t.Context(), originalRef)
+	require.NoError(t, err)
+	require.Equal(t, journal.Committed, original.State)
+	protocol, err := records.ReadProtocol(t.Context(), original.Candidate)
+	require.NoError(t, err)
+	require.Equal(t, transaction.LocalCommitted, protocol.Local)
+	require.Equal(t, transaction.FinalUnknown, protocol.Final)
+	// An authorized no-op creates a durable result but no fake policy event.
+	same := "First result"
+	update, err := roleapp.NewUpdateRoleCommand(originalID, &same, nil)
+	require.NoError(t, err)
+	update.ChangedBy = "native-operator"
+	noop, err := change.WithRequestKey(ctx, "journal-noop-role")
+	require.NoError(t, err)
+	before, err := policyrepo.NewPolicyVersionRepository(db).GetCurrent(ctx)
+	require.NoError(t, err)
+	unchanged, err := service.UpdateRole(noop, update)
+	require.NoError(t, err)
+	require.Equal(t, "First result", unchanged.DisplayName)
+	require.Equal(t, 1, sender.calls)
+	noopRef := reference
+	receipt, err := records.Read(t.Context(), noopRef)
+	require.NoError(t, err)
+	require.Equal(t, journal.Committed, receipt.State)
+	require.False(t, receipt.Candidate.Changed())
+	require.Equal(t, before.Version, receipt.PolicyVersion)
+	// Replay restores the original result after later facts change; it cannot
+	// resolve the current object and accidentally execute another update.
+	require.NoError(t, db.Exec("UPDATE authz_roles SET display_name='later' WHERE id=?", originalID).Error)
+	require.NoError(t, db.Exec("UPDATE authz_policy_versions SET policy_version=policy_version+1 WHERE id=1").Error)
+	restored, err := service.UpdateRole(noop, update)
+	require.NoError(t, err)
+	require.Equal(t, "First result", restored.DisplayName)
+	require.Equal(t, noopRef, reference)
+	require.Equal(t, 1, sender.calls)
+	var actual string
+	require.NoError(t, db.Raw("SELECT display_name FROM authz_roles WHERE id=?", originalID).Row().Scan(&actual))
+	require.Equal(t, "later", actual)
+
+	// All typed domain results restore their original IDs without reentering
+	// business, including private ResourceKey and Assignment Scope values.
+	resources := resourceapp.NewResourceCatalog(writer, nil, nativeCatalogWriter{})
+	actor, err := subject.NewUserRef(meta.ID(7))
+	require.NoError(t, err)
+	resourceCmd, err := resourceapp.NewCreateResourceCommand("m3:journal:collection:resource", "Resource", "", "", "", []string{"read"}, "")
+	require.NoError(t, err)
+	resourceCmd.Actor = actor
+	resourceCmd.ChangedBy = "native-operator"
+	resourceKey, err := change.WithRequestKey(ctx, "journal-create-resource")
+	require.NoError(t, err)
+	resource, err := resources.CreateResource(resourceKey, resourceCmd)
+	require.NoError(t, err)
+	resourceCalls := sender.calls
+	resourceAgain, err := resources.CreateResource(resourceKey, resourceCmd)
+	require.NoError(t, err)
+	require.Equal(t, resource.ID, resourceAgain.ID)
+	require.Equal(t, resource.KeyString(), resourceAgain.KeyString())
+	require.Equal(t, resourceCalls, sender.calls)
+	grants := grantapp.NewService(writer, grantrepo.NewRepository(db), nil, management.NewGuard(nil))
+	grantKey, err := change.WithRequestKey(ctx, "journal-create-grant")
+	require.NoError(t, err)
+	grantCmd := grantapp.CreateCommand{RoleID: originalID, ResourceID: resource.ID, Action: "read", GrantedBy: "native-operator"}
+	grant, err := grants.Create(grantKey, grantCmd)
+	require.NoError(t, err)
+	grantCalls := sender.calls
+	grantAgain, err := grants.Create(grantKey, grantCmd)
+	require.NoError(t, err)
+	require.Equal(t, grant.ID, grantAgain.ID)
+	require.Equal(t, grant.GrantedAt, grantAgain.GrantedAt)
+	require.Equal(t, grant.GrantKey, grantAgain.GrantKey)
+	require.Equal(t, grantCalls, sender.calls)
+	roles := rolerepo.NewRoleRepository(db)
+	assignments := assignmentapp.NewCommandService(assignment.NewValidatorWithSubjectResolver(roles, nativeSubjects{}), roles, writer, nil, management.NewGuard(nil))
+	assignmentKey, err := change.WithRequestKey(ctx, "journal-create-assignment")
+	require.NoError(t, err)
+	assignmentCmd := assignmentapp.GrantCommand{SubjectType: assignment.SubjectTypeUser, SubjectID: meta.ID(7), RoleID: originalID, GrantedBy: "native-operator"}
+	assigned, err := assignments.Grant(assignmentKey, assignmentCmd)
+	require.NoError(t, err)
+	assignmentCalls := sender.calls
+	assignedAgain, err := assignments.Grant(assignmentKey, assignmentCmd)
+	require.NoError(t, err)
+	require.Equal(t, assigned.ID, assignedAgain.ID)
+	require.Equal(t, assignmentCalls, sender.calls)
+	sender.reject = true
+	rejected, err := roleapp.NewCreateRoleCommand("m3:journal-rejected", "Rejected", "")
+	require.NoError(t, err)
+	rejected.ChangedBy = "native-operator"
+	rejectKey, err := change.WithRequestKey(ctx, "journal-reject-role")
+	require.NoError(t, err)
+	_, err = service.CreateRole(rejectKey, rejected)
+	var outcome *operation.OutcomeError
+	require.ErrorAs(t, err, &outcome)
+	require.Equal(t, transaction.LocalAborted, outcome.Local)
+	aborted, err := records.Read(t.Context(), reference)
+	require.NoError(t, err)
+	require.Equal(t, journal.Aborted, aborted.State)
+	var absent int64
+	require.NoError(t, db.Table("authz_roles").Where("name=?", "m3:journal-rejected").Count(&absent).Error)
+	require.Zero(t, absent)
+	writer.StopAdmission()
+	require.NoError(t, writer.Wait(t.Context()))
 }

@@ -22,13 +22,36 @@ paths:
         required: true
         schema:
           type: string
+      - name: Idempotency-Key
+        in: header
+        description: Optional key; same principal/scope/operation and input returns the original result. Transaction mode
+          required.
+        schema:
+          type: string
       responses:
         '200':
           description: OK
+          headers:
+            Operation-ID:
+              schema:
+                type: string
+              description: Server-generated authorization operation ID in transaction mode
+            Operation-Location:
+              schema:
+                type: string
+              description: Authorized operation status URL
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response'
+        '409':
+          description: Different input for the same key, or an aborted operation
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
         '503':
           description: Authorization policy unavailable (103002)
           content:
@@ -40,6 +63,13 @@ paths:
       tags:
       - Authorization-Assignments
       summary: 授予角色
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        description: Optional key; same principal/scope/operation and input returns the original result. Transaction mode
+          required.
+        schema:
+          type: string
       requestBody:
         required: true
         content:
@@ -49,6 +79,15 @@ paths:
       responses:
         '200':
           description: OK
+          headers:
+            Operation-ID:
+              schema:
+                type: string
+              description: Server-generated authorization operation ID in transaction mode
+            Operation-Location:
+              schema:
+                type: string
+              description: Authorized operation status URL
           content:
             application/json:
               schema:
@@ -58,6 +97,14 @@ paths:
                     data:
                       $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.AssignmentResponse'
                   type: object
+        '409':
+          description: Different input for the same key, or an aborted operation
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
         '503':
           description: Authorization policy unavailable (103002)
           content:
@@ -69,6 +116,13 @@ paths:
       tags:
       - Authorization-Assignments
       summary: 撤销角色
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        description: Optional key; same principal/scope/operation and input returns the original result. Transaction mode
+          required.
+        schema:
+          type: string
       requestBody:
         required: true
         content:
@@ -78,10 +132,27 @@ paths:
       responses:
         '200':
           description: OK
+          headers:
+            Operation-ID:
+              schema:
+                type: string
+              description: Server-generated authorization operation ID in transaction mode
+            Operation-Location:
+              schema:
+                type: string
+              description: Authorized operation status URL
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response'
+        '409':
+          description: Different input for the same key, or an aborted operation
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
         '503':
           description: Authorization policy unavailable (103002)
           content:
@@ -135,6 +206,13 @@ paths:
       summary: 创建 PermissionGrant
       description: 为指定角色创建不可变的精确资源及单一动作授权；条件授权已退役
       operationId: createPermissionGrant
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        description: Optional key; same principal/scope/operation and input returns the original result. Transaction mode
+          required.
+        schema:
+          type: string
       requestBody:
         required: true
         content:
@@ -144,6 +222,15 @@ paths:
       responses:
         '200':
           description: OK
+          headers:
+            Operation-ID:
+              schema:
+                type: string
+              description: Server-generated authorization operation ID in transaction mode
+            Operation-Location:
+              schema:
+                type: string
+              description: Authorized operation status URL
           content:
             application/json:
               schema:
@@ -153,6 +240,14 @@ paths:
                     data:
                       $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.PermissionGrantResponse'
                   type: object
+        '409':
+          description: Different input for the same key, or an aborted operation
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
         '503':
           description: Authorization policy unavailable (103002)
           content:
@@ -173,6 +268,12 @@ paths:
         required: true
         schema:
           type: string
+      - name: Idempotency-Key
+        in: header
+        description: Optional key; same principal/scope/operation and input returns the original result. Transaction mode
+          required.
+        schema:
+          type: string
       requestBody:
         required: false
         content:
@@ -182,16 +283,92 @@ paths:
       responses:
         '200':
           description: OK
+          headers:
+            Operation-ID:
+              schema:
+                type: string
+              description: Server-generated authorization operation ID in transaction mode
+            Operation-Location:
+              schema:
+                type: string
+              description: Authorized operation status URL
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response'
+        '409':
+          description: Different input for the same key, or an aborted operation
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
         '503':
           description: Authorization policy unavailable (103002)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse'
+  /authz/operations/{operation_id}:
+    get:
+      tags:
+      - Authorization-Operations
+      summary: 查询授权写操作
+      description: Requires the original authenticated principal, scope and current original permissions. Producer commit
+        does not prove consumer completion.
+      operationId: getAuthorizationOperation
+      parameters:
+      - name: operation_id
+        in: path
+        description: Operation ID returned by an authorization write
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response'
+                - properties:
+                    data:
+                      $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_application_authz_operation.QueryView'
+                  type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
   /authz/resources:
     get:
       tags:
@@ -250,6 +427,13 @@ paths:
       - Authorization-Resources
       summary: 创建资源
       description: Catalog writes require a matching platform Grant for the authenticated actor.
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        description: Optional key; same principal/scope/operation and input returns the original result. Transaction mode
+          required.
+        schema:
+          type: string
       requestBody:
         required: true
         content:
@@ -259,6 +443,15 @@ paths:
       responses:
         '200':
           description: OK
+          headers:
+            Operation-ID:
+              schema:
+                type: string
+              description: Server-generated authorization operation ID in transaction mode
+            Operation-Location:
+              schema:
+                type: string
+              description: Authorized operation status URL
           content:
             application/json:
               schema:
@@ -274,6 +467,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse'
+        '409':
+          description: Different input for the same key, or an aborted operation
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
         '503':
           description: Authorization policy unavailable (103002)
           content:
@@ -322,6 +523,12 @@ paths:
         required: true
         schema:
           type: string
+      - name: Idempotency-Key
+        in: header
+        description: Optional key; same principal/scope/operation and input returns the original result. Transaction mode
+          required.
+        schema:
+          type: string
       requestBody:
         required: true
         content:
@@ -331,6 +538,15 @@ paths:
       responses:
         '200':
           description: OK
+          headers:
+            Operation-ID:
+              schema:
+                type: string
+              description: Server-generated authorization operation ID in transaction mode
+            Operation-Location:
+              schema:
+                type: string
+              description: Authorized operation status URL
           content:
             application/json:
               schema:
@@ -346,6 +562,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse'
+        '409':
+          description: Different input for the same key, or an aborted operation
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
         '503':
           description: Authorization policy unavailable (103002)
           content:
@@ -364,9 +588,24 @@ paths:
         required: true
         schema:
           type: string
+      - name: Idempotency-Key
+        in: header
+        description: Optional key; same principal/scope/operation and input returns the original result. Transaction mode
+          required.
+        schema:
+          type: string
       responses:
         '200':
           description: OK
+          headers:
+            Operation-ID:
+              schema:
+                type: string
+              description: Server-generated authorization operation ID in transaction mode
+            Operation-Location:
+              schema:
+                type: string
+              description: Authorized operation status URL
           content:
             application/json:
               schema:
@@ -377,6 +616,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse'
+        '409':
+          description: Different input for the same key, or an aborted operation
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
         '503':
           description: Authorization policy unavailable (103002)
           content:
@@ -538,6 +785,13 @@ paths:
       tags:
       - Authorization-Roles
       summary: 创建角色
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        description: Optional key; same principal/scope/operation and input returns the original result. Transaction mode
+          required.
+        schema:
+          type: string
       requestBody:
         required: true
         content:
@@ -547,6 +801,15 @@ paths:
       responses:
         '200':
           description: OK
+          headers:
+            Operation-ID:
+              schema:
+                type: string
+              description: Server-generated authorization operation ID in transaction mode
+            Operation-Location:
+              schema:
+                type: string
+              description: Authorized operation status URL
           content:
             application/json:
               schema:
@@ -556,6 +819,14 @@ paths:
                     data:
                       $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RoleResponse'
                   type: object
+        '409':
+          description: Different input for the same key, or an aborted operation
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
         '503':
           description: Authorization policy unavailable (103002)
           content:
@@ -610,6 +881,12 @@ paths:
         required: true
         schema:
           type: string
+      - name: Idempotency-Key
+        in: header
+        description: Optional key; same principal/scope/operation and input returns the original result. Transaction mode
+          required.
+        schema:
+          type: string
       requestBody:
         required: true
         content:
@@ -619,6 +896,15 @@ paths:
       responses:
         '200':
           description: OK
+          headers:
+            Operation-ID:
+              schema:
+                type: string
+              description: Server-generated authorization operation ID in transaction mode
+            Operation-Location:
+              schema:
+                type: string
+              description: Authorized operation status URL
           content:
             application/json:
               schema:
@@ -628,6 +914,14 @@ paths:
                     data:
                       $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RoleResponse'
                   type: object
+        '409':
+          description: Different input for the same key, or an aborted operation
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
         '503':
           description: Authorization policy unavailable (103002)
           content:
@@ -645,13 +939,36 @@ paths:
         required: true
         schema:
           type: string
+      - name: Idempotency-Key
+        in: header
+        description: Optional key; same principal/scope/operation and input returns the original result. Transaction mode
+          required.
+        schema:
+          type: string
       responses:
         '200':
           description: OK
+          headers:
+            Operation-ID:
+              schema:
+                type: string
+              description: Server-generated authorization operation ID in transaction mode
+            Operation-Location:
+              schema:
+                type: string
+              description: Authorized operation status URL
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response'
+        '409':
+          description: Different input for the same key, or an aborted operation
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
         '503':
           description: Authorization policy unavailable (103002)
           content:
@@ -726,6 +1043,46 @@ paths:
                 $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse'
 components:
   schemas:
+    github_com_FangcunMount_iam_v2_internal_apiserver_application_authz_operation.Phases:
+      properties:
+        final:
+          $ref: '#/components/schemas/transaction.FinalOutcome'
+        half:
+          $ref: '#/components/schemas/transaction.HalfOutcome'
+        local:
+          $ref: '#/components/schemas/transaction.LocalOutcome'
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_application_authz_operation.QueryView:
+      properties:
+        changed:
+          type: boolean
+        issue:
+          type: string
+        operation:
+          type: string
+        operation_id:
+          type: string
+        phases:
+          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_application_authz_operation.Phases'
+        policy_version:
+          type: integer
+        result:
+          items:
+            type: integer
+          type: array
+        state:
+          $ref: '#/components/schemas/github_com_FangcunMount_iam_v2_internal_apiserver_application_authz_operation.State'
+      type: object
+    github_com_FangcunMount_iam_v2_internal_apiserver_application_authz_operation.State:
+      enum:
+      - prepared
+      - committed
+      - aborted
+      type: string
+      x-enum-varnames:
+      - Prepared
+      - Committed
+      - Aborted
     github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.AssignmentResponse:
       properties:
         granted_by:
@@ -994,6 +1351,42 @@ components:
           - 1
           type: integer
       type: object
+    transaction.FinalOutcome:
+      enum:
+      - not_attempted
+      - commit_confirmed
+      - rollback_confirmed
+      - unknown
+      type: string
+      x-enum-varnames:
+      - FinalNotAttempted
+      - FinalCommitConfirmed
+      - FinalRollbackConfirmed
+      - FinalUnknown
+    transaction.HalfOutcome:
+      enum:
+      - not_attempted
+      - prepared
+      - rejected
+      - unknown
+      type: string
+      x-enum-varnames:
+      - HalfNotAttempted
+      - HalfPrepared
+      - HalfRejected
+      - HalfUnknown
+    transaction.LocalOutcome:
+      enum:
+      - not_started
+      - committed
+      - aborted
+      - unknown
+      type: string
+      x-enum-varnames:
+      - LocalNotStarted
+      - LocalCommitted
+      - LocalAborted
+      - LocalUnknown
 tags:
 - name: Authorization-Assignments
 - name: Authorization-Grants
@@ -1002,3 +1395,4 @@ tags:
 - name: Authorization-Role-Inheritances
 - name: AuthZ
 - name: Authorization-Inheritance
+- name: Authorization-Operations
