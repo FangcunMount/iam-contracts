@@ -2,6 +2,7 @@ package authorization
 
 import (
 	"context"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
@@ -17,6 +18,9 @@ func (s *DecisionService) RequireCatalogWrite(ctx context.Context, actor subject
 	}
 	decision, err := s.Check(ctx, request)
 	if err != nil {
+		return err
+	}
+	if err = policychange.RequireDecisionVersion(ctx, decision.PolicyVersion); err != nil {
 		return err
 	}
 	if !decision.Allowed {

@@ -110,3 +110,10 @@ func TestOpaqueAssignmentScopeCannotDisappearFromTheInputHash(t *testing.T) {
 	require.Equal(t, a.Key(), b.Key())
 	require.NotEqual(t, a.InputHash(), b.InputHash())
 }
+
+func TestBusinessInputDoesNotSilentlyReplaceInvalidUTF8(t *testing.T) {
+	for _, input := range []any{map[string]string{"name": string([]byte{'a', 255})}, map[string]string{string([]byte{255}): "value"}} {
+		_, err := NewCommandIntent("role.update", "user:7", "global", "key", input)
+		require.ErrorIs(t, err, ErrInvalidChangePlan)
+	}
+}

@@ -135,3 +135,9 @@ func (r *RoleRepository) List(ctx context.Context, offset, limit int) ([]*domain
 
 	return roles, total, nil
 }
+
+func (r *RoleRepository) ExistsByName(ctx context.Context, name string) (bool, error) {
+	var count int64
+	err := r.WithContext(ctx).Model(&RolePO{}).Where("name = ?", name).Count(&count).Error
+	return count > 0, err
+}

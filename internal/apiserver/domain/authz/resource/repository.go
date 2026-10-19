@@ -24,3 +24,8 @@ type Repository interface {
 	// ValidateAction 校验动作是否在资源的允许列表中
 	ValidateAction(ctx context.Context, resourceKey, action string) (bool, error)
 }
+
+// KeyInspector reads the unique-key precondition without leaking ORM sentinels.
+type KeyInspector interface {
+	ExistsByKey(context.Context, string) (bool, error)
+}

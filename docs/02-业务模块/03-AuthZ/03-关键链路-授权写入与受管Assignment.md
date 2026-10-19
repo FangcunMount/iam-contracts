@@ -210,3 +210,9 @@ sequenceDiagram
 `FreezeVersionPlan` 接受只读规划确认的原版本，冻结下一版本、首次事件身份/时间和原revision1 wire；重复请求从 reservation 赢家解码。原执行上下文复用首次事件，拒绝错误目标版本。`IncrementExpected` 只在原 MySQL SQL root 上执行精确 CAS，不初始化缺失行，不另选版本，也不在 ORM hook 中重新生成时钟。该 CAS 与业务条件、SDK guard/witness 的完整装配及所有活动写入口迁移仍由 M3-T05/T06 推进，不能仅调用规划函数就宣称已启用事务消息。
 
 真实安装后的并发CAS/回滚验证由隔离 MySQL 门禁执行；新增原生用例当前仅在本机编译，运行结果须单独记录。当前进度和源码证据统一见 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)。SDK 预发布保持固定，生产仍沿原消息链路。
+
+规划适配增加显式 `WriteRequest` 和新鲜的 MySQL `ReadPlan` 只读根事务。角色/资源六个入口声明固定操作、权限、作用域、显式业务输入及预览条件；更新请求复制指针和数组，预览无变化时返回原结果。已配置的规划执行器出错不会回落旧 UoW；既有装配继续使用原 UoW，完整 Sender/guard 装配仍属后续接入。
+
+只读预览和原执行中的权限判定必须使用冻结版本：缓存 ALLOW 的 `Decision.PolicyVersion` 与权威规划版本不相同即冲突，不能用旧版本允许一次新写入。原事务重新校验原操作权限及业务条件。只读快照不提供事件 Stager，不能借用调用方已有事务快照，也不构成半消息或提交证明。
+
+源码测试已覆盖角色/资源无变化不发事件、请求可变参数隔离、旧缓存 ALLOW 拒绝，以及规划失败不回落。首批精确 CAS/原事务 witness 在源码 `8e6f989b` 的三档 MySQL 门禁通过；新增物理只读规划用例仍待其对应候选 CI，不能将前一候选的结果覆盖到新代码。

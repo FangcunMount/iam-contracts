@@ -12,6 +12,7 @@ import (
 )
 
 type executionPlanKey struct{}
+type readVersionKey struct{}
 
 // WithExecutionPlan is used by the host executor after acquiring the original
 // root guard. Recovered/observed executions have no write capability and fail.
@@ -43,4 +44,28 @@ func (p VersionPlan) event() (event.DomainEvent, error) {
 		return nil, ErrInvalidChangePlan
 	}
 	return event.Event[domain.VersionChangedPayload]{BaseEvent: event.BaseEvent{ID: in.ID, EventTypeValue: eventing.AuthzVersionChanged, OccurredAtValue: at, AggregateTypeValue: "PolicyVersion", AggregateIDValue: strconv.FormatInt(p.Target, 10)}, Data: domain.VersionChangedPayload{Version: p.Target}}, nil
+}
+
+// RequireDecisionVersion prevents a cached ALLOW from authorizing a write whose
+// frozen authoritative policy version is different. Legacy reads are unchanged.
+func RequireDecisionVersion(ctx context.Context, version int64) error {
+	expected := int64(0)
+	if plan, ok := ExecutionPlan(ctx); ok {
+		expected = plan.Expected
+	} else if ctx != nil {
+		expected, _ = ctx.Value(readVersionKey{}).(int64)
+	}
+	if expected > 0 && version != expected {
+		return domain.ErrStaleVersion
+	}
+	return nil
+}
+
+// WithReadVersion pins authorization decisions to the authoritative planning
+// snapshot. It grants no execution capability and cannot stage frozen events.
+func WithReadVersion(ctx context.Context, version int64) (context.Context, error) {
+	if ctx == nil || version < 1 {
+		return nil, ErrInvalidChangePlan
+	}
+	return context.WithValue(ctx, readVersionKey{}, version), nil
 }

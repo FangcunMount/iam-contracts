@@ -43,7 +43,12 @@ func (s *RoleCatalog) CreateRole(ctx context.Context, cmd CreateRoleCommand) (*r
 	if err != nil {
 		return nil, err
 	}
-	err = s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
+	err = authzuow.WithinWrite(ctx, s.uow, s.previewCreate(cmd, created), func(txCtx context.Context, tx authzuow.TxRepositories) error {
+		if _, planned := policychange.ExecutionPlan(txCtx); planned {
+			if err := s.guard.RequireOperation(txCtx, roleOperations, "create"); err != nil {
+				return err
+			}
+		}
 		if err := s.guard.Require(txCtx, &created); err != nil {
 			return err
 		}
@@ -70,8 +75,15 @@ func (s *RoleCatalog) UpdateRole(ctx context.Context, cmd UpdateRoleCommand) (*r
 	if err := s.validateChange(cmd.ChangedBy); err != nil {
 		return nil, err
 	}
+	cmd.DisplayName = cloneString(cmd.DisplayName)
+	cmd.Description = cloneString(cmd.Description)
 	var updated *roleDomain.Role
-	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
+	err := authzuow.WithinWrite(ctx, s.uow, s.previewUpdate(cmd, &updated), func(txCtx context.Context, tx authzuow.TxRepositories) error {
+		if _, planned := policychange.ExecutionPlan(txCtx); planned {
+			if err := s.guard.RequireOperation(txCtx, roleOperations, "update"); err != nil {
+				return err
+			}
+		}
 		var err error
 		updated, err = tx.Roles.FindByIDForUpdate(txCtx, cmd.ID)
 		if err != nil {
@@ -114,7 +126,12 @@ func (s *RoleCatalog) DeleteRole(ctx context.Context, cmd DeleteRoleCommand) err
 	if err := s.validateChange(cmd.ChangedBy); err != nil {
 		return err
 	}
-	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
+	err := authzuow.WithinWrite(ctx, s.uow, s.previewDelete(cmd), func(txCtx context.Context, tx authzuow.TxRepositories) error {
+		if _, planned := policychange.ExecutionPlan(txCtx); planned {
+			if err := s.guard.RequireOperation(txCtx, roleOperations, "delete"); err != nil {
+				return err
+			}
+		}
 		role, err := tx.Roles.FindByIDForUpdate(txCtx, cmd.ID)
 		if err != nil {
 			return err

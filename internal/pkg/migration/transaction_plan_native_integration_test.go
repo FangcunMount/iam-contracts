@@ -14,8 +14,10 @@ import (
 	"time"
 
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	appuow "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	policyrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
+	hostuow "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/uow/authz"
 	dbmysql "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 	txmysql "github.com/FangcunMount/reliable-messaging/storage/transaction/mysql"
 	"github.com/FangcunMount/reliable-messaging/transaction"
@@ -80,6 +82,36 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 	current, err := base.GetCurrent(t.Context())
 	if err != nil || current == nil {
 		t.Fatal("original policy fact missing", err)
+	}
+	boundary := hostuow.NewUnitOfWork(host, nil)
+	reader := boundary.(appuow.ReadOnlyPlanner)
+	snapshot, err := appuow.PrepareChange(t.Context(), reader, appuow.WriteRequest{Operation: "role.update", Scope: "global", Preview: func(ctx context.Context, repos appuow.TxRepositories) (bool, error) {
+		if repos.Events != nil {
+			return false, errors.New("read planning exposed an event stager")
+		}
+		tx, err := dbmysql.RequireTx(ctx)
+		if err != nil {
+			return false, err
+		}
+		raw, ok := tx.Statement.ConnPool.(*sql.Tx)
+		if !ok {
+			return false, errors.New("planning root missing")
+		}
+		_, err = raw.ExecContext(ctx, `UPDATE authz_policy_versions SET policy_version=policy_version+1 WHERE id=1`)
+		var denied *driver.MySQLError
+		if !errors.As(err, &denied) || denied.Number != 1792 {
+			return false, errors.New("database did not enforce read-only planning")
+		}
+		return false, nil
+	}})
+	if err != nil || snapshot.Changed || snapshot.Expected != current.Version {
+		t.Fatal("read-only no-op plan", snapshot, err)
+	}
+	err = boundary.WithinTx(t.Context(), func(active context.Context, _ appuow.TxRepositories) error {
+		return reader.ReadPlan(active, func(context.Context, appuow.TxRepositories) error { return errors.New("nested planning callback ran") })
+	})
+	if !errors.Is(err, dbmysql.ErrActiveTransactionRequired) {
+		t.Fatal("planning borrowed an existing snapshot", err)
 	}
 	binding := transaction.Binding{Owner: "iam.mysql", StoreID: "owned-primary", WriterEpoch: "m3-1"}
 	store, err := txmysql.New(db, binding)

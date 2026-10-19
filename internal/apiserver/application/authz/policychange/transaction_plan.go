@@ -40,7 +40,7 @@ func NewCommandIntent(operation, subject, scope, key string, input any) (Command
 		}
 	}
 	raw, err := json.Marshal(input)
-	if err != nil || len(raw) > 256*1024 || len(raw) == 0 || raw[0] != '{' || opaqueInput(reflect.ValueOf(input), 0) {
+	if err != nil || len(raw) > 256*1024 || len(raw) == 0 || !utf8.Valid(raw) || raw[0] != '{' || opaqueInput(reflect.ValueOf(input), 0) {
 		return CommandIntent{}, ErrInvalidChangePlan
 	}
 	// Store the original tuple, rather than using a digest as identity. JSON array
@@ -166,6 +166,8 @@ func opaqueInput(value reflect.Value, depth int) bool {
 		}
 	}
 	switch value.Kind() {
+	case reflect.String:
+		return !utf8.ValidString(value.String())
 	case reflect.Pointer:
 		if value.IsNil() {
 			return false
@@ -189,6 +191,9 @@ func opaqueInput(value reflect.Value, depth int) bool {
 		}
 	case reflect.Map:
 		for _, key := range value.MapKeys() {
+			if key.Kind() == reflect.String && !utf8.ValidString(key.String()) {
+				return true
+			}
 			if opaqueInput(value.MapIndex(key), depth+1) {
 				return true
 			}
