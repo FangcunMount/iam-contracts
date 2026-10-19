@@ -50,13 +50,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Verify organization public MySQL policy
+        env:
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+        run: bash scripts/cd/verify-mysql-public-env.sh
+
       - name: Backup Database
         uses: appleboy/ssh-action@v1.2.5
         env:
           IAM_DB_OPS_OPERATION: backup
           IAM_DB_OPS_ALLOW_DOCKER_CLIENT: "1"
-          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-          MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+          MYSQL_TLS_CA_FILE: /data/infra/ssl/mysql/ca-chain.pem
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
@@ -65,7 +76,7 @@ jobs:
           username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
           key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
           port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
-          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME
+          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,MYSQL_TLS_MODE,MYSQL_TLS_CA_FILE,MYSQL_TLS_CA_REF
           script_path: scripts/dbops/database-operation.sh
 
   db-restore:
@@ -77,14 +88,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Verify organization public MySQL policy
+        env:
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+        run: bash scripts/cd/verify-mysql-public-env.sh
+
       - name: Restore Database
         uses: appleboy/ssh-action@v1.2.5
         env:
           IAM_DB_OPS_OPERATION: restore
           IAM_DB_OPS_ALLOW_DOCKER_CLIENT: "1"
           IAM_DB_OPS_BACKUP_NAME: ${{ github.event.inputs.backup_name }}
-          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-          MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+          MYSQL_TLS_CA_FILE: /data/infra/ssl/mysql/ca-chain.pem
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
@@ -93,7 +115,7 @@ jobs:
           username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
           key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
           port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
-          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_BACKUP_NAME,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME
+          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_BACKUP_NAME,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,MYSQL_TLS_MODE,MYSQL_TLS_CA_FILE,MYSQL_TLS_CA_REF
           script_path: scripts/dbops/database-operation.sh
 
   db-status:
@@ -105,13 +127,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Verify organization public MySQL policy
+        env:
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+        run: bash scripts/cd/verify-mysql-public-env.sh
+
       - name: Check Database Status
         uses: appleboy/ssh-action@v1.2.5
         env:
           IAM_DB_OPS_OPERATION: status
           IAM_DB_OPS_ALLOW_DOCKER_CLIENT: "1"
-          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-          MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+          MYSQL_TLS_CA_FILE: /data/infra/ssl/mysql/ca-chain.pem
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
@@ -120,7 +153,7 @@ jobs:
           username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
           key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
           port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
-          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME
+          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,MYSQL_TLS_MODE,MYSQL_TLS_CA_FILE,MYSQL_TLS_CA_REF
           script_path: scripts/dbops/database-operation.sh
 
   db-controlled-operation:
@@ -137,13 +170,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Verify organization public MySQL policy
+        env:
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+        run: bash scripts/cd/verify-mysql-public-env.sh
+
       - name: Run controlled database operation
         uses: appleboy/ssh-action@v1.2.5
         env:
           IAM_DB_OPS_OPERATION: ${{ github.event.inputs.operation }}
           IAM_DB_OPS_ALLOW_DOCKER_CLIENT: "1"
-          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-          MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+          MYSQL_TLS_CA_FILE: /data/infra/ssl/mysql/ca-chain.pem
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
@@ -152,7 +196,7 @@ jobs:
           username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
           key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
           port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
-          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME
+          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,MYSQL_TLS_MODE,MYSQL_TLS_CA_FILE,MYSQL_TLS_CA_REF
           script_path: scripts/dbops/database-operation.sh
           command_timeout: 20m
 
@@ -170,13 +214,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Verify organization public MySQL policy
+        env:
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+        run: bash scripts/cd/verify-mysql-public-env.sh
+
       - name: Check active RoleBinding uniqueness
         uses: appleboy/ssh-action@v1.2.5
         env:
           IAM_DB_OPS_OPERATION: rolebinding-guard-preflight
           IAM_DB_OPS_ALLOW_DOCKER_CLIENT: "1"
-          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-          MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+          MYSQL_TLS_CA_FILE: /data/infra/ssl/mysql/ca-chain.pem
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
@@ -185,7 +240,7 @@ jobs:
           username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
           key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
           port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
-          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME
+          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,MYSQL_TLS_MODE,MYSQL_TLS_CA_FILE,MYSQL_TLS_CA_REF
           script_path: scripts/dbops/database-operation.sh
 
   db-global-identifier-guard-preflight:
@@ -202,13 +257,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Verify organization public MySQL policy
+        env:
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+        run: bash scripts/cd/verify-mysql-public-env.sh
+
       - name: Check AuthN global identifier migration eligibility
         uses: appleboy/ssh-action@v1.2.5
         env:
           IAM_DB_OPS_OPERATION: global-identifier-guard-preflight
           IAM_DB_OPS_ALLOW_DOCKER_CLIENT: "1"
-          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-          MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+          MYSQL_TLS_CA_FILE: /data/infra/ssl/mysql/ca-chain.pem
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
@@ -217,7 +283,7 @@ jobs:
           username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
           key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
           port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
-          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME
+          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,MYSQL_TLS_MODE,MYSQL_TLS_CA_FILE,MYSQL_TLS_CA_REF
           script_path: scripts/dbops/database-operation.sh
 
   db-rolebinding-deduplicate-dry-run:
@@ -234,13 +300,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Verify organization public MySQL policy
+        env:
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+        run: bash scripts/cd/verify-mysql-public-env.sh
+
       - name: Build deterministic candidate report
         uses: appleboy/ssh-action@v1.2.5
         env:
           IAM_DB_OPS_OPERATION: rolebinding-deduplicate-dry-run
           IAM_DB_OPS_ALLOW_DOCKER_CLIENT: "1"
-          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-          MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+          MYSQL_TLS_CA_FILE: /data/infra/ssl/mysql/ca-chain.pem
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
@@ -249,7 +326,7 @@ jobs:
           username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
           key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
           port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
-          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME
+          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,MYSQL_TLS_MODE,MYSQL_TLS_CA_FILE,MYSQL_TLS_CA_REF
           script_path: scripts/dbops/database-operation.sh
 
   db-rolebinding-deduplicate-apply:
@@ -266,6 +343,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Verify organization public MySQL policy
+        env:
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+        run: bash scripts/cd/verify-mysql-public-env.sh
+
       - name: Soft-delete the exact reviewed candidate set
         uses: appleboy/ssh-action@v1.2.5
         env:
@@ -274,8 +359,11 @@ jobs:
           IAM_DB_OPS_BACKUP_NAME: ${{ github.event.inputs.backup_name }}
           IAM_DB_OPS_ROLEBINDING_FINGERPRINT: ${{ github.event.inputs.candidate_fingerprint }}
           IAM_DB_OPS_ROLEBINDING_CANDIDATE_COUNT: ${{ github.event.inputs.candidate_count }}
-          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-          MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+          MYSQL_TLS_CA_FILE: /data/infra/ssl/mysql/ca-chain.pem
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}
@@ -284,5 +372,5 @@ jobs:
           username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
           key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
           port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
-          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,IAM_DB_OPS_BACKUP_NAME,IAM_DB_OPS_ROLEBINDING_FINGERPRINT,IAM_DB_OPS_ROLEBINDING_CANDIDATE_COUNT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME
+          envs: IAM_DB_OPS_OPERATION,IAM_DB_OPS_ALLOW_DOCKER_CLIENT,IAM_DB_OPS_BACKUP_NAME,IAM_DB_OPS_ROLEBINDING_FINGERPRINT,IAM_DB_OPS_ROLEBINDING_CANDIDATE_COUNT,MYSQL_HOST,MYSQL_PORT,MYSQL_USERNAME,MYSQL_PASSWORD,MYSQL_DBNAME,MYSQL_TLS_MODE,MYSQL_TLS_CA_FILE,MYSQL_TLS_CA_REF
           script_path: scripts/dbops/database-operation.sh
