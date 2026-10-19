@@ -25,13 +25,13 @@ func TestOperationHTTPDoesNotExposePrivateErrorsOrClaimRollbackOnUnknown(t *test
 		code   string
 	}{
 		{operation.ErrNotFound, 404, "operation_not_found"}, {operation.ErrAccessDenied, 403, "operation_access_denied"},
-		{operation.ErrInvalid, 400, "invalid_operation_id"}, {errors.New("private DSN wire token"), 503, "operation_status_unavailable"},
+		{operation.ErrInvalid, 503, "operation_evidence_unavailable"}, {errors.New("private DSN wire token"), 503, "operation_status_unavailable"},
 	} {
 		engine := gin.New()
 		h := NewOperationHandler(operationQueryFunc(func(context.Context, string) (operation.QueryView, error) { return operation.QueryView{}, tc.err }))
 		engine.GET("/operations/:operation_id", h.GetOperation)
 		response := httptest.NewRecorder()
-		engine.ServeHTTP(response, httptest.NewRequest("GET", "/operations/opaque", nil))
+		engine.ServeHTTP(response, httptest.NewRequest("GET", "/operations/f46ebdfd-c2a4-43b9-aafb-b98b9675505d", nil))
 		require.Equal(t, tc.status, response.Code)
 		require.Contains(t, response.Body.String(), tc.code)
 		require.NotContains(t, response.Body.String(), "private")

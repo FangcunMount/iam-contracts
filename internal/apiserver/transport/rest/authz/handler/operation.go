@@ -35,6 +35,10 @@ func NewOperationHandler(query OperationQuerier) *OperationHandler {
 // @Failure 503 {object} map[string]string
 // @Router /v4/authz/operations/{operation_id} [get]
 func (h *OperationHandler) GetOperation(c *gin.Context) {
+	if !operation.ValidID(c.Param("operation_id")) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": "invalid_operation_id"})
+		return
+	}
 	if h == nil || h.query == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"code": "operation_status_unavailable"})
 		return
@@ -47,7 +51,7 @@ func (h *OperationHandler) GetOperation(c *gin.Context) {
 		case errors.Is(err, operation.ErrAccessDenied):
 			c.JSON(http.StatusForbidden, gin.H{"code": "operation_access_denied"})
 		case errors.Is(err, operation.ErrInvalid):
-			c.JSON(http.StatusBadRequest, gin.H{"code": "invalid_operation_id"})
+			c.JSON(http.StatusServiceUnavailable, gin.H{"code": "operation_evidence_unavailable"})
 		default:
 			// Database, policy and protocol errors never expose driver details.
 			c.JSON(http.StatusServiceUnavailable, gin.H{"code": "operation_status_unavailable"})

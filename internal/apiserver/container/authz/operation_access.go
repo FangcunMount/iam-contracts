@@ -48,3 +48,9 @@ func (a operationAccess) Require(ctx context.Context, scope string, permissions 
 		return nil
 	})
 }
+
+// NewOperationAccessPolicy performs no I/O. QueryService owns the bounded
+// request lifetime; this policy borrows the host's primary read boundary.
+func NewOperationAccessPolicy(reader uow.ReadOnlyPlanner, guard management.Guard) operation.AccessPolicy {
+	return operationAccess{reader: reader, guard: guard}
+}

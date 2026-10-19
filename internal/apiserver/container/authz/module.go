@@ -86,7 +86,7 @@ func (m *AuthzModule) InitializeWithDeps(deps AuthzModuleDeps) error {
 		if !ok {
 			return operation.ErrInvalid
 		}
-		m.operations, err = factory.NewOperationQuery(operationAccess{reader: reader, guard: management.NewGuard(infra.authorizationRuntime)})
+		m.operations, err = factory.NewOperationQuery(NewOperationAccessPolicy(reader, management.NewGuard(infra.authorizationRuntime)))
 		if err != nil {
 			return err
 		}
