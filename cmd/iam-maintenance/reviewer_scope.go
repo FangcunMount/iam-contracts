@@ -9,13 +9,14 @@ import (
 	"time"
 
 	crypto "github.com/FangcunMount/iam/v5/internal/apiserver/infra/crypto"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/eventoutbox"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/accountprovision"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
 )
 
 func runReviewerScope(args []string, output io.Writer) error {
+	var protocolErr error
 	if len(args) == 0 || (args[0] != "preflight" && args[0] != "apply") {
 		return errors.New("reviewer-scope requires preflight or apply")
 	}
@@ -26,7 +27,8 @@ func runReviewerScope(args []string, output io.Writer) error {
 	orgRaw := f.String("org-id", "", "QS verified common company")
 	fingerprint := f.String("fingerprint", "", "reviewed authorization facts")
 	catalog := f.String("event-catalog", "configs/events.yaml", "event catalog")
-	outboxMode := f.String("outbox-mode", "", "standard only; explicit selection required, legacy writer retired")
+	outboxMode := f.String("outbox-mode", "", "explicit standard or transaction protocol")
+	transactionConfig := f.String("transaction-messaging-config", "", "explicit host-owned RocketMQ transaction options JSON")
 	if err := f.Parse(args[1:]); err != nil || f.NArg() != 0 {
 		return errors.New("invalid reviewer scope arguments")
 	}
@@ -51,7 +53,7 @@ func runReviewerScope(args []string, output io.Writer) error {
 	if err != nil {
 		return errors.New("IAM database unavailable")
 	}
-	defer func() { _ = pool.Close() }()
+	defer func() { closeMaintenancePool(pool, protocolErr) }()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 	hasher := crypto.NewArgon2Hasher("")
@@ -63,11 +65,12 @@ func runReviewerScope(args []string, output io.Writer) error {
 		if e != nil {
 			return errors.New("valid event catalog required")
 		}
-		stager, gateErr := eventoutbox.NewMaintenanceStager(ctx, db, eventcatalog.NewCatalog(cfg), *outboxMode)
-		err = gateErr
-		if err == nil {
-			report, err = accountprovision.ReviewerScopeApply(ctx, db, input, hasher, org, *fingerprint, stager)
-		}
+		err = withMaintenanceStager(ctx, db, eventcatalog.NewCatalog(cfg), *outboxMode, *transactionConfig, func(stager event.Stager) error {
+			var businessErr error
+			report, businessErr = accountprovision.ReviewerScopeApply(ctx, db, input, hasher, org, *fingerprint, stager)
+			return businessErr
+		})
+		protocolErr = err
 	}
 	evidence := struct {
 		Report accountprovision.ReviewerScopeReport `json:"report"`
@@ -75,7 +78,9 @@ func runReviewerScope(args []string, output io.Writer) error {
 	}{Report: report}
 	if err != nil {
 		evidence.Error = err.Error()
-		evidence.Report.State = "unconfirmed"
+		if !maintenanceBusinessSucceeded(err) {
+			evidence.Report.State = "unconfirmed"
+		}
 	}
 	if e := json.NewEncoder(file).Encode(evidence); e != nil {
 		return errors.New("cannot save private scope evidence; inspect before retry")

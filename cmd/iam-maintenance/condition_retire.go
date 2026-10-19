@@ -7,12 +7,13 @@ import (
 	"io"
 	"time"
 
-	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/eventoutbox"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/conditionretire"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
 )
 
 func runConditionRetirement(args []string, output io.Writer) error {
+	var protocolErr error
 	if len(args) == 0 {
 		return errors.New("condition-authz-retire requires status, preflight, apply, verify, or rollback")
 	}
@@ -27,7 +28,8 @@ func runConditionRetirement(args []string, output io.Writer) error {
 	fp := f.String("fingerprint", "", "reviewed preflight fingerprint")
 	stopped := f.Bool("writes-stopped", false, "authorization writers and affected operations are stopped")
 	catalog := f.String("event-catalog", "configs/events.yaml", "durable event catalog")
-	outboxMode := f.String("outbox-mode", "", "standard only; explicit selection required, legacy writer retired")
+	outboxMode := f.String("outbox-mode", "", "explicit standard or transaction protocol")
+	transactionConfig := f.String("transaction-messaging-config", "", "explicit host-owned RocketMQ transaction options JSON")
 	timeout := f.Duration("timeout", time.Minute, "operation timeout")
 	if err := f.Parse(args[1:]); err != nil {
 		return err
@@ -46,7 +48,7 @@ func runConditionRetirement(args []string, output io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = pool.Close() }()
+	defer func() { closeMaintenancePool(pool, protocolErr) }()
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	var report conditionretire.Report
@@ -62,18 +64,19 @@ func runConditionRetirement(args []string, output io.Writer) error {
 		if e != nil {
 			return e
 		}
-		stager, gateErr := eventoutbox.NewMaintenanceStager(ctx, db, eventcatalog.NewCatalog(cfg), *outboxMode)
-		if gateErr != nil {
-			return gateErr
-		}
-		if mode == "apply" {
-			_, err = conditionretire.Apply(ctx, db, stager, *fp, *stopped)
-		} else {
-			_, err = conditionretire.Rollback(ctx, db, stager, *fp, *stopped)
-		}
-		if err == nil {
-			report, err = conditionretire.Status(ctx, db)
-		}
+		err = withMaintenanceStager(ctx, db, eventcatalog.NewCatalog(cfg), *outboxMode, *transactionConfig, func(stager event.Stager) error {
+			var businessErr error
+			if mode == "apply" {
+				_, businessErr = conditionretire.Apply(ctx, db, stager, *fp, *stopped)
+			} else {
+				_, businessErr = conditionretire.Rollback(ctx, db, stager, *fp, *stopped)
+			}
+			if businessErr == nil {
+				report, businessErr = conditionretire.Status(ctx, db)
+			}
+			return businessErr
+		})
+		protocolErr = err
 	}
 	if e := writeJSON(output, report); e != nil {
 		return e

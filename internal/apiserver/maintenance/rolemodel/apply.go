@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzaudit"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	"reflect"
 	"time"
@@ -109,7 +110,11 @@ func Apply(ctx context.Context, iam, qs *gorm.DB, stager event.Stager, fingerpri
 		if err = verifyPlan(after, plan); err != nil {
 			return err
 		}
-		receipt = Receipt{MigrationID: MigrationID, Fingerprint: fingerprint, AfterHash: after.Hash(), Status: "applied", BeforeJSON: encode(before), AfterJSON: encode(after), PlanJSON: encode(plan), CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()}
+		now, err := authzaudit.Time(txCtx)
+		if err != nil {
+			return err
+		}
+		receipt = Receipt{MigrationID: MigrationID, Fingerprint: fingerprint, AfterHash: after.Hash(), Status: "applied", BeforeJSON: encode(before), AfterJSON: encode(after), PlanJSON: encode(plan), CreatedAt: now.UTC(), UpdatedAt: now.UTC()}
 		return tx.Create(&receipt).Error
 	})
 	return &receipt, err
@@ -134,7 +139,11 @@ func advance(ctx context.Context, tx *gorm.DB, stager event.Stager, reason strin
 	return change.StagePolicyVersionChanged(ctx, stager, v)
 }
 func applyPlan(ctx context.Context, tx *gorm.DB, before State, p Plan) error {
-	now := time.Now().UTC()
+	now, err := authzaudit.Time(ctx)
+	if err != nil {
+		return err
+	}
+	now = now.UTC()
 	roles := map[string]rolepo.RolePO{}
 	resources := map[string]resourcepo.ResourcePO{}
 	for _, r := range before.Roles {
@@ -386,7 +395,11 @@ func Rollback(ctx context.Context, db *gorm.DB, stager event.Stager, fingerprint
 			return err
 		}
 		r.Status = "rolled_back"
-		r.UpdatedAt = time.Now().UTC()
+		now, err := authzaudit.Time(txCtx)
+		if err != nil {
+			return err
+		}
+		r.UpdatedAt = now.UTC()
 		return tx.Save(&r).Error
 	})
 	return &r, err

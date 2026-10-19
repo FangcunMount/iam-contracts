@@ -6,14 +6,15 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/eventoutbox"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/operationscatalog"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
 	"io"
 	"time"
 )
 
 func runOperationsCatalog(args []string, output io.Writer) error {
+	var protocolErr error
 	if len(args) == 0 || (args[0] != "preflight" && args[0] != "apply") {
 		return errors.New("statistics-operations requires preflight or apply")
 	}
@@ -24,7 +25,8 @@ func runOperationsCatalog(args []string, output io.Writer) error {
 	paused := f.Bool("writes-stopped", false, "authorization writes are paused")
 	path := f.String("report", "", "new restricted report path")
 	catalog := f.String("event-catalog", "configs/events.yaml", "event catalog")
-	outboxMode := f.String("outbox-mode", "", "standard only; explicit selection required, legacy writer retired")
+	outboxMode := f.String("outbox-mode", "", "explicit standard or transaction protocol")
+	transactionConfig := f.String("transaction-messaging-config", "", "explicit host-owned RocketMQ transaction options JSON")
 	if e := f.Parse(args[1:]); e != nil {
 		return e
 	}
@@ -44,7 +46,7 @@ func runOperationsCatalog(args []string, output io.Writer) error {
 	if e != nil {
 		return e
 	}
-	defer func() { _ = pool.Close() }()
+	defer func() { closeMaintenancePool(pool, protocolErr) }()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	var report operationscatalog.Report
@@ -55,11 +57,12 @@ func runOperationsCatalog(args []string, output io.Writer) error {
 		if err != nil {
 			return err
 		}
-		stager, gateErr := eventoutbox.NewMaintenanceStager(ctx, db, eventcatalog.NewCatalog(cfg), *outboxMode)
-		e = gateErr
-		if e == nil {
-			report, e = operationscatalog.Apply(ctx, db, stager, *fp, *actor, *paused)
-		}
+		e = withMaintenanceStager(ctx, db, eventcatalog.NewCatalog(cfg), *outboxMode, *transactionConfig, func(stager event.Stager) error {
+			var businessErr error
+			report, businessErr = operationscatalog.Apply(ctx, db, stager, *fp, *actor, *paused)
+			return businessErr
+		})
+		protocolErr = e
 	}
 	receipt := struct {
 		Report operationscatalog.Report `json:"report"`

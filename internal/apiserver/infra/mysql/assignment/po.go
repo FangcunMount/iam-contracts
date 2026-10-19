@@ -1,6 +1,9 @@
 package assignment
 
 import (
+	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzaudit"
+	"strconv"
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
@@ -35,6 +38,12 @@ func (AssignmentPO) TableName() string {
 
 // BeforeCreate 在创建前设置信息
 func (p *AssignmentPO) BeforeCreate(tx *gorm.DB) error {
+	if handled, err := authzaudit.Create(tx.Statement.Context, change.ArtifactKey("assignment", p.SubjectType, p.SubjectID, strconv.FormatUint(p.RoleID, 10), strconv.FormatUint(p.OrgID, 10)), &p.AuditFields); handled || err != nil {
+		if err == nil {
+			p.GrantedAt = p.CreatedAt
+		}
+		return err
+	}
 	now := time.Now()
 	id := meta.FromUint64(idutil.GetIntID()) // 新生成的 ID 必定有效
 	createdBy := base.UserIDOrZero(tx.Statement.Context)
@@ -53,6 +62,9 @@ func (p *AssignmentPO) BeforeCreate(tx *gorm.DB) error {
 
 // BeforeUpdate 在更新前设置信息
 func (a *AssignmentPO) BeforeUpdate(tx *gorm.DB) error {
+	if handled, err := authzaudit.Update(tx.Statement.Context, &a.AuditFields); handled || err != nil {
+		return err
+	}
 	a.UpdatedAt = time.Now()
 
 	updatedBy := base.UserIDOrZero(tx.Statement.Context)

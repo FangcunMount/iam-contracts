@@ -22,7 +22,7 @@ func cloneString(value *string) *string {
 	return &copy
 }
 func (s *ResourceCatalog) previewCreate(cmd CreateResourceCommand, created domain.Resource) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "resource.create", Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: resourceOperations, PermissionActions: []string{"create"}, Input: map[string]any{"actor": cmd.Actor.String(), "changed_by": cmd.ChangedBy, "key": created.KeyString(), "display_name": created.DisplayName, "description": created.Description, "actions": created.ActionStrings(), "app": created.AppName, "domain": created.Domain, "type": created.Type}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	return uow.WriteRequest{Operation: "resource.create", Freeze: change.AllocateKeys(change.ArtifactKey("resource", created.KeyString())), Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: resourceOperations, PermissionActions: []string{"create"}, Input: map[string]any{"actor": cmd.Actor.String(), "changed_by": cmd.ChangedBy, "key": created.KeyString(), "display_name": created.DisplayName, "description": created.Description, "actions": created.ActionStrings(), "app": created.AppName, "domain": created.Domain, "type": created.Type}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		if err := s.requireWrite(ctx, cmd.Actor, "create"); err != nil {
 			return false, err
 		}

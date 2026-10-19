@@ -9,7 +9,10 @@ import (
 )
 
 func (s *apiServer) reliableMessagingEnabled() bool {
-	return s != nil && s.cfg != nil && s.cfg.Options != nil && s.cfg.Events != nil && s.cfg.Events.ReliableMessaging.Enabled
+	if s == nil || s.cfg == nil || s.cfg.Options == nil {
+		return false
+	}
+	return len(s.cfg.Messaging.Transactions) > 0 || (s.cfg.Events != nil && s.cfg.Events.ReliableMessaging.Enabled)
 }
 
 // component-base's POSIX manager otherwise exits 0 after callback errors. A

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/rolemodel"
@@ -30,7 +31,8 @@ func readSnapshot(ctx context.Context, tx, qs *gorm.DB) (Snapshot, error) {
 	return Snapshot{IAM: state, QS: facts}, err
 }
 func applyRequest(qs *gorm.DB, id, actor, fp string, input Input, result **Receipt) policywrite.Request {
-	return policywrite.Request{Operation: "maintenance.scope.apply", ChangedBy: "user:" + actor, Input: map[string]any{"migration_id": id, "actor": actor, "fingerprint": fp, "mapping": input}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
+	var createKeys []string
+	return policywrite.Request{Operation: "maintenance.scope.apply", Freeze: func(b *change.ArtifactBuilder) error { return change.AllocateKeys(createKeys...)(b) }, ChangedBy: "user:" + actor, Input: map[string]any{"migration_id": id, "actor": actor, "fingerprint": fp, "mapping": input}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
 		before, err := readSnapshot(ctx, tx, qs)
 		if err != nil {
 			return false, err
@@ -57,6 +59,14 @@ func applyRequest(qs *gorm.DB, id, actor, fp string, input Input, result **Recei
 		}
 		if plan.Fingerprint != fp {
 			return false, fmt.Errorf("reviewed facts changed")
+		}
+		createKeys = nil
+		for _, c := range plan.Changes {
+			for i, target := range c.Targets {
+				if i > 0 {
+					createKeys = append(createKeys, change.ArtifactKey("assignment", "user", c.SubjectID, c.RoleID, target.OrgID))
+				}
+			}
 		}
 		return true, nil
 	}}

@@ -3,6 +3,10 @@ package operationscatalog
 import (
 	"context"
 	"fmt"
+	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	grant "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/rolemodel"
@@ -21,7 +25,32 @@ func requireActor(tx *gorm.DB, actor string) error {
 	return nil
 }
 func applyRequest(fp, actor string, result *Report) policywrite.Request {
-	return policywrite.Request{Operation: "maintenance.operations_catalog.apply", ChangedBy: "user:" + actor, Input: map[string]any{"resource_key": ResourceKey, "actor_id": actor, "fingerprint": fp}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
+	var planned Report
+	var state rolemodel.State
+	return policywrite.Request{Operation: "maintenance.operations_catalog.apply", Freeze: func(b *change.ArtifactBuilder) error {
+		id, err := meta.ParseID(planned.ResourceID)
+		if planned.CreateResource {
+			id, err = b.ID(change.ArtifactKey("resource", ResourceKey))
+		}
+		if err != nil {
+			return err
+		}
+		for _, name := range planned.MissingRoles {
+			for _, r := range state.Roles {
+				if r.Name != name || r.DeletedAt != nil {
+					continue
+				}
+				g, e := grant.New(r.ID, resource.NewResourceID(id.Uint64()), ResourceKey, "read", "user:"+actor)
+				if e != nil {
+					return e
+				}
+				if _, e = b.ID(change.ArtifactKey("grant", g.GrantKey)); e != nil {
+					return e
+				}
+			}
+		}
+		return nil
+	}, ChangedBy: "user:" + actor, Input: map[string]any{"resource_key": ResourceKey, "actor_id": actor, "fingerprint": fp}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
 		before, err := rolemodel.LoadState(ctx, tx)
 		if err != nil {
 			return false, err
@@ -40,6 +69,7 @@ func applyRequest(fp, actor string, result *Report) policywrite.Request {
 			*result = plan
 			return false, nil
 		}
+		planned, state = plan, before
 		return true, nil
 	}}
 }

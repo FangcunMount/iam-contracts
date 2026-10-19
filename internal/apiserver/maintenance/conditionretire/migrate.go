@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzaudit"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	"time"
 
@@ -171,6 +172,11 @@ func mutate(ctx context.Context, db *gorm.DB, stager event.Stager, fp string, st
 		if err != nil {
 			return err
 		}
+		now, err := authzaudit.Time(txCtx)
+		if err != nil {
+			return err
+		}
+		now = now.UTC()
 		q := tx.Table("authz_policy_versions")
 		if tx.Dialector.Name() != "sqlite" {
 			q = q.Clauses(clause.Locking{Strength: "UPDATE"})
@@ -197,7 +203,7 @@ func mutate(ctx context.Context, db *gorm.DB, stager event.Stager, fp string, st
 				if err = advance(txCtx, tx, stager, "condition retirement rolled back"); err != nil {
 					return err
 				}
-				if err = tx.Model(&Receipt{}).Where("migration_id = ?", MigrationID).Updates(map[string]any{"status": "rolled_back", "updated_at": time.Now().UTC()}).Error; err != nil {
+				if err = tx.Model(&Receipt{}).Where("migration_id = ?", MigrationID).Updates(map[string]any{"status": "rolled_back", "updated_at": now}).Error; err != nil {
 					return err
 				}
 				receipt.Status = "rolled_back"
@@ -234,7 +240,6 @@ func mutate(ctx context.Context, db *gorm.DB, stager event.Stager, fp string, st
 		if check.Validate() != nil || len(check.Grants) != 0 || len(check.Resources) != 0 {
 			return fmt.Errorf("conditional facts remain after retirement")
 		}
-		now := time.Now().UTC()
 		result = &Receipt{MigrationID: MigrationID, Fingerprint: fp, AfterHash: after.Hash(), Status: "applied", BeforeJSON: encode(before), AfterJSON: encode(after), PlanJSON: encode(p), CreatedAt: now, UpdatedAt: now}
 		return tx.Create(result).Error
 	})
@@ -251,7 +256,11 @@ func advance(ctx context.Context, tx *gorm.DB, stager event.Stager, reason strin
 	return change.StagePolicyVersionChanged(ctx, stager, v)
 }
 func apply(tx *gorm.DB, s rolemodel.State, p Plan) error {
-	now := time.Now().UTC()
+	now, err := authzaudit.Time(tx.Statement.Context)
+	if err != nil {
+		return err
+	}
+	now = now.UTC()
 	grants := map[string]grantpo.GrantPO{}
 	for _, g := range s.Grants {
 		grants[g.ID.String()] = g
@@ -299,7 +308,11 @@ func restore(tx *gorm.DB, r *Receipt) error {
 	for _, g := range before.Grants {
 		old[g.ID.String()] = g
 	}
-	now := time.Now().UTC()
+	now, err := authzaudit.Time(tx.Statement.Context)
+	if err != nil {
+		return err
+	}
+	now = now.UTC()
 	// Revoke new rows first to release the active unique key. Never delete audit rows.
 	for _, g := range after.Grants {
 		if _, exists := old[g.ID.String()]; !exists {

@@ -17,6 +17,7 @@ import (
 	appuow "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	policyrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
+	rolepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
 	hostuow "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/uow/authz"
 	dbmysql "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 	txmysql "github.com/FangcunMount/reliable-messaging/storage/transaction/mysql"
@@ -72,7 +73,7 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 	}
 	defer migrationPool.Close()
 	version, _, err := NewMigrator(migrationPool, &Config{Enabled: true, Database: name, FreshStages: freshStagesForTest(t, host)}).Run()
-	if err != nil || version != 42 {
+	if err != nil || version != 43 {
 		t.Fatal("full original host schema", version, err)
 	}
 	if err = db.PingContext(t.Context()); err != nil {
@@ -121,6 +122,7 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 	if _, err = db.ExecContext(t.Context(), `INSERT INTO rm_tx_binding VALUES(?,?,?,1)`, []byte(binding.Owner), []byte(binding.StoreID), []byte(binding.WriterEpoch)); err != nil {
 		t.Fatal(err)
 	}
+	selectOwnedTransactionProtocol(t, db, binding)
 	planned := base.(domain.PlannedRepository)
 	at := time.Date(2026, 10, 19, 12, 0, 0, 0, time.UTC)
 	if _, err = planned.IncrementExpected(t.Context(), current.Version, "system", "reject pool", at); !errors.Is(err, dbmysql.ErrActiveTransactionRequired) {
@@ -279,5 +281,180 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 	}
 	if checker.Check(t.Context(), r.Execution.References()[0]) != transaction.Unknown {
 		t.Fatal("rollback fabricated witness")
+	}
+	t.Run("guarded-host-root", func(t *testing.T) { testM3GuardedLocalRoot(t, host, binding) })
+	t.Run("planned-host-entries", func(t *testing.T) { testM3PlannedHostEntries(t, host, binding) })
+	t.Run("protocol-selection", func(t *testing.T) { testM3ProtocolSelection(t, host, binding) })
+}
+
+// This proves the host original-root executor against real MySQL. Half receipts
+// are installed explicitly as a storage fixture; it is not Broker E2E evidence.
+func testM3GuardedLocalRoot(t *testing.T, host *gorm.DB, binding transaction.Binding) {
+	t.Helper()
+	local, err := hostuow.NewTransactionUnitOfWork(host, nil, binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = host.Exec("CREATE TABLE iam_m3_local_facts (operation_id VARBINARY(128) PRIMARY KEY)").Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name                 string
+		prepare, event, fail bool
+		commit               bool
+	}{
+		{"all-halves-and-exact-event", true, true, false, true},
+		{"frozen-role-id-and-audit", true, true, false, true},
+		{"unprepared-half-never-starts-business", false, true, false, false},
+		{"missing-event-rolls-back-facts", true, false, false, false},
+		{"business-error-rolls-back-witness", true, true, true, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			current, err := policyrepo.NewPolicyVersionRepository(host).GetCurrent(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			id := "local-" + test.name
+			command, err := change.NewCommandIntent("role.update", "user:7", "global", id, map[string]string{"id": "42"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			at := time.Date(2026, 10, 19, 12, 1, 0, 0, time.UTC)
+			plan, err := change.FreezeVersionPlan(command, current.Version, id, "event-"+id, at, "iam.authz.version.v2", "m3.policy.test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var artifacts change.LocalArtifacts
+			if test.name == "frozen-role-id-and-audit" {
+				builder := change.NewArtifactBuilder(at.Add(-time.Minute))
+				if _, err = builder.ID(change.ArtifactKey("role", id)); err != nil {
+					t.Fatal(err)
+				}
+				artifacts, err = builder.Freeze()
+				if err != nil {
+					t.Fatal(err)
+				}
+				plan, err = change.FreezeVersionPlanWithArtifacts(command, current.Version, id, "event-"+id, at, "iam.authz.version.v2", "m3.policy.test", artifacts)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			reserved, err := local.Store().Reserve(t.Context(), transaction.RequestFor(plan), plan, transaction.ReserveOptions{Lease: time.Minute})
+			if err != nil || !reserved.Acquired {
+				t.Fatal(err)
+			}
+			e := reserved.Execution
+			if err = local.Store().BeginPrepare(t.Context(), e); err != nil {
+				t.Fatal(err)
+			}
+			if test.prepare {
+				if err = local.Store().RecordHalf(t.Context(), e, e.References()[0], transaction.HalfReceipt{Outcome: transaction.HalfPrepared, BrokerMessageID: "fixture-message", BrokerTransactionID: "fixture-transaction"}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			called := false
+			executor := local.LocalExecutor(command, func(ctx context.Context, repos appuow.TxRepositories) error {
+				called = true
+				tx, err := dbmysql.RequireTx(ctx)
+				if err != nil {
+					return err
+				}
+				if err = tx.WithContext(ctx).Exec("INSERT INTO iam_m3_local_facts VALUES(?)", id).Error; err != nil {
+					return err
+				}
+				if test.name == "frozen-role-id-and-audit" {
+					if err = tx.Create(&rolepo.RolePO{Name: id, DisplayName: "frozen"}).Error; err != nil {
+						return err
+					}
+				}
+				version, err := repos.PolicyVersions.Increment(ctx, "system", "original guarded root")
+				if err != nil {
+					return err
+				}
+				if test.event {
+					if err = change.StagePolicyVersionChanged(ctx, repos.Events, version); err != nil {
+						return err
+					}
+				}
+				if test.fail {
+					return errors.New("explicit business rejection before commit")
+				}
+				return nil
+			})
+			outcome, localErr := executor(t.Context(), e)
+			if test.commit {
+				if localErr != nil || outcome != transaction.LocalCommitted {
+					t.Fatal(outcome, localErr)
+				}
+			} else if localErr == nil || outcome != transaction.LocalAborted {
+				t.Fatal("uncommitted root misclassified", outcome, localErr)
+			}
+			if called != test.prepare {
+				t.Fatal("business gate did not follow complete half evidence")
+			}
+			checker := transaction.StoreChecker{Store: local.Store()}
+			want := transaction.Unknown
+			if test.commit {
+				want = transaction.Commit
+			}
+			if checker.Check(t.Context(), e.References()[0]) != want {
+				t.Fatal("original facts and exact witness diverged")
+			}
+			var count int64
+			if err = host.Table("iam_m3_local_facts").Where("operation_id=?", id).Count(&count).Error; err != nil {
+				t.Fatal(err)
+			}
+			expectedCount := int64(0)
+			if test.commit {
+				expectedCount = 1
+			}
+			if count != expectedCount {
+				t.Fatal("partial local business fact", count)
+			}
+			after, err := policyrepo.NewPolicyVersionRepository(host).GetCurrent(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			expectedVersion := current.Version
+			if test.commit {
+				expectedVersion++
+			}
+			if after.Version != expectedVersion {
+				t.Fatal("version diverged", after.Version)
+			}
+			if test.name == "frozen-role-id-and-audit" {
+				var row rolepo.RolePO
+				if err = host.Where("name=?", id).Take(&row).Error; err != nil {
+					t.Fatal(err)
+				}
+				if row.ID != artifacts.IDs[change.ArtifactKey("role", id)] || !row.CreatedAt.Equal(artifacts.AuditAt) || !row.UpdatedAt.Equal(artifacts.AuditAt) {
+					t.Fatal("ORM replaced frozen identity or audit clock")
+				}
+			}
+			if !test.commit {
+				aborted, err := local.Store().Abort(t.Context(), e)
+				if err != nil || !aborted {
+					t.Fatal("no persisted abort fence", err)
+				}
+				if checker.Check(t.Context(), e.References()[0]) != transaction.Rollback {
+					t.Fatal("abort fence not authoritative")
+				}
+			}
+			if _, err = executor(t.Context(), e); !errors.Is(err, transaction.ErrStaleExecution) {
+				t.Fatal("local executor repeated business", err)
+			}
+		})
+	}
+	if err = dbmysql.NewUnitOfWork(host).WithinTransaction(t.Context(), func(ctx context.Context) error {
+		tx, err := dbmysql.RequireTx(ctx)
+		if err != nil {
+			return err
+		}
+		if _, err = hostuow.NewTransactionUnitOfWork(tx, nil, binding); !errors.Is(err, transaction.ErrTransactionRequired) {
+			return errors.New("constructor borrowed an existing root")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
 	}
 }

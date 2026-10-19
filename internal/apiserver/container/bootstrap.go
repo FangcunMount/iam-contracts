@@ -38,7 +38,7 @@ func (c *Container) runBootstrapPlan() []error {
 			log.Warnf("Failed to initialize %s: %v", step.name, err)
 			c.recordBootstrapFailure(step.name, err)
 			errors = append(errors, fmt.Errorf("%s: %w", step.name, err))
-			if stderrors.Is(err, eventoutbox.ErrUnsafeMessagingHandoff) {
+			if step.name == moduleEventRuntime || stderrors.Is(err, eventoutbox.ErrUnsafeMessagingHandoff) {
 				return errors
 			}
 		}

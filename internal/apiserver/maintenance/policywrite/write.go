@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 
+	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	app "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
 	database "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam/v5/pkg/event"
@@ -19,6 +20,7 @@ type Request struct {
 	Operation, ChangedBy string
 	Input                any
 	Preview              func(context.Context, *gorm.DB) (bool, error)
+	Freeze               func(*change.ArtifactBuilder) error
 }
 
 // Writer is installed explicitly by the host's transaction composition. Its
@@ -40,7 +42,7 @@ func Within(ctx context.Context, db *gorm.DB, stager event.Stager, request Reque
 // AuthorizationRequest borrows the root supplied by the host read-only planner;
 // it does not open a replacement connection or a nested transaction.
 func (r Request) AuthorizationRequest() app.WriteRequest {
-	return app.WriteRequest{Operation: r.Operation, Scope: "global", ChangedBy: r.ChangedBy, Input: r.Input, Preview: func(ctx context.Context, _ app.TxRepositories) (bool, error) {
+	return app.WriteRequest{Freeze: r.Freeze, Operation: r.Operation, Scope: "global", ChangedBy: r.ChangedBy, Input: r.Input, Preview: func(ctx context.Context, _ app.TxRepositories) (bool, error) {
 		tx, err := database.RequireTx(ctx)
 		if err != nil {
 			return false, err

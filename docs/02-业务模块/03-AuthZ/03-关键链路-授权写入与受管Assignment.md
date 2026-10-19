@@ -203,13 +203,13 @@ sequenceDiagram
 
 改动写入协议时，需同时复核[领域模型](01-领域模型设计.md)、[读链](02-关键链路-授权判定与不可变快照.md)、[多实例收敛](04-关键链路-多实例策略收敛.md)、[RPC/SDK](06-关键链路-gRPC服务间授权与SDK.md)及[Scope维护](../../operations/assignment-scope-migration.md)。本文的代码与本地回归证据不替代真实MySQL专项、部署或业务验收。
 
-## M3 冻结版本规划基础（活动入口尚未完成接入）
+## M3 冻结版本规划与事务模式候选（生产未切换）
 
 事务接入新增 `policychange.CommandIntent`，把主体、授权作用域、操作类型、幂等键和显式业务输入分开；新生成的消息ID、时间和当前策略版本不进入稳定输入摘要。`scope.Scope` 等私有领域值不能直接依赖 JSON 默认序列化，必须显式投影组织、范围种类和 StoreIDs，避免不同范围被编码为相同空对象。
 
-`FreezeVersionPlan` 接受只读规划确认的原版本，冻结下一版本、首次事件身份/时间和原revision1 wire；重复请求从 reservation 赢家解码。原执行上下文复用首次事件，拒绝错误目标版本。`IncrementExpected` 只在原 MySQL SQL root 上执行精确 CAS，不初始化缺失行，不另选版本，也不在 ORM hook 中重新生成时钟。该 CAS 与业务条件、SDK guard/witness 的完整装配及所有活动写入口迁移仍由 M3-T05/T06 推进，不能仅调用规划函数就宣称已启用事务消息。
+`FreezeVersionPlan` 接受只读规划确认的原版本，冻结下一版本、首次事件身份/时间和原revision1 wire；重复请求从 reservation 赢家解码。原执行上下文复用首次事件，拒绝错误目标版本。`IncrementExpected` 只在原 MySQL SQL root 上执行精确 CAS，不初始化缺失行，不另选版本，也不在 ORM hook 中重新生成时钟。活动写入口已声明只读规划与原事务执行；事务模式候选将其装配到 SDK guard/witness。是否通过当头原生与真实 Broker 门禁以 M3 总表为准，不能仅调用规划函数就宣称生产已启用事务消息。
 
-真实安装后的并发CAS/回滚验证由隔离 MySQL 门禁执行；新增原生用例当前仅在本机编译，运行结果须单独记录。当前进度和源码证据统一见 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)。SDK 预发布保持固定，生产仍沿原消息链路。
+真实安装后的并发 CAS/回滚验证由隔离 MySQL 门禁执行；测试替身、额外本地版本、固定原生矩阵与实际 Broker 证据分别记录。当前进度和源码证据统一见 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)。SDK 预发布保持固定，生产仍沿原消息链路。
 
 规划适配增加显式 `WriteRequest` 和新鲜的 MySQL `ReadPlan` 只读根事务。角色/资源六个入口声明固定操作、权限、作用域、显式业务输入及预览条件；更新请求复制指针和数组，预览无变化时返回原结果。已配置的规划执行器出错不会回落旧 UoW；既有装配继续使用原 UoW，完整 Sender/guard 装配仍属后续接入。
 
@@ -224,3 +224,13 @@ PermissionGrant 的创建/撤销及 Assignment 的 ID/名称授撤、受管替�
 维护工具也声明独立的 `policywrite.Request`：Scope Apply/Rollback、RoleModel Apply/Rollback、ConditionRetire Apply/Rollback、Reviewer Scope 修复和 OperationsCatalog 安装。事务模式在新鲜只读根事务中重验原指纹、原管理员资格和归档完整性，已完成且未漂移的操作返回原回执；补偿仍保持原冲突规则。Scope mapping 深复制，Reviewer 密码不进入冻结输入。配置的 Writer 拒绝后绝不回落旧 Outbox。首次空库 bootstrap 保持显式安装职责。
 
 所有这些入口的版本 Increment 在精确执行上下文中都走 `IncrementExpected`，事件使用原冻结 ID/时间及版本；普通上下文保持既有逻辑。维护 CLI 事务 Sender 生命周期及原事务 witness 的实际装配仍属 T06，不能把该源码声明当成事务模式已上线。新的三档 MySQL 必需 CI 在独立临时 schema 执行维护入口规划测试；缺依赖直接失败，运行结果分候选记入 infra。
+
+T06 新增原根事务执行器基础：从宿主 MySQL pool 构造同库 Store，执行时先 BindGORM，再校验完整半消息证据；原回调中的精确版本事件仅登记一次，不写旧 Outbox。回调成功、目标版本和全部 witness 共同通过后，由宿主提交根事务；根 COMMIT 错误归 Unknown。单个 executor 只能使用一次，已有事务句柄不能冒充新根。取消返回的 SDK 快照与真实本地回调完成分别记录，宿主等真实回调结束后才能读取共享结果；晚到回调被拒绝。该基础尚未装配到业务入口，冻结业务 ID/审计时钟、Sender 编排及维护 CLI 生命周期仍未完成，T06不打勾。原生根事务测试的半消息回执是显式存储 fixture，不是 Broker E2E 证明。
+
+T06 继续增加本地冻结资料与可选编排：ID按只读计划给出的语义键在 reservation 前分配，数据库会话审计时钟冻结为整秒（兼容宿主 DATETIME 的最低精度），保存在独立版本的 SDK 本地计划 payload；原事件正文和首次 Broker wire 不变。旧纯版本计划继续可读。原事务 ORM hook 仅查冻结 ID/时间，缺失即失败；维护工具的额外行、授予及回执也使用这一边界。发送前的 Lookup/只读规划计入独立有界宿主准入，StopAdmission/Wait 不提前释放真实活动，SDK Checker 由外层运行生命周期继续持有。
+
+这些组件已显式接入 platform/维护 CLI 的事务模式（本批候选尚未合并或生产启用）。T07仍需完成重复操作的原业务结果恢复、持久化 no-op、公开状态和权限保护；因此目前不能启用业务事务配置。原生实际业务入口使用明确的存储半消息 fixture 单独验证原数据库原子性，不冒充真实 Broker、端到端、部署或 system 验收。
+
+事务模式要求同时配置 owner 和 `configs/events-m3.yaml`，保留默认旧目录供切换前链路使用；`transaction` 不被标准 Stager 或 NORMAL Publisher 接受。platform 先启动 owner Checker，再开放受门禁控制的业务发送；关闭时先排空宿主规划，再关闭 SDK。启动检查拒绝遗留未完成发布责任，但不冒充旧写者已退出的生产证明。短信仅在 `sms.provider=mq` 时启用最终 NORMAL 客户端，Aliyun 发送器不因此新增 MQ 生产/消费。
+
+维护工具新增显式 `--outbox-mode=transaction --transaction-messaging-config=/absolute/options.json --event-catalog=configs/events-m3.yaml`。配置文件只包含宿主 MessagingOptions 与凭据/CA/manifest 的文件路径；构造不执行 DDL。CLI启动 owner、调用原事务、等待真实在途后关闭；业务成功与 ShutdownIncomplete 分别保留，未排空的 SDK DB 调用不会被误当成完成后关闭连接池。旧 standard 模式继续要求其明确选择。真实 Broker 及业务切换证明在 infra 分别记录；当前源代码变更不等于生产切换。

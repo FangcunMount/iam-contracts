@@ -3,6 +3,11 @@ package conditionretire
 import (
 	"context"
 	"fmt"
+	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/constraint"
+	legacygrant "github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/grant"
+	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
 
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	"gorm.io/gorm"
@@ -13,7 +18,8 @@ func mutationRequest(fp string, rollback bool, result **Receipt) policywrite.Req
 	if rollback {
 		operation = "maintenance.condition_retire.rollback"
 	}
-	return policywrite.Request{Operation: operation, ChangedBy: MigrationID, Input: map[string]any{"migration_id": MigrationID, "fingerprint": fp}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
+	var createKeys []string
+	return policywrite.Request{Operation: operation, Freeze: func(b *change.ArtifactBuilder) error { return change.AllocateKeys(createKeys...)(b) }, ChangedBy: MigrationID, Input: map[string]any{"migration_id": MigrationID, "fingerprint": fp}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
 		report, saved, before, err := inspect(ctx, tx)
 		if err != nil {
 			return false, err
@@ -40,6 +46,25 @@ func mutationRequest(fp string, rollback bool, result **Receipt) policywrite.Req
 		}
 		if plan.Fingerprint != fp {
 			return false, fmt.Errorf("preflight facts changed")
+		}
+		createKeys = nil
+		for _, c := range plan.Grants {
+			if c.ExistingID != "" {
+				continue
+			}
+			for _, old := range before.Grants {
+				if old.ID.String() != c.OldID {
+					continue
+				}
+				if old.ResourceID == nil {
+					return false, change.ErrInvalidChangePlan
+				}
+				grant, e := legacygrant.New(meta.FromUint64(old.RoleID), resource.NewResourceID(*old.ResourceID), old.ResourcePattern, old.Action, constraint.Empty(), MigrationID)
+				if e != nil {
+					return false, e
+				}
+				createKeys = append(createKeys, change.ArtifactKey("grant", grant.GrantKey))
+			}
 		}
 		return true, nil
 	}}

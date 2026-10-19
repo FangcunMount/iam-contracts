@@ -14,9 +14,15 @@ import (
 
 // prepareMessaging rejects retired configuration before creating SDK resources.
 func (s *apiServer) prepareMessaging() error {
-	if s.cfg != nil && s.cfg.Options != nil && s.cfg.Options.Messaging.SelectedProvider() == "rocketmq" {
+	if s == nil || s.cfg == nil || s.cfg.Options == nil {
+		return fmt.Errorf("explicit messaging configuration required")
+	}
+	if err := s.cfg.Messaging.Validate(); err != nil {
+		return err
+	}
+	if s.cfg.Messaging.SelectedProvider() == "rocketmq" {
 		if !s.reliableMessagingEnabled() {
-			return fmt.Errorf("RocketMQ requires standard Outbox")
+			return fmt.Errorf("RocketMQ requires an explicit transaction owner or standard Outbox")
 		}
 		return s.cfg.Options.Messaging.Validate()
 	}

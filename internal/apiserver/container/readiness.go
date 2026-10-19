@@ -29,6 +29,7 @@ func (c *Container) ReadinessChecker() *readinessapp.Checker {
 		{Name: "jwks", Required: true, Check: c.checkJWKSReady},
 		{Name: "authz", Required: true, Check: c.checkAuthzReady},
 		{Name: "suggest", Required: c.runtimeOptions.Suggest.Required, Check: c.checkSuggestReady},
+		{Name: "message_transaction", Required: len(c.runtimeOptions.Messaging.Transactions) > 0, Check: c.checkTransactionMessagingReady},
 		{Name: "domain_event_outbox", Required: true, Check: c.checkDomainEventOutboxReady},
 		{Name: "session_revocation", Required: true, Check: c.checkSessionRevocationReady},
 	}, readinessmetrics.Recorder{})
@@ -36,6 +37,11 @@ func (c *Container) ReadinessChecker() *readinessapp.Checker {
 }
 
 func (c *Container) MarkDraining() {
+	if c != nil {
+		if gate, ok := c.reliableRuntime.(interface{ StopAdmission() }); ok {
+			gate.StopAdmission()
+		}
+	}
 	if checker := c.ReadinessChecker(); checker != nil {
 		checker.MarkDraining()
 	}
@@ -155,4 +161,14 @@ func (c *Container) checkSessionRevocationReady(ctx context.Context) error {
 		return fmt.Errorf("session revocation backlog exceeded")
 	}
 	return nil
+}
+
+func (c *Container) checkTransactionMessagingReady(ctx context.Context) error {
+	if len(c.runtimeOptions.Messaging.Transactions) == 0 {
+		return nil
+	}
+	if health, ok := c.reliableRuntime.(interface{ CheckReady(context.Context) error }); ok {
+		return health.CheckReady(ctx)
+	}
+	return errors.New("transaction messaging runtime unavailable")
 }

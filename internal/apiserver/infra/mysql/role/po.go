@@ -1,6 +1,8 @@
 package role
 
 import (
+	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzaudit"
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
@@ -27,6 +29,9 @@ func (RolePO) TableName() string {
 
 // BeforeCreate 在创建前设置信息
 func (p *RolePO) BeforeCreate(tx *gorm.DB) error {
+	if handled, err := authzaudit.Create(tx.Statement.Context, change.ArtifactKey("role", p.Name), &p.AuditFields); handled || err != nil {
+		return err
+	}
 	now := time.Now()
 	id := meta.FromUint64(idutil.GetIntID()) // 新生成的 ID 必定有效
 	createdBy := base.UserIDOrZero(tx.Statement.Context)
@@ -44,6 +49,9 @@ func (p *RolePO) BeforeCreate(tx *gorm.DB) error {
 
 // BeforeUpdate 在更新前设置信息
 func (p *RolePO) BeforeUpdate(tx *gorm.DB) error {
+	if handled, err := authzaudit.Update(tx.Statement.Context, &p.AuditFields); handled || err != nil {
+		return err
+	}
 	p.UpdatedAt = time.Now()
 	updatedBy := base.UserIDOrZero(tx.Statement.Context)
 	p.UpdatedBy = updatedBy

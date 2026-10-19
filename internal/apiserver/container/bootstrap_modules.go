@@ -3,6 +3,7 @@ package container
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	cachegovernance "github.com/FangcunMount/iam/v5/internal/apiserver/application/cachegovernance"
@@ -19,15 +20,16 @@ import (
 
 func (c *Container) initEventing() error {
 	eventing, err := platform.InitEventing(platform.EventingDeps{
-		Messaging:         c.runtimeOptions.Messaging,
-		DB:                c.mysqlDB,
-		ReliableMessaging: c.runtimeOptions.Events.ReliableMessaging,
-		NSQEnabled:        c.runtimeOptions.NSQEnabled,
-		NSQAddress:        c.runtimeOptions.NSQAddress,
-		OutboxInterval:    c.runtimeOptions.Events.OutboxRelayInterval,
-		CatalogPath:       c.runtimeOptions.Events.CatalogPath,
-		OutboxBatch:       c.runtimeOptions.Events.OutboxRelayBatchSize,
-		OutboxRetry:       c.runtimeOptions.Events.OutboxRelayRetryDelay,
+		Messaging:          c.runtimeOptions.Messaging,
+		EnableSMSMessaging: strings.EqualFold(strings.TrimSpace(c.runtimeOptions.SMS.Provider), "mq"),
+		DB:                 c.mysqlDB,
+		ReliableMessaging:  c.runtimeOptions.Events.ReliableMessaging,
+		NSQEnabled:         c.runtimeOptions.NSQEnabled,
+		NSQAddress:         c.runtimeOptions.NSQAddress,
+		OutboxInterval:     c.runtimeOptions.Events.OutboxRelayInterval,
+		CatalogPath:        c.runtimeOptions.Events.CatalogPath,
+		OutboxBatch:        c.runtimeOptions.Events.OutboxRelayBatchSize,
+		OutboxRetry:        c.runtimeOptions.Events.OutboxRelayRetryDelay,
 	})
 	if err != nil {
 		return err

@@ -140,7 +140,7 @@ jobs:
             grep -q -- "--- PASS: $test_name " "$RUNNER_TEMP/m3-schema.log"
           done
           if grep -q -- '--- SKIP:' "$RUNNER_TEMP/m3-schema.log"; then exit 1; fi
-      - name: Prove maintenance planner entrypoints with isolated native MySQL
+      - name: Prove maintenance planner and original-root transactions with isolated native MySQL
         env:
           ROLE_MODEL_REQUIRE_MYSQL: 'true'
           ROLE_MODEL_MYSQL_DSN: root:owned-ci-only@tcp(127.0.0.1:3306)/?parseTime=true
@@ -152,10 +152,10 @@ jobs:
           OPERATIONS_CATALOG_MYSQL_DSN: root:owned-ci-only@tcp(127.0.0.1:3306)/?parseTime=true
         run: |
           set -euo pipefail
-          go test -race -count=1 -timeout=3m -v \
+          go test -race -tags=integration -count=1 -timeout=3m -v \
             ./internal/apiserver/maintenance/{rolemodel,conditionretire,scopemigrate,accountprovision,operationscatalog} \
-            -run '^TestPlanned' | tee "$RUNNER_TEMP/m3-maintenance.log"
-          for test_name in TestPlannedRoleModelPreviewApplyAndCompensation TestPlannedRetirementPreservesReceiptAndRollbackBoundaries TestPlannedScopeCopiesMappingAndPreservesCompensation TestPlannedReviewerScopeRetainsCredentialsOutsideFrozenInput TestPlannedCatalogPreviewsNoopAndRejectsDrift; do
+            -run '^Test(Planned|M3TransactionMaintenance)' | tee "$RUNNER_TEMP/m3-maintenance.log"
+          for test_name in TestPlannedRoleModelPreviewApplyAndCompensation TestPlannedRetirementPreservesReceiptAndRollbackBoundaries TestPlannedScopeCopiesMappingAndPreservesCompensation TestPlannedReviewerScopeRetainsCredentialsOutsideFrozenInput TestPlannedCatalogPreviewsNoopAndRejectsDrift TestM3TransactionMaintenanceRoleModel TestM3TransactionMaintenanceConditionRetirement TestM3TransactionMaintenanceScope TestM3TransactionMaintenanceReviewerScope TestM3TransactionMaintenanceOperationsCatalog; do
             grep -q -- "--- PASS: $test_name " "$RUNNER_TEMP/m3-maintenance.log"
           done
           if grep -q -- '--- SKIP:' "$RUNNER_TEMP/m3-maintenance.log"; then exit 1; fi

@@ -2,7 +2,9 @@ package options
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/FangcunMount/reliable-messaging/transport"
 )
@@ -72,5 +74,29 @@ func TestTransactionConfigRequiresExactOwnerRevisionAndAllTopics(t *testing.T) {
 	opts.Limits = &TransactionLimits{Sends: 1, Branches: 17, CheckWorkers: 1, CheckQueue: 1}
 	if _, err = opts.ProtocolLimits(owner); err == nil {
 		t.Fatal("invalid budget accepted")
+	}
+}
+
+func TestTransactionOwnerRequiresIndependentShutdownBudgetAndExplicitMode(t *testing.T) {
+	opts := NewOptions()
+	opts.Messaging.Transactions = map[string]TransactionOptions{"iam.mysql": {}}
+	for _, tc := range []struct {
+		timeout time.Duration
+		outbox  bool
+		want    string
+	}{
+		{0, false, "shutdown_timeout"}, {-time.Second, false, "shutdown_timeout"}, {6 * time.Minute, false, "shutdown_timeout"}, {20 * time.Second, true, "cannot both be enabled"}, {20 * time.Second, false, ""},
+	} {
+		opts.Events.ReliableMessaging.ShutdownTimeout = tc.timeout
+		opts.Events.ReliableMessaging.Enabled = tc.outbox
+		found := ""
+		for _, err := range opts.Validate() {
+			if strings.Contains(err.Error(), "transaction runtime requires") || strings.Contains(err.Error(), "cannot both be enabled") {
+				found += err.Error()
+			}
+		}
+		if (tc.want == "" && found != "") || (tc.want != "" && !strings.Contains(found, tc.want)) {
+			t.Fatalf("timeout=%v outbox=%v: %s", tc.timeout, tc.outbox, found)
+		}
 	}
 }

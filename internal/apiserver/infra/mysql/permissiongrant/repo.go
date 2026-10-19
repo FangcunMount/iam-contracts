@@ -3,7 +3,7 @@ package permissiongrant
 import (
 	"context"
 	"errors"
-	"time"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzaudit"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
@@ -43,7 +43,10 @@ func (r *Repository) Create(ctx context.Context, grant *domain.Grant) error {
 }
 
 func (r *Repository) AtomicRevoke(ctx context.Context, id meta.ID) (domain.RevokeOutcome, error) {
-	now := time.Now()
+	now, err := authzaudit.Time(ctx)
+	if err != nil {
+		return "", err
+	}
 	query := r.WithContext(ctx).Model(&GrantPO{}).
 		Where("id = ? AND revoked_at IS NULL", id.Uint64())
 	result := query.Updates(map[string]any{

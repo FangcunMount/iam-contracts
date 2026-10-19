@@ -40,6 +40,12 @@ func (m *AuthzModule) initializeInfrastructure(
 	userResolver useraccess.UserResolver,
 ) *authzInfrastructureComponents {
 	resolver := assignmentDomain.NewSubjectResolverRegistry(subjectresolver.NewUserSubjectResolver(userResolver))
+	unitOfWork := mysqlAuthzUow.NewUnitOfWork(db, resolver, eventStager)
+	if factory, ok := eventStager.(interface {
+		ApplicationUnitOfWork(assignmentDomain.SubjectResolver) authzuow.UnitOfWork
+	}); ok {
+		unitOfWork = factory.ApplicationUnitOfWork(resolver)
+	}
 	return &authzInfrastructureComponents{
 		subjectResolver:           resolver,
 		policySource:              authzRuntime.NewMySQLSource(db),
@@ -48,6 +54,6 @@ func (m *AuthzModule) initializeInfrastructure(
 		resourceRepository:        resourceInfra.NewResourceRepository(db),
 		policyVersionRepository:   policyInfra.NewPolicyVersionRepository(db),
 		permissionGrantRepository: permissionGrantInfra.NewRepository(db),
-		unitOfWork:                mysqlAuthzUow.NewUnitOfWork(db, resolver, eventStager),
+		unitOfWork:                unitOfWork,
 	}
 }

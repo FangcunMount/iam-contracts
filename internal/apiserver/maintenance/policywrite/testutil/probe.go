@@ -1,5 +1,6 @@
-// Package testutil contains source-only fixtures. It is not a transaction SDK,
-// a Broker substitute, or evidence of native database isolation.
+// Package testutil contains explicitly labeled planning and native-root fixtures.
+// Probe is source-only; integration-tagged NativeWriter uses original MySQL
+// transactions with stored half receipts and never claims actual Broker proof.
 package testutil
 
 import (

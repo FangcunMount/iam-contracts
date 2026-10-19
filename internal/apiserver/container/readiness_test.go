@@ -53,3 +53,25 @@ func TestReadinessRegistersDomainEventOutboxAsRequired(t *testing.T) {
 	require.False(t, ready)
 	require.Equal(t, "failed", string(snapshot.Components["domain_event_outbox"].Status))
 }
+
+type transactionReadinessRuntime struct{ sealed bool }
+
+func (*transactionReadinessRuntime) Start(context.Context) error { return nil }
+func (*transactionReadinessRuntime) Stop(context.Context) error  { return nil }
+func (r *transactionReadinessRuntime) StopAdmission()            { r.sealed = true }
+func (r *transactionReadinessRuntime) CheckReady(context.Context) error {
+	if r.sealed {
+		return context.Canceled
+	}
+	return nil
+}
+func TestDrainSealsTransactionWriterAndReadinessRequiresProtocol(t *testing.T) {
+	runtime := &transactionReadinessRuntime{}
+	container := &Container{reliableRuntime: runtime, runtimeOptions: RuntimeOptions{Messaging: apiserveroptions.MessagingOptions{Transactions: map[string]apiserveroptions.TransactionOptions{"iam.mysql": {}}}}}
+	require.NoError(t, container.checkTransactionMessagingReady(t.Context()))
+	container.MarkDraining()
+	require.True(t, runtime.sealed)
+	require.Error(t, container.checkTransactionMessagingReady(t.Context()))
+	container.reliableRuntime = nil
+	require.Error(t, container.checkTransactionMessagingReady(t.Context()), "empty Outbox cannot prove transaction owner health")
+}

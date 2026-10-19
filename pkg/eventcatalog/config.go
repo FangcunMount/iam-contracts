@@ -12,11 +12,12 @@ type DeliveryClass string
 const (
 	DeliveryClassBestEffort    DeliveryClass = "best_effort"
 	DeliveryClassDurableOutbox DeliveryClass = "durable_outbox"
+	DeliveryClassTransaction   DeliveryClass = "transaction"
 )
 
 func (c DeliveryClass) Valid() bool {
 	switch c {
-	case DeliveryClassBestEffort, DeliveryClassDurableOutbox:
+	case DeliveryClassBestEffort, DeliveryClassDurableOutbox, DeliveryClassTransaction:
 		return true
 	default:
 		return false

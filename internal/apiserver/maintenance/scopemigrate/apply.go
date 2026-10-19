@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzaudit"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	"strings"
 	"time"
@@ -84,7 +85,11 @@ func Apply(ctx context.Context, iam, qs *gorm.DB, stager event.Stager, id, actor
 		if plan.Fingerprint != fingerprint {
 			return fmt.Errorf("reviewed facts changed")
 		}
-		now := time.Now().UTC().Truncate(time.Second)
+		now, e := authzaudit.Time(txCtx)
+		if e != nil {
+			return e
+		}
+		now = now.UTC().Truncate(time.Second)
 		if e = applyAssignments(tx, before, plan, actor, now); e != nil {
 			return e
 		}
@@ -165,7 +170,10 @@ func applyAssignments(tx *gorm.DB, before Snapshot, p Plan, actor meta.ID, now t
 				return err
 			}
 			row := assignmentpo.NewMapper().ToPO(&bo)
-			row.ID = meta.New()
+			row.ID, err = authzaudit.ID(tx.Statement.Context, change.ArtifactKey("assignment", "user", c.SubjectID, c.RoleID, target.OrgID))
+			if err != nil {
+				return err
+			}
 			row.Version = 1
 			row.CreatedAt = now
 			row.UpdatedAt = now

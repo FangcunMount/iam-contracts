@@ -13,16 +13,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/eventoutbox"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/scopemigrate"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
 )
 
 type scopeOptions struct {
-	mode, id, actor, fingerprint, mapping, report, catalog, outboxMode string
-	stopped                                                            bool
-	timeout                                                            time.Duration
+	mode, id, actor, fingerprint, mapping, report, catalog, outboxMode, transactionConfig string
+	stopped                                                                               bool
+	timeout                                                                               time.Duration
 }
 
 func parseScopeOptions(args []string) (scopeOptions, error) {
@@ -44,7 +44,8 @@ func parseScopeOptions(args []string) (scopeOptions, error) {
 	f.StringVar(&o.mapping, "mapping", "", "explicit version 1 assignment mapping JSON")
 	f.StringVar(&o.report, "report", "", "new absolute report path in private directory")
 	f.StringVar(&o.catalog, "event-catalog", "configs/events.yaml", "durable event catalog")
-	f.StringVar(&o.outboxMode, "outbox-mode", "", "standard only; explicit selection required, legacy writer retired")
+	f.StringVar(&o.outboxMode, "outbox-mode", "", "explicit standard or transaction protocol")
+	f.StringVar(&o.transactionConfig, "transaction-messaging-config", "", "explicit host-owned transaction options JSON")
 	f.BoolVar(&o.stopped, "writes-stopped", false, "IAM authorization and QS membership/store writers paused")
 	f.DurationVar(&o.timeout, "timeout", 2*time.Minute, "overall operation timeout")
 	if err := f.Parse(args[1:]); err != nil {
@@ -125,6 +126,7 @@ func runScopeMigrationWith(args []string, output io.Writer, execute func(scopeOp
 	return nil
 }
 func executeScopeMigration(o scopeOptions) (scopemigrate.Report, error) {
+	var protocolErr error
 	fail := scopemigrate.Report{State: "invalid", NextAction: "stop", MigrationID: o.id}
 	iam, err := roleDatabase("")
 	if err != nil {
@@ -134,7 +136,7 @@ func executeScopeMigration(o scopeOptions) (scopemigrate.Report, error) {
 	if err != nil {
 		return fail, err
 	}
-	defer func() { _ = pool.Close() }()
+	defer func() { closeMaintenancePool(pool, protocolErr) }()
 	qs, err := roleDatabase("QS_")
 	if err != nil {
 		return fail, err
@@ -143,7 +145,7 @@ func executeScopeMigration(o scopeOptions) (scopemigrate.Report, error) {
 	if err != nil {
 		return fail, err
 	}
-	defer func() { _ = qpool.Close() }()
+	defer func() { closeMaintenancePool(qpool, protocolErr) }()
 	ctx, cancel := context.WithTimeout(context.Background(), o.timeout)
 	defer cancel()
 	report, err := scopemigrate.Status(ctx, iam, qs, o.id)
@@ -179,18 +181,19 @@ func executeScopeMigration(o scopeOptions) (scopemigrate.Report, error) {
 		if e != nil {
 			return report, e
 		}
-		stager, gateErr := eventoutbox.NewMaintenanceStager(ctx, iam, eventcatalog.NewCatalog(cfg), o.outboxMode)
-		if gateErr != nil {
-			return report, gateErr
-		}
-		if o.mode == "apply" {
-			_, err = scopemigrate.Apply(ctx, iam, qs, stager, o.id, o.actor, o.fingerprint, input, o.stopped)
-		} else {
-			_, err = scopemigrate.Rollback(ctx, iam, qs, stager, o.id, o.actor, o.fingerprint, o.stopped)
-		}
-		if err != nil {
-			return report, err
-		}
-		return scopemigrate.Status(ctx, iam, qs, o.id)
+		err = withMaintenanceStager(ctx, iam, eventcatalog.NewCatalog(cfg), o.outboxMode, o.transactionConfig, func(stager event.Stager) error {
+			var businessErr error
+			if o.mode == "apply" {
+				_, businessErr = scopemigrate.Apply(ctx, iam, qs, stager, o.id, o.actor, o.fingerprint, input, o.stopped)
+			} else {
+				_, businessErr = scopemigrate.Rollback(ctx, iam, qs, stager, o.id, o.actor, o.fingerprint, o.stopped)
+			}
+			if businessErr == nil {
+				report, businessErr = scopemigrate.Status(ctx, iam, qs, o.id)
+			}
+			return businessErr
+		})
+		protocolErr = err
+		return report, err
 	}
 }
