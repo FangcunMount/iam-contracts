@@ -2,6 +2,7 @@ package platform
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/messaging"
@@ -13,6 +14,9 @@ import (
 )
 
 func newEventTransport(deps EventingDeps, eventing *Eventing) (ownedEventTransport, error) {
+	if len(deps.Messaging.Transactions) > 0 {
+		return nil, errors.New("transaction owners require transaction-bound event assembly; legacy Relay cannot publish them")
+	}
 	opts := deps.ReliableMessaging
 	if deps.Messaging.SelectedProvider() == "rocketmq" {
 		var topics []string

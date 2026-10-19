@@ -17,13 +17,14 @@ import (
 // MessagingOptions selects an explicit provider. Files belong to IAM's runtime
 // configuration; the SDK never discovers production credentials or resources.
 type MessagingOptions struct {
-	Provider        string `json:"provider" mapstructure:"provider"`
-	Endpoint        string `json:"endpoint" mapstructure:"endpoint"`
-	CredentialsFile string `json:"credentials_file" mapstructure:"credentials_file"`
-	CAFile          string `json:"ca_file" mapstructure:"ca_file"`
-	RoutesFile      string `json:"routes_file" mapstructure:"routes_file"`
-	InstanceID      string `json:"instance_id" mapstructure:"instance_id"`
-	PublishEnabled  bool   `json:"publish_enabled" mapstructure:"publish_enabled"`
+	Transactions    map[string]TransactionOptions `json:"transactions,omitempty" mapstructure:"transactions"`
+	Provider        string                        `json:"provider" mapstructure:"provider"`
+	Endpoint        string                        `json:"endpoint" mapstructure:"endpoint"`
+	CredentialsFile string                        `json:"credentials_file" mapstructure:"credentials_file"`
+	CAFile          string                        `json:"ca_file" mapstructure:"ca_file"`
+	RoutesFile      string                        `json:"routes_file" mapstructure:"routes_file"`
+	InstanceID      string                        `json:"instance_id" mapstructure:"instance_id"`
+	PublishEnabled  bool                          `json:"publish_enabled" mapstructure:"publish_enabled"`
 }
 
 func (o MessagingOptions) SelectedProvider() string {
@@ -33,6 +34,14 @@ func (o MessagingOptions) SelectedProvider() string {
 	return o.Provider
 }
 func (o MessagingOptions) Validate() error {
+	for owner, binding := range o.Transactions {
+		if o.SelectedProvider() != "rocketmq" {
+			return errors.New("transactions require explicit RocketMQ provider")
+		}
+		if _, err := binding.ProtocolLimits(owner); err != nil {
+			return err
+		}
+	}
 	switch o.SelectedProvider() {
 	case "nsq":
 		return nil
@@ -58,23 +67,17 @@ func (o MessagingOptions) RocketMQ(topics []string, concurrency int, timeout tim
 	if json.Unmarshal(body, &credentials) != nil || credentials.Username == "" || credentials.Password == "" {
 		return rocketmq.Config{}, errors.New("invalid RocketMQ credentials")
 	}
-	var manifest struct {
-		Version int                      `json:"version"`
-		Routes  []transport.RouteBinding `json:"routes"`
-	}
 	body, err = os.ReadFile(o.RoutesFile)
 	if err != nil {
 		return rocketmq.Config{}, errors.New("read configured RocketMQ route manifest")
 	}
-	if json.Unmarshal(body, &manifest) != nil || manifest.Version != 1 {
-		return rocketmq.Config{}, errors.New("invalid RocketMQ route manifest version")
-	}
-	if err = transport.ValidateRoutes(manifest.Routes); err != nil {
+	routes, err := decodeRouteManifest(body)
+	if err != nil {
 		return rocketmq.Config{}, err
 	}
 	selected := make([]transport.RouteBinding, 0)
 	seen := map[string]bool{}
-	for _, r := range manifest.Routes {
+	for _, r := range routes {
 		for _, topic := range topics {
 			if r.Topic == topic {
 				selected = append(selected, r)
