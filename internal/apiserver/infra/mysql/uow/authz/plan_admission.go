@@ -2,6 +2,8 @@ package authz
 
 import (
 	"context"
+	"errors"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/operation"
 	"github.com/FangcunMount/reliable-messaging/transaction"
 	"sync"
 )
@@ -10,6 +12,7 @@ import (
 // Closing the SDK alone cannot truthfully account for these host operations.
 type planAdmission struct {
 	mu         sync.Mutex
+	queries    []*operation.QueryService
 	active     int
 	stopping   bool
 	slots      chan struct{}
@@ -54,6 +57,9 @@ func (p *planAdmission) stopAdmission() {
 	if p.stopping {
 		return
 	}
+	for _, query := range p.queries {
+		query.StopAdmission()
+	}
 	p.stopping = true
 	close(p.stop)
 	if p.active == 0 {
@@ -81,5 +87,39 @@ func (p *planAdmission) wait(ctx context.Context) error {
 
 // StopAdmission leaves owner Checker/RPC lifecycle running. The owner first
 // waits for these host operations, then closes its SDK, then its database pool.
-func (u *PlannedUnitOfWork) StopAdmission()                 { u.admission.stopAdmission() }
-func (u *PlannedUnitOfWork) Wait(ctx context.Context) error { return u.admission.wait(ctx) }
+func (u *PlannedUnitOfWork) StopAdmission() { u.admission.stopAdmission() }
+func (u *PlannedUnitOfWork) Wait(ctx context.Context) error {
+	if err := u.admission.wait(ctx); err != nil {
+		return err
+	}
+	u.admission.mu.Lock()
+	queries := append([]*operation.QueryService(nil), u.admission.queries...)
+	u.admission.mu.Unlock()
+	var result error
+	for _, query := range queries {
+		result = errors.Join(result, query.Wait(ctx))
+	}
+	if result != nil {
+		return &transaction.ShutdownIncomplete{RuntimePending: true, Cause: result}
+	}
+	return nil
+}
+
+// NewOperationQuery shares the writer's real shutdown accounting across the
+// application UOW clone. Registration occurs during module composition only.
+func (u *PlannedUnitOfWork) NewOperationQuery(access operation.AccessPolicy) (*operation.QueryService, error) {
+	if u.config.Journal == nil {
+		return nil, nil
+	}
+	u.admission.mu.Lock()
+	defer u.admission.mu.Unlock()
+	if u.admission.stopping || len(u.admission.queries) != 0 {
+		return nil, operation.ErrQueryAdmissionClosed
+	}
+	query, err := operation.NewQueryService(u.config.Journal, u.config.Journal, access, operation.QueryConfig{Concurrency: u.config.Sends, Timeout: u.config.ProofBudget})
+	if err != nil {
+		return nil, err
+	}
+	u.admission.queries = append(u.admission.queries, query)
+	return query, nil
+}

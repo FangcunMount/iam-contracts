@@ -51,6 +51,10 @@ func convertToSubjectType(s string) (assignmentDomain.SubjectType, error) {
 // @Param request body dto.GrantRequest true "授予角色请求"
 // @Success 200 {object} dto.Response{data=dto.AssignmentResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
+// @Param Idempotency-Key header string false "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required."
+// @Header 200 {string} Operation-ID "Server-generated authorization operation ID in transaction mode"
+// @Header 200 {string} Operation-Location "Authorized operation status URL"
+// @Failure 409 {object} map[string]string "Different input for the same key, or an aborted operation"
 // @Router /v4/authz/assignments/grant [post]
 func (h *AssignmentHandler) GrantAssignment(c *gin.Context) {
 	var req dto.GrantRequest
@@ -93,6 +97,10 @@ func (h *AssignmentHandler) GrantAssignment(c *gin.Context) {
 // @Param request body dto.RevokeRequest true "撤销角色请求"
 // @Success 200 {object} dto.Response
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
+// @Param Idempotency-Key header string false "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required."
+// @Header 200 {string} Operation-ID "Server-generated authorization operation ID in transaction mode"
+// @Header 200 {string} Operation-Location "Authorized operation status URL"
+// @Failure 409 {object} map[string]string "Different input for the same key, or an aborted operation"
 // @Router /v4/authz/assignments/revoke [post]
 func (h *AssignmentHandler) RevokeAssignment(c *gin.Context) {
 	var req dto.RevokeRequest
@@ -133,6 +141,10 @@ func (h *AssignmentHandler) RevokeAssignment(c *gin.Context) {
 // @Param id path string true "分配ID"
 // @Success 200 {object} dto.Response
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
+// @Param Idempotency-Key header string false "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required."
+// @Header 200 {string} Operation-ID "Server-generated authorization operation ID in transaction mode"
+// @Header 200 {string} Operation-Location "Authorized operation status URL"
+// @Failure 409 {object} map[string]string "Different input for the same key, or an aborted operation"
 // @Router /v4/authz/assignments/{id} [delete]
 func (h *AssignmentHandler) RevokeAssignmentByID(c *gin.Context) {
 	assignmentID, ok := parseIDParam(c, "id", "分配ID格式错误")

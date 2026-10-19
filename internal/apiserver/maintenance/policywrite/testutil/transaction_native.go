@@ -5,6 +5,7 @@ package testutil
 import (
 	"context"
 	"errors"
+	journal "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzoperation"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -86,7 +87,7 @@ func NativeWriter(t *testing.T, db *gorm.DB) (*host.PlannedUnitOfWork, *StoredHa
 		require.NotEqual(t, root, parent)
 		root = parent
 	}
-	for _, name := range []string{"000042_transaction_messaging.up.sql", "000043_authz_message_protocol.up.sql"} {
+	for _, name := range []string{"000042_transaction_messaging.up.sql", "000043_authz_message_protocol.up.sql", "000044_authz_business_operations.up.sql"} {
 		raw, err := os.ReadFile(filepath.Join(root, "internal/pkg/migration/migrations", name))
 		require.NoError(t, err)
 		// These fixed templates contain simple CREATE/INSERT statements only. Strip
@@ -112,7 +113,11 @@ func NativeWriter(t *testing.T, db *gorm.DB) (*host.PlannedUnitOfWork, *StoredHa
 	topic := "iam.authz.version.v2"
 	physical, err := transport.PhysicalTopicV2(topic, transport.TransactionMessageType, binding.Owner, "m3-1")
 	require.NoError(t, err)
-	writer, err := host.NewPlannedUnitOfWork(local, sender, host.PlanConfig{LogicalTopic: topic, PhysicalTopic: physical, Sends: 8, ProofBudget: 2 * time.Second, Admission: func() bool { return true }, MaintenancePrincipal: "maintenance:fixture"})
+	pool, err := db.DB()
+	require.NoError(t, err)
+	operations, err := journal.New(pool, binding)
+	require.NoError(t, err)
+	writer, err := host.NewPlannedUnitOfWork(local, sender, host.PlanConfig{LogicalTopic: topic, PhysicalTopic: physical, Sends: 8, ProofBudget: 2 * time.Second, Admission: func() bool { return true }, MaintenancePrincipal: "maintenance:fixture", Journal: operations, OperationLease: time.Minute})
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		writer.StopAdmission()

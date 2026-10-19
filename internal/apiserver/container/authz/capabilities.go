@@ -2,6 +2,7 @@ package authz
 
 import (
 	"context"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/operation"
 	"time"
 
 	assignmentApp "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignment"
@@ -29,6 +30,7 @@ type RuntimeHealthReporter interface {
 // ApplicationCapabilities contains authz application collaborators used
 // by transports without exposing concrete transport objects from the module.
 type ApplicationCapabilities struct {
+	Operations                   *operation.QueryService
 	ResourceCatalog              resourceApp.Catalog
 	ResourceDirectory            resourceApp.Directory
 	RoleCatalog                  roleApp.Catalog

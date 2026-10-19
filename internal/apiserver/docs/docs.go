@@ -1983,6 +1983,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.GrantRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required.",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2002,6 +2008,25 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        },
+                        "headers": {
+                            "Operation-ID": {
+                                "type": "string",
+                                "description": "Server-generated authorization operation ID in transaction mode"
+                            },
+                            "Operation-Location": {
+                                "type": "string",
+                                "description": "Authorized operation status URL"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Different input for the same key, or an aborted operation",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "503": {
@@ -2034,6 +2059,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RevokeRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required.",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2041,6 +2072,25 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response"
+                        },
+                        "headers": {
+                            "Operation-ID": {
+                                "type": "string",
+                                "description": "Server-generated authorization operation ID in transaction mode"
+                            },
+                            "Operation-Location": {
+                                "type": "string",
+                                "description": "Authorized operation status URL"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Different input for the same key, or an aborted operation",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "503": {
@@ -2124,6 +2174,12 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required.",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2131,6 +2187,25 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response"
+                        },
+                        "headers": {
+                            "Operation-ID": {
+                                "type": "string",
+                                "description": "Server-generated authorization operation ID in transaction mode"
+                            },
+                            "Operation-Location": {
+                                "type": "string",
+                                "description": "Authorized operation status URL"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Different input for the same key, or an aborted operation",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "503": {
@@ -2165,6 +2240,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.CreatePermissionGrantRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required.",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2184,6 +2265,25 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        },
+                        "headers": {
+                            "Operation-ID": {
+                                "type": "string",
+                                "description": "Server-generated authorization operation ID in transaction mode"
+                            },
+                            "Operation-Location": {
+                                "type": "string",
+                                "description": "Authorized operation status URL"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Different input for the same key, or an aborted operation",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "503": {
@@ -2224,6 +2324,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.RevokePermissionGrantRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required.",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2231,12 +2337,109 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response"
+                        },
+                        "headers": {
+                            "Operation-ID": {
+                                "type": "string",
+                                "description": "Server-generated authorization operation ID in transaction mode"
+                            },
+                            "Operation-Location": {
+                                "type": "string",
+                                "description": "Authorized operation status URL"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Different input for the same key, or an aborted operation",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "503": {
                         "description": "Authorization policy unavailable (103002)",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v4/authz/operations/{operation_id}": {
+            "get": {
+                "description": "Requires the original authenticated principal, scope and current original permissions. Producer commit does not prove consumer completion.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authorization-Operations"
+                ],
+                "summary": "查询授权写操作",
+                "operationId": "getAuthorizationOperation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Operation ID returned by an authorization write",
+                        "name": "operation_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_application_authz_operation.QueryView"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -2336,6 +2539,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.CreateResourceRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required.",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2355,12 +2564,31 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        },
+                        "headers": {
+                            "Operation-ID": {
+                                "type": "string",
+                                "description": "Server-generated authorization operation ID in transaction mode"
+                            },
+                            "Operation-Location": {
+                                "type": "string",
+                                "description": "Authorized operation status URL"
+                            }
                         }
                     },
                     "403": {
                         "description": "Platform catalog permission required",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Different input for the same key, or an aborted operation",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "503": {
@@ -2542,6 +2770,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.UpdateResourceRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required.",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2561,12 +2795,31 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        },
+                        "headers": {
+                            "Operation-ID": {
+                                "type": "string",
+                                "description": "Server-generated authorization operation ID in transaction mode"
+                            },
+                            "Operation-Location": {
+                                "type": "string",
+                                "description": "Authorized operation status URL"
+                            }
                         }
                     },
                     "403": {
                         "description": "Platform catalog permission required",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Different input for the same key, or an aborted operation",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "503": {
@@ -2590,6 +2843,12 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required.",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2597,12 +2856,31 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response"
+                        },
+                        "headers": {
+                            "Operation-ID": {
+                                "type": "string",
+                                "description": "Server-generated authorization operation ID in transaction mode"
+                            },
+                            "Operation-Location": {
+                                "type": "string",
+                                "description": "Authorized operation status URL"
+                            }
                         }
                     },
                     "403": {
                         "description": "Platform catalog permission required",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Different input for the same key, or an aborted operation",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "503": {
@@ -2768,6 +3046,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.CreateRoleRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required.",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2787,6 +3071,25 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        },
+                        "headers": {
+                            "Operation-ID": {
+                                "type": "string",
+                                "description": "Server-generated authorization operation ID in transaction mode"
+                            },
+                            "Operation-Location": {
+                                "type": "string",
+                                "description": "Authorized operation status URL"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Different input for the same key, or an aborted operation",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "503": {
@@ -2877,6 +3180,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.UpdateRoleRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required.",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2896,6 +3205,25 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        },
+                        "headers": {
+                            "Operation-ID": {
+                                "type": "string",
+                                "description": "Server-generated authorization operation ID in transaction mode"
+                            },
+                            "Operation-Location": {
+                                "type": "string",
+                                "description": "Authorized operation status URL"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Different input for the same key, or an aborted operation",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "503": {
@@ -2918,6 +3246,12 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required.",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -2925,6 +3259,25 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authz_dto.Response"
+                        },
+                        "headers": {
+                            "Operation-ID": {
+                                "type": "string",
+                                "description": "Server-generated authorization operation ID in transaction mode"
+                            },
+                            "Operation-Location": {
+                                "type": "string",
+                                "description": "Authorized operation status URL"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Different input for the same key, or an aborted operation",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "503": {
@@ -3038,6 +3391,65 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "github_com_FangcunMount_iam_v2_internal_apiserver_application_authz_operation.Phases": {
+            "type": "object",
+            "properties": {
+                "final": {
+                    "$ref": "#/definitions/transaction.FinalOutcome"
+                },
+                "half": {
+                    "$ref": "#/definitions/transaction.HalfOutcome"
+                },
+                "local": {
+                    "$ref": "#/definitions/transaction.LocalOutcome"
+                }
+            }
+        },
+        "github_com_FangcunMount_iam_v2_internal_apiserver_application_authz_operation.QueryView": {
+            "type": "object",
+            "properties": {
+                "changed": {
+                    "type": "boolean"
+                },
+                "issue": {
+                    "type": "string"
+                },
+                "operation": {
+                    "type": "string"
+                },
+                "operation_id": {
+                    "type": "string"
+                },
+                "phases": {
+                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_application_authz_operation.Phases"
+                },
+                "policy_version": {
+                    "type": "integer"
+                },
+                "result": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "state": {
+                    "$ref": "#/definitions/github_com_FangcunMount_iam_v2_internal_apiserver_application_authz_operation.State"
+                }
+            }
+        },
+        "github_com_FangcunMount_iam_v2_internal_apiserver_application_authz_operation.State": {
+            "type": "string",
+            "enum": [
+                "prepared",
+                "committed",
+                "aborted"
+            ],
+            "x-enum-varnames": [
+                "Prepared",
+                "Committed",
+                "Aborted"
+            ]
+        },
         "github_com_FangcunMount_iam_v2_internal_apiserver_transport_rest_authn_request.CreateKeyRequest": {
             "type": "object",
             "required": [
@@ -4515,6 +4927,51 @@ const docTemplate = `{
                     "type": "integer"
                 }
             }
+        },
+        "transaction.FinalOutcome": {
+            "type": "string",
+            "enum": [
+                "not_attempted",
+                "commit_confirmed",
+                "rollback_confirmed",
+                "unknown"
+            ],
+            "x-enum-varnames": [
+                "FinalNotAttempted",
+                "FinalCommitConfirmed",
+                "FinalRollbackConfirmed",
+                "FinalUnknown"
+            ]
+        },
+        "transaction.HalfOutcome": {
+            "type": "string",
+            "enum": [
+                "not_attempted",
+                "prepared",
+                "rejected",
+                "unknown"
+            ],
+            "x-enum-varnames": [
+                "HalfNotAttempted",
+                "HalfPrepared",
+                "HalfRejected",
+                "HalfUnknown"
+            ]
+        },
+        "transaction.LocalOutcome": {
+            "type": "string",
+            "enum": [
+                "not_started",
+                "committed",
+                "aborted",
+                "unknown"
+            ],
+            "x-enum-varnames": [
+                "LocalNotStarted",
+                "LocalCommitted",
+                "LocalAborted",
+                "LocalUnknown"
+            ]
         }
     },
     "securityDefinitions": {

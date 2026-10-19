@@ -75,6 +75,7 @@ func (r *Router) registerAuthnRoutes(engine *gin.Engine, deps routeDependencies,
 func (r *Router) registerAuthzRoutes(engine *gin.Engine, deps AuthzDeps, authMiddleware *authnMiddleware.JWTAuthMiddleware, authorizationMiddleware *authzMiddleware.Middleware) {
 	if r.deps.ModuleStatus.authzAvailable() && authzRoutesAvailable(deps) && authMiddleware != nil && authorizationMiddleware != nil {
 		authzhttp.Register(engine, authzhttp.Dependencies{
+			OperationHandler:       deps.OperationHandler,
 			RoleHandler:            deps.RoleHandler,
 			AssignmentHandler:      deps.AssignmentHandler,
 			PermissionGrantHandler: deps.PermissionGrantHandler,

@@ -35,6 +35,10 @@ func NewPermissionGrantHandler(service permissionGrantService) *PermissionGrantH
 // @Param request body dto.CreatePermissionGrantRequest true "Grant"
 // @Success 200 {object} dto.Response{data=dto.PermissionGrantResponse}
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
+// @Param Idempotency-Key header string false "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required."
+// @Header 200 {string} Operation-ID "Server-generated authorization operation ID in transaction mode"
+// @Header 200 {string} Operation-Location "Authorized operation status URL"
+// @Failure 409 {object} map[string]string "Different input for the same key, or an aborted operation"
 // @Router /v4/authz/grants [post]
 func (h *PermissionGrantHandler) CreateGrant(c *gin.Context) {
 	var req dto.CreatePermissionGrantRequest
@@ -69,6 +73,10 @@ func (h *PermissionGrantHandler) CreateGrant(c *gin.Context) {
 // @Param request body dto.RevokePermissionGrantRequest false "Revoke"
 // @Success 200 {object} dto.Response
 // @Failure 503 {object} dto.ErrorResponse "Authorization policy unavailable (103002)"
+// @Param Idempotency-Key header string false "Optional key; same principal/scope/operation and input returns the original result. Transaction mode required."
+// @Header 200 {string} Operation-ID "Server-generated authorization operation ID in transaction mode"
+// @Header 200 {string} Operation-Location "Authorized operation status URL"
+// @Failure 409 {object} map[string]string "Different input for the same key, or an aborted operation"
 // @Router /v4/authz/grants/{id} [delete]
 func (h *PermissionGrantHandler) RevokeGrant(c *gin.Context) {
 	grantID, ok := parseIDParam(c, "id", "Grant ID 格式错误")

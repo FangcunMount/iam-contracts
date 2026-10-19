@@ -11,6 +11,9 @@ func CollectREST(available bool, mod *AuthzModule, deps *resttransport.Deps) {
 		return
 	}
 	caps := mod.ApplicationCapabilities()
+	if caps.Operations != nil {
+		deps.Authz.OperationHandler = authzhandler.NewOperationHandler(caps.Operations)
+	}
 	deps.Authz.RoleHandler = authzhandler.NewRoleHandler(caps.RoleCatalog, caps.RoleDirectory)
 	deps.Authz.AssignmentHandler = authzhandler.NewAssignmentHandler(caps.AssignmentCommands, caps.AssignmentDirectory)
 	deps.Authz.PermissionGrantHandler = authzhandler.NewPermissionGrantHandler(caps.PermissionGrantService)

@@ -99,6 +99,9 @@ func (u *PlannedUnitOfWork) WithinPolicyWrite(ctx context.Context, db *gorm.DB, 
 	if u == nil || u.original == nil || db != u.original.db || u.config.MaintenancePrincipal == "" || fn == nil {
 		return change.ErrInvalidChangePlan
 	}
+	if _, keyed := change.RequestKey(ctx); keyed {
+		return change.ErrInvalidChangePlan
+	}
 	return u.within(ctx, u.config.MaintenancePrincipal, request.AuthorizationRequest(), func(ctx context.Context, _ app.TxRepositories) error { return fn(ctx) })
 }
 func (u *PlannedUnitOfWork) within(ctx context.Context, principal string, request app.WriteRequest, fn func(context.Context, app.TxRepositories) error) error {

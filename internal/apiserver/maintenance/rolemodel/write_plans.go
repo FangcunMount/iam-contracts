@@ -18,7 +18,7 @@ import (
 func applyRequest(qs *gorm.DB, fp string, result *Receipt) policywrite.Request {
 	var frozenState State
 	var frozenPlan Plan
-	return policywrite.Request{Operation: "maintenance.role_model.apply", Freeze: func(b *change.ArtifactBuilder) error { return allocateRows(frozenState, frozenPlan, b) }, ChangedBy: MigrationID, Input: map[string]any{"migration_id": MigrationID, "fingerprint": fp}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
+	return policywrite.Request{Result: receiptResultCodec(result), Operation: "maintenance.role_model.apply", Freeze: func(b *change.ArtifactBuilder) error { return allocateRows(frozenState, frozenPlan, b) }, ChangedBy: MigrationID, Input: map[string]any{"migration_id": MigrationID, "fingerprint": fp}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
 		var saved Receipt
 		err := tx.WithContext(ctx).First(&saved, "migration_id = ?", MigrationID).Error
 		if err == nil {
@@ -62,7 +62,7 @@ func applyRequest(qs *gorm.DB, fp string, result *Receipt) policywrite.Request {
 	}}
 }
 func rollbackRequest(fp string, result *Receipt) policywrite.Request {
-	return policywrite.Request{Operation: "maintenance.role_model.rollback", ChangedBy: MigrationID, Input: map[string]any{"migration_id": MigrationID, "fingerprint": fp}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
+	return policywrite.Request{Result: receiptResultCodec(result), Operation: "maintenance.role_model.rollback", ChangedBy: MigrationID, Input: map[string]any{"migration_id": MigrationID, "fingerprint": fp}, Preview: func(ctx context.Context, tx *gorm.DB) (bool, error) {
 		var saved Receipt
 		if err := tx.WithContext(ctx).First(&saved, "migration_id = ?", MigrationID).Error; err != nil {
 			return false, err

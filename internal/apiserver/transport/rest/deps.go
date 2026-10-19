@@ -68,6 +68,7 @@ type AuthnDeps struct {
 
 // AuthzDeps 授权依赖
 type AuthzDeps struct {
+	OperationHandler       *authzhandler.OperationHandler
 	RoleHandler            *authzhandler.RoleHandler
 	AssignmentHandler      *authzhandler.AssignmentHandler
 	PermissionGrantHandler *authzhandler.PermissionGrantHandler

@@ -318,3 +318,13 @@ func (s *Store) Abort(ctx context.Context, claim *Claim) (Snapshot, error) {
 	}
 	return snapshot, nil
 }
+
+// CheckReady validates the explicitly installed host table without DDL or
+// admitting a business operation. Binding validation remains the SDK's Start.
+func (s *Store) CheckReady(ctx context.Context) error {
+	rows, err := s.db.QueryContext(ctx, "SELECT "+columns+" FROM iam_authz_operations WHERE 1=0")
+	if err != nil {
+		return err
+	}
+	return errors.Join(rows.Err(), rows.Close())
+}
