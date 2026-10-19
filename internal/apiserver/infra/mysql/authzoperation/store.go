@@ -21,14 +21,14 @@ import (
 	driver "github.com/go-sql-driver/mysql"
 )
 
-type State string
+type State = operation.State
 
 const (
-	Prepared  State = "prepared"
-	Committed State = "committed"
-	Aborted   State = "aborted"
+	Prepared  = operation.Prepared
+	Committed = operation.Committed
+	Aborted   = operation.Aborted
 )
-const maxResultBytes = 256 * 1024
+const maxResultBytes = operation.MaxResultBytes
 
 type Store struct {
 	db      *sql.DB
@@ -47,16 +47,7 @@ type Reservation struct {
 	Snapshot Snapshot
 	Claim    *Claim
 }
-type Snapshot struct {
-	Candidate     operation.Candidate
-	State         State
-	PolicyVersion int64
-	Result        []byte
-	GuardVersion  int64
-	LeaseUntil    time.Time
-	CreatedAt     time.Time
-	FinalizedAt   time.Time
-}
+type Snapshot = operation.Record
 
 func New(db *sql.DB, binding transaction.Binding) (*Store, error) {
 	if db == nil || !operation.ValidBinding(binding) {
@@ -297,4 +288,27 @@ func (s *Store) AbortExpired(ctx context.Context, limit int) (int, error) {
 		return 0, err
 	}
 	return len(keys), nil
+}
+
+// Abort competes with the original root using the winner's exact capability.
+// It can observe a concurrent commit instead of aborting it. Neither an error
+// nor cancellation is itself proof; callers only use the returned durable state.
+func (s *Store) Abort(ctx context.Context, claim *Claim) (Snapshot, error) {
+	if ctx == nil || claim == nil || !claim.candidate.Valid() || claim.candidate.Binding() != s.binding || claim.token == ([32]byte{}) {
+		return Snapshot{}, operation.ErrStale
+	}
+	claim.used.Store(true)
+	key, hash := claim.candidate.RequestKey(), claim.candidate.Fingerprint()
+	_, err := s.db.ExecContext(ctx, `UPDATE iam_authz_operations SET state='aborted',finalized_at=UTC_TIMESTAMP(6) WHERE request_key=? AND operation_id=? AND candidate_hash=? AND execution_token=? AND owner=? AND store_id=? AND writer_epoch=? AND state='prepared' AND schema_version=1`, key[:], claim.candidate.ID(), hash[:], claim.token[:], s.binding.Owner, s.binding.StoreID, s.binding.WriterEpoch)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	snapshot, err := s.Read(ctx, claim.candidate.ID())
+	if err != nil {
+		return Snapshot{}, err
+	}
+	if snapshot.Candidate.Fingerprint() != claim.candidate.Fingerprint() || (snapshot.State != Aborted && snapshot.State != Committed) {
+		return Snapshot{}, operation.ErrInvalid
+	}
+	return snapshot, nil
 }

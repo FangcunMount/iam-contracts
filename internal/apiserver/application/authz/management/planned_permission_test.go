@@ -49,3 +49,42 @@ func TestFrozenWriteRejectsStaleCachedAllowForOperationAndProtectedRole(t *testi
 	_, ok = AuthenticatedPrincipal(context.WithValue(context.Background(), struct{}{}, "user:7"))
 	require.False(t, ok)
 }
+
+func TestOperationStatusPolicyCapturesOnlyAuthorizedCurrentPermissions(t *testing.T) {
+	user, err := subject.NewUserRef(meta.ID(7))
+	require.NoError(t, err)
+	parent := WithAuthenticatedUser(t.Context(), user)
+	for _, allowed := range []bool{false, true} {
+		ctx, read, err := change.CapturePermissions(parent)
+		require.NoError(t, err)
+		ctx, err = change.WithReadVersion(ctx, 2)
+		require.NoError(t, err)
+		guard := NewGuard(checkerFunc(func(context.Context, authorization.Request) (authorization.Decision, error) {
+			return authorization.Decision{Allowed: allowed, PolicyVersion: 2}, nil
+		}))
+		opErr := guard.RequireOperation(ctx, "iam:authz:collection:roles", "update")
+		protectedErr := guard.Require(ctx, &role.Role{ManagementProtection: role.ManagementProtected})
+		permissions, err := read()
+		require.NoError(t, err)
+		if allowed {
+			require.NoError(t, opErr)
+			require.NoError(t, protectedErr)
+			require.ElementsMatch(t, []change.Permission{{Resource: "iam:authz:collection:roles", Action: "update"}, {Resource: role.ManageProtectedResource, Action: role.ManageProtectedAction}}, permissions)
+		} else {
+			require.Error(t, opErr)
+			require.Error(t, protectedErr)
+			require.Empty(t, permissions)
+		}
+	}
+	ctx, read, err := change.CapturePermissions(parent)
+	require.NoError(t, err)
+	ctx, err = change.WithReadVersion(ctx, 2)
+	require.NoError(t, err)
+	stale := NewGuard(checkerFunc(func(context.Context, authorization.Request) (authorization.Decision, error) {
+		return authorization.Decision{Allowed: true, PolicyVersion: 1}, nil
+	}))
+	require.ErrorIs(t, stale.RequireOperation(ctx, "iam:authz:collection:roles", "update"), policy.ErrStaleVersion)
+	captured, err := read()
+	require.NoError(t, err)
+	require.Empty(t, captured)
+}

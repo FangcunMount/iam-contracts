@@ -11,6 +11,7 @@ import (
 	operation "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/operation"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	journal "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzoperation"
+	txmysql "github.com/FangcunMount/reliable-messaging/storage/transaction/mysql"
 	"github.com/FangcunMount/reliable-messaging/transaction"
 	"github.com/FangcunMount/reliable-messaging/transport"
 	"github.com/google/uuid"
@@ -115,6 +116,16 @@ func testM3BusinessOperationJournal(t *testing.T, host *gorm.DB, binding transac
 			require.NoError(t, err)
 			var rows int
 			require.NoError(t, pool.QueryRowContext(t.Context(), "SELECT COUNT(*) FROM iam_m3_journal_facts WHERE operation_id=?", c.ID()).Scan(&rows))
+			outcome, err := store.Abort(t.Context(), reserved.Claim)
+			require.NoError(t, err)
+			if commit {
+				require.Equal(t, journal.Committed, outcome.State)
+				require.Equal(t, current.Result, outcome.Result)
+				require.Equal(t, current.FinalizedAt, outcome.FinalizedAt)
+			} else {
+				require.Equal(t, journal.Aborted, outcome.State)
+				require.Empty(t, outcome.Result)
+			}
 			if commit {
 				require.Equal(t, journal.Committed, current.State)
 				require.Equal(t, 1, rows)
@@ -174,6 +185,71 @@ func testM3BusinessOperationJournal(t *testing.T, host *gorm.DB, binding transac
 		require.NoError(t, err)
 		require.Nil(t, duplicate.Claim)
 		require.Equal(t, c.ID(), duplicate.Snapshot.Candidate.ID())
+	})
+
+	t.Run("sdk-and-business-guards-share-original-root", func(t *testing.T) {
+		sdk, err := txmysql.New(pool, binding)
+		require.NoError(t, err)
+		for _, commit := range []bool{false, true} {
+			c := candidate(t, fmt.Sprintf("joint-guards-%v", commit), "joint", true)
+			reserved, err := store.Reserve(t.Context(), c, time.Minute)
+			require.NoError(t, err)
+			plan, err := c.Plan()
+			require.NoError(t, err)
+			protocol, err := sdk.Reserve(t.Context(), transaction.RequestFor(plan), plan, transaction.ReserveOptions{Lease: time.Minute})
+			require.NoError(t, err)
+			require.True(t, protocol.Acquired)
+			initial, err := store.ReadProtocol(t.Context(), c)
+			require.NoError(t, err)
+			require.Equal(t, transaction.HalfNotAttempted, initial.Half)
+			require.Equal(t, transaction.LocalNotStarted, initial.Local)
+			require.NoError(t, sdk.BeginPrepare(t.Context(), protocol.Execution))
+			interrupted, err := store.ReadProtocol(t.Context(), c)
+			require.NoError(t, err)
+			require.Equal(t, transaction.HalfUnknown, interrupted.Half)
+			ref := protocol.Execution.References()[0]
+			require.NoError(t, sdk.RecordHalf(t.Context(), protocol.Execution, ref, transaction.HalfReceipt{Outcome: transaction.HalfPrepared, BrokerMessageID: "fixture-only", BrokerTransactionID: "fixture-only"}))
+			root, err := pool.BeginTx(t.Context(), nil)
+			require.NoError(t, err)
+			sdkGuard, err := sdk.Bind(t.Context(), root, protocol.Execution)
+			require.NoError(t, err)
+			businessGuard, err := store.Bind(t.Context(), root, reserved.Claim)
+			require.NoError(t, err)
+			_, err = root.ExecContext(t.Context(), "INSERT INTO iam_m3_journal_facts VALUES(?)", c.ID())
+			require.NoError(t, err)
+			_, err = root.ExecContext(t.Context(), "UPDATE authz_policy_versions SET policy_version=policy_version+1 WHERE id=1 AND policy_version=?", c.ExpectedVersion())
+			require.NoError(t, err)
+			require.NoError(t, businessGuard.Commit(t.Context(), []byte(`{"role_id":"42"}`), c.ExpectedVersion()+1))
+			require.NoError(t, sdkGuard.CommitWitness(t.Context()))
+			before, err := store.Read(t.Context(), c.ID())
+			require.NoError(t, err)
+			require.Equal(t, journal.Prepared, before.State)
+			if commit {
+				require.NoError(t, root.Commit())
+			} else {
+				require.NoError(t, root.Rollback())
+				_, err = store.Abort(t.Context(), reserved.Claim)
+				require.NoError(t, err)
+				_, err = sdk.Abort(t.Context(), protocol.Execution)
+				require.NoError(t, err)
+			}
+			var receipts int
+			require.NoError(t, pool.QueryRowContext(t.Context(), "SELECT COUNT(*) FROM iam_m3_journal_facts WHERE operation_id=?", c.ID()).Scan(&receipts))
+			after, err := store.Read(t.Context(), c.ID())
+			require.NoError(t, err)
+			observed, err := store.ReadProtocol(t.Context(), c)
+			require.NoError(t, err)
+			if commit {
+				require.Equal(t, 1, receipts)
+				require.Equal(t, journal.Committed, after.State)
+				require.Equal(t, transaction.LocalCommitted, observed.Local)
+				require.Equal(t, transaction.FinalUnknown, observed.Final)
+			} else {
+				require.Zero(t, receipts)
+				require.Equal(t, journal.Aborted, after.State)
+				require.Equal(t, transaction.LocalAborted, observed.Local)
+			}
+		}
 	})
 	t.Run("wrong-store-and-corrupt-evidence-refused", func(t *testing.T) {
 		c := candidate(t, "corrupt", "evidence", false)

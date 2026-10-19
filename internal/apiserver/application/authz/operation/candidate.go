@@ -31,10 +31,7 @@ const maxCandidateBytes = 2 * 1024 * 1024
 
 // Permission records the original permission checked by read planning. The
 // status-query service rechecks it against the current authenticated principal.
-type Permission struct {
-	Resource string `json:"resource"`
-	Action   string `json:"action"`
-}
+type Permission = change.Permission
 
 type candidateData struct {
 	Schema      int                 `json:"schema"`

@@ -70,6 +70,9 @@ func (g Guard) CanManageProtected(ctx context.Context) (bool, error) {
 	if err = policychange.RequireDecisionVersion(ctx, decision.PolicyVersion); err != nil {
 		return false, err
 	}
+	if decision.Allowed {
+		policychange.RecordPermission(ctx, role.ManageProtectedResource, role.ManageProtectedAction)
+	}
 	return decision.Allowed, nil
 }
 
@@ -142,6 +145,7 @@ func (g Guard) RequireOperation(ctx context.Context, resource, action string) er
 	if !decision.Allowed {
 		return deniedOperation()
 	}
+	policychange.RecordPermission(ctx, resource, action)
 	return nil
 }
 func deniedOperation() error {
