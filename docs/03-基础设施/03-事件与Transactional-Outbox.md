@@ -1,6 +1,6 @@
 # 事件、Outbox 交接与投递结果
 
-> 状态：已实现 · 依据 IAM 当前装配及锁定 reliable-messaging v0.4.0-rocketmq.1 / go-nsq v1.1.0；源码条件、离线测试和运行接受分别标明。
+> 状态：已实现 · 依据 IAM 当前装配及锁定 reliable-messaging v0.5.0-rocketmq-tx.2 / go-nsq v1.1.0；源码条件、离线测试和运行接受分别标明。
 
 ## RocketMQ 普通消息接入
 
@@ -11,6 +11,8 @@ RocketMQ 配置要求 endpoint、credentials_file、ca_file、routes_file 和稳
 `messaging.publish_enabled=false` 会在 Relay 领取 Outbox 前暂停，也阻止 direct 发布。终态失败必须先提交 `iam_message_failure_audit` 才能 ACK；迁移41新增该表，保留旧 NSQ 审计。重复身份但原文冲突或数据库不可用均不能授权 ACK。配置和源码能力不证明生产启用；Docker、路由与账号由 infra 维护，切换后按固定镜像、有效 provider、回执和业务结果独立验收。
 
 ## M3 独立事务模式候选
+
+固定Go修订预发布`v0.5.0-rocketmq-tx.2`修复Broker指标回写与ACK hook并发访问meter的race；公开事务API、wire、schema及原结算语义不变。原事务和HTTP验收必须使用下载的正式模块，源码合并或SDK发布不代表IAM生产切换。
 
 事务模式显式配置 `messaging.transactions.iam.mysql`、version2 路由和 `configs/events-m3.yaml`，关闭标准 Outbox 的 enabled 开关；两种写模式不能同时启用。`events.reliable_messaging.shutdown_timeout` 继续提供宿主退出预算，独立于旧 Outbox 是否开启。SDK、连接池和 Checker 的生命周期由宿主管理，公开幂等 API 与生产切换仍按 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)验收。
 
