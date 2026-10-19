@@ -18,8 +18,9 @@ services:
       # 挂载日志目录
       - /data/logs/iam:/var/log/iam
       # 挂载 gRPC mTLS 证书（由 infra 项目统一管理）
-      - /data/infra/ssl/grpc/ca:/etc/iam/grpc/ca:ro
-      - /data/infra/ssl/grpc/server:/etc/iam/grpc/server:ro
+      - /data/infra/ssl/grpc/ca/ca-chain.crt:/etc/iam/grpc/ca/ca-chain.crt:ro
+      - /data/infra/ssl/grpc/server/iam-apiserver.crt:/etc/iam/grpc/server/iam-apiserver.crt:ro
+      - /data/infra/ssl/grpc/server/iam-apiserver.key:/etc/iam/grpc/server/iam-apiserver.key:ro
       # 挂载 JWKS 密钥目录（与镜像内部 /app/data/keys 映射，用于持久化私钥）
       - /data/ops/iam-keys:/app/data/keys:rw
     environment:
@@ -27,13 +28,7 @@ services:
       - GO_ENV=production
       - GOMEMLIMIT=768MiB
       - GOGC=75
-    # serverB runs in Aliyun; use Aliyun VPC DNS first so cloud RDS/Redis
-    # hostnames resolve reliably from containers attached to overlay networks.
-    dns:
-      - 100.100.2.136
-      - 100.100.2.138
-      - 223.5.5.5
-      - 223.6.6.6
+    # Use Docker/host DNS on Tencent; Aliyun VPC resolvers are not reachable here.
     networks:
       - infra-network
     # docker compose (非 swarm) 资源限制
@@ -49,7 +44,7 @@ services:
           memory: 512M
       placement:
         constraints:
-          - node.hostname == serverB
+          - node.hostname == serverA
     # Includes the SDK 20s drain budget plus other shutdown hooks.
     stop_grace_period: 60s
     restart: unless-stopped

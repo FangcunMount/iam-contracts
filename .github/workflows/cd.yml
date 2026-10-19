@@ -1,17 +1,17 @@
 name: Production Deploy
 
 # 组织 Variables:
-#   SVRB_PUBLIC_HOST（推荐，大文件走公网）, SVRB_HOST, SVRB_USERNAME, SVRB_SSH_PORT
-#   SVRA_*（迁移期 fallback）
+#   SVRA_PUBLIC_HOST（推荐，大文件走公网）, SVRA_HOST, SVRA_USERNAME, SVRA_SSH_PORT
+#   IAM_RUNTIME_MYSQL_HOST（Tencent 容器走 mysql-rds-proxy；数据库作业仍用 MYSQL_HOST）
 #   QS_DEPLOY_EXPORT_REGISTRY=acr
 # 组织 Secrets:
-#   SVR_MINI_SSH_KEY（可选，Mac mini 优先）, SVRB_SSH_KEY, SVRB_SUDO_PASSWORD
-#   SVRA_SSH_KEY, SVRA_SUDO_PASSWORD
+#   SVR_MINI_SSH_KEY（可选，Mac mini 优先）, SVRA_SSH_KEY, SVRA_SUDO_PASSWORD
+#   SVRB_SSH_KEY（旧密钥 fallback）
 #   ALIYUN_ACR_*, DOCKERHUB_*, WWW_UID, WWW_GID, MYSQL_*, REDIS_*, ...
 #
 # Deploy job 跑在 Mac mini self-hosted runners（替代原 ServerD）：
 #   - 隔离 DOCKER_CONFIG，避免 macOS keychain 卡住 docker login
-#   - 镜像上传优先走 SVRB_PUBLIC_HOST（Tailscale DERP 太慢）
+#   - 镜像上传优先走 SVRA_PUBLIC_HOST（Tailscale DERP 太慢）
 
 on:
   workflow_run:
@@ -166,7 +166,7 @@ jobs:
           ROCKETMQ_PUBLISH_ENABLED: ${{ vars.ROCKETMQ_PUBLISH_ENABLED || 'true' }}
           IAM_RELIABLE_MESSAGING_ENABLED: ${{ vars.IAM_RELIABLE_MESSAGING_ENABLED || 'false' }}
           IAM_NSQ_CONSUMER_SDK_ENABLED: ${{ vars.IAM_NSQ_CONSUMER_SDK_ENABLED || 'false' }}
-          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_HOST: ${{ vars.IAM_RUNTIME_MYSQL_HOST || secrets.MYSQL_HOST }}
           MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
@@ -193,20 +193,20 @@ jobs:
 
       - name: Setup deploy SSH
         env:
-          RUNNER_SSH_KEY: ${{ secrets.SVR_MINI_SSH_KEY || secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
+          RUNNER_SSH_KEY: ${{ secrets.SVR_MINI_SSH_KEY || secrets.SVRA_SSH_KEY || secrets.SVRB_SSH_KEY }}
           # 大文件走公网：Tailscale DERP 中继太慢；打洞成功前优先公网
-          RUNNER_SSH_HOST: ${{ vars.SVRB_PUBLIC_HOST || secrets.SVRB_PUBLIC_HOST || vars.SVRB_HOST || vars.SVRA_HOST }}
-          RUNNER_SSH_FALLBACK_HOST: ${{ vars.SVRB_HOST || secrets.SVRB_HOST }}
-          RUNNER_SSH_USER: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
-          RUNNER_SSH_PORT: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
+          RUNNER_SSH_HOST: ${{ vars.SVRA_PUBLIC_HOST || secrets.SVRA_PUBLIC_HOST || vars.SVRA_HOST }}
+          RUNNER_SSH_FALLBACK_HOST: ${{ vars.SVRA_HOST || secrets.SVRA_HOST }}
+          RUNNER_SSH_USER: ${{ vars.SVRA_USERNAME }}
+          RUNNER_SSH_PORT: ${{ vars.SVRA_SSH_PORT || 22 }}
           RUNNER_SSH_ALIAS: deploy-target
-          DEPLOY_NODE_HOSTNAME: serverB
+          DEPLOY_NODE_HOSTNAME: serverA
         run: bash scripts/cd/setup-runner-ssh.sh
 
       - name: Upload and deploy
         env:
           RUNNER_SSH_ALIAS: deploy-target
-          DEPLOY_NODE_HOSTNAME: serverB
+          DEPLOY_NODE_HOSTNAME: serverA
           SERVICE: ${{ env.SERVICE }}
           DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
           DOCKER_REPOSITORY: ${{ env.DOCKER_REPOSITORY }}
@@ -216,7 +216,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-          SUDO_PASSWORD: ${{ secrets.SVRB_SUDO_PASSWORD || secrets.SVRA_SUDO_PASSWORD }}
+          SUDO_PASSWORD: ${{ secrets.SVRA_SUDO_PASSWORD }}
           WWW_UID: ${{ env.WWW_UID }}
           WWW_GID: ${{ env.WWW_GID }}
           IMAGE_TAG: ${{ env.DEPLOY_SHA }}

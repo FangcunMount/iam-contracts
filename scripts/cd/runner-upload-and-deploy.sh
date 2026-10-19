@@ -61,7 +61,7 @@ emit_export() {
 } >"$LOCAL_BOOT"
 
 emit_export SERVICE              "$SERVICE"
-emit_export DEPLOY_NODE_HOSTNAME "${DEPLOY_NODE_HOSTNAME:-serverB}"
+emit_export DEPLOY_NODE_HOSTNAME "${DEPLOY_NODE_HOSTNAME:-serverA}"
 emit_export DEPLOY_SSH_EXPECTED_HOST "${RUNNER_SSH_HOST:-}"
 emit_export IMAGE_TAG            "$IMAGE_TAG"
 emit_export DEPLOY_IMAGE_SOURCE  "${DEPLOY_IMAGE_SOURCE:-tarball}"

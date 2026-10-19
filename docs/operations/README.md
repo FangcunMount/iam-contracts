@@ -6,6 +6,7 @@
 
 | 任务 | 操作正文 | 独立边界 |
 | --- | --- | --- |
+| IAM 主机迁移 | [腾讯云 serverA 迁移记录](iam-tencent-servera-migration.md) | 固定原镜像、单实例与 JWKS 保留；自动发布暂停 |
 | 旧分配配置公司/门店范围 | [Assignment Scope 迁移](assignment-scope-migration.md) | IAM/QS 两库无原子事务；历史上线记录单列 |
 | 创建登录身份 | [维护身份准备](account-provision.md) | 不自动产生 Operator、Role 或 Scope |
 | 固定独立审核账号 10002 | [10002 专用流程](reviewer-10002-provisioning.md) | 已知 Actions Scope 写入缺口；人工审核不自动执行 |
