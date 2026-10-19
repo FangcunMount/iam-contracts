@@ -26,6 +26,7 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/authorization"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/subject"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/authz/subjectresolver"
 	grantrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
 	rolerepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
@@ -57,13 +58,15 @@ func (fanoutUserResolver) ResolveUser(_ context.Context, id meta.ID) error {
 func proveM3BusinessFanout(t *testing.T, pool *sql.DB, db *gorm.DB, owner *platform.TransactionEventing) {
 	t.Helper()
 	ctx := management.WithAuthenticatedService(t.Context(), "admin")
-	roles := roleapp.NewRoleCatalog(owner.Writer, nil, management.NewGuard(nil))
+	resolver := assignment.NewSubjectResolverRegistry(subjectresolver.NewUserSubjectResolver(fanoutUserResolver{}))
+	writer := owner.Writer.ApplicationUnitOfWork(resolver)
+	roles := roleapp.NewRoleCatalog(writer, nil, management.NewGuard(nil))
 	cmd, err := roleapp.NewCreateRoleCommand("m3:fanout_reader", "Fanout reader", "")
 	require.NoError(t, err)
 	cmd.ChangedBy = "fanout-fixture"
 	role, err := roles.CreateRole(ctx, cmd)
 	require.NoError(t, err)
-	resources := resourceapp.NewResourceCatalog(owner.Writer, nil, nativeCatalogWriter{})
+	resources := resourceapp.NewResourceCatalog(writer, nil, nativeCatalogWriter{})
 	actor, err := subject.NewUserRef(meta.ID(7))
 	require.NoError(t, err)
 	resourceCmd, err := resourceapp.NewCreateResourceCommand("m3:test:collection:fanout", "Fanout resource", "", "", "", []string{"read"}, "")
@@ -72,11 +75,11 @@ func proveM3BusinessFanout(t *testing.T, pool *sql.DB, db *gorm.DB, owner *platf
 	resourceCmd.ChangedBy = "fanout-fixture"
 	resource, err := resources.CreateResource(ctx, resourceCmd)
 	require.NoError(t, err)
-	grants := grantapp.NewService(owner.Writer, grantrepo.NewRepository(db), nil, management.NewGuard(nil))
+	grants := grantapp.NewService(writer, grantrepo.NewRepository(db), nil, management.NewGuard(nil))
 	grant, err := grants.Create(ctx, grantapp.CreateCommand{RoleID: role.ID, ResourceID: resource.ID, Action: "read", GrantedBy: "fanout-fixture"})
 	require.NoError(t, err)
 	roleRepository := rolerepo.NewRoleRepository(db)
-	assignments := assignmentapp.NewCommandService(assignment.NewValidatorWithSubjectResolver(roleRepository, nativeSubjects{}), roleRepository, owner.Writer, nil, management.NewGuard(nil))
+	assignments := assignmentapp.NewCommandService(assignment.NewValidatorWithSubjectResolver(roleRepository, resolver), roleRepository, writer, nil, management.NewGuard(nil))
 	_, err = assignments.Grant(ctx, assignmentapp.GrantCommand{SubjectType: assignment.SubjectTypeUser, SubjectID: meta.ID(7), RoleID: role.ID, GrantedBy: "fanout-fixture"})
 	require.NoError(t, err)
 	request, err := authorization.NewRequest(actor, resource.KeyString(), "read")
