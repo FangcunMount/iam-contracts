@@ -220,3 +220,7 @@ sequenceDiagram
 PermissionGrant 的创建/撤销及 Assignment 的 ID/名称授撤、受管替换也声明只读预览与显式业务输入。历史已撤销 Grant 使用原始撤销状态读取，不通过活跃 Grant Mapper 重建旧条件；重复撤权是授权后的 no-op。按名称操作冻结原名称，不把当次解析的 RoleID 作为原业务输入。Scope 输入显式包含 org_id、scope_kind、store_ids，命令切片在进入规划前复制。源码测试证明跨公司保留、旧版本先于 no-op 校验及首次输入不受调用方后续变动影响。
 
 上述入口仍由旧组合装配运行；维护工具入口、实际半消息/原事务 Sender、业务结果回执及公开幂等查询尚未完成，本节的源码测试不代表 T05/T06 或生产迁移完成。
+
+维护工具也声明独立的 `policywrite.Request`：Scope Apply/Rollback、RoleModel Apply/Rollback、ConditionRetire Apply/Rollback、Reviewer Scope 修复和 OperationsCatalog 安装。事务模式在新鲜只读根事务中重验原指纹、原管理员资格和归档完整性，已完成且未漂移的操作返回原回执；补偿仍保持原冲突规则。Scope mapping 深复制，Reviewer 密码不进入冻结输入。配置的 Writer 拒绝后绝不回落旧 Outbox。首次空库 bootstrap 保持显式安装职责。
+
+所有这些入口的版本 Increment 在精确执行上下文中都走 `IncrementExpected`，事件使用原冻结 ID/时间及版本；普通上下文保持既有逻辑。维护 CLI 事务 Sender 生命周期及原事务 witness 的实际装配仍属 T06，不能把该源码声明当成事务模式已上线。新的三档 MySQL 必需 CI 在独立临时 schema 执行维护入口规划测试；缺依赖直接失败，运行结果分候选记入 infra。

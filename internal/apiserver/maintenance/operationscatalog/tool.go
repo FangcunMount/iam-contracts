@@ -4,12 +4,13 @@ package operationscatalog
 import (
 	"context"
 	"fmt"
+	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	grant "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
-	policy "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	grantpo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
 	policypo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
 	resourcepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/resource"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/rolemodel"
 	database "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
@@ -115,7 +116,7 @@ func Apply(ctx context.Context, db *gorm.DB, stager event.Stager, fingerprint, a
 	}
 	ctx = context.WithValue(ctx, requestctx.KeyUserID, actor)
 	var result Report
-	e = database.NewUnitOfWork(db).WithinTransaction(ctx, func(txCtx context.Context) error {
+	e = policywrite.Within(ctx, db, stager, applyRequest(fingerprint, actorID, &result), func(txCtx context.Context) error {
 		tx, err := database.RequireTx(txCtx)
 		if err != nil {
 			return err
@@ -199,7 +200,7 @@ func Apply(ctx context.Context, db *gorm.DB, stager event.Stager, fingerprint, a
 		if err != nil {
 			return err
 		}
-		if err = stager.Stage(txCtx, policy.NewVersionChangedEvent(v.Version)); err != nil {
+		if err = change.StagePolicyVersionChanged(txCtx, stager, v); err != nil {
 			return err
 		}
 		after, err := rolemodel.LoadState(txCtx, tx)

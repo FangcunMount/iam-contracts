@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	"reflect"
 	"time"
 
 	legacygrant "github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/grant"
 
-	policydomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	resourcedomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	roledomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
 	assignmentpo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/assignment"
@@ -51,7 +52,7 @@ func Apply(ctx context.Context, iam, qs *gorm.DB, stager event.Stager, fingerpri
 		return nil, fmt.Errorf("role migration receipt schema must be installed first")
 	}
 	var receipt Receipt
-	err := dbmysql.NewUnitOfWork(iam).WithinTransaction(ctx, func(txCtx context.Context) error {
+	err := policywrite.Within(ctx, iam, stager, applyRequest(qs, fingerprint, &receipt), func(txCtx context.Context) error {
 		tx, err := dbmysql.RequireTx(txCtx)
 		if err != nil {
 			return err
@@ -130,7 +131,7 @@ func advance(ctx context.Context, tx *gorm.DB, stager event.Stager, reason strin
 	if err != nil {
 		return err
 	}
-	return stager.Stage(ctx, policydomain.NewVersionChangedEvent(v.Version))
+	return change.StagePolicyVersionChanged(ctx, stager, v)
 }
 func applyPlan(ctx context.Context, tx *gorm.DB, before State, p Plan) error {
 	now := time.Now().UTC()
@@ -325,7 +326,7 @@ func Rollback(ctx context.Context, db *gorm.DB, stager event.Stager, fingerprint
 		return nil, fmt.Errorf("rollback requires stopped writers and original fingerprint")
 	}
 	var r Receipt
-	err := dbmysql.NewUnitOfWork(db).WithinTransaction(ctx, func(txCtx context.Context) error {
+	err := policywrite.Within(ctx, db, stager, rollbackRequest(fingerprint, &r), func(txCtx context.Context) error {
 		tx, err := dbmysql.RequireTx(txCtx)
 		if err != nil {
 			return err

@@ -175,9 +175,19 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 				results <- outcome{i, false, err}
 				return
 			}
-			repo := policyrepo.NewPolicyVersionRepository(tx).(domain.PlannedRepository)
+			intent, intentErr := change.NewCommandIntent("role.update", "user:7", "global", fmt.Sprintf("cas-%d", i), map[string]string{"id": "42", "display_name": "冻结名称"})
+			if intentErr != nil {
+				results <- outcome{i, false, intentErr}
+				return
+			}
+			plannedCtx, intentErr := change.WithExecutionPlan(ctx, e, intent)
+			if intentErr != nil {
+				results <- outcome{i, false, intentErr}
+				return
+			}
+			repo := policyrepo.NewPolicyVersionRepository(tx)
 			// More than512 UTF-8 bytes, within the original VARCHAR(512) character limit.
-			_, err = repo.IncrementExpected(ctx, current.Version, "system", strings.Repeat("中", 200), at)
+			_, err = repo.Increment(plannedCtx, "system", strings.Repeat("中", 200))
 			if errors.Is(err, domain.ErrStaleVersion) {
 				if err = raw.Rollback(); err == nil {
 					var ok bool

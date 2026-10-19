@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	"math"
 	"time"
 
-	policydomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	assignmentpo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/assignment"
 	policypo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/rolemodel"
@@ -66,7 +67,7 @@ func Rollback(ctx context.Context, iam, qs *gorm.DB, stager event.Stager, id, ac
 		return nil, fmt.Errorf("reviewed fingerprint, actor, databases, outbox and paused writers required")
 	}
 	var result *Receipt
-	err = dbmysql.NewUnitOfWork(iam).WithinTransaction(ctx, func(txCtx context.Context) error {
+	err = policywrite.Within(ctx, iam, stager, rollbackRequest(qs, id, actor.String(), fingerprint, &result), func(txCtx context.Context) error {
 		tx, e := dbmysql.RequireTx(txCtx)
 		if e != nil {
 			return e
@@ -143,7 +144,7 @@ func Rollback(ctx context.Context, iam, qs *gorm.DB, stager event.Stager, id, ac
 		if e != nil {
 			return e
 		}
-		if e = stager.Stage(txCtx, policydomain.NewVersionChangedEvent(version.Version)); e != nil {
+		if e = change.StagePolicyVersionChanged(txCtx, stager, version); e != nil {
 			return e
 		}
 		actualState, e := rolemodel.LoadState(txCtx, tx)

@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	"time"
 
 	legacygrant "github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/legacycondition/grant"
 
-	policydomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
 	grantpo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/permissiongrant"
 	policypo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
@@ -165,7 +166,7 @@ func mutate(ctx context.Context, db *gorm.DB, stager event.Stager, fp string, st
 		return nil, fmt.Errorf("install condition retirement receipt schema first")
 	}
 	var result *Receipt
-	err := dbmysql.NewUnitOfWork(db).WithinTransaction(ctx, func(txCtx context.Context) error {
+	err := policywrite.Within(ctx, db, stager, mutationRequest(fp, rollback, &result), func(txCtx context.Context) error {
 		tx, err := dbmysql.RequireTx(txCtx)
 		if err != nil {
 			return err
@@ -247,7 +248,7 @@ func advance(ctx context.Context, tx *gorm.DB, stager event.Stager, reason strin
 	if err != nil {
 		return err
 	}
-	return stager.Stage(ctx, policydomain.NewVersionChangedEvent(v.Version))
+	return change.StagePolicyVersionChanged(ctx, stager, v)
 }
 func apply(tx *gorm.DB, s rolemodel.State, p Plan) error {
 	now := time.Now().UTC()
