@@ -3,6 +3,7 @@
 package migration
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -140,6 +142,19 @@ func proveM3BusinessFanout(t *testing.T, pool *sql.DB, db *gorm.DB, owner *platf
 		}
 		if output.Close() != nil {
 			t.Error("private child log not closed")
+		}
+		if t.Failed() {
+			raw, readErr := os.ReadFile(filepath.Join(directory, "child-private.log"))
+			if readErr == nil {
+				// Stack/assertion locations only, never copy runtime errors or values.
+				locations := regexp.MustCompile(`(?m)^\s*(?:[^\s\n]*/)?([A-Za-z0-9_.-]+\.go:[0-9]+)(?: \+0x[0-9a-f]+|:).*$`).FindAllSubmatch(raw, 64)
+				for _, location := range locations {
+					t.Logf("M3_QS_FAILURE_SITE %s", location[1])
+				}
+				if bytes.Contains(raw, []byte("WARNING: DATA RACE")) {
+					t.Log("M3_QS_FAILURE_RACE")
+				}
+			}
 		}
 	})
 	waitCtx, cancel := context.WithTimeout(t.Context(), 75*time.Second)
