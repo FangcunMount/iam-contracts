@@ -339,7 +339,7 @@ func testM3GuardedLocalRoot(t *testing.T, host *gorm.DB, binding transaction.Bin
 				if err != nil {
 					return err
 				}
-				if err = tx.WithContext(ctx).Exec("INSERT INTO iam_m3_local_facts VALUES(?)", []byte(id)).Error; err != nil {
+				if err = tx.WithContext(ctx).Exec("INSERT INTO iam_m3_local_facts VALUES(?)", id).Error; err != nil {
 					return err
 				}
 				version, err := repos.PolicyVersions.Increment(ctx, "system", "original guarded root")
@@ -376,7 +376,7 @@ func testM3GuardedLocalRoot(t *testing.T, host *gorm.DB, binding transaction.Bin
 				t.Fatal("original facts and exact witness diverged")
 			}
 			var count int64
-			if err = host.Table("iam_m3_local_facts").Where("operation_id=?", []byte(id)).Count(&count).Error; err != nil {
+			if err = host.Table("iam_m3_local_facts").Where("operation_id=?", id).Count(&count).Error; err != nil {
 				t.Fatal(err)
 			}
 			expectedCount := int64(0)
