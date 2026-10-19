@@ -195,6 +195,18 @@ IAM_APISERVER_MESSAGING_INSTANCE_ID=${ROCKETMQ_INSTANCE_ID}
 IAM_APISERVER_MESSAGING_PUBLISH_ENABLED=${ROCKETMQ_PUBLISH_ENABLED}
 EOF
 fi
+# Redis cloud TLS uses Go's additive system trust directories; retain stock roots.
+if [ "${REDIS_HOST:-}" = bj-crs-3dli07u2.sql.tencentcdb.com ] && [ "${REDIS_USE_SSL:-false}" != true ]; then
+  echo 'Tencent production Redis requires explicit TLS' >&2
+  exit 1
+fi
+if [ "${REDIS_USE_SSL:-false}" = true ]; then
+  if [ "${REDIS_SSL_INSECURE_SKIP_VERIFY:-false}" != false ]; then
+    echo 'Production Redis TLS may not skip certificate verification' >&2
+    exit 1
+  fi
+  printf '%s\n' 'SSL_CERT_DIR=/etc/ssl/certs:/etc/pki/tls/certs:/etc/qlume/redis' >> "$ENV_FILE"
+fi
 chmod 0600 "$ENV_FILE"
 
 echo "Generated config.prod.env for ${SERVICE}:"

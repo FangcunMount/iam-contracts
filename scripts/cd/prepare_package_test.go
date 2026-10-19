@@ -359,3 +359,38 @@ func TestPreparePackageSDKSubscriberIsExplicitlyOptedIn(t *testing.T) {
 		})
 	}
 }
+
+func TestPreparePackageTencentRedisRequiresVerifiedTLS(t *testing.T) {
+	for _, tc := range []struct {
+		name, ssl, skip string
+		ok              bool
+	}{
+		{"plaintext", "false", "false", false},
+		{"skip-verification", "true", "true", false},
+		{"verified", "true", "false", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tmp := t.TempDir()
+			pkg := filepath.Join(tmp, "package")
+			output, err := runPreparePackage(t, pkg, filepath.Join(tmp, "package.tar.gz"), []string{
+				"SEED_MOCK_AUTH_ENABLED=false", "REDIS_HOST=bj-crs-3dli07u2.sql.tencentcdb.com", "REDIS_PORT=23136",
+				"REDIS_USE_SSL=" + tc.ssl, "REDIS_SSL_INSECURE_SKIP_VERIFY=" + tc.skip, "REDIS_PASSWORD=REDIS_APP_PASSWORD@synthetic-redis-secret",
+			})
+			if (err == nil) != tc.ok {
+				t.Fatalf("success=%v, want %v", err == nil, tc.ok)
+			}
+			if strings.Contains(output, "synthetic-redis-secret") {
+				t.Fatal("Redis credential leaked")
+			}
+			if tc.ok {
+				body, err := os.ReadFile(filepath.Join(pkg, "configs/env/config.prod.env"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !strings.Contains(string(body), "SSL_CERT_DIR=/etc/ssl/certs:/etc/pki/tls/certs:/etc/qlume/redis") {
+					t.Fatal("Redis CA trust directory missing")
+				}
+			}
+		})
+	}
+}
