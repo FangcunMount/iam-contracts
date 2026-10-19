@@ -4,11 +4,21 @@
 
 ## RocketMQ 普通消息接入
 
-当前源码新增显式 `messaging.provider=rocketmq` 分支，默认仍为 `nsq`。客户端由 IAM 生命周期启动和关闭，事务、连接池、Outbox、原事件身份与策略版本收敛仍归 IAM。RocketMQ 是普通消息传输；当前实现不包含事务消息，不替换发布型 Outbox。Broker 的确认不等于策略已被所有实例加载。
+当前源码新增显式 `messaging.provider=rocketmq` 分支，默认仍为 `nsq`。客户端由 IAM 生命周期启动和关闭，事务、连接池、Outbox、原事件身份与策略版本收敛仍归 IAM。未配置事务 owner 的此分支采用普通消息并保留发布型 Outbox。事务模式候选须另行显式选择，见下节。Broker 的确认不等于策略已被所有实例加载。
 
 RocketMQ 配置要求 endpoint、credentials_file、ca_file、routes_file 和稳定 instance_id。可信 version1 路由清单把逻辑 topic/subscription 映射到预先创建的物理 topic/group；IAM 不用收到的元数据创建资源。策略订阅使用 `iam-policy-sync.<instance_id>`，供重启后的同一实例继续消费；其他实例必须使用不同订阅以保持广播语义。
 
 `messaging.publish_enabled=false` 会在 Relay 领取 Outbox 前暂停，也阻止 direct 发布。终态失败必须先提交 `iam_message_failure_audit` 才能 ACK；迁移41新增该表，保留旧 NSQ 审计。重复身份但原文冲突或数据库不可用均不能授权 ACK。配置和源码能力不证明生产启用；Docker、路由与账号由 infra 维护，切换后按固定镜像、有效 provider、回执和业务结果独立验收。
+
+## M3 独立事务模式候选
+
+事务模式显式配置 `messaging.transactions.iam.mysql`、version2 路由和 `configs/events-m3.yaml`，关闭标准 Outbox 的 enabled 开关；两种写模式不能同时启用。`events.reliable_messaging.shutdown_timeout` 继续提供宿主退出预算，独立于旧 Outbox 是否开启。SDK、连接池和 Checker 的生命周期由宿主管理，公开幂等 API 与生产切换仍按 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)验收。
+
+迁移43安装 `iam_authz_message_protocol`，默认 `outbox`，不会自动转换 provider。事务选择要求精确 owner/store/epoch/route_revision；原根事务先取得 execution guard，再持有协议行共享锁，最后共同提交业务、精确版本和 witness。标准 Stager 在原根事务中同样校验门禁，拒绝选择事务后的旧 Outbox 写入。缺表仅在有干净且精确单行的旧迁移日志时允许旧模式；新版迁移缺门禁失败关闭。旧二进制没有此门禁，生产仍须停止全部旧写者并验证排空，不能由一行配置代替交接。
+
+只读规划先核验选择，完整冻结 ID、时间和首次 wire 后才准备半消息。全部半消息确认成功后，单次宿主执行器开启原根事务。回调返回 nil 不是提交证明；根提交 ACK 或权威 witness 才可证明本地提交，最终 Broker 确认丢失保留 `LocalCommitted + FinalUnknown`。取消也不证明回滚，不自动重做业务。
+
+进程在事务 owner 启动失败时不降级启动。drain 先封闭新规划及 NORMAL 准入，让真实在途调用在 Checker 存活时结束，再关闭客户端和宿主资源；未完成退出保留 `ShutdownIncomplete`。required readiness 增加 `message_transaction`，不再用空旧 Outbox 证明事务 owner 已就绪。临时写暂停与读取可用性分开，关闭后的实例不能重新开放准入。
 
 ## 1. 当前设计先保护哪一个窗口
 

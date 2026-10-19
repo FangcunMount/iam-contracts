@@ -203,13 +203,13 @@ sequenceDiagram
 
 改动写入协议时，需同时复核[领域模型](01-领域模型设计.md)、[读链](02-关键链路-授权判定与不可变快照.md)、[多实例收敛](04-关键链路-多实例策略收敛.md)、[RPC/SDK](06-关键链路-gRPC服务间授权与SDK.md)及[Scope维护](../../operations/assignment-scope-migration.md)。本文的代码与本地回归证据不替代真实MySQL专项、部署或业务验收。
 
-## M3 冻结版本规划基础（活动入口尚未完成接入）
+## M3 冻结版本规划与事务模式候选（生产未切换）
 
 事务接入新增 `policychange.CommandIntent`，把主体、授权作用域、操作类型、幂等键和显式业务输入分开；新生成的消息ID、时间和当前策略版本不进入稳定输入摘要。`scope.Scope` 等私有领域值不能直接依赖 JSON 默认序列化，必须显式投影组织、范围种类和 StoreIDs，避免不同范围被编码为相同空对象。
 
-`FreezeVersionPlan` 接受只读规划确认的原版本，冻结下一版本、首次事件身份/时间和原revision1 wire；重复请求从 reservation 赢家解码。原执行上下文复用首次事件，拒绝错误目标版本。`IncrementExpected` 只在原 MySQL SQL root 上执行精确 CAS，不初始化缺失行，不另选版本，也不在 ORM hook 中重新生成时钟。该 CAS 与业务条件、SDK guard/witness 的完整装配及所有活动写入口迁移仍由 M3-T05/T06 推进，不能仅调用规划函数就宣称已启用事务消息。
+`FreezeVersionPlan` 接受只读规划确认的原版本，冻结下一版本、首次事件身份/时间和原revision1 wire；重复请求从 reservation 赢家解码。原执行上下文复用首次事件，拒绝错误目标版本。`IncrementExpected` 只在原 MySQL SQL root 上执行精确 CAS，不初始化缺失行，不另选版本，也不在 ORM hook 中重新生成时钟。活动写入口已声明只读规划与原事务执行；事务模式候选将其装配到 SDK guard/witness。是否通过当头原生与真实 Broker 门禁以 M3 总表为准，不能仅调用规划函数就宣称生产已启用事务消息。
 
-真实安装后的并发CAS/回滚验证由隔离 MySQL 门禁执行；新增原生用例当前仅在本机编译，运行结果须单独记录。当前进度和源码证据统一见 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)。SDK 预发布保持固定，生产仍沿原消息链路。
+真实安装后的并发 CAS/回滚验证由隔离 MySQL 门禁执行；测试替身、额外本地版本、固定原生矩阵与实际 Broker 证据分别记录。当前进度和源码证据统一见 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)。SDK 预发布保持固定，生产仍沿原消息链路。
 
 规划适配增加显式 `WriteRequest` 和新鲜的 MySQL `ReadPlan` 只读根事务。角色/资源六个入口声明固定操作、权限、作用域、显式业务输入及预览条件；更新请求复制指针和数组，预览无变化时返回原结果。已配置的规划执行器出错不会回落旧 UoW；既有装配继续使用原 UoW，完整 Sender/guard 装配仍属后续接入。
 

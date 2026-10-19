@@ -8,6 +8,7 @@ import (
 
 	"github.com/FangcunMount/iam/v5/internal/apiserver/eventing"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/messaging"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/messageprotocol"
 	hostuow "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/uow/authz"
 	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
 	"github.com/FangcunMount/reliable-messaging/transaction"
@@ -37,6 +38,9 @@ type TransactionEventing struct {
 // NewTransactionEventing performs no DB/Broker calls, DDL or background work.
 // Options read the explicitly supplied local manifest, CA and credential files.
 func NewTransactionEventing(deps EventingDeps, catalog *eventcatalog.Catalog, maintenancePrincipal string) (*TransactionEventing, error) {
+	if deps.ReliableMessaging.Enabled {
+		return nil, errors.New("transaction owner and standard Outbox cannot both be enabled")
+	}
 	if deps.DB == nil || catalog == nil || catalog.Config() == nil || catalog.Config().Version != "m3-1" || len(deps.Messaging.Transactions) != 1 {
 		return nil, errors.New("explicit IAM primary binding and m3-1 transaction catalog required")
 	}
@@ -65,7 +69,12 @@ func NewTransactionEventing(deps EventingDeps, catalog *eventcatalog.Catalog, ma
 		return nil, err
 	}
 	owner := &TransactionEventing{runtime: runtime, startDone: make(chan struct{}), cleanupBudget: config.Limits.RPCTimeout, preflight: func(ctx context.Context) error {
-		return checkTransactionHandoff(ctx, deps.DB, config.Limits.CheckTimeout)
+		check, cancel := context.WithTimeout(ctx, config.Limits.CheckTimeout)
+		defer cancel()
+		if err := messageprotocol.RequireTransaction(check, deps.DB, local.Store().Binding(), "m3-1", false); err != nil {
+			return err
+		}
+		return checkTransactionHandoff(check, deps.DB, config.Limits.CheckTimeout)
 	}}
 	owner.Writer, err = hostuow.NewPlannedUnitOfWork(local, runtime, hostuow.PlanConfig{LogicalTopic: topic, PhysicalTopic: config.Routes[0].PhysicalTopic, Sends: config.Limits.Sends, ProofBudget: config.Limits.CheckTimeout, Admission: owner.admitted, MaintenancePrincipal: maintenancePrincipal})
 	if err != nil {
@@ -135,13 +144,31 @@ func (o *TransactionEventing) Start(ctx context.Context) error {
 	}
 	return nil
 }
-func (o *TransactionEventing) Stop(ctx context.Context) error {
+
+// StopAdmission is final and synchronous. Admitted host calls may finish while
+// Checker and clients stay live until Stop joins them; no client is closed here.
+func (o *TransactionEventing) StopAdmission() {
 	o.mu.Lock()
 	o.stopping = true
 	o.ready = false
-	started := o.started
 	o.mu.Unlock()
 	o.Writer.StopAdmission()
+}
+func (o *TransactionEventing) CheckReady(context.Context) error {
+	o.mu.Lock()
+	ready := o.ready && !o.stopping
+	o.mu.Unlock()
+	// A temporary write pause is independent of protocol/read availability.
+	if !ready || !o.runtime.sender.Stats().Ready {
+		return ErrTransactionAdmissionClosed
+	}
+	return nil
+}
+func (o *TransactionEventing) Stop(ctx context.Context) error {
+	o.StopAdmission()
+	o.mu.Lock()
+	started := o.started
+	o.mu.Unlock()
 	if started {
 		select {
 		case <-o.startDone:

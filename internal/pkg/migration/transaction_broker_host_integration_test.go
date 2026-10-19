@@ -99,7 +99,7 @@ func ownedM3BrokerDatabase(t *testing.T) (*sql.DB, *gorm.DB) {
 		t.Fatal("owned migration pool unavailable")
 	}
 	version, _, err := NewMigrator(migrationPool, &Config{Enabled: true, Database: name, FreshStages: freshStagesForTest(t, db)}).Run()
-	if err != nil || version != 42 {
+	if err != nil || version != 43 {
 		t.Fatal("explicit full IAM installation failed")
 	}
 	// These are generated migration seed notifications, in this newly-created
@@ -123,6 +123,7 @@ func TestM3ActualBrokerHost(t *testing.T) {
 	if _, err := pool.ExecContext(t.Context(), "INSERT INTO rm_tx_binding VALUES(?,?,?,1)", []byte("iam.mysql"), []byte(binding.StoreID), []byte(binding.WriterEpoch)); err != nil {
 		t.Fatal("explicit fixture binding installation failed")
 	}
+	selectOwnedTransactionProtocol(t, pool, transaction.Binding{Owner: "iam.mysql", StoreID: binding.StoreID, WriterEpoch: binding.WriterEpoch})
 	catalogConfig, err := eventcatalog.Load("../../../configs/events-m3.yaml")
 	if err != nil {
 		t.Fatal("explicit m3 catalog missing")

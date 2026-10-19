@@ -13,6 +13,7 @@ import (
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	app "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
 	assignment "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/messageprotocol"
 	database "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam/v5/pkg/event"
 	txmysql "github.com/FangcunMount/reliable-messaging/storage/transaction/mysql"
@@ -53,7 +54,16 @@ func NewTransactionUnitOfWork(db *gorm.DB, resolver assignment.SubjectResolver, 
 }
 func (u *TransactionUnitOfWork) Store() *txmysql.Store { return u.store }
 func (u *TransactionUnitOfWork) ReadPlan(ctx context.Context, fn func(context.Context, app.TxRepositories) error) error {
-	return u.base.ReadPlan(ctx, fn)
+	return u.base.ReadPlan(ctx, func(readCtx context.Context, repos app.TxRepositories) error {
+		tx, err := database.RequireTx(readCtx)
+		if err != nil {
+			return err
+		}
+		if err = messageprotocol.RequireTransaction(readCtx, tx, u.store.Binding(), "m3-1", false); err != nil {
+			return err
+		}
+		return fn(readCtx, repos)
+	})
 }
 
 // LocalExecutor is single-use, including on errors. A nil business callback or a
@@ -97,6 +107,9 @@ func (u *TransactionUnitOfWork) LocalExecutor(command change.CommandIntent, fn f
 				// The guard's conditional write precedes permissions, facts and witness writes.
 				guard, err := u.store.BindGORM(txCtx, tx, e)
 				if err != nil {
+					return err
+				}
+				if err = messageprotocol.RequireTransaction(txCtx, tx, u.store.Binding(), "m3-1", true); err != nil {
 					return err
 				}
 				// A root cannot bypass Sender's all-halves gate. The exact

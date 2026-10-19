@@ -73,7 +73,7 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 	}
 	defer migrationPool.Close()
 	version, _, err := NewMigrator(migrationPool, &Config{Enabled: true, Database: name, FreshStages: freshStagesForTest(t, host)}).Run()
-	if err != nil || version != 42 {
+	if err != nil || version != 43 {
 		t.Fatal("full original host schema", version, err)
 	}
 	if err = db.PingContext(t.Context()); err != nil {
@@ -122,6 +122,7 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 	if _, err = db.ExecContext(t.Context(), `INSERT INTO rm_tx_binding VALUES(?,?,?,1)`, []byte(binding.Owner), []byte(binding.StoreID), []byte(binding.WriterEpoch)); err != nil {
 		t.Fatal(err)
 	}
+	selectOwnedTransactionProtocol(t, db, binding)
 	planned := base.(domain.PlannedRepository)
 	at := time.Date(2026, 10, 19, 12, 0, 0, 0, time.UTC)
 	if _, err = planned.IncrementExpected(t.Context(), current.Version, "system", "reject pool", at); !errors.Is(err, dbmysql.ErrActiveTransactionRequired) {
@@ -283,6 +284,7 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 	}
 	t.Run("guarded-host-root", func(t *testing.T) { testM3GuardedLocalRoot(t, host, binding) })
 	t.Run("planned-host-entries", func(t *testing.T) { testM3PlannedHostEntries(t, host, binding) })
+	t.Run("protocol-selection", func(t *testing.T) { testM3ProtocolSelection(t, host, binding) })
 }
 
 // This proves the host original-root executor against real MySQL. Half receipts

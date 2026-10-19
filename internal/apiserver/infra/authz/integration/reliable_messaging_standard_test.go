@@ -32,6 +32,8 @@ func TestReliableMessagingStandardUoW(t *testing.T) {
 	require.NotEmpty(t, os.Getenv("IAM_AUTHZ_TEST_MYSQL_DSN"))
 	fixture := authzdb.Open(t, true)
 	require.NoError(t, fixture.Exec(sdkmysql.Schema).Error)
+	require.NoError(t, fixture.Exec("CREATE TABLE schema_migrations(version BIGINT PRIMARY KEY, dirty BOOLEAN NOT NULL)").Error)
+	require.NoError(t, fixture.Exec("INSERT INTO schema_migrations VALUES(39,FALSE)").Error)
 	// The standard Appender must borrow the actual UTC+8 business transaction.
 	cfg, err := driver.ParseDSN(fixture.Dialector.(*gormmysql.Dialector).DSN)
 	require.NoError(t, err)

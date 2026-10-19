@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/robfig/cron/v3"
 )
@@ -15,6 +16,12 @@ func (o *Options) Validate() []error {
 	var errs []error
 	if err := o.Messaging.Validate(); err != nil {
 		errs = append(errs, err)
+	}
+	if len(o.Messaging.Transactions) > 0 && o.Events != nil && o.Events.ReliableMessaging.Enabled {
+		errs = append(errs, errors.New("transaction owner and standard Outbox cannot both be enabled"))
+	}
+	if len(o.Messaging.Transactions) > 0 && (o.Events == nil || o.Events.ReliableMessaging.ShutdownTimeout <= 0 || o.Events.ReliableMessaging.ShutdownTimeout > 5*time.Minute) {
+		errs = append(errs, errors.New("transaction runtime requires events.reliable_messaging.shutdown_timeout in (0,5m], independent of Outbox enablement"))
 	}
 	if o.Events != nil {
 		if err := o.Events.ReliableMessaging.Validate(); err != nil {

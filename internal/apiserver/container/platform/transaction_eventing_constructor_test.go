@@ -56,6 +56,10 @@ func TestTransactionEventingConstructorUsesExplicitCatalogAndStartsNoClient(t *t
 	require.NoError(t, err)
 	_, err = NewTransactionEventing(deps, eventcatalog.NewCatalog(old), "")
 	require.Error(t, err, "old Outbox catalog was silently treated as transaction delivery")
+	mixed := deps
+	mixed.ReliableMessaging.Enabled = true
+	_, err = NewTransactionEventing(mixed, eventcatalog.NewCatalog(cfg), "")
+	require.ErrorContains(t, err, "cannot both be enabled")
 	deps.EnableSMSMessaging = true
 	_, err = NewTransactionEventing(deps, eventcatalog.NewCatalog(cfg), "")
 	require.Error(t, err, "enabled NORMAL SMS accepted a transaction-only manifest")

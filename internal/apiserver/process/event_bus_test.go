@@ -124,3 +124,30 @@ func writeEventCatalog(t *testing.T, content string) string {
 	}
 	return path
 }
+
+// Transaction mode must retain fatal startup/shutdown handling without enabling
+// the retired Outbox or configuring an NSQ producer/subscriber.
+func TestPrepareTransactionMessagingIndependentOfLegacyFlags(t *testing.T) {
+	opts := apiserveroptions.NewOptions()
+	opts.Events.ReliableMessaging.Enabled = false
+	opts.NSQOptions = nil
+	opts.Messaging = apiserveroptions.MessagingOptions{Provider: "rocketmq", Endpoint: "127.0.0.1:1", CredentialsFile: "explicit-credentials", CAFile: "explicit-ca", RoutesFile: "explicit-routes", InstanceID: "fixture", Transactions: map[string]apiserveroptions.TransactionOptions{"iam.mysql": {StoreID: "primary", WriterEpoch: "m3-1", RouteRevision: "m3-1"}}}
+	server := &apiServer{cfg: &apiserverconfig.Config{Options: opts}}
+	if !server.reliableMessagingEnabled() {
+		t.Fatal("transaction runtime lost fatal startup/shutdown handling")
+	}
+	if err := server.prepareMessaging(); err != nil {
+		t.Fatal(err)
+	}
+	opts.Messaging.Provider = "nsq"
+	if err := server.prepareMessaging(); err == nil {
+		t.Fatal("transaction configuration fell through to NSQ")
+	}
+	var absent *apiServer
+	if absent.reliableMessagingEnabled() {
+		t.Fatal("nil server enabled messaging")
+	}
+	if err := absent.prepareMessaging(); err == nil {
+		t.Fatal("nil server accepted absent configuration")
+	}
+}

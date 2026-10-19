@@ -9,6 +9,7 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/apiserver/eventing"
 	messagingInfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/messaging"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/eventoutbox"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/messageprotocol"
 	"github.com/FangcunMount/reliable-messaging/outbox"
 	"github.com/FangcunMount/reliable-messaging/relay"
 	sdkmysql "github.com/FangcunMount/reliable-messaging/storage/mysql"
@@ -42,6 +43,9 @@ func initReliableEventing(deps EventingDeps, result *Eventing) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := eventoutbox.CheckReliableSchema(ctx, deps.DB); err != nil {
+		return err
+	}
+	if err := messageprotocol.RequireOutbox(ctx, deps.DB, false); err != nil {
 		return err
 	}
 	stager, err := eventoutbox.NewStandardStager(result.Catalog)

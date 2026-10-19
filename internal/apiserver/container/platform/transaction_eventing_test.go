@@ -96,3 +96,25 @@ func TestTransactionEventOwnerReportsActualStartupOwnershipAtShutdownDeadline(t 
 	require.Zero(t, normal.starts, "startup launched another client after stopping")
 	require.NoError(t, owner.Stop(context.Background()))
 }
+
+func TestTransactionOwnerDrainSealsWritesBeforeClosingChecker(t *testing.T) {
+	driver := &transactionDriverStub{}
+	normal := &normalPeerStub{}
+	owner := ownerFixture(t, driver, normal)
+	require.Error(t, owner.CheckReady(t.Context()))
+	require.NoError(t, owner.Start(t.Context()))
+	require.NoError(t, owner.CheckReady(t.Context()))
+	require.NoError(t, owner.SetAdmission(false))
+	require.NoError(t, owner.CheckReady(t.Context()), "write pause disabled read availability")
+	owner.StopAdmission()
+	owner.StopAdmission()
+	require.Error(t, owner.CheckReady(t.Context()))
+	require.ErrorIs(t, owner.SetAdmission(true), ErrTransactionAdmissionClosed)
+	require.Equal(t, transport.Rejected, owner.PublishRaw(t.Context(), "sms", nil).Outcome)
+	require.Zero(t, driver.closeCalls)
+	require.Zero(t, driver.stopCalls, "Checker was stopped before admitted host work drained")
+	require.Zero(t, normal.closes)
+	require.NoError(t, owner.Stop(t.Context()))
+	require.Equal(t, 1, driver.closeCalls)
+	require.Equal(t, 1, normal.closes)
+}

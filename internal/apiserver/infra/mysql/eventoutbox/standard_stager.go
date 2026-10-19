@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/FangcunMount/iam/v5/internal/apiserver/eventing"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/messageprotocol"
 	dbmysql "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam/v5/internal/pkg/timezone"
 	"github.com/FangcunMount/iam/v5/pkg/event"
@@ -44,6 +45,9 @@ func (s *StandardStager) Stage(ctx context.Context, events ...event.DomainEvent)
 	}
 	if tx.Dialector == nil || tx.Dialector.Name() != "mysql" {
 		return errors.New("standard reliable Stage requires MySQL")
+	}
+	if err = messageprotocol.RequireOutbox(ctx, tx, true); err != nil {
+		return err
 	}
 	appender, err := sdkmysql.BindGORM(tx)
 	if err != nil {
