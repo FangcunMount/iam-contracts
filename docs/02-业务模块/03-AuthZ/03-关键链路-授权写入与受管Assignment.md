@@ -226,3 +226,7 @@ PermissionGrant 的创建/撤销及 Assignment 的 ID/名称授撤、受管替�
 所有这些入口的版本 Increment 在精确执行上下文中都走 `IncrementExpected`，事件使用原冻结 ID/时间及版本；普通上下文保持既有逻辑。维护 CLI 事务 Sender 生命周期及原事务 witness 的实际装配仍属 T06，不能把该源码声明当成事务模式已上线。新的三档 MySQL 必需 CI 在独立临时 schema 执行维护入口规划测试；缺依赖直接失败，运行结果分候选记入 infra。
 
 T06 新增原根事务执行器基础：从宿主 MySQL pool 构造同库 Store，执行时先 BindGORM，再校验完整半消息证据；原回调中的精确版本事件仅登记一次，不写旧 Outbox。回调成功、目标版本和全部 witness 共同通过后，由宿主提交根事务；根 COMMIT 错误归 Unknown。单个 executor 只能使用一次，已有事务句柄不能冒充新根。取消返回的 SDK 快照与真实本地回调完成分别记录，宿主等真实回调结束后才能读取共享结果；晚到回调被拒绝。该基础尚未装配到业务入口，冻结业务 ID/审计时钟、Sender 编排及维护 CLI 生命周期仍未完成，T06不打勾。原生根事务测试的半消息回执是显式存储 fixture，不是 Broker E2E 证明。
+
+T06 继续增加本地冻结资料与可选编排：ID按只读计划给出的语义键在 reservation 前分配，数据库会话审计时钟冻结为整秒（兼容宿主 DATETIME 的最低精度），保存在独立版本的 SDK 本地计划 payload；原事件正文和首次 Broker wire 不变。旧纯版本计划继续可读。原事务 ORM hook 仅查冻结 ID/时间，缺失即失败；维护工具的额外行、授予及回执也使用这一边界。发送前的 Lookup/只读规划计入独立有界宿主准入，StopAdmission/Wait 不提前释放真实活动，SDK Checker 由外层运行生命周期继续持有。
+
+这些组件尚未接到 platform/维护 CLI 的事务模式。T07仍需完成重复操作的原业务结果恢复、持久化 no-op、公开状态和权限保护；因此目前不能启用业务事务配置。原生实际业务入口使用明确的存储半消息 fixture 单独验证原数据库原子性，不冒充真实 Broker、端到端、部署或 system 验收。

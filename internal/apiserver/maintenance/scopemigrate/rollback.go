@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzaudit"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	"math"
 	"time"
@@ -118,7 +119,11 @@ func Rollback(ctx context.Context, iam, qs *gorm.DB, stager event.Stager, id, ac
 		if e = json.Unmarshal([]byte(receipt.PlanJSON), &plan); e != nil {
 			return e
 		}
-		now := time.Now().UTC().Truncate(time.Second)
+		now, e := authzaudit.Time(txCtx)
+		if e != nil {
+			return e
+		}
+		now = now.UTC().Truncate(time.Second)
 		expected, e := rollbackSnapshot(before, after, plan, actor, now)
 		if e != nil {
 			return e

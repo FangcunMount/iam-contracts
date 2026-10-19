@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzaudit"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	"math"
 	"reflect"
@@ -175,10 +176,14 @@ func ReviewerScopeApply(ctx context.Context, db *gorm.DB, input Input, hasher au
 			return nil
 		}
 		before := scopemigrate.Snapshot{IAM: r.Before}
-		now := time.Now().UTC().Truncate(time.Second)
+		now, e := authzaudit.Time(txctx)
+		if e != nil {
+			return e
+		}
+		now = now.UTC().Truncate(time.Second)
 		// DATETIME has no zone. Use the database session's wall clock so a UTC
 		// maintenance DSN cannot write audit times eight hours behind the app.
-		if tx.Dialector.Name() == "mysql" {
+		if _, planned := change.ExecutionPlan(txctx); !planned && tx.Dialector.Name() == "mysql" {
 			var clock struct{ Now time.Time }
 			if e = tx.Raw("SELECT CURRENT_TIMESTAMP AS now").Scan(&clock).Error; e != nil {
 				return e

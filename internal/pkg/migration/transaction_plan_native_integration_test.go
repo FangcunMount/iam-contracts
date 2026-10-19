@@ -17,6 +17,7 @@ import (
 	appuow "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	policyrepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
+	rolepo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/role"
 	hostuow "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/uow/authz"
 	dbmysql "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 	txmysql "github.com/FangcunMount/reliable-messaging/storage/transaction/mysql"
@@ -281,6 +282,7 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 		t.Fatal("rollback fabricated witness")
 	}
 	t.Run("guarded-host-root", func(t *testing.T) { testM3GuardedLocalRoot(t, host, binding) })
+	t.Run("planned-host-entries", func(t *testing.T) { testM3PlannedHostEntries(t, host, binding) })
 }
 
 // This proves the host original-root executor against real MySQL. Half receipts
@@ -300,6 +302,7 @@ func testM3GuardedLocalRoot(t *testing.T, host *gorm.DB, binding transaction.Bin
 		commit               bool
 	}{
 		{"all-halves-and-exact-event", true, true, false, true},
+		{"frozen-role-id-and-audit", true, true, false, true},
 		{"unprepared-half-never-starts-business", false, true, false, false},
 		{"missing-event-rolls-back-facts", true, false, false, false},
 		{"business-error-rolls-back-witness", true, true, true, false},
@@ -318,6 +321,21 @@ func testM3GuardedLocalRoot(t *testing.T, host *gorm.DB, binding transaction.Bin
 			plan, err := change.FreezeVersionPlan(command, current.Version, id, "event-"+id, at, "iam.authz.version.v2", "m3.policy.test")
 			if err != nil {
 				t.Fatal(err)
+			}
+			var artifacts change.LocalArtifacts
+			if test.name == "frozen-role-id-and-audit" {
+				builder := change.NewArtifactBuilder(at.Add(-time.Minute))
+				if _, err = builder.ID(change.ArtifactKey("role", id)); err != nil {
+					t.Fatal(err)
+				}
+				artifacts, err = builder.Freeze()
+				if err != nil {
+					t.Fatal(err)
+				}
+				plan, err = change.FreezeVersionPlanWithArtifacts(command, current.Version, id, "event-"+id, at, "iam.authz.version.v2", "m3.policy.test", artifacts)
+				if err != nil {
+					t.Fatal(err)
+				}
 			}
 			reserved, err := local.Store().Reserve(t.Context(), transaction.RequestFor(plan), plan, transaction.ReserveOptions{Lease: time.Minute})
 			if err != nil || !reserved.Acquired {
@@ -341,6 +359,11 @@ func testM3GuardedLocalRoot(t *testing.T, host *gorm.DB, binding transaction.Bin
 				}
 				if err = tx.WithContext(ctx).Exec("INSERT INTO iam_m3_local_facts VALUES(?)", id).Error; err != nil {
 					return err
+				}
+				if test.name == "frozen-role-id-and-audit" {
+					if err = tx.Create(&rolepo.RolePO{Name: id, DisplayName: "frozen"}).Error; err != nil {
+						return err
+					}
 				}
 				version, err := repos.PolicyVersions.Increment(ctx, "system", "original guarded root")
 				if err != nil {
@@ -396,6 +419,15 @@ func testM3GuardedLocalRoot(t *testing.T, host *gorm.DB, binding transaction.Bin
 			}
 			if after.Version != expectedVersion {
 				t.Fatal("version diverged", after.Version)
+			}
+			if test.name == "frozen-role-id-and-audit" {
+				var row rolepo.RolePO
+				if err = host.Where("name=?", id).Take(&row).Error; err != nil {
+					t.Fatal(err)
+				}
+				if row.ID != artifacts.IDs[change.ArtifactKey("role", id)] || !row.CreatedAt.Equal(artifacts.AuditAt) || !row.UpdatedAt.Equal(artifacts.AuditAt) {
+					t.Fatal("ORM replaced frozen identity or audit clock")
+				}
 			}
 			if !test.commit {
 				aborted, err := local.Store().Abort(t.Context(), e)

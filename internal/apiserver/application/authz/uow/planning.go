@@ -19,6 +19,9 @@ type WriteRequest struct {
 	PermissionActions           []string
 	Input                       any
 	Preview                     func(context.Context, TxRepositories) (bool, error)
+	// Freeze runs once after read-only planning and before SDK reservation; it
+	// declares every new row identity. It cannot execute the business mutation.
+	Freeze func(*change.ArtifactBuilder) error
 }
 type WriteSnapshot struct {
 	Expected int64

@@ -20,7 +20,7 @@ func cloneString(value *string) *string {
 	return &copy
 }
 func (s *RoleCatalog) previewCreate(cmd CreateRoleCommand, created domain.Role) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "role.create", Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: roleOperations, PermissionActions: []string{"create"}, Input: map[string]any{"name": created.NameString(), "display_name": created.DisplayName, "description": created.Description, "management_protection": created.ManagementProtection, "changed_by": cmd.ChangedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	return uow.WriteRequest{Operation: "role.create", Freeze: change.AllocateKeys(change.ArtifactKey("role", created.NameString())), Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: roleOperations, PermissionActions: []string{"create"}, Input: map[string]any{"name": created.NameString(), "display_name": created.DisplayName, "description": created.Description, "management_protection": created.ManagementProtection, "changed_by": cmd.ChangedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		if err := s.guard.RequireOperation(ctx, roleOperations, "create"); err != nil {
 			return false, err
 		}

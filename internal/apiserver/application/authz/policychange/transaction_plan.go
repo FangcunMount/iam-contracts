@@ -98,6 +98,8 @@ func versionMetadata(version int64) map[string]string {
 type VersionPlan struct {
 	Expected, Target int64
 	Message          message.Message
+	artifacts        *LocalArtifacts
+	eventPayload     []byte
 }
 
 func DecodeVersionPlan(plan transaction.FrozenPlan) (VersionPlan, error) {
@@ -110,20 +112,24 @@ func DecodeVersionPlan(plan transaction.FrozenPlan) (VersionPlan, error) {
 	}
 	b := p.Branches[0]
 	in := b.Message.Input()
+	eventPayload, artifacts, decodeErr := decodeLocalArtifacts(in)
+	if decodeErr != nil {
+		return VersionPlan{}, decodeErr
+	}
 	var body struct {
 		Version int64 `json:"version"`
 	}
-	d := json.NewDecoder(bytes.NewReader(in.Payload))
+	d := json.NewDecoder(bytes.NewReader(eventPayload))
 	d.DisallowUnknownFields()
-	if d.Decode(&body) != nil || body.Version < 2 || in.Producer != "iam" || in.EventType != eventing.AuthzVersionChanged || in.SchemaVersion != "v2" || in.Scope != PolicyScope || in.ContentType != "application/json" || b.ID != PolicyBranch || b.RouteRevision != "m3-1" {
+	if d.Decode(&body) != nil || body.Version < 2 || in.Producer != "iam" || in.EventType != eventing.AuthzVersionChanged || in.SchemaVersion != "v2" || in.Scope != PolicyScope || b.ID != PolicyBranch || b.RouteRevision != "m3-1" {
 		return VersionPlan{}, ErrInvalidChangePlan
 	}
 	canonical, _ := json.Marshal(body)
-	if !bytes.Equal(canonical, in.Payload) {
+	if !bytes.Equal(canonical, eventPayload) {
 		return VersionPlan{}, ErrInvalidChangePlan
 	}
 	outer, ok, err := legacy.Decode(b.Wire)
-	if err != nil || !ok || outer.UUID != in.ID || !bytes.Equal(outer.Payload, in.Payload) || !reflect.DeepEqual(outer.Metadata, versionMetadata(body.Version)) {
+	if err != nil || !ok || outer.UUID != in.ID || !bytes.Equal(outer.Payload, eventPayload) || !reflect.DeepEqual(outer.Metadata, versionMetadata(body.Version)) {
 		return VersionPlan{}, ErrInvalidChangePlan
 	}
 	// This producer freezes the original revision-one wire byte-for-byte. Do not
@@ -132,7 +138,7 @@ func DecodeVersionPlan(plan transaction.FrozenPlan) (VersionPlan, error) {
 	if err != nil || !bytes.Equal(wire, b.Wire) {
 		return VersionPlan{}, ErrInvalidChangePlan
 	}
-	return VersionPlan{Expected: body.Version - 1, Target: body.Version, Message: b.Message}, nil
+	return VersionPlan{Expected: body.Version - 1, Target: body.Version, Message: b.Message, artifacts: artifacts, eventPayload: eventPayload}, nil
 }
 func MatchCommand(plan transaction.FrozenPlan, command CommandIntent) error {
 	if !command.valid() {

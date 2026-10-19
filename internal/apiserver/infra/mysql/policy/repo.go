@@ -50,6 +50,9 @@ func (r *PolicyVersionRepository) Increment(ctx context.Context, changedBy, reas
 		if err != nil {
 			return nil, domain.ErrInvalidVersionPlan
 		}
+		if auditAt, ok := plan.AuditTime(); ok {
+			at = auditAt
+		}
 		return r.IncrementExpected(ctx, plan.Expected, changedBy, reason, at)
 	}
 	if _, err := r.GetOrCreate(ctx); err != nil {

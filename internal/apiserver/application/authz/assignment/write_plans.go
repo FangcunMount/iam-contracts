@@ -16,7 +16,7 @@ import (
 const assignmentOperations = "iam:authz:collection:assignments"
 
 func (s *CommandService) previewGrant(cmd GrantCommand) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "assignment.grant", Scope: "global", ChangedBy: cmd.GrantedBy, PermissionResource: assignmentOperations, PermissionActions: []string{"grant"}, Input: map[string]any{"subject_type": cmd.SubjectType, "subject_id": cmd.SubjectID.String(), "role_id": cmd.RoleID.String(), "granted_by": cmd.GrantedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	return uow.WriteRequest{Operation: "assignment.grant", Freeze: change.AllocateKeys(change.ArtifactKey("assignment", string(cmd.SubjectType), cmd.SubjectID.String(), cmd.RoleID.String(), "0")), Scope: "global", ChangedBy: cmd.GrantedBy, PermissionResource: assignmentOperations, PermissionActions: []string{"grant"}, Input: map[string]any{"subject_type": cmd.SubjectType, "subject_id": cmd.SubjectID.String(), "role_id": cmd.RoleID.String(), "granted_by": cmd.GrantedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		validator := domain.NewValidatorWithSubjectResolver(repos.Roles, repos.SubjectResolver)
 		if err := validator.CheckSubjectExists(ctx, cmd.SubjectType, cmd.SubjectID); err != nil {
 			return false, err
@@ -100,13 +100,22 @@ func (s *CommandService) previewReplacement(cmd ReplaceManagedAssignmentsCommand
 	if cmd.OrgID > 0 {
 		scope = "org:" + cmd.OrgID.String()
 	}
-	return uow.WriteRequest{Operation: "assignment.replace_managed", Scope: scope, ChangedBy: cmd.ChangedBy, PermissionResource: assignmentOperations, PermissionActions: []string{"grant", "revoke"}, Input: replacementInput(cmd), Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	var createKeys []string
+	return uow.WriteRequest{Operation: "assignment.replace_managed", Freeze: func(b *change.ArtifactBuilder) error { return change.AllocateKeys(createKeys...)(b) }, Scope: scope, ChangedBy: cmd.ChangedBy, PermissionResource: assignmentOperations, PermissionActions: []string{"grant", "revoke"}, Input: replacementInput(cmd), Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		if err := s.guard.RequireReplacement(ctx, cmd.Subject, cmd.RoleNames, cmd.ManagedRoleNames, cmd.ChangedBy); err != nil {
 			return false, err
 		}
-		_, plan, err := s.loadReplacement(ctx, cmd, repos, false)
+		managed, plan, err := s.loadReplacement(ctx, cmd, repos, false)
 		if err != nil {
 			return false, err
+		}
+		createKeys = nil
+		for _, name := range plan.Grants {
+			target := managed[name.String()]
+			if target == nil {
+				return false, change.ErrInvalidChangePlan
+			}
+			createKeys = append(createKeys, change.ArtifactKey("assignment", string(cmd.Subject.Type), cmd.Subject.ID.String(), target.ID.String(), cmd.OrgID.String()))
 		}
 		result.DirectRoles = make([]string, 0, len(plan.DirectRoles))
 		for _, name := range plan.DirectRoles {

@@ -77,9 +77,17 @@ func (u *TransactionUnitOfWork) LocalExecutor(command change.CommandIntent, fn f
 		if !e.Valid() {
 			return transaction.LocalNotStarted, transaction.ErrStaleExecution
 		}
+		base := u.base
+		plan, planErr := change.DecodeVersionPlan(e.Plan)
+		if planErr != nil {
+			return transaction.LocalNotStarted, planErr
+		}
+		if auditAt, ok := plan.AuditTime(); ok {
+			base = &unitOfWork{base: database.NewUnitOfWork(u.db.Session(&gorm.Session{NowFunc: func() time.Time { return auditAt }})), events: u.base.events, subjectResolver: u.base.subjectResolver}
+		}
 		var callbackErr error
 		entered := false
-		err := u.base.within(ctx, func(txCtx context.Context, repos app.TxRepositories) error {
+		err := base.within(ctx, func(txCtx context.Context, repos app.TxRepositories) error {
 			entered = true
 			callbackErr = func() error {
 				tx, err := database.RequireTx(txCtx)
@@ -109,6 +117,9 @@ func (u *TransactionUnitOfWork) LocalExecutor(command change.CommandIntent, fn f
 				proof := &eventProof{plan: plan, active: true}
 				defer proof.close()
 				txCtx = context.WithValue(txCtx, eventProofKey{}, proof)
+				// The original root is owned by this executor. Maintenance SQL
+				// borrows it directly, so its hooks must inherit the same frozen context.
+				tx.Statement.Context = txCtx
 				if err = fn(txCtx, repos); err != nil {
 					return err
 				}
@@ -179,7 +190,7 @@ func (transactionEventStager) Stage(ctx context.Context, events ...event.DomainE
 		return change.ErrInvalidChangePlan
 	}
 	body, err := json.Marshal(e.Payload())
-	if err != nil || e.EventID() != in.ID || e.EventType() != in.EventType || !e.OccurredAt().Equal(at) || e.AggregateType() != "PolicyVersion" || e.AggregateID() != strconv.FormatInt(p.plan.Target, 10) || !bytes.Equal(body, in.Payload) {
+	if err != nil || e.EventID() != in.ID || e.EventType() != in.EventType || !e.OccurredAt().Equal(at) || e.AggregateType() != "PolicyVersion" || e.AggregateID() != strconv.FormatInt(p.plan.Target, 10) || !bytes.Equal(body, p.plan.EventPayload()) {
 		return change.ErrInvalidChangePlan
 	}
 	p.count++

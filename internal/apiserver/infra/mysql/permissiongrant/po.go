@@ -1,6 +1,8 @@
 package permissiongrant
 
 import (
+	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzaudit"
 	"time"
 
 	"github.com/FangcunMount/component-base/pkg/util/idutil"
@@ -27,6 +29,12 @@ type GrantPO struct {
 func (GrantPO) TableName() string { return "authz_permission_grants" }
 
 func (p *GrantPO) BeforeCreate(tx *gorm.DB) error {
+	if handled, err := authzaudit.Create(tx.Statement.Context, change.ArtifactKey("grant", p.GrantKey), &p.AuditFields); handled || err != nil {
+		if err == nil {
+			p.GrantedAt = p.CreatedAt
+		}
+		return err
+	}
 	now := time.Now()
 	p.ID = meta.FromUint64(idutil.GetIntID())
 	p.CreatedAt = now
@@ -40,6 +48,9 @@ func (p *GrantPO) BeforeCreate(tx *gorm.DB) error {
 }
 
 func (p *GrantPO) BeforeUpdate(tx *gorm.DB) error {
+	if handled, err := authzaudit.Update(tx.Statement.Context, &p.AuditFields); handled || err != nil {
+		return err
+	}
 	p.UpdatedAt = time.Now()
 	p.UpdatedBy = base.UserIDOrZero(tx.Statement.Context)
 	return nil

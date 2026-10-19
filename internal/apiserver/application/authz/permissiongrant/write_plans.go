@@ -13,7 +13,14 @@ import (
 const grantOperations = "iam:authz:collection:permission_grants"
 
 func (s *Service) previewCreate(cmd CreateCommand) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "grant.create", Scope: "global", ChangedBy: cmd.GrantedBy, PermissionResource: grantOperations, PermissionActions: []string{"create"}, Input: map[string]any{"role_id": cmd.RoleID.String(), "resource_id": cmd.ResourceID.String(), "action": cmd.Action, "granted_by": cmd.GrantedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	var createdKey string
+	return uow.WriteRequest{Operation: "grant.create", Freeze: func(b *change.ArtifactBuilder) error {
+		if createdKey == "" {
+			return change.ErrInvalidChangePlan
+		}
+		_, err := b.ID(change.ArtifactKey("grant", createdKey))
+		return err
+	}, Scope: "global", ChangedBy: cmd.GrantedBy, PermissionResource: grantOperations, PermissionActions: []string{"create"}, Input: map[string]any{"role_id": cmd.RoleID.String(), "resource_id": cmd.ResourceID.String(), "action": cmd.Action, "granted_by": cmd.GrantedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		if err := s.guard.RequireOperation(ctx, grantOperations, "create"); err != nil {
 			return false, err
 		}
@@ -49,6 +56,7 @@ func (s *Service) previewCreate(cmd CreateCommand) uow.WriteRequest {
 		if exists {
 			return false, perrors.WithCode(code.ErrPermissionGrantAlreadyExists, "permission grant already exists")
 		}
+		createdKey = grant.GrantKey
 		return true, nil
 	}}
 }
