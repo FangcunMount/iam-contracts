@@ -338,7 +338,7 @@ database_status() {
     fail "database schema inventory query failed"
     return 1
   fi
-  if ! schema_guard_state="$($MYSQL_BIN --defaults-extra-file="$MYSQL_DEFAULTS" --batch --skip-column-names "$MYSQL_DBNAME" -e "/* iam_schema_guard */ SELECT COALESCE(SUM(TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME IN ('auth_credentials', 'auth_login_identities', 'authz_assignments', 'authz_permission_grants', 'authz_policy_versions', 'authz_resources', 'authz_roles', 'domain_event_outbox', 'rm_outbox', 'iam_nsq_failure_audit', 'iam_message_failure_audit', 'identity_session_revocation_outbox', 'idp_wechat_apps', 'iam_role_inheritance_archives', 'iam_role_model_migrations', 'iam_condition_retirement_migrations', 'iam_scope_migrations', 'jwks_keys', 'profile_links', 'profiles', 'schema_migrations', 'users')), 0), COUNT(*), COALESCE(SUM(NOT (TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME IN ('iam_authorization_retirement_audit', 'auth_credentials', 'auth_login_identities', 'authz_assignments', 'authz_permission_grants', 'authz_policy_versions', 'authz_resources', 'authz_roles', 'domain_event_outbox', 'rm_outbox', 'iam_nsq_failure_audit', 'iam_message_failure_audit', 'identity_session_revocation_outbox', 'idp_wechat_apps', 'iam_role_inheritance_archives', 'iam_role_model_migrations', 'iam_condition_retirement_migrations', 'iam_scope_migrations', 'jwks_keys', 'profile_links', 'profiles', 'schema_migrations', 'users'))), 0) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE();" 2>"$ERROR_PATH")"; then
+  if ! schema_guard_state="$($MYSQL_BIN --defaults-extra-file="$MYSQL_DEFAULTS" --batch --skip-column-names "$MYSQL_DBNAME" -e "/* iam_schema_guard */ SELECT COALESCE(SUM(TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME IN ('auth_credentials', 'auth_login_identities', 'authz_assignments', 'authz_permission_grants', 'authz_policy_versions', 'authz_resources', 'authz_roles', 'domain_event_outbox', 'rm_outbox', 'rm_tx_binding', 'rm_tx_request', 'rm_tx_execution', 'rm_tx_witness', 'iam_nsq_failure_audit', 'iam_message_failure_audit', 'identity_session_revocation_outbox', 'idp_wechat_apps', 'iam_role_inheritance_archives', 'iam_role_model_migrations', 'iam_condition_retirement_migrations', 'iam_scope_migrations', 'jwks_keys', 'profile_links', 'profiles', 'schema_migrations', 'users')), 0), COUNT(*), COALESCE(SUM(NOT (TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME IN ('iam_authorization_retirement_audit', 'auth_credentials', 'auth_login_identities', 'authz_assignments', 'authz_permission_grants', 'authz_policy_versions', 'authz_resources', 'authz_roles', 'domain_event_outbox', 'rm_outbox', 'rm_tx_binding', 'rm_tx_request', 'rm_tx_execution', 'rm_tx_witness', 'iam_nsq_failure_audit', 'iam_message_failure_audit', 'identity_session_revocation_outbox', 'idp_wechat_apps', 'iam_role_inheritance_archives', 'iam_role_model_migrations', 'iam_condition_retirement_migrations', 'iam_scope_migrations', 'jwks_keys', 'profile_links', 'profiles', 'schema_migrations', 'users'))), 0) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE();" 2>"$ERROR_PATH")"; then
     fail "database schema guard query failed"
     return 1
   fi
@@ -365,12 +365,15 @@ database_status() {
   printf 'schema objects:\n%s\n' "$schema_objects"
   echo "migration status: schema_migrations=$migration_state retired_tables_present=$retired_table_state retired_table_privileges=$retired_table_privilege_state"
   echo "migration lock: owner_state=$migration_lock_state"
-  if [ "$migration_state" != $'38\t0\t1' ] && [ "$migration_state" != $'39\t0\t1' ] && [ "$migration_state" != $'40\t0\t1' ] && [ "$migration_state" != $'41\t0\t1' ]; then
-    fail "migration status is not clean version 38, 39, 40 or 41"
+  if [ "$migration_state" != $'38\t0\t1' ] && [ "$migration_state" != $'39\t0\t1' ] && [ "$migration_state" != $'40\t0\t1' ] && [ "$migration_state" != $'41\t0\t1' ] && [ "$migration_state" != $'42\t0\t1' ]; then
+    fail "migration status is not clean version 38, 39, 40, 41 or 42"
     return 1
   fi
   local expected_schema_guard
-  if [ "$migration_state" = $'41\t0\t1' ]; then
+  if [ "$migration_state" = $'42\t0\t1' ]; then
+    expected_schema_guard=$'26\t26\t0'
+    [ "$schema_guard_state" = "$expected_schema_guard" ] || expected_schema_guard=$'26\t27\t0'
+  elif [ "$migration_state" = $'41\t0\t1' ]; then
     expected_schema_guard=$'22\t22\t0'
     [ "$schema_guard_state" = "$expected_schema_guard" ] || expected_schema_guard=$'22\t23\t0'
   elif [ "$migration_state" = $'40\t0\t1' ]; then
@@ -393,7 +396,7 @@ database_status() {
     return 1
   fi
   echo "schema guard: result=success required_base_tables=$(cut -f1 <<<"$schema_guard_state") schema_objects=$(cut -f2 <<<"$schema_guard_state") unexpected_objects=0"
-  echo "retirement guard: result=success accepted_versions=38,39,40,41 retired_tables_present=0 retired_table_privileges=0"
+  echo "retirement guard: result=success accepted_versions=38,39,40,41,42 retired_tables_present=0 retired_table_privileges=0"
 }
 
 mysql_scalar() {

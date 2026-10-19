@@ -37,7 +37,7 @@ func TestFullMigrationChainAndBootstrapMySQL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !migrated || version != 41 {
+	if !migrated || version != 42 {
 		t.Fatalf("migration version=%d changed=%v", version, migrated)
 	}
 	db := openMigrationMySQL(t)
@@ -308,6 +308,7 @@ ORDER BY TABLE_NAME`, database)
 		"rm_outbox",
 		"iam_nsq_failure_audit",
 		"iam_message_failure_audit",
+		"rm_tx_binding", "rm_tx_request", "rm_tx_execution", "rm_tx_witness",
 		"identity_session_revocation_outbox",
 		"idp_wechat_apps",
 		"jwks_keys",
