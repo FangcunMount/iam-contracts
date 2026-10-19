@@ -106,3 +106,41 @@ jobs:
           name: iam-apiserver
           path: bin/apiserver
           retention-days: 7
+
+  m3-transaction-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        mysql: ['8.0.36', '8.0.44', '8.4']
+    services:
+      mysql:
+        image: mysql:${{ matrix.mysql }}
+        env:
+          MYSQL_ROOT_PASSWORD: owned-ci-only
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -uroot -powned-ci-only --silent"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Prove explicit host migration with released transaction adapter
+        env:
+          IAM_M3_TEST_MYSQL_DSN: root:owned-ci-only@tcp(127.0.0.1:3306)/mysql?parseTime=true&multiStatements=true
+        run: |
+          set -euo pipefail
+          go test -race -tags=integration -count=1 -timeout=3m -v \
+            ./internal/pkg/migration -run '^TestM3TransactionSchemaNative$' | tee "$RUNNER_TEMP/m3-schema.log"
+          grep -q -- '--- PASS: TestM3TransactionSchemaNative ' "$RUNNER_TEMP/m3-schema.log"
+          if grep -q -- '--- SKIP:' "$RUNNER_TEMP/m3-schema.log"; then exit 1; fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: m3-schema-mysql-${{ matrix.mysql }}
+          path: ${{ runner.temp }}/m3-schema.log
+          if-no-files-found: error
