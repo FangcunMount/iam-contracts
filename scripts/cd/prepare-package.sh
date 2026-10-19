@@ -93,6 +93,14 @@ case "$IAM_NSQ_CONSUMER_SDK_ENABLED" in
   *) echo 'IAM_NSQ_CONSUMER_SDK_ENABLED must be true or false' >&2; exit 1 ;;
 esac
 
+if [ "${SERVICE:-apiserver}" != collection ]; then
+  require_env MYSQL_TLS_MODE
+  if [ "$MYSQL_TLS_MODE" != VERIFY_IDENTITY ]; then
+    echo 'Production requires MySQL VERIFY_IDENTITY' >&2
+    exit 1
+  fi
+fi
+
 require_env \
   MYSQL_HOST MYSQL_PORT MYSQL_USERNAME MYSQL_PASSWORD MYSQL_DBNAME \
   REDIS_HOST REDIS_PORT IPD_ENCRYPTION_KEY
@@ -126,8 +134,11 @@ cp build/docker/docker-compose.prod.yml "${PACKAGE_DIR}/build/docker/docker-comp
 cp scripts/cd/image-retention.py scripts/cd/image-retention.sh scripts/cd/image-metadata.sh scripts/cd/maintenance-acl.sh scripts/cd/remote-deploy.sh "${PACKAGE_DIR}/scripts/cd/"
 
 cat > "$ENV_FILE" <<EOF
+MYSQL_TLS_CA_REF=${MYSQL_TLS_CA_REF:-}
 # Auto-generated production environment configuration
 IAM_APISERVER_MYSQL_HOST=${MYSQL_HOST}:${MYSQL_PORT}
+IAM_APISERVER_MYSQL_TLS_MODE=${MYSQL_TLS_MODE}
+IAM_APISERVER_MYSQL_TLS_CA_FILE=/etc/qlume/mysql/ca-chain.pem
 IAM_APISERVER_MYSQL_USERNAME=${MYSQL_USERNAME}
 IAM_APISERVER_MYSQL_PASSWORD=${MYSQL_PASSWORD}
 IAM_APISERVER_MYSQL_DATABASE=${MYSQL_DBNAME}

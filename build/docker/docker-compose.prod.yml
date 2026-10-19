@@ -13,6 +13,7 @@ services:
       - "9090"   # gRPC 服务 (mTLS 保护，内网服务间通信)
       - "9091"   # gRPC 健康检查 (内网监控系统)
     volumes:
+      - /data/infra/ssl/mysql/ca-chain.pem:/etc/qlume/mysql/ca-chain.pem:ro
       # 挂载配置文件（可以覆盖镜像中的配置）
       - ../../configs:/app/configs:ro
       # 挂载日志目录

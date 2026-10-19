@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import stat
+import subprocess
 import sys
 from types import SimpleNamespace
 
@@ -16,7 +17,7 @@ p = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(p)
 
 USERNAME = 'review@mfangcunmount.com'
-DB_KEYS = ('HOST', 'PORT', 'USERNAME', 'PASSWORD', 'DATABASE')
+DB_KEYS = ('HOST', 'PORT', 'USERNAME', 'PASSWORD', 'DATABASE', 'TLS_MODE', 'TLS_CA_FILE', 'TLS_CA_REF')
 
 
 def validate(value):
@@ -61,6 +62,9 @@ def private_directory(path):
 
 def execute(value, payload, directory):
     validate(value)
+    if value['database']['TLS_MODE'] == 'VERIFY_IDENTITY':
+        subprocess.run(['python3', '/opt/infra/scripts/mysql/ca.py', 'verify',
+                        '--ref', value['database']['TLS_CA_REF']], check=True)
     account_path = directory / 'account.json'
     desired = {'request_id': 'reviewer-10002-actions', 'actor_id': '10001', 'user_id': '10002',
                'username': USERNAME, 'name': '安全与产品审核员',

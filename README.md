@@ -348,3 +348,14 @@ go test ./internal/apiserver/domain/suggest/... \
 ## 许可证
 
 本项目采用 Apache License 2.0 开源许可证，详见 [LICENSE](LICENSE)。
+
+## Production MySQL TLS
+
+Production deployment reads organization Variables `MYSQL_PUBLIC_HOST`,
+`MYSQL_PUBLIC_PORT`, `MYSQL_TLS_MODE=VERIFY_IDENTITY` and `MYSQL_TLS_CA_REF`
+(an immutable infra commit). Database credentials remain repository Secrets.
+The CA is provisioned from that commit at `/data/infra/ssl/mysql/ca-chain.pem`
+and mounted read-only at `/etc/qlume/mysql/ca-chain.pem`. Invalid CA, hostname
+or TLS negotiation fails the connection. Local/disposable databases may explicitly
+use `DISABLED`. See the infra `components/mysql-client` runbook for the staged
+cutover, maintenance clients and rollback. Automatic production deployment stays paused.

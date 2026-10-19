@@ -453,6 +453,11 @@ assert_deploy_hostname
 acquire_image_deploy_lock
 prepare_dirs_and_backup
 extract_package
+
+if [ "${SERVICE:-apiserver}" != collection ]; then
+  mysql_ca_ref=$(sed -n 's/^MYSQL_TLS_CA_REF=//p' "$DEPLOY_TMP/configs/env/config.prod.env" | head -1)
+  python3 /opt/infra/scripts/mysql/ca.py verify --ref "$mysql_ca_ref"
+fi
 sync_package
 ensure_network
 setup_grpc_certs
