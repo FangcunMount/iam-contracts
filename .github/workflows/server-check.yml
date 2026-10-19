@@ -1,11 +1,11 @@
 name: Production Health Check
 
-# Production target uses the public serverB SSH endpoint first because
-# GitHub-hosted runners cannot route to the Tailscale-only SVRB_HOST address.
-# Required Variables: SVRB_PUBLIC_HOST (preferred), SVRB_HOST, or SVRA_HOST
-# Required Variables: SVRB_USERNAME or SVRA_USERNAME
-# Required Secrets: SVRB_SSH_KEY or SVRA_SSH_KEY
-# Optional Variables: SVRB_SSH_PORT, SVRA_SSH_PORT
+# Production target uses the public serverA SSH endpoint first because
+# GitHub-hosted runners cannot route to the Tailscale-only SVRA_HOST address.
+# Required Variables: SVRA_PUBLIC_HOST (preferred), SVRA_HOST
+# Required Variables: SVRA_USERNAME
+# Required Secrets: SVR_MINI_SSH_KEY or SVRA_SSH_KEY (legacy SVRB_SSH_KEY fallback)
+# Optional Variables: SVRA_SSH_PORT
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
 
 jobs:
   health-check:
-    name: Check production container on SVRB
+    name: Check production container on SVRA
     runs-on: ubuntu-latest
     timeout-minutes: 8
 
@@ -25,10 +25,10 @@ jobs:
       - name: System Health Check
         uses: appleboy/ssh-action@v1.2.5
         with:
-          host: ${{ vars.SVRB_PUBLIC_HOST || secrets.SVRB_PUBLIC_HOST || vars.SVRB_HOST || vars.SVRA_HOST }}
-          username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
-          key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
-          port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
+          host: ${{ vars.SVRA_PUBLIC_HOST || secrets.SVRA_PUBLIC_HOST || vars.SVRA_HOST }}
+          username: ${{ vars.SVRA_USERNAME }}
+          key: ${{ secrets.SVR_MINI_SSH_KEY || secrets.SVRA_SSH_KEY || secrets.SVRB_SSH_KEY }}
+          port: ${{ vars.SVRA_SSH_PORT || 22 }}
           script: |
             set -euo pipefail
 
@@ -60,10 +60,10 @@ jobs:
       - name: Docker and IAM Container Check
         uses: appleboy/ssh-action@v1.2.5
         with:
-          host: ${{ vars.SVRB_PUBLIC_HOST || secrets.SVRB_PUBLIC_HOST || vars.SVRB_HOST || vars.SVRA_HOST }}
-          username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
-          key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
-          port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
+          host: ${{ vars.SVRA_PUBLIC_HOST || secrets.SVRA_PUBLIC_HOST || vars.SVRA_HOST }}
+          username: ${{ vars.SVRA_USERNAME }}
+          key: ${{ secrets.SVR_MINI_SSH_KEY || secrets.SVRA_SSH_KEY || secrets.SVRB_SSH_KEY }}
+          port: ${{ vars.SVRA_SSH_PORT || 22 }}
           script: |
             set -euo pipefail
 
@@ -109,10 +109,10 @@ jobs:
       - name: Network and API Health Check
         uses: appleboy/ssh-action@v1.2.5
         with:
-          host: ${{ vars.SVRB_PUBLIC_HOST || secrets.SVRB_PUBLIC_HOST || vars.SVRB_HOST || vars.SVRA_HOST }}
-          username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
-          key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
-          port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
+          host: ${{ vars.SVRA_PUBLIC_HOST || secrets.SVRA_PUBLIC_HOST || vars.SVRA_HOST }}
+          username: ${{ vars.SVRA_USERNAME }}
+          key: ${{ secrets.SVR_MINI_SSH_KEY || secrets.SVRA_SSH_KEY || secrets.SVRB_SSH_KEY }}
+          port: ${{ vars.SVRA_SSH_PORT || 22 }}
           script: |
             set -euo pipefail
 
@@ -198,10 +198,10 @@ jobs:
       - name: Dependency Connectivity Check
         uses: appleboy/ssh-action@v1.2.5
         with:
-          host: ${{ vars.SVRB_PUBLIC_HOST || secrets.SVRB_PUBLIC_HOST || vars.SVRB_HOST || vars.SVRA_HOST }}
-          username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
-          key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
-          port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
+          host: ${{ vars.SVRA_PUBLIC_HOST || secrets.SVRA_PUBLIC_HOST || vars.SVRA_HOST }}
+          username: ${{ vars.SVRA_USERNAME }}
+          key: ${{ secrets.SVR_MINI_SSH_KEY || secrets.SVRA_SSH_KEY || secrets.SVRB_SSH_KEY }}
+          port: ${{ vars.SVRA_SSH_PORT || 22 }}
           script: |
             set -euo pipefail
 
@@ -248,10 +248,10 @@ jobs:
       - name: Disk Space Alert
         uses: appleboy/ssh-action@v1.2.5
         with:
-          host: ${{ vars.SVRB_PUBLIC_HOST || secrets.SVRB_PUBLIC_HOST || vars.SVRB_HOST || vars.SVRA_HOST }}
-          username: ${{ vars.SVRB_USERNAME || vars.SVRA_USERNAME }}
-          key: ${{ secrets.SVRB_SSH_KEY || secrets.SVRA_SSH_KEY }}
-          port: ${{ vars.SVRB_SSH_PORT || vars.SVRA_SSH_PORT || 22 }}
+          host: ${{ vars.SVRA_PUBLIC_HOST || secrets.SVRA_PUBLIC_HOST || vars.SVRA_HOST }}
+          username: ${{ vars.SVRA_USERNAME }}
+          key: ${{ secrets.SVR_MINI_SSH_KEY || secrets.SVRA_SSH_KEY || secrets.SVRB_SSH_KEY }}
+          port: ${{ vars.SVRA_SSH_PORT || 22 }}
           script: |
             set -euo pipefail
 
