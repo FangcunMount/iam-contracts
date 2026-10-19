@@ -98,6 +98,7 @@ start_app() {
     --mount "type=bind,source=$scratch/grpc/ca/ca-chain.crt,target=/etc/iam/grpc/ca/ca-chain.crt,readonly" \
     --mount "type=bind,source=$scratch/grpc/server/iam-apiserver.crt,target=/etc/iam/grpc/server/iam-apiserver.crt,readonly" \
     --mount "type=bind,source=$scratch/grpc/server/iam-apiserver.key,target=/etc/iam/grpc/server/iam-apiserver.key,readonly" \
+    -e IAM_APISERVER_MYSQL_TLS_MODE=DISABLED \
     -e IAM_APISERVER_MYSQL_HOST=mysql:3306 \
     -e IAM_APISERVER_MYSQL_USERNAME=root \
     -e IAM_APISERVER_MYSQL_PASSWORD= \
