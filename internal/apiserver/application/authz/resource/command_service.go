@@ -55,7 +55,12 @@ func (s *ResourceCatalog) CreateResource(ctx context.Context, cmd CreateResource
 	if err != nil {
 		return nil, err
 	}
-	err = s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
+	err = authzuow.WithinWrite(ctx, s.uow, s.previewCreate(cmd, created), func(txCtx context.Context, tx authzuow.TxRepositories) error {
+		if _, planned := policychange.ExecutionPlan(txCtx); planned {
+			if err := s.requireWrite(txCtx, cmd.Actor, "create"); err != nil {
+				return err
+			}
+		}
 		if err := tx.Resources.Create(txCtx, &created); err != nil {
 			return err
 		}
@@ -79,8 +84,16 @@ func (s *ResourceCatalog) UpdateResource(ctx context.Context, cmd UpdateResource
 	if err := s.validateChange(cmd.ChangedBy); err != nil {
 		return nil, err
 	}
+	cmd.DisplayName = cloneString(cmd.DisplayName)
+	cmd.Description = cloneString(cmd.Description)
+	cmd.Actions = append([]string(nil), cmd.Actions...)
 	var updated *resourceDomain.Resource
-	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
+	err := authzuow.WithinWrite(ctx, s.uow, s.previewUpdate(cmd, &updated), func(txCtx context.Context, tx authzuow.TxRepositories) error {
+		if _, planned := policychange.ExecutionPlan(txCtx); planned {
+			if err := s.requireWrite(txCtx, cmd.Actor, "update"); err != nil {
+				return err
+			}
+		}
 		var err error
 		updated, err = tx.Resources.FindByIDForUpdate(txCtx, cmd.ID)
 		if err != nil {
@@ -138,7 +151,12 @@ func (s *ResourceCatalog) DeleteResource(ctx context.Context, cmd DeleteResource
 	if err := s.validateChange(cmd.ChangedBy); err != nil {
 		return err
 	}
-	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
+	err := authzuow.WithinWrite(ctx, s.uow, s.previewDelete(cmd), func(txCtx context.Context, tx authzuow.TxRepositories) error {
+		if _, planned := policychange.ExecutionPlan(txCtx); planned {
+			if err := s.requireWrite(txCtx, cmd.Actor, "delete"); err != nil {
+				return err
+			}
+		}
 		if _, err := tx.Resources.FindByIDForUpdate(txCtx, cmd.ID); err != nil {
 			return err
 		}

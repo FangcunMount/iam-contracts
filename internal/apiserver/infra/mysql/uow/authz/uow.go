@@ -2,6 +2,7 @@ package authz
 
 import (
 	"context"
+	"database/sql"
 
 	"gorm.io/gorm"
 
@@ -40,6 +41,10 @@ func (u *unitOfWork) WithinTx(ctx context.Context, fn func(txCtx context.Context
 	if u == nil || u.base == nil {
 		return dbmysql.ErrUnitOfWorkUnavailable
 	}
+	return u.within(ctx, fn)
+}
+
+func (u *unitOfWork) within(ctx context.Context, fn func(context.Context, appuow.TxRepositories) error, opts ...dbmysql.TxOptions) error {
 	return u.base.WithinTransaction(ctx, func(txCtx context.Context) error {
 		tx, err := dbmysql.RequireTx(txCtx)
 		if err != nil {
@@ -55,5 +60,23 @@ func (u *unitOfWork) WithinTx(ctx context.Context, fn func(txCtx context.Context
 			Events:           u.events,
 		}
 		return fn(txCtx, repos)
-	})
+	}, opts...)
+}
+
+// ReadPlan always starts a fresh host-owned read-only root. It never borrows a
+// caller's existing snapshot or permits planning to stage an event.
+func (u *unitOfWork) ReadPlan(ctx context.Context, fn func(context.Context, appuow.TxRepositories) error) error {
+	if ctx == nil || fn == nil {
+		return appuow.ErrWritePlanRequired
+	}
+	if u == nil || u.base == nil {
+		return dbmysql.ErrUnitOfWorkUnavailable
+	}
+	if _, active := dbmysql.TxFromContext(ctx); active {
+		return dbmysql.ErrActiveTransactionRequired
+	}
+	return u.within(ctx, func(readCtx context.Context, repos appuow.TxRepositories) error {
+		repos.Events = nil
+		return fn(readCtx, repos)
+	}, dbmysql.TxOptions{ReadOnly: true, Isolation: sql.LevelRepeatableRead})
 }

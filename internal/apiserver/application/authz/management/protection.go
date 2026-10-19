@@ -3,6 +3,7 @@ package management
 
 import (
 	"context"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	"slices"
 
 	admission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
@@ -63,7 +64,13 @@ func (g Guard) CanManageProtected(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	decision, err := g.checker.Check(ctx, request)
-	return decision.Allowed, err
+	if err != nil {
+		return false, err
+	}
+	if err = policychange.RequireDecisionVersion(ctx, decision.PolicyVersion); err != nil {
+		return false, err
+	}
+	return decision.Allowed, nil
 }
 
 func (g Guard) Require(ctx context.Context, roles ...*role.Role) error {
@@ -129,6 +136,9 @@ func (g Guard) RequireOperation(ctx context.Context, resource, action string) er
 	if err != nil {
 		return err
 	}
+	if err = policychange.RequireDecisionVersion(ctx, decision.PolicyVersion); err != nil {
+		return err
+	}
 	if !decision.Allowed {
 		return deniedOperation()
 	}
@@ -192,4 +202,23 @@ func (g Guard) RequireReplacement(ctx context.Context, sub subject.Ref, names, m
 		return deniedOperation()
 	}
 	return nil
+}
+
+// AuthenticatedPrincipal reads only the protected management identity context.
+// Neither request ChangedBy nor a query parameter may select the operation owner.
+func AuthenticatedPrincipal(ctx context.Context) (string, bool) {
+	if ctx == nil {
+		return "", false
+	}
+	a, ok := ctx.Value(actorKey{}).(actor)
+	if !ok {
+		return "", false
+	}
+	if a.service != "" {
+		return "service:" + a.service, true
+	}
+	if !a.user.IsZero() {
+		return a.user.String(), true
+	}
+	return "", false
 }

@@ -24,3 +24,9 @@ type Repository interface {
 	// List 列出角色
 	List(ctx context.Context, offset, limit int) ([]*Role, int64, error)
 }
+
+// NameInspector reads the unique-name precondition without translating a missing
+// row into an ORM-specific error in the application planner.
+type NameInspector interface {
+	ExistsByName(context.Context, string) (bool, error)
+}

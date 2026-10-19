@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	"math"
+	"time"
 
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	"github.com/FangcunMount/iam/v5/internal/pkg/meta"
@@ -43,6 +45,13 @@ func (r *PolicyVersionRepository) GetOrCreate(ctx context.Context) (*domain.Poli
 	return r.GetCurrent(ctx)
 }
 func (r *PolicyVersionRepository) Increment(ctx context.Context, changedBy, reason string) (*domain.PolicyVersion, error) {
+	if plan, ok := change.ExecutionPlan(ctx); ok {
+		at, err := time.Parse(time.RFC3339Nano, plan.Message.Input().OccurredAt)
+		if err != nil {
+			return nil, domain.ErrInvalidVersionPlan
+		}
+		return r.IncrementExpected(ctx, plan.Expected, changedBy, reason, at)
+	}
 	if _, err := r.GetOrCreate(ctx); err != nil {
 		return nil, err
 	}

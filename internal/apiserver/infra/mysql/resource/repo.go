@@ -226,3 +226,9 @@ func (r *ResourceRepository) Delete(ctx context.Context, id domain.ResourceID) e
 
 	return nil
 }
+
+func (r *ResourceRepository) ExistsByKey(ctx context.Context, key string) (bool, error) {
+	var count int64
+	err := r.WithContext(ctx).Model(&ResourcePO{}).Where("`key` = ?", key).Count(&count).Error
+	return count > 0, err
+}

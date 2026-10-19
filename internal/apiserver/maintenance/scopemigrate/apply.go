@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	"strings"
 	"time"
 
 	assignmentdomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
-	policydomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/scope"
 	assignmentpo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/assignment"
 	policypo "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/policy"
@@ -36,8 +37,9 @@ func Apply(ctx context.Context, iam, qs *gorm.DB, stager event.Stager, id, actor
 	if !iam.Migrator().HasTable(&Receipt{}) {
 		return nil, fmt.Errorf("install scope receipt schema first")
 	}
+	input = cloneInput(input)
 	var result *Receipt
-	err = dbmysql.NewUnitOfWork(iam).WithinTransaction(ctx, func(txCtx context.Context) error {
+	err = policywrite.Within(ctx, iam, stager, applyRequest(qs, id, actor.String(), fingerprint, input, &result), func(txCtx context.Context) error {
 		tx, e := dbmysql.RequireTx(txCtx)
 		if e != nil {
 			return e
@@ -90,7 +92,7 @@ func Apply(ctx context.Context, iam, qs *gorm.DB, stager event.Stager, id, actor
 		if e != nil {
 			return e
 		}
-		if e = stager.Stage(txCtx, policydomain.NewVersionChangedEvent(version.Version)); e != nil {
+		if e = change.StagePolicyVersionChanged(txCtx, stager, version); e != nil {
 			return e
 		}
 		afterState, e := rolemodel.LoadState(txCtx, tx)

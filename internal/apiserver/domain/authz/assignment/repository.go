@@ -23,3 +23,10 @@ type Repository interface {
 	// ListByRole 根据角色列出赋权
 	ListByRole(ctx context.Context, roleID meta.ID) ([]*Assignment, error)
 }
+
+// PlanningReader counts only matching active facts; unrelated retained scope
+// data does not need domain restoration for a simple grant/revoke precondition.
+type PlanningReader interface {
+	CountTarget(context.Context, SubjectType, meta.ID, meta.ID, bool) (int64, error)
+	ActiveID(context.Context, AssignmentID) (bool, error)
+}

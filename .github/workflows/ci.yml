@@ -135,12 +135,35 @@ jobs:
         run: |
           set -euo pipefail
           go test -race -tags=integration -count=1 -timeout=3m -v \
-            ./internal/pkg/migration -run '^TestM3TransactionSchemaNative$' | tee "$RUNNER_TEMP/m3-schema.log"
-          grep -q -- '--- PASS: TestM3TransactionSchemaNative ' "$RUNNER_TEMP/m3-schema.log"
+            ./internal/pkg/migration -run '^TestM3(TransactionSchemaNative|PlannedPolicyNative)$' | tee "$RUNNER_TEMP/m3-schema.log"
+          for test_name in TestM3TransactionSchemaNative TestM3PlannedPolicyNative; do
+            grep -q -- "--- PASS: $test_name " "$RUNNER_TEMP/m3-schema.log"
+          done
           if grep -q -- '--- SKIP:' "$RUNNER_TEMP/m3-schema.log"; then exit 1; fi
+      - name: Prove maintenance planner entrypoints with isolated native MySQL
+        env:
+          ROLE_MODEL_REQUIRE_MYSQL: 'true'
+          ROLE_MODEL_MYSQL_DSN: root:owned-ci-only@tcp(127.0.0.1:3306)/?parseTime=true
+          SCOPE_MIGRATION_REQUIRE_MYSQL: 'true'
+          SCOPE_MIGRATION_MYSQL_DSN: root:owned-ci-only@tcp(127.0.0.1:3306)/?parseTime=true
+          ACCOUNT_PROVISION_REQUIRE_MYSQL: 'true'
+          ACCOUNT_PROVISION_MYSQL_DSN: root:owned-ci-only@tcp(127.0.0.1:3306)/?parseTime=true
+          OPERATIONS_CATALOG_REQUIRE_MYSQL: 'true'
+          OPERATIONS_CATALOG_MYSQL_DSN: root:owned-ci-only@tcp(127.0.0.1:3306)/?parseTime=true
+        run: |
+          set -euo pipefail
+          go test -race -count=1 -timeout=3m -v \
+            ./internal/apiserver/maintenance/{rolemodel,conditionretire,scopemigrate,accountprovision,operationscatalog} \
+            -run '^TestPlanned' | tee "$RUNNER_TEMP/m3-maintenance.log"
+          for test_name in TestPlannedRoleModelPreviewApplyAndCompensation TestPlannedRetirementPreservesReceiptAndRollbackBoundaries TestPlannedScopeCopiesMappingAndPreservesCompensation TestPlannedReviewerScopeRetainsCredentialsOutsideFrozenInput TestPlannedCatalogPreviewsNoopAndRejectsDrift; do
+            grep -q -- "--- PASS: $test_name " "$RUNNER_TEMP/m3-maintenance.log"
+          done
+          if grep -q -- '--- SKIP:' "$RUNNER_TEMP/m3-maintenance.log"; then exit 1; fi
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: m3-schema-mysql-${{ matrix.mysql }}
-          path: ${{ runner.temp }}/m3-schema.log
+          path: |
+            ${{ runner.temp }}/m3-schema.log
+            ${{ runner.temp }}/m3-maintenance.log
           if-no-files-found: error

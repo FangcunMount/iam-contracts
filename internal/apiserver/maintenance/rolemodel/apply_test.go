@@ -165,13 +165,16 @@ func openMigrationTestDB(t *testing.T, suffix string) *gorm.DB {
 	t.Helper()
 	dsn := os.Getenv("ROLE_MODEL_MYSQL_DSN")
 	if dsn == "" {
+		if os.Getenv("ROLE_MODEL_REQUIRE_MYSQL") == "true" {
+			t.Fatal("ROLE_MODEL_MYSQL_DSN required")
+		}
 		db, err := gorm.Open(sqlite.Open("file:"+t.Name()+suffix+"?mode=memory&cache=shared"), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 		require.NoError(t, err)
 		return db
 	}
 	cfg, err := drivermysql.ParseDSN(dsn)
 	require.NoError(t, err)
-	cfg.DBName = ""
+	require.Empty(t, cfg.DBName, "test DSN must not select an existing database")
 	cfg.ParseTime = true
 	admin, err := gorm.Open(gormmysql.Open(cfg.FormatDSN()), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	require.NoError(t, err)
@@ -183,12 +186,13 @@ func openMigrationTestDB(t *testing.T, suffix string) *gorm.DB {
 	t.Cleanup(func() {
 		pool, _ := db.DB()
 		if pool != nil {
-			_ = pool.Close()
+			require.NoError(t, pool.Close())
 		}
-		_ = admin.Exec("DROP DATABASE " + name).Error
-		p, _ := admin.DB()
+		require.NoError(t, admin.Exec("DROP DATABASE "+name).Error)
+		p, e := admin.DB()
+		require.NoError(t, e)
 		if p != nil {
-			_ = p.Close()
+			require.NoError(t, p.Close())
 		}
 	})
 	return db

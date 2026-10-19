@@ -202,3 +202,25 @@ sequenceDiagram
 跨公司增量撤销、手工软删行参与替换、admin allow_all替换拒绝、宿主吞错提交、Scope重复角色目标拒绝、no-op旧版本响应及丢响应重放，已有源码依据，尚未找到完整专项测试。普通Assignment零行revoke仍可能递增版本；重复PermissionGrant撤销和受管替换no-op跳过版本，不能混称所有撤销都幂等。
 
 改动写入协议时，需同时复核[领域模型](01-领域模型设计.md)、[读链](02-关键链路-授权判定与不可变快照.md)、[多实例收敛](04-关键链路-多实例策略收敛.md)、[RPC/SDK](06-关键链路-gRPC服务间授权与SDK.md)及[Scope维护](../../operations/assignment-scope-migration.md)。本文的代码与本地回归证据不替代真实MySQL专项、部署或业务验收。
+
+## M3 冻结版本规划基础（活动入口尚未完成接入）
+
+事务接入新增 `policychange.CommandIntent`，把主体、授权作用域、操作类型、幂等键和显式业务输入分开；新生成的消息ID、时间和当前策略版本不进入稳定输入摘要。`scope.Scope` 等私有领域值不能直接依赖 JSON 默认序列化，必须显式投影组织、范围种类和 StoreIDs，避免不同范围被编码为相同空对象。
+
+`FreezeVersionPlan` 接受只读规划确认的原版本，冻结下一版本、首次事件身份/时间和原revision1 wire；重复请求从 reservation 赢家解码。原执行上下文复用首次事件，拒绝错误目标版本。`IncrementExpected` 只在原 MySQL SQL root 上执行精确 CAS，不初始化缺失行，不另选版本，也不在 ORM hook 中重新生成时钟。该 CAS 与业务条件、SDK guard/witness 的完整装配及所有活动写入口迁移仍由 M3-T05/T06 推进，不能仅调用规划函数就宣称已启用事务消息。
+
+真实安装后的并发CAS/回滚验证由隔离 MySQL 门禁执行；新增原生用例当前仅在本机编译，运行结果须单独记录。当前进度和源码证据统一见 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)。SDK 预发布保持固定，生产仍沿原消息链路。
+
+规划适配增加显式 `WriteRequest` 和新鲜的 MySQL `ReadPlan` 只读根事务。角色/资源六个入口声明固定操作、权限、作用域、显式业务输入及预览条件；更新请求复制指针和数组，预览无变化时返回原结果。已配置的规划执行器出错不会回落旧 UoW；既有装配继续使用原 UoW，完整 Sender/guard 装配仍属后续接入。
+
+只读预览和原执行中的权限判定必须使用冻结版本：缓存 ALLOW 的 `Decision.PolicyVersion` 与权威规划版本不相同即冲突，不能用旧版本允许一次新写入。原事务重新校验原操作权限及业务条件。只读快照不提供事件 Stager，不能借用调用方已有事务快照，也不构成半消息或提交证明。
+
+源码测试已覆盖角色/资源无变化不发事件、请求可变参数隔离、旧缓存 ALLOW 拒绝，以及规划失败不回落。首批精确 CAS/原事务 witness 在源码 `8e6f989b` 的三档 MySQL 门禁通过；物理只读规划在 `2fb64753` 的三档 MySQL CI通过（服务端拒绝写入、拒绝借用已有事务），完整CI与独立并发门禁均通过。
+
+PermissionGrant 的创建/撤销及 Assignment 的 ID/名称授撤、受管替换也声明只读预览与显式业务输入。历史已撤销 Grant 使用原始撤销状态读取，不通过活跃 Grant Mapper 重建旧条件；重复撤权是授权后的 no-op。按名称操作冻结原名称，不把当次解析的 RoleID 作为原业务输入。Scope 输入显式包含 org_id、scope_kind、store_ids，命令切片在进入规划前复制。源码测试证明跨公司保留、旧版本先于 no-op 校验及首次输入不受调用方后续变动影响。
+
+上述入口仍由旧组合装配运行；维护工具入口、实际半消息/原事务 Sender、业务结果回执及公开幂等查询尚未完成，本节的源码测试不代表 T05/T06 或生产迁移完成。
+
+维护工具也声明独立的 `policywrite.Request`：Scope Apply/Rollback、RoleModel Apply/Rollback、ConditionRetire Apply/Rollback、Reviewer Scope 修复和 OperationsCatalog 安装。事务模式在新鲜只读根事务中重验原指纹、原管理员资格和归档完整性，已完成且未漂移的操作返回原回执；补偿仍保持原冲突规则。Scope mapping 深复制，Reviewer 密码不进入冻结输入。配置的 Writer 拒绝后绝不回落旧 Outbox。首次空库 bootstrap 保持显式安装职责。
+
+所有这些入口的版本 Increment 在精确执行上下文中都走 `IncrementExpected`，事件使用原冻结 ID/时间及版本；普通上下文保持既有逻辑。维护 CLI 事务 Sender 生命周期及原事务 witness 的实际装配仍属 T06，不能把该源码声明当成事务模式已上线。新的三档 MySQL 必需 CI 在独立临时 schema 执行维护入口规划测试；缺依赖直接失败，运行结果分候选记入 infra。
