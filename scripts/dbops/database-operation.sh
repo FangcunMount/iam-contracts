@@ -217,6 +217,7 @@ port=${MYSQL_PORT:-3306}
 user=${MYSQL_USERNAME}
 password=${MYSQL_PASSWORD}
 ssl-mode=${MYSQL_TLS_MODE:-DISABLED}
+tls-version=TLSv1.2,TLSv1.3
 ${MYSQL_TLS_CA_FILE:+ssl-ca=${MYSQL_TLS_CA_FILE}}
 EOF
 }
