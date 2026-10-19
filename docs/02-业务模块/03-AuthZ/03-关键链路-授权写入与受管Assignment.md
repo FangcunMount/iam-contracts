@@ -224,3 +224,5 @@ PermissionGrant 的创建/撤销及 Assignment 的 ID/名称授撤、受管替�
 维护工具也声明独立的 `policywrite.Request`：Scope Apply/Rollback、RoleModel Apply/Rollback、ConditionRetire Apply/Rollback、Reviewer Scope 修复和 OperationsCatalog 安装。事务模式在新鲜只读根事务中重验原指纹、原管理员资格和归档完整性，已完成且未漂移的操作返回原回执；补偿仍保持原冲突规则。Scope mapping 深复制，Reviewer 密码不进入冻结输入。配置的 Writer 拒绝后绝不回落旧 Outbox。首次空库 bootstrap 保持显式安装职责。
 
 所有这些入口的版本 Increment 在精确执行上下文中都走 `IncrementExpected`，事件使用原冻结 ID/时间及版本；普通上下文保持既有逻辑。维护 CLI 事务 Sender 生命周期及原事务 witness 的实际装配仍属 T06，不能把该源码声明当成事务模式已上线。新的三档 MySQL 必需 CI 在独立临时 schema 执行维护入口规划测试；缺依赖直接失败，运行结果分候选记入 infra。
+
+T06 新增原根事务执行器基础：从宿主 MySQL pool 构造同库 Store，执行时先 BindGORM，再校验完整半消息证据；原回调中的精确版本事件仅登记一次，不写旧 Outbox。回调成功、目标版本和全部 witness 共同通过后，由宿主提交根事务；根 COMMIT 错误归 Unknown。单个 executor 只能使用一次，已有事务句柄不能冒充新根。取消返回的 SDK 快照与真实本地回调完成分别记录，宿主等真实回调结束后才能读取共享结果；晚到回调被拒绝。该基础尚未装配到业务入口，冻结业务 ID/审计时钟、Sender 编排及维护 CLI 生命周期仍未完成，T06不打勾。原生根事务测试的半消息回执是显式存储 fixture，不是 Broker E2E 证明。

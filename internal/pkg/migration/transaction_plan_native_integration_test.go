@@ -280,4 +280,147 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 	if checker.Check(t.Context(), r.Execution.References()[0]) != transaction.Unknown {
 		t.Fatal("rollback fabricated witness")
 	}
+	t.Run("guarded-host-root", func(t *testing.T) { testM3GuardedLocalRoot(t, host, binding) })
+}
+
+// This proves the host original-root executor against real MySQL. Half receipts
+// are installed explicitly as a storage fixture; it is not Broker E2E evidence.
+func testM3GuardedLocalRoot(t *testing.T, host *gorm.DB, binding transaction.Binding) {
+	t.Helper()
+	local, err := hostuow.NewTransactionUnitOfWork(host, nil, binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = host.Exec("CREATE TABLE iam_m3_local_facts (operation_id VARBINARY(128) PRIMARY KEY)").Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name                 string
+		prepare, event, fail bool
+		commit               bool
+	}{
+		{"all-halves-and-exact-event", true, true, false, true},
+		{"unprepared-half-never-starts-business", false, true, false, false},
+		{"missing-event-rolls-back-facts", true, false, false, false},
+		{"business-error-rolls-back-witness", true, true, true, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			current, err := policyrepo.NewPolicyVersionRepository(host).GetCurrent(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			id := "local-" + test.name
+			command, err := change.NewCommandIntent("role.update", "user:7", "global", id, map[string]string{"id": "42"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			at := time.Date(2026, 10, 19, 12, 1, 0, 0, time.UTC)
+			plan, err := change.FreezeVersionPlan(command, current.Version, id, "event-"+id, at, "iam.authz.version.v2", "m3.policy.test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			reserved, err := local.Store().Reserve(t.Context(), transaction.RequestFor(plan), plan, transaction.ReserveOptions{Lease: time.Minute})
+			if err != nil || !reserved.Acquired {
+				t.Fatal(err)
+			}
+			e := reserved.Execution
+			if err = local.Store().BeginPrepare(t.Context(), e); err != nil {
+				t.Fatal(err)
+			}
+			if test.prepare {
+				if err = local.Store().RecordHalf(t.Context(), e, e.References()[0], transaction.HalfReceipt{Outcome: transaction.HalfPrepared, BrokerMessageID: "fixture-message", BrokerTransactionID: "fixture-transaction"}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			called := false
+			executor := local.LocalExecutor(command, func(ctx context.Context, repos appuow.TxRepositories) error {
+				called = true
+				tx, err := dbmysql.RequireTx(ctx)
+				if err != nil {
+					return err
+				}
+				if err = tx.WithContext(ctx).Exec("INSERT INTO iam_m3_local_facts VALUES(?)", []byte(id)).Error; err != nil {
+					return err
+				}
+				version, err := repos.PolicyVersions.Increment(ctx, "system", "original guarded root")
+				if err != nil {
+					return err
+				}
+				if test.event {
+					if err = change.StagePolicyVersionChanged(ctx, repos.Events, version); err != nil {
+						return err
+					}
+				}
+				if test.fail {
+					return errors.New("explicit business rejection before commit")
+				}
+				return nil
+			})
+			outcome, localErr := executor(t.Context(), e)
+			if test.commit {
+				if localErr != nil || outcome != transaction.LocalCommitted {
+					t.Fatal(outcome, localErr)
+				}
+			} else if localErr == nil || outcome != transaction.LocalAborted {
+				t.Fatal("uncommitted root misclassified", outcome, localErr)
+			}
+			if called != test.prepare {
+				t.Fatal("business gate did not follow complete half evidence")
+			}
+			checker := transaction.StoreChecker{Store: local.Store()}
+			want := transaction.Unknown
+			if test.commit {
+				want = transaction.Commit
+			}
+			if checker.Check(t.Context(), e.References()[0]) != want {
+				t.Fatal("original facts and exact witness diverged")
+			}
+			var count int64
+			if err = host.Table("iam_m3_local_facts").Where("operation_id=?", []byte(id)).Count(&count).Error; err != nil {
+				t.Fatal(err)
+			}
+			expectedCount := int64(0)
+			if test.commit {
+				expectedCount = 1
+			}
+			if count != expectedCount {
+				t.Fatal("partial local business fact", count)
+			}
+			after, err := policyrepo.NewPolicyVersionRepository(host).GetCurrent(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			expectedVersion := current.Version
+			if test.commit {
+				expectedVersion++
+			}
+			if after.Version != expectedVersion {
+				t.Fatal("version diverged", after.Version)
+			}
+			if !test.commit {
+				aborted, err := local.Store().Abort(t.Context(), e)
+				if err != nil || !aborted {
+					t.Fatal("no persisted abort fence", err)
+				}
+				if checker.Check(t.Context(), e.References()[0]) != transaction.Rollback {
+					t.Fatal("abort fence not authoritative")
+				}
+			}
+			if _, err = executor(t.Context(), e); !errors.Is(err, transaction.ErrStaleExecution) {
+				t.Fatal("local executor repeated business", err)
+			}
+		})
+	}
+	if err = dbmysql.NewUnitOfWork(host).WithinTransaction(t.Context(), func(ctx context.Context) error {
+		tx, err := dbmysql.RequireTx(ctx)
+		if err != nil {
+			return err
+		}
+		if _, err = hostuow.NewTransactionUnitOfWork(tx, nil, binding); !errors.Is(err, transaction.ErrTransactionRequired) {
+			return errors.New("constructor borrowed an existing root")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
