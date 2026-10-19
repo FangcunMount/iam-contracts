@@ -152,7 +152,7 @@ require (
 )
 
 require (
-	github.com/FangcunMount/component-base v0.8.1
+	github.com/FangcunMount/component-base v0.8.2
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/fatih/color v1.18.0
 	github.com/gin-gonic/gin v1.11.0

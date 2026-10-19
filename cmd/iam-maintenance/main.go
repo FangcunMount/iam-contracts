@@ -106,7 +106,10 @@ func authzConvergeDatabaseFromEnvironment() (*gorm.DB, error) {
 	cfg.Net, cfg.Addr, cfg.DBName = "tcp", net.JoinHostPort(host, strconv.Itoa(port)), database
 	cfg.ParseTime, cfg.MultiStatements = true, true
 	cfg.Loc, _ = time.LoadLocation("Etc/GMT-8")
-	cfg.Params = map[string]string{"charset": "utf8mb4", "time_zone": "'+08:00'"}
+	cfg.Params = map[string]string{"time_zone": "'+08:00'"}
+	if err := cfg.Apply(drivermysql.Charset("utf8mb4", "")); err != nil {
+		return nil, err
+	}
 	if err := dbbase.ConfigureMySQLTLS(cfg, os.Getenv("MYSQL_TLS_MODE"), os.Getenv("MYSQL_TLS_CA_FILE")); err != nil {
 		return nil, errors.New("authorization database TLS configuration is invalid")
 	}
