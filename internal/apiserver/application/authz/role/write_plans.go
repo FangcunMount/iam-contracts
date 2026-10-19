@@ -4,6 +4,7 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/operation"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	uow "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/role"
@@ -19,12 +20,12 @@ func cloneString(value *string) *string {
 	copy := *value
 	return &copy
 }
-func (s *RoleCatalog) previewCreate(cmd CreateRoleCommand, created domain.Role) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "role.create", Freeze: change.AllocateKeys(change.ArtifactKey("role", created.NameString())), Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: roleOperations, PermissionActions: []string{"create"}, Input: map[string]any{"name": created.NameString(), "display_name": created.DisplayName, "description": created.Description, "management_protection": created.ManagementProtection, "changed_by": cmd.ChangedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+func (s *RoleCatalog) previewCreate(cmd CreateRoleCommand, created *domain.Role) uow.WriteRequest {
+	return uow.WriteRequest{AuthorizeKnown: uow.ReplayPermissions(s.guard.RequireOperation), Operation: "role.create", Result: roleResultCodec(func() *domain.Role { return created }, func(value domain.Role) { *created = value }), Freeze: change.AllocateKeys(change.ArtifactKey("role", created.NameString())), Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: roleOperations, PermissionActions: []string{"create"}, Input: map[string]any{"name": created.NameString(), "display_name": created.DisplayName, "description": created.Description, "management_protection": created.ManagementProtection, "changed_by": cmd.ChangedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		if err := s.guard.RequireOperation(ctx, roleOperations, "create"); err != nil {
 			return false, err
 		}
-		if err := s.guard.Require(ctx, &created); err != nil {
+		if err := s.guard.Require(ctx, created); err != nil {
 			return false, err
 		}
 		inspector, ok := repos.Roles.(domain.NameInspector)
@@ -42,7 +43,7 @@ func (s *RoleCatalog) previewCreate(cmd CreateRoleCommand, created domain.Role) 
 	}}
 }
 func (s *RoleCatalog) previewUpdate(cmd UpdateRoleCommand, result **domain.Role) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "role.update", Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: roleOperations, PermissionActions: []string{"update"}, Input: map[string]any{"role_id": cmd.ID.String(), "display_name": cmd.DisplayName, "description": cmd.Description, "changed_by": cmd.ChangedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	return uow.WriteRequest{AuthorizeKnown: uow.ReplayPermissions(s.guard.RequireOperation), Operation: "role.update", Result: roleResultCodec(func() *domain.Role { return *result }, func(value domain.Role) { *result = &value }), Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: roleOperations, PermissionActions: []string{"update"}, Input: map[string]any{"role_id": cmd.ID.String(), "display_name": cmd.DisplayName, "description": cmd.Description, "changed_by": cmd.ChangedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		if err := s.guard.RequireOperation(ctx, roleOperations, "update"); err != nil {
 			return false, err
 		}
@@ -67,7 +68,7 @@ func (s *RoleCatalog) previewUpdate(cmd UpdateRoleCommand, result **domain.Role)
 	}}
 }
 func (s *RoleCatalog) previewDelete(cmd DeleteRoleCommand) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "role.delete", Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: roleOperations, PermissionActions: []string{"delete"}, Input: map[string]any{"role_id": cmd.ID.String(), "changed_by": cmd.ChangedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	return uow.WriteRequest{AuthorizeKnown: uow.ReplayPermissions(s.guard.RequireOperation), Operation: "role.delete", Result: operation.EmptyResultCodec(), Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: roleOperations, PermissionActions: []string{"delete"}, Input: map[string]any{"role_id": cmd.ID.String(), "changed_by": cmd.ChangedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		if err := s.guard.RequireOperation(ctx, roleOperations, "delete"); err != nil {
 			return false, err
 		}

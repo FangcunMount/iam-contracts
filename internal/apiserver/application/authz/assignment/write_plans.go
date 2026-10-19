@@ -6,6 +6,7 @@ import (
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
 	admission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/operation"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	uow "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
@@ -16,7 +17,7 @@ import (
 const assignmentOperations = "iam:authz:collection:assignments"
 
 func (s *CommandService) previewGrant(cmd GrantCommand) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "assignment.grant", Freeze: change.AllocateKeys(change.ArtifactKey("assignment", string(cmd.SubjectType), cmd.SubjectID.String(), cmd.RoleID.String(), "0")), Scope: "global", ChangedBy: cmd.GrantedBy, PermissionResource: assignmentOperations, PermissionActions: []string{"grant"}, Input: map[string]any{"subject_type": cmd.SubjectType, "subject_id": cmd.SubjectID.String(), "role_id": cmd.RoleID.String(), "granted_by": cmd.GrantedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	return uow.WriteRequest{AuthorizeKnown: uow.ReplayPermissions(s.guard.RequireOperation), Operation: "assignment.grant", Freeze: change.AllocateKeys(change.ArtifactKey("assignment", string(cmd.SubjectType), cmd.SubjectID.String(), cmd.RoleID.String(), "0")), Scope: "global", ChangedBy: cmd.GrantedBy, PermissionResource: assignmentOperations, PermissionActions: []string{"grant"}, Input: map[string]any{"subject_type": cmd.SubjectType, "subject_id": cmd.SubjectID.String(), "role_id": cmd.RoleID.String(), "granted_by": cmd.GrantedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		validator := domain.NewValidatorWithSubjectResolver(repos.Roles, repos.SubjectResolver)
 		if err := validator.CheckSubjectExists(ctx, cmd.SubjectType, cmd.SubjectID); err != nil {
 			return false, err
@@ -43,7 +44,7 @@ func (s *CommandService) previewGrant(cmd GrantCommand) uow.WriteRequest {
 	}}
 }
 func (s *CommandService) previewRevoke(cmd RevokeCommand) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "assignment.revoke", Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: assignmentOperations, PermissionActions: []string{"revoke"}, Input: map[string]any{"subject_type": cmd.SubjectType, "subject_id": cmd.SubjectID.String(), "role_id": cmd.RoleID.String(), "changed_by": cmd.ChangedBy, "reason": revokeReason(cmd.Reason)}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	return uow.WriteRequest{AuthorizeKnown: uow.ReplayPermissions(s.guard.RequireOperation), Operation: "assignment.revoke", Result: operation.EmptyResultCodec(), Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: assignmentOperations, PermissionActions: []string{"revoke"}, Input: map[string]any{"subject_type": cmd.SubjectType, "subject_id": cmd.SubjectID.String(), "role_id": cmd.RoleID.String(), "changed_by": cmd.ChangedBy, "reason": revokeReason(cmd.Reason)}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		role, err := repos.Roles.FindByID(ctx, cmd.RoleID)
 		if err != nil {
 			return false, err
@@ -60,7 +61,7 @@ func (s *CommandService) previewRevoke(cmd RevokeCommand) uow.WriteRequest {
 	}}
 }
 func (s *CommandService) previewRevokeID(cmd RevokeByIDCommand) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "assignment.revoke_id", Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: assignmentOperations, PermissionActions: []string{"revoke"}, Input: map[string]any{"assignment_id": cmd.AssignmentID.String(), "changed_by": cmd.ChangedBy, "reason": revokeReason(cmd.Reason)}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	return uow.WriteRequest{AuthorizeKnown: uow.ReplayPermissions(s.guard.RequireOperation), Operation: "assignment.revoke_id", Result: operation.EmptyResultCodec(), Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: assignmentOperations, PermissionActions: []string{"revoke"}, Input: map[string]any{"assignment_id": cmd.AssignmentID.String(), "changed_by": cmd.ChangedBy, "reason": revokeReason(cmd.Reason)}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		existing, err := repos.Assignments.FindByID(ctx, cmd.AssignmentID)
 		if err != nil {
 			return false, err
@@ -101,7 +102,7 @@ func (s *CommandService) previewReplacement(cmd ReplaceManagedAssignmentsCommand
 		scope = "org:" + cmd.OrgID.String()
 	}
 	var createKeys []string
-	return uow.WriteRequest{Operation: "assignment.replace_managed", Freeze: func(b *change.ArtifactBuilder) error { return change.AllocateKeys(createKeys...)(b) }, Scope: scope, ChangedBy: cmd.ChangedBy, PermissionResource: assignmentOperations, PermissionActions: []string{"grant", "revoke"}, Input: replacementInput(cmd), Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	return uow.WriteRequest{AuthorizeKnown: uow.ReplayPermissions(s.guard.RequireOperation), Operation: "assignment.replace_managed", Result: replacementResultCodec(result), Freeze: func(b *change.ArtifactBuilder) error { return change.AllocateKeys(createKeys...)(b) }, Scope: scope, ChangedBy: cmd.ChangedBy, PermissionResource: assignmentOperations, PermissionActions: []string{"grant", "revoke"}, Input: replacementInput(cmd), Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		if err := s.guard.RequireReplacement(ctx, cmd.Subject, cmd.RoleNames, cmd.ManagedRoleNames, cmd.ChangedBy); err != nil {
 			return false, err
 		}

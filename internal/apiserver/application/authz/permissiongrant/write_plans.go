@@ -4,6 +4,7 @@ import (
 	"context"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/operation"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	uow "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/permissiongrant"
@@ -12,9 +13,9 @@ import (
 
 const grantOperations = "iam:authz:collection:permission_grants"
 
-func (s *Service) previewCreate(cmd CreateCommand) uow.WriteRequest {
+func (s *Service) previewCreate(cmd CreateCommand, result *domain.Grant) uow.WriteRequest {
 	var createdKey string
-	return uow.WriteRequest{Operation: "grant.create", Freeze: func(b *change.ArtifactBuilder) error {
+	return uow.WriteRequest{AuthorizeKnown: uow.ReplayPermissions(s.guard.RequireOperation), Operation: "grant.create", Result: grantResultCodec(result), Freeze: func(b *change.ArtifactBuilder) error {
 		if createdKey == "" {
 			return change.ErrInvalidChangePlan
 		}
@@ -61,7 +62,7 @@ func (s *Service) previewCreate(cmd CreateCommand) uow.WriteRequest {
 	}}
 }
 func (s *Service) previewRevoke(cmd RevokeCommand) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "grant.revoke", Scope: "global", ChangedBy: cmd.RevokedBy, PermissionResource: grantOperations, PermissionActions: []string{"revoke"}, Input: map[string]any{"grant_id": cmd.GrantID.String(), "revoked_by": cmd.RevokedBy, "reason": cmd.Reason}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	return uow.WriteRequest{AuthorizeKnown: uow.ReplayPermissions(s.guard.RequireOperation), Operation: "grant.revoke", Result: operation.EmptyResultCodec(), Scope: "global", ChangedBy: cmd.RevokedBy, PermissionResource: grantOperations, PermissionActions: []string{"revoke"}, Input: map[string]any{"grant_id": cmd.GrantID.String(), "revoked_by": cmd.RevokedBy, "reason": cmd.Reason}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		if err := s.guard.RequireOperation(ctx, grantOperations, "revoke"); err != nil {
 			return false, err
 		}

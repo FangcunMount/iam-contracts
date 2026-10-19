@@ -25,7 +25,11 @@ func candidateFixture(t *testing.T, key string, changed bool) Candidate {
 		require.NoError(t, err)
 		plan = &frozen
 	}
-	result, err := NewCandidate(command, id, transaction.Binding{Owner: "iam.mysql", StoreID: "primary", WriterEpoch: "m3-1"}, 1, []Permission{{Resource: "iam:authz:collection:roles", Action: "create"}}, plan)
+	var noop [][]byte
+	if !changed {
+		noop = [][]byte{[]byte(`{"changed":false}`)}
+	}
+	result, err := NewCandidate(command, id, transaction.Binding{Owner: "iam.mysql", StoreID: "primary", WriterEpoch: "m3-1"}, 1, []Permission{{Resource: "iam:authz:collection:roles", Action: "create"}}, plan, noop...)
 	require.NoError(t, err)
 	return result
 }

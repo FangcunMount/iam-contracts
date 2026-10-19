@@ -43,7 +43,7 @@ func (s *RoleCatalog) CreateRole(ctx context.Context, cmd CreateRoleCommand) (*r
 	if err != nil {
 		return nil, err
 	}
-	err = authzuow.WithinWrite(ctx, s.uow, s.previewCreate(cmd, created), func(txCtx context.Context, tx authzuow.TxRepositories) error {
+	err = authzuow.WithinWrite(ctx, s.uow, s.previewCreate(cmd, &created), func(txCtx context.Context, tx authzuow.TxRepositories) error {
 		if _, planned := policychange.ExecutionPlan(txCtx); planned {
 			if err := s.guard.RequireOperation(txCtx, roleOperations, "create"); err != nil {
 				return err

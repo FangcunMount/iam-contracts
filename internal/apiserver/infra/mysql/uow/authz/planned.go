@@ -10,6 +10,7 @@ import (
 	app "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
 	assignment "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/messaging"
+	journal "github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/authzoperation"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	database "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
 	"github.com/FangcunMount/iam/v5/pkg/event"
@@ -55,6 +56,8 @@ type PlanConfig struct {
 	// Maintenance must explicitly bind a trusted CLI/operator identity. An input
 	// ChangedBy string cannot authenticate a caller or select a database owner.
 	MaintenancePrincipal string
+	Journal              *journal.Store
+	OperationLease       time.Duration
 }
 type PlannedUnitOfWork struct {
 	original  *TransactionUnitOfWork
@@ -66,6 +69,9 @@ type PlannedUnitOfWork struct {
 func NewPlannedUnitOfWork(original *TransactionUnitOfWork, sender ReservingSender, config PlanConfig) (*PlannedUnitOfWork, error) {
 	expected, err := transport.PhysicalTopicV2(config.LogicalTopic, transport.TransactionMessageType, "iam.mysql", "m3-1")
 	if original == nil || original.store == nil || sender == nil || err != nil || expected != config.PhysicalTopic || config.Sends < 1 || config.Sends > 1024 || config.ProofBudget <= 0 || config.Admission == nil {
+		return nil, change.ErrInvalidChangePlan
+	}
+	if config.Journal != nil && (config.OperationLease <= 0 || config.OperationLease > 24*time.Hour) {
 		return nil, change.ErrInvalidChangePlan
 	}
 	return &PlannedUnitOfWork{original: original, sender: sender, config: config, admission: newPlanAdmission(config.Sends)}, nil
@@ -121,6 +127,9 @@ func (u *PlannedUnitOfWork) within(ctx context.Context, principal string, reques
 	command, err := change.NewCommandIntent(request.Operation, principal, request.Scope, key, request.Input)
 	if err != nil {
 		return err
+	}
+	if u.config.Journal != nil {
+		return u.withBusinessOperation(ctx, command, request, fn)
 	}
 	lookup := transaction.Request{Owner: "iam.mysql", Scope: change.PolicyScope, Key: command.Key(), InputHash: command.InputHash()}
 	existing, err := u.original.store.Lookup(ctx, lookup)

@@ -57,7 +57,11 @@ func queryRecord(t *testing.T, changed bool) Record {
 	if changed {
 		version++
 	}
-	return Record{Candidate: candidate, State: Committed, PolicyVersion: version, Result: []byte(`{"role_id":"42"}`)}
+	result := []byte(`{"role_id":"42"}`)
+	if !changed {
+		result = candidate.NoopResult()
+	}
+	return Record{Candidate: candidate, State: Committed, PolicyVersion: version, Result: result}
 }
 func TestQueryHidesOtherPrincipalsAndRechecksOriginalScopeAndRights(t *testing.T) {
 	record := queryRecord(t, true)

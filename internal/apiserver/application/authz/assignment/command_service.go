@@ -113,6 +113,7 @@ func (s *CommandService) executeGrant(ctx context.Context, cmd GrantCommand, ide
 		request.Input = identities[0].Input
 	}
 	var result grantResult
+	request.Result = assignmentResultCodec(&result)
 	version, err := s.commit(ctx, cmd.GrantedBy, "binding grant", request, func(txCtx context.Context, tx authzuow.TxRepositories) error {
 		txValidator := assignmentDomain.NewValidatorWithSubjectResolver(tx.Roles, tx.SubjectResolver)
 		if err := txValidator.CheckRoleExists(txCtx, cmd.RoleID); err != nil {
@@ -283,6 +284,7 @@ func (s *CommandService) commit(ctx context.Context, changedBy, reason string, r
 	}
 	var committedVersion int64
 	changed := true
+	request.Result = versionedAssignmentResult(request.Result, &committedVersion, &changed)
 	preview := request.Preview
 	request.Preview = func(readCtx context.Context, repos authzuow.TxRepositories) (bool, error) {
 		var err error

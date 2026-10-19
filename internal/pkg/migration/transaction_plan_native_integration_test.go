@@ -286,6 +286,7 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 	t.Run("planned-host-entries", func(t *testing.T) { testM3PlannedHostEntries(t, host, binding) })
 	t.Run("protocol-selection", func(t *testing.T) { testM3ProtocolSelection(t, host, binding) })
 	t.Run("business-operation-journal", func(t *testing.T) { testM3BusinessOperationJournal(t, host, binding) })
+	t.Run("journal-host-entries", func(t *testing.T) { testM3JournalHostEntries(t, host, binding) })
 }
 
 // This proves the host original-root executor against real MySQL. Half receipts

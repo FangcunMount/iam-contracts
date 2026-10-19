@@ -42,6 +42,7 @@ type candidateData struct {
 	Expected    int64               `json:"expected_policy_version"`
 	Permissions []Permission        `json:"permissions"`
 	Plan        []byte              `json:"sdk_plan,omitempty"`
+	NoopResult  []byte              `json:"no_op_result,omitempty"`
 }
 
 // Candidate freezes the complete first plan, including no-op intent, before
@@ -52,7 +53,7 @@ type Candidate struct {
 	raw  []byte
 }
 
-func NewCandidate(command change.CommandIntent, id string, binding transaction.Binding, expected int64, permissions []Permission, plan *transaction.FrozenPlan) (Candidate, error) {
+func NewCandidate(command change.CommandIntent, id string, binding transaction.Binding, expected int64, permissions []Permission, plan *transaction.FrozenPlan, noOpResult ...[]byte) (Candidate, error) {
 	data := candidateData{Schema: 1, ID: id, Identity: command.Key(), InputHash: command.InputHash(), Binding: binding, Expected: expected, Permissions: slices.Clone(permissions)}
 	slices.SortFunc(data.Permissions, func(a, b Permission) int {
 		if n := strings.Compare(a.Resource, b.Resource); n != 0 {
@@ -70,6 +71,12 @@ func NewCandidate(command change.CommandIntent, id string, binding transaction.B
 			return Candidate{}, ErrInvalid
 		}
 		data.Plan = raw
+	}
+	if len(noOpResult) > 1 {
+		return Candidate{}, ErrInvalid
+	}
+	if len(noOpResult) == 1 {
+		data.NoopResult = bytes.Clone(noOpResult[0])
 	}
 	return encode(data)
 }
@@ -145,6 +152,13 @@ func validate(data candidateData) error {
 		}
 	}
 	if strings.HasPrefix(tuple[1], "user:") && len(data.Permissions) == 0 {
+		return ErrInvalid
+	}
+	if len(data.Plan) == 0 {
+		if len(data.NoopResult) == 0 || len(data.NoopResult) > MaxResultBytes || !utf8.Valid(data.NoopResult) || !json.Valid(data.NoopResult) {
+			return ErrInvalid
+		}
+	} else if len(data.NoopResult) != 0 {
 		return ErrInvalid
 	}
 	if len(data.Plan) > 0 {
@@ -238,3 +252,5 @@ func ValidBinding(binding transaction.Binding) bool {
 	}
 	return true
 }
+
+func (c Candidate) NoopResult() []byte { return bytes.Clone(c.data.NoopResult) }

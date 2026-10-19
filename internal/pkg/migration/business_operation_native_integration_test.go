@@ -42,7 +42,11 @@ func testM3BusinessOperationJournal(t *testing.T, host *gorm.DB, binding transac
 			require.NoError(t, err)
 			plan = &frozen
 		}
-		result, err := operation.NewCandidate(command, id, binding, version, []operation.Permission{{Resource: "iam:authz:collection:roles", Action: "update"}}, plan)
+		var noop [][]byte
+		if !changed {
+			noop = [][]byte{[]byte(`{"changed":false}`)}
+		}
+		result, err := operation.NewCandidate(command, id, binding, version, []operation.Permission{{Resource: "iam:authz:collection:roles", Action: "update"}}, plan, noop...)
 		require.NoError(t, err)
 		return result
 	}

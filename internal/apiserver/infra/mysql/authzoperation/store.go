@@ -108,6 +108,9 @@ func (s *Store) scan(row interface{ Scan(...any) error }) (Snapshot, error) {
 		if !finalized.Valid || !version.Valid || version.Int64 != expected || !validResult(snapshot.Result) || !bytes.Equal(resultHash, hash[:]) {
 			return Snapshot{}, operation.ErrInvalid
 		}
+		if !candidate.Changed() && !bytes.Equal(snapshot.Result, candidate.NoopResult()) {
+			return Snapshot{}, operation.ErrInvalid
+		}
 		snapshot.PolicyVersion = version.Int64
 	default:
 		return Snapshot{}, operation.ErrInvalid
@@ -229,6 +232,9 @@ func (g *Guard) Commit(ctx context.Context, result []byte, policyVersion int64) 
 		expected++
 	}
 	if policyVersion != expected {
+		return operation.ErrInvalid
+	}
+	if !g.candidate.Changed() && !bytes.Equal(result, g.candidate.NoopResult()) {
 		return operation.ErrInvalid
 	}
 	key := g.candidate.RequestKey()

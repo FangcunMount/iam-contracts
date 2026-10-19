@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	perrors "github.com/FangcunMount/component-base/pkg/errors"
+	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/operation"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	uow "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
 	domain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/resource"
@@ -21,8 +22,13 @@ func cloneString(value *string) *string {
 	copy := *value
 	return &copy
 }
-func (s *ResourceCatalog) previewCreate(cmd CreateResourceCommand, created domain.Resource) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "resource.create", Freeze: change.AllocateKeys(change.ArtifactKey("resource", created.KeyString())), Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: resourceOperations, PermissionActions: []string{"create"}, Input: map[string]any{"actor": cmd.Actor.String(), "changed_by": cmd.ChangedBy, "key": created.KeyString(), "display_name": created.DisplayName, "description": created.Description, "actions": created.ActionStrings(), "app": created.AppName, "domain": created.Domain, "type": created.Type}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+func (s *ResourceCatalog) previewCreate(cmd CreateResourceCommand, created *domain.Resource) uow.WriteRequest {
+	return uow.WriteRequest{AuthorizeKnown: uow.ReplayPermissions(func(ctx context.Context, resource, action string) error {
+		if resource != resourceOperations {
+			return operation.ErrAccessDenied
+		}
+		return s.requireWrite(ctx, cmd.Actor, action)
+	}), Operation: "resource.create", Result: resourceResultCodec(func() *domain.Resource { return created }, func(value domain.Resource) { *created = value }), Freeze: change.AllocateKeys(change.ArtifactKey("resource", created.KeyString())), Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: resourceOperations, PermissionActions: []string{"create"}, Input: map[string]any{"actor": cmd.Actor.String(), "changed_by": cmd.ChangedBy, "key": created.KeyString(), "display_name": created.DisplayName, "description": created.Description, "actions": created.ActionStrings(), "app": created.AppName, "domain": created.Domain, "type": created.Type}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		if err := s.requireWrite(ctx, cmd.Actor, "create"); err != nil {
 			return false, err
 		}
@@ -41,7 +47,12 @@ func (s *ResourceCatalog) previewCreate(cmd CreateResourceCommand, created domai
 	}}
 }
 func (s *ResourceCatalog) previewUpdate(cmd UpdateResourceCommand, result **domain.Resource) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "resource.update", Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: resourceOperations, PermissionActions: []string{"update"}, Input: map[string]any{"actor": cmd.Actor.String(), "resource_id": cmd.ID.String(), "display_name": cmd.DisplayName, "description": cmd.Description, "actions": cmd.Actions, "changed_by": cmd.ChangedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	return uow.WriteRequest{AuthorizeKnown: uow.ReplayPermissions(func(ctx context.Context, resource, action string) error {
+		if resource != resourceOperations {
+			return operation.ErrAccessDenied
+		}
+		return s.requireWrite(ctx, cmd.Actor, action)
+	}), Operation: "resource.update", Result: resourceResultCodec(func() *domain.Resource { return *result }, func(value domain.Resource) { *result = &value }), Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: resourceOperations, PermissionActions: []string{"update"}, Input: map[string]any{"actor": cmd.Actor.String(), "resource_id": cmd.ID.String(), "display_name": cmd.DisplayName, "description": cmd.Description, "actions": cmd.Actions, "changed_by": cmd.ChangedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		if err := s.requireWrite(ctx, cmd.Actor, "update"); err != nil {
 			return false, err
 		}
@@ -80,7 +91,12 @@ func (s *ResourceCatalog) previewUpdate(cmd UpdateResourceCommand, result **doma
 	}}
 }
 func (s *ResourceCatalog) previewDelete(cmd DeleteResourceCommand) uow.WriteRequest {
-	return uow.WriteRequest{Operation: "resource.delete", Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: resourceOperations, PermissionActions: []string{"delete"}, Input: map[string]any{"actor": cmd.Actor.String(), "resource_id": cmd.ID.String(), "changed_by": cmd.ChangedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
+	return uow.WriteRequest{AuthorizeKnown: uow.ReplayPermissions(func(ctx context.Context, resource, action string) error {
+		if resource != resourceOperations {
+			return operation.ErrAccessDenied
+		}
+		return s.requireWrite(ctx, cmd.Actor, action)
+	}), Operation: "resource.delete", Result: operation.EmptyResultCodec(), Scope: "global", ChangedBy: cmd.ChangedBy, PermissionResource: resourceOperations, PermissionActions: []string{"delete"}, Input: map[string]any{"actor": cmd.Actor.String(), "resource_id": cmd.ID.String(), "changed_by": cmd.ChangedBy}, Preview: func(ctx context.Context, repos uow.TxRepositories) (bool, error) {
 		if err := s.requireWrite(ctx, cmd.Actor, "delete"); err != nil {
 			return false, err
 		}
