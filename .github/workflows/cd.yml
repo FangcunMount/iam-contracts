@@ -123,6 +123,14 @@ jobs:
           ref: ${{ env.DEPLOY_SHA }}
           fetch-depth: 1
 
+      - name: Verify organization public MySQL policy
+        env:
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+        run: bash scripts/cd/verify-mysql-public-env.sh
+
       - name: Configure ACR and GHCR auth (isolated config, no keychain)
         if: env.DEPLOY_EXPORT_REGISTRY == 'acr'
         shell: bash
@@ -166,8 +174,11 @@ jobs:
           ROCKETMQ_PUBLISH_ENABLED: ${{ vars.ROCKETMQ_PUBLISH_ENABLED || 'true' }}
           IAM_RELIABLE_MESSAGING_ENABLED: ${{ vars.IAM_RELIABLE_MESSAGING_ENABLED || 'false' }}
           IAM_NSQ_CONSUMER_SDK_ENABLED: ${{ vars.IAM_NSQ_CONSUMER_SDK_ENABLED || 'false' }}
-          MYSQL_HOST: ${{ vars.IAM_RUNTIME_MYSQL_HOST || secrets.MYSQL_HOST }}
-          MYSQL_PORT: ${{ secrets.MYSQL_PORT || 3306 }}
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+          MYSQL_TLS_CA_FILE: /data/infra/ssl/mysql/ca-chain.pem
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_DBNAME: ${{ secrets.MYSQL_DBNAME }}

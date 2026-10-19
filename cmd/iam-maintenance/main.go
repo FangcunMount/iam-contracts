@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -14,8 +15,10 @@ import (
 	"strings"
 	"time"
 
+	dbbase "github.com/FangcunMount/component-base/pkg/database"
 	redisinfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/cache/redis"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance"
+	drivermysql "github.com/go-sql-driver/mysql"
 	goredis "github.com/redis/go-redis/v9"
 	gormmysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -98,11 +101,23 @@ func authzConvergeDatabaseFromEnvironment() (*gorm.DB, error) {
 	if host == "" || port < 1 || port > 65535 || username == "" || database == "" {
 		return nil, errors.New("authorization database connection environment is invalid")
 	}
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Etc%%2FGMT-8&time_zone=%%27%%2B08%%3A00%%27&multiStatements=true",
-		username, password, net.JoinHostPort(host, strconv.Itoa(port)), database,
-	)
-	db, err := gorm.Open(gormmysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	cfg := drivermysql.NewConfig()
+	cfg.User, cfg.Passwd = username, password
+	cfg.Net, cfg.Addr, cfg.DBName = "tcp", net.JoinHostPort(host, strconv.Itoa(port)), database
+	cfg.ParseTime, cfg.MultiStatements = true, true
+	cfg.Loc, _ = time.LoadLocation("Etc/GMT-8")
+	cfg.Params = map[string]string{"charset": "utf8mb4", "time_zone": "'+08:00'"}
+	if err := dbbase.ConfigureMySQLTLS(cfg, os.Getenv("MYSQL_TLS_MODE"), os.Getenv("MYSQL_TLS_CA_FILE")); err != nil {
+		return nil, errors.New("authorization database TLS configuration is invalid")
+	}
+	connector, err := drivermysql.NewConnector(cfg)
 	if err != nil {
+		return nil, errors.New("authorization database connection environment is invalid")
+	}
+	pool := sql.OpenDB(connector)
+	db, err := gorm.Open(gormmysql.New(gormmysql.Config{Conn: pool}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	if err != nil {
+		_ = pool.Close()
 		return nil, errors.New("authorization database connection failed")
 	}
 	return db, nil

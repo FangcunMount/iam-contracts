@@ -153,6 +153,8 @@ seed_mock_auth:
 # 3.1 MySQL 数据库配置
 # ----------------------------------------------------------------------------
 mysql:
+  tls-mode: "VERIFY_IDENTITY"
+  tls-ca-file: "/etc/qlume/mysql/ca-chain.pem"
   host: "your-rds.mysql.rds.aliyuncs.com:3306"  # 生产环境使用云 RDS 内网地址
   username: "iam"
   password: ""

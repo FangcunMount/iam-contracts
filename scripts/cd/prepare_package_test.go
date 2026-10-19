@@ -222,6 +222,8 @@ func basePreparePackageEnv(packageDir, archive string) []string {
 		"DEPLOY_PACKAGE=" + archive,
 		"MYSQL_HOST=mysql.internal",
 		"MYSQL_PORT=3306",
+		"MYSQL_TLS_MODE=VERIFY_IDENTITY",
+		"MYSQL_TLS_CA_REF=" + strings.Repeat("a", 40),
 		"MYSQL_USERNAME=iam",
 		"MYSQL_PASSWORD=mysql-pass",
 		"MYSQL_DBNAME=iam",

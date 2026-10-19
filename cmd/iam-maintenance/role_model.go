@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"flag"
+	dbbase "github.com/FangcunMount/component-base/pkg/database"
 	"github.com/FangcunMount/iam/v5/internal/pkg/timezone"
 	"io"
 	"net"
@@ -196,8 +198,17 @@ func roleDatabase(prefix string) (*gorm.DB, error) {
 	cfg.Timeout = 8 * time.Second
 	cfg.ReadTimeout = time.Minute
 	cfg.WriteTimeout = time.Minute
-	db, err := gorm.Open(gormmysql.Open(cfg.FormatDSN()), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	if err := dbbase.ConfigureMySQLTLS(cfg, firstEnvironment(prefix+"MYSQL_TLS_MODE", "MYSQL_TLS_MODE"), firstEnvironment(prefix+"MYSQL_TLS_CA_FILE", "MYSQL_TLS_CA_FILE")); err != nil {
+		return nil, errors.New(prefix + "MYSQL TLS configuration is invalid")
+	}
+	connector, err := drivermysql.NewConnector(cfg)
 	if err != nil {
+		return nil, errors.New(prefix + "MYSQL connection environment is invalid")
+	}
+	pool := sql.OpenDB(connector)
+	db, err := gorm.Open(gormmysql.New(gormmysql.Config{Conn: pool}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	if err != nil {
+		_ = pool.Close()
 		return nil, errors.New(prefix + "MYSQL connection failed")
 	}
 	return db, nil
