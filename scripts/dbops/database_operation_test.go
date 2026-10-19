@@ -265,7 +265,7 @@ esac
 	})
 	requireNoError(t, err)
 	assertSafeOutput(t, output)
-	for _, want := range []string{"mysql_client=8.0.36", "connection=success", "size_mb=12.5", "tables=7", "backups=1", "schema objects:", "type=BASE_TABLE name=users", "type=VIEW name=active_users", "schema_migrations=38", "retired_tables_present=0", "retired_table_privileges=0", "owner_state=none\tfree\t-1", "schema guard: result=success", "retirement guard: result=success", "accepted_versions=38,39,40,41,42,43"} {
+	for _, want := range []string{"mysql_client=8.0.36", "connection=success", "size_mb=12.5", "tables=7", "backups=1", "schema objects:", "type=BASE_TABLE name=users", "type=VIEW name=active_users", "schema_migrations=38", "retired_tables_present=0", "retired_table_privileges=0", "owner_state=none\tfree\t-1", "schema guard: result=success", "retirement guard: result=success", "accepted_versions=38,39,40,41,42,43,44"} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("status output missing %q: %s", want, output)
 		}
@@ -319,12 +319,20 @@ esac
 			t.Fatalf("version43 publication gate missing: %s", output)
 		}
 	}
+	for _, guard := range []string{"28\t28\t0", "28\t29\t0"} {
+		output, err = runScript(t, bin, map[string]string{"IAM_DB_OPS_OPERATION": "status", "IAM_DB_OPS_BACKUP_DIR": backupDir, "IAM_FAKE_MIGRATION_STATE": "44\t0\t1", "IAM_FAKE_SCHEMA_GUARD": guard})
+		requireNoError(t, err)
+		if !strings.Contains(output, "required_base_tables=28") {
+			t.Fatalf("version44 operation journal missing: %s", output)
+		}
+	}
 	for name, overrides := range map[string]map[string]string{
+		"schema44 missing journal":    {"IAM_FAKE_MIGRATION_STATE": "44\t0\t1", "IAM_FAKE_SCHEMA_GUARD": "27\t27\t0"},
 		"schema43 missing selection":  {"IAM_FAKE_MIGRATION_STATE": "43\t0\t1", "IAM_FAKE_SCHEMA_GUARD": "26\t26\t0"},
 		"schema42 partial protocol":   {"IAM_FAKE_MIGRATION_STATE": "42\t0\t1", "IAM_FAKE_SCHEMA_GUARD": "25\t25\t0"},
 		"schema41 premature protocol": {"IAM_FAKE_MIGRATION_STATE": "41\t0\t1", "IAM_FAKE_SCHEMA_GUARD": "26\t26\t0"},
 		"schema42 dirty":              {"IAM_FAKE_MIGRATION_STATE": "42\t1\t1", "IAM_FAKE_SCHEMA_GUARD": "26\t26\t0"},
-		"future protocol schema":      {"IAM_FAKE_MIGRATION_STATE": "44\t0\t1", "IAM_FAKE_SCHEMA_GUARD": "26\t26\t0"},
+		"future protocol schema":      {"IAM_FAKE_MIGRATION_STATE": "45\t0\t1", "IAM_FAKE_SCHEMA_GUARD": "28\t28\t0"},
 		"standard Outbox missing": {
 			"IAM_FAKE_SCHEMA_GUARD": "19\t19\t0",
 		},

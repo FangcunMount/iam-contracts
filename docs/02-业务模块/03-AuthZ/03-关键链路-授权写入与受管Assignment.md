@@ -234,3 +234,9 @@ T06 继续增加本地冻结资料与可选编排：ID按只读计划给出的�
 事务模式要求同时配置 owner 和 `configs/events-m3.yaml`，保留默认旧目录供切换前链路使用；`transaction` 不被标准 Stager 或 NORMAL Publisher 接受。platform 先启动 owner Checker，再开放受门禁控制的业务发送；关闭时先排空宿主规划，再关闭 SDK。启动检查拒绝遗留未完成发布责任，但不冒充旧写者已退出的生产证明。短信仅在 `sms.provider=mq` 时启用最终 NORMAL 客户端，Aliyun 发送器不因此新增 MQ 生产/消费。
 
 维护工具新增显式 `--outbox-mode=transaction --transaction-messaging-config=/absolute/options.json --event-catalog=configs/events-m3.yaml`。配置文件只包含宿主 MessagingOptions 与凭据/CA/manifest 的文件路径；构造不执行 DDL。CLI启动 owner、调用原事务、等待真实在途后关闭；业务成功与 ShutdownIncomplete 分别保留，未排空的 SDK DB 调用不会被误当成完成后关闭连接池。旧 standard 模式继续要求其明确选择。真实 Broker 及业务切换证明在 infra 分别记录；当前源代码变更不等于生产切换。
+
+### T07 业务操作凭证候选（API 尚未接线）
+
+独立 `operation.Candidate` 在竞争幂等键前保存完整首次计划与原权限元数据；无变更操作保存独立意图，不制造虚假版本事件。业务请求赢家先确定，再进入 SDK reservation，避免同键并发请求分别观察到“要修改”和“已相同”时各自提交不同结果。请求比较仅使用原始身份与稳定输入摘要，生成的 ID、时间和 wire 不参与输入冲突判定；业务凭证不成为消息发布队列。
+
+迁移44提供 `iam_authz_operations`，原 MySQL 适配器保存执行资格、原输入、完整计划、原事务结果及 UTC 审计时间。执行资格仅首次 reservation 的内存赢家持有，原根事务借用 guard；即使根回滚也不能重复使用同一资格。过期只允许 `AbortExpired` 竞争原行并持久化中止；它不发送计划、不执行回调，也不替 SDK 确认 Broker。SDK guard/witness 与业务 guard 的最终同根装配、共享维护预算、类型化结果恢复、HTTP 幂等键与权限查询仍由T07继续实现；不能据存储测试认定公开接口已可用。

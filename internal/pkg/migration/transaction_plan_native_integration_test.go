@@ -73,7 +73,7 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 	}
 	defer migrationPool.Close()
 	version, _, err := NewMigrator(migrationPool, &Config{Enabled: true, Database: name, FreshStages: freshStagesForTest(t, host)}).Run()
-	if err != nil || version != 43 {
+	if err != nil || version != 44 {
 		t.Fatal("full original host schema", version, err)
 	}
 	if err = db.PingContext(t.Context()); err != nil {
@@ -285,6 +285,7 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 	t.Run("guarded-host-root", func(t *testing.T) { testM3GuardedLocalRoot(t, host, binding) })
 	t.Run("planned-host-entries", func(t *testing.T) { testM3PlannedHostEntries(t, host, binding) })
 	t.Run("protocol-selection", func(t *testing.T) { testM3ProtocolSelection(t, host, binding) })
+	t.Run("business-operation-journal", func(t *testing.T) { testM3BusinessOperationJournal(t, host, binding) })
 }
 
 // This proves the host original-root executor against real MySQL. Half receipts

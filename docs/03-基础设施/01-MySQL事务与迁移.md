@@ -1,6 +1,6 @@
 # MySQL 事务与迁移：提交者、连接传播和失败断点
 
-> 状态：已实现 · 按当前组合根、GORM 1.30.0 与 golang-migrate 4.19.1 核对。仓库有 41 对 up/down 脚本，版本区间 000001–000043，缺号 000004/000010；最新版本为 43。目标库的版本、物理结构与执行结果须独立取证。
+> 状态：已实现 · 按当前组合根、GORM 1.30.0 与 golang-migrate 4.19.1 核对。仓库有 42 对 up/down 脚本，版本区间 000001–000044，缺号 000004/000010；最新版本为 44。目标库的版本、物理结构与执行结果须独立取证。
 
 ## 1. 先确定哪一次提交由谁负责
 
@@ -153,7 +153,7 @@ FreshStage 的 prepare 在 `Migrate(stage)`返回并释放该次 advisory lock�
 
 ## 9. 最新版本、维护回执与可逆性分开维护
 
-41对脚本按已有编号排序前进，缺号不需要补空脚本。当前 schema 的演进顺序归嵌入 migration SQL；目标库还需核对 journal、物理结构、约束及维护回执。仅有 version=43 不能证明历史数据已满足全部当前规则。
+42对脚本按已有编号排序前进，缺号不需要补空脚本。当前 schema 的演进顺序归嵌入 migration SQL；目标库还需核对 journal、物理结构、约束及维护回执。仅有 version=44 不能证明历史数据已满足全部当前规则。
 
 | 脚本/入口 | 具体合同 | 恢复含义 |
 | --- | --- | --- |
@@ -165,6 +165,7 @@ FreshStage 的 prepare 在 `Migrate(stage)`返回并释放该次 advisory lock�
 | 000041 provider-aware 失败审计 | 新建 iam_message_failure_audit；Down要求新表为空 | 保留历史NSQ表；非空新表阻止回退以保留原始消息和审计事实 |
 | 000042 事务消息协议 | 独立 rm_tx_binding/request/execution/witness；二进制身份，rm_tx_expiry有界扫描；不安装owner binding，不转换旧Outbox | Down拒绝删除协议证据；配置/owner/store_id/epoch须显式冻结，运行时不DDL。M3业务接入仍未完成 |
 | 000043 发布协议门禁 | 独立 host control row，默认 outbox；事务模式须显式绑定 owner/store/epoch/m3-1，原根事务持有共享锁 | 不自动切换 provider，不删除 SDK 证据；Down 拒绝删除门禁。旧二进制仍须停写，切换工具另行验收 |
+| 000044 业务操作凭证 | 独立 iam_authz_operations 保存完整赢家计划、原输入摘要、执行资格与原事务结果，支持无变更操作 | 不扫描发布、不重做业务；过期仅竞争中止，原根事务共同提交事实与结果；公开幂等接口另需接线验证 |
 | authorization-migrate 的 RunTo | 锁外检查目标低于当前version则拒绝，随后调用可双向Migrate；不执行FreshStages | 顺序调用拒绝倒退；其他runner在检查后推进时仍有窗口，要求单一owner |
 | Database Operations/status | 当前脚本接受 clean38/39/40并核对对应对象 | status是结构检查，workflow已经没有 migrate动作 |
 
