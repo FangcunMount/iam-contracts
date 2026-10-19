@@ -62,9 +62,19 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	version, _, err := NewMigrator(db, &Config{Enabled: true, Database: name, FreshStages: freshStagesForTest(t, host)}).Run()
+	// The migration command owns/closes its driver pool. The runtime pool and
+	// preparation UOW are separate host resources, as in the full-chain fixture.
+	migrationPool, err := sql.Open("mysql", config.FormatDSN())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer migrationPool.Close()
+	version, _, err := NewMigrator(migrationPool, &Config{Enabled: true, Database: name, FreshStages: freshStagesForTest(t, host)}).Run()
 	if err != nil || version != 42 {
 		t.Fatal("full original host schema", version, err)
+	}
+	if err = db.PingContext(t.Context()); err != nil {
+		t.Fatal("borrowed host pool unavailable after explicit migration", err)
 	}
 	base := policyrepo.NewPolicyVersionRepository(host)
 	current, err := base.GetCurrent(t.Context())
