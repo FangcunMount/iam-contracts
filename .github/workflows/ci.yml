@@ -135,8 +135,10 @@ jobs:
         run: |
           set -euo pipefail
           go test -race -tags=integration -count=1 -timeout=3m -v \
-            ./internal/pkg/migration -run '^TestM3TransactionSchemaNative$' | tee "$RUNNER_TEMP/m3-schema.log"
-          grep -q -- '--- PASS: TestM3TransactionSchemaNative ' "$RUNNER_TEMP/m3-schema.log"
+            ./internal/pkg/migration -run '^TestM3(TransactionSchemaNative|PlannedPolicyNative)$' | tee "$RUNNER_TEMP/m3-schema.log"
+          for test_name in TestM3TransactionSchemaNative TestM3PlannedPolicyNative; do
+            grep -q -- "--- PASS: $test_name " "$RUNNER_TEMP/m3-schema.log"
+          done
           if grep -q -- '--- SKIP:' "$RUNNER_TEMP/m3-schema.log"; then exit 1; fi
       - uses: actions/upload-artifact@v7
         if: always()

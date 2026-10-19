@@ -4,6 +4,7 @@ package policy
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 // Repository 策略版本仓储接口（Driven Port）
@@ -16,8 +17,16 @@ type Repository interface {
 	GetCurrent(ctx context.Context) (*PolicyVersion, error)
 }
 
+var ErrInvalidVersionPlan = errors.New("invalid planned authorization version")
+
 var ErrStaleVersion = errors.New("authorization policy changed; refresh before replacing assignments")
 
 type LockingRepository interface {
 	GetCurrentForUpdate(context.Context) (*PolicyVersion, error)
+}
+
+// PlannedRepository applies an exact version selected before half-message I/O.
+// It cannot initialize a missing row or choose a new version inside the root.
+type PlannedRepository interface {
+	IncrementExpected(context.Context, int64, string, string, time.Time) (*PolicyVersion, error)
 }

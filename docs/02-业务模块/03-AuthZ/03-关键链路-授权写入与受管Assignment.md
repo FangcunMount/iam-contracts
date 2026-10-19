@@ -202,3 +202,11 @@ sequenceDiagram
 跨公司增量撤销、手工软删行参与替换、admin allow_all替换拒绝、宿主吞错提交、Scope重复角色目标拒绝、no-op旧版本响应及丢响应重放，已有源码依据，尚未找到完整专项测试。普通Assignment零行revoke仍可能递增版本；重复PermissionGrant撤销和受管替换no-op跳过版本，不能混称所有撤销都幂等。
 
 改动写入协议时，需同时复核[领域模型](01-领域模型设计.md)、[读链](02-关键链路-授权判定与不可变快照.md)、[多实例收敛](04-关键链路-多实例策略收敛.md)、[RPC/SDK](06-关键链路-gRPC服务间授权与SDK.md)及[Scope维护](../../operations/assignment-scope-migration.md)。本文的代码与本地回归证据不替代真实MySQL专项、部署或业务验收。
+
+## M3 冻结版本规划基础（活动入口尚未完成接入）
+
+事务接入新增 `policychange.CommandIntent`，把主体、授权作用域、操作类型、幂等键和显式业务输入分开；新生成的消息ID、时间和当前策略版本不进入稳定输入摘要。`scope.Scope` 等私有领域值不能直接依赖 JSON 默认序列化，必须显式投影组织、范围种类和 StoreIDs，避免不同范围被编码为相同空对象。
+
+`FreezeVersionPlan` 接受只读规划确认的原版本，冻结下一版本、首次事件身份/时间和原revision1 wire；重复请求从 reservation 赢家解码。原执行上下文复用首次事件，拒绝错误目标版本。`IncrementExpected` 只在原 MySQL SQL root 上执行精确 CAS，不初始化缺失行，不另选版本，也不在 ORM hook 中重新生成时钟。该 CAS 与业务条件、SDK guard/witness 的完整装配及所有活动写入口迁移仍由 M3-T05/T06 推进，不能仅调用规划函数就宣称已启用事务消息。
+
+真实安装后的并发CAS/回滚验证通过隔离 MySQL 门禁执行；当前进度和源码证据统一见 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)。SDK 预发布保持固定，生产仍沿原消息链路。
