@@ -33,6 +33,14 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@v6
+      - name: Verify organization public MySQL policy
+        env:
+          MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
+          MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+        run: bash scripts/cd/verify-mysql-public-env.sh
+
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
@@ -44,8 +52,11 @@ jobs:
           REVIEWER_APPROVE_PLAN: ${{ inputs.approve_plan }}
           REVIEWER_PASSWORD: ${{ secrets.IAM_REVIEWER_10002_PASSWORD }}
           REVIEWER_TOKEN: ${{ secrets.IAM_REVIEWER_PROVISION_TOKEN }}
-          IAM_APISERVER_MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-          IAM_APISERVER_MYSQL_PORT: ${{ secrets.MYSQL_PORT || '3306' }}
+          IAM_APISERVER_MYSQL_TLS_CA_REF: ${{ vars.MYSQL_TLS_CA_REF }}
+          IAM_APISERVER_MYSQL_TLS_MODE: ${{ vars.MYSQL_TLS_MODE }}
+          IAM_APISERVER_MYSQL_TLS_CA_FILE: /data/infra/ssl/mysql/ca-chain.pem
+          IAM_APISERVER_MYSQL_HOST: ${{ vars.MYSQL_PUBLIC_HOST }}
+          IAM_APISERVER_MYSQL_PORT: ${{ vars.MYSQL_PUBLIC_PORT }}
           IAM_APISERVER_MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           IAM_APISERVER_MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           IAM_APISERVER_MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE || secrets.MYSQL_DBNAME }}

@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+if [ "${MYSQL_TLS_MODE:-DISABLED}" = VERIFY_IDENTITY ]; then
+  python3 /opt/infra/scripts/mysql/ca.py verify --ref "${MYSQL_TLS_CA_REF:?Pinned CA ref is required}"
+fi
+
 MODE="${IAM_ROLE_MODEL_MODE:-}"
 CONFIRM="${IAM_ROLE_MODEL_CONFIRM:-}"
 WRITES_STOPPED="${IAM_ROLE_MODEL_WRITES_STOPPED:-}"

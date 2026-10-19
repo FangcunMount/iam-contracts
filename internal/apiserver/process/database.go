@@ -98,18 +98,16 @@ func (dm *DatabaseManager) runMigrations() error {
 	}
 
 	// 创建独立的 *sql.DB 供迁移使用（防止关闭迁移连接影响业务连接）
-	dsn := fmt.Sprintf(`%s:%s@tcp(%s)/%s?charset=utf8&parseTime=%t&loc=%s&time_zone=%%27%%2B08%%3A00%%27&multiStatements=true`,
-		dm.config.MySQLOptions.Username,
-		dm.config.MySQLOptions.Password,
-		dm.config.MySQLOptions.Host,
-		dm.config.MySQLOptions.Database,
-		true,
-		"Etc%2FGMT-8",
-	)
-	sqlDB, err := sql.Open("mysql", dsn)
+	connector, err := database.NewMySQLConnector(&database.MySQLConfig{
+		Host: dm.config.MySQLOptions.Host, Username: dm.config.MySQLOptions.Username,
+		Password: dm.config.MySQLOptions.Password, Database: dm.config.MySQLOptions.Database,
+		Location: "Etc/GMT-8", SessionTimeZone: "+08:00",
+		TLSMode: dm.config.MySQLOptions.TLSMode, TLSCAFile: dm.config.MySQLOptions.TLSCAFile,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to open migration database connection: %w", err)
 	}
+	sqlDB := sql.OpenDB(connector)
 	defer func() {
 		if cerr := sqlDB.Close(); cerr != nil {
 			log.Debugf("Failed to close migration database connection: %v", cerr)
@@ -209,6 +207,7 @@ func (dm *DatabaseManager) initMySQL() error {
 	log.Infof("Initializing MySQL with log level: %d", dm.config.MySQLOptions.LogLevel)
 
 	mysqlConfig := &database.MySQLConfig{
+		TLSMode: dm.config.MySQLOptions.TLSMode, TLSCAFile: dm.config.MySQLOptions.TLSCAFile,
 		Host:                  dm.config.MySQLOptions.Host,
 		Username:              dm.config.MySQLOptions.Username,
 		Password:              dm.config.MySQLOptions.Password,

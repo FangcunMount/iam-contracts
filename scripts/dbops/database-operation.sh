@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+if [ "${MYSQL_TLS_MODE:-DISABLED}" = VERIFY_IDENTITY ]; then
+  python3 /opt/infra/scripts/mysql/ca.py verify --ref "${MYSQL_TLS_CA_REF:?Pinned CA ref is required}"
+fi
+
 OPERATION="${IAM_DB_OPS_OPERATION:-}"
 BACKUP_NAME="${IAM_DB_OPS_BACKUP_NAME:-}"
 BACKUP_DIR="${IAM_DB_OPS_BACKUP_DIR:-/opt/backups/iam/database}"
@@ -67,6 +71,7 @@ prepare_container_client_fallback() {
   chmod 0700 "$CLIENT_WRAPPER_DIR"
   export IAM_DB_OPS_DOCKER_BIN="$docker_bin"
   export IAM_DB_OPS_SUDO_BIN="$sudo_bin"
+  export MYSQL_TLS_MODE MYSQL_TLS_CA_FILE
   export IAM_DB_OPS_MYSQL_CLIENT_IMAGE="$MYSQL_CLIENT_IMAGE"
   for client in mysql mysqldump; do
     wrapper="$CLIENT_WRAPPER_DIR/$client"
@@ -87,15 +92,18 @@ if [ "$client" = "mysql" ] && [ "$has_execute" -eq 0 ] && [ "${1:-}" != "--versi
   needs_stdin=1
 fi
 if [ -n "$defaults" ]; then
-  if [ "$needs_stdin" -eq 1 ]; then
-    exec "$IAM_DB_OPS_SUDO_BIN" -n "$IAM_DB_OPS_DOCKER_BIN" run --rm -i --network host \
-      --volume "$defaults:$defaults:ro" "$IAM_DB_OPS_MYSQL_CLIENT_IMAGE" "$client" "$@"
+  if [ -n "${MYSQL_TLS_CA_FILE:-}" ]; then
+    set -- --volume "$MYSQL_TLS_CA_FILE:$MYSQL_TLS_CA_FILE:ro" --volume "$defaults:$defaults:ro" "$IAM_DB_OPS_MYSQL_CLIENT_IMAGE" "$client" "$@"
+  else
+    set -- --volume "$defaults:$defaults:ro" "$IAM_DB_OPS_MYSQL_CLIENT_IMAGE" "$client" "$@"
   fi
-  exec "$IAM_DB_OPS_SUDO_BIN" -n "$IAM_DB_OPS_DOCKER_BIN" run --rm --network host \
-    --volume "$defaults:$defaults:ro" "$IAM_DB_OPS_MYSQL_CLIENT_IMAGE" "$client" "$@"
+  if [ "$needs_stdin" -eq 1 ]; then
+    exec "$IAM_DB_OPS_SUDO_BIN" -n "$IAM_DB_OPS_DOCKER_BIN" run --rm -i --network host "$@"
+  fi
+  exec "$IAM_DB_OPS_SUDO_BIN" -n "$IAM_DB_OPS_DOCKER_BIN" run --rm --network host "$@"
 fi
-exec "$IAM_DB_OPS_SUDO_BIN" -n "$IAM_DB_OPS_DOCKER_BIN" run --rm --network host \
-  "$IAM_DB_OPS_MYSQL_CLIENT_IMAGE" "$client" "$@"
+exec "$IAM_DB_OPS_SUDO_BIN" -n "$IAM_DB_OPS_DOCKER_BIN" run --rm --network host "$IAM_DB_OPS_MYSQL_CLIENT_IMAGE" "$client" "$@"
+
 EOF
     chmod 0700 "$wrapper"
   done
@@ -208,6 +216,9 @@ host=${MYSQL_HOST}
 port=${MYSQL_PORT:-3306}
 user=${MYSQL_USERNAME}
 password=${MYSQL_PASSWORD}
+ssl-mode=${MYSQL_TLS_MODE:-DISABLED}
+tls-version=TLSv1.2,TLSv1.3
+${MYSQL_TLS_CA_FILE:+ssl-ca=${MYSQL_TLS_CA_FILE}}
 EOF
 }
 
