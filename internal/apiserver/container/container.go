@@ -15,7 +15,6 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/apiserver/container/identity"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/container/idp"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/container/suggest"
-	messagingInfra "github.com/FangcunMount/iam/v5/internal/apiserver/infra/messaging"
 	"github.com/FangcunMount/iam/v5/pkg/event"
 	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
 	outboxport "github.com/FangcunMount/iam/v5/pkg/outbox"
@@ -33,7 +32,7 @@ type Container struct {
 	eventPublisher  event.Publisher
 	outboxStore     outboxport.StatusReader
 	eventStager     event.Stager
-	reliableRuntime *messagingInfra.ReliableRuntime
+	reliableRuntime ReliableMessagingRuntime
 	sdkPolicySync   authz.PolicySyncSubscriber
 
 	// 业务模块

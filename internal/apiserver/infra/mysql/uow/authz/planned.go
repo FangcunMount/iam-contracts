@@ -8,6 +8,7 @@ import (
 	"github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/management"
 	change "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/policychange"
 	app "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/uow"
+	assignment "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/assignment"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/messaging"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/policywrite"
 	database "github.com/FangcunMount/iam/v5/internal/pkg/database/mysql"
@@ -220,3 +221,15 @@ func (u *PlannedUnitOfWork) known(reserved transaction.Reservation) error {
 var _ app.UnitOfWork = (*PlannedUnitOfWork)(nil)
 var _ app.PlannedUnitOfWork = (*PlannedUnitOfWork)(nil)
 var _ policywrite.Writer = (*PlannedUnitOfWork)(nil)
+
+// ApplicationUnitOfWork installs the module's original subject resolver during
+// composition, sharing the same owner Store, Sender and admission accounting.
+func (u *PlannedUnitOfWork) ApplicationUnitOfWork(resolver assignment.SubjectResolver) app.UnitOfWork {
+	original := *u.original
+	base := *original.base
+	base.subjectResolver = resolver
+	original.base = &base
+	copy := *u
+	copy.original = &original
+	return &copy
+}

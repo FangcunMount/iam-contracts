@@ -229,4 +229,8 @@ T06 新增原根事务执行器基础：从宿主 MySQL pool 构造同库 Store�
 
 T06 继续增加本地冻结资料与可选编排：ID按只读计划给出的语义键在 reservation 前分配，数据库会话审计时钟冻结为整秒（兼容宿主 DATETIME 的最低精度），保存在独立版本的 SDK 本地计划 payload；原事件正文和首次 Broker wire 不变。旧纯版本计划继续可读。原事务 ORM hook 仅查冻结 ID/时间，缺失即失败；维护工具的额外行、授予及回执也使用这一边界。发送前的 Lookup/只读规划计入独立有界宿主准入，StopAdmission/Wait 不提前释放真实活动，SDK Checker 由外层运行生命周期继续持有。
 
-这些组件尚未接到 platform/维护 CLI 的事务模式。T07仍需完成重复操作的原业务结果恢复、持久化 no-op、公开状态和权限保护；因此目前不能启用业务事务配置。原生实际业务入口使用明确的存储半消息 fixture 单独验证原数据库原子性，不冒充真实 Broker、端到端、部署或 system 验收。
+这些组件已显式接入 platform/维护 CLI 的事务模式（本批候选尚未合并或生产启用）。T07仍需完成重复操作的原业务结果恢复、持久化 no-op、公开状态和权限保护；因此目前不能启用业务事务配置。原生实际业务入口使用明确的存储半消息 fixture 单独验证原数据库原子性，不冒充真实 Broker、端到端、部署或 system 验收。
+
+事务模式要求同时配置 owner 和 `configs/events-m3.yaml`，保留默认旧目录供切换前链路使用；`transaction` 不被标准 Stager 或 NORMAL Publisher 接受。platform 先启动 owner Checker，再开放受门禁控制的业务发送；关闭时先排空宿主规划，再关闭 SDK。启动检查拒绝遗留未完成发布责任，但不冒充旧写者已退出的生产证明。短信仅在 `sms.provider=mq` 时启用最终 NORMAL 客户端，Aliyun 发送器不因此新增 MQ 生产/消费。
+
+维护工具新增显式 `--outbox-mode=transaction --transaction-messaging-config=/absolute/options.json --event-catalog=configs/events-m3.yaml`。配置文件只包含宿主 MessagingOptions 与凭据/CA/manifest 的文件路径；构造不执行 DDL。CLI启动 owner、调用原事务、等待真实在途后关闭；业务成功与 ShutdownIncomplete 分别保留，未排空的 SDK DB 调用不会被误当成完成后关闭连接池。旧 standard 模式继续要求其明确选择。真实 Broker 及业务切换证明在 infra 分别记录；当前源代码变更不等于生产切换。

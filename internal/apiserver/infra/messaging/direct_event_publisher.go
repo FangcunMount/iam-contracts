@@ -50,6 +50,9 @@ func (p *DirectEventPublisher) Publish(ctx context.Context, evt event.DomainEven
 	if delivery, ok := p.catalog.GetDeliveryClass(evt.EventType()); ok && delivery == eventcatalog.DeliveryClassDurableOutbox {
 		return fmt.Errorf("event type %q is durable_outbox and must be staged to outbox", evt.EventType())
 	}
+	if delivery, _ := p.catalog.GetDeliveryClass(evt.EventType()); delivery == eventcatalog.DeliveryClassTransaction {
+		return fmt.Errorf("event type %q requires the original transaction Sender", evt.EventType())
+	}
 	payload, err := eventcodec.EncodePayload(evt)
 	if err != nil {
 		return err

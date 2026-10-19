@@ -64,9 +64,17 @@ func (p *planAdmission) wait(ctx context.Context) error {
 	select {
 	case <-p.done:
 		return nil
+	default:
+	}
+	select {
+	case <-p.done:
+		return nil
 	case <-ctx.Done():
 		p.mu.Lock()
 		defer p.mu.Unlock()
+		if p.stopping && p.active == 0 {
+			return nil
+		}
 		return &transaction.ShutdownIncomplete{ActiveSends: p.active, RuntimePending: true, Cause: ctx.Err()}
 	}
 }

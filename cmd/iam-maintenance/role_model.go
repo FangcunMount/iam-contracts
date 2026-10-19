@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FangcunMount/iam/v5/internal/apiserver/infra/mysql/eventoutbox"
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/rolemodel"
+	"github.com/FangcunMount/iam/v5/pkg/event"
 	"github.com/FangcunMount/iam/v5/pkg/eventcatalog"
 	drivermysql "github.com/go-sql-driver/mysql"
 	gormmysql "gorm.io/driver/mysql"
@@ -25,6 +25,7 @@ import (
 )
 
 func runRoleModelMigration(args []string, output io.Writer) error {
+	var protocolErr error
 	if len(args) == 0 {
 		return errors.New("role-model-migrate requires status, preflight, apply, verify, rollback, or archive-inheritance")
 	}
@@ -37,7 +38,8 @@ func runRoleModelMigration(args []string, output io.Writer) error {
 	fingerprint := f.String("fingerprint", "", "reviewed source fingerprint")
 	stopped := f.Bool("writes-stopped", false, "authorization and relevant identity writers are stopped")
 	catalogPath := f.String("event-catalog", "configs/events.yaml", "durable event catalog")
-	outboxMode := f.String("outbox-mode", "", "standard only; explicit selection required, legacy writer retired")
+	outboxMode := f.String("outbox-mode", "", "explicit standard or transaction protocol")
+	transactionConfig := f.String("transaction-messaging-config", "", "explicit host-owned RocketMQ transaction options JSON")
 	timeout := f.Duration("timeout", time.Minute, "operation timeout")
 	if err := f.Parse(args[1:]); err != nil {
 		return err
@@ -56,7 +58,7 @@ func runRoleModelMigration(args []string, output io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = pool.Close() }()
+	defer func() { closeMaintenancePool(pool, protocolErr) }()
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	status, err := rolemodel.Status(ctx, iam)
@@ -76,7 +78,7 @@ func runRoleModelMigration(args []string, output io.Writer) error {
 		if err != nil {
 			return err
 		}
-		defer func() { _ = qpool.Close() }()
+		defer func() { closeMaintenancePool(qpool, protocolErr) }()
 	}
 	switch mode {
 	case "preflight":
@@ -115,24 +117,27 @@ func runRoleModelMigration(args []string, output io.Writer) error {
 		if err != nil {
 			return err
 		}
-		stager, gateErr := eventoutbox.NewMaintenanceStager(ctx, iam, eventcatalog.NewCatalog(cfg), *outboxMode)
-		if gateErr != nil {
-			return gateErr
-		}
 		var receipt *rolemodel.Receipt
-		if mode == "apply" {
-			receipt, err = rolemodel.Apply(ctx, iam, qs, stager, *fingerprint, *stopped)
-		} else {
-			receipt, err = rolemodel.Rollback(ctx, iam, stager, *fingerprint, *stopped)
-		}
-		if err != nil {
+		err = withMaintenanceStager(ctx, iam, eventcatalog.NewCatalog(cfg), *outboxMode, *transactionConfig, func(stager event.Stager) error {
+			var businessErr error
+			if mode == "apply" {
+				receipt, businessErr = rolemodel.Apply(ctx, iam, qs, stager, *fingerprint, *stopped)
+			} else {
+				receipt, businessErr = rolemodel.Rollback(ctx, iam, stager, *fingerprint, *stopped)
+			}
+			if businessErr == nil {
+				status, businessErr = rolemodel.Status(ctx, iam)
+			}
+			return businessErr
+		})
+		protocolErr = err
+		if !maintenanceBusinessSucceeded(err) {
 			return err
 		}
-		status, err = rolemodel.Status(ctx, iam)
-		if err != nil {
-			return err
+		if outputErr := writeRoleReport(output, receipt, status); outputErr != nil {
+			return outputErr
 		}
-		return writeRoleReport(output, receipt, status)
+		return err
 	}
 }
 
