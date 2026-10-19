@@ -209,4 +209,4 @@ sequenceDiagram
 
 `FreezeVersionPlan` 接受只读规划确认的原版本，冻结下一版本、首次事件身份/时间和原revision1 wire；重复请求从 reservation 赢家解码。原执行上下文复用首次事件，拒绝错误目标版本。`IncrementExpected` 只在原 MySQL SQL root 上执行精确 CAS，不初始化缺失行，不另选版本，也不在 ORM hook 中重新生成时钟。该 CAS 与业务条件、SDK guard/witness 的完整装配及所有活动写入口迁移仍由 M3-T05/T06 推进，不能仅调用规划函数就宣称已启用事务消息。
 
-真实安装后的并发CAS/回滚验证通过隔离 MySQL 门禁执行；当前进度和源码证据统一见 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)。SDK 预发布保持固定，生产仍沿原消息链路。
+真实安装后的并发CAS/回滚验证由隔离 MySQL 门禁执行；新增原生用例当前仅在本机编译，运行结果须单独记录。当前进度和源码证据统一见 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)。SDK 预发布保持固定，生产仍沿原消息链路。
