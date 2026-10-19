@@ -69,3 +69,14 @@ func WithReadVersion(ctx context.Context, version int64) (context.Context, error
 	}
 	return context.WithValue(ctx, readVersionKey{}, version), nil
 }
+
+func ExpectedVersion(ctx context.Context) (int64, bool) {
+	if plan, ok := ExecutionPlan(ctx); ok {
+		return plan.Expected, true
+	}
+	if ctx == nil {
+		return 0, false
+	}
+	version, ok := ctx.Value(readVersionKey{}).(int64)
+	return version, ok && version > 0
+}

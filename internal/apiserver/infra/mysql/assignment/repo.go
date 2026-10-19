@@ -131,3 +131,19 @@ func (r *Repository) DeleteBySubjectAndRole(ctx context.Context, subjectType dom
 
 	return nil
 }
+
+func (r *Repository) CountTarget(ctx context.Context, kind domain.SubjectType, subjectID, roleID meta.ID, unscopedOnly bool) (int64, error) {
+	query := r.WithContext(ctx).Model(&AssignmentPO{}).Where("subject_type = ? AND subject_id = ? AND role_id = ? AND deleted_at IS NULL", string(kind), subjectID.String(), roleID.Uint64())
+	if unscopedOnly {
+		query = query.Where("org_id = 0")
+	}
+	var count int64
+	err := query.Count(&count).Error
+	return count, err
+}
+
+func (r *Repository) ActiveID(ctx context.Context, id domain.AssignmentID) (bool, error) {
+	var count int64
+	err := r.WithContext(ctx).Model(&AssignmentPO{}).Where("id = ? AND deleted_at IS NULL", id.Uint64()).Count(&count).Error
+	return count > 0, err
+}

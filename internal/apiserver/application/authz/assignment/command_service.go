@@ -4,7 +4,6 @@ package assignment
 import (
 	"context"
 	admission "github.com/FangcunMount/iam/v5/internal/apiserver/application/authz/assignmentadmission"
-	policyDomain "github.com/FangcunMount/iam/v5/internal/apiserver/domain/authz/policy"
 	"github.com/FangcunMount/iam/v5/internal/pkg/code"
 	"sort"
 	"strings"
@@ -51,7 +50,7 @@ func (s *CommandService) Revoke(ctx context.Context, cmd RevokeCommand) error {
 }
 
 func (s *CommandService) RevokeByID(ctx context.Context, cmd RevokeByIDCommand) error {
-	_, err := s.commit(ctx, cmd.ChangedBy, revokeReason(cmd.Reason), func(txCtx context.Context, tx authzuow.TxRepositories) error {
+	_, err := s.commit(ctx, cmd.ChangedBy, revokeReason(cmd.Reason), s.previewRevokeID(cmd), func(txCtx context.Context, tx authzuow.TxRepositories) error {
 		assignment, err := tx.Assignments.FindByID(txCtx, cmd.AssignmentID)
 		if err != nil {
 			return errors.Wrap(err, "获取赋权记录失败")
@@ -80,7 +79,7 @@ func (s *CommandService) GrantByRoleName(ctx context.Context, cmd GrantByRoleNam
 	if err != nil {
 		return 0, err
 	}
-	result, err := s.executeGrant(ctx, grant)
+	result, err := s.executeGrant(ctx, grant, authzuow.WriteRequest{Operation: "assignment.grant_named", Input: map[string]any{"subject": cmd.Subject.String(), "role_name": cmd.RoleName, "granted_by": cmd.GrantedBy}})
 	return result.Version, err
 }
 
@@ -96,7 +95,7 @@ func (s *CommandService) RevokeByRoleName(ctx context.Context, cmd RevokeByRoleN
 	if err != nil {
 		return 0, err
 	}
-	return s.revokeWithVersion(ctx, revoke)
+	return s.revokeWithVersion(ctx, revoke, authzuow.WriteRequest{Operation: "assignment.revoke_named", Input: map[string]any{"subject": cmd.Subject.String(), "role_name": cmd.RoleName, "changed_by": cmd.ChangedBy, "reason": revokeReason(cmd.Reason)}})
 }
 
 type grantResult struct {
@@ -104,12 +103,17 @@ type grantResult struct {
 	Version    int64
 }
 
-func (s *CommandService) executeGrant(ctx context.Context, cmd GrantCommand) (grantResult, error) {
+func (s *CommandService) executeGrant(ctx context.Context, cmd GrantCommand, identities ...authzuow.WriteRequest) (grantResult, error) {
 	if err := s.validator.ValidateGrantParameters(cmd.SubjectType, cmd.SubjectID, cmd.RoleID, cmd.GrantedBy); err != nil {
 		return grantResult{}, err
 	}
+	request := s.previewGrant(cmd)
+	if len(identities) > 0 {
+		request.Operation = identities[0].Operation
+		request.Input = identities[0].Input
+	}
 	var result grantResult
-	version, err := s.commit(ctx, cmd.GrantedBy, "binding grant", func(txCtx context.Context, tx authzuow.TxRepositories) error {
+	version, err := s.commit(ctx, cmd.GrantedBy, "binding grant", request, func(txCtx context.Context, tx authzuow.TxRepositories) error {
 		txValidator := assignmentDomain.NewValidatorWithSubjectResolver(tx.Roles, tx.SubjectResolver)
 		if err := txValidator.CheckRoleExists(txCtx, cmd.RoleID); err != nil {
 			return err
@@ -141,11 +145,16 @@ func (s *CommandService) executeGrant(ctx context.Context, cmd GrantCommand) (gr
 	return result, nil
 }
 
-func (s *CommandService) revokeWithVersion(ctx context.Context, cmd RevokeCommand) (int64, error) {
+func (s *CommandService) revokeWithVersion(ctx context.Context, cmd RevokeCommand, identities ...authzuow.WriteRequest) (int64, error) {
 	if err := s.validator.ValidateRevokeParameters(cmd.SubjectType, cmd.SubjectID, cmd.RoleID); err != nil {
 		return 0, err
 	}
-	return s.commit(ctx, cmd.ChangedBy, revokeReason(cmd.Reason), func(txCtx context.Context, tx authzuow.TxRepositories) error {
+	request := s.previewRevoke(cmd)
+	if len(identities) > 0 {
+		request.Operation = identities[0].Operation
+		request.Input = identities[0].Input
+	}
+	return s.commit(ctx, cmd.ChangedBy, revokeReason(cmd.Reason), request, func(txCtx context.Context, tx authzuow.TxRepositories) error {
 		role, err := tx.Roles.FindByIDForUpdate(txCtx, cmd.RoleID)
 		if err != nil {
 			return errors.Wrap(err, "获取角色失败")
@@ -161,6 +170,9 @@ func (s *CommandService) ReplaceManagedAssignments(ctx context.Context, cmd Repl
 	if s == nil || s.uow == nil {
 		return ReplaceManagedAssignmentsResult{}, errors.New("role binding command service unavailable")
 	}
+	cmd.RoleNames = append([]string(nil), cmd.RoleNames...)
+	cmd.ManagedRoleNames = append([]string(nil), cmd.ManagedRoleNames...)
+	cmd.ScopedRoles = append([]assignmentDomain.ScopedRoleGrant(nil), cmd.ScopedRoles...)
 	if cmd.OrgID < 0 || (cmd.OrgID == 0 && len(cmd.ScopedRoles) > 0) {
 		return ReplaceManagedAssignmentsResult{}, errors.WithCode(code.ErrInvalidArgument, "scoped replacement company is required")
 	}
@@ -186,75 +198,13 @@ func (s *CommandService) ReplaceManagedAssignments(ctx context.Context, cmd Repl
 		return ReplaceManagedAssignmentsResult{}, err
 	}
 	result := ReplaceManagedAssignmentsResult{}
-	replacementPolicy := assignmentDomain.ReplacementPolicy{}
-	err = s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
-		txValidator := assignmentDomain.NewValidatorWithSubjectResolver(tx.Roles, tx.SubjectResolver)
-		if err := txValidator.CheckSubjectExists(txCtx, assignmentDomain.SubjectType(cmd.Subject.Type), cmd.Subject.ID); err != nil {
-			return err
-		}
-
-		managedRoles := make(map[string]*roleDomain.Role, len(cmd.ManagedRoleNames))
-		orderedRoles := make([]*roleDomain.Role, 0, len(cmd.ManagedRoleNames))
-		for _, roleName := range cmd.ManagedRoleNames {
-			role, err := tx.Roles.FindByName(txCtx, roleName)
-			if err != nil {
-				return errors.Wrap(err, "find managed role")
-			}
-			managedRoles[roleName] = role
-			orderedRoles = append(orderedRoles, role)
-		}
-		sort.Slice(orderedRoles, func(i, j int) bool { return orderedRoles[i].ID.Uint64() < orderedRoles[j].ID.Uint64() })
-		for _, role := range orderedRoles {
-			locked, err := tx.Roles.FindByIDForUpdate(txCtx, role.ID)
-			if err != nil {
-				return errors.Wrap(err, "lock managed role")
-			}
-			if err := s.guard.Require(txCtx, locked); err != nil {
+	err = authzuow.WithinWrite(ctx, s.uow, s.previewReplacement(cmd, &result), func(txCtx context.Context, tx authzuow.TxRepositories) error {
+		if _, planned := policychange.ExecutionPlan(txCtx); planned {
+			if err := s.guard.RequireReplacement(txCtx, cmd.Subject, cmd.RoleNames, cmd.ManagedRoleNames, cmd.ChangedBy); err != nil {
 				return err
 			}
 		}
-
-		assignments, err := tx.Assignments.ListBySubjectForUpdate(txCtx, assignmentDomain.SubjectType(cmd.Subject.Type), cmd.Subject.ID)
-		if err != nil {
-			return errors.Wrap(err, "list subject assignments")
-		}
-		if cmd.ExpectedPolicyVersion != 0 {
-			if cmd.ExpectedPolicyVersion < 0 {
-				return errors.WithCode(code.ErrInvalidArgument, "invalid expected policy version")
-			}
-			locker, ok := tx.PolicyVersions.(policyDomain.LockingRepository)
-			if !ok {
-				return errors.New("policy version lock unavailable")
-			}
-			current, err := locker.GetCurrentForUpdate(txCtx)
-			if err != nil {
-				return err
-			}
-			if current == nil || current.Version != cmd.ExpectedPolicyVersion {
-				return policyDomain.ErrStaleVersion
-			}
-		}
-		managedBindings := make([]assignmentDomain.ManagedRoleBinding, 0, len(orderedRoles))
-		for _, role := range orderedRoles {
-			managedBindings = append(managedBindings, assignmentDomain.ManagedRoleBinding{
-				Name: role.Name,
-				ID:   role.ID,
-			})
-		}
-		var plan assignmentDomain.ReplacementPlan
-		if cmd.OrgID == 0 {
-			plan, err = replacementPolicy.Plan(assignmentDomain.ReplacementRequest{TargetRoleNames: cmd.RoleNames, ManagedRoleNames: cmd.ManagedRoleNames}, managedBindings, assignments)
-		} else {
-			var scoped assignmentDomain.ScopedReplacementPlan
-			scoped, err = replacementPolicy.PlanScoped(assignmentDomain.ScopedReplacementRequest{OrgID: cmd.OrgID, ManagedRoleNames: cmd.ManagedRoleNames, Targets: cmd.ScopedRoles}, managedBindings, assignments)
-			plan.Revokes, plan.Changed = scoped.Revokes, scoped.Changed
-			for _, grant := range scoped.Grants {
-				plan.Grants = append(plan.Grants, grant.RoleName)
-			}
-			for _, target := range cmd.ScopedRoles {
-				plan.DirectRoles = append(plan.DirectRoles, target.RoleName)
-			}
-		}
+		managedRoles, plan, err := s.loadReplacement(txCtx, cmd, tx, true)
 		if err != nil {
 			return err
 		}
@@ -324,7 +274,7 @@ func (s *CommandService) ReplaceManagedAssignments(ctx context.Context, cmd Repl
 	return result, nil
 }
 
-func (s *CommandService) commit(ctx context.Context, changedBy, reason string, mutation func(context.Context, authzuow.TxRepositories) error) (int64, error) {
+func (s *CommandService) commit(ctx context.Context, changedBy, reason string, request authzuow.WriteRequest, mutation func(context.Context, authzuow.TxRepositories) error) (int64, error) {
 	if s == nil || s.uow == nil {
 		return 0, errors.New("role binding command service unavailable")
 	}
@@ -332,7 +282,17 @@ func (s *CommandService) commit(ctx context.Context, changedBy, reason string, m
 		return 0, errors.New("authorization change actor is required")
 	}
 	var committedVersion int64
-	err := s.uow.WithinTx(ctx, func(txCtx context.Context, tx authzuow.TxRepositories) error {
+	changed := true
+	preview := request.Preview
+	request.Preview = func(readCtx context.Context, repos authzuow.TxRepositories) (bool, error) {
+		var err error
+		changed, err = preview(readCtx, repos)
+		if err == nil && !changed {
+			committedVersion, _ = policychange.ExpectedVersion(readCtx)
+		}
+		return changed, err
+	}
+	err := authzuow.WithinWrite(ctx, s.uow, request, func(txCtx context.Context, tx authzuow.TxRepositories) error {
 		if err := mutation(txCtx, tx); err != nil {
 			return err
 		}
@@ -346,7 +306,9 @@ func (s *CommandService) commit(ctx context.Context, changedBy, reason string, m
 	if err != nil {
 		return 0, err
 	}
-	policychange.ReloadRuntimePolicy(ctx, s.reloader, reason)
+	if changed {
+		policychange.ReloadRuntimePolicy(ctx, s.reloader, reason)
+	}
 	return committedVersion, nil
 }
 

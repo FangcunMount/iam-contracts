@@ -24,3 +24,10 @@ type Repository interface {
 	// ListActive 查找所有活动权限授予实体列表
 	ListActive(ctx context.Context) ([]*Grant, error)
 }
+
+// PlanningReader exposes only original revocation/unique-key facts. Retained
+// condition JSON is audit data and is never restored as an active grant here.
+type PlanningReader interface {
+	RevocationStatus(context.Context, meta.ID) (meta.ID, bool, error)
+	ActiveKeyExists(context.Context, string) (bool, error)
+}

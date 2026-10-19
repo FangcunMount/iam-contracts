@@ -121,3 +121,16 @@ func (r *Repository) list(ctx context.Context, query string, args ...any) ([]*do
 	}
 	return grants, nil
 }
+
+func (r *Repository) RevocationStatus(ctx context.Context, id meta.ID) (meta.ID, bool, error) {
+	po, err := r.BaseRepository.FindByID(ctx, id.Uint64())
+	if err != nil {
+		return 0, false, err
+	}
+	return meta.FromUint64(po.RoleID), po.RevokedAt != nil, nil
+}
+func (r *Repository) ActiveKeyExists(ctx context.Context, key string) (bool, error) {
+	var count int64
+	err := r.WithContext(ctx).Model(&GrantPO{}).Where("grant_key = ? AND revoked_at IS NULL AND deleted_at IS NULL", key).Count(&count).Error
+	return count > 0, err
+}
