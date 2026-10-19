@@ -350,5 +350,8 @@ func TestM3ActualBrokerHost(t *testing.T) {
 	if err = db.Table("rm_outbox").Count(&count).Error; err != nil || count != 0 {
 		t.Fatal("actual host transaction used a publishing Outbox")
 	}
+	if os.Getenv("IAM_M3_FANOUT_REQUIRED") == "1" {
+		proveM3BusinessFanout(t, pool, db, owner)
+	}
 	t.Log(`M3_HOST_RECEIPT {"passed":4,"failed":0,"skipped":0,"half_invisible":true,"commit_wire_and_witness":true,"application_entry":true,"rollback_hidden":true,"business_result_atomic":true}`)
 }
