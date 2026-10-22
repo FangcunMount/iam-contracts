@@ -92,8 +92,23 @@ func startAuthzPolicySync(lifecycle *processruntime.Lifecycle, sync authzPolicyS
 
 // registerShutdownCallbacks 注册关闭回调
 func (s *apiServer) registerShutdownCallbacks(lifecycle processruntime.Lifecycle) {
+	deps := s.buildShutdownSequenceDeps(lifecycle)
+	var run func() error
+	if deps.transactionMode {
+		closer := newTransactionShutdown(deps)
+		run = func() error {
+			if deps.reliableShutdownTimeout <= 0 {
+				return fmt.Errorf("transaction shutdown timeout required")
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), deps.reliableShutdownTimeout)
+			defer cancel()
+			return closer.Close(ctx)
+		}
+	} else {
+		run = func() error { return runShutdownSequence(deps) }
+	}
 	s.gs.AddShutdownCallback(shutdown.ShutdownFunc(func(string) error {
-		if err := runShutdownSequence(s.buildShutdownSequenceDeps(lifecycle)); err != nil {
+		if err := run(); err != nil {
 			return err
 		}
 		log.Info("🏗️  Hexagonal Architecture server shutdown complete")
@@ -103,6 +118,7 @@ func (s *apiServer) registerShutdownCallbacks(lifecycle processruntime.Lifecycle
 
 // shutdownSequenceDeps 关闭序列依赖
 type shutdownSequenceDeps struct {
+	transactionMode         bool
 	stopReliable            func(context.Context) error
 	stopPolicySync          func(context.Context) error
 	reliableShutdownTimeout time.Duration
@@ -120,6 +136,9 @@ type shutdownSequenceDeps struct {
 // buildShutdownSequenceDeps 构建关闭序列依赖
 func (s *apiServer) buildShutdownSequenceDeps(lifecycle processruntime.Lifecycle) shutdownSequenceDeps {
 	deps := shutdownSequenceDeps{lifecycle: lifecycle}
+	if s != nil && s.cfg != nil && s.cfg.Options != nil {
+		deps.transactionMode = len(s.cfg.Messaging.Transactions) > 0
+	}
 	if s == nil { // 如果 API 服务器为空，则返回
 		return deps
 	}
@@ -140,6 +159,9 @@ func (s *apiServer) buildShutdownSequenceDeps(lifecycle processruntime.Lifecycle
 	}
 	if s.genericAPIServer != nil {
 		deps.closeHTTP = func() error {
+			if deps.transactionMode {
+				return s.genericAPIServer.CloseContext(context.Background())
+			}
 			s.genericAPIServer.Close() // 关闭 HTTP 服务器
 			return nil
 		}
@@ -153,6 +175,11 @@ func (s *apiServer) buildShutdownSequenceDeps(lifecycle processruntime.Lifecycle
 			s.grpcServer.SetServingStatus("", healthpb.HealthCheckResponse_NOT_SERVING)
 		}
 		deps.closeGRPC = func() error {
+			// Legacy Close forces Stop after5s and does not join the method handler.
+			// The transaction coordinator keeps the real graceful drain alive first.
+			if deps.transactionMode {
+				s.grpcServer.GracefulStop()
+			}
 			s.grpcServer.Close() // 关闭 GRPC 服务器
 			return nil
 		}
@@ -172,6 +199,9 @@ func runShutdownSequence(deps shutdownSequenceDeps) error {
 			wait = time.Sleep
 		}
 		wait(deps.drainDelay)
+	}
+	if deps.transactionMode {
+		return runTransactionShutdownSequence(deps)
 	}
 	if deps.stopPolicySync != nil {
 		if deps.reliableShutdownTimeout <= 0 {
