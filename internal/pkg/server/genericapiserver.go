@@ -196,6 +196,18 @@ func (s *GenericAPIServer) Close() {
 	}
 }
 
+// CloseContext stops both listeners and waits for their real handlers. The
+// transaction process owns the caller budget and retains this drain on timeout.
+func (s *GenericAPIServer) CloseContext(ctx context.Context) error {
+	var group errgroup.Group
+	for _, listener := range []*http.Server{s.secureServer, s.insecureServer} {
+		if listener != nil {
+			group.Go(func() error { return listener.Shutdown(ctx) })
+		}
+	}
+	return group.Wait()
+}
+
 // ping 检查服务器是否正常运行
 func (s *GenericAPIServer) ping(ctx context.Context) error {
 	url := fmt.Sprintf("http://%s/healthz", s.InsecureServingInfo.Address)

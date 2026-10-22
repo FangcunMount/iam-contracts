@@ -11,12 +11,13 @@ import (
 
 // apiServer 定义了 API 服务器的基本结构（六边形架构版本）
 type apiServer struct {
-	cfg              *config.Config                     // APIServer 配置
-	gs               *shutdown.GracefulShutdown         // GracefulShutdown 优雅关闭管理器
-	genericAPIServer *genericapiserver.GenericAPIServer // 通用 API 服务器
-	grpcServer       *grpc.Server                       // GRPC 服务器
-	dbManager        *DatabaseManager                   // 数据库管理器
-	container        *container.Container               // Container 主容器
+	transactionShutdown *transactionShutdown
+	cfg                 *config.Config                     // APIServer 配置
+	gs                  *shutdown.GracefulShutdown         // GracefulShutdown 优雅关闭管理器
+	genericAPIServer    *genericapiserver.GenericAPIServer // 通用 API 服务器
+	grpcServer          *grpc.Server                       // GRPC 服务器
+	dbManager           *DatabaseManager                   // 数据库管理器
+	container           *container.Container               // Container 主容器
 }
 
 // preparedAPIServer 定义了准备运行的 APIServer
