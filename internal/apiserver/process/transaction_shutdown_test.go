@@ -154,3 +154,34 @@ func TestActualTransactionGRPCDrainDoesNotForceStopOriginalHandlerAtFiveSeconds(
 		t.Fatal("real drain did not release database once")
 	}
 }
+
+func TestPreparedTransactionServerJoinsCallbackBeforeMainReturns(t *testing.T) {
+	entered, release := make(chan struct{}), make(chan struct{})
+	closer := newTransactionShutdown(shutdownSequenceDeps{transactionMode: true, closeDatabase: func() error { close(entered); <-release; return nil }})
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	_ = closer.Close(cancelled)
+	select {
+	case <-entered:
+	case <-time.After(time.Second):
+		t.Fatal("callback missing")
+	}
+	returned := make(chan error, 1)
+	go func() {
+		returned <- runPreparedServerGroup(preparedServerRunDeps{transactionShutdown: closer, shutdownTimeout: time.Second, transports: preparedServerTransports{runGRPC: func() error { return nil }}})
+	}()
+	select {
+	case err := <-returned:
+		t.Fatal("main bypassed resource shutdown", err)
+	case <-time.After(10 * time.Millisecond):
+	}
+	close(release)
+	select {
+	case err := <-returned:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("main still pending after real shutdown")
+	}
+}

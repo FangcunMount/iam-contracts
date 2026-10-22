@@ -96,6 +96,7 @@ func (s *apiServer) registerShutdownCallbacks(lifecycle processruntime.Lifecycle
 	var run func() error
 	if deps.transactionMode {
 		closer := newTransactionShutdown(deps)
+		s.transactionShutdown = closer
 		run = func() error {
 			if deps.reliableShutdownTimeout <= 0 {
 				return fmt.Errorf("transaction shutdown timeout required")

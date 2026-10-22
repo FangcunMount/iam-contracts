@@ -1,8 +1,11 @@
 package process
 
 import (
+	"context"
+	"errors"
 	"github.com/FangcunMount/component-base/pkg/log"
 	"github.com/FangcunMount/component-base/pkg/processruntime"
+	"time"
 )
 
 type preparedServerTransports struct {
@@ -11,12 +14,20 @@ type preparedServerTransports struct {
 }
 
 type preparedServerRunDeps struct {
-	startShutdown func() error
-	transports    preparedServerTransports
+	transactionShutdown *transactionShutdown
+	shutdownTimeout     time.Duration
+	startShutdown       func() error
+	transports          preparedServerTransports
 }
 
 func (s preparedAPIServer) buildPreparedServerRunDeps() preparedServerRunDeps {
 	var deps preparedServerRunDeps
+	if s.apiServer != nil {
+		deps.transactionShutdown = s.transactionShutdown
+		if s.cfg != nil && s.cfg.Options != nil && s.cfg.Events != nil {
+			deps.shutdownTimeout = s.cfg.Events.ReliableMessaging.ShutdownTimeout
+		}
+	}
 	if s.gs != nil {
 		deps.startShutdown = s.gs.Start
 	}
@@ -50,7 +61,20 @@ func runPreparedServerGroup(deps preparedServerRunDeps) error {
 		}
 	}
 
-	return runPreparedServerTransports(deps.transports)
+	runErr := runPreparedServerTransports(deps.transports)
+	if deps.transactionShutdown != nil {
+		if !deps.transactionShutdown.requested.Load() && runErr == nil {
+			runErr = errors.New("required transport exited before transaction shutdown")
+		}
+		budget := deps.shutdownTimeout
+		if budget <= 0 {
+			budget = 20 * time.Second
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), budget)
+		defer cancel()
+		runErr = errors.Join(runErr, deps.transactionShutdown.Close(ctx))
+	}
+	return runErr
 }
 
 func runPreparedServerTransports(transports preparedServerTransports) error {
