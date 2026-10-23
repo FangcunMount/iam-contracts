@@ -249,3 +249,18 @@ ReliableRuntime 对 Run 错误或意外 nil 串行等待 RestartDelay 重启，�
 本轮以race/count=1选测14包，8包全量/6包选测，73个pass、0skip/fail；SDK Relay含11个pass事件（含子用例）、NSQ替身26个。证据包括golden历史wire、BootstrapStager SQLite提交/回滚、HTTP topic替身、真实SDK配假store/driver的时限/槽/关闭、handler/registration/Reconcile替身与SMS capturing publisher。
 
 没有运行真实 MySQL Stage/schema/preflight、SQL lease/晚归CAS、失败审计重复/冲突、NSQ崩溃/FIN、历史binary切换、真实短信或生产。普通go test不执行reliable_messaging/integration条件专项；缺环境Skip或只编译不算通过。现行m6 workflow的PlatformWiring选测也不等于全部专项执行；OriginalUoW的隔离双写比较不表示当前runtime双写。源摘要、逐包选择和未覆盖项见重构台账，文档/图示验证不能替代运行接受。
+
+
+## M3 T24：事务协议观测与准入保护
+
+RocketMQ owner 使用固定预发布 Go `v0.5.0-rocketmq-tx.4`。`container/platform` 在显式 Start 中先完成原主库初次协议读取，再注册 Producer；之后每 5 秒采样，数据库预算 2 秒。构造不执行读取/DDL，不启动 goroutine。现有 `/metrics` 默认 registry 增加 `reliable_messaging_transaction_` 固定 owner/阶段/结果指标；抓取只访问缓存和真实 SDK 计数，不触发数据库工作。
+
+确认缺口是终态分支缺少正向最终 audit 的观测责任，不等于实际 Broker 积压，历史 `FinalUnknown` 也不能代替当前未决数。准备增龄从 lease 过期计算，lease 到期不是回滚证明。缺半消息 audit 的 Aborted 单独计量，不能断言它已发送。Checker 的 Commit 决定、实际恢复 RPC 确认和 audit 写回分别记录，消费业务效果仍需原回执证明。
+
+新发送在观测错误/过期时暂停；确认缺口或准备过期增龄达到 300 秒、读取连续失败或回查连续饱和 120 秒时锁定。绑定/矛盾协议证据、无时间缺口、Committed 缺 Prepared 半消息记录或新增 invalid check 同样锁定。保护保留 Checker 和原主库，不能绕过 MQ 准备重做业务、降级 NSQ/Outbox 或重新授权外部调用。
+
+`ProtectionStats` 暴露保护代次、原因、新鲜度和真实采样所有权；没有新增公开 HTTP 控制入口。具名 `ReviewProtection` 必须绑定当前代次、新鲜健康证据与容量，确认缺口低于 120 秒告警边界；复核不替代原配置准入。正常 `SetAdmission(true)` 不能绕过锁定。Broker 已完成且不再回查的 audit 缺口需要 T25 具名处置，不能人工伪造正向确认。
+
+关闭先停止准入并等待真实 SDK 工作，再关闭/等待采样。忽略取消的数据库工作仍占用该采样器容量；超时保留 ShutdownIncomplete，宿主池必须继续保留至实际 Wait 完成。`sdk_stopped` 与 `sampler_running` 分开报告，不能把 SDK 关闭等同宿主责任已全部结束。
+
+目标 race、现有 `/metrics` HTTP 合同和 lint 已通过；`transaction_runtime_native_integration_test.go` 的扩展 profile 使用自有临时 MySQL 绑定冲突，证明实际 writer 受保护、空闲 Checker 保留、权威读取恢复后仍须具名复核且原业务只执行一次。新 profile 的实库/Broker 验证由 infra 隔离 CI 完成，尚不表示生产/system 接受。唯一进度与门禁见 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)。

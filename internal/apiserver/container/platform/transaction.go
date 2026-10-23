@@ -24,5 +24,9 @@ func NewTransactionalSender(o options.MessagingOptions, store transaction.Prepar
 	if err != nil {
 		return nil, err
 	}
-	return &TransactionRuntime{sender: sender, admission: o.PublishEnabled}, nil
+	runtime := &TransactionRuntime{sender: sender, admission: o.PublishEnabled}
+	if err = attachProtocolMonitor(runtime, store, config.Limits); err != nil {
+		return nil, err
+	}
+	return runtime, nil
 }
