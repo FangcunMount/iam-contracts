@@ -59,6 +59,14 @@ func TestM3TransactionSchemaNative(t *testing.T) {
 		t.Fatal(err)
 	}
 	m3SQLProof(t, db, "iam.mysql")
+	nativeSchema, err := migrations.ReadFile("migrations/000045_native_transaction_limit_notices.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.ExecContext(t.Context(), string(nativeSchema)); err != nil {
+		t.Fatal(err)
+	}
+	t.Run("resolved-native-governance-read-and-reimport", func(t *testing.T) { verifySQLNativeResolutionFixture(t, db, "iam.mysql") })
 	var payload, state string
 	var attempts int
 	if err = db.QueryRowContext(t.Context(), `SELECT payload_json,status,attempt_count FROM domain_event_outbox WHERE event_id='old'`).Scan(&payload, &state, &attempts); err != nil || payload != `{ "version":2 }` || state != "failed" || attempts != 7 {
