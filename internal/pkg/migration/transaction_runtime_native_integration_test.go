@@ -9,6 +9,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -201,6 +202,66 @@ func TestM3ActualOwnerDrain(t *testing.T) {
 		protectionCases["exact_generation_named_review_restores_admission"] = true
 		protectionCases["committed_replay_keeps_one_business_execution"] = true
 	}
+
+	nativeCases := map[string]bool{}
+	if os.Getenv("IAM_M3_VERIFY_NATIVE_LIMIT") == "1" {
+		require.NotEqual(t, "1", os.Getenv("IAM_M3_VERIFY_PROTOCOL_PROTECTION"))
+		path := os.Getenv("IAM_M3_NATIVE_LIMIT_AUDIT")
+		require.True(t, filepath.IsAbs(path))
+		info, e := os.Lstat(path)
+		require.NoError(t, e)
+		require.True(t, info.Mode().IsRegular())
+		require.Zero(t, info.Mode().Perm()&0077)
+		require.LessOrEqual(t, info.Size(), int64(65536))
+		raw, e := os.ReadFile(path)
+		require.NoError(t, e)
+		digest, e := hex.DecodeString(os.Getenv("IAM_M3_NATIVE_LIMIT_SHA256"))
+		require.NoError(t, e)
+		require.Len(t, digest, 32)
+		var expected [32]byte
+		copy(expected[:], digest)
+		evidence, e := platform.ParseNativeLimitEvidence(raw, expected)
+		require.NoError(t, e)
+		require.Equal(t, 1, evidence.IndexCount())
+		notices, e := platform.NewSQLNativeLimits(pool, proofBinding, "m3-1")
+		require.NoError(t, e)
+		for range 2 {
+			require.NoError(t, notices.RecordNativeLimit(t.Context(), evidence))
+		}
+		var count int
+		require.NoError(t, pool.QueryRowContext(t.Context(), "SELECT COUNT(*) FROM messaging_native_limit_notices").Scan(&count))
+		require.Equal(t, evidence.IndexCount(), count)
+		nativeCases["actual_sys_index_idempotent_original_primary_governance"] = true
+		assertBlocked := func() {
+			t.Helper()
+			require.Eventually(t, func() bool {
+				s := next.ProtectionStats()
+				return s.Fresh && s.NativeLimitActive && s.Protected && s.Reason == "native_transaction_limit"
+			}, 15*time.Second, 50*time.Millisecond)
+			require.NoError(t, next.CheckReady(t.Context()), "native protection stopped idle SDK Checker")
+			require.True(t, next.ProtectionStats().SamplerRunning)
+			require.ErrorIs(t, next.SetAdmission(true), platform.ErrTransactionAdmissionClosed)
+			status := next.ProtectionStats()
+			require.Error(t, next.ReviewProtection(status.Generation, "native-limit-no-resolution"))
+			require.ErrorIs(t, next.Writer.WithinPlannedTx(blockedCtx, request, func(context.Context, appuow.TxRepositories) error {
+				calls.Add(1)
+				return errors.New("native-protected writer reached business")
+			}), authzuow.ErrWriteAdmissionClosed)
+			require.Equal(t, int32(1), calls.Load())
+		}
+		assertBlocked()
+		nativeCases["live_sampler_blocks_actual_writer_plain_open_and_review"] = true
+		nativeCases["idle_sdk_checker_readiness_kept_with_original_pool"] = true
+		require.NoError(t, next.Stop(t.Context()))
+		next = newOwner()
+		assertBlocked()
+		nativeCases["new_configured_open_owner_keeps_durable_native_protection"] = true
+		for _, ref := range saved.Execution.References() {
+			require.Equal(t, transaction.Commit, checker.Check(t.Context(), ref))
+		}
+		nativeCases["original_committed_witness_and_one_business_execution_preserved"] = true
+		nativeCases["no_native_governance_resolution_or_deletion"] = true
+	}
 	require.NoError(t, next.SetAdmission(false))
 	require.NoError(t, next.CheckReady(t.Context()), "write pause stopped the actual idle Checker")
 	require.ErrorIs(t, next.Writer.WithinPlannedTx(blockedCtx, request, func(context.Context, appuow.TxRepositories) error {
@@ -223,6 +284,14 @@ func TestM3ActualOwnerDrain(t *testing.T) {
 	receipt, err := json.Marshal(map[string]any{"source_sha": source, "scope": "actual IAM owner lifecycle and original root; in-process only", "passed": len(cases), "failed": 0, "skipped": 0, "cases": cases, "business_executions": calls.Load(), "full_api_process_fault_or_system_not_claimed": true})
 	require.NoError(t, err)
 	t.Log("M3_IAM_RUNTIME_RECEIPT " + string(receipt))
+	if len(nativeCases) > 0 {
+		nativeCases["actual_sampler_shutdown_retains_primary_pool"] = !next.ProtectionStats().SamplerRunning
+		require.True(t, nativeCases["actual_sampler_shutdown_retains_primary_pool"])
+		receipt, e := json.Marshal(map[string]any{"source_sha": source, "passed": len(nativeCases), "failed": 0, "skipped": 0, "cases": nativeCases, "business_executions": calls.Load(), "real_sys_index_required": true, "idle_checker_readiness_not_new_broker_callback": true, "governance_resolution_not_claimed": true, "full_api_process_fault_or_system_not_claimed": true})
+		require.NoError(t, e)
+		t.Log("M3_IAM_NATIVE_LIMIT_RECEIPT " + string(receipt))
+	}
+
 	if len(protectionCases) > 0 {
 		protectionCases["actual_sampler_shutdown_retains_primary_pool"] = !next.ProtectionStats().SamplerRunning
 		require.True(t, protectionCases["actual_sampler_shutdown_retains_primary_pool"])
