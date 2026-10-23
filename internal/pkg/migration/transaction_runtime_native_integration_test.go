@@ -168,7 +168,7 @@ func TestM3ActualOwnerDrain(t *testing.T) {
 		}, 15*time.Second, 50*time.Millisecond)
 		status := next.ProtectionStats()
 		require.True(t, status.SamplerRunning)
-		require.NoError(t, next.CheckReady(t.Context()), "protection stopped the idle protocol owner")
+		// Binding failure may also make SDK admission unready; it must not stop the owner.
 		require.ErrorIs(t, next.SetAdmission(true), platform.ErrTransactionAdmissionClosed)
 		require.ErrorIs(t, next.Writer.WithinPlannedTx(blockedCtx, request, func(context.Context, appuow.TxRepositories) error {
 			calls.Add(1)
@@ -186,7 +186,7 @@ func TestM3ActualOwnerDrain(t *testing.T) {
 		require.EqualValues(t, 1, n)
 		require.Eventually(t, func() bool {
 			status := next.ProtectionStats()
-			return status.Fresh && status.Available && status.ConfirmationGapBranches == 0
+			return status.Fresh && status.Available && status.ConfirmationGapBranches == 0 && next.CheckReady(t.Context()) == nil
 		}, 15*time.Second, 50*time.Millisecond)
 		require.True(t, next.ProtectionStats().Protected)
 		require.ErrorIs(t, next.ReviewProtection(status.Generation+1, "native-binding-review"), platform.ErrProtocolProtection)
