@@ -80,6 +80,7 @@ func TestTransactionConfigRequiresExactOwnerRevisionAndAllTopics(t *testing.T) {
 func TestTransactionOwnerRequiresIndependentShutdownBudgetAndExplicitMode(t *testing.T) {
 	opts := NewOptions()
 	opts.Messaging.Transactions = map[string]TransactionOptions{"iam.mysql": {}}
+	opts.MigrationOptions.Enabled = false
 	for _, tc := range []struct {
 		timeout time.Duration
 		outbox  bool

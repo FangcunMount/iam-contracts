@@ -39,6 +39,11 @@ func NewDatabaseManager(config *config.Config) *DatabaseManager {
 
 // Initialize 初始化数据库连接
 func (dm *DatabaseManager) Initialize() error {
+	if dm.config != nil {
+		if err := dm.config.Options.ValidateTransactionStartupPolicy(); err != nil {
+			return err
+		}
+	}
 	log.Info("🔌 Initializing database connections...")
 
 	// 初始化MySQL连接
@@ -71,9 +76,32 @@ func (dm *DatabaseManager) Initialize() error {
 
 // runMigrations 执行数据库迁移
 func (dm *DatabaseManager) runMigrations() error {
+	if dm.config != nil {
+		if err := dm.config.Options.ValidateTransactionStartupPolicy(); err != nil {
+			return err
+		}
+	}
 	// 检查是否启用迁移
 	if !dm.config.MigrationOptions.Enabled {
-		log.Info("📦 Database migration is disabled")
+		if len(dm.config.Messaging.Transactions) > 0 {
+			original, err := dm.GetMySQLDB()
+			if err != nil {
+				return fmt.Errorf("transaction schema pool unavailable: %w", err)
+			}
+			if original == nil {
+				return fmt.Errorf("transaction schema pool unavailable")
+			}
+			pool, err := original.DB()
+			if err != nil {
+				return fmt.Errorf("transaction schema pool unavailable: %w", err)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			if err := migration.VerifyInstalledHead(ctx, pool); err != nil {
+				return err
+			}
+		}
+		log.Info("📦 Database DDL is disabled; transaction schema verified when configured")
 		return nil
 	}
 

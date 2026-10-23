@@ -26,3 +26,7 @@ M3唯一总表由infra的`docs/server/rocketmq-m3-execution.md`维护。本组�
 DDL与版本行恢复不构成一个数据库事务；任何超时/中断/提交未知保持操作关闭，需要重新核对精确范围及独立受审处置，不能声称恢复完成。恢复成功会由协调屏障关闭本次新启动资格；不能拿同一文件重新开另一轮切换。当前仅本地纯/race/编译/lint，原库/原CLI及部分DDL实际恢复仍待隔离门禁；不勾选C2或生产验收。
 
 离线42–45步骤后续改用同一冻结迁移文件的显式context入口：每一步SQL及版本行CAS都使用调用方deadline，先提交dirty再执行DDL，未知/取消不能清dirty；竞争原golang-migrate锁但不构造其带background context的通用驱动。原应用启动Migrator不变。补充真实版本表锁等待的250ms预算拒绝测试，实际门禁通过前不声称完成。
+
+## 事务 runtime 启动
+
+事务 owner 配置要求显式 `migration.enabled=false`；Options 及数据库初始化入口在创建连接前拒绝自动 DDL。关闭 DDL 仍使用原业务池以 2 秒预算只读核对唯一、clean 且与镜像内迁移 head 一致的真实版本行，不构造可能创建 metadata 的迁移驱动。缺库/缺 journal、脏行、旧/未来版本或多行均阻断。绑定、业务协议及 SDK schema 校验继续由原启动器完成；本检查不替代离线迁移或最终生产身份核验。
