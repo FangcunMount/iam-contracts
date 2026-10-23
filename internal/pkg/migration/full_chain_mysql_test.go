@@ -309,6 +309,7 @@ ORDER BY TABLE_NAME`, database)
 		"iam_nsq_failure_audit",
 		"iam_message_failure_audit",
 		"rm_tx_binding", "rm_tx_request", "rm_tx_execution", "rm_tx_witness",
+		"messaging_native_limit_notices",
 		"iam_authz_message_protocol", "iam_authz_operations",
 		"identity_session_revocation_outbox",
 		"idp_wechat_apps",
