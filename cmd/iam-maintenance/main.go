@@ -43,6 +43,8 @@ func run(args []string, output io.Writer) error {
 		return errors.New("a maintenance subcommand is required")
 	}
 	switch args[0] {
+	case "m3-messaging-recovery":
+		return runMessagingRecovery(args[1:], output)
 	case "m3-messaging":
 		return runMessagingOffline(args[1:], output)
 	case "reliable-messaging":

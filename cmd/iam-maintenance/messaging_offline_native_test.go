@@ -17,6 +17,7 @@ import (
 
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/messagingcutover"
 	driver "github.com/go-sql-driver/mysql"
+	migratedatabase "github.com/golang-migrate/migrate/v4/database"
 	"github.com/stretchr/testify/require"
 )
 
@@ -79,6 +80,22 @@ func TestM3MessagingOfflineNative(t *testing.T) {
 	}
 	path := filepath.Join(directory, "schema.json")
 	var schemaSHA string
+	protectionPath := filepath.Join(directory, "protection.json")
+	var protectionSHA string
+	t.Run("original-protection-is-exclusive-real-journal-and-no-business-copy", func(t *testing.T) {
+		args := []string{"m3-messaging-recovery", "--store-id", "owned-primary", "--writer-epoch", "m3-1", "--export-protection", protectionPath}
+		require.NoError(t, run(args, &bytes.Buffer{}))
+		require.Error(t, run(args, &bytes.Buffer{}))
+		raw, err := os.ReadFile(protectionPath)
+		require.NoError(t, err)
+		h := sha256.Sum256(raw)
+		protectionSHA = hex.EncodeToString(h[:])
+		original, err := messagingcutover.DecodeProtection(raw, protectionSHA)
+		require.NoError(t, err)
+		require.EqualValues(t, 41, original.Before.Version)
+		require.Contains(t, original.OriginalVersionDDL, "CREATE TABLE `schema_migrations`")
+		require.NotContains(t, string(raw), "retained_authn")
+	})
 	t.Run("preview-is-read-only-and-exclusive", func(t *testing.T) {
 		_, schemaSHA, err = preview("schema", path)
 		require.NoError(t, err)
@@ -157,5 +174,82 @@ func TestM3MessagingOfflineNative(t *testing.T) {
 		var value int
 		require.NoError(t, db.QueryRow("SELECT value FROM retained_authn WHERE id=1").Scan(&value))
 		require.Equal(t, 2, value)
+	})
+	t.Run("original-migrator-lock-blocks-scope-restore", func(t *testing.T) {
+		originalLock, err := migratedatabase.GenerateAdvisoryLockId(name + ":schema_migrations")
+		require.NoError(t, err)
+		conn, err := db.Conn(ctx)
+		require.NoError(t, err)
+		defer func() { require.NoError(t, conn.Close()) }()
+		var n int
+		require.NoError(t, conn.QueryRowContext(ctx, "SELECT GET_LOCK(?,0)", originalLock).Scan(&n))
+		require.Equal(t, 1, n)
+		restore := []string{"m3-messaging-recovery", "--restore", "--writers-excluded", "--pre-start-restore-attested", "--protection", protectionPath, "--reviewed-sha256", protectionSHA}
+		require.Error(t, run(restore, &bytes.Buffer{}))
+		require.NoError(t, conn.QueryRowContext(ctx, "SELECT RELEASE_LOCK(?)", originalLock).Scan(&n))
+		require.Equal(t, 1, n)
+		var version int
+		require.NoError(t, db.QueryRow("SELECT version FROM schema_migrations").Scan(&version))
+		require.Equal(t, 45, version)
+	})
+	t.Run("new-request-responsibility-refuses-scope-restore", func(t *testing.T) {
+		_, err := db.Exec("INSERT INTO rm_tx_request VALUES(UNHEX(REPEAT('01',32)),'iam.mysql','fixture','fixture',UNHEX(REPEAT('02',32)),UNHEX(REPEAT('03',32)))")
+		require.NoError(t, err)
+		restore := []string{"m3-messaging-recovery", "--restore", "--writers-excluded", "--pre-start-restore-attested", "--protection", protectionPath, "--reviewed-sha256", protectionSHA}
+		require.Error(t, run(restore, &bytes.Buffer{}))
+		var version int
+		require.NoError(t, db.QueryRow("SELECT version FROM schema_migrations").Scan(&version))
+		require.Equal(t, 45, version)
+		var n int
+		require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM rm_tx_request").Scan(&n))
+		require.Equal(t, 1, n)
+		// Remove only this synthetic, never-sent row in the private fixture.
+		_, err = db.Exec("DELETE FROM rm_tx_request")
+		require.NoError(t, err)
+	})
+	t.Run("journal-shape-drift-refuses-before-removing-any-object", func(t *testing.T) {
+		_, err := db.Exec("ALTER TABLE schema_migrations ADD COLUMN extra_original_fact INT NULL")
+		require.NoError(t, err)
+		restore := []string{"m3-messaging-recovery", "--restore", "--writers-excluded", "--pre-start-restore-attested", "--protection", protectionPath, "--reviewed-sha256", protectionSHA}
+		require.Error(t, run(restore, &bytes.Buffer{}))
+		var n int
+		require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM rm_tx_binding").Scan(&n))
+		require.Equal(t, 1, n)
+		_, err = db.Exec("ALTER TABLE schema_migrations DROP COLUMN extra_original_fact")
+		require.NoError(t, err)
+	})
+	t.Run("scope-restore-keeps-new-authn-fact-and-original-journal-ddl", func(t *testing.T) {
+		_, err := db.Exec("UPDATE retained_authn SET value=3 WHERE id=1")
+		require.NoError(t, err)
+		restore := []string{"m3-messaging-recovery", "--restore", "--writers-excluded", "--pre-start-restore-attested", "--protection", protectionPath, "--reviewed-sha256", protectionSHA}
+		require.Error(t, run(append(append([]string(nil), restore[:len(restore)-1]...), "wrong"), &bytes.Buffer{}))
+		require.NoError(t, run(restore, &bytes.Buffer{}))
+		after, err := messagingcutover.Read(ctx, db)
+		require.NoError(t, err)
+		require.EqualValues(t, 41, after.Version)
+		require.Empty(t, after.Objects)
+		var value int
+		require.NoError(t, db.QueryRow("SELECT value FROM retained_authn WHERE id=1").Scan(&value))
+		require.Equal(t, 3, value)
+		require.Error(t, run(restore, &bytes.Buffer{}), "already restored operation must not reset again")
+	})
+	t.Run("controlled-partial-ddl-dirty-stage-restores-only-original-scope", func(t *testing.T) {
+		secondPath := filepath.Join(directory, "second-protection.json")
+		require.NoError(t, run([]string{"m3-messaging-recovery", "--store-id", "owned-primary", "--writer-epoch", "m3-1", "--export-protection", secondPath}, &bytes.Buffer{}))
+		original, err := os.ReadFile(secondPath)
+		require.NoError(t, err)
+		h := sha256.Sum256(original)
+		// Actual owned MySQL DDL with a controlled dirty42 journal, deliberately not
+		// described as a real migrate-process exit or a network fault.
+		_, err = db.Exec("UPDATE schema_migrations SET version=42,dirty=TRUE; CREATE TABLE rm_tx_binding(owner VARBINARY(128) NOT NULL PRIMARY KEY,store_id VARBINARY(128) NOT NULL,writer_epoch VARBINARY(128) NOT NULL,schema_version INT NOT NULL) ENGINE=InnoDB; UPDATE retained_authn SET value=4 WHERE id=1;")
+		require.NoError(t, err)
+		require.NoError(t, run([]string{"m3-messaging-recovery", "--restore", "--writers-excluded", "--pre-start-restore-attested", "--protection", secondPath, "--reviewed-sha256", hex.EncodeToString(h[:])}, &bytes.Buffer{}))
+		after, err := messagingcutover.Read(ctx, db)
+		require.NoError(t, err)
+		require.EqualValues(t, 41, after.Version)
+		require.Empty(t, after.Objects)
+		var value int
+		require.NoError(t, db.QueryRow("SELECT value FROM retained_authn WHERE id=1").Scan(&value))
+		require.Equal(t, 4, value)
 	})
 }
