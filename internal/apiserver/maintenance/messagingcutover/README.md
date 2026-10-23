@@ -14,3 +14,13 @@ M3唯一总表由infra的`docs/server/rocketmq-m3-execution.md`维护。本组�
 保护候选范围是七个新增协议/业务证据对象和原真实`schema_migrations`，保留AuthN/login/session revocation事实在该范围外。当前入口**不创建保护备份、不执行删除/恢复**，不证明原库备份可恢复；保护/恢复附件和全体旧写者排除仍由C2/T29组合门禁完成。生产实际版本41未核验，前置不符时阻断，不能用夹具或源码head替代T30只读核验。首个新runtime启动命令之后仍禁止旧备份覆盖，遵守infra不可逆启动屏障。
 
 本地仅运行纯/race/编译/lint。`TestM3MessagingOfflineNative`仅GitHub隔离服务运行，缺依赖失败、不skip：使用随机临时schema及最小41夹具验证实际CLI只读预览、拒绝脏版本/错误主库/摘要/新责任、离线DDL、双旧账本排空及绑定/协议共同提交。AuthN保留行在预查后变化且保持，不能据此声称完整生产AuthN/全量恢复验收。
+
+## 限定原范围保护/恢复（后续组件验证中）
+
+`iam-maintenance m3-messaging-recovery --store-id <冻结store> --writer-epoch <冻结epoch> --export-protection <新0600文件>`只接受清洁41、七张新增表尚不存在且两套旧Outbox已排空的原库，保存真实版本表DDL/行及原绑定身份；不复制AuthN或授权业务正文。保护原文件另取独立摘要，不能覆盖或从摘要推导生产批准。
+
+只有唯一协调入口确认整次切换尚未发出任何新runtime启动命令、全体旧写者/在途DDL确实排除后，才允许受审`pre-start-restore`脚本调用`--restore --writers-excluded --pre-start-restore-attested --protection <原文件> --reviewed-sha256 <独立摘要>`。两个布尔参数只是声明，不是自动验证或恢复授权，不能独立手工调用来绕过协调屏障。
+
+恢复持有本工具原锁和真实golang-migrate同名锁，重新读取精确主库、真实版本表DDL和41–45范围内的当前行；外键检查保持开启，不导入SQL文件。任何请求、执行、witness、业务operation或原生notice（包括终态）非空均拒绝；仅允许精确初始binding/协议元数据。只移除本保护证明原先不存在的七个空对象，再用原根CAS恢复原41/clean记录，版本表本身不DROP/重建；不会执行保护文件内的DDL字符串，不触及范围外业务事实。旧Outbox新责任、绑定矛盾、触发器、DDL变化、迁移仍运行或已有新事务都阻断。
+
+DDL与版本行恢复不构成一个数据库事务；任何超时/中断/提交未知保持操作关闭，需要重新核对精确范围及独立受审处置，不能声称恢复完成。恢复成功会由协调屏障关闭本次新启动资格；不能拿同一文件重新开另一轮切换。当前仅本地纯/race/编译/lint，原库/原CLI及部分DDL实际恢复仍待隔离门禁；不勾选C2或生产验收。
