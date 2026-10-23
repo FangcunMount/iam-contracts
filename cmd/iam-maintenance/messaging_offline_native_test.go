@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/FangcunMount/iam/v5/internal/apiserver/maintenance/messagingcutover"
 	driver "github.com/go-sql-driver/mysql"
@@ -128,6 +129,22 @@ func TestM3MessagingOfflineNative(t *testing.T) {
 		require.NoError(t, os.WriteFile(other, raw, 0600))
 		h := sha256.Sum256(raw)
 		require.Error(t, apply(other, hex.EncodeToString(h[:])))
+	})
+	t.Run("original-journal-lock-honors-real-offline-deadline", func(t *testing.T) {
+		blocker, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+		defer func() { _ = blocker.Rollback() }()
+		var version int
+		require.NoError(t, blocker.QueryRowContext(ctx, "SELECT version FROM schema_migrations FOR UPDATE").Scan(&version))
+		require.Equal(t, 41, version)
+		started := time.Now()
+		require.Error(t, run([]string{"m3-messaging", "--apply", "--writers-excluded", "--plan", path, "--reviewed-sha256", schemaSHA, "--timeout", "250ms"}, &bytes.Buffer{}))
+		require.Less(t, time.Since(started), 3*time.Second)
+		require.NoError(t, blocker.Rollback())
+		var dirty bool
+		require.NoError(t, db.QueryRow("SELECT version,dirty FROM schema_migrations").Scan(&version, &dirty))
+		require.Equal(t, 41, version)
+		require.False(t, dirty)
 	})
 	t.Run("additive-offline-migration-keeps-unprotected-authn-facts", func(t *testing.T) {
 		_, err := db.Exec("UPDATE retained_authn SET value=2 WHERE id=1")
