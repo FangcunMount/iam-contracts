@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -152,6 +153,54 @@ func TestM3ActualOwnerDrain(t *testing.T) {
 		return errors.New("committed replay executed business again")
 	}))
 	require.Equal(t, int32(1), calls.Load())
+	protectionCases := map[string]bool{}
+	if os.Getenv("IAM_M3_VERIFY_PROTOCOL_PROTECTION") == "1" {
+		// Change only the binding in this test's owned disposable schema, then
+		// restore it. No business facts/witness/audit outcomes are rewritten.
+		result, e := pool.ExecContext(t.Context(), "UPDATE rm_tx_binding SET writer_epoch=? WHERE owner=? AND writer_epoch=?", []byte("native-invalid-binding"), []byte(proofBinding.Owner), []byte(proofBinding.WriterEpoch))
+		require.NoError(t, e)
+		n, e := result.RowsAffected()
+		require.NoError(t, e)
+		require.EqualValues(t, 1, n)
+		require.Eventually(t, func() bool {
+			status := next.ProtectionStats()
+			return status.Protected && status.Reason == "binding_conflict" && !status.Available && status.ObservationErrors > 0
+		}, 15*time.Second, 50*time.Millisecond)
+		status := next.ProtectionStats()
+		require.True(t, status.SamplerRunning)
+		require.NoError(t, next.CheckReady(t.Context()), "protection stopped the idle protocol owner")
+		require.ErrorIs(t, next.SetAdmission(true), platform.ErrTransactionAdmissionClosed)
+		require.ErrorIs(t, next.Writer.WithinPlannedTx(blockedCtx, request, func(context.Context, appuow.TxRepositories) error {
+			calls.Add(1)
+			return errors.New("protected writer reached business")
+		}), authzuow.ErrWriteAdmissionClosed)
+		require.ErrorIs(t, next.ReviewProtection(status.Generation, "native-binding-review"), platform.ErrProtocolProtection)
+		protectionCases["actual_primary_binding_conflict_latches_current_observation"] = true
+		protectionCases["protected_writer_never_reaches_original_root"] = true
+		protectionCases["idle_checker_owner_stays_live"] = true
+		protectionCases["unhealthy_review_and_plain_open_refused"] = true
+		result, e = pool.ExecContext(t.Context(), "UPDATE rm_tx_binding SET writer_epoch=? WHERE owner=? AND writer_epoch=?", []byte(proofBinding.WriterEpoch), []byte(proofBinding.Owner), []byte("native-invalid-binding"))
+		require.NoError(t, e)
+		n, e = result.RowsAffected()
+		require.NoError(t, e)
+		require.EqualValues(t, 1, n)
+		require.Eventually(t, func() bool {
+			status := next.ProtectionStats()
+			return status.Fresh && status.Available && status.ConfirmationGapBranches == 0
+		}, 15*time.Second, 50*time.Millisecond)
+		require.True(t, next.ProtectionStats().Protected)
+		require.ErrorIs(t, next.ReviewProtection(status.Generation+1, "native-binding-review"), platform.ErrProtocolProtection)
+		require.NoError(t, next.ReviewProtection(status.Generation, "native-binding-review"))
+		require.NoError(t, next.SetAdmission(true))
+		require.NoError(t, next.Writer.WithinPlannedTx(keyCtx, request, func(context.Context, appuow.TxRepositories) error {
+			calls.Add(1)
+			return errors.New("reviewed replay repeated original business")
+		}))
+		require.Equal(t, int32(1), calls.Load())
+		protectionCases["healthy_sampling_does_not_unlatch"] = true
+		protectionCases["exact_generation_named_review_restores_admission"] = true
+		protectionCases["committed_replay_keeps_one_business_execution"] = true
+	}
 	require.NoError(t, next.SetAdmission(false))
 	require.NoError(t, next.CheckReady(t.Context()), "write pause stopped the actual idle Checker")
 	require.ErrorIs(t, next.Writer.WithinPlannedTx(blockedCtx, request, func(context.Context, appuow.TxRepositories) error {
@@ -174,4 +223,11 @@ func TestM3ActualOwnerDrain(t *testing.T) {
 	receipt, err := json.Marshal(map[string]any{"source_sha": source, "scope": "actual IAM owner lifecycle and original root; in-process only", "passed": len(cases), "failed": 0, "skipped": 0, "cases": cases, "business_executions": calls.Load(), "full_api_process_fault_or_system_not_claimed": true})
 	require.NoError(t, err)
 	t.Log("M3_IAM_RUNTIME_RECEIPT " + string(receipt))
+	if len(protectionCases) > 0 {
+		protectionCases["actual_sampler_shutdown_retains_primary_pool"] = !next.ProtectionStats().SamplerRunning
+		require.True(t, protectionCases["actual_sampler_shutdown_retains_primary_pool"])
+		receipt, err := json.Marshal(map[string]any{"source_sha": source, "passed": len(protectionCases), "failed": 0, "skipped": 0, "cases": protectionCases, "business_executions": calls.Load(), "binding_fixture_only": true, "full_api_process_fault_or_system_not_claimed": true})
+		require.NoError(t, err)
+		t.Log("M3_IAM_PROTOCOL_PROTECTION_RECEIPT " + string(receipt))
+	}
 }

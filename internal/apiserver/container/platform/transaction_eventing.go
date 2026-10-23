@@ -82,8 +82,11 @@ func NewTransactionEventing(deps EventingDeps, catalog *eventcatalog.Catalog, ma
 		return nil, err
 	}
 	driver, err := rocketmq.NewTransactionalSender(config, local.Store())
-	runtime := &TransactionRuntime{sender: driver, admission: deps.Messaging.PublishEnabled}
 	if err != nil {
+		return nil, err
+	}
+	runtime := &TransactionRuntime{sender: driver, admission: deps.Messaging.PublishEnabled}
+	if err = attachProtocolMonitor(runtime, local.Store(), config.Limits); err != nil {
 		return nil, err
 	}
 	owner := &TransactionEventing{runtime: runtime, startDone: make(chan struct{}), cleanupBudget: config.Limits.RPCTimeout, maintenance: &operationMaintenance{interval: config.Limits.ReconcileInterval, budget: config.Limits.CheckTimeout, batch: journalBatch, abort: operations.AbortExpired}, preflight: func(ctx context.Context) error {
@@ -252,4 +255,17 @@ func (o *TransactionEventing) Stats() rocketmq.TransactionStats {
 
 func (o *TransactionEventing) OperationStats() OperationMaintenanceStats {
 	return o.maintenance.snapshot()
+}
+
+func (o *TransactionEventing) ProtectionStats() ProtocolProtectionStats {
+	return o.runtime.ProtectionStats()
+}
+func (o *TransactionEventing) ReviewProtection(generation uint64, review string) error {
+	o.mu.Lock()
+	allowed := o.ready && !o.stopping
+	o.mu.Unlock()
+	if !allowed {
+		return ErrProtocolProtection
+	}
+	return o.runtime.ReviewProtection(generation, review)
 }
