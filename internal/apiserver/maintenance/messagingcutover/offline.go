@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"regexp"
+	"time"
 
 	"github.com/FangcunMount/iam/v5/internal/pkg/migration"
 )
@@ -207,7 +208,7 @@ func Validate(p Plan) error {
 }
 
 // Apply owns all connections opened by open. The independent lock connection
-// survives RunTo's documented pool Close. It does not exclude old business
+// remains independent of the owned migration connection. It does not exclude old business
 // writers: the reviewed coordinator/host deployment locks and writer freeze do.
 func Apply(ctx context.Context, p Plan, open func() (*sql.DB, error)) error {
 	if err := Validate(p); err != nil {
@@ -229,8 +230,10 @@ func Apply(ctx context.Context, p Plan, open func() (*sql.DB, error)) error {
 		return ErrRefused
 	}
 	defer func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 		var released sql.NullInt64
-		_ = lock.QueryRowContext(context.Background(), "SELECT RELEASE_LOCK(?)", lockName).Scan(&released)
+		_ = lock.QueryRowContext(cleanup, "SELECT RELEASE_LOCK(?)", lockName).Scan(&released)
 	}()
 	current, err := Read(ctx, lockDB)
 	if err != nil {
@@ -247,7 +250,7 @@ func Apply(ctx context.Context, p Plan, open func() (*sql.DB, error)) error {
 			return ErrRefused
 		}
 		defer func() { _ = migrateDB.Close() }()
-		version, _, err := migration.NewMigrator(migrateDB, &migration.Config{Enabled: true, Database: p.Before.Database}).RunTo(45)
+		version, err := migration.RunMessagingOffline(ctx, migrateDB, p.Before.Version)
 		if err != nil || version != 45 {
 			return ErrRefused
 		}
