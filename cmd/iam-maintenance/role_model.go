@@ -170,6 +170,10 @@ func writeRoleReport(output io.Writer, value any, status rolemodel.StatusReport)
 // Credentials remain in process environment. Driver Config escapes special
 // characters correctly and connection failures never print a DSN.
 func roleDatabase(prefix string) (*gorm.DB, error) {
+	return roleDatabaseOptions(prefix, false)
+}
+
+func roleDatabaseOptions(prefix string, multiStatements bool) (*gorm.DB, error) {
 	get := func(key string) string { return strings.TrimSpace(os.Getenv(prefix + "MYSQL_" + key)) }
 	host := get("HOST")
 	port := get("PORT")
@@ -198,6 +202,7 @@ func roleDatabase(prefix string) (*gorm.DB, error) {
 	cfg.Addr = net.JoinHostPort(host, port)
 	cfg.DBName = database
 	cfg.ParseTime = true
+	cfg.MultiStatements = multiStatements
 	cfg.Loc = timezone.Location
 	cfg.Params = map[string]string{"time_zone": "'+08:00'"}
 	cfg.Timeout = 8 * time.Second
