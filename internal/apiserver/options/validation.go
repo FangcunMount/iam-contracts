@@ -14,6 +14,9 @@ import (
 // Validate 验证命令行参数
 func (o *Options) Validate() []error {
 	var errs []error
+	if err := o.ValidateTransactionStartupPolicy(); err != nil {
+		errs = append(errs, err)
+	}
 	if err := o.Messaging.Validate(); err != nil {
 		errs = append(errs, err)
 	}
