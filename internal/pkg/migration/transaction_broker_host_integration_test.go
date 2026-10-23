@@ -101,7 +101,7 @@ func ownedM3BrokerDatabase(t *testing.T) (*sql.DB, *gorm.DB) {
 		t.Fatal("owned migration pool unavailable")
 	}
 	version, _, err := NewMigrator(migrationPool, &Config{Enabled: true, Database: name, FreshStages: freshStagesForTest(t, db)}).Run()
-	if err != nil || version != 44 {
+	if err != nil || version != 45 {
 		t.Fatal("explicit full IAM installation failed")
 	}
 	// These are generated migration seed notifications, in this newly-created

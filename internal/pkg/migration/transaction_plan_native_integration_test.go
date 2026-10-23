@@ -73,7 +73,7 @@ func TestM3PlannedPolicyNative(t *testing.T) {
 	}
 	defer migrationPool.Close()
 	version, _, err := NewMigrator(migrationPool, &Config{Enabled: true, Database: name, FreshStages: freshStagesForTest(t, host)}).Run()
-	if err != nil || version != 44 {
+	if err != nil || version != 45 {
 		t.Fatal("full original host schema", version, err)
 	}
 	if err = db.PingContext(t.Context()); err != nil {

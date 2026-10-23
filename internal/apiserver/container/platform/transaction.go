@@ -10,7 +10,7 @@ import (
 
 // NewTransactionalSender borrows the host primary store and performs no DB or
 // Broker calls. Host composition must explicitly Start, gate and drain it.
-func NewTransactionalSender(o options.MessagingOptions, store transaction.PreparedStore, topics []string) (*TransactionRuntime, error) {
+func NewTransactionalSender(o options.MessagingOptions, store transaction.PreparedStore, topics []string, native NativeLimitReader) (*TransactionRuntime, error) {
 	const owner = "iam.mysql"
 	binding, ok := o.Transactions[owner]
 	if !ok || store == nil || store.Binding() != (transaction.Binding{Owner: owner, StoreID: binding.StoreID, WriterEpoch: binding.WriterEpoch}) {
@@ -25,7 +25,7 @@ func NewTransactionalSender(o options.MessagingOptions, store transaction.Prepar
 		return nil, err
 	}
 	runtime := &TransactionRuntime{sender: sender, admission: o.PublishEnabled}
-	if err = attachProtocolMonitor(runtime, store, config.Limits); err != nil {
+	if err = attachProtocolMonitor(runtime, store, config.Limits, native); err != nil {
 		return nil, err
 	}
 	return runtime, nil

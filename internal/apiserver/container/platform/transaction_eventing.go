@@ -81,12 +81,16 @@ func NewTransactionEventing(deps EventingDeps, catalog *eventcatalog.Catalog, ma
 	if err != nil {
 		return nil, err
 	}
+	native, err := NewSQLNativeLimits(pool, local.Store().Binding(), binding.RouteRevision)
+	if err != nil {
+		return nil, err
+	}
 	driver, err := rocketmq.NewTransactionalSender(config, local.Store())
 	if err != nil {
 		return nil, err
 	}
 	runtime := &TransactionRuntime{sender: driver, admission: deps.Messaging.PublishEnabled}
-	if err = attachProtocolMonitor(runtime, local.Store(), config.Limits); err != nil {
+	if err = attachProtocolMonitor(runtime, local.Store(), config.Limits, native); err != nil {
 		return nil, err
 	}
 	owner := &TransactionEventing{runtime: runtime, startDone: make(chan struct{}), cleanupBudget: config.Limits.RPCTimeout, maintenance: &operationMaintenance{interval: config.Limits.ReconcileInterval, budget: config.Limits.CheckTimeout, batch: journalBatch, abort: operations.AbortExpired}, preflight: func(ctx context.Context) error {
