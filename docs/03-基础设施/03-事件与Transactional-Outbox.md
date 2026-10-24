@@ -1,6 +1,6 @@
 # 事件、Outbox 交接与投递结果
 
-> 状态：已实现 · 依据 IAM 当前装配及锁定 reliable-messaging v0.5.0-rocketmq-tx.2 / go-nsq v1.1.0；源码条件、离线测试和运行接受分别标明。
+> 状态：已实现 · 依据 IAM 当前装配及锁定 reliable-messaging v0.5.0 / go-nsq v1.1.0；源码条件、离线测试和运行接受分别标明。
 
 ## RocketMQ 普通消息接入
 
@@ -12,7 +12,7 @@ RocketMQ 配置要求 endpoint、credentials_file、ca_file、routes_file 和稳
 
 ## M3 独立事务模式候选
 
-固定Go修订预发布`v0.5.0-rocketmq-tx.2`修复Broker指标回写与ACK hook并发访问meter的race；公开事务API、wire、schema及原结算语义不变。原事务和HTTP验收必须使用下载的正式模块，源码合并或SDK发布不代表IAM生产切换。
+固定Go稳定版`v0.5.0`包含先前修订预发布的修复：Broker指标回写与ACK hook并发访问meter的race；公开事务API、wire、schema及原结算语义不变。原事务和HTTP验收必须使用下载的正式模块，源码合并或SDK发布不代表IAM生产切换。
 
 事务模式显式配置 `messaging.transactions.iam.mysql`、version2 路由和 `configs/events-m3.yaml`，关闭标准 Outbox 的 enabled 开关；两种写模式不能同时启用。`events.reliable_messaging.shutdown_timeout` 继续提供宿主退出预算，独立于旧 Outbox 是否开启。SDK、连接池和 Checker 的生命周期由宿主管理，公开幂等 API 与生产切换仍按 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)验收。
 
@@ -253,7 +253,7 @@ ReliableRuntime 对 Run 错误或意外 nil 串行等待 RestartDelay 重启，�
 
 ## M3 T24：事务协议观测与准入保护
 
-RocketMQ owner 使用固定预发布 Go `v0.5.0-rocketmq-tx.4`。`container/platform` 在显式 Start 中先完成原主库初次协议读取，再注册 Producer；之后每 5 秒采样，数据库预算 2 秒。构造不执行读取/DDL，不启动 goroutine。现有 `/metrics` 默认 registry 增加 `reliable_messaging_transaction_` 固定 owner/阶段/结果指标；抓取只访问缓存和真实 SDK 计数，不触发数据库工作。
+RocketMQ owner 使用固定稳定版 Go `v0.5.0`。`container/platform` 在显式 Start 中先完成原主库初次协议读取，再注册 Producer；之后每 5 秒采样，数据库预算 2 秒。构造不执行读取/DDL，不启动 goroutine。现有 `/metrics` 默认 registry 增加 `reliable_messaging_transaction_` 固定 owner/阶段/结果指标；抓取只访问缓存和真实 SDK 计数，不触发数据库工作。
 
 确认缺口是终态分支缺少正向最终 audit 的观测责任，不等于实际 Broker 积压，历史 `FinalUnknown` 也不能代替当前未决数。准备增龄从 lease 过期计算，lease 到期不是回滚证明。缺半消息 audit 的 Aborted 单独计量，不能断言它已发送。Checker 的 Commit 决定、实际恢复 RPC 确认和 audit 写回分别记录，消费业务效果仍需原回执证明。
 
@@ -264,3 +264,8 @@ RocketMQ owner 使用固定预发布 Go `v0.5.0-rocketmq-tx.4`。`container/plat
 关闭先停止准入并等待真实 SDK 工作，再关闭/等待采样。忽略取消的数据库工作仍占用该采样器容量；超时保留 ShutdownIncomplete，宿主池必须继续保留至实际 Wait 完成。`sdk_stopped` 与 `sampler_running` 分开报告，不能把 SDK 关闭等同宿主责任已全部结束。
 
 目标 race、现有 `/metrics` HTTP 合同和 lint 已通过；`transaction_runtime_native_integration_test.go` 的扩展 profile 使用自有临时 MySQL 绑定冲突，证明实际 writer 受保护、空闲 Checker 保留、权威读取恢复后仍须具名复核且原业务只执行一次。新 profile 的实库/Broker 验证由 infra 隔离 CI 完成，尚不表示生产/system 接受。唯一进度与门禁见 [infra M3 总表](https://github.com/FangcunMount/infra/blob/main/docs/server/rocketmq-m3-execution.md)。
+
+
+## T28 稳定制品依赖候选
+
+当前go.mod锁定已正式发布的Go `v0.5.0`，tag源码1345266aa0e864c46de5d1e3e3c939dd8002a890，模块Sum `h1:JUayISCwmVwrLbHfLvgiOo3jr3Dxs7JfWeF3/Br45O0=`；无本地replace。只升级正式依赖，不启用生产provider、DDL或业务准入；原事务、宿主生命周期和system接受继续按infra总表分别验收。源码CI和实际宿主稳定制品门禁通过前不视为T28完成。
