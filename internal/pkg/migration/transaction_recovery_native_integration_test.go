@@ -5,6 +5,7 @@ package migration
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -140,7 +141,7 @@ func TestM3ActualOwnerNativeRecovery(t *testing.T) {
 	require.NoError(t, pool.QueryRowContext(t.Context(), "SELECT reference FROM rm_tx_witness").Scan(&raw))
 	ref, err := transaction.DecodeReference(raw)
 	require.NoError(t, err)
-	write("half.json", map[string]any{"database": database, "owner": binding.Owner, "store_id": binding.StoreID, "writer_epoch": binding.WriterEpoch, "operation_id": ref.OperationID, "branch_id": ref.BranchID, "fence": ref.Fence, "message_id": ref.MessageID})
+	write("half.json", map[string]any{"database": database, "owner": binding.Owner, "store_id": binding.StoreID, "writer_epoch": binding.WriterEpoch, "operation_id": ref.OperationID, "branch_id": ref.BranchID, "fence": ref.Fence, "message_id": ref.MessageID, "wire_hash": hex.EncodeToString(ref.WireHash[:])})
 	wait("commit") // Broker must already be disconnected by the isolated caller.
 	close(release)
 	select {
